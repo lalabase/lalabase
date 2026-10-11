@@ -1,0 +1,560 @@
+---
+en:
+  views:
+    shared:
+      consent:
+        accept_terms_business_html: I am acting as an entrepreneur within the meaning
+          of Section 14 of the German Civil Code (BGB), I accept the %{terms_link}
+          and have taken note of the %{privacy_link}.
+        accept_terms_html: I accept the %{terms_link} and have taken note of the %{privacy_link}.
+        terms_link_text: Terms and Conditions
+        privacy_link_text: Privacy Policy
+    admin:
+      user_activities:
+        show:
+          back_to_overview: Back to overview
+          action: Action
+          category: Category
+          user: User
+          timestamp: Timestamp
+          time_ago: "%{time} ago"
+          organisation: Organisation
+          ip_address: IP address
+          description: Description
+          failure_reason: Failure reason
+          technical_details: Technical details
+          changes: Changes
+          more_activities_in_session: More activities in this session
+          previous_activity: Previous activity
+          next_activity: Next activity
+        user_activities:
+          breadcrumb_admin: Admin
+          breadcrumb_users: Users
+          breadcrumb_activities: Activities
+          title: Activity history
+          user_label: 'User: %{email}'
+          back_to_profile: Back to profile
+          export_csv: Export CSV
+          stat_total_activities: Total activities
+          stat_last_login: Last login
+          never: Never
+          stat_last_ip: Last IP
+          stat_total_logins: Logins (total)
+          stat_security_events: Security events
+          activities_by_category: Activities by category
+          recent_sessions: Recent sessions
+          session_login: Login
+          session_logout: Logout
+          full_activity_log: Full activity history
+          th_time: Time
+          th_action: Action
+          th_category: Category
+          th_status: Status
+          th_details: Details
+          th_ip_address: IP address
+          th_action_col: Action
+          status_success: Successful
+          status_failed: Failed
+          status_pending: Pending
+          no_activities: No activities found for this user
+          showing_count: Showing %{count} of a maximum of 100 activities
+      users:
+        notification_settings:
+          title: Notification settings
+          ticket_notifications: Ticket notifications
+          on_status_change: On status change
+          on_priority_change: On priority change
+          on_comment: On comment
+          auto_follow_created: Automatically follow created tickets
+          'on': 'On'
+          'off': 'Off'
+          event_settings: Event settings
+          org_level: "(Organisation level)"
+          th_event: Event
+          th_in_app: In-app
+          th_email: Email
+          no_custom_settings: No custom settings
+          all_defaults_active: All system defaults active
+        role_select:
+          role: Role
+          select_role: Select role...
+        new:
+          title: Create new user
+          subtitle: Create a new user with a new or existing organisation.
+          user_information: User information
+          first_name: First name
+          last_name: Last name
+          email: Email address
+          temp_password_hint: The user will receive a temporary password that is shown
+            after creation.
+          user_is_active: User is active
+          active_hint: Only active users can log in and use the system.
+          organisation: Organisation
+          create_new_organisation: Create new organisation
+          add_to_existing_organisation: Add to existing organisation
+          organisation_name: Organisation name
+          subdomain_optional: Subdomain (optional)
+          subdomain_hint: Used for URL access (e.g. muster-gmbh.lalabase.com)
+          custom_domain_optional: Custom domain (optional)
+          custom_domain_hint: Custom domain for the organisation
+          select_organisation: Select organisation...
+          select_organisation_first: Please select an organisation first.
+          back_to_overview: Back to overview
+          create_user: Create user
+          important_info_title: Important information
+          important_info_new_org_html: 'For a <strong>new organisation</strong>: the
+            user is automatically set up as account admin'
+          important_info_existing_org_html: 'For an <strong>existing organisation</strong>:
+            the selected role is assigned to the user'
+          important_info_temp_password: A temporary password is generated and shown
+            after creation
+          important_info_change_password: The user should change this password on
+            first login
+    devise:
+      registrations:
+        new:
+          mockup_steps_eyebrow: Getting started
+          mockup_step_create_account: Create account
+          mockup_step_create_project: Create first project
+          mockup_step_invite_team: Invite team
+      sessions:
+        new:
+          mockup_eyebrow: Your inbox is waiting
+          mockup_new_tickets: 3 new tickets waiting
+          mockup_commented: Maria commented
+          mockup_time_tracking: Time tracking running
+    helpers:
+      application:
+        unknown_user: Unknown user
+        document_fallback: Document
+        time_session_for: Time session for %{title}
+        status_label: 'Status:'
+        priority_label: 'Priority:'
+        event_description:
+          mention: When you are mentioned in comments or tickets
+          ticket_assigned: When a ticket is assigned to you
+          ticket_blocker: When the priority of a ticket changes
+          ticket_commented: When someone comments on a ticket
+          ticket_status_changed: When the status of a ticket changes
+          document_added: When new documents are added to projects
+          project_announcement: Important project announcements
+          system_message: System messages and administrative notices
+          index_completed: When the code indexing of a connected repository is completed
+          index_failed: When the code indexing of a repository fails
+      roles:
+        descriptions:
+          accounts:
+            add_edit_delete_roles: Allows creating, editing and deleting roles.
+            create_account_admins: Allows creating account administrators.
+            manage_users: Allows managing all users of the organisation.
+            remove_account_admins: Allows removing account administrator permissions.
+            close_account: Allows closing the entire account of the organisation.
+          projects:
+            change_project_properties: Allows changing project properties such as
+              name and description and editing project members.
+            create_new_projects: Allows creating new projects in the organisation.
+            delete_projects: Allows deleting projects.
+            read_access_chats_all_projects: Grants read access to the chat areas of
+              all projects in the organisation.
+            read_access_notes_all_projects: Grants read access to the note areas of
+              all projects in the organisation.
+            read_access_tickets_all_projects: Grants read access to the ticket areas
+              of all projects in the organisation.
+            read_access_documents_all_projects: Grants read access to the document
+              areas of all projects in the organisation.
+            read_access_time_tracking_all_projects: Grants read access to the time
+              tracking of all projects in the organisation.
+            write_access_chats_all_projects: Grants write access to the chat areas
+              of all projects in the organisation.
+            write_access_notes_all_projects: Grants write access to the note areas
+              of all projects in the organisation.
+            write_access_tickets_all_projects: Grants write access to the ticket areas
+              of all projects in the organisation.
+            write_access_documents_all_projects: Grants write access to the document
+              areas of all projects in the organisation.
+            write_access_time_tracking_all_projects: Grants write access to the time
+              tracking of all projects in the organisation.
+          tickets:
+            delete_tickets: Allows deleting tickets and their associated content.
+            move_tickets: Allows moving tickets to other projects.
+          users:
+            view_user_contact_details: Allows viewing contact details of other users.
+            view_user_full_name: Allows viewing full names of other users.
+          assistant:
+            use_assistant: Allows using the org-wide AI assistant.
+          none_available: No description available
+        categories:
+          assistant: Assistant
+          accounts: Accounts & Organisations
+          projects: Projects
+          tickets: Tickets
+          users: Users
+    layouts:
+      docs:
+        title_with_page: "%{page} · Lalabase Docs"
+        title_default: Lalabase Documentation
+    organisations:
+      briefings:
+        onboarding_banner:
+          title: This is your organisation — your own space in Lalabase.
+          body: The best place to start is the “%{project_name}” project — a few short tasks show you how Lalabase works.
+          cta: Get started
+          dismiss: Hide this hint
+      new_organisation_form:
+        name_label: Organisation name
+        name_placeholder: e.g. My Company Ltd.
+        admin_hint: You will automatically become the administrator of the new organisation.
+        merge_warning_html: "<strong>Heads up:</strong> Only create a separate organisation
+          for a standalone entity (another company, legal entity, separate billing).
+          Organisations <strong>cannot be merged</strong> later &mdash; for departments
+          or teams, <strong>projects</strong> are the better choice."
+        cancel: Cancel
+        submit: Create organisation
+      accept_invitations:
+        show:
+          title: Accept invitation
+          errors_heading: 'Errors:'
+          email_label: Email address
+          password_label: Password
+          password_confirmation_label: Confirm password
+          submit: Accept invitation
+          signed_in_hint: You are signed in with this email address. The invitation will be added to your existing account.
+          wrong_account_hint: You are signed in as %{email}. Sign out and open the invitation link again, or ask for an invitation to this address.
+        success:
+          title: Invitation accepted successfully
+          message_can_sign_in: Your invitation was accepted successfully. You can
+            now sign in.
+          message: Your invitation was accepted successfully.
+      memberships:
+        edit:
+          role_blank: No role assigned
+          active_label: Active member
+      notes:
+        note_show:
+          edit_title: Edit note
+          embedding_error_title: 'Error creating embeddings: %{error}'
+      permissions:
+        index:
+          title: Permissions for role "%{role}"
+          back_to_roles: Back to roles
+      posts:
+        edit:
+          content_placeholder: Enter message...
+        form:
+          content_placeholder: Enter message...
+          unavailable: The form cannot be displayed. Please refresh the page.
+        edit_view:
+          content_placeholder: Enter message...
+          remove_attachment: Remove
+          attach_files: Attach files
+          ask_ai: Ask the AI for help
+          delete: Delete
+          cancel: Cancel
+          update: Update
+      power_search:
+        index:
+          title: Search results
+        power_search_results:
+          match_fulltext: Full-text match
+          match_semantic: Semantic match
+          match_unknown: Unknown match
+      activities:
+        shared:
+          empty_title: No activities found
+          empty_filtered: No activities were found that match your filter criteria.
+          reset_filter: Reset filters
+          empty_none: No activities have been recorded for this project yet.
+      roles:
+        edit:
+          badge_default: Default role
+          badge_admin: Administrator
+          badge_custom: Custom role
+          error_noun: error
+          error_prevented: 'prevented this role from being saved:'
+          label_title: Title
+          label_description: Description
+          permissions: Permissions
+          permissions_intro: Select the permissions to assign to this role. These
+            permissions apply to all users who have this role.
+          category_hint: Select a category below to configure specific permissions
+          tab_project_details: Project details
+          group_read: Read permissions
+          group_write: Write permissions
+          group_other: Other permissions
+          group_permissions: Permissions
+          project_scope_info: Use the area-specific permissions to control in detail
+            which users can access which project data. The permissions are organized
+            by functional area (tickets, notes, chats, documents, time tracking).
+      select:
+        unread_title:
+          one: 1 unread notification
+          other: "%{count} unread notifications"
+        faq_heading: Help & explanations
+        faq_q_org: What is an organisation?
+        faq_q_project: What is a project?
+        faq_q_when: When should I create a new organisation?
+        faq_q_membership: Can I be a member of multiple organisations?
+        info_org_html: An <strong>organisation</strong> is your company or team. It
+          provides the framework for members, roles and permissions. All data is strictly
+          separated by organisation.
+        info_projects_html: "<strong>Projects</strong> are workspaces within an organisation.
+          They contain tickets, documents and time tracking. A team can manage any
+          number of projects."
+        faq_a_when_html: Only create a new organisation if it is a standalone entity
+          &mdash; e.&thinsp;g. another company, a separate legal entity or an area with
+          its own billing. Data between organisations <strong>cannot be merged</strong>
+          later. Most use cases (departments, teams, topic areas) are better represented
+          with <strong>projects</strong> within an organisation.
+        info_membership_html: You can be a member of multiple organisations &mdash;
+          for example if you work in different companies or teams. You can switch
+          between organisations here at any time.
+        your_organisations: Your organisations
+        cockpit:
+          needs_you:
+            one: 1 thing needs you
+            other: "%{count} things need you"
+          subtitle: Across all your organisations.
+          tasks_count:
+            one: 1 task
+            other: "%{count} tasks"
+          load_error: Could not load this organisation right now.
+          open_org: View all
+          open_org_aria: Open all items in %{org}
+          unread_count:
+            one: 1 unread
+            other: "%{count} unread"
+          empty_title: All quiet
+          empty_description: Nothing needs you across any of your organisations right now.
+          rows:
+            organisation: Organisation
+            tasks: Tasks
+            todos: My to-dos
+            quiet: all quiet
+            members:
+              one: 1 member
+              other: "%{count} members"
+            overdue: overdue
+            new_organisation: New organisation
+        cockpit_settings:
+          gear_label: Cockpit settings
+          title: Cockpit settings
+          actions_label: Org tasks
+          actions_help: What needs you across all organisations.
+          show: show
+          importance_label: Importance
+          importance_help: How strictly to filter.
+          importance:
+            notifications: Notifications only
+            notifications_help: Unread items only.
+            important: Important
+            important_help: Unread + overdue / high priority.
+            all: Everything
+            all_help: All assigned active tasks.
+          todos_label: Personal to-dos
+          todos_help: Your private list per organisation.
+          layout_label: Layout
+          layout_help: How the cockpit is arranged.
+          layout:
+            stacked: Stacked
+            rows_compact: Rows compact
+            rows_detailed: Rows detailed
+          save: Save
+          cancel: Cancel
+        todos:
+          heading: My to-dos
+          priority:
+            medium: Medium
+            high: High
+      smart_folders:
+        form:
+          error_noun: error
+          error_on_save: 'while saving:'
+          sorting_label: Sorting
+          rules_hint_1: Define one or more rule groups.
+          rules_hint_2: Rules within a group are combined with AND.
+          rules_hint_3: Groups are combined with OR.
+          columns_chosen_in_list: Which columns this view shows is chosen at the list, with the sliders icon at the end of the header row.
+        edit:
+          title: Edit smart folder
+        new:
+          title: New smart folder
+      tags:
+        tag_form:
+          placeholder: Enter tags, separated by commas
+          hint: Separate tags with commas (e.g. "important, meeting, todo")
+        tag_list:
+          label: Tags
+      ticket_attribute_definitions:
+        form:
+          errors_prevent_save: "%{count} error(s) prevent saving:"
+          label_de_placeholder: e.g. Customer type
+          label_en_placeholder: e.g. Customer Type
+          required_label: Required field
+          min_length_label: Min. length
+          max_length_label: Max. length
+          more_settings_heading: More settings
+          section_placeholder: e.g. general, contact, technical
+          section_hint: Groups fields into sections
+          width_label: Field width
+          width_full: Full width
+          width_half: Half width
+          width_third: One third
+          active_label: Active
+          usage_tickets:
+            one: "%{count} ticket"
+            other: "%{count} tickets"
+          merge_option_link: Merge
+        merge_option:
+          project_label: Project
+          attribute_label: Attribute
+          field_type_label: Field type
+          source_option_label: Source option (will be removed)
+          target_option_label: Target option (values are moved here)
+          target_option_prompt: Select target option...
+          affected_tickets:
+            one: "%{count} ticket affected"
+            other: "%{count} tickets affected"
+          affected_hint: These tickets are automatically rewritten to the new value.
+          none_affected_hint: No tickets use this value. The option is only removed.
+          smart_folders_hint_title: Note on smart folders
+          smart_folders_hint_body: Smart folder rules that use the source value are
+            not updated automatically and must be adjusted manually.
+      tickets:
+        overdue: "overdue"
+        due_on: "due on %{date}"
+        overdue_since: "overdue since %{date}"
+        due_today: "due today"
+        update:
+          errors_found: "%{count} error(s) found:"
+          success_message: Task was updated successfully.
+        detail_settings_modal:
+          preview:
+            heading_date: 3 days ago
+            example_task: Example task
+            subtask_example_1: Deliver copy
+            subtask_example_2: Source images
+            status_new: New
+            priority_high: High
+            time_verbose: 2.50 hours (total)
+            subscriber_you: You
+      time_sessions:
+        show_errors:
+          errors_count:
+            one: "%{count} error"
+            other: "%{count} errors"
+          found_suffix: 'found:'
+  components:
+    neo_activity_filter:
+      add_filter: Filter
+      reset_button: Reset
+      search_label: Search activities
+      search_placeholder: Search
+      remove_filter: "Remove %{label} filter"
+      result_count:
+        one: activity
+        other: activities
+      tabs:
+        label: Activity view
+        all: All
+        mine: By me
+        tickets: Tickets only
+      sentence:
+        all: All changes
+        filtered: Changes only
+        and: and
+      categories:
+        area: Area
+        action: Action
+        actor: Person
+        period: Period
+      areas:
+        tickets: Tickets
+        knowledge: Knowledge
+        times: Time
+        administration: Administration
+      periods:
+        last_7_days: Last 7 days
+        last_30_days: Last 30 days
+        in_month: "in %{month}"
+        custom: Custom period
+        apply: Apply
+        from: from
+        until: until
+      actions:
+        created: Created
+        updated: Updated
+        deleted: Deleted
+        status_changed: Status changed
+        priority_changed: Priority changed
+        title_changed: Title changed
+        description_changed: Description changed
+        assigned: Assigned
+        unassigned: Assignment removed
+        comment_added: Comment added
+        post_added: Comment added
+        moved: Moved
+        moved_in: Moved into project
+        moved_out: Moved out of project
+        ticket_created: Ticket created
+        ticket_moved_in: Moved into project
+        ticket_moved_out: Moved out of project
+        document_created: Document created
+        note_created: Note created
+        chat_created: Chat created
+        meeting_created: Meeting created
+        meeting_deleted: Meeting deleted
+        smart_folder_created: Smart folder created
+        codebase_imported: Codebase imported
+        started: Started
+        stopped: Stopped
+        paused: Paused
+        resumed: Resumed
+        member_added: Member added
+        member_removed: Member removed
+        permission_changed: Permission changed
+        role_changed: Role changed
+    neo_autosuggest:
+      placeholder: Select...
+      blank_text: All
+      server:
+        hint: Type a number or a title
+        loading: Searching …
+        empty: No matches
+        error: The search failed. Please type again.
+    neo_notification_card:
+      mark_read_title: Mark as read
+      show: Show
+      archive_title: Archive
+      from: 'From:'
+      go_to_ticket_title: Go to ticket
+      ticket: Ticket
+      read: Read
+      archive: Archive
+      event_labels:
+        ticket_commented: New comment
+        ticket_assigned: Assigned
+        ticket_unassigned: Assignment removed
+        ticket_status_changed: Status changed
+        ticket_created: Ticket created
+        ticket_updated: Ticket updated
+        ticket_closed: Ticket closed
+        mention: Mention
+        document_added: Document added
+        project_announcement: Project announcement
+      more_activities:
+        one: and 1 more activity
+        other: and %{count} more activities
+      fallback_message: 'Notification: %{actor} performed an action on %{notifiable}'
+      document_fallback: Document
+    neo:
+      buttons:
+        delete_button:
+          confirm: Are you sure?
+          title: Delete
+        watch_button:
+          override_active: Manually enabled
+          override_inactive: Manually disabled
+          text_active: 'On'
+          text_inactive: 'Off'
+          title_deactivate: Disable notifications
+          title_activate: Enable notifications

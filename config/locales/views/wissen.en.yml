@@ -1,0 +1,181 @@
+en:
+  views:
+    wiki:
+      mentions:
+        untitled: Untitled
+    organisations:
+      knowledge:
+        index:
+          title: Knowledge
+          search_placeholder: Search notes and files...
+          filter_all_types: All types
+          filter_type_label: Type
+          filter_notes: Notes
+          filter_documents: Files
+          filter_tag: Tags
+          filter_creator: Creator
+          filter_created_at: Created at
+          filter_updated_at: Updated at
+          date_preset_today: Today
+          date_preset_yesterday: Yesterday
+          date_preset_last_7_days: Last 7 days
+          date_preset_last_30_days: Last 30 days
+          date_preset_this_week: This week
+          date_preset_this_month: This month
+          all_items: All entries
+          item_deleted_note: Note has been deleted.
+          item_deleted_document: File has been deleted.
+          item_deleted_description: Please select another entry from the list.
+          placeholder_title: Please select an entry from the list
+          placeholder_body: The content of the selected entry will be shown here.
+          mobile_list_view: List view
+          remove_filter: Remove filter
+          clear_all_filters: Clear all
+          no_filter_options: No options available
+          no_tag_options: No entry in this project has a tag yet. Once you add tags to entries, you can filter by them here.
+          filter_op_or: is
+          filter_op_and: is all
+          filter_op_not: is not
+          filter_op_logic_label: Logic
+          filter_connector_and: and
+          filter_connector_or: or
+          save_as_smart_folder: Save filter
+          save_filter_title: Save filter as Smart Folder
+          save_filter_name_label: Name
+          save_filter_name_placeholder: e.g. Project documents
+          save_filter_save_button: Save
+          save_filter_cancel_button: Cancel
+          save_filter_unsupported_hint: Some filters cannot be converted and will be skipped.
+          filter_bar:
+            saved_filters: Saved Filters
+            more_filters: "+%{count} more"
+            search_placeholder: Search entries
+            add_filter: Filter
+            sentence_subject: entries
+            search_depth_label: Search depth
+            search_depth_title_only: Title only
+            search_depth_title_content: Title + Content
+            search_depth_everything: Everything
+            search_depth_quick: Quick
+            search_depth_standard: Standard
+            search_depth_deep: Deep
+            chip_row_label: 'Entries matching:'
+            edit_smart_folder: Edit filter
+            close_filter: Close filter
+            filter_changed: Filter has been changed.
+            filter_save_changes: Save changes?
+            filter_discard_changes: Discard
+            filter_saved: Saved
+            filter_save_error: Save failed
+            expert_filter: Expert Filter
+            expert_filter_description: Filter with advanced rules
+            chip_tooltip_or: Any of these criteria must match
+            chip_tooltip_and: All criteria must match
+            chip_tooltip_not: These criteria are excluded
+            chip_tooltip_saved_filter: 'Saved filter: %{name}'
+          new_note: Write note
+          new_document: Upload file
+          empty_first_time_title: No knowledge yet
+          empty_first_time_description: Create a note or upload a file.
+          empty_no_results: No results found
+          explainer:
+            title: What is knowledge?
+            point_files: Store files of any kind here — PDFs, Word, Excel, PowerPoint and more.
+            point_notes: Or write a note directly in Lalabase when you just want to capture something.
+            point_search: Everything stored here can be found again later via search.
+            point_chat: If you like, the AI chat also uses this knowledge and answers questions about it.
+            not_title: Difference to documentation
+            not_body: Documentation is mirrored automatically from the project repository — knowledge is something you maintain yourself, right here in Lalabase.
+        lane:
+          back_to_list: All entries
+          close: Close entry
+          ask_assistant:
+            note: Ask the assistant about this note
+            document: Ask the assistant about this file (the current version is what gets read)
+        knowledge_results:
+          title_header: Title
+          created_at_header: Created at
+          tags_header: Tags
+        knowledge_row:
+          note_type: Note
+          document_type: File
+      notes:
+        show:
+          title: Notes
+          new_note: New Note
+          list_tab: List
+          chat_heading: Chat
+          chat_placeholder: In the future, a chat related to the current note could be displayed here.
+          chat_in_development: Chat feature in development
+        index:
+          placeholder_title: Please select a note from the list
+          placeholder_body: The content of the selected note is shown here.
+          title: Notes
+          new_note_tooltip: Create new note
+          search_placeholder: Search in notes
+          select_note_hint: Please select a note from the list
+          note_content_hint: The content of the selected note will be displayed here.
+          chat_heading: Chat
+          chat_placeholder: In the future, a chat related to the current note could be displayed here.
+          chat_in_development: Chat feature in development
+        note_show:
+          edit_note: Edit note
+          searchable: Searchable
+          embedding_error: Embedding error
+          processing: Processing
+        note_edit:
+          title_placeholder: Note title
+          cancel: Cancel
+          delete: Delete
+          save: Save
+        notes_results:
+          title: Title
+          created_at: Created at
+          tags: Tags
+      note_versions:
+        index:
+          title: Version history
+          empty: No versions yet.
+        show:
+          title: Changes in this version
+          initial: First version
+          no_changes: No changes in this version.
+        shared:
+          back_to_note: Back to note
+          back_to_history: Back to history
+          history_link: History
+          system_author: System
+      posts:
+        edit:
+          remove_attachment: Remove
+          attach_files: Attach files
+          ask_ai: Ask AI for help
+          delete: Delete
+          cancel: Cancel
+          update: Update
+          message_placeholder: Enter message...
+        form:
+          attach_files: Attach files
+          ask_ai: Ask AI for help
+          private_post: Private post (only visible to me)
+          cancel: Cancel
+          send: Send
+          message_placeholder: Enter message...
+          form_error: Form cannot be displayed. Please refresh the page.
+          status_label: Set status
+          status_hint: 'Optional: Change the ticket status together with this comment.'
+          write_comment: Write a comment …
+          format: Format
+          file: File
+          change_status: Change status
+          keep_current_status: Keep status
+          private_chip: Private
+          private_hint: Only visible to you and the account admins. Does not appear in the history of others.
+          send_private: Save privately
+        edit_partial:
+          remove_attachment: Remove
+          attach_files: Attach files
+          delete: Delete
+          cancel: Cancel
+          update: Update
+          message_placeholder: Enter message...

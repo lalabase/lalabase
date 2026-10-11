@@ -1,0 +1,1305 @@
+de:
+  # Project-owned timestamp format: rails-i18n's :short carries no year,
+  # and the admin Vertex screens show a full date. Defined here rather than
+  # as a hardcoded strftime in the views so EN stops rendering DD.MM.YYYY.
+  time:
+    formats:
+      stamp: "%d.%m.%Y %H:%M"
+  views:
+    action_text:
+      embed_hint_not_image: "%{filename} ist kein Bild. In den Text passen nur PNG, JPEG, GIF und WebP."
+      embed_hint_too_large: "%{filename} ist größer als %{max} MB und passt nicht in den Text."
+      embed_hint_redirected: "Die Datei wurde in das Anhang-Feld übernommen."
+      embed_hint_shrink: "Bitte verkleinern und noch einmal einfügen."
+      zoom_open: "Bild vergrößern"
+      zoom_close: "Bild schließen"
+      missing_image: "Bild nicht mehr verfügbar"
+    session_timeout:
+      dialog_label: Anmeldestatus
+      expired_title: Du bist nicht mehr eingeloggt
+      expired_body: Deine Eingaben bleiben in diesem Tab erhalten, sind aber noch nicht gespeichert. Melde dich in einem neuen Tab mit demselben Konto an und kehre hierher zurück, um weiterzuarbeiten.
+      sign_in: In neuem Tab anmelden
+      checking_title: Anmeldung wird geprüft
+      checking_body: Bitte warte kurz. Deine Eingaben bleiben erhalten.
+      account_changed_title: Anderes Konto angemeldet
+      account_changed_body: Dieses Formular gehört zum zuvor angemeldeten Konto und bleibt gesperrt. Melde dich in einem anderen Tab wieder mit diesem Konto an, um deine Eingaben weiterzuverwenden.
+      open_app: Anwendung in neuem Tab öffnen
+      check_failed: Die Anmeldung konnte nicht geprüft werden. Prüfe deine Verbindung und versuche es erneut. Deine Eingaben bleiben erhalten.
+      check_again: Anmeldung erneut prüfen
+      warning_title: Du wirst gleich ausgeloggt
+      warning_body_html: Aus Sicherheitsgründen wird deine Session in %{countdown} Sekunden beendet.
+      stay_logged_in: Eingeloggt bleiben
+      session_settings: Session-Dauer anpassen
+    user_preferences:
+      session:
+        title: Session-Dauer
+        subtitle: Wie lange du eingeloggt bleibst, wenn du gerade nicht aktiv bist.
+        label: Automatisch ausloggen nach
+        hint: Längere Sessions sind komfortabler, aber weniger sicher — besonders auf geteilten Geräten.
+        save: Speichern
+        options:
+          '30': 30 Minuten (Standard)
+          '120': 2 Stunden
+          '480': 8 Stunden
+          '1440': 24 Stunden
+    users:
+      personal_access_tokens:
+        index:
+          title: Personal Access Tokens
+          subtitle: Nur nötig, um externe Programme wie Claude Code anzubinden — für die normale Nutzung nicht erforderlich.
+          new_button: Token erstellen
+          empty: Du hast noch keine Tokens.
+          col_scope: Scope
+          col_created: Erstellt
+          col_expires: Läuft ab
+          col_last_used: Zuletzt genutzt
+          status_active: Aktiv
+          status_expired: Abgelaufen
+          status_revoked: Widerrufen
+          scope_all_projects: Alle Projekte
+          scope_all_organisations: Alle Organisationen (auch künftige)
+          scope_n_projects:
+            zero: keine Projekte
+            one: 1 Projekt
+            other: "%{count} Projekte"
+          scope_unknown_org: Unbekannte Organisation
+          edit: Umbenennen
+          revoke: Widerrufen
+          revoke_confirm: Token wirklich widerrufen? Diese Aktion ist nicht umkehrbar.
+          explainer:
+            title: Wofür ist das hier?
+            intro: "Ein Access Token ist wie ein Passwort — aber für Programme statt für dich. Damit darf ein externes Werkzeug (z. B. der KI-Assistent Claude Code) in deinem Namen auf Lalabase zugreifen: deine Projekte und Aufgaben lesen und, wenn du es erlaubst, auch bearbeiten."
+            point_purpose: Nur für die Anbindung externer Programme — etwa einen KI-Assistenten, der direkt mit deinen Projekten arbeiten soll.
+            point_scope: "Du legst genau fest, worauf ein Token zugreifen darf: welche Organisationen und Projekte, nur lesen oder auch schreiben, und wie lange er gültig ist."
+            point_permissions: Ein Token kann nie mehr sehen oder tun als du selbst. Du kannst ihn jederzeit widerrufen.
+            not_title: Was das NICHT ist
+            not_body: Kein Login und keine Einladung für Kollegen. Für die normale Nutzung von Lalabase im Browser brauchst du hier gar nichts.
+            reassure: Nicht sicher, ob du das brauchst? Dann brauchst du es sehr wahrscheinlich nicht.
+        new:
+          title: Neuen Token erstellen
+          block_basic: Basisinfo
+          block_organisations: Organisationen & Projekte
+          block_summary: Zusammenfassung
+          name_label: Name
+          name_placeholder: z. B. 'Claude Code – Klient Bank XY'
+          name_help: Wähle einen Namen, der dir später hilft, den Token zuzuordnen.
+          read_only_label: Nur-Lese-Zugriff
+          read_only_help: 'Aktiviert (Standard): Der Token kann nur lesen. Deaktivieren, um über MCP/API Tickets und Kommentare anzulegen, Status, Zuweisung und Titel von Tickets zu ändern, Zeit zu buchen und Benachrichtigungen als gelesen zu markieren.'
+          expiry_label: Gültigkeit
+          expiry_7_days: 7 Tage
+          expiry_30_days: 30 Tage (empfohlen)
+          expiry_60_days: 60 Tage
+          expiry_90_days: 90 Tage
+          expiry_custom: Benutzerdefiniert
+          expiry_help: "Höchstens %{days} Tage. Wenn du dein Passwort änderst oder zurücksetzt, werden alle deine Tokens widerrufen."
+          org_pick_label: Welche Organisationen darf der Token erreichen?
+          org_mode_selected: Nur ausgewählte Organisationen
+          org_mode_all: Alle Organisationen, auch künftige
+          org_mode_all_hint: Auch Organisationen, denen du später beitrittst, jeweils mit allen Projekten. Verlässt du eine Organisation oder wirst dort deaktiviert, endet der Zugriff dort sofort. Mehr als du selbst sehen darfst, sieht der Token nie.
+          org_no_orgs: Du bist in keiner Organisation aktiv – Token-Erstellung nicht möglich.
+          project_all: Alle Projekte (auch zukünftige)
+          project_selected: Nur ausgewählte Projekte
+          project_no_projects: Keine Projekte in dieser Organisation.
+          summary_intro: 'Dieser Token wird Zugriff haben auf:'
+          summary_pick_org: Wähle mindestens eine Organisation.
+          summary_valid_until: Gültig bis %{date}
+          password_label: Aktuelles Passwort
+          password_help: Ein Token gilt über diese Sitzung hinaus. Darum fragen wir hier noch einmal nach deinem Passwort.
+          submit: Token erstellen
+          cancel: Abbrechen
+        edit:
+          title: Token umbenennen
+          hint: Nur der Name ist editierbar. Um den Scope oder die Gültigkeit zu ändern, widerrufe den Token und erstelle einen neuen.
+          submit: Speichern
+        update:
+          success: Token aktualisiert.
+        created:
+          title: Token erstellt
+          warning_title: Token jetzt kopieren
+          warning_body: Dieser Token wird nicht erneut angezeigt. Speichere ihn an einem sicheren Ort.
+          token_label: Dein neuer Token
+          scope_overview: 'Scope dieses Tokens:'
+          copy: Kopieren
+          copied: Kopiert!
+          back_to_index: Zurück zur Übersicht
+        create:
+          wrong_password: Das Passwort ist nicht korrekt. Bitte versuche es erneut.
+          success_title: Token erstellt.
+        destroy:
+          success: Token wurde widerrufen.
+    common:
+      filter: Filtern
+      clear: Zurücksetzen
+      close: Schließen
+      preview: Vorschau
+      resend: Erneut senden
+      loading: Laden...
+      na: k.A.
+      unknown: Unbekannt
+      error: Fehler
+      no_subject: Kein Betreff
+      status: Status
+      actions: Aktionen
+      active: Aktiv
+      inactive: Inaktiv
+      deleted: Gelöscht
+      edit: Bearbeiten
+      delete: Löschen
+      cancel: Abbrechen
+      save: Speichern
+      first_name: Vorname
+      last_name: Nachname
+      email: E-Mail-Adresse
+      details: Details
+      role: Rolle
+      none: Keine
+      all: Alle
+      remove: Entfernen
+      protected: Geschützt
+      you: Sie
+      ago_suffix: her
+      relative_time_ago: vor %{time}
+      password: Passwort
+      password_confirm: Passwort bestätigen
+      ai: KI
+      organisations: Organisationen
+      projects: Projekte
+      created_at: Erstellt am
+      updated_at: Zuletzt aktualisiert
+      errors_occurred: 'Es sind %{count} Fehler aufgetreten:'
+      error_messages:
+        errors: Fehler
+      navigation_auth:
+        register: Registrieren
+      button_container:
+        delete: Löschen
+        cancel: Abbrechen
+        update: Aktualisieren
+      upgrade_box:
+        title: Upgrade auf Pro
+        description: Sie suchen nach mehr Funktionen? Schauen Sie sich unsere Pro-Version an.
+        button: Jetzt upgraden
+    confirm:
+      are_you_sure: Sind Sie sicher?
+      delete_time_session: Möchten Sie diesen Zeiteintrag wirklich löschen?
+      delete_all_document_versions: Sind Sie sicher? Dies löscht ALLE Versionen dieses Dokuments.
+      delete_document_version: Diese Version und ihre Datei löschen?
+      delete_last_document_version: Das ist die letzte Version. Mit ihr wird das Dokument gelöscht. Trotzdem löschen?
+      set_current_document_version_renames: 'Damit heißt das Dokument „%{new_title}" statt „%{old_title}". Fortfahren?'
+      delete_post: Möchten Sie diesen Beitrag wirklich löschen?
+      delete_chat: Sind Sie sicher, dass Sie diesen Chat löschen möchten?
+      ai_activate: KI-Features für diese Organisation aktivieren? Inhalte Ihrer Organisation werden dann zur Verarbeitung an den gewählten KI-Anbieter (USA) übertragen.
+      ai_deactivate: KI-Features für diese Organisation deaktivieren? Es werden keine Inhalte mehr an den KI-Anbieter übertragen.
+      ai_configuration_remove: Eigenen Zugang entfernen? Schlüssel, Endpunkt und Modellname werden gelöscht und lassen sich nicht wiederherstellen.
+      delete_import_file: Sind Sie sicher, dass Sie '%{filename}' löschen möchten?
+      delete_note: Sind Sie sicher?
+      start_import: Möchten Sie den Import wirklich starten? Dieser Vorgang kann nicht rückgängig gemacht werden.
+      start_ticket_import: Möchten Sie den Ticket-Import wirklich starten? Es wird ein neues Projekt erstellt.
+      import_time_sessions: Möchten Sie %{count} Zeit-Einträge importieren?
+      generate_descriptions: Kundenbeschreibungen für alle Sessions erstellen? Bereits vorhandene Beschreibungen werden übersprungen.
+      regenerate_descriptions: Alle Kundenbeschreibungen neu generieren? Bereits vorhandene Beschreibungen werden überschrieben.
+      archive_project: Projekt '%{name}' archivieren? Alle ungelesenen Benachrichtigungen werden archiviert.
+      restore_project: Projekt '%{name}' wiederherstellen?
+      rollback_permanent: Sind Sie wirklich sicher? Diese Aktion löscht %{count} Objekte permanent!
+      unmute_ticket: 'Stummschaltung für #%{number} aufheben?'
+      unfollow_ticket: 'Nicht mehr #%{number} folgen?'
+      change_password: Sind Sie sicher, dass Sie das Passwort ändern möchten? Der Benutzer muss sich mit dem neuen Passwort anmelden.
+      resend_email: Sind Sie sicher, dass Sie diese E-Mail erneut senden möchten?
+      resend_email_short: Diese E-Mail erneut senden?
+      toggle_user_status: Status von %{email} %{action}?
+      toggle_user_deactivate: deaktivieren
+      toggle_user_activate: aktivieren
+      remove_membership: "%{name} aus %{organisation} entfernen?"
+      delete_tag: Sind Sie sicher?
+      really_delete: Wirklich löschen?
+      remove_user: Möchten Sie diesen Benutzer wirklich entfernen?
+      unblock_user: Sperre aufheben? Danach gilt wieder, was die Rolle erlaubt.
+      revoke_all_permissions: Möchten Sie diesem Benutzer alle Projektrechte entziehen?
+      save_notification_preferences: Alle Benachrichtigungseinstellungen speichern?
+      reprocess_embeddings: Möchten Sie wirklich alle pendenten Embeddings neu verarbeiten? Dies kann je nach Anzahl der Einträge einige Zeit dauern.
+      delete_account_irreversible: Sind Sie sicher? Diese Aktion kann nicht rückgängig gemacht werden.
+      delete_ai_credential: Sind Sie sicher, dass Sie dieses AI-Credential löschen möchten?
+      delete_ai_package: Sind Sie sicher, dass Sie dieses KI-Paket löschen möchten? Die Stufen werden mitgelöscht.
+      delete_admin_user: Sind Sie sicher, dass Sie diesen Admin-Benutzer löschen möchten?
+    admin:
+      email_logs:
+        index:
+          title: E-Mail-Dashboard
+          export_csv: CSV exportieren
+          refresh: Aktualisieren
+          recent_failures: Aktuelle E-Mail-Fehler
+          failures_last_24h: "%{count} E-Mails sind in den letzten 24 Stunden fehlgeschlagen"
+          unknown_recipient: Unbekannter Empfänger
+          ago: vor %{time}
+          status_distribution_chart: E-Mail-Statusverteilung (7 Tage)
+          daily_volume_chart: Tägliches Sendevolumen (7 Tage)
+          emails_sent: E-Mails gesendet
+          no_chart_data: Keine Daten im Zeitraum
+          filter_status_all: Alle
+          filter_status_queued: In Warteschlange
+          filter_status_sent: Gesendet
+          filter_status_delivered: Zugestellt
+          filter_status_opened: Geöffnet
+          filter_status_clicked: Geklickt
+          filter_status_bounced: Zurückgewiesen
+          filter_status_failed: Fehlgeschlagen
+          recipient_email: Empfänger-E-Mail
+          search_placeholder: Nach E-Mail suchen...
+          from_date: Von Datum
+          to_date: Bis Datum
+          table_recipient: Empfänger
+          table_subject: Betreff
+          table_organisation: Organisation
+          table_status: Status
+          table_sent_at: Gesendet am
+          table_actions: Aktionen
+          email_preview: E-Mail-Vorschau
+          failed_to_load: Vorschau konnte nicht geladen werden
+        show:
+          from: Von
+          to: An
+          subject: Betreff
+          sent: Gesendet
+          delivery_status: Zustellstatus
+          message_id: Nachrichten-ID
+          timeline: Zeitverlauf
+          queued: Eingereiht
+          delivered: Zugestellt
+          opened: Geöffnet
+          times: "%{count} Mal"
+          bounced: Zurückgewiesen
+          email_content: E-Mail-Inhalt
+          preview_label: Vorschau
+          html_content: HTML-Inhalt
+          text_content: Text-Inhalt
+          no_content: Kein E-Mail-Inhalt verfügbar
+          additional_info: Zusätzliche Informationen
+          resend_email: E-Mail erneut senden
+      sessions:
+        new:
+          title: Backend Login
+          email_label: E-Mail
+          email_placeholder: E-Mail
+          password_label: Passwort
+          password_placeholder: Passwort
+          submit: Einloggen
+      monitoring:
+        index:
+          title: System-Monitoring
+          subtitle: Laufende Betriebsdaten der aktuellen Deployment-Instanz
+          last_deployment: Letztes Deployment
+          current_commit: Aktueller Commit
+      navigation:
+        backend_admins: Backend-Admins
+        monitoring: Monitoring
+        all_activities: Alle Activities
+        security_events: Security Events
+        job_queue: Job Queue
+        email_dashboard: E-Mail-Dashboard
+        system_monitoring: System-Monitoring
+        deleted_users: Gelöschte User
+        settings: Einstellungen
+        logout: Ausloggen
+        open_main_menu: Hauptmenü öffnen
+        dashboard: Dashboard
+        management_section: Verwaltung
+        organisations: Organisationen
+        users: Benutzer
+        monitoring_section: Monitoring
+        activities: Activities
+        settings_section: Einstellungen
+        system_settings: Systemeinstellungen
+        ai_credentials: KI-Zugangsdaten
+        ai_packages: KI-Pakete
+        deletion_register: Löschverzeichnis
+      ai_credentials:
+        contract:
+          section_title: Vertragsdaten des Anbieters
+          section_help: Dokumente sind die Belege, die Bewertung ist die Aussage. Was hier steht, erscheint als Badge auf der Kundenkarte des Pakets.
+          current_title: Aktuelle Bewertung
+          none_yet: Noch keine Bewertung erfasst — Pakete mit diesen Zugangsdaten zeigen dem Kunden „Training nicht zugesichert".
+          label_training: Training
+          label_retention: Aufbewahrung
+          label_subprocessors: Sub-Prozessoren
+          label_subprocessors_list: Welche Sub-Prozessoren
+          valid_since: "gilt seit %{date}"
+          recorded_by: "erfasst von %{email}"
+          based_on: "Belegt durch:"
+          retention_days_value: "%{days} Tage"
+          label_end_on: Beenden zum
+          end_contract: Bewertung beenden
+          end_contract_help: Eine laufende Bewertung lässt sich nur verkürzen, nicht ändern — für eine andere Aussage eine neue Fassung erfassen.
+          history_title: Bisherige Bewertungen
+          history_period: Zeitraum
+          history_recorded_by: Erfasst von
+          open_end: offen
+          announced_badge: angekündigt
+          edit_document: Bearbeiten
+          save_edit: Änderungen speichern
+          edit_key_help: Gruppiert die Fassungen eines Papiers. Ändern führt diese Zeile in eine andere Historie über.
+          edit_valid_from_help: Das Datum, das auf dem Papier steht („Zuletzt geändert"), nicht der Tag der Erfassung.
+          edit_file_help: Leer lassen behält das vorhandene PDF. Eine neue Datei ersetzt es.
+          label_remove_file: PDF entfernen
+          remove_file_help: Entfernt den Anhang, ohne die Zeile zu löschen — für ein versehentlich hochgeladenes Papier. Wirkt erst, wenn die Änderungen gespeichert werden.
+          training_usages:
+            excluded: Kein Training — vertraglich ausgeschlossen
+            used: Training — der Anbieter nutzt Inhalte zum Modelltraining
+            unspecified: Nicht zugesichert — keine vertragliche Aussage geprüft
+          retention_policies:
+            none: Keine Speicherung
+            limited: Befristet
+            unlimited: Unbegrenzt
+            unspecified: Nicht zugesichert
+          subprocessors_disclosures:
+            disclosed: Offengelegt
+            undisclosed: Nicht offengelegt
+            unspecified: Nicht zugesichert
+          documents_title: Dokumente
+          no_documents: Noch keine Dokumente hinterlegt.
+          current_badge: aktuell
+          pdf: PDF
+          link: Link
+          delete: Löschen
+          confirm_delete: Dieses Dokument wirklich löschen?
+          add_document: Dokument hinzufügen
+          label_doc_title: Überschrift
+          placeholder_doc_title: z. B. Service Specific Terms
+          label_doc_key: Kennung des Dokuments
+          placeholder_doc_key: z. B. sst
+          doc_key_help: Bleibt über alle Fassungen desselben Papiers gleich — daran hängt die Historie.
+          label_valid_from: Fassung gültig ab
+          label_url: Link
+          label_locator: Fundstelle im Dokument
+          placeholder_locator: z. B. Abschnitt Generative AI, Training Restriction
+          locator_help: Wo genau die Aussage steht. Ohne diese Angabe ist ein 60-Seiten-PDF als Beleg wertlos.
+          label_summary: Zusammenfassung
+          label_body: Text
+          body_help: Der eingefügte Auszug oder Volltext.
+          label_file: PDF
+          file_help: Nur PDF, höchstens 25 MB.
+          save_document: Dokument speichern
+          add_contract: Neue Bewertung erfassen
+          add_contract_help: Die Bewertung ist eine Zusicherung gegenüber Ihren Kunden. Tragen Sie „vertraglich ausgeschlossen" nur ein, wenn es im Dokument steht — im Zweifel „nicht zugesichert".
+          label_starts_on: Gilt ab
+          label_retention_days: Tage
+          retention_days_help: Nur bei „Befristet" ausfüllen.
+          label_note: Interne Begründung
+          note_help: Warum diese Bewertung — nur im Adminbereich sichtbar.
+          label_documents: Belegt durch
+          documents_help: Welche Dokumente stützen diese Bewertung?
+          save_contract: Bewertung speichern
+        # Rendered identically by the index column and the show section —
+        # partial-spanning strings get one owner (house convention, cf. `seam`).
+        shared:
+          package_badge: "%{package} · %{role}"
+          package_role_embedding: Embedding
+        seam:
+          section_routing: Routing & Attribution
+          label_display_name: Anzeigename
+          placeholder_display_name: z. B. Mistral EU
+          display_name_help: Trägt Attribution, Provenienz und den Art.-13-Hinweis — statt des generischen Routing-Schlüssels.
+          label_purpose: Verwendung
+          purpose_chat: Chat
+          purpose_embedding: Embeddings
+          purpose_both: Chat + Embeddings
+          label_api_base: Endpunkt-URL (api_base)
+          placeholder_api_base: https://endpoint.example/v1
+          api_base_help: Bevorzugter OpenAI-kompatibler Endpunkt. Ersetzt das ältere Endpunkt-URL-Feld oben (nur noch Fallback).
+          label_region: Region
+          region_none: "— keine —"
+          label_company_domicile: Firmensitz des Anbieters
+          company_domicile_none: "— nicht erfasst —"
+          company_domicile_eu: EU
+          company_domicile_non_eu: Außerhalb der EU
+          company_domicile_help: Zweite Achse neben der Region — sie sagt, wo das Unternehmen sitzt, nicht wo der Server steht. Beide zusammen leiten den Rechtsraum eines KI-Pakets ab.
+          label_included_in_quota: Zählt aufs Kontingent
+          included_in_quota_help: System-Credential, dessen Nutzung wir abrechnen — dann sind Preise Pflicht.
+          section_pricing: Preise (Cent pro 1 Mio. Tokens)
+          pricing_help: Basis der Ist-Kosten-Berechnung; für kontingent-pflichtige Credentials verpflichtend > 0.
+          label_input_cost: Input (Cent/1M)
+          label_output_cost: Output (Cent/1M)
+          label_embedding_cost: Embedding (Cent/1M)
+        index:
+          active_count: "%{enabled}/%{total} aktiviert"
+          no_active_credential: Kein Standard-Credential
+          tokens_30d: "%{count} Tokens (30d)"
+          total_credentials: Gesamt Credentials
+          active_providers: Provider mit Standard-Credential
+          add_credential: Neues AI-Credential hinzufügen
+          table_title: AI-Credentials
+          th_credential: Credential
+          th_provider_model: Provider & Modell
+          th_purpose: Zweck
+          th_packages: Pakete
+          th_billing: Abrechnung
+          th_usage_30d: Verbrauch (30 T.)
+          th_status: Status
+          th_actions: Aktionen
+          badge_active: Standard
+          purpose:
+            chat: Chat
+            embedding: Embedding
+            both: Beides
+          packages_none: "—"
+          billing_metered: Kontingent
+          billing_unmetered: Nicht gemetert
+          price_in_out: "%{in}/%{out} ct/1M"
+          price_embedding: "Emb %{emb} ct/1M"
+          usage_tokens: "%{count} Tok"
+          usage_cost: "≈ %{cost}"
+          usage_none: "—"
+          status_enabled: Aktiviert
+          status_disabled: Deaktiviert
+          tooltip_test_connection: Verbindung testen
+          tooltip_details: Details anzeigen
+          btn_set_default: Als Standard setzen
+          empty_title: Keine AI-Credentials vorhanden
+          empty_description: Erstellen Sie AI-Credentials um mit verschiedenen AI-Providern zu arbeiten.
+          empty_add_first: Erstes AI-Credential hinzufügen
+        show:
+          badge_active: Standard
+          badge_disabled: Deaktiviert
+          created_at: Erstellt am %{date}
+          btn_test_connection: Verbindung testen
+          btn_edit: Bearbeiten
+          btn_activate: Als Standard setzen
+          stat_status: Status
+          stat_active: Standard
+          stat_inactive: Kein Standard
+          stat_usage_30d: Usage (30d)
+          stat_cost_30d: Kosten (30d)
+          stat_last_usage: Letzte Nutzung
+          stat_last_usage_ago: "%{time} her"
+          stat_never: Nie
+          config_title: Konfiguration
+          config_provider: Provider
+          config_model: Model
+          config_api_key: API-Key
+          config_org_id: Organisation-ID
+          config_enabled: Aktiviert
+          config_active: Standard
+          config_yes: Ja
+          config_no: Nein
+          config_description: Beschreibung
+          section_packages: Referenziert von
+          section_packages_help: Pakete, die dieses Credential verwenden. Solange hier eines steht, lässt es sich nicht löschen.
+          packages_none: Kein Paket verwendet dieses Credential.
+          quick_actions_title: Schnellaktionen
+          btn_enable: Aktivieren
+          btn_deactivate: Deaktivieren
+          btn_set_active: Als Standard setzen
+          btn_delete: Löschen
+          btn_delete_blocked_title: "Wird von Paketen referenziert: %{packages}"
+          usage_title: Kürzliche Nutzung (7 Tage)
+          usage_th_date: Datum
+          usage_th_organisation: Organisation
+          usage_th_model: Model
+          usage_th_tokens: Tokens
+          usage_th_cost: Kosten
+          usage_empty_title: Noch keine Nutzung
+          usage_empty_description: Dieses Credential wurde noch nicht verwendet.
+          availability_title: Modell-Verfügbarkeit (Vertex AI)
+          availability_intro: Prüft kostenlos per countTokens, welche Modelle in welcher EU-Region für Projekt %{project} erreichbar sind.
+          availability_btn_check: Jetzt prüfen
+          availability_btn_refresh: Aktualisieren
+          availability_last_checked: Zuletzt geprüft %{time}
+          availability_empty: Noch nicht geprüft.
+          availability_th_region: Region
+          availability_cell_available: verfügbar
+          availability_cell_unavailable: nicht verfügbar
+          availability_cell_error: Fehler
+          availability_cell_status: HTTP %{code}
+          availability_legend_available: 200 — Modell in der Region verfügbar (Embedding-Modelle antworten mit 400)
+          availability_legend_unavailable: 404 — nicht verfügbar / kein Zugriff
+          availability_legend_error: anderer Status — Zelle einzeln fehlgeschlagen (403 überall = IAM-Rolle fehlt)
+          availability_global_badge: nur Info — nicht residenz-konform
+          availability_missing_project: Für die Prüfung fehlt die GCP-Projekt-ID (additional_config['project_id']) am Credential.
+        edit:
+          title: AI-Credential bearbeiten
+          subtitle_html: Bearbeiten Sie die Einstellungen für <strong>%{name}</strong> (%{provider})
+          btn_test_connection: Verbindung testen
+          btn_activate: Als Standard setzen
+          stat_status: Status
+          stat_active: Standard
+          stat_inactive: Kein Standard
+          stat_usage_30d: Usage (30d)
+          stat_created: Erstellt
+          errors_title: 'Es sind %{count} Fehler aufgetreten:'
+          section_basic: Grundinformationen
+          label_name: Name
+          placeholder_name: z.B. OpenAI Production
+          label_provider: AI-Provider
+          label_description: Beschreibung (optional)
+          placeholder_description: Zusätzliche Informationen zu diesem Credential...
+          section_api: API-Konfiguration
+          label_api_key: API-Key
+          show_full_key: Vollständigen Key anzeigen
+          hide_key: Key maskieren
+          security_notice_html: "<strong>Sicherheitshinweis:</strong> Lassen Sie das Feld leer, um den bestehenden API-Key beizubehalten."
+          label_api_key_keep: API-Key (leer lassen um beizubehalten)
+          placeholder_api_key: Neuen API-Key eingeben oder leer lassen
+          label_sa_json_keep: Service-Account-JSON (nur Google — maskiert lassen um beizubehalten)
+          placeholder_sa_json: Neues Service-Account-JSON einfügen oder maskierten Wert stehen lassen
+          sa_json_help: Das vollständige JSON des GCP-Service-Accounts. Der maskierte Wert bleibt beim Speichern unverändert.
+          label_org_id: Organisation-ID (optional)
+          label_default_model: Standard-Model
+          label_uri_base: Endpunkt-URL (nur OpenAI-kompatibel)
+          uri_base_help: Basis-URL eines OpenAI-kompatiblen Endpunkts (Azure, LiteLLM, self-hosted). Nur für den Provider OpenAI-kompatibel relevant.
+          placeholder_uri_base: https://endpunkt.example/v1
+          label_project_id: GCP-Projekt-ID (nur Google)
+          project_id_help: ID des Google-Cloud-Projekts, in dem Vertex AI aktiviert ist. Nur für den Provider Google relevant.
+          placeholder_project_id: mein-gcp-projekt
+          label_location: Vertex-AI-Region (nur Google)
+          location_help: "Regionaler Vertex-AI-Endpunkt, z. B. europe-west3 (Frankfurt). Pflicht für EU-Datenresidenz — „global“ wird abgelehnt."
+          placeholder_location: europe-west3
+          section_settings: Einstellungen
+          label_enabled: Credential aktiviert
+          enabled_help: Wenn deaktiviert, wird das Credential nicht verwendet
+          label_active: Als Standard-Credential für %{provider} setzen
+          active_help: "Standard der Provider-Auflösung: Organisationen, die diesen Provider ohne eigene Schlüssel nutzen, bekommen dieses Credential. Nimmt anderen Credentials desselben Providers den Standard-Status."
+          btn_cancel: Abbrechen
+          btn_save: Änderungen speichern
+          recent_usage_title: Kürzliche Nutzung
+          usage_th_date: Datum
+          usage_th_organisation: Organisation
+          usage_th_model: Model
+          usage_th_tokens: Tokens
+          usage_th_cost: Kosten
+        new:
+          title: Neues AI-Credential erstellen
+          subtitle: Fügen Sie einen neuen AI-Provider oder zusätzliche Credentials hinzu.
+          errors_title: 'Es sind %{count} Fehler aufgetreten:'
+          section_basic: Grundinformationen
+          label_name: Name
+          placeholder_name: z.B. OpenAI Production
+          name_help: Ein eindeutiger Name für dieses Credential
+          label_provider: AI-Provider
+          provider_help: Wählen Sie den AI-Provider
+          label_description: Beschreibung (optional)
+          placeholder_description: Zusätzliche Informationen zu diesem Credential...
+          section_api: API-Konfiguration
+          security_title: Sicherheitshinweis
+          security_text: API-Keys werden verschlüsselt in der Datenbank gespeichert. Stellen Sie sicher, dass Sie nur vertrauenswürdige Keys verwenden.
+          label_api_key: API-Key
+          api_key_help: Der API-Key für den gewählten Provider
+          label_sa_json: Service-Account-JSON (nur Google)
+          sa_json_help: Das vollständige JSON des GCP-Service-Accounts (wird verschlüsselt gespeichert). Kein API-Key — nur Service-Account-Auth garantiert den regionalen EU-Endpunkt.
+          placeholder_sa_json: '{ "type": "service_account", "project_id": "...", "private_key": "...", "client_email": "..." }'
+          label_org_id: Organisation-ID (optional)
+          org_id_help: Provider-spezifische Organisations-ID
+          label_default_model: Standard-Model
+          default_model_help: Das Standard-Model für diesen Provider
+          label_uri_base: Endpunkt-URL (nur OpenAI-kompatibel)
+          uri_base_help: Basis-URL eines OpenAI-kompatiblen Endpunkts (Azure, LiteLLM, self-hosted). Nur für den Provider OpenAI-kompatibel relevant.
+          placeholder_uri_base: https://endpunkt.example/v1
+          label_project_id: GCP-Projekt-ID (nur Google)
+          project_id_help: ID des Google-Cloud-Projekts, in dem Vertex AI aktiviert ist. Nur für den Provider Google relevant.
+          placeholder_project_id: mein-gcp-projekt
+          label_location: Vertex-AI-Region (nur Google)
+          location_help: "Regionaler Vertex-AI-Endpunkt, z. B. europe-west3 (Frankfurt). Pflicht für EU-Datenresidenz — „global“ wird abgelehnt."
+          placeholder_location: europe-west3
+          section_settings: Einstellungen
+          label_enabled: Credential aktivieren
+          enabled_help: Das Credential ist sofort verfügbar
+          label_active: Als Standard-Credential für diesen Provider setzen
+          active_help: "Standard der Provider-Auflösung: Organisationen, die diesen Provider ohne eigene Schlüssel nutzen, bekommen dieses Credential. Nimmt anderen Credentials desselben Providers den Standard-Status."
+          btn_cancel: Abbrechen
+          btn_create: AI-Credential erstellen
+          provider_hints_title: Provider-spezifische Hinweise
+          openai_label: 'OpenAI:'
+          openai_key_format: 'API-Key Format:'
+          openai_org_id: 'Organisations-ID: %{code} (optional)'
+          openai_models: 'Empfohlene Models:'
+          anthropic_label: 'Anthropic:'
+          anthropic_key_format: 'API-Key Format:'
+          anthropic_models: 'Models:'
+          openai_compatible_label: 'OpenAI-kompatibel (eigener Endpunkt):'
+          openai_compatible_hint: Endpunkt-URL + ein 1536-dimensionales Embedding-Modell setzen (Azure OpenAI, LiteLLM, self-hosted).
+          label_preset: EU-Preset (optional)
+          preset_blank: "— kein Preset —"
+          preset_help: Befüllt Provider, Endpunkt-URL und Modell für einen EU-Anbieter vor. Alle Felder bleiben anschließend editierbar.
+          eu_label: 'EU-Anbieter (Mistral, IONOS, OVHcloud):'
+          eu_sovereignty_hint: Laufen über den Provider OpenAI-kompatibel mit Datenverarbeitung in der EU — per EU-Preset oben ohne Rätselraten konfigurierbar (Datensouveränität/DSGVO).
+          eu_chat_only_hint: 'Presets sind bewusst nur für Chat: EU-Embedding-Modelle liefern 1024 Dimensionen und passen nicht in die 1536er-Embedding-Lane.'
+          eu_azure_hint: Azure OpenAI (EU-Region) funktioniert ebenfalls OpenAI-kompatibel, hat aber eine deployment-spezifische Endpunkt-URL — bitte manuell eintragen.
+          google_label: 'Google Gemini (Vertex AI):'
+          google_auth_hint: Auth ausschließlich per Service-Account-JSON (kein API-Key — nur so ist der regionale EU-Endpunkt und damit die Datenresidenz garantiert). Der Service-Account braucht die Rolle „Vertex AI User“.
+          google_region_hint: 'GCP-Projekt-ID und Region sind Pflichtfelder, EU-Region z. B.'
+          google_models_hint: 'Modelle (Verfügbarkeit in der gewählten Region prüfen):'
+      ai_packages:
+        # Rendered by _published_badge from BOTH index and show — one wording,
+        # so the two callers cannot drift apart again.
+        shared:
+          published_yes: Veröffentlicht
+          published_no: Nicht veröffentlicht
+        jurisdictions:
+          blank: Keine Angabe
+          eu_native: Europäisch — Anbieter und Server in der EU
+          eu_region_foreign_provider: EU-Region, außereuropäischer Anbieter — Server in der EU, Konzern außerhalb
+          eu_provider_foreign_region: EU-Anbieter, Drittland-Region — Anbieter in der EU, Server außerhalb
+          non_eu: Außerhalb der EU — Anbieter und Server außerhalb der EU
+          self_hosted: Eigener Server — Self-Hosting, der Betreiber ist selbst der Verarbeiter
+        index:
+          title: KI-Pakete
+          subtitle: Kuratierte Angebote für den Kundenkatalog. Credentials sind das Lager, Pakete das Schaufenster.
+          add: Paket anlegen
+          table_title: Alle Pakete
+          th_name: Name
+          th_jurisdiction: Rechtsraum
+          th_tiers: Stufen
+          th_published: Veröffentlicht
+          th_position: Position
+          th_actions: Aktionen
+          tier_count:
+            one: "%{count} Stufe"
+            other: "%{count} Stufen"
+          tooltip_details: Details
+          tooltip_edit: Bearbeiten
+          tooltip_delete: Löschen
+          empty_title: Noch keine KI-Pakete
+          empty_description: Ein Paket bündelt Rechtsraum, Vektorraum und Chat-Stufen zu einem Angebot, das eine Organisation als Ganzes wählt.
+          empty_add_first: Erstes Paket anlegen
+        new:
+          title: Neues KI-Paket
+          subtitle: Name, Beschreibung, Rechtsraum und Anbieter-Hinweis erscheinen wörtlich beim Kunden.
+        edit:
+          title: "%{name} bearbeiten"
+          subtitle: Änderungen an Embedding-Modell oder Dimension wirken auf jede Organisation, die dieses Paket nutzt.
+        form:
+          errors_title: 'Es sind %{count} Fehler aufgetreten:'
+          section_basic: Grunddaten
+          label_name: Name
+          placeholder_name: z. B. Europäisch
+          name_help: Erscheint als Titel der Karte im Kundenkatalog.
+          label_position: Position
+          position_help: Reihenfolge der Karten im Katalog, kleinere Zahl zuerst.
+          label_description: Beschreibung
+          placeholder_description: Ein Satz Klartext, z. B. Verarbeitung in Frankreich durch Mistral AI, ein französisches Unternehmen.
+          description_help: Erscheint wörtlich auf der Kundenkarte — kein interner Vermerk.
+          label_active: Veröffentlicht (im Kundenkatalog sichtbar)
+          active_help: Unveröffentlichte Pakete lassen sich in Ruhe fertig pflegen; Organisationen können sie nicht wählen.
+          section_legal: Rechtliche Einordnung
+          label_jurisdiction: Rechtliche Einordnung (erscheint im AVV)
+          jurisdiction_blank: Bitte wählen
+          jurisdiction_help: Diese Angabe fließt wörtlich auf die Kundenkarte, in die Art.-13-Notiz und in den AVV. Sie geben damit eine Zusicherung ab, kein Etikett.
+          jurisdiction_warning_title: Einordnung prüfen
+          jurisdiction_warning_body: "Das Paket ist als „Europäisch“ eingeordnet, referenziert aber ein Google-Credential (%{credentials}). Nach der Stufen-Definition wäre das „EU-Region, außereuropäischer Anbieter“ — ein EU-Server bei einem US-Konzern."
+          label_processing_region: Verarbeitungsregion
+          placeholder_processing_region: z. B. Frankreich oder europe-west3
+          processing_region_help: Reine Anzeige für den Kunden, kein Routing — das Routing bestimmt das Credential.
+          label_provider_note: Anbieter-Hinweis
+          placeholder_provider_note: Was der Anbieter vertraglich mit den Daten tut — Training, Aufbewahrung, Sub-Prozessoren.
+          provider_note_help: Pflichtangabe. Zwei Anbieter derselben Stufe können hier auseinanderliegen; das geht in der Region nicht auf.
+          section_embedding: Vektorraum (Embedding)
+          section_embedding_help: Credential, Modell und Dimension bilden zusammen den Vektorraum des Pakets. Er hängt bewusst am Rechtsraum, nicht an der Leistungsstufe — sonst löste ein Stufenwechsel einen Reindex aus.
+          label_embedding_credential: Embedding-Credential
+          credential_blank: Bitte wählen
+          credential_link: "Credential öffnen: %{name}"
+          badge_not_metered: läuft nicht gegen das Kontingent
+          label_embedding_model: Embedding-Modell
+          placeholder_embedding_model: z. B. mistral-embed
+          embedding_model_help: Eine Änderung zieht für jede Organisation auf diesem Paket einen Reindex nach sich.
+          label_embedding_dims: Dimensionen
+          dims_blank: Bitte wählen
+          embedding_dims_help: Muss zum Modell passen. Das lässt sich hier nicht maschinell prüfen — bitte in der Anbieterdoku nachsehen; ein falscher Wert fällt erst beim ersten Embed-Call auf.
+          section_tiers: Leistungsstufen
+          section_tiers_help: Zwei feste Stufen. Schlüssel und Beschriftung sind eine Produktentscheidung und deshalb nicht pro Paket änderbar; die untere Stufe übernimmt zusätzlich die Hilfsaufgaben.
+          label_chat_credential: Chat-Credential
+          label_chat_model: Chat-Modell (optional)
+          placeholder_chat_model: z. B. gemini-2.5-flash
+          chat_model_help: Überschreibt das Standardmodell des Credentials. Leer lassen heißt, das Standardmodell gilt.
+          submit_create: Paket anlegen
+          submit_save: Änderungen speichern
+          cancel: Abbrechen
+        show:
+          subtitle: "Position im Katalog: %{position}"
+          btn_edit: Bearbeiten
+          section_customer: Was der Kunde liest
+          section_customer_help: Alle kundenwirksamen Texte gesammelt. Die echte Katalogkarte entsteht später — dies ist die ehrliche Näherung, keine zweite Fassung derselben Darstellung.
+          label_jurisdiction: Rechtliche Einordnung
+          label_processing_region: Verarbeitungsregion
+          label_description: Beschreibung
+          label_provider_note: Anbieter-Hinweis
+          value_blank: "—"
+          section_config: Technische Konfiguration
+          label_embedding: Vektorraum
+          label_embedding_credential: Credential
+          label_embedding_model: Modell
+          label_embedding_dims: Dimensionen
+          label_tiers: Leistungsstufen
+          th_tier: Stufe
+          th_credential: Credential
+          th_model: Wirksames Modell
+          model_from_credential: (Standard des Credentials)
+          tiers_empty: Für dieses Paket ist noch keine Stufe hinterlegt.
+          section_vertex: Vertex-Verfügbarkeit
+          section_vertex_help: Nur für referenzierte Google-Credentials. Angezeigt wird der zwischengespeicherte Stand; „Neu prüfen“ fragt live nach.
+          th_slot: Verwendung
+          th_region: Region
+          th_state: Status
+          slot_embedding: Embedding
+          vertex_available: verfügbar
+          vertex_unavailable: nicht verfügbar
+          vertex_unknown: ungeprüft
+          vertex_last_checked: "Stand: %{time}"
+          btn_vertex_check: Neu prüfen
+      system_settings:
+        registration:
+          title: Registrierungseinstellungen
+          status_title: Registrierungsstatus
+          status_enabled: Neue Benutzer können sich selbst registrieren.
+          status_disabled: Neue Registrierungen sind deaktiviert. Nur Einladungen funktionieren.
+          btn_disable: Registrierungen deaktivieren
+          btn_enable: Registrierungen aktivieren
+          click_to_lock: Klicken zum Sperren
+          click_to_unlock: Klicken zum Freischalten
+          btn_save: Änderungen speichern
+          message_label: Nachricht bei deaktivierter Registrierung
+          message_placeholder: Nachricht, die Benutzern angezeigt wird...
+          message_help: Diese Nachricht wird Benutzern angezeigt, wenn sie versuchen sich zu registrieren.
+          btn_save_message: Nachricht speichern
+          status_active: 'Status: Registrierungen aktiviert'
+          status_inactive: 'Status: Registrierungen deaktiviert'
+        deletion:
+          title: Account-Löschung
+          grace_period_label: Grace Period (Wartezeit vor endgültiger Löschung)
+          days: Tage
+          grace_period_help_html: 'Zeit in Tagen, die ein Benutzer hat, um seine Account-Löschung rückgängig zu machen.<br><strong>0 Tage</strong> = Sofortige Löschung (keine Grace Period)<br><strong>Max: 365 Tage</strong>'
+          info_title: Wichtige Informationen
+          info_immediate: Bei 0 Tagen werden Accounts sofort und unwiderruflich gelöscht
+          info_cancel: Während der Grace Period können Benutzer ihre Löschung abbrechen
+          info_job: Ein Background-Job prüft stündlich auf überfällige Löschungen
+          info_admin: Backend-Löschungen durch Admins erfolgen immer sofort
+          current_setting_html: 'Aktuelle Einstellung: Benutzer haben <strong>%{days} Tage</strong> Zeit, um ihre Account-Löschung rückgängig zu machen.'
+          warning_no_grace_html: "<strong>Warnung:</strong> Grace Period ist deaktiviert. Account-Löschungen erfolgen sofort und unwiderruflich!"
+          btn_save: Einstellungen speichern
+      user_activities:
+        index:
+          title: User Activities
+          subtitle: Übersicht aller Benutzer-Aktivitäten im System
+          stat_active_today: Heute aktiv
+          stat_activities_today: Aktivitäten heute
+          stat_failed_logins: Failed Logins
+          stat_new_registrations: Neue Registrierungen
+          filter_category: Kategorie
+          filter_all: Alle
+          filter_status: Status
+          filter_status_success: Erfolgreich
+          filter_status_failed: Fehlgeschlagen
+          filter_status_pending: Ausstehend
+          filter_action: Aktion
+          filter_date_from: Von
+          filter_date_to: Bis
+          btn_filter: Filtern
+          btn_reset_filters: Filter zurücksetzen
+          btn_csv_export: CSV Export
+          top_users_title: Aktivste Benutzer (letzte 7 Tage)
+          table_title: Activities
+          table_title_for_user: für %{email}
+          th_time: Zeit
+          th_user: Benutzer
+          th_action: Aktion
+          th_category: Kategorie
+          th_status: Status
+          th_ip: IP
+          th_organisation: Organisation
+          th_details: Details
+          empty: Keine Activities gefunden
+          showing_count: Zeige %{count} von maximal 100 Activities
+          btn_security_events: Security Events anzeigen
+        security:
+          title: Security Events
+          subtitle: Überwachung sicherheitsrelevanter Aktivitäten
+          suspicious_users_title: Verdächtige Benutzer (>3 fehlgeschlagene Logins in 24h)
+          failed_attempts: "%{count} fehlgeschlagene Versuche"
+          suspicious_ips_title: Verdächtige IP-Adressen (>5 fehlgeschlagene Logins in 24h)
+          ip_attempts: "%{count} Versuche"
+          table_title: Security Events Log
+          th_time: Zeit
+          th_severity: Schweregrad
+          th_user: Benutzer
+          th_event: Event
+          th_ip: IP-Adresse
+          th_details: Details
+          th_actions: Aktionen
+          tooltip_details: Details anzeigen
+          tooltip_manage_user: Benutzer verwalten
+          empty_title: Keine Security Events in diesem Zeitraum
+          showing_count: Zeige %{count} von maximal 100 Security Events
+          btn_back: Zurück zu allen Activities
+          btn_export: Security Report exportieren
+      users:
+        index:
+          title: Benutzer
+          subtitle: Verwaltung aller Benutzer im System
+          total: Gesamt
+          show_deleted: Gelöschte anzeigen
+          create_new_user: Neuen Benutzer erstellen
+          active_users: Aktive Benutzer
+          inactive_users: Inaktive Benutzer
+          all_users: Alle Benutzer
+          user: Benutzer
+          created: Erstellt
+          deletion_scheduled: Löschung geplant
+          no_users_found: Keine Benutzer gefunden
+          organisation_count:
+            one: "%{count} Organisation"
+            other: "%{count} Organisationen"
+        show:
+          breadcrumb_users: Benutzer
+          deactivate: Deaktivieren
+          activate: Aktivieren
+          delete_account: Account löschen
+          active_memberships: Aktive Mitgliedschaften
+          member_since: Mitglied seit
+          organisations_and_roles: Organisationen & Rollen
+          role_label: 'Rolle:'
+          domain_label: 'Domain:'
+          no_organisation: Keiner Organisation zugeordnet
+          project_permissions: Projekt-Berechtigungen
+          no_permissions: Keine spezifischen Berechtigungen
+          access_via_roles: Zugriff über Rollen
+          activity_history: Aktivitätsverlauf
+          show_all_activities: Alle Activities anzeigen →
+          failed: Fehlgeschlagen
+          last_seen: Zuletzt aktiv
+          online: Online
+          last_login: Letzte Anmeldung
+          never: Nie
+          logins_30d: Anmeldungen (30 Tage)
+          failed_24h: Fehlgeschlagene (24h)
+          total_activities: Gesamt-Aktivitäten
+          no_activities: Noch keine Aktivitäten aufgezeichnet
+          account_info: Account-Informationen
+          account_status: Account-Status
+          account_created: Konto erstellt
+          deletion_scheduled: Löschung geplant
+          days_remaining: "%{count} Tage verbleibend"
+          ai_user: KI-Benutzer
+          deletion_in_days: Löschung in %{count} Tagen
+          confirm_delete_title: Account löschen bestätigen
+          warning_irreversible: 'ACHTUNG: Unwiderrufliche Aktion!'
+          account_will_be_deleted_html: Der Account <strong>%{email}</strong> wird vollständig gelöscht.
+          enter_email_to_confirm: 'Zur Bestätigung geben Sie bitte die E-Mail-Adresse ein:'
+          confirm_email: 'E-Mail bestätigen:'
+          reason_optional: 'Grund (optional):'
+          reason_placeholder: z.B. DSGVO-Anfrage
+          delete_permanently: Endgültig löschen
+        deleted:
+          breadcrumb_users: Benutzer
+          title: Gelöschte Benutzer
+          subtitle: Übersicht aller gelöschten Benutzerkonten mit Audit-Trail
+          active_users: Aktive Benutzer
+          total_deleted: Gesamt gelöscht
+          today: Heute
+          this_week: Diese Woche
+          this_month: Dieser Monat
+          backend_deletions: Backend-Löschungen
+          self_service: Self-Service
+          deleted_users_count: Gelöschte Benutzer (%{count})
+          user_anonymized: Benutzer (anonymisiert)
+          deleted_at: Gelöscht am
+          deleted_by: Gelöscht von
+          source: Quelle
+          reason: Grund
+          backend: Backend
+          no_reason: Kein Grund angegeben
+          recommended_deletion: Zur Löschung empfohlen
+          no_deleted_users: Keine gelöschten Benutzer
+          no_users_deleted_yet: Es wurden noch keine Benutzer gelöscht.
+          info_title: Hinweis zu gelöschten Benutzern
+          info_text: 'Gelöschte Benutzer werden aus Compliance-Gründen anonymisiert gespeichert:'
+          info_anonymized: Persönliche Daten (Name, E-Mail) werden anonymisiert
+          info_memberships_removed: Alle Organisationsmitgliedschaften werden entfernt
+          info_audit_trail: Ein vollständiger Audit-Trail wird für jede Löschung erstellt
+          info_email_in_audit: Die ursprüngliche E-Mail-Adresse wird im Audit-Log gespeichert
+          clock_suffix: Uhr
+      beusers:
+        index:
+          admin_user: Admin-Benutzer
+          email_header: E-Mail
+          role_and_status: Rolle & Status
+          created: Erstellt
+          no_admins: Keine Admin-Benutzer vorhanden
+          no_admins_created: Es wurden noch keine Admin-Benutzer erstellt.
+          add_first_admin: Ersten Admin hinzufügen
+        new:
+          title: Neuen Admin erstellen
+          subtitle: Erstellen Sie einen neuen Administrator-Account für das System.
+          personal_info: Persönliche Informationen
+          security: Sicherheit
+          permissions: Berechtigungen
+          activate_account: Account aktivieren
+          user_can_login: Der Benutzer kann sich sofort anmelden
+          create_admin: Admin erstellen
+          role_user: Benutzer
+          role_admin: Administrator
+        edit:
+          breadcrumb_admins: Backend-Admins
+          breadcrumb_edit: Bearbeiten
+          title: Admin bearbeiten
+          subtitle_html: Bearbeiten Sie die Informationen für <strong>%{email}</strong>
+          personal_info: Persönliche Informationen
+          account_status: Account-Status
+          account_activated: Account aktiviert
+          deactivated_hint: Wenn deaktiviert, kann sich der Benutzer nicht anmelden
+          permissions: Berechtigungen
+          admin_area_warning_html: "<strong>Administrator-Bereich:</strong> Nur Admins können diese Einstellungen bearbeiten."
+          special_permissions: Spezielle Berechtigungen
+          manage_user_list: Benutzerliste verwalten
+          manage_user_list_hint: Kann alle Benutzer einsehen und verwalten
+          change_password: Passwort ändern
+          save_changes: Änderungen speichern
+          account_info: Account-Informationen
+          current_role: Aktuelle Rolle
+          role_admin: Administrator
+          role_user: Benutzer
+        edit_password:
+          title: Passwort ändern
+          subtitle_html: Setzen Sie ein neues Passwort für <strong>%{email}</strong>
+          security_warning_title: Wichtiger Sicherheitshinweis
+          security_warning_text: Das neue Passwort sollte mindestens 8 Zeichen lang sein und eine Kombination aus Buchstaben, Zahlen und Sonderzeichen enthalten.
+          set_new_password: Neues Passwort festlegen
+          new_password: Neues Passwort
+          password_hint: Das Passwort sollte sicher und eindeutig sein.
+          confirm_password_hint: Geben Sie das Passwort zur Bestätigung erneut ein.
+          submit: Passwort ändern
+          security_tips_title: Passwort-Sicherheitstipps
+          tip_mixed_case: Verwenden Sie eine Kombination aus Groß- und Kleinbuchstaben
+          tip_special_chars: Fügen Sie Zahlen und Sonderzeichen hinzu
+          tip_min_length: Verwenden Sie mindestens 8 Zeichen
+          tip_no_personal: Vermeiden Sie persönliche Informationen oder häufige Wörter
+    layouts:
+      deletion_warning:
+        title: Account-Löschung geplant!
+        account_deleted_on: Ihr Account wird am
+        deleted: gelöscht
+        in_days:
+          one: in %{count} Tag
+          other: in %{count} Tagen
+        cancel_deletion: Löschung abbrechen
+        hide_banner: Banner vorübergehend ausblenden
+      email_confirmation:
+        title: Bitte bestätige deine E-Mail-Adresse.
+        body: Wir haben dir einen Bestätigungslink an %{email} geschickt.
+        days_left:
+          one: Noch %{count} Tag, dann endet der Zugang.
+          other: Noch %{count} Tage, dann endet der Zugang.
+        resend: Mail erneut senden
+        why: Warum?
+    shared:
+      # The file's kind as a word (AttachmentsHelper#attachment_file_kind_word).
+      file_kinds:
+        pdf: PDF
+        image: Bild
+        word: Word
+        sheet: Tabelle
+        archive: Archiv
+        text: Text
+        file: Datei
+      bot_trap:
+        # Nur fuer Vorlesesoftware, die aria-hidden ignoriert. Sichtbar wird
+        # das Feld nie (.bot-trap in views.css).
+        honeypot_label: Dieses Feld bitte frei lassen
+      subscriber_list:
+        label: 'Benachrichtigt:'
+        you: Du
+        source_creator: Ersteller
+        source_assignee: Zugewiesen
+        source_self: Beobachter
+        source_manual: Hinzugefügt von %{name}
+        source_manual_unknown: Manuell hinzugefügt
+        add_person: Person hinzufügen
+        search_placeholder: Name oder E-Mail...
+        remove: Entfernen
+        confirm_remove: "%{name} von Benachrichtigungen entfernen?"
+        no_results: Keine Ergebnisse
+        user_muted: Benachrichtigungen stummgeschaltet
+        toggle_follow: Benachrichtigungen aktivieren
+        toggle_mute: Benachrichtigungen deaktivieren
+        not_subscribed: Nicht abonniert
+        muted_label: Stumm
+        click_to_add: "%{name} zu Benachrichtigungen hinzufügen"
+        heading: Benachrichtigt
+        change: ändern
+        done: fertig
+        nobody: niemand
+        search_person: Person suchen ...
+      close_content_panel: Panel schließen
+      lane_split: "Breite von Liste und Detail ändern (ziehen, Pfeiltasten, Doppelklick setzt zurück)"
+      close_chat: Chat schließen
+      empty_content:
+        no_results_title: Keine Ergebnisse
+        no_results_description: Versuche andere Filterkriterien oder entferne aktive Filter.
+      notification_override_hint:
+        manually_enabled: Benachrichtigung manuell aktiviert
+        manually_disabled: Benachrichtigung manuell deaktiviert
+      attachment:
+        open: Öffnen
+        zoom: Vergrößerte Ansicht
+        download: Herunterladen
+        section_title: Anhänge (%{count})
+      pagination:
+        of: von
+        entries:
+          one: "%{count} Eintrag"
+          other: "%{count} Einträge"
+      pagination_compact:
+        previous_page: Vorherige Seite
+        page_of: Seite %{page} von %{total}
+        next_page: Nächste Seite
+    devise:
+      shared:
+        # The login side panel. Own keys, not the pricing page copy: the public pages
+        # leave the core in step W6 of the website split.
+        # Nur noch EINE Zusage. "Hosting in Deutschland" und "AVV inklusive"
+        # galten unserer Cloud, und diese Anwendung laeuft auf fremden Servern:
+        # eine Instanz in Wien sagte ihren Leuten das Gegenteil der Wahrheit.
+        trust_pills:
+          gdpr: DSGVO-konform
+        # devise/shared/_password_field: three pages render that partial, so the
+        # four strings live here and not three times over.
+        password_field:
+          hide: Verbergen
+          show: Anzeigen
+          # Die Anzeige ist informativ; die verbindliche Regel bleibt Devise
+          # (password_length). strength_rule nennt genau diese Regel.
+          strength_labels:
+            - Zu kurz
+            - Geht so
+            - Gut
+            - Stark
+          strength_rule: mindestens %{count} Zeichen
+      registrations:
+        edit:
+          title: Profil
+          profile_section: Persönliche Daten
+          password_section: Passwort ändern
+          first_name: Vorname
+          last_name: Nachname
+          email_change_hint: Eine neue Adresse wird erst aktiv, wenn du den Bestätigungslink darin anklickst. Bis dahin gilt die bisherige.
+          pending_confirmation: 'Warte auf Bestätigung für: %{email}'
+          new_password: Neues Passwort
+          leave_blank_password: Mindestens 6 Zeichen
+          confirm_new_password: Neues Passwort bestätigen
+          current_password: Aktuelles Passwort
+          current_password_hint: zur Bestätigung der Änderungen erforderlich
+          save_profile: Profil speichern
+          save_password: Passwort ändern
+          save_changes: Änderungen speichern
+          danger_zone: Gefahrenzone
+          delete_warning: Das Löschen Ihres Accounts kann nicht rückgängig gemacht werden.
+          delete_account: Account löschen
+        disabled:
+          title: Registrierung nicht verfügbar
+          existing_account_hint: Falls Sie bereits ein Konto haben, können Sie sich weiterhin anmelden. Bei Fragen wenden Sie sich bitte an den Administrator.
+          go_to_login: Zur Anmeldung
+          go_to_home: Zur Startseite
+          currently_closed: Momentan geschlossen
+          temporarily_disabled: Die Registrierung ist vorübergehend deaktiviert.
+          what_you_can_do: 'Was Sie tun können:'
+          login_existing: Melden Sie sich mit einem bestehenden Konto an
+          use_invitation: Nutzen Sie einen Einladungslink, falls vorhanden
+          contact_admin: Kontaktieren Sie den Administrator für weitere Informationen
+  components:
+    unread_marker:
+      count_label:
+        one: 1 ungelesene Benachrichtigung
+        other: "%{count} ungelesene Benachrichtigungen"
+    ticket_columns:
+      unassigned: ohne Zuweisung
+    neo_tag:
+      remove: "%{name} entfernen"
+    column_picker:
+      title: Was ist hier wichtig?
+      hint: Oben steht, was zuerst sichtbar bleibt.
+      always: immer
+      done: fertig
+      boundary: ab hier reicht die Breite nicht
+      applies_to_html: gilt für %{name}
+      read_only: Diese Ansicht ist geteilt und nur lesbar. Ihre Spalten wählt, wem sie gehört; sichere sie als neue Ansicht, um eigene zu wählen.
+      save_failed: Konnte nicht speichern. Bitte noch einmal.
+      columns_unknown: Diese Spalten gibt es in dieser Liste nicht.
+      apply_to_all: für alle Ansichten übernehmen
+      trigger_title: Spalten wählen
+      # Die Beschriftung nennt die WIRKUNG, nicht den Namen der Spalte: was der
+      # Leser gewinnt, ist "bleibt lesbar", und der Satz ist für jede Zeile
+      # derselbe. Der zugängliche Name nennt dazu die Spalte, weil ein Vorleser
+      # die Zeile nicht sieht.
+      pin: anpinnen, dann bleibt es sichtbar, auch wenn die Breite nicht reicht
+      pinned: angepinnt, bleibt sichtbar, auch wenn die Breite nicht reicht
+      pin_fixed: immer sichtbar, nicht änderbar
+      pin_label_off: "anpinnen: %{name}"
+      pin_label_on: "%{name} ist angepinnt"
+      pin_hint: Wird es eng, weichen die unteren zuerst. Angepinntes bleibt.
+      moved: "%{name} an Position %{position}"
+    filter_bar:
+      view_tabs_label: Gespeicherte Ansichten
+      more_views: "%{count} weitere"
+      unsaved: Noch nicht gespeichert
+      connector_not: nicht
+      edit_condition: "%{category} ändern"
+      not_editable_here: Nur im Expertenfilter änderbar
+      close_menu: Schließen
+      back: Zurück
+      in_use: in Gebrauch
+      change_value: Wert ändern
+      edit_conditions: ändern
+      done_editing: fertig
+      # Die Beschriftung nennt, was der Klick TUT, und benennt dabei die Sache:
+      # ein Kreuz ohne Wort ist an einer Bedienzeile nicht zu erraten.
+      remove_condition: "Bedingung entfernen: %{category}"
+      remove_value: "%{value} entfernen"
+      add_condition: Bedingung
+      name_of_view: Name der Ansicht
+      name_save: Sichern
+      name_cancel: Abbrechen
+      nothing_selected: nichts gewählt
+      change_value_removed: "„%{value}“ wurde entfernt."
+      change_two_values_removed: "„%{a}“ und „%{b}“ wurden entfernt."
+      change_values_removed: "%{count} Werte wurden entfernt."
+      change_value_added: "„%{value}“ kam dazu."
+      change_values_added: "%{count} Werte kamen dazu."
+      change_conditions_changed: Die Bedingungen sind geändert.
+      condition_count:
+        one: Eine Bedingung grenzt die Liste ein.
+        other: "%{count} Bedingungen grenzen die Liste ein."
+      # The word of the "+ Filter" trigger when it stands as a sign (tight
+      # head, components/filter_bar.css): the title, with the count.
+      filter_sign_title:
+        zero: Filter
+        one: Filter · 1 Bedingung
+        other: "Filter · %{count} Bedingungen"
+      save_changes: Änderung speichern
+      save_as_new_view: Als neue Ansicht
+      save_as_view: Als Ansicht sichern
+      discard: Verwerfen
+      reset: Zurücksetzen
+      undo: Rückgängig
+      change_discarded: Änderung verworfen
+      conditions_reset: Bedingungen zurückgesetzt
+      view_saved: Ansicht gespeichert
+      save_failed: Speichern fehlgeschlagen
+      retry: Erneut versuchen
+      view_menu: Ansicht verwalten
+      rename: Umbenennen
+      duplicate_view: Duplizieren
+      duplicate_failed: Duplizieren fehlgeschlagen
+      rename_save: Sichern
+      rename_cancel: Abbrechen
+      renamed: Umbenannt
+      rename_failed: Umbenennen fehlgeschlagen
+      share: Teilen…
+      open_expert_filter: Im Expertenfilter öffnen…
+      delete_view: Ansicht löschen
+      delete_confirm: "Ansicht „%{name}“ löschen? Das lässt sich nicht rückgängig machen."
+      view_deleted: "„%{name}“ gelöscht"
+      delete_failed: Löschen fehlgeschlagen
+      proposal_question_html: "Auch nach %{condition} filtern?"
+      accept: Übernehmen
+      decline: Ablehnen
+      search_open: Suche öffnen
+      save_filter_type_widened_hint: "Mehr als ein Typ, oder ein Typ ohne eigene Ordnerart: die Ansicht wird für alle Typen gesichert."
+    overflow_menu:
+      label: Weitere Aktionen
+    contextual_help:
+      label: Hilfe zu diesem Bereich
+      drawer_title: Hilfe
+      open_full_page: Ganze Seite öffnen
+      close: Hilfe schließen
+      loading: Lädt …
+    time_session_billing_status:
+      tooltip_billed: 'Rechnung: %{invoice} vom %{date}'
+      tooltip_in_billing: 'Abrechnung: %{name} (noch nicht abgerechnet)'
+    subject_time_summary:
+      scope:
+        all: "(gesamt)"
+        own: "(eigene)"
+      show_time_tracking: Zeiterfassung anzeigen
+      capture_time: Zeit eintragen …
+      capture_effort: Aufwand buchen …
+      loading: Lädt …
+    activity_timeline:
+      model_names:
+        project: Projekt
+        ticket: Ticket
+        document: Dokument
+        note: Notiz
+        chat: Chat
+        smart_folder: Smart Folder
+      titles:
+        created: "%{trackable_type} erstellt"
+        updated: "%{trackable_type} aktualisiert"
+        deleted: "%{trackable_type} gelöscht"
+        member_added: Mitglied hinzugefügt
+        member_removed: Mitglied entfernt
+        permission_changed: Berechtigung geändert
+        ticket_created: Ticket erstellt
+        ticket_moved_in: Ticket ins Projekt verschoben
+        ticket_moved_out: Ticket aus Projekt verschoben
+        document_added: Dokument hinzugefügt
+        note_created: Notiz erstellt
+        chat_created: Chat erstellt
+        meeting_created: Meeting erstellt
+        meeting_deleted: Meeting gelöscht
+        smart_folder_created: Smart Folder erstellt
+        codebase_imported: Codebase importiert
+        subscriber_added: Beobachter hinzugefügt
+        subscriber_removed: Beobachter entfernt
+        tickets_bulk_changed: Mehrere Tickets geändert
+        tickets_bulk_undone: Sammeländerung zurückgenommen
+      descriptions:
+        tickets_bulk_changed: "%{actor} hat %{count} Tickets geändert: %{changes}"
+        tickets_bulk_undone: "%{actor} hat eine Sammeländerung zurückgenommen (%{count} Tickets): %{changes}"
+        member_added: "%{user_name} wurde dem Projekt hinzugefügt"
+        member_removed: "%{user_name} wurde aus dem Projekt entfernt"
+        permission_changed: Berechtigungen für %{user_name} wurden geändert
+        ticket_created: Ticket %{ticket_info} wurde erstellt
+        ticket_moved_in: "%{actor} hat ein Ticket ins Projekt verschoben (%{ticket_info})"
+        ticket_moved_out: "%{actor} hat ein Ticket aus dem Projekt verschoben (%{ticket_info})"
+        document_added: Dokument "%{doc_name}" wurde hinzugefügt
+        note_created: Notiz "%{note_title}" wurde erstellt
+        assigned: "%{actor} hat das Ticket zugewiesen an %{assignee}"
+        subscriber_added: "%{actor} hat %{subscriber} als Beobachter hinzugefügt"
+        subscriber_removed: "%{actor} hat %{subscriber} als Beobachter entfernt"
+        chat_created: Chat "%{chat_title}" wurde erstellt
+        meeting_created: Meeting "%{meeting_title}" wurde erstellt
+        meeting_deleted: Meeting "%{meeting_title}" wurde gelöscht
+        smart_folder_created: Smart Folder "%{folder_name}" wurde erstellt
+        codebase_imported_with_count: "%{files_count} Dateien wurden importiert"
+        codebase_imported: Codebase wurde importiert
+        created_project: "%{actor} hat das Projekt erstellt"
+        created_unknown: "%{actor} hat ein unbekanntes Objekt"
+        created_generic: "%{actor} hat das %{trackable_type} erstellt"
+        updated_project: "%{actor} hat das Projekt aktualisiert"
+        updated_generic: "%{actor} hat das %{trackable_type} aktualisiert"
+        deleted_project: "%{actor} hat das Projekt gelöscht"
+        deleted_generic: "%{actor} hat das %{trackable_type} gelöscht"
+      object_types:
+        ticket: Ticket
+        document: Dokument
+        note: Notiz
+        chat: Chat
+        meeting: Meeting
+        smart_folder: Smart Folder
+      defaults:
+        unknown_user: Unbekannter Benutzer
+        unknown_document: Unbekanntes Dokument
+        unknown_note: Unbekannte Notiz
+        unknown_project: Unbekanntes Projekt
+        unknown_chat: Unbekannter Chat
+        unknown_meeting: Unbekanntes Meeting
+        unknown_folder: Unbekannter Ordner
+        new_chat: Neuer Chat
+        system_actor: System
+        empty_value: leer
+      template:
+        show_diff: Unterschied ansehen
+        changes_header: 'Änderungen:'
+        link_show: Anzeigen
+        link_documents: Zu Dokumenten
+        link_notes: Zu Notizen
+        link_open_chat: Chat öffnen
+        activity_count:
+          one: "%{count} Aktivität"
+          other: "%{count} Aktivitäten"

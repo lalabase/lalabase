@@ -1,0 +1,180 @@
+---
+en:
+  generic:
+    actions: Actions
+    back_to_details: Back to folder
+    back_to_list: Back to overview
+    cancel: Cancel
+    create: Create
+    days: Days
+    delete: Delete
+    edit: Edit
+    'false': 'No'
+    save: Save
+    'true': 'Yes'
+    update: Update
+  helpers:
+    select:
+      prompt: Please select...
+  smart_folders:
+    access_levels:
+      copy: Copy allowed
+      use_rules: Use rules
+      view_only: View only
+    add_rule: Add new AND rule
+    add_rule_group: Add new OR group
+    all_notes: All Notes
+    and: AND
+    clone: Copy
+    copy_of: Copy of %{name}
+    delete: Delete filter
+    confirm_delete: Are you sure you want to delete this filter?
+    confirm_delete_group: Are you sure you want to delete this rule group?
+    confirm_delete_rule: Are you sure you want to delete this rule?
+    create_document_folder: Create new filter
+    create_first: Create your first Ticket Filter
+    create_note_folder: Create new filter
+    create_ticket_folder: Create new filter
+    create_time_session_folder: Create new filter
+    details: Details
+    edit: Edit Ticket Filter
+    edit_rules: Edit rules
+    edit_title: Edit Filter
+    edit_title_by_type:
+      Ticket: Edit Ticket Filter
+      Note: Edit Knowledge Filter
+      Document: Edit Document Filter
+      TimeSession: Edit Time Session Filter
+    fields:
+      assignee: Assigned to
+      billed: Invoiced
+      blocking: Holding others up
+      content: Content
+      created_at: Created at
+      duration: Duration (minutes)
+      has_time_sessions: Has time tracking
+      priority: Priority
+      status: Status
+      tag: Tag
+      time_session_billed: Time sessions invoiced
+      time_session_count: Number of time sessions
+      time_session_duration: Total time session duration
+      title: Title
+      updated_at: Updated at
+      version_count: Number of versions
+      waiting: Waiting on an open ticket
+    items:
+      document: Document
+      note: Note
+      ticket: Ticket
+      time_session: Time Entry
+    max_value: Max. value
+    min_value: Min. value
+    new: New Filter
+    new_title_by_type:
+      Ticket: New Ticket Filter
+      Note: New Knowledge Filter
+      Document: New Document Filter
+      TimeSession: New Time Session Filter
+    new_folder: New Filter
+    no_folders: No Ticket Filters found.
+    no_note_folders: No Ticket Filters for notes available
+    no_results: No results match the defined rules.
+    no_rules: No rules defined. Add rules to see results.
+    not_found: The specified Ticket Filter was not found.
+    object_types:
+      All: All object types
+      Document: Documents
+      Note: Notes
+      Ticket: Tickets
+      TimeSession: Time Entries
+    operators:
+      after: is after
+      before: is before
+      between: is between
+      contains: contains
+      due_next_7_days: due in the next 7 days
+      due_this_week: due this week
+      due_today: due today
+      ends_with: ends with
+      equals: equals
+      greater_than: is greater than
+      has: has tag
+      has_all_of: has all tags
+      has_any_of: has any of the tags
+      in_the_last_days: is in the last (days)
+      is: is
+      is_empty: is empty
+      is_not: is not
+      is_not_empty: is not empty
+      last_30_days: is in the last 30 days
+      last_7_days: is in the last 7 days
+      less_than: is less than
+      not_contains: does not contain
+      not_equals: is not equal to
+      not_has: does not have tag
+      overdue: is overdue
+      starts_with: starts with
+      this_month: is this month
+      this_week: is this week
+      today: is today
+      within_days: is within the last (days)
+      yesterday: is yesterday
+    or: OR
+    organisation_wide: Organisation-wide
+    ownership:
+      from: From
+      own: Own filter
+      you: You
+    public_level:
+      '0': View only
+      '1': Use rules
+      '2': Copy allowed
+    results: Results
+    rule_group: Rule group
+    rules: Rules
+    share:
+      add_new_share: Add new share
+      can_edit: Edit
+      can_edit_hint: Users can edit the rules and settings of the folder
+      can_share: Re-share
+      can_share_hint: Users can share the folder with others
+      confirm_remove_share: Are you sure you want to remove sharing for this user?
+      edit_permissions: Edit permissions
+      no_shares: This folder has not been shared yet.
+      owner: "(Owner)"
+      permissions: Permissions for selected users
+      remove_share: Remove share
+      search_users: Search users...
+      select_users: Select users to share with
+      share_button: Save sharing
+      shared_with: Shared with
+      title: Share Ticket Filter '%{name}'
+      users_hint: Hold Ctrl/Cmd to select multiple users
+    sidebar_title: Ticket Filters
+    sorting:
+      created_asc: Oldest first
+      created_desc: Newest first
+      title_asc: Title A-Z
+      title_desc: Title Z-A
+      updated_asc: Updated first
+      updated_desc: Last updated
+    success: Ticket Filter was saved successfully.
+    target_object_type: Object type
+    title: Ticket Filters
+    try_editing: Try editing the filter rules to get different results.
+    value_placeholder: Enter value...
+    all_documents: All Documents
+    all_tickets: All Tickets
+    all_time_sessions: All Time Sessions
+    display:
+      date_between: between %{start} and %{end}
+    general_settings: General Settings
+    is_public: Public
+    no_document_folders: No document folders available
+    no_rules_in_group: No rules in this group
+    no_ticket_folders: No ticket folders available
+    no_time_session_folders: No time session folders available
+    public_access: Public access
+    remove_group: Remove group
+    remove_rule: Remove rule

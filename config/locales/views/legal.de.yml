@@ -1,0 +1,25 @@
+de:
+  views:
+    shared:
+      legal:
+        operator_credit: "© %{year} %{operator}"
+        powered_by: "powered by %{product}"
+        imprint: Impressum
+        privacy: Datenschutz
+        terms: AGB
+        back_to_sign_in: Zurück zur Anmeldung
+        body_hint: "Nur ausfüllen, wenn du die Seite nicht woanders hostest. Eine eingetragene Adresse hat Vorrang. Markdown ist erlaubt."
+  activemodel:
+    attributes:
+      legal_identity:
+        operator_name: Betreiber
+        imprint_page_url: Adresse des Impressums
+        privacy_page_url: Adresse der Datenschutzerklärung
+        terms_page_url: Adresse der AGB
+        imprint_body: Impressum als Text
+        privacy_body: Datenschutzerklärung als Text
+        terms_body: AGB als Text
+    errors:
+      models:
+        legal_identity:
+          not_absolute_url: muss eine vollständige Adresse sein, die mit https:// oder http:// beginnt

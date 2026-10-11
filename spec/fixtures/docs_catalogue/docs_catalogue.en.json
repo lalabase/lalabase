@@ -1,0 +1,44 @@
+{
+  "format_version": 1,
+  "locale": "en",
+  "generated_at": "2026-09-21T13:59:46Z",
+  "source_version": "cdcc13ca379d576cedc0b8c1b0bac897b403394b",
+  "groups": [
+    {
+      "section": "basics",
+      "title": "Basics",
+      "items": [
+        {
+          "slug": "guides/basics/erste-seite",
+          "title": "First example page"
+        },
+        {
+          "slug": "guides/basics/zweite-seite",
+          "title": "Second example page"
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "slug": "guides/basics/erste-seite",
+      "title": "First example page",
+      "section": "basics",
+      "section_title": "Basics",
+      "description": "A page with no content that shows everything the format carries.",
+      "html": "<h1 id=\"first-example-page\">First example page</h1>\n\n<p>This is placeholder text. It exists so the core can exercise its reading layer\nwithout the handbook sitting in its repository.</p>\n\n<h2 id=\"a-section-with-an-anchor\">A section with an anchor</h2>\n\n<p>The anchor of this heading comes from its text, as on every real page.</p>\n\n<p>A link to the <a href=\"/docs/en/guides/basics/zweite-seite\">second page</a> shows how an internal link resolves.</p>\n<div class=\"docs-codeblock\">\n  <button type=\"button\" class=\"docs-codeblock__copy\" aria-label=\"Copy\"></button>\n  <pre class=\"highlight\"><code><span class=\"nb\">echo</span> <span class=\"s2\">\"a code block, so the markup shows up in the catalogue\"</span>\n</code></pre>\n</div>\n",
+      "markdown": "# First example page\n\nThis is placeholder text. It exists so the core can exercise its reading layer\nwithout the handbook sitting in its repository.\n\n## A section with an anchor\n\nThe anchor of this heading comes from its text, as on every real page.\n\nA link to the [second page](zweite-seite) shows how an internal link resolves.\n\n```bash\necho \"a code block, so the markup shows up in the catalogue\"\n```\n",
+      "text": "First example page This is placeholder text. It exists so the core can exercise its reading layer without the handbook sitting in its repository. A section with an anchor The anchor of this heading comes from its text, as on every real page. A link to the second page shows how an internal link resolves. echo \"a code block, so the markup shows up in the catalogue\""
+    },
+    {
+      "slug": "guides/basics/zweite-seite",
+      "title": "Second example page",
+      "section": "basics",
+      "section_title": "Basics",
+      "description": "The target of the link from the first page.",
+      "html": "<h1 id=\"second-example-page\">Second example page</h1>\n\n<p>Placeholder text. This page is the target of the internal link.</p>\n",
+      "markdown": "# Second example page\n\nPlaceholder text. This page is the target of the internal link.\n",
+      "text": "Second example page Placeholder text. This page is the target of the internal link."
+    }
+  ]
+}

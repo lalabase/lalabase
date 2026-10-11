@@ -1,0 +1,97 @@
+/* app/assets/stylesheets/components/markdown_preview.css
+ *
+ * Neo::MarkdownPreviewComponent: typography for rendered Markdown (LLM answers,
+ * pasted transcripts, meeting notes, the ticket summary) plus the optional
+ * preview clamp.
+ *
+ * ONE copy for every Markdown surface that is not a whole documentation page.
+ * It replaced .meeting-prose and the two clamp classes (.meeting-transcript--clamped,
+ * .analysis-result-clamped) that had grown next to each other in views.css, and it
+ * absorbed the ticket summary, which would otherwise have become a fourth
+ * near-identical prose block — views.css already carried a note saying the third
+ * copy had fired the "unify at the third case" trigger.
+ *
+ * STILL OUTSIDE: #documentation-page .doc-prose and .help-prose (views.css). Those
+ * typeset FULL documentation pages — larger headings, tables, images — and hang on
+ * their own page anchors, which several system specs address by name. Folding those
+ * two in is the next step in this direction, not this one.
+ *
+ * NOT anchor-scoped, on purpose: the component renders in the meeting detail, in saved
+ * analysis results and in the ticket timeline, and one selector list per
+ * surface is exactly the drift this file exists to prevent. The class name carries
+ * its own scope. Colors come from the theme token layer so every theme stays
+ * readable. No table/img rules: Lalabase::SafeMarkdown emits neither (tables off in
+ * the renderer, <img> not on the allowlist).
+ */
+
+.md-preview {
+  color: rgb(var(--cream-800));
+  line-height: 1.65;
+}
+.md-preview--sm { font-size: 0.875rem; }
+.md-preview--md { font-size: 0.9375rem; }
+.md-preview h1,
+.md-preview h2,
+.md-preview h3,
+.md-preview h4 {
+  font-weight: 700;
+  line-height: 1.25;
+  color: rgb(var(--cream-900));
+  margin: 1.6em 0 0.5em;
+}
+.md-preview h1 { font-size: 1.5rem; margin-top: 0; }
+.md-preview h2 { font-size: 1.25rem; }
+.md-preview h3 { font-size: 1.1rem; }
+/* An LLM answer very often opens with a heading. Left as is, its 1.6em top margin
+   pushes the first line away from the label above it and the block reads as if it
+   had lost its anchor. Only the FIRST child is reset — headings further down keep
+   the air that separates the sections. */
+.md-preview > :first-child { margin-top: 0; }
+.md-preview p { margin: 0.75em 0; }
+.md-preview ul,
+.md-preview ol { margin: 0.75em 0; padding-left: 1.5em; }
+.md-preview ul { list-style: disc; }
+.md-preview ol { list-style: decimal; }
+.md-preview li { margin: 0.25em 0; }
+.md-preview a { color: rgb(var(--info)); text-decoration: underline; }
+.md-preview code {
+  background: rgb(var(--cream-200));
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+/* Code blocks stay fixed dark-on-light in every theme (same as .doc-prose). */
+.md-preview pre {
+  background: #1a1712;
+  color: #f3efe6;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 8px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.md-preview pre code { background: transparent; padding: 0; color: inherit; }
+.md-preview blockquote {
+  border-left: 3px solid rgb(var(--cream-300));
+  padding-left: 1em;
+  color: rgb(var(--cream-600));
+  margin: 1em 0;
+}
+.md-preview hr { border: 0; border-top: 1px solid rgb(var(--cream-300)); margin: 1.5em 0; }
+
+/* The preview clamp. Added and removed at runtime by clamp_toggle_controller, which
+   receives the class name from the component (Stimulus classes API) — so the
+   controller stays content-agnostic and this file owns the height.
+   Kept in the DOM (max-height, not display:none) so in-page search still reaches the
+   hidden lines. The mask fades the last of them, so the cut reads as "there is more"
+   rather than as a hard crop. */
+.md-preview--clamped {
+  max-height: 8rem;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+}
+/* :tall — for a long raw document (the meeting transcript) where a five-line peek
+   would say nothing about what is in there. Two classes on purpose: the height only
+   means something while the block is actually clamped. */
+.md-preview--clamp-tall.md-preview--clamped { max-height: 15rem; }

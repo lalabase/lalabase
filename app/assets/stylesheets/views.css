@@ -1,0 +1,1015 @@
+/* app/assets/stylesheets/views.css
+ *
+ * Page-specific rules that lived until 06/2026 as <style> blocks in the views.
+ * CONVENTION: No <style> blocks in app/views/* — the guard spec
+ * spec/views/style_block_guard_spec.rb fails otherwise (exception: mailer layouts).
+ * Place new rules here (or layout.css / components/*),
+ * thematically grouped and scoped to the page when class names are generic. */
+
+/* --- Staging badge (all layouts; markup renders only when Rails.env.staging?) --- */
+.staging-indicator {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 40; /* sidebar */
+}
+
+.staging-toggle {
+  display: none;
+}
+
+.staging-badge {
+  background: #eab308;
+  color: black;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.staging-badge:hover {
+  background: #facc15;
+}
+
+.staging-info {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  background: #eab308;
+  color: black;
+  padding: 12px;
+  font-size: 12px;
+  border: 1px solid #ca8a04;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  display: none;
+}
+
+.staging-toggle:checked + .staging-badge + .staging-info {
+  display: block;
+}
+
+/* --- Drag states column configuration (SortableJS in the view-configuration form).
+       Scoped because ticket_attribute_definitions styles the same SortableJS classes
+       with different values. --- */
+#view_configuration_form .sortable-ghost {
+  opacity: 0.4;
+  background-color: #f3f4f6;
+}
+#view_configuration_form .sortable-drag {
+  opacity: 1 !important;
+  z-index: 70 !important;
+  cursor: move !important;
+}
+#view_configuration_form .sortable-chosen {
+  background-color: #fef3c7;
+  cursor: move !important;
+}
+#view_configuration_form [data-controller="sortable"] {
+  position: relative;
+  min-height: 50px; /* Ensure drop area is visible */
+}
+#view_configuration_form [data-controller="sortable"] > * {
+  position: relative;
+}
+#view_configuration_form .sortable-fallback {
+  opacity: 0.8 !important;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+}
+
+/* --- Drag states ticket attributes (project settings, warm-editorial) --- */
+.attr-defs-sortable .sortable-ghost {
+  opacity: 0.4;
+  background-color: #f5f1ea;
+}
+.attr-defs-sortable .sortable-chosen {
+  box-shadow: 2px 2px 0 0 #14110c;
+}
+
+/* --- Inbox ticket pane: hide the column close button in the embedded ticket --- */
+#ticket_pane [data-action*="layout-toggle#closeContent"] {
+  display: none !important;
+}
+
+/* --- Wiki note version history (Lane B / Brick 4) --- */
+#note-version-history .wiki-version-list {
+  display: flex;
+  flex-direction: column;
+}
+
+#note-version-history .wiki-version-list__link {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid rgb(var(--cream-300));
+}
+
+#note-version-history .wiki-version-list__link:hover {
+  background: rgb(var(--cream-100));
+}
+
+#note-version-history .wiki-version-list__time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: rgb(var(--ink));
+}
+
+#note-version-history .wiki-version-list__author {
+  font-size: 0.85rem;
+  color: rgb(var(--cream-600));
+}
+
+/* --- Wiki note version diff (unified) --- */
+#note-version-diff .wiki-diff {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+
+#note-version-diff .wiki-diff__line {
+  padding: 0.1rem 0.75rem 0.1rem 1.75rem;
+  white-space: pre-wrap;
+  text-indent: -1rem;
+}
+
+/* Marker prefixes so the diff reads correctly without relying on colour alone. */
+#note-version-diff .wiki-diff__line--added::before { content: "+ "; }
+#note-version-diff .wiki-diff__line--removed::before { content: "− "; }
+#note-version-diff .wiki-diff__line--unchanged::before { content: "\00a0\00a0"; }
+
+#note-version-diff .wiki-diff__line--added {
+  background: #e6f4ea;
+  color: #1b5e20;
+}
+
+#note-version-diff .wiki-diff__line--removed {
+  background: #fbe9e7;
+  color: #b71c1c;
+}
+
+#note-version-diff .wiki-diff__line--unchanged {
+  color: rgb(var(--cream-600));
+}
+
+/* Dark: pastel diff washes would be glaring; reuse the central status wash
+   tokens (defined in .dark scope only — light/pop keep the pastel values). */
+.dark #note-version-diff .wiki-diff__line--added {
+  background: var(--wash-success-bg);
+  color: var(--wash-success-text);
+}
+
+.dark #note-version-diff .wiki-diff__line--removed {
+  background: var(--wash-danger-bg);
+  color: var(--wash-danger-text);
+}
+
+/* Documentation area: typography for synced markdown pages (scoped to the page
+   anchor so it never leaks into other views). Content is sanitized at sync.
+   Colors come from the theme token layer so all three themes stay readable.
+   DELIBERATE DUPLICATION: the .help-prose block (below) is a near-identical copy
+   with a different scope anchor. The third copy, .meeting-prose, is GONE — it
+   became .md-preview in components/markdown_preview.css when the ticket summary
+   would have made it a fourth. These two are what is left of the trigger: they
+   typeset FULL documentation pages (larger headings, tables, images) and several
+   system specs address them by name, which is why they did not move along. The
+   next touch here folds them into .md-preview and adds back only what differs. */
+#documentation-page .doc-prose {
+  color: rgb(var(--cream-800));
+  line-height: 1.65;
+}
+#documentation-page .doc-prose h1,
+#documentation-page .doc-prose h2,
+#documentation-page .doc-prose h3,
+#documentation-page .doc-prose h4 {
+  font-weight: 700;
+  line-height: 1.25;
+  color: rgb(var(--cream-900));
+  margin: 1.6em 0 0.5em;
+}
+#documentation-page .doc-prose h1 { font-size: 1.7rem; margin-top: 0; }
+#documentation-page .doc-prose h2 { font-size: 1.35rem; }
+#documentation-page .doc-prose h3 { font-size: 1.15rem; }
+#documentation-page .doc-prose p { margin: 0.75em 0; }
+#documentation-page .doc-prose ul,
+#documentation-page .doc-prose ol { margin: 0.75em 0; padding-left: 1.5em; }
+#documentation-page .doc-prose ul { list-style: disc; }
+#documentation-page .doc-prose ol { list-style: decimal; }
+#documentation-page .doc-prose li { margin: 0.25em 0; }
+#documentation-page .doc-prose a { color: rgb(var(--info)); text-decoration: underline; }
+#documentation-page .doc-prose code {
+  background: rgb(var(--cream-200));
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+/* Code blocks stay fixed dark-on-light in every theme; the token border keeps
+   them visible as a container on the dark surface (bg is ~= dark --cream-50). */
+#documentation-page .doc-prose pre {
+  background: #1a1712;
+  color: #f3efe6;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 8px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+#documentation-page .doc-prose pre code { background: transparent; padding: 0; color: inherit; }
+#documentation-page .doc-prose blockquote {
+  border-left: 3px solid rgb(var(--cream-300));
+  padding-left: 1em;
+  color: rgb(var(--cream-600));
+  margin: 1em 0;
+}
+#documentation-page .doc-prose table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+#documentation-page .doc-prose th,
+#documentation-page .doc-prose td {
+  border: 1px solid rgb(var(--cream-300));
+  padding: 0.4em 0.7em;
+  text-align: left;
+}
+#documentation-page .doc-prose img { max-width: 100%; height: auto; border-radius: 6px; }
+#documentation-page .doc-prose hr { border: 0; border-top: 1px solid rgb(var(--cream-300)); margin: 1.5em 0; }
+
+/* Live search highlight, applied client-side by frame-search#highlightContent via
+   the CSS Custom Highlight API (a text-range highlight, NOT a wrapping element — so
+   ::highlight only accepts a few properties, no border-radius/padding). Fixed
+   dark-on-yellow so it stays legible on both the light and the dark reading surface.
+   Shared by both documentation surfaces (project docs + the in-app help). */
+::highlight(doc-search) {
+  background-color: #fde68a;
+  color: #1a1712;
+}
+
+/* The sidebar doc/help search has its own X button (frame-search#clear); hide the
+   browser's native type=search cancel affordance so there is exactly one clear
+   control, consistent across browsers (WebKit shows one, Firefox none). */
+.doc-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Keyboard-selected live-search result (help + project docs). The aria-selected state
+   set by frame_search_controller IS the styling hook — same fill as the hover look
+   (bg-selected == --cream-200), so mouse hover and keyboard selection read identically
+   and adapt to every theme via the token. Scoped to the search-result target so it can
+   never leak onto other role="option" lists. Two attribute selectors outrank the inline
+   bg-surface-raised utility, so the fill wins without !important. */
+[data-frame-search-target="result"][aria-selected="true"] {
+  background-color: rgb(var(--cream-200));
+}
+
+/* =========================================================================
+   In-app help (/hilfe): prose for docs-engine markdown, modeled on the
+   documentation area above (doc-prose). The content classes in the markdown
+   (docs-callout-*, docs-codeblock) are the SHARED CONTRACT with the public
+   docs — the STYLING is deliberately different per surface: the documentation keeps
+   its isolated public look and stays untouched, this block renders the same
+   markup in the app look (doc/in_app_hilfe_plan.md, D4). Theme tokens keep
+   all three themes readable.
+   Scope is the CLASS .help-scope (not the #help-page id): the contextual-help
+   drawer grafts the help content into a body-level panel WITHOUT the #help-page
+   wrapper, and an id would collide when drawer and /hilfe page coexist
+   (doc/kontexthilfe_drawer_plan.md §8). #help-page carries .help-scope too.
+   ========================================================================= */
+.help-scope .help-prose {
+  color: rgb(var(--cream-800));
+  line-height: 1.65;
+}
+.help-scope .help-prose h1,
+.help-scope .help-prose h2,
+.help-scope .help-prose h3,
+.help-scope .help-prose h4 {
+  font-weight: 700;
+  line-height: 1.25;
+  color: rgb(var(--cream-900));
+  margin: 1.6em 0 0.5em;
+  /* Anchored headings (drawer scrollIntoView + native :target) keep breathing
+     room instead of sitting flush against the scrollport edge. */
+  scroll-margin-top: 0.75rem;
+}
+.help-scope .help-prose h1 { font-size: 1.7rem; margin-top: 0; }
+.help-scope .help-prose h2 { font-size: 1.35rem; }
+.help-scope .help-prose h3 { font-size: 1.15rem; }
+.help-scope .help-prose p { margin: 0.75em 0; }
+.help-scope .help-prose ul,
+.help-scope .help-prose ol { margin: 0.75em 0; padding-left: 1.5em; }
+.help-scope .help-prose ul { list-style: disc; }
+.help-scope .help-prose ol { list-style: decimal; }
+.help-scope .help-prose li { margin: 0.25em 0; }
+.help-scope .help-prose a { color: rgb(var(--info)); text-decoration: underline; }
+.help-scope .help-prose code {
+  background: rgb(var(--cream-200));
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+.help-scope .help-prose blockquote {
+  border-left: 3px solid rgb(var(--cream-300));
+  padding-left: 1em;
+  color: rgb(var(--cream-600));
+  margin: 1em 0;
+}
+.help-scope .help-prose table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+.help-scope .help-prose th,
+.help-scope .help-prose td {
+  border: 1px solid rgb(var(--cream-300));
+  padding: 0.4em 0.7em;
+  text-align: left;
+}
+.help-scope .help-prose img { max-width: 100%; height: auto; border-radius: 6px; }
+.help-scope .help-prose hr { border: 0; border-top: 1px solid rgb(var(--cream-300)); margin: 1.5em 0; }
+
+/* Code blocks: same fixed dark-on-light surface as the documentation area in
+   every theme. Rouge token spans stay monochrome here on purpose —
+   The public documentation's own Rouge theme (its repo since D5) is a light surface, its colors would be
+   unreadable on this dark ground. */
+.help-scope .help-prose .docs-codeblock { position: relative; margin: 1em 0; }
+.help-scope .help-prose .docs-codeblock pre,
+.help-scope .help-prose pre {
+  background: #1a1712;
+  color: #f3efe6;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 8px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.help-scope .help-prose .docs-codeblock pre { margin: 0; }
+.help-scope .help-prose pre code { background: transparent; padding: 0; color: inherit; font-size: 0.85rem; }
+/* Copy button lives on the fixed-dark code surface -> fixed colors are correct. */
+.help-scope .help-prose .docs-codeblock__copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(243, 239, 230, 0.35);
+  border-radius: 6px;
+  background: rgba(26, 23, 18, 0.85);
+  color: #f3efe6;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.help-scope .help-prose .docs-codeblock:hover .docs-codeblock__copy,
+.help-scope .help-prose .docs-codeblock__copy:focus-visible { opacity: 1; }
+.help-scope .help-prose .docs-codeblock__copy.is-copied { color: #d9f99d; border-color: #d9f99d; }
+
+/* Callouts: pastel washes in Light/Pop, central wash tokens in Dark (same
+   pattern as the wiki diff above — the wash tokens exist only in .dark). */
+.help-scope .help-prose .docs-callout {
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 1em 0;
+}
+.help-scope .help-prose .docs-callout__title { font-weight: 700; margin-bottom: 4px; }
+.help-scope .help-prose .docs-callout p { margin: 4px 0 0; }
+.help-scope .help-prose .docs-callout--info    { background: #eef4fd; color: #1e3a5f; }
+.help-scope .help-prose .docs-callout--tip     { background: #f3f9e8; color: #2a4208; }
+.help-scope .help-prose .docs-callout--warning { background: #fef9e7; color: #7a5b00; }
+.help-scope .help-prose .docs-callout--danger  { background: #fdecec; color: #9b1c1c; }
+.dark .help-scope .help-prose .docs-callout--info    { background: var(--wash-accent-bg);  color: var(--wash-accent-text); }
+.dark .help-scope .help-prose .docs-callout--tip     { background: var(--wash-success-bg); color: var(--wash-success-text); }
+.dark .help-scope .help-prose .docs-callout--warning { background: var(--wash-warning-bg); color: var(--wash-warning-text); }
+.dark .help-scope .help-prose .docs-callout--danger  { background: var(--wash-danger-bg);  color: var(--wash-danger-text); }
+
+/* Contextual-help drawer: flash the section heading the clicked question points
+   at, so the eye lands on the answer inside the long page (contextual_help_
+   drawer_controller adds/removes the class). Keyframes instead of a transition:
+   self-contained fade-out, no permanent transition on prose headings needed.
+   Light uses the warning-wash tint literal (same as .docs-callout--warning),
+   dark resolves the token — the var() fallback covers light, where the wash
+   tokens are undefined. */
+.help-scope .contextual-help-highlight {
+  animation: contextual-help-flash 2s ease-out;
+}
+@keyframes contextual-help-flash {
+  0%, 40% { background-color: var(--wash-warning-bg, #fef9e7); }
+  100% { background-color: transparent; }
+}
+
+/* ============================================================================
+   Access matrix (Organisations::AccessMatrixController#index)
+   Excel-style data grid: sticky first column (names) + sticky header (projects),
+   inside one bounded scroll region so both freeze on scroll. Theme-aware via the
+   cream/ink CSS tokens (no manual dark overrides needed — the tokens switch per
+   theme). All rules scoped to the #access-matrix page anchor.
+   ============================================================================ */
+#access-matrix .am-scroll {
+  position: relative;
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 8px;
+}
+#access-matrix .am-table { width: max-content; min-width: 100%; }
+#access-matrix .am-table th,
+#access-matrix .am-table td {
+  border-bottom: 1px solid rgb(var(--cream-200));
+  border-right: 1px solid rgb(var(--cream-200));
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+}
+#access-matrix .am-table td { text-align: center; }
+
+/* Header row freezes on vertical scroll. */
+#access-matrix .am-colhead {
+  position: sticky; top: 0; z-index: 2;
+  background: rgb(var(--cream-100));
+  text-align: center; font-weight: 700;
+}
+/* Name column freezes on horizontal scroll. */
+#access-matrix .am-rowhead {
+  position: sticky; left: 0; z-index: 1;
+  background: rgb(var(--cream-50));
+  text-align: left; font-weight: 600; color: rgb(var(--ink));
+}
+/* Top-left corner freezes on both axes and must layer above the two. */
+#access-matrix .am-corner {
+  position: sticky; top: 0; left: 0; z-index: 3;
+  background: rgb(var(--cream-100));
+  text-align: left; font-weight: 700; color: rgb(var(--ink));
+}
+#access-matrix .am-colhead__link { color: rgb(var(--ink)); text-decoration: none; }
+#access-matrix .am-colhead__link:hover { text-decoration: underline; }
+
+/* Per-area breakdown popover on an access cell. */
+#access-matrix .am-cell { position: relative; display: inline-block; }
+#access-matrix .am-cell > summary { list-style: none; }
+#access-matrix .am-cell > summary::-webkit-details-marker { display: none; }
+#access-matrix .am-cell__pop {
+  /* In-flow (not absolute): the .am-scroll ancestor is overflow:auto and would CLIP an
+     absolutely-positioned popover near the grid edges — exactly the dense case this
+     per-area breakdown exists for. Flowing below the pill trades a small on-open row-height
+     bump for a disclosure that is never clipped and stays keyboard-reachable. */
+  margin: 4px auto 0; width: max-content; max-width: 14rem;
+  background: rgb(var(--cream-50)); border: 1px solid rgb(var(--cream-300));
+  border-radius: 8px; padding: 8px 10px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+  text-align: left; white-space: normal;
+}
+#access-matrix .am-cell__pop-title {
+  font-weight: 700; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.03em; color: rgb(var(--cream-600)); margin-bottom: 4px;
+}
+#access-matrix .am-cell__pop-list { display: flex; flex-direction: column; gap: 2px; }
+#access-matrix .am-cell__pop-list li { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.75rem; }
+#access-matrix .am-cell__pop-area { color: rgb(var(--cream-700)); }
+#access-matrix .am-cell__pop-level { font-weight: 600; color: rgb(var(--ink)); }
+
+/* Project filter dropdown. */
+#access-matrix .am-projectfilter > summary { list-style: none; }
+#access-matrix .am-projectfilter > summary::-webkit-details-marker { display: none; }
+#access-matrix .am-projectfilter__pop {
+  position: absolute; z-index: 20; margin-top: 4px; min-width: 14rem; max-height: 16rem; overflow-y: auto;
+  background: rgb(var(--cream-50)); border: 1px solid rgb(var(--cream-300));
+  border-radius: 8px; padding: 8px 10px; box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+}
+
+/* Stimulus filter hides non-matching rows/columns. */
+#access-matrix .am-hidden { display: none !important; }
+
+#access-matrix .am-cell > summary:focus-visible,
+#access-matrix .am-colhead__link:focus-visible { outline: 2px solid rgb(var(--cream-600)); outline-offset: 2px; }
+
+/* ============================================================
+   Landing FAQ (static#index, section#faq)
+   ============================================================
+   One of the FAQ answers ("Was passiert mit meinen Daten bei den KI-Features?")
+   comes as an _html key from the locales and brings a list with it. Tailwind's
+   Preflight clears list-style, and utility classes in the locale string would
+   depend on a content scan that does not necessarily cover YAML -- a
+   silent defect instead of an error. That is why it sits here, scoped to the page
+   anchor (CLAUDE.md: page-specific rules in views.css). */
+#faq .faq-answer p { margin-bottom: 0.75rem; }
+#faq .faq-answer ul { list-style: disc; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+#faq .faq-answer li::marker { color: rgb(107 114 128); }
+
+/* ============================================================
+   Bot trap on public forms (shared/_bot_trap_fields)
+   ============================================================
+   Deliberately NOT display:none and not hidden: simple scripts skip exactly
+   those two signals, and then nobody falls in anymore. Pushing it off-screen
+   keeps the field looking normal in the DOM. The rule must not live in the view
+   (CLAUDE.md: no <style> blocks). */
+.bot-trap {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* --- Knowledge list under the filter bar (doc/filterleiste_s5_s8_plan.md, S8, D5) ---
+   Narrow, the weakest column goes: "Erstellt am". The frame measures its own
+   width, so the rule follows the list, not the viewport. Tickets have no such
+   rule: their columns are the reader's configuration. The width is the bar's
+   narrow width (components/filter_bar.css, NARROW_WIDTH); change both together. */
+#knowledge_results {
+  display: block; /* a turbo-frame is inline by default, and an inline box cannot be a size container */
+  container-type: inline-size;
+  container-name: knowledge-results;
+}
+
+/* Meetings use the same compact-lane principle as knowledge: the title keeps
+   the usable width while secondary columns fold away only when the list track
+   itself becomes narrow (including a user-dragged split). */
+#meetings_results {
+  display: block;
+  container-type: inline-size;
+  container-name: meeting-results;
+}
+
+/* The same rank/pin fit rules as tickets govern the meeting table. */
+.meeting-table { table-layout: fixed; }
+.meeting-mobile-grid .column-picker:not([hidden]) {
+  position: fixed;
+  z-index: 80;
+  top: 5rem;
+  right: 1rem;
+  width: min(268px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 6rem);
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgb(var(--ink) / 0.15);
+}
+
+/* ⚠️ Folded to ZERO WIDTH, not display: none (user, 10.09.2026, with the lane
+   open: the chosen row and its line stopped at 80% of the list while the ruled
+   rows ran to the edge). A cell that is display: none leaves the table; the
+   ruled rows still span four columns (shared/_ruled_rows, colspan = the head's
+   cells), so a fourth column slot appeared that only the filler rows filled,
+   and Blink paints a row's background and its borders per CELL, never over a
+   slot without one. A cell of zero width stays in the row: the slots match on
+   every row, the title (width: auto in the compact table, layout.css) takes
+   the room. The content is hidden separately, or its min-content would hold
+   the column open; the th wraps its label in a span for that. */
+/* Beside an open lane the type column shows its icon alone (the word is
+   hidden by layout.css, ".type-label"), and 5% of a narrow table is less than
+   the icon: the cell ellipsised it to "icon.." (seen 10.09.2026). A fixed
+   width for the icon, in the compact table only; wide, the word needs the
+   share. */
+.layout:not(.hide-content) #knowledge_results [data-column="type"] {
+  width: 2.75rem;
+}
+
+@container knowledge-results (max-width: 520px) {
+  #knowledge_results [data-fb-col-date] {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    overflow: hidden;
+  }
+
+  #knowledge_results [data-fb-col-date] > * {
+    display: none;
+  }
+}
+
+/* ========================================================================
+   Tickets: the selection box column (doc/ticket_bulk_edit_plan.md, slice 1;
+   designer template 29a). Four states, one element: at rest a subdued
+   outline that holds the table's left edge with something visible, on hover
+   or focus a stronger one, ticked a filled ink square with a light check.
+   The head box always carries the stronger tone, it stands alone. Only the
+   contrast changes, never the hit area: the box is clickable in every state,
+   or it would be out of reach for the keyboard and on a tablet. Tokens, not
+   the template's hex values: --cream-300 is its #DCD6C7, --cream-500 the
+   nearest to its #8A857A, and both follow the theme.
+   ======================================================================== */
+/* One fixed first column, head and rows alike, the box centred in it: the
+   column begins on the page's edge, not the box, so the box has air on its
+   left and head and rows are flush by construction (designer, 08.09.2026).
+   The width is ONE value in both places: here and in the fit script
+   (ViewConfiguration::SELECT_COLUMN_WIDTH_PX), never padding here and width
+   there. */
+#ticket-index-container .select-column {
+  width: 40px; /* ViewConfiguration::SELECT_COLUMN_WIDTH_PX */
+  min-width: 40px;
+  padding-inline: 0;
+  text-align: center;
+  vertical-align: middle;
+}
+
+#ticket-index-container .ticket-select-box {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+  vertical-align: middle;
+  border: 2px solid rgb(var(--cream-300));
+  border-radius: 3px;
+  background-color: transparent;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+#ticket-index-container .ticket-row:hover .ticket-select-box,
+#ticket-index-container .ticket-select-box:hover,
+#ticket-index-container .ticket-select-box:focus-visible,
+#ticket-index-container .ticket-select-box--head {
+  border-color: rgb(var(--cream-500));
+}
+
+
+#ticket-index-container .ticket-select-box:checked,
+#ticket-index-container .ticket-select-box:indeterminate {
+  border-color: rgb(var(--ink));
+  background-color: rgb(var(--ink));
+}
+
+#ticket-index-container .ticket-select-box:checked::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background-color: rgb(var(--on-fill));
+  clip-path: polygon(14% 44%, 0 65%, 40% 100%, 100% 22%, 84% 8%, 40% 66%);
+}
+
+#ticket-index-container .ticket-select-box:indeterminate::before {
+  content: "";
+  width: 8px;
+  height: 2px;
+  background-color: rgb(var(--on-fill));
+}
+
+/* Without a pointer that hovers there is no "stronger on hover": the box
+   stands in the stronger tone all the time. */
+@media (pointer: coarse) {
+  #ticket-index-container .ticket-select-box {
+    border-color: rgb(var(--cream-500));
+  }
+}
+
+/* The ticked row carries the tint that means "selected" everywhere (F6). An
+   opened row keeps its own tint (layout.css .selected-row): open beats
+   ticked, the check in the box still says ticked. */
+#ticket-index-container .ticket-row.selection-ticked:not(.selected-row),
+#ticket-index-container .ticket-row.selection-ticked:not(.selected-row):hover {
+  background-color: rgb(var(--cream-200));
+}
+
+/* ------------------------------------------------------------------------
+   Tickets: the bulk panel in the lane (doc/ticket_bulk_edit_plan.md, slice 4).
+   The control of a change row in field look (surface-raised, the field's
+   own edge), and the confirming button GREY while it cannot act: lime is the
+   one filled surface in the panel, and it appears only when there is
+   something to confirm (29a §6).
+   ------------------------------------------------------------------------ */
+#ticket-index-container .ticket-bulk-panel .tbp-control {
+  height: 2rem;
+  max-width: 100%;
+  border: 1px solid rgb(var(--cream-400));
+  border-radius: 0.375rem;
+  background-color: rgb(var(--white));
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  color: rgb(var(--cream-900));
+}
+
+/* The panel's own dropdown for a single value (designer, 08.09.2026): field
+   look, the word left, the chevron an SVG 6 px behind it, the options in the
+   same layer the multi field uses. Focus a set-off ring, never a hard ink
+   outline on the field (that is the language of the main action). */
+#ticket-index-container .ticket-bulk-panel .tbp-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 2rem;
+  max-width: 100%;
+  padding: 0 0.625rem;
+  border: 1px solid rgb(var(--cream-400));
+  border-radius: 8px;
+  background-color: rgb(var(--white)); /* the raised surface of the theme */
+  font-size: 13px;
+  color: rgb(var(--cream-900));
+  text-align: start;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-select:hover { border-color: rgb(var(--cream-500)); }
+#ticket-index-container .ticket-bulk-panel .tbp-select:focus { outline: none; }
+#ticket-index-container .ticket-bulk-panel .tbp-select:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 2px; }
+#ticket-index-container .ticket-bulk-panel .tbp-select[data-value=""] { color: rgb(var(--cream-700)); }
+#ticket-index-container .ticket-bulk-panel .tbp-select-chevron { width: 10px; height: 10px; flex: none; color: rgb(var(--cream-600)); }
+#ticket-index-container .ticket-bulk-panel .tbp-option[aria-selected="true"] { font-weight: 600; color: rgb(var(--cream-900)); }
+
+/* Focus is a set-off ring, not a stronger border: the field keeps its one
+   look, and the ink outline stays the language of the main action
+   (designer, 08.09.2026). */
+#ticket-index-container .ticket-bulk-panel .tbp-control:focus {
+  outline: none;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-control:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+/* The confirming button is the main action (Neo::Buttons::Base, PRIMARY):
+   lime, the one hard edge, the offset shadow, and its own off state come from
+   the component since 08.09.2026; nothing is overridden here. */
+
+/* "Abbrechen" is a word, not a link (designer, 08.09.2026): no underline,
+   muted at rest, ink on a tinted surface on hover and keyboard focus. */
+#ticket-index-container .ticket-bulk-panel .tbp-cancel {
+  height: 2rem;
+  padding: 0 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(var(--cream-600));
+}
+#ticket-index-container .ticket-bulk-panel .tbp-cancel:hover:not(:disabled),
+#ticket-index-container .ticket-bulk-panel .tbp-cancel:focus-visible {
+  background-color: rgb(var(--cream-100));
+  color: rgb(var(--cream-900));
+}
+#ticket-index-container .ticket-bulk-panel .tbp-cancel:disabled {
+  color: rgb(var(--cream-400));
+  cursor: not-allowed;
+}
+
+/* Tickets: the bulk panel's multi-valued rows (doc/ticket_bulk_edit_plan.md,
+   slice 5). A chip is one value of the draft: "+ Backend" sets it on every
+   selected ticket, "− Doku" removes it from every one; clicking the chip takes
+   it out of the change. The dashed "+ Tag" opens the layer, the layer stays
+   open between clicks (a multi-valued list is worked through), and each
+   value carries a three-state box: nobody, some, all. */
+/* The layer hangs off the ROW, not the control column: the column is as
+   narrow as the lane leaves it, and a layer sized to it would overflow a
+   narrow lane sideways. Under the row it can be as wide as the row. */
+#ticket-index-container .ticket-bulk-panel .ticket-bulk-row { position: relative; }
+
+#ticket-index-container .ticket-bulk-panel .tbp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--cream-300));
+  background-color: rgb(var(--cream-200));
+  font-size: 13px;
+  color: rgb(var(--cream-900));
+  white-space: nowrap;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-chip:hover { border-color: rgb(var(--ink)); }
+#ticket-index-container .ticket-bulk-panel .tbp-chip:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 1px; }
+#ticket-index-container .ticket-bulk-panel .tbp-chip--remove { background-color: rgb(var(--cream-100)); text-decoration: line-through; text-decoration-color: rgb(var(--cream-500)); }
+
+#ticket-index-container .ticket-bulk-panel .tbp-add-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border-radius: 9999px;
+  border: 1px dashed rgb(var(--cream-400));
+  background-color: transparent;
+  font-size: 13px;
+  color: rgb(var(--cream-800));
+  white-space: nowrap;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-add-value:hover,
+#ticket-index-container .ticket-bulk-panel .tbp-add-value[aria-expanded="true"] { border-color: rgb(var(--ink)); color: rgb(var(--cream-900)); }
+#ticket-index-container .ticket-bulk-panel .tbp-add-value:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 1px; }
+
+#ticket-index-container .ticket-bulk-panel .tbp-layer {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 100%;
+  z-index: 20;
+  margin-top: 0.25rem;
+  width: min(20rem, 100%);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(var(--cream-300));
+  background-color: rgb(var(--white));
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+#ticket-index-container .ticket-bulk-panel .tbp-search {
+  width: 100%;
+  height: 2rem;
+  margin-bottom: 0.25rem;
+  padding: 0 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgb(var(--cream-300));
+  background-color: rgb(var(--white));
+  font-size: 13px;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-search:focus { outline: none; border-color: rgb(var(--ink)); box-shadow: 0 0 0 1px rgb(var(--ink)); }
+#ticket-index-container .ticket-bulk-panel .tbp-option,
+#ticket-index-container .ticket-bulk-panel .tbp-new-value {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.25rem;
+  text-align: start;
+  font-size: 0.875rem;
+  color: rgb(var(--cream-800));
+}
+#ticket-index-container .ticket-bulk-panel .tbp-option:hover,
+#ticket-index-container .ticket-bulk-panel .tbp-new-value:hover { background-color: rgb(var(--cream-100)); }
+#ticket-index-container .ticket-bulk-panel .tbp-option:focus-visible,
+#ticket-index-container .ticket-bulk-panel .tbp-new-value:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: -2px; }
+/* The display above outranks the hidden attribute: the offer of a new tag
+   waits hidden until a typed name matches no tag. */
+#ticket-index-container .ticket-bulk-panel .tbp-new-value[hidden] { display: none; }
+
+#ticket-index-container .ticket-bulk-panel .tbp-tri {
+  display: inline-grid;
+  place-content: center;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 2px solid rgb(var(--cream-400));
+  border-radius: 3px;
+  background-color: transparent;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-tri.is-all,
+#ticket-index-container .ticket-bulk-panel .tbp-tri.is-some { border-color: rgb(var(--ink)); background-color: rgb(var(--ink)); }
+#ticket-index-container .ticket-bulk-panel .tbp-tri.is-all::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background-color: rgb(var(--on-fill));
+  clip-path: polygon(14% 44%, 0 65%, 40% 100%, 100% 22%, 84% 8%, 40% 66%);
+}
+#ticket-index-container .ticket-bulk-panel .tbp-tri.is-some::before {
+  content: "";
+  width: 7px;
+  height: 2px;
+  background-color: rgb(var(--on-fill));
+}
+
+/* A word as an action beside a control (the date's "kein Datum"): pressed it
+   reads as chosen, the field beside it steps back. */
+#ticket-index-container .ticket-bulk-panel .tbp-word {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgb(var(--cream-800));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  border-radius: 0.25rem;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-word:hover { color: rgb(var(--cream-900)); }
+#ticket-index-container .ticket-bulk-panel .tbp-word:focus-visible { outline: 1px solid rgb(var(--ink)); }
+#ticket-index-container .ticket-bulk-panel .tbp-word[aria-pressed="true"] {
+  text-decoration: none;
+  background-color: rgb(var(--cream-200));
+  padding: 0.125rem 0.5rem;
+  color: rgb(var(--cream-900));
+}
+#ticket-index-container .ticket-bulk-panel .tbp-control:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Tickets: the bulk panel's other actions and their dialogs
+   (doc/ticket_bulk_edit_plan.md, slice 7). A row under the hairline is a
+   text action with its icon; the delete row is the only red one. The dialog
+   is the browser's own <dialog>: modal, focus kept inside, Escape closes;
+   its foot is the full-width button row every modal here has. */
+#ticket-index-container .ticket-bulk-panel .tbp-other {
+  display: block;
+  width: 100%;
+  padding: 0.3125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 13px;
+  color: rgb(var(--cream-800));
+  text-align: start;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-other:hover { background-color: rgb(var(--cream-100)); color: rgb(var(--cream-900)); }
+#ticket-index-container .ticket-bulk-panel .tbp-other:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: -2px; }
+#ticket-index-container .ticket-bulk-panel .tbp-other:disabled { color: rgb(var(--cream-500)); cursor: not-allowed; background-color: transparent; }
+#ticket-index-container .ticket-bulk-panel .tbp-other--danger:not(:disabled) { color: rgb(185 28 28); }
+
+#ticket-index-container .ticket-bulk-panel .tbp-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 1.25rem;
+  border: 2px solid rgb(var(--ink));
+  border-radius: 0.5rem;
+  background-color: rgb(var(--white));
+  color: rgb(var(--cream-900));
+  box-shadow: 4px 4px 0 rgb(var(--ink));
+}
+#ticket-index-container .ticket-bulk-panel .tbp-dialog::backdrop { background-color: rgb(0 0 0 / 0.35); }
+
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(var(--cream-200));
+}
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-foot > * { width: 100%; }
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-foot form,
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-foot button { justify-content: center; }
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-cancel {
+  height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 0.375rem;
+  background-color: rgb(var(--cream-100));
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(var(--cream-800));
+}
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-cancel:hover { background-color: rgb(var(--cream-200)); }
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-danger {
+  height: 2.5rem;
+  padding: 0 1rem;
+  border: 2px solid rgb(var(--ink));
+  border-radius: 0.375rem;
+  background-color: rgb(185 28 28);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: rgb(var(--white));
+}
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-danger:hover:not(:disabled) { background-color: rgb(153 27 27); }
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-danger:disabled {
+  background-color: rgb(var(--cream-200));
+  border-color: rgb(var(--cream-300));
+  color: rgb(var(--cream-600));
+  cursor: not-allowed;
+}
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-cancel:focus-visible,
+#ticket-index-container .ticket-bulk-panel .tbp-dialog-danger:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 2px; }
+
+/* ===========================================================================
+   Legal pages of an instance (/legal/<seite>, LegalPagesController)
+   ---------------------------------------------------------------------------
+   The operator writes the text in the admin area, this page serves it.
+   It runs in the application_sessionless layout, which does NOT load auth.css,
+   which is why the styling sits here and not there. The width comes from
+   layout.css (.width-text, 70ch): a legal text is running text.
+   =========================================================================== */
+.legal-page {
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+
+.legal-page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+/* The body comes from Markdown, so the rules target the generated
+   elements instead of classes. */
+.legal-page-body h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 2rem 0 0.75rem;
+}
+
+.legal-page-body h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.legal-page-body p,
+.legal-page-body ul,
+.legal-page-body ol {
+  margin-bottom: 1rem;
+  line-height: 1.65;
+}
+
+.legal-page-body ul,
+.legal-page-body ol {
+  padding-left: 1.25rem;
+  list-style: revert;
+}
+
+.legal-page-body a {
+  text-decoration: underline;
+}
+
+.legal-page-back {
+  margin-top: 2.5rem;
+  font-size: 0.9rem;
+}
+
+.legal-page-back a {
+  text-decoration: underline;
+}

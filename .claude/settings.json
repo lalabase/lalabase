@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); case \"$f\" in *.rb|*.rake|*.ru|*/Rakefile) o=$(bundle exec rubocop --server --force-exclusion --no-color --format simple \"$f\" 2>/dev/null); [ $? -ne 0 ] && { printf 'RuboCop offenses in %s, please fix them (the CI gate blocks otherwise):\\n%s\\n' \"$f\" \"$o\" >&2; exit 2; } ;; esac; exit 0",
+            "timeout": 30,
+            "statusMessage": "RuboCop checks the changed file…"
+          }
+        ]
+      }
+    ]
+  }
+}

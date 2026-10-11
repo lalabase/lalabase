@@ -1,0 +1,54 @@
+/* One row of the sidebar navigation, in ONE place.
+ *
+ * It used to be a class string written out by hand in five: _navigation_item,
+ * _global_search_nav_item, _account_nav_subitem, the assistant button in
+ * _navigation_application and NeoSidebarProjectItemComponent. All five carried
+ * the same look, and the moment the shell went one step darker every one of
+ * them had to be corrected in the same way - which is the signal that a
+ * convention was doing a component's job. SidebarNavHelper hands out the
+ * classes; this file says what they look like.
+ *
+ * ⚠️ The active state is a RAISED surface, not a tint, and that follows from
+ * the shell: the sidebar is cream-200 now, and the tile used to be cream-200
+ * too, so it would have disappeared into its own background. White plus one
+ * hairline of shadow - the same move the view switch makes, where the surface
+ * one is standing on is the raised one. The ink bar on the left went with the
+ * tint: two marks for one state, and the tile carries it alone.
+ *
+ * Tint stays what it is everywhere else in the app: a STATE (selected row, set
+ * filter value, active switch position). That the shell uses the same value is
+ * the one exception - there it is chrome, and the state inside it is therefore
+ * light. */
+
+.sidebar-row {
+  color: rgb(var(--cream-800));
+}
+
+.sidebar-row__icon {
+  color: rgb(var(--cream-600));
+}
+
+/* Clearly weaker than the active tile, or hover reads as "you are here". */
+.sidebar-row:hover {
+  background-color: rgb(var(--white) / 0.55);
+  color: rgb(var(--cream-900));
+}
+
+.sidebar-row:focus-visible {
+  background-color: rgb(var(--white));
+  color: rgb(var(--cream-900));
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -2px;
+}
+
+.sidebar-row--active,
+.sidebar-row--active:hover {
+  background-color: rgb(var(--white));
+  color: rgb(var(--cream-900));
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(35, 34, 30, 0.1);
+}
+
+.sidebar-row--active .sidebar-row__icon {
+  color: rgb(var(--cream-900));
+}

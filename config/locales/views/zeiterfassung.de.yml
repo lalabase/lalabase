@@ -1,0 +1,377 @@
+de:
+  views:
+    time_sessions:
+      # Die Wörter für den Abrechnungsstand einer Zeit. EIN Besitzer für alle
+      # Oberflächen: Filterpillen, Übersichtstabelle, Zeitenliste, Ticket-Tabelle,
+      # Stunden-Chip, Abrechnungsliste, Assistent-Bericht und die beiden
+      # Dashboard-Widgets. Gelesen ausschließlich über
+      # TimeSessionsHelper#time_billing_state_label.
+      #
+      # Reihenfolge und Schlüssel sind die von TimeSession::BILLING_STATUS_FILTERS
+      # (Lebenszyklus von links nach rechts). Vor S1 hieß dasselbe an neun Stellen
+      # anders: Berechnet / Abgerechnet, Zur Abrechnung / In Abrechnung,
+      # Ohne Rechnung / Nicht berechnet / Offen. Rechnung und Abrechnung sind zwei
+      # Dinge, deshalb kommt "Rechnung" in keinem der drei Wörter mehr vor.
+      billing_status:
+        without_billing: offen
+        in_billing: zur Abrechnung
+        billed: berechnet
+        mixed: Gemischt
+        partial: "teilweise %{percent} %"
+        hidden_note: "%{shown} von %{total} · %{hidden} ausgeblendet"
+        visible_sum: Summe der sichtbaren Zeiten
+        without_subject: Ohne Bezug
+        entries_count:
+          one: "%{count} Zeit"
+          other: "%{count} Zeiten"
+    organisations:
+      time_sessions:
+        index:
+          display_label: Anzeige
+          display_with_creator: mit Ersteller
+          display_all_details: alle Details
+          title_times: Zeiten
+          view_switch_label: Ansicht
+          view_overview: Übersicht
+          view_list: Liste
+          overview_trail_back: zur Übersicht
+          overview_trail_all: alle Zeiten
+          smart_folder_badge: Ticket Filter
+          record_button: Erfassen
+          search_placeholder: Suche in Zeit-Sessions
+          modal_title: Zeit-Session erfassen
+          filter_project: Projekt
+          filter_all_projects: alle Projekte
+          filter_status: Status
+          filter_status_none_here: In diesem Ausschnitt gibt es keine solchen Zeiten
+          filter_range_label: Zeitraum
+          filter_range_this_week: diese Woche
+          filter_range_this_month: dieser Monat
+          filter_range_this_quarter: dieses Quartal
+          filter_range_last_10_days: letzte 10 Tage
+          filter_range_30_days: letzte 30 Tage
+          filter_range_90_days: letzte 90 Tage
+          filter_range_year: dieses Jahr
+          filter_range_all: gesamter Zeitraum
+          filter_range_custom: eigener Zeitraum
+          filter_range_from: von
+          filter_range_to: bis
+          filter_range_apply: übernehmen
+          filter_range_days:
+            one: 1 Tag
+            other: "%{count} Tage"
+          filter_only_mine: nur meine Zeiten
+          filter_show_creator: Ersteller
+          filter_expand_all: Sessions aufklappen
+          filter_reset: zurücksetzen
+          filter_extended: Erweiterte Filter
+          filter_group: Abrechnung
+          filter_all_groups: alle Abrechnungen
+          filter_all_subjects: alle Bezüge
+          filter_all_people: alle Personen
+          filter_all_tags: alle Tags
+          filter_all_ticket_phases: alle Status
+          filter_ticket_status_heading: Status in %{project}
+          filter_ticket_phase_notice: Zeiten ohne Ticket fallen dabei heraus.
+          ticket_phase_backlog: im Backlog
+          ticket_phase_active: in Arbeit
+          ticket_phase_done: erledigt
+          filter_add: + Filter
+          filter_add_person: Person
+          filter_add_tag: Tag
+          filter_add_ticket_phase: Ticket-Status
+          filter_row_choose: Filter
+          filter_row_status: Status
+          filter_row_search: Suche
+          search_clear: Suche leeren
+          search_hits:
+            one: 1 Treffer
+            other: "%{count} Treffer"
+          result_summary: "%{count} · %{duration}"
+          result_times:
+            one: 1 Zeit
+            other: "%{count} Zeiten"
+          filter_pill_search: Durchsuchen
+          filter_pill_search_empty: Nichts gefunden
+          filter_subject_capped: Nur die %{count} zuletzt gebuchten Bezüge. Wähle ein Projekt, um die Auswahl einzugrenzen.
+
+          filter_group_locked: Nicht wählbar, solange nur Zeiten ohne Abrechnung angezeigt werden.
+          filter_search_placeholder: Beschreibung oder Ticket-Titel
+        show:
+          duration_label: Dauer (HH:MM)
+          date_label: Datum
+          description_label: Beschreibung
+          ticket_label: Ticket
+          group_label: Abrechnung
+          tags_label: Tags
+          created_by: 'Erstellt von:'
+          created_at: 'Erstellt am:'
+          billed_at: 'Berechnet am:'
+          invoice_number: 'Rechnungsnummer:'
+        time_session:
+          edit_tooltip: Zeitsession bearbeiten
+          delete_tooltip: Zeitsession löschen
+          recorded_by: erfasst von %{name}
+        ticket_select:
+          no_ticket_assignment: Keine Ticket-Zuordnung
+        form_index:
+          ticket_label: Ticket (optional)
+          ticket_search_placeholder: Ticket suchen...
+          no_ticket_assignment: Keine Ticket-Zuordnung
+          subject_label: Betreff
+        subject_popover:
+          heading: Zeit eintragen
+          heading_edit: Zeit bearbeiten
+          captured: erfasst
+          captured_single: bisher erfasst
+          duration_placeholder: "0:30"
+          more_fields: weitere Angaben
+          hide_more_fields: weitere Angaben verbergen
+          tags_placeholder: Komma getrennt
+          submit: Eintragen
+          submit_update: Speichern
+          cancel: Abbrechen
+          delete: Löschen
+          editing_row: wird bearbeitet
+          locked_row_title: in Abrechnung %{name} · nur dort änderbar
+          open_in_list: in der Zeitenübersicht öffnen
+          no_description: ohne Beschreibung
+        empty_reason:
+          culprits:
+            one: 'Ein Filter ist zu eng. Ohne ihn gibt es wieder Zeiten:'
+            other: 'Diese Filter schließen sich gegenseitig aus. Ohne einen davon gibt es wieder Zeiten:'
+          none_alone: 'Kein einzelner Filter erklärt das, erst alle zusammen. Ohne sie gibt es wieder Zeiten:'
+          reset: Alle Filter zurücksetzen
+          creator_other: Zeiten einer Person
+          person: Person
+          remove: entfernen
+          with_value: '%{name}: %{value}'
+          period_between: "%{from} bis %{to}"
+          period_from: ab %{date}
+          period_to: bis %{date}
+          names:
+            period: Zeitraum
+            project: Projekt
+            subject: Bezug
+            billing: Abrechnung
+            status: Status
+            creator: Nur meine Zeiten
+            tag: Tag
+            ticket_phase: Ticket
+            search: Suche
+        index_table:
+          sum_unit: Stunden
+          minimize_tooltip: Minimieren
+          maximize_tooltip: Maximieren
+          close_tooltip: Schließen
+          panel_title: Abrechnen in
+          new_group_option: Neue Abrechnung anlegen
+          new_group_placeholder: Kürzel der Abrechnung eingeben...
+          existing_group_none: Es gibt noch keine offene Abrechnung.
+          selection_total: Summe
+          billing_entries_none: Diese Abrechnung ist noch leer.
+          billing_entries_denied: Diese Abrechnung darfst du nicht einsehen.
+          billing_entries_toggle: Enthaltene Zeiten anzeigen
+          billing_entries_loading: Wird geladen ...
+          cancel_button: Abbrechen
+          assign_button: Zuweisen
+          select_all: alle auswählen
+          without_subject: Ohne Bezug
+          no_description: Keine Beschreibung
+          edit_tooltip: Bearbeiten
+          delete_tooltip: Löschen
+          billed_locked_tooltip: Berechnete Zeit-Sessions können nicht bearbeitet werden
+          no_group: Keine Abrechnung
+          group_label: 'Abrechnung:'
+          tags_label: 'Tags:'
+          user_label: 'User:'
+          empty_first_time_title: Noch keine Zeiten erfasst
+          empty_first_time_description: Starte deine erste Zeiterfassung.
+          empty_first_time_cta: Zeit erfassen
+          empty_no_results_title: Keine Zeiten gefunden
+          empty_no_results_description: Deine Filter haben keine Treffer ergeben. Passe die Kriterien an oder entferne Filter.
+          explainer:
+            title: Was sind Zeiten?
+            point_capture: Halte fest, wie lange du woran gearbeitet hast — direkt beim Arbeiten oder im Nachhinein eingetragen.
+            point_ticket: Jede Zeit gehört zu einem Projekt und kann direkt an einem Ticket hängen. So ist klar, wofür sie angefallen ist.
+            point_overview: Du siehst jederzeit, wie viel Zeit in ein Projekt oder ein einzelnes Ticket geflossen ist.
+            point_billing: Aus erfassten Zeiten lassen sich Abrechnungen zusammenstellen — z. B. als Grundlage für die Rechnung an den Kunden.
+          sessions_count:
+            one: "%{count} Session"
+            other: "%{count} Sessions"
+        time_session_content_for_frame:
+          title: Zeit-Session
+          edit_button: Bearbeiten
+          delete_button: Löschen
+          duration_label: Dauer
+          date_label: Datum
+          user_label: Benutzer
+          related_task: Zugehöriges Ticket
+          no_task_assigned: Kein Ticket zugeordnet
+          description_label: Beschreibung
+          no_description: Keine Beschreibung vorhanden
+          tags_label: Tags
+          no_tags: Keine Tags vorhanden
+          related_task_section: Zugehöriges Ticket
+          title_label: Titel
+          status_label: Status
+          no_status: Kein Status
+          priority_label: Priorität
+          no_priority: Keine Priorität
+          view_task: Ticket anzeigen
+        create:
+          errors_found: "%{count} Fehler gefunden:"
+          success_message: Zeitsession wurde erfolgreich erstellt
+        update:
+          success_message: Zeitsession wurde erfolgreich aktualisiert
+        # Die Statustabelle über der Liste (Ansicht "Übersicht"). Die drei
+        # Statusspalten holen ihre Wörter aus billing_status oben, nicht hier.
+        # Die Fußnote nennt den gewählten Zeitraum: sie behauptete vorher
+        # "aller Sessions", egal was eingestellt war.
+        billing_overview_panel:
+          col_project: Projekt
+          col_total: Gesamt
+          total_row: GESAMT
+          footnote: 'Stand der Zeiten für: %{period}'
+          # Ein Projekt ohne Zeiten im Zeitraum ist eine Zeile aus "--:--". Sie
+          # wird gerendert und weggeklappt, sonst ertrinken bei dreißig Projekten
+          # die, die Stunden haben.
+          reveal_empty_projects:
+            one: 1 Projekt ohne Zeiten anzeigen
+            other: "%{count} Projekte ohne Zeiten anzeigen"
+          # Zwei verschiedene Leeren: gar nichts gebucht, oder nichts IN DIESEM
+          # Zeitraum. Die zweite nennt den Zeitraum und bietet den Weg heraus.
+          no_data: Es sind noch keine Zeiten gebucht.
+          empty_period: 'Für den Zeitraum "%{period}" sind keine Zeiten gebucht.'
+          empty_period_reset: Alle Zeiten anzeigen
+        show_errors:
+          errors_found: "%{count} Fehler gefunden:"
+      time_session_groups:
+        groups_list:
+          table:
+            name: Name
+            sessions: Zeiten
+            total_time: Summe
+            status: Status
+            invoice_number: Rechnung
+            created_at: erstellt
+          sessions_count:
+            one: "%{count} Session"
+            other: "%{count} Sessions"
+          created_at: "Erstellt: %{date}"
+          billed_at: "Berechnet: %{date}"
+          without_number: ohne Nummer
+          no_sessions_yet: noch keine Zeiten
+          projects_more: "+%{count}"
+          visible_sum: Summe der sichtbaren Abrechnungen
+          menu_label: Aktionen
+          menu_view_times: Zeiten ansehen
+          menu_edit: Abrechnung bearbeiten
+          menu_delete: Abrechnung löschen
+          confirm_delete_with_sessions: Möchtest du diese Abrechnung wirklich löschen? Die Zeiten werden nicht gelöscht, nur die Zuordnung zur Abrechnung wird entfernt.
+          no_groups_available: Noch keine Abrechnungen vorhanden.
+          empty_filtered: Keine Abrechnung passt zu den gesetzten Filtern.
+        index:
+          create_new_group_title: Neue Abrechnung erstellen
+          filter_project: Projekt
+          filter_all_projects: alle Projekte
+          filter_search_placeholder: Name, Beschreibung oder Rechnungsnummer
+          filter_reset: zurücksetzen
+          result_summary: "%{count} · %{duration}"
+          result_billings:
+            one: "%{count} Abrechnung"
+            other: "%{count} Abrechnungen"
+        new:
+          title: Neue Abrechnung
+          back_button: Zurück
+        edit:
+          title: Abrechnung bearbeiten
+        chronological:
+          th_date: Datum
+          th_id: ID
+          th_subject: Bezug
+          th_duration: Dauer
+          th_user: Benutzer
+          no_sessions_in_group: Keine Zeit-Sessions in dieser Abrechnung.
+        aggregated:
+          th_duration: Dauer
+          th_count: Anzahl
+          th_subject: Bezug
+          th_period: Zeitraum
+          no_sessions_in_group: Keine Zeit-Sessions in dieser Abrechnung.
+        customer_export:
+          customer_descriptions_title: Kundenbeschreibungen
+          customer_descriptions_count: "%{with_description} von %{total} Sessions haben Kundenbeschreibungen"
+          generate_descriptions_button: Beschreibungen erstellen
+          regenerate_descriptions_button: Neu generieren
+          excel_export_button: Excel-Export
+          th_date: Datum
+          th_subject: Bezug
+          th_customer_description: Kundenbeschreibung
+          th_duration: Dauer
+          csv:
+            date: Datum
+            subject_number: Bezug-Nr.
+            subject: Bezug
+            internal_description: Interne Beschreibung
+            customer_description: Kundenbeschreibung
+            duration: Dauer
+          customer_description_placeholder: Kundenbeschreibung eingeben...
+          char_count: "%{count} / 160 Zeichen"
+          save_button: Speichern
+          cancel_button: Abbrechen
+          no_customer_description: Keine Kundenbeschreibung
+          no_sessions_in_group: Keine Zeit-Sessions in dieser Abrechnung.
+        shared:
+          sum_all: Summe aller Zeiten in dieser Abrechnung
+        billing_status:
+          heading_bill: Zur Rechnung geben
+          heading_unbill: Abrechnung zurückziehen
+          invoice_label: Rechnungsnummer
+          date_label: Rechnungsdatum
+          submit_bill: Zur Rechnung geben
+          submit_unbill: Abrechnung zurückziehen
+          billed_line: Rechnung %{number} vom %{date}
+          unbill_warning: Entfernt die Rechnungsnummer von der Abrechnung und von allen enthaltenen Zeiten.
+          unbill_confirm: Diese Abrechnung wirklich zurückziehen?
+          close: Schließen
+          loading: Wird geladen ...
+        navigation:
+          sessions_in_group: Zeiten in dieser Abrechnung
+          view_chronological: chronologisch
+          view_by_subject: nach Bezug
+          view_customer_export: Kundenexport
+        show_header:
+          back_to_list: Alle Abrechnungen
+          bill_button: Zur Rechnung geben
+          figure_duration: Dauer
+          figure_status: Status
+          figure_period: Zeitraum
+          figure_scope: Umfang
+          figure_projects: Projekte
+          figure_invoice: Rechnung
+          times_count:
+            one: "%{count} Zeit"
+            other: "%{count} Zeiten"
+        activities:
+          activity_feed_title: Verlauf
+          activity_created: hat die Abrechnung angelegt
+          activity_updated: hat die Abrechnung bearbeitet
+          activity_marked_billed: hat die Abrechnung als berechnet markiert
+          activity_invoice_number: "(Rechnung: %{number})"
+          activity_marked_unbilled: hat die Abrechnung als nicht berechnet markiert
+          activity_billed_data_changed: hat Daten nach der Berechnung geändert
+          activity_sessions_added: hat %{count} Zeit-Sessions hinzugefügt
+          activity_duration: "(Dauer: %{duration})"
+          activity_deleted: hat die Abrechnung gelöscht
+          activity_show_details: Details anzeigen
+          activity_attr_name: Name
+          activity_attr_description: Beschreibung
+          activity_attr_billing_status: Abrechnungsstatus
+          activity_attr_invoice_number: Rechnungsnummer
+          activity_attr_billing_date: Berechnungsdatum
+          activity_billed_value: Berechnet
+          activity_unbilled_value: Nicht berechnet
+          activity_empty_value: "[leer]"
+          activity_warning_billed_change: 'Warnung: Änderung nach Abrechnung wurde bestätigt'
+          no_activities: Noch keine Aktivitäten vorhanden.

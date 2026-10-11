@@ -1,0 +1,79 @@
+# Der Assistent (Bezugs-Sammlung S1, doc/assistent_bezug_sammlung_plan.md §8.2).
+#
+# Eigene Datei, weil der bisherige Besitzer nicht mehr stimmt: die Schluessel lagen
+# unter views/tickets.*.yml, und der Assistent bezieht sich ab S3 auch auf
+# Gespraeche und ab S4 auf Wissensobjekte. Der Duplikat-Guard verlangt genau EINEN
+# Besitzer je Schluessel, also zieht der Block um statt sich zu verdoppeln.
+de:
+  views:
+    organisations:
+      assistant_panels:
+        history:
+          title: Frühere Verläufe
+          back: Zurück zum Verlauf
+          empty: Du hast noch keine früheren Verläufe. Sobald du einen neuen Chat beginnst, findest du den alten hier wieder.
+          open: Frühere Verläufe
+        offer:
+          set: 'Bezug setzen:'
+          # Ab S2 (Obergrenze 10) legt das Angebot HINZU statt zu ersetzen.
+          # Bis dahin hiess der Schluessel `switch` und der Satz "Bezug wechseln
+          # zu:", weil ein zweiter Bezug den ersten verdraengt hat.
+          add: 'Bezug hinzufügen:'
+          take: Übernehmen
+          dismiss: Angebot ausblenden
+        reference:
+          label: Bezug
+          remove: 'Bezug entfernen: %{title}'
+          # Gruppenbezeichnung je Typ, zusammengeklappt: "2 Aufgaben",
+          # ab S3 "1 Aufgabe, 3 Gespräche". Der Schlüssel ist der
+          # Zitationstyp aus der Registry, nicht der Klassenname: dieselbe
+          # Vokabel, die Citations::TYPES und die Quellenliste sprechen.
+          #
+          # ⚠️ Beide Pluralformen, auch wenn "one" mit nur einem
+          # registrierten Typ heute unerreichbar ist. Fehlt sie, wirft I18n
+          # in S3 (InvalidPluralizationData), sobald die erste gemischte
+          # Sammlung eine Gruppe mit einem Eintrag hat.
+          types:
+            meeting:
+              one: "%{count} Meeting"
+              other: "%{count} Meetings"
+            ticket:
+              one: "%{count} Aufgabe"
+              other: "%{count} Aufgaben"
+            # Dieselben Wörter wie die Wissensliste (knowledge_row.note_type /
+            # document_type), damit der Chip das Objekt so nennt wie die Seite.
+            note:
+              one: "%{count} Notiz"
+              other: "%{count} Notizen"
+            document:
+              one: "%{count} Datei"
+              other: "%{count} Dateien"
+        scope:
+          label: Sucht in
+          all_projects: Allen deinen Projekten
+          aria_label: Geltungsbereich des Assistenten
+        settings:
+          open: Einstellungen
+          title: Einstellungen
+          back: Zurück zum Gespräch
+          # "Fokus" ist die Vokabel, die der Projekt-Chat (projekt_chat_abbau) für dieselbe Sache
+          # schon benutzt (views.organisations.chats.shared.persona_label).
+          # Zwei Wörter für eine Einstellung wären zwei Einstellungen.
+          persona_label: Fokus
+          persona_hint: Bestimmt, worauf die Antworten ausgerichtet sind. Gilt für alle deine Gespräche mit dem Assistenten.
+          persona_default: Vorgabe der Organisation
+          no_personas: Für diese Organisation ist noch kein Fokus hinterlegt.
+          manage_personas: Fokus-Vorlagen verwalten
+        show:
+          empty_title: Frag deinen Assistenten
+          empty_hint: Er sieht die Projekte, die du sehen darfst, und antwortet nur dir.
+        shell:
+          title: Assistent
+          new_chat: Neuer Chat
+          close: Assistent schließen
+          loading: Wird geladen …
+          resize: Breite ändern
+          expand: Vollansicht
+          collapse: Als Panel
+          capsule_placeholder: Assistenten fragen … (⌘J)
+          capsule_label: Assistenten fragen

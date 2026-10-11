@@ -1,0 +1,2337 @@
+/* app/assets/stylesheets/layout.css
+ *
+ * Global column layout system of the app (loads on all pages via application.css):
+ * - .layout grid: .two-column (list/content/panel, Tickets + Knowledge) and .kanban-layout;
+ *   panel lane width via the CSS variable --panel-width
+ * - Tickets-table behavior of the list column (compact/full mode, table-layout: fixed,
+ *   column widths, uniform row heights)
+ * - Kanban board including Dark-Mode rules, drag states and slide-over panel
+ *
+ * The old three-column layout (categories/SmartFolder sidebar, --cat-width/--list-width) was
+ * removed in 06/2026 with the Knowledge-Filter rebuild (M5/M6) — every .layout is two-column.
+ *
+ * ATTENTION: rules apply globally without namespacing (incl. * box-sizing and html/body base).
+ * History: was called labor.css until 06/2026 (inventory: doc/frontend_inventur_phase1_css.md). */
+:root {
+    --panel-raw:  300px; --panel-width:  var(--panel-raw);
+
+    /* Page widths, named once (section "Page widths" below). A view names the
+       class, never a number: spec/architecture/page_width_guard_spec.rb. */
+    --width-capped: 620px;
+    --width-capped-wide: 820px;
+    --width-text: 70ch;
+  }
+
+  /* Focus, app-wide (designer, 08.09.2026): the blue ring is replaced, never
+     switched off. Every operable element loses the ring for mouse and touch
+     (:focus) and keeps an ink ring, set off by 2 px, for the keyboard
+     (:focus-visible). The blue was never the browser's: the Tailwind forms
+     plugin paints form controls with --tw-ring-color #2563eb and a blue
+     border on focus, and its stylesheet loads AFTER this one, so the rules for
+     those controls carry the html prefix to outrank it (0,2,1 over 0,2,0).
+     For everything else :where() keeps the specificity at zero, so a
+     component's own focus style still wins. A box gets ink as its fill and
+     accent, because the plugin gives it a blue one of its own. */
+  html :where(a, button, summary, [tabindex], [role="button"]):focus {
+    outline: none;
+  }
+  html :where(a, button, summary, [tabindex], [role="button"]):focus-visible {
+    outline: 2px solid rgb(var(--ink));
+    outline-offset: 2px;
+  }
+  html [type='text']:focus, html [type='email']:focus, html [type='url']:focus, html [type='password']:focus,
+  html [type='number']:focus, html [type='date']:focus, html [type='datetime-local']:focus, html [type='month']:focus,
+  html [type='search']:focus, html [type='tel']:focus, html [type='time']:focus, html [type='week']:focus,
+  html [type='checkbox']:focus, html [type='radio']:focus,
+  html [multiple]:focus, html textarea:focus, html select:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: rgb(var(--cream-500));
+  }
+  html [type='text']:focus-visible, html [type='email']:focus-visible, html [type='url']:focus-visible, html [type='password']:focus-visible,
+  html [type='number']:focus-visible, html [type='date']:focus-visible, html [type='datetime-local']:focus-visible, html [type='month']:focus-visible,
+  html [type='search']:focus-visible, html [type='tel']:focus-visible, html [type='time']:focus-visible, html [type='week']:focus-visible,
+  html [type='checkbox']:focus-visible, html [type='radio']:focus-visible,
+  html [multiple]:focus-visible, html textarea:focus-visible, html select:focus-visible {
+    outline: 2px solid rgb(var(--ink));
+    outline-offset: 2px;
+  }
+  html [type='checkbox'],
+  html [type='radio'] {
+    color: rgb(var(--ink));
+    accent-color: rgb(var(--ink));
+  }
+
+  @keyframes fadeSlideInRight {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes subtleHighlight {
+    0%   { background-color: #ecfccb; }
+    100% { background-color: transparent; }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { 
+    margin: 0; 
+    padding: 0; 
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #f5f5f5; 
+    height: 100vh; /* Important for flexbox layout */
+  }
+  
+  /* Note: .labor-layout-view still exists as a marker class in the markup
+     (turbo_cache_controller.js, layout_toggle_controller.js), but carries no styles. */
+
+  /* The empty modal mount frame sits as first child of the main content flex column.
+     Without display:contents it is a zero-height flex item that still produces a gap,
+     pushing every page header down. Modal content itself is a fixed overlay, so it
+     renders identically without the frame generating a box. */
+  main > div > turbo-frame#modal {
+    display: contents;
+  }
+
+  /* Grid column definitions provide the .two-column/.kanban-layout variants
+     (every .layout markup carries one of them) — here only the shared foundation. */
+  .layout {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    column-gap: 24px;
+    transition: --panel-width 0.4s ease;
+  }
+
+  /* ⚠️ The surface of a list-and-lane page belongs to the CONTENT AREA, and
+     that area is <main> - not the grid inside it, and not the table inside
+     that. It has been decided three times, and each answer was right about the
+     question it was asked:
+
+     (1) It sat on `.layout`, so the 24px column-gap would not let the page
+         ground show through.
+     (2) S1 removed it, correctly: back then `.column` padded the list 16px in,
+         so the surface began ~32px right of the page title and WAS the box
+         with the second left edge that "eine Kante pro Seite" exists to
+         prevent.
+     (3) It is here now because neither place covered the whole area. A surface
+         on the grid still leaves main's 24px page inset showing the shell, so
+         the reader saw three tones across one content area: inset cream-100,
+         list cream-50, lane white - and the same seam again in the column gap
+         (user, 07.09.2026, two screenshots).
+
+     On <main> the page inset stops being a strip of shell and becomes an inset
+     INSIDE the surface, which is what it always meant. Nothing moves: the page
+     edge stays where the title, the tabs and the first row text already are,
+     and the channel keeps separating the columns by distance rather than by a
+     colour of its own.
+
+     The board too, since it opens its ticket in the same lane (D1 of
+     doc/kanban_ticket_als_bahn_plan.md, 09.09.2026): both views of the same
+     page share the ground and the channel, the lane is the same white
+     workbench in both, and the board's well keeps its own dark glaze on top.
+     It used to be excluded ("its columns are cards ON the page ground"), a
+     reason written for a page without a lane. */
+  main:has(.layout) {
+    background: rgb(var(--cream-50));
+  }
+
+
+  .column {
+    padding: 1rem;
+    /* ⚠️ The horizontal half of this is removed again for .column.list below.
+       It is kept here for .content and .panel, which are surfaces of their own
+       and need to hold their content off their edges. */
+    position: relative;
+    overflow: auto; /* Back to normal behavior */
+    /* Smooth transitions for opacity */
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  /* Content column: same system as the other columns.
+     Inherits the default behavior of .column: padding: 1rem; overflow: auto.
+
+     The LEFT edge, and only the left one. The lane is told apart from the list
+     by its tone, white against cream-50 - and that is about 2% of brightness.
+     On a bright screen, with sun in the room or on a monitor nobody calibrated,
+     that step is gone, and with it the only boundary between the list and the
+     ticket: the ticket's text would then stand beside the table with nothing
+     saying they are two things. So the boundary gets a fallback that does not
+     depend on the surface at all.
+     ⚠️ One line, not a frame: no top, right or bottom, no radius. A closed
+     outline would make the lane a card on a workbench again, which is the
+     thing the whole rebuild took away. --cream-200 is the divider token, so it
+     follows every theme (dark: 46 40 32, a quiet dark line on a dark surface).
+     The test: turn the screen's brightness up until the tone step is invisible.
+     If the boundary is still there, it is built right.
+     Hidden with the lane - .layout.hide-content .content is display:none. */
+  .column.content {
+    border-left: 1px solid rgb(var(--cream-200));
+  }
+
+  /* More breathing room at the top in the white area — both in the table header (list) and
+     above the detail card (content). 2.5rem instead of 1rem. */
+  .column.list,
+  .column.content {
+    padding-top: 2.5rem;
+  }
+
+  /* The rebuilt list-and-lane layout (the ticket list since 07.09.2026, where
+     the page title lives INSIDE the list column). One decision, so one
+     modifier - a page either is built this way or it is not.
+
+     (1) The grid starts at the very top of the content area. Two things give
+     way for that: the layout's own top padding (main: py-4), cancelled by a
+     negative margin - without it a strip of page ground stands above the
+     detail lane, and the lane is a column of the page, not a box placed on
+     it; and the columns' generous padding-top (1.75rem list / 2.5rem
+     content), which was breathing room ABOVE content that began with a table
+     header or a detail card. Here the column begins with the page title, and
+     a title sits 1rem below the top edge on every other page in the app.
+
+     (2) ONE inset, and the lane carries it. 24px from the lane's own left
+     edge to the identifier, the title, the attribute row and the running
+     text - the same 24px main:lg:px-6 gives the list column, whose left edge
+     IS the page's. The channel between the two columns stays on top of that:
+     it is distance BETWEEN surfaces, not inside one.
+
+     Scoped to the modifier: tickets, knowledge and meetings all keep their
+     page head inside the list column and carry this modifier. */
+  .layout--lane {
+    margin-top: -1rem;
+  }
+
+  /* ⚠️ !important, and the `.column-spacing-sm` twin in the selector, because
+     that class sets `padding-top: 2.5rem !important` on BOTH columns and
+     !important does not lose to specificity. Without them this rule was quietly
+     dead on the lane: it read 1rem and the lane went on standing 40px down. */
+  .layout--lane .column.list,
+  .layout--lane .column.list.column-spacing-sm {
+    padding-top: 1rem !important;
+  }
+
+  /* ONE inset for the lane, the same on every side (user, 07.09.2026). The
+     lane is a surface, so it holds its content off ITS edges evenly - top like
+     left like right - and 24px is the value the list already gets from main's
+     page inset.
+     ⚠️ That puts the object's identifier 8px lower than the page title beside
+     it, where the two stood level before. Deliberate: an even inset is a rule
+     one can see everywhere on the surface, the shared baseline was a rule one
+     could only see at one spot. */
+  .layout--lane .column.content,
+  .layout--lane .column.content.column-spacing-sm {
+    padding: 1.5rem !important;
+  }
+
+  /* One page edge: the list's first text starts where the page title does, not
+     16px in. The detail and panel keep their padding - they are raised
+     surfaces, this one is not.
+
+     ⚠️ And NO surface of its own: it lies on the content area's (see
+     `main:has(.layout...)` above). A tone here would cover the column and stop
+     at its edges, leaving main's page inset and the column gap showing the
+     shell - and two rules carrying one tone drift apart. */
+  .column.list {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Layout column spacing - for consistent padding values */
+  .column-spacing-sm { padding-top: 2.5rem !important; } /* breathing room at the top in the white area */
+
+  /* List: table header labels should sit visually flush with the top edge of the detail box.
+     The detail-box border starts at 2.5rem, the table header has its own padding (~0.4rem) +
+     half the text height (~7px) before the visual label line comes. Hence the list has less padding. */
+  .column.list.column-spacing-sm { padding-top: 1.75rem !important; }
+  
+  /* Header compact class - removed for consistent width with posts */
+
+  /* List columns: hide scrollbars (duplicated until 06/2026 as <style> blocks
+     in the index views). #documents-list lives on the
+     documents/new full page (_document_list frame). */
+  .column.list::-webkit-scrollbar,
+  #tickets-list::-webkit-scrollbar,
+  #documents-list::-webkit-scrollbar,
+  #knowledge-list::-webkit-scrollbar,
+  #meetings-list::-webkit-scrollbar,
+  .column.list *::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbars for Firefox */
+  .column.list,
+  #tickets-list,
+  #documents-list,
+  #knowledge-list,
+  #meetings-list,
+  .column.list * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  /* Hover arrows for columns */
+  .hover-arrow {
+    position: fixed;
+    font-size: 16px;
+    color: #9ca3af; /* gray-400 */
+    font-weight: normal;
+    z-index: 70; /* popover */
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+    padding: 5px 10px;
+  }
+
+  .hover-arrow:hover {
+    color: #4b5563; /* gray-600 */
+  }
+
+  /* Ticket Action Button Styles */
+  .ticket-card:hover .ticket-action-button {
+    opacity: 1;
+  }
+
+  .ticket-header-section:hover .ticket-action-button {
+    opacity: 1;
+  }
+
+  /* The toggle-active/-inactive pair (strikethrough switch buttons) is gone:
+     the timeline visibility switches are aria-pressed chips since T3 of the
+     ticket detail redesign, and no other surface used the classes. */
+
+  /* Post Card Styles */
+  .post-card:hover .post-tool,
+  .post-card:focus-within .post-tool,
+  .post-tool.dropdown--open {
+    opacity: 1;
+  }
+
+  .post-head { min-height: 24px; }
+  .post-meta { flex: 0 1 auto; overflow: hidden; white-space: nowrap; }
+  .post-meta > * { overflow: hidden; text-overflow: ellipsis; }
+  .post-reactions { display: flex; align-items: center; flex: 1 0 auto; min-width: 0; gap: 8px; }
+  .post-reaction-chips { display: flex; align-items: center; gap: 5px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .post-reaction-chips:empty { display: none; }
+  .post-reaction-chip {
+    display: inline-flex; height: 24px; flex-shrink: 0; align-items: center; gap: 4px;
+    padding: 0 8px; border: 1px solid transparent; border-radius: 999px;
+    font-size: 13px; line-height: 1; white-space: nowrap;
+    background: var(--post-reaction-fill, #EDE9DD); color: rgb(var(--cream-700));
+    touch-action: manipulation; -webkit-touch-callout: none; user-select: none;
+  }
+  .dark .post-reactions { --post-reaction-fill: rgb(var(--cream-200)); }
+  .post-reaction-chip--selected {
+    background: rgb(var(--selected-row)); border-color: rgb(var(--cream-600));
+  }
+  .post-reaction-chip:focus-visible { outline: 2px solid rgb(var(--cream-600)); outline-offset: -2px; }
+  .post-reaction-picker { margin-left: auto; flex-shrink: 0; }
+  .post-tool { opacity: 0; }
+  .post-edit-button { margin-left: auto; }
+  .post-reactions + .post-edit-button { margin-left: 0; }
+  .post-reaction-trigger {
+    display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center;
+    border: 0; border-radius: 6px; background: transparent; color: rgb(var(--cream-600));
+  }
+  .post-reaction-trigger:hover, .post-reaction-trigger:focus-visible,
+  .post-reaction-trigger[aria-expanded="true"] { background: rgb(var(--selected-row)); }
+  .post-reaction-trigger:focus-visible { outline: 1px solid rgb(var(--cream-600)); }
+  .post-reaction-menu[popover] { position: fixed; margin: 0; width: max-content; }
+  .post-reaction-option {
+    display: inline-flex; height: 36px; width: 36px; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 20px;
+  }
+  .post-reaction-option:hover, .post-reaction-option:focus-visible,
+  .post-reaction-option--selected { background: rgb(var(--selected-row)); }
+  .post-reaction-option:focus-visible { outline: 1px solid rgb(var(--cream-600)); }
+  .post-reaction-tooltip {
+    position: fixed; inset: auto; margin: 0; max-width: min(320px, calc(100vw - 16px));
+    padding: 6px 10px; border: 1px solid rgb(var(--cream-400)); border-radius: 6px;
+    background: rgb(var(--white)); color: rgb(var(--cream-800)); font-size: 12px;
+    pointer-events: none; z-index: 100;
+  }
+  @media (max-width: 639px) {
+    /* Keep the tools and existing reactions present when names/edited markers
+       are long. More than two chips scroll within the same header, never wrap. */
+    .post-reaction-chips { max-width: 100px; }
+    .post-tool { opacity: 1; }
+  }
+  @media (hover: none), (pointer: coarse) {
+    .post-tool { opacity: 1; }
+    .post-reaction-trigger { width: 36px; position: relative; }
+    .post-reaction-trigger::after { content: ''; position: absolute; inset: -10px -4px; }
+    .post-reaction-option { height: 44px; width: 44px; }
+  }
+
+  /* (The hover-reveal of the note and document pencils went with the lane
+     head, S3 of doc/wissen_als_bahn_plan.md: the pencil stands in the
+     chrome row at one rank with the ✕, always visible, never faded.) */
+
+  /* The list is the REGISTER and lies on the page ground; the detail is the
+     WORKBENCH one works an object on, and carries the raised surface - the
+     same distinction the times list's filter stripe draws. */
+  .content {
+    background: rgb(var(--white));
+    padding-top: 2.5rem; /* More breathing room at the top above the detail card */
+    position: relative;
+  }
+  /* Scoped to .layout (second-review finding on the rename): "panel" is about
+     the most generic class name there is, and this file loads on every page.
+     The lane always sits inside a .layout grid, so this changes nothing for
+     the lane -- it only stops a future unrelated class="panel" from inheriting
+     a light-blue background app-wide. */
+  .layout .panel {
+    background: #f0f8ff; /* Light blue as background */
+    position: relative;
+  }
+
+  .icon-button {
+    font-size: 20px; background: none; border: none;
+    cursor: pointer; padding: 4px;
+    /* Make sure buttons sit above the content if needed */
+    z-index: 10;
+  }
+
+  /* --- Button visibility & positioning --- */
+
+  /* Panel close button (third lane of the two-column grids); scoped to
+     .layout for the same reason as .panel above. */
+  .layout .panel .panel-close {
+    position: absolute;
+    top: 8px;
+    display: none; /* Hidden by default */
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+    transition: opacity 0.2s;
+  }
+
+  /* Content close bar: hidden, replaced by the inline close button */
+  .content .content-close-bar {
+    display: none !important;
+  }
+  .content .content-close-text-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 10px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #555;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .content .content-close-text-btn:hover {
+    background: #e8e8e8;
+    color: #000;
+    border-color: #bbb;
+  }
+  .content .content-close-text-btn i {
+    font-size: 11px;
+  }
+  .layout .panel .panel-close { right: 8px; }
+
+  .layout:not(.hide-panel) .panel .panel-close {
+    display: block;
+  }
+
+  /* --- Hide logic for columns ---
+     Grid column changes define the .two-column variants further below;
+     here only the visibility mechanics of the column contents. */
+
+  /* Hide list (full-screen detail via hover-arrow/toggleList) */
+  .layout.hide-list .list {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-100%);
+    padding: 0;
+  }
+
+  .layout.hide-panel .panel {
+    display: none;
+  }
+
+  .layout.hide-content .content {
+    display: none; /* Hide completely, since the list expands */
+  }
+
+  /* Entrance slide for the detail column. Fill-mode is deliberately OMITTED.
+     With `both`/`forwards` the column would keep the end keyframe's
+     `transform: translateX(0)` after the animation. Any non-none transform
+     turns .content into the containing block for position:fixed descendants
+     AND opens a new stacking context — which traps the inline move-ticket
+     modal (rendered inside #ticket-header in this very column) inside the
+     scrollable pane instead of the viewport, so its backdrop/card get clipped
+     and become unclickable. Without a forwards fill the transform clears after
+     0.3s (base transform: none), so fixed descendants anchor to the viewport.
+     Guarded by spec/views/content_column_fixed_trap_guard_spec.rb. */
+  .layout:not(.hide-content) .content {
+    animation: fadeSlideInRight 0.3s ease;
+  }
+
+
+  /* ---- The meta line under the title (designer, 07.09.2026, § 4) ----
+     The values of the columns the width could not carry. An item shows exactly
+     when its CELL has gone, so the same value is never in a row twice - which
+     is the rule the old version was missing, and why it made rows three and
+     four lines high before it was removed this morning.
+     ⚠️ Two rules per fit value, because CSS cannot compare "rank" with "fit".
+     Enumerating them is the price of keeping the values server-rendered: the
+     alternative was building this line in JavaScript, which would make the
+     content of a row two truths instead of one.
+     The separator is a `::before` on every item that HAS a visible predecessor
+     (the `~` combinator), so the first visible one never carries a leading
+     middot - not even when the items before it were left out for having no
+     value.
+     Two ways out, two signs (29.09.2026): `hidden` = the column is not pinned,
+     decided with the row; `:empty` = the pinned column has no value. The
+     second changes without the row - a sub-ticket's write updates only the
+     item's text on its parent (TicketListColumns#ticket_list_parent_streams),
+     and a text update cannot set or clear an attribute. */
+  .ticket-meta {
+    line-height: 1.35;
+  }
+
+  .ticket-meta__item {
+    display: none;
+  }
+
+  .ticket-meta__item::before {
+    margin: 0 0.35em;
+    color: rgb(var(--cream-400));
+  }
+
+  .list table[data-fit="0"] .ticket-meta__item:nth-child(n+1):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="0"] .ticket-meta__item:nth-child(n+1):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="1"] .ticket-meta__item:nth-child(n+2):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="1"] .ticket-meta__item:nth-child(n+2):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="2"] .ticket-meta__item:nth-child(n+3):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="2"] .ticket-meta__item:nth-child(n+3):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="3"] .ticket-meta__item:nth-child(n+4):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="3"] .ticket-meta__item:nth-child(n+4):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="4"] .ticket-meta__item:nth-child(n+5):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="4"] .ticket-meta__item:nth-child(n+5):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="5"] .ticket-meta__item:nth-child(n+6):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="5"] .ticket-meta__item:nth-child(n+6):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="6"] .ticket-meta__item:nth-child(n+7):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="6"] .ticket-meta__item:nth-child(n+7):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="7"] .ticket-meta__item:nth-child(n+8):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="7"] .ticket-meta__item:nth-child(n+8):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="8"] .ticket-meta__item:nth-child(n+9):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="8"] .ticket-meta__item:nth-child(n+9):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="9"] .ticket-meta__item:nth-child(n+10):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="9"] .ticket-meta__item:nth-child(n+10):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="10"] .ticket-meta__item:nth-child(n+11):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="10"] .ticket-meta__item:nth-child(n+11):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="11"] .ticket-meta__item:nth-child(n+12):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="11"] .ticket-meta__item:nth-child(n+12):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+  .list table[data-fit="12"] .ticket-meta__item:nth-child(n+13):not([hidden]):not(:empty) {
+    display: inline;
+  }
+
+  .list table[data-fit="12"] .ticket-meta__item:nth-child(n+13):not([hidden]):not(:empty) ~ .ticket-meta__item:not([hidden]):not(:empty)::before {
+    content: "·";
+  }
+
+
+  /* ---- Column fit (doc/spaltenwahl_plan.md, S1) ----
+     One ordered column list per view. How many of its ranked columns fit into
+     the header row is measured by lib/column_picker/fit.js and written on the
+     table as data-fit; the server writes the first value (all ranked columns
+     with the detail closed, one with it open) so nothing flashes before the
+     script has measured. A cell shows while its rank is within the fit and is
+     DROPPED beyond it - a row stays one line. Until 07.09.2026 every ranked
+     field was in the row twice, the second copy stacking under the title once
+     its column had gone, which turned every row into three or four lines the
+     moment the detail opened. Hidden cells keep width 0 instead of
+     display:none: table-layout:fixed counts display:none cells as column
+     slots anyway and hands them "auto" width. The rules stop at rank 12;
+     more chosen columns than that is not a list anyone reads. */
+  /* A ranked column leaves and comes back by width, not by a jump (user,
+     07.09.2026): the width and the padding ease to and from zero, the content
+     fades, and visibility (for the reader of a screen reader) flips only when
+     the column has closed. The hidden state below carries the delayed
+     visibility; this base state flips it back at once when a column returns. */
+  .list table th[data-rank],
+  .list table td[data-rank] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s;
+  }
+
+  /* The column a panel row points at (column_picker_controller#highlight): its
+     header cell, its cells, or its items below the title, tinted while the
+     pointer or the focus rests on the row. Beats the row hover's inherit. */
+  .list table th[data-column],
+  .list table td[data-column] {
+    transition: background-color 0.15s ease;
+  }
+
+  .list table th.column-highlight,
+  .list table td.column-highlight,
+  .ticket-row:hover td.column-highlight {
+    background-color: rgb(var(--cream-200));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .list table th[data-rank],
+    .list table td[data-rank] {
+      transition: none;
+    }
+  }
+
+  /* Compact date format for the narrow view */
+  .date-compact {
+    display: none;
+  }
+
+  /* Show the compact date format when the content is visible */
+  .layout:not(.hide-content) .date-compact {
+    display: inline;
+  }
+
+  /* Hide the full date format when the content is visible */
+  .layout:not(.hide-content) .date-full {
+    display: none;
+  }
+
+  /* Hide type labels (note/document) in the compact list view */
+  .layout:not(.hide-content) .type-label {
+    display: none;
+  }
+
+  /* A list cell shows a DATE, never a clock (user, 07.09.2026). It used to
+     depend on the mode and on a 1400px media query, so the same column said
+     "25.06.2026 18:12" on one screen and "25.06.2026" on the next.
+     This works only because display_time_split puts the clock in its own span;
+     the reader's date format (user preferences, per area) is untouched. */
+  .list table .date-time-part {
+    display: none;
+  }
+
+  /* Compact mode: table-layout: fixed so that column widths are predictable */
+  .layout:not(.hide-content) .list table {
+    table-layout: fixed;
+  }
+
+  /* Reset: neutralize all Tailwind min-width/width utilities in compact mode,
+     so that table-layout:fixed fully controls the column widths */
+  .layout:not(.hide-content) .list table th,
+  .layout:not(.hide-content) .list table td {
+    min-width: 0 !important;
+    max-width: none;
+  }
+
+  /* No compact width for the number column any more: it is 48px in both modes
+     (see ".list table .number-header" further down). The content is the same
+     in both, so a second value here was a rule to keep in step for nothing. */
+
+  /* Title fills the remaining space (width:auto overrides 35% from full mode) */
+  .layout:not(.hide-content) .list table .title-header,
+  .layout:not(.hide-content) .list table .title-column {
+    width: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Compact mode: a ranked column is as wide as its minimum (--col-min from
+     ViewConfiguration::COLUMN_MIN_WIDTH_PX, set inline on th and td), the
+     same number the fit rule counted with. */
+  /* No !important here: the hide rules below (width 0 for a rank beyond the
+     fit) are less specific and must win; with both important, this one won
+     and the hidden columns kept their width next to an open detail. */
+  .layout:not(.hide-content) .list table th[data-rank],
+  .layout:not(.hide-content) .list table td[data-rank] {
+    width: var(--col-min, 100px);
+  }
+
+  /* Full mode (the lane shut): a ranked column is its share of the table
+     (--col-share, set by column_min_width_style next to the minimum); the
+     title, width auto, takes the rest. The status column's share is 14%, not
+     10%: "In Bearbeitung" was cut at a tenth of the table while the title had
+     room, and a value is not cut while a neighbour has room, the title is cut
+     last (designer, 09.09.2026). Fixed table layout reads WIDTH alone: a
+     min-width on the cell is dead there (the min-w classes that stood beside
+     the shares never did anything), and Blink treats max()/calc() with a
+     percentage on a cell as auto, which made every column equal. So the share
+     is the whole width here; --col-min counts in compact mode and in the fit. */
+  .layout.hide-content .list table th[data-rank] {
+    width: var(--col-share, 10%);
+  }
+
+  .list table[data-fit="0"] th[data-rank="1"],
+  .list table[data-fit="0"] td[data-rank="1"],
+  .list table[data-fit="0"] th[data-rank="2"],
+  .list table[data-fit="0"] td[data-rank="2"],
+  .list table[data-fit="0"] th[data-rank="3"],
+  .list table[data-fit="0"] td[data-rank="3"],
+  .list table[data-fit="0"] th[data-rank="4"],
+  .list table[data-fit="0"] td[data-rank="4"],
+  .list table[data-fit="0"] th[data-rank="5"],
+  .list table[data-fit="0"] td[data-rank="5"],
+  .list table[data-fit="0"] th[data-rank="6"],
+  .list table[data-fit="0"] td[data-rank="6"],
+  .list table[data-fit="0"] th[data-rank="7"],
+  .list table[data-fit="0"] td[data-rank="7"],
+  .list table[data-fit="0"] th[data-rank="8"],
+  .list table[data-fit="0"] td[data-rank="8"],
+  .list table[data-fit="0"] th[data-rank="9"],
+  .list table[data-fit="0"] td[data-rank="9"],
+  .list table[data-fit="0"] th[data-rank="10"],
+  .list table[data-fit="0"] td[data-rank="10"],
+  .list table[data-fit="0"] th[data-rank="11"],
+  .list table[data-fit="0"] td[data-rank="11"],
+  .list table[data-fit="0"] th[data-rank="12"],
+  .list table[data-fit="0"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="1"] th[data-rank="2"],
+  .list table[data-fit="1"] td[data-rank="2"],
+  .list table[data-fit="1"] th[data-rank="3"],
+  .list table[data-fit="1"] td[data-rank="3"],
+  .list table[data-fit="1"] th[data-rank="4"],
+  .list table[data-fit="1"] td[data-rank="4"],
+  .list table[data-fit="1"] th[data-rank="5"],
+  .list table[data-fit="1"] td[data-rank="5"],
+  .list table[data-fit="1"] th[data-rank="6"],
+  .list table[data-fit="1"] td[data-rank="6"],
+  .list table[data-fit="1"] th[data-rank="7"],
+  .list table[data-fit="1"] td[data-rank="7"],
+  .list table[data-fit="1"] th[data-rank="8"],
+  .list table[data-fit="1"] td[data-rank="8"],
+  .list table[data-fit="1"] th[data-rank="9"],
+  .list table[data-fit="1"] td[data-rank="9"],
+  .list table[data-fit="1"] th[data-rank="10"],
+  .list table[data-fit="1"] td[data-rank="10"],
+  .list table[data-fit="1"] th[data-rank="11"],
+  .list table[data-fit="1"] td[data-rank="11"],
+  .list table[data-fit="1"] th[data-rank="12"],
+  .list table[data-fit="1"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="2"] th[data-rank="3"],
+  .list table[data-fit="2"] td[data-rank="3"],
+  .list table[data-fit="2"] th[data-rank="4"],
+  .list table[data-fit="2"] td[data-rank="4"],
+  .list table[data-fit="2"] th[data-rank="5"],
+  .list table[data-fit="2"] td[data-rank="5"],
+  .list table[data-fit="2"] th[data-rank="6"],
+  .list table[data-fit="2"] td[data-rank="6"],
+  .list table[data-fit="2"] th[data-rank="7"],
+  .list table[data-fit="2"] td[data-rank="7"],
+  .list table[data-fit="2"] th[data-rank="8"],
+  .list table[data-fit="2"] td[data-rank="8"],
+  .list table[data-fit="2"] th[data-rank="9"],
+  .list table[data-fit="2"] td[data-rank="9"],
+  .list table[data-fit="2"] th[data-rank="10"],
+  .list table[data-fit="2"] td[data-rank="10"],
+  .list table[data-fit="2"] th[data-rank="11"],
+  .list table[data-fit="2"] td[data-rank="11"],
+  .list table[data-fit="2"] th[data-rank="12"],
+  .list table[data-fit="2"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="3"] th[data-rank="4"],
+  .list table[data-fit="3"] td[data-rank="4"],
+  .list table[data-fit="3"] th[data-rank="5"],
+  .list table[data-fit="3"] td[data-rank="5"],
+  .list table[data-fit="3"] th[data-rank="6"],
+  .list table[data-fit="3"] td[data-rank="6"],
+  .list table[data-fit="3"] th[data-rank="7"],
+  .list table[data-fit="3"] td[data-rank="7"],
+  .list table[data-fit="3"] th[data-rank="8"],
+  .list table[data-fit="3"] td[data-rank="8"],
+  .list table[data-fit="3"] th[data-rank="9"],
+  .list table[data-fit="3"] td[data-rank="9"],
+  .list table[data-fit="3"] th[data-rank="10"],
+  .list table[data-fit="3"] td[data-rank="10"],
+  .list table[data-fit="3"] th[data-rank="11"],
+  .list table[data-fit="3"] td[data-rank="11"],
+  .list table[data-fit="3"] th[data-rank="12"],
+  .list table[data-fit="3"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="4"] th[data-rank="5"],
+  .list table[data-fit="4"] td[data-rank="5"],
+  .list table[data-fit="4"] th[data-rank="6"],
+  .list table[data-fit="4"] td[data-rank="6"],
+  .list table[data-fit="4"] th[data-rank="7"],
+  .list table[data-fit="4"] td[data-rank="7"],
+  .list table[data-fit="4"] th[data-rank="8"],
+  .list table[data-fit="4"] td[data-rank="8"],
+  .list table[data-fit="4"] th[data-rank="9"],
+  .list table[data-fit="4"] td[data-rank="9"],
+  .list table[data-fit="4"] th[data-rank="10"],
+  .list table[data-fit="4"] td[data-rank="10"],
+  .list table[data-fit="4"] th[data-rank="11"],
+  .list table[data-fit="4"] td[data-rank="11"],
+  .list table[data-fit="4"] th[data-rank="12"],
+  .list table[data-fit="4"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="5"] th[data-rank="6"],
+  .list table[data-fit="5"] td[data-rank="6"],
+  .list table[data-fit="5"] th[data-rank="7"],
+  .list table[data-fit="5"] td[data-rank="7"],
+  .list table[data-fit="5"] th[data-rank="8"],
+  .list table[data-fit="5"] td[data-rank="8"],
+  .list table[data-fit="5"] th[data-rank="9"],
+  .list table[data-fit="5"] td[data-rank="9"],
+  .list table[data-fit="5"] th[data-rank="10"],
+  .list table[data-fit="5"] td[data-rank="10"],
+  .list table[data-fit="5"] th[data-rank="11"],
+  .list table[data-fit="5"] td[data-rank="11"],
+  .list table[data-fit="5"] th[data-rank="12"],
+  .list table[data-fit="5"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="6"] th[data-rank="7"],
+  .list table[data-fit="6"] td[data-rank="7"],
+  .list table[data-fit="6"] th[data-rank="8"],
+  .list table[data-fit="6"] td[data-rank="8"],
+  .list table[data-fit="6"] th[data-rank="9"],
+  .list table[data-fit="6"] td[data-rank="9"],
+  .list table[data-fit="6"] th[data-rank="10"],
+  .list table[data-fit="6"] td[data-rank="10"],
+  .list table[data-fit="6"] th[data-rank="11"],
+  .list table[data-fit="6"] td[data-rank="11"],
+  .list table[data-fit="6"] th[data-rank="12"],
+  .list table[data-fit="6"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="7"] th[data-rank="8"],
+  .list table[data-fit="7"] td[data-rank="8"],
+  .list table[data-fit="7"] th[data-rank="9"],
+  .list table[data-fit="7"] td[data-rank="9"],
+  .list table[data-fit="7"] th[data-rank="10"],
+  .list table[data-fit="7"] td[data-rank="10"],
+  .list table[data-fit="7"] th[data-rank="11"],
+  .list table[data-fit="7"] td[data-rank="11"],
+  .list table[data-fit="7"] th[data-rank="12"],
+  .list table[data-fit="7"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="8"] th[data-rank="9"],
+  .list table[data-fit="8"] td[data-rank="9"],
+  .list table[data-fit="8"] th[data-rank="10"],
+  .list table[data-fit="8"] td[data-rank="10"],
+  .list table[data-fit="8"] th[data-rank="11"],
+  .list table[data-fit="8"] td[data-rank="11"],
+  .list table[data-fit="8"] th[data-rank="12"],
+  .list table[data-fit="8"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="9"] th[data-rank="10"],
+  .list table[data-fit="9"] td[data-rank="10"],
+  .list table[data-fit="9"] th[data-rank="11"],
+  .list table[data-fit="9"] td[data-rank="11"],
+  .list table[data-fit="9"] th[data-rank="12"],
+  .list table[data-fit="9"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="10"] th[data-rank="11"],
+  .list table[data-fit="10"] td[data-rank="11"],
+  .list table[data-fit="10"] th[data-rank="12"],
+  .list table[data-fit="10"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+  .list table[data-fit="11"] th[data-rank="12"],
+  .list table[data-fit="11"] td[data-rank="12"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear 0.25s;
+  }
+
+  /* The number column, in BOTH modes. It holds "#20", at most "#1234" - four or
+     five characters of mono that never grow with the window, so it gets a
+     length and not a share: 8% of a wide table reserved well over 100px for
+     them, and needed a second rule (60px) to be sensible again once the lane
+     opened.
+     48px is the number and its unread dot, nothing else: the GAP to the title
+     is the title cell's own left padding, once (6px), instead of a slack
+     column plus two paddings on top of each other (user, 07.09.2026 - the
+     title is meant to sit right beside its number, at every width).
+     ⚠️ What sets the floor is not the digits but the unread dot behind them:
+     "#9999" plus the 8px dot is 47px, with NO space between them (the row
+     partial writes them without one). The cell clips, and it clips the dot
+     first. At 38px every three-digit ticket lost its dot entirely, because a
+     line break in the markup put a space in front of it (found 29.09.2026).
+     Guard: spec/system/ticket_list_unread_dot_spec.rb measures it.
+     ⚠️ ViewConfiguration::COLUMN_MIN_WIDTH_PX['number'] repeats this value.
+     ⚠️ min-width too, or Tailwind's min-w-[80px] on the header cell puts the
+     old width back from the markup side. */
+  .list table .number-header,
+  .list table .number-column {
+    width: 48px;
+    min-width: 48px;
+  }
+
+  /* Title in full mode: it takes what the other columns leave. It was 35%
+     until 08.09.2026, and in a fixed-layout table the leftover then flowed
+     into the PIXEL columns: with two ranked columns shown the number column
+     measured 315px for a two-digit number, and the selection box column
+     (doc/ticket_bulk_edit_plan.md, slice 1) inflated the same way. Percent
+     and --col-min columns kept their widths; only the title can take the rest. */
+  .list table .title-header,
+  .list table .title-column {
+    width: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal; /* Title column may be multi-line (title + compact metadata) */
+  }
+
+  /* Table — no top border (the header carries the visual separation); the bottom line closes off the table */
+  /* ⚠️ NO surface of its own. It painted cream-50 on the shell's cream-100, so
+     the list read as a lighter card inside a darker frame - and the card was
+     table-shaped, which is why its head rule ended at a card width instead of
+     at the column's. The tone belongs to the content area (see
+     `main:has(.layout...)` at the top of this file); the rows lie on it, hover
+     (cream-100) and selection (cream-200) still a step up from it. */
+  .list table {
+    border: none !important;
+    border-bottom: 1px solid #000000 !important;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  /* The row divider. rgba(0,0,0,0.08) was so faint that on a bright screen the
+     rows ran into one another; cream-300 is the app's own edge token, a touch
+     stronger and warm like everything around it (designer, 07.09.2026). */
+  .list table td {
+    border-bottom: 1px solid rgb(var(--cream-300)) !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  .list table th {
+    border-bottom: 1px solid black !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  .list table tr:last-child td {
+    border-bottom: none !important;
+  }
+  
+  /* Adjustments for the header area */
+  .title-header {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Table head — Mono + medium weight. cream-600, not a slate: slate is a COOL
+     grey, and it was the one cool thing left on a warm surface (designer,
+     07.09.2026). The token also keeps the head readable in the dark theme,
+     where a fixed #334155 would be a dark grey on a dark ground. */
+  .list table th {
+    font-weight: 500;
+    color: rgb(var(--cream-600));
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+  }
+  
+  /* Set the table to full width */
+  .list table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  /* Exception: time-tracking tables (time_session_groups) need auto layout,
+     so that columns orient themselves to the content — overrides the fixed of the .list tables.
+     (Lived until 06/2026 as a counter-override in application.css.) */
+  .time-session-table {
+    table-layout: auto !important;
+  }
+  
+  /*
+   * IMPORTANT: Uniform row height for the ticket table.
+   * white-space/overflow prevent long cell content (e.g. assignees, status badges)
+   * from making the row taller than 3.5rem. CSS height on <td> only acts as min-height —
+   * without nowrap + overflow: hidden, rows would wrap on long text and bloat.
+   * Exception: .title-column has white-space: normal (title + compact metadata = 2 rows).
+   */
+  .list table tr td {
+    height: 3.5rem !important;
+    max-height: 3.5rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    vertical-align: middle !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Make sure the row height stays uniform even when switching between content modes */
+  .list table tr {
+    box-sizing: border-box;
+    height: 3.5rem !important;
+    min-height: 3.5rem !important;
+  }
+  
+  /* Hover effect for ticket rows */
+  .ticket-row {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .ticket-row:hover {
+    transform: translateX(2px);
+    background-color: rgb(var(--cream-100)); /* warm (cream-100) instead of cool #fafafa */
+  }
+
+  .ticket-row:hover td {
+    background-color: inherit;
+  }
+
+  /* The open row, on every list page with a lane (tickets, knowledge): ONE
+     class, .selected-row, written by the server row and by
+     list_row_controller alike (S2 of doc/wissen_als_bahn_plan.md). The token
+     flips with the theme (WS-3). It used to be .ticket-row.selected-ticket,
+     and the knowledge row marked itself with six Tailwind classes of its own. */
+  .selected-row {
+    background-color: rgb(var(--selected-row));
+  }
+
+  .selected-row:hover {
+    background-color: rgb(var(--selected-row-hover));
+  }
+
+
+/* ========================
+   Page widths
+   ======================== */
+
+/* Three classes, one question: does the reader compare columns downwards, or
+   read rows across? Comparing needs width: a table, the board and every
+   list-and-lane page carry no cap. Reading needs a limit: a page where each
+   row holds ONE thing with ONE value is capped, at 620 px, or at 820 px when
+   its rows carry a glyph or a time column. Running text stays at 70ch in
+   every class.
+
+   The cap ENDS a block earlier, it never starts it elsewhere. No margin auto:
+   the block stays on the page edge that title, tabs and tools share
+   (one_page_edge_guard_spec), and the white space on its right is the
+   pattern, not a gap to fill. The cap sits on the content block, never on
+   the shell: on <main> it would squeeze the split views as well. The page
+   head (title, tabs, title action) stays full width, because one tab bar
+   serves capped and full pages of the same area. */
+.width-capped {
+  max-width: var(--width-capped);
+}
+.width-capped--wide {
+  max-width: var(--width-capped-wide);
+}
+.width-text {
+  max-width: var(--width-text);
+}
+
+/* The split replaces the limit. A capped list in a lane layout whose lane is
+   open takes the track the split gives it; capped, it would leave a gap
+   between itself and the lane whenever the split is dragged wider than the
+   cap. The activity feed is the case: capped while its lane is shut. */
+.layout--lane:not(.hide-content) :is(.width-capped, .width-capped--wide) {
+  max-width: none;
+}
+
+/* ========================
+   Two-Column Layout (no categories sidebar)
+   Used by Tickets index with unified filter bar
+   ======================== */
+
+/* Master-detail pages (Tickets table / Knowledge / Meetings) are an app shell: the
+   .layout grid fills the viewport (its height is set live by layout_toggle_controller).
+   The generic page wrapper still carries Tailwind's mb-6 which, stacked under a
+   viewport-tall grid, would push a ~16px scrollbar past the fold. Drop it so the gap
+   below the grid equals the left gutter (main lg:px-6 = 1.5rem). The board is
+   on the same grid since it opens its ticket in the lane (D1), viewport-filled
+   like the table, and drops the margin too. */
+main:has(.layout) > div {
+  margin-bottom: 0;
+}
+
+.layout.two-column {
+  grid-template-columns: minmax(380px, 2fr) 3fr var(--panel-width, var(--panel-raw));
+}
+.layout.two-column.hide-panel {
+  grid-template-columns: minmax(380px, 2fr) 3fr;
+}
+
+/* A lane layout's split is DRAGGED, so the list track is one number instead of
+   a ratio: --list-split, written by lane_split_controller and read here and by
+   the handle alike. The fallback keeps roughly the old 2fr:3fr for the moment
+   before the controller connects and for a browser that never runs it.
+
+   ⚠️ The LANE is the sized track and the list takes 1fr, although it is the
+   list's width that is being set. That is what makes the opening animate: a
+   grid can interpolate two track lists only when they have the same shape, so
+   both states are "1fr, then a length" - open a real width, shut zero. Written
+   the obvious way round (`var(--list-split) 1fr` against `1fr`) the two lists
+   have different lengths AND swap unit kinds, and the lane appeared all at
+   once. The list still ends up exactly --list-split wide: 100% minus the lane
+   minus the channel is the same number. */
+.layout--lane.two-column.hide-panel:not(.hide-content):not(.hide-list) {
+  grid-template-columns: 1fr calc(100% - var(--list-split, 40%) - 24px);
+}
+
+/* Shut: the same two tracks, the lane at zero. It stays in the layout instead
+   of display:none, because there is nothing to grow out of a box that is not
+   laid out - and this is the whole point: selecting a row pushes the lane in
+   from the right while the list gives way at the same pace.
+   Its padding and its edge go to zero with it, or the 0px track would still
+   show a 49px sliver: a border-box cannot shrink below its own padding.
+   And the CHANNEL goes to zero with it (user, 09.09.2026): the 24px gap
+   belongs to the open lane, and next to a 0px track it was 24px of nothing
+   between the list and the page's own 24px inset, 48px to the browser edge
+   where the left side has 24. The gap is in the transition list below, so
+   the channel grows with the lane. */
+.layout--lane.two-column.hide-panel.hide-content:not(.hide-list) {
+  grid-template-columns: 1fr 0px;
+  column-gap: 0;
+}
+
+/* ⚠️ THREE tracks while the column picker is docked, and the middle one is the
+   shut lane. The picker docks into a track of the grid, and it used to be the
+   SECOND one - which worked only because a shut lane was display:none and took
+   no track at all. Keeping the lane in the layout (so it can slide) handed that
+   track to the lane: the picker fell through into an implicit row at the bottom
+   left, and the lane opened 268px wide showing its "pick a ticket" placeholder.
+   One change, two symptoms, one cause (user, 07.09.2026).
+   The entering state animates the third track from zero, like the two-track
+   case above. */
+.layout--lane.two-column.hide-panel.hide-content:not(.hide-list).column-picker-open {
+  grid-template-columns: 1fr 0px 268px;
+  /* The channel is back while the picker is docked: it stands beside the
+     list the way the lane does. */
+  column-gap: 24px;
+}
+
+.layout--lane.two-column.hide-panel.hide-content:not(.hide-list).column-picker-open.column-picker-entering {
+  grid-template-columns: 1fr 0px 0px;
+  column-gap: 24px;
+}
+
+.layout--lane .column.content {
+  transition: padding 0.25s ease;
+}
+
+.layout--lane.hide-content .column.content {
+  display: block;
+  padding: 0 !important;
+  border-left-width: 0;
+  overflow: hidden;
+}
+
+/* The handle. Over the 24px channel and the lane's hairline at its far edge,
+   so what one grabs is the line one sees. Absolutely placed rather than a grid
+   track: a track would take width from the two columns, and every other
+   grid-template-columns in this file would have to know about it. */
+.lane-split {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--list-split, 40%);
+  width: 25px;
+  cursor: col-resize;
+  z-index: 1;
+  /* Travels with the boundary it holds: shut, it waits at the right edge and
+     rides in with the lane. Jumping straight to its final place would put the
+     handle where the line is going to be a quarter second before the line
+     gets there. */
+  transition: left 0.25s ease, opacity 0.2s ease;
+  /* No surface of its own. What it makes visible is the line already there:
+     the lane's border-left sits under this element's right edge. */
+  background: transparent;
+  touch-action: none;
+}
+
+/* The line, drawn by the handle on top of the lane's own, so hover and drag
+   can darken it without the lane knowing anything about the resizer. */
+.lane-split::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  background: transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lane-split:hover::after,
+.lane-split:focus-visible::after,
+.layout--resizing .lane-split::after {
+  background: rgb(var(--cream-400));
+  box-shadow: 0 0 0 1px rgb(var(--cream-400) / 0.35);
+}
+
+.lane-split:focus-visible {
+  outline: none;
+}
+
+/* Shut, the handle waits at the right edge with the lane it belongs to - not
+   display:none, or it could not travel in with it. */
+.layout.hide-content .lane-split {
+  left: calc(100% - 25px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* No list, no split to drag. */
+.layout.hide-list .lane-split {
+  display: none;
+}
+
+/* A drag must not run through an easing meant for the opening: 250ms of
+   catching up behind the pointer is a rubber band. */
+.layout--resizing .lane-split {
+  transition: none;
+}
+
+/* While dragging, the grid must follow the pointer and not a quarter-second
+   behind it: .layout.two-column animates grid-template-columns for the column
+   picker's slide-in, and that easing turns a drag into a rubber band. */
+.layout--resizing {
+  transition: none !important;
+}
+.layout.two-column.hide-list {
+  grid-template-columns: 0px 1fr var(--panel-width, var(--panel-raw));
+}
+.layout.two-column.hide-list.hide-panel {
+  grid-template-columns: 0px 1fr;
+  column-gap: 0;
+}
+.layout.two-column.hide-content {
+  grid-template-columns: 1fr var(--panel-width, var(--panel-raw));
+}
+.layout.two-column.hide-content.hide-panel {
+  grid-template-columns: 1fr;
+}
+
+/* The column picker (doc/spaltenwahl_plan.md S2, components/column_picker.css):
+   a grid track of its own next to the list while no detail is open, so the
+   list gets narrower and the boundary line in the panel is measured against
+   the width the list really has; over the detail while one is open, so the
+   list keeps its width (the list is what is being set, the detail is not).
+   The picker is a plain <div> child of the grid, never the .panel lane: with a
+   detail open that lane collapses the list, the opposite of what is needed. */
+.layout.two-column {
+  position: relative;
+}
+
+.layout.two-column.hide-content.column-picker-open {
+  grid-template-columns: 1fr 268px;
+}
+
+/* The panel slides in (user, 07.09.2026): docked, its track grows from 0 to
+   268 px while the panel moves in from the right, and the list gives way at
+   the same pace; closing runs the same way back. The controller sets
+   `column-picker-entering` for one frame on open and for the whole way out on
+   close (column_picker_controller#openPanel/#close). Browsers that cannot
+   animate grid tracks still get the panel's own slide. */
+.layout.two-column {
+  transition: --panel-width 0.4s ease, grid-template-columns 0.25s ease, column-gap 0.25s ease;
+}
+
+.layout.two-column.hide-content.column-picker-open.column-picker-entering {
+  grid-template-columns: 1fr 0px;
+}
+
+/* Floating, next to the list: the panel is about the list, so it sits where the
+   list ends and floats over the left part of the detail, not at the far edge of
+   the window. Docked (no detail open) it is a grid track and none of this
+   applies.
+   ⚠️ Keyed on the PANEL's own marker, which column_picker_controller#placePanel
+   sets, and not on a combination of classes on the grid. It used to read
+   `.layout.two-column:not(.hide-content).column-picker-open > .column-picker` -
+   four conditions on an ancestor, and the moment one of them was not what it
+   used to be the panel fell back into the grid's flow and landed in an implicit
+   row at the bottom left, still visible, still usable, just in the wrong place.
+   One owner decides whether it floats; the stylesheet only paints it. */
+.column-picker[data-floating] {
+  /* FIXED, not absolute. The panel is a child of the grid, and the grid is
+     position: relative WITH overflow: hidden - so an absolutely placed panel
+     depends on that chain staying exactly as it is, and any ancestor that
+     starts positioning or clipping moves it somewhere nobody asked for. Fixed
+     answers to the viewport and to nothing else; placePanel measures the list
+     with getBoundingClientRect, which is in the same coordinates. */
+  position: fixed;
+  z-index: 30;
+  border: 1px solid rgb(var(--cream-400));
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 44px -18px rgb(var(--ink) / 0.5);
+}
+
+/* Panel focus mode: when BOTH a detail (content) and the panel lane are open,
+   the list collapses and the lane gains real reading width — the default 300px
+   lane squeezed all three columns. Panel open WITHOUT a selected item keeps the
+   list visible, otherwise the empty lane would strand the user with no way to
+   pick one; closing either one restores the default columns. Only the meetings
+   page renders a lane here (the tickets lane went with S4-T1, the knowledge chat
+   placeholder on 10.09.2026); the other pages always carry .hide-panel, so this
+   rule never fires there.
+   The board is not excluded any more: since it opens its ticket in the lane
+   (D4 of doc/kanban_ticket_als_bahn_plan.md) its grid has a list track like
+   the table's, and it yields the same way. */
+.layout.two-column:not(.hide-content):not(.hide-panel) {
+  --panel-width: clamp(380px, 36vw, 560px);
+  grid-template-columns: 0px 1fr var(--panel-width);
+}
+.layout.two-column:not(.hide-content):not(.hide-panel) .list {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+  padding: 0;
+}
+
+/* Companion-panel focus mode (assistant plan L12, S3a T4): the MIRROR of the
+   rule above, for the assistant panel docked to the left of the page instead of
+   a lane inside it. Same trade, same conditions: with the panel open and a
+   detail visible, the list yields its "pick something" job to the conversation.
+   Without a selected detail (.hide-content) the list stays -- otherwise there
+   would be nothing left to pick from. The board yields like the table (D4):
+   assistant open, ticket open, the board is at 0px and there is no handle;
+   close the assistant, both are back.
+
+   The state lives on <body> because the panel is a body-level element and the
+   grid is inside <main>; there is no shared ancestor further down. The rule
+   itself belongs HERE, next to the lane variants it modifies, rather than
+   travelling with the panel markup. body.assistant-panel-open is written by
+   assistant_panel_controller (and rendered server-side from the cookie).
+
+   Wrapped in the lg media query for the same reason as the content offset in
+   components/assistant_panel.css: the panel is `hidden lg:block`, so below that
+   width there is no companion lane and nothing for the list to yield to. The
+   body class says "open", the media query says "and visible". */
+@media (min-width: 1024px) {
+  body.assistant-panel-open .layout.two-column:not(.hide-content) {
+    /* The lane width above is viewport-relative (36vw) because it was written for
+       a grid that spans the window. With the assistant open, <main> is 636px
+       narrower than the window, and 36vw of the WINDOW ate the content column:
+       518px lane, 175px content. Percent resolves against the grid, so the lane
+       now shrinks with the space it actually sits in. Which lane yields is
+       unchanged (L12: the LIST does); this only stops the remaining two from
+       being measured against the wrong ruler. */
+    --panel-width: clamp(320px, 34%, 480px);
+    grid-template-columns: 0px 1fr var(--panel-width);
+  }
+  body.assistant-panel-open .layout.two-column:not(.hide-content).hide-panel {
+    grid-template-columns: 0px 1fr;
+    column-gap: 0;
+  }
+  body.assistant-panel-open .layout.two-column:not(.hide-content) .list {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-100%);
+    padding: 0;
+  }
+  /* While the list track is 0 the handle is out of the picture: not visible,
+     not a 25px drag surface inside the detail, not in the tab order (S6 of
+     doc/kanban_ticket_als_bahn_plan.md). */
+  body.assistant-panel-open .layout.two-column:not(.hide-content) .lane-split {
+    display: none;
+  }
+}
+
+/* Two-column responsive overrides */
+@media (max-width: 900px) {
+  .layout.two-column:not(.hide-content) {
+    grid-template-columns: 0px 1fr var(--panel-width, var(--panel-raw));
+  }
+  .layout.two-column:not(.hide-content).hide-panel {
+    grid-template-columns: 0px 1fr;
+  }
+  .layout.two-column:not(.hide-content) .list {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-100%);
+    padding: 0;
+  }
+  .layout.two-column.hide-content {
+    grid-template-columns: 1fr;
+  }
+
+  /* The lane variant (S6 of doc/kanban_ticket_als_bahn_plan.md). The lane's
+     open rule (.layout--lane.two-column.hide-panel:not(.hide-content):not(.hide-list),
+     0,5,0) beat the 0,4,0 rules of this block whatever the order, so below
+     900px the list column was invisible AND kept its track, and the lane never
+     got the width. A list bug since #730; the board inherits the repair. Same
+     specificity, later in the file: this one wins. And while the list track is
+     0 the handle is out of the picture: not visible, not a 25px drag surface
+     inside the detail, not in the tab order. */
+  .layout--lane.two-column.hide-panel:not(.hide-content):not(.hide-list) {
+    grid-template-columns: 0px 1fr;
+    column-gap: 0;
+  }
+  .layout--lane.two-column:not(.hide-content) .lane-split {
+    display: none;
+  }
+}
+
+/* Filter bar styling */
+.filter-bar {
+  backdrop-filter: blur(4px);
+}
+
+/* ========================
+   Kanban Board Layout
+   ======================== */
+/* (No rule for .layout.kanban-layout itself any more: the board is on the
+   same lane grid as the table, sized by layout_toggle_controller like it.
+   The class stays as a marker for the two rules that are the board's own,
+   the view switch and the column picker.) */
+
+/* The board lives inside a tickets_list_frame so the filter bar can reload it
+   (search / ad-hoc filters). display:contents keeps the frame out of the layout
+   box tree, so the board's height/scroll behaviour is exactly as if unwrapped. */
+.kanban-frame {
+  display: contents;
+}
+
+/* Kanban Navigation */
+.kanban-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-bottom: 6px;
+  padding-right: 4px;
+}
+.kanban-nav.hidden { display: none; }
+/* Soft-flat (2026-09-04): quiet cream border, rounded-md, hover = surface shift.
+   No offset shadow, no lift (matches the button system, design doc B1-B3).
+   Tokens only -> Dark mode comes from the inverted ramps, no .dark overrides. */
+.kanban-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 6px;
+  background: rgb(var(--white));
+  color: rgb(var(--cream-700));
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+.kanban-nav-btn:hover:not(:disabled) {
+  background: rgb(var(--cream-100));
+}
+.kanban-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Kanban Board Container -- columns sit directly on the cream page ground,
+   no column boxes since the soft-flat pass (2026-09-04). */
+/* The board is a quietly recessed surface: a theme-agnostic dark wash (plain
+   black alpha, NOT a token -- --stroke flips light in Dark and would raise
+   instead of recess) so the white cards read as the lifted layer (figure-ground,
+   mock 2026-09-04). */
+.kanban-board {
+  /* The column widths, wide. Narrowed by .layout.show-content below (rule 4
+     of doc/kanban_ticket_als_bahn_plan.md): columns get narrower, not fewer.
+     ONE owner of both sets. kanban_board_controller reads the gap for its
+     nav step (COLUMN_GAP_PX); change both together. */
+  --kanban-column-basis: 300px;
+  --kanban-column-min: 300px;
+  --kanban-column-max: 360px;
+  /* The colour of the column a carried card is over (doc/kanban_keyboard_plan.md,
+     D3): amber, the colour of "open" and "not yet saved", a state in
+     progress. Amber has no token of its own; the value stands here so the
+     dark theme below is a number and not a rule. Light: amber-500. */
+  --kanban-target: 245 158 11;
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding: 14px 16px 8px;
+  min-height: 0;
+  background: rgba(0, 0, 0, 0.045);
+  border-radius: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--cream-300)) transparent;
+}
+/* Webkit (Chrome, Safari, Edge) */
+.kanban-board::-webkit-scrollbar {
+  height: 8px;
+}
+.kanban-board::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kanban-board::-webkit-scrollbar-thumb {
+  background: rgb(var(--cream-300));
+  border-radius: 4px;
+}
+.kanban-board::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--cream-400));
+}
+
+/* Columns narrower, not fewer (rule 4): with the lane open the board keeps
+   every column and the rest scrolls sideways; the column cut off at the right
+   edge says "it goes on". Starting values from the sketch's ratio (0.85 of
+   300 is 255, taken down to a round 240). The card's content decides: if an
+   element breaks at this width, the width is wrong, not the card. To be
+   tuned in the browser. */
+.dark .kanban-board {
+  --kanban-target: 240 205 138; /* the dark theme's warning text (--wash-warning-text) */
+}
+
+.layout.show-content .kanban-board {
+  --kanban-column-basis: 240px;
+  --kanban-column-min: 240px;
+  --kanban-column-max: 280px;
+}
+
+.kanban-column {
+  /* Grows into leftover board width so wide screens don't leave a dead gray
+     field right of the last column. The widths are the board's variables. */
+  flex: 1 1 var(--kanban-column-basis);
+  min-width: var(--kanban-column-min);
+  max-width: var(--kanban-column-max);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  /* As tall as its content, no taller than the board (the scroller inside
+     scrolls beyond that): the target frame below hugs the column, head to
+     "+ Ticket", and does not run on into the empty well under a short column
+     (user, 10.09.2026, against the reference draft). The radius is the
+     frame's; without the frame it is invisible. */
+  align-self: flex-start;
+  border-radius: 12px;
+}
+
+/* Header row: status dot + label, count flushed right, thin rule below. */
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 8px at the sides, the same 8px the scroller keeps to the cards, so the
+     head's text stands on the cards' left edge (it was 4px until the scroller
+     grew for the focus ring). */
+  padding: 2px 8px 10px;
+  /* Translucent stroke, not cream-300: the Pop theme remaps the cream ramp to
+     hard grays (82/82/82), which turns a "quiet" line loud. Alpha on --stroke
+     stays soft in every theme (same trick as the card hairline below). */
+  border-bottom: 1px solid rgb(var(--stroke) / 0.15);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: rgb(var(--ink));
+  flex-shrink: 0;
+}
+
+.kanban-column-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgb(var(--cream-400)); /* fallback when the status has no color */
+  flex-shrink: 0;
+}
+
+.kanban-count {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  color: rgb(var(--cream-600));
+}
+
+/* Scroll wrapper: fills the column and scrolls when a column overflows, so the
+   header stays put. Holds the card list AND the "+ Ticket" link, so the link
+   follows the cards directly (Trello-style) instead of being pinned to the
+   viewport bottom of a stretched column. */
+.kanban-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* 8px at the sides, not 4: the focus ring stands 5px outside a card (2px
+     at 3px offset, below) and the scroller clips what overflows it. With 4px
+     the ring lost a pixel left and right (doc/kanban_keyboard_plan.md, S1). */
+  padding: 14px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kanban-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 40px;
+}
+
+/* The target column, under the mouse and under the keyboard, ONE form
+   (doc/kanban_keyboard_plan.md, D2 and D3): 2px inside the COLUMN and 6% of
+   fill in amber, a state in progress; not green, not blue. The whole column,
+   head and "+ Ticket" included: on the card list the ring lay under the
+   cards, which fill the list's width, and showed only in the gaps between
+   them, a row of dashes at each side (user, 10.09.2026). On the column the
+   cards stand 8px inside the ring (the scroller's padding) and the ring is
+   whole. Under the mouse it is the column that holds Sortable's drop marker
+   (kanban-ghost), under the keyboard the column the controller marks
+   (kanban-target), because the keyboard's placeholder stays at the ORIGIN
+   and cannot mark the target. */
+.kanban-column:has(.kanban-ghost),
+.kanban-column.kanban-target {
+  box-shadow: inset 0 0 0 2px rgb(var(--kanban-target));
+  background: rgb(var(--kanban-target) / 0.06);
+}
+
+/* Empty-column affordance: rendered always (writers only); CSS keeps it visible
+   only while the list truly has no card, so it reappears live when the last
+   card is dragged out. */
+.kanban-empty-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 10px;
+  border: 1.5px dashed rgb(var(--stroke) / 0.18);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: rgb(var(--cream-500));
+  user-select: none;
+}
+.kanban-card-list:has(.kanban-card) .kanban-empty-hint { display: none; }
+
+/* Soft-flat card: white on cream, hairline stroke, soft diffuse shadow
+   (precedent: .dashboard-edit-slot). Hover lifts gently -- the card IS clickable,
+   so the lift is a correct affordance (B1). */
+.kanban-card {
+  border: 1px solid rgb(var(--stroke) / 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: rgb(var(--white));
+  cursor: grab;
+  box-shadow: 0 1px 3px rgb(var(--stroke) / 0.06), 0 3px 10px rgb(var(--stroke) / 0.06);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.kanban-card:hover {
+  box-shadow: 0 2px 4px rgb(var(--stroke) / 0.07), 0 6px 16px rgb(var(--stroke) / 0.09);
+  transform: translateY(-1px);
+}
+
+/* The chosen card (rule 2 of doc/kanban_ticket_als_bahn_plan.md): the row's
+   selection tint (--selected-row) plus a visible edge, the same "here you
+   are" the table row has (.selected-row above). Hover keeps the
+   tint, as the row does. No bar, no arrow, nothing outside the card.
+   Server-side from `selected:`, client-side from the card's own ticket-row
+   controller, which marks itself from the address on connect, so every
+   replacement of a card or of the board re-marks by itself. */
+.kanban-card.selected-row {
+  background: rgb(var(--selected-row));
+  border-color: rgb(var(--cream-600)); /* muted: the open card's edge (37a) */
+}
+
+.kanban-card.selected-row:hover {
+  background: rgb(var(--selected-row-hover));
+}
+
+/* Focus is a ring, not a colour (designer, 10.09.2026,
+   doc/kanban_keyboard_plan.md S1): the app's ink ring, 3px outside the stop
+   instead of the app-wide 2px, so it clears the card's hairline and shadow.
+   An outline moves no content and sits outside the card, so it combines with
+   the open card's fill, which stays the one meaning of the fill ("open in
+   the lane"). The same two lines for the column head and "+ Ticket": one
+   sign for every stop, the sign every button has. :focus-visible only: a
+   mouse click leaves no ring that would read as a selection. The resting
+   shadow of .kanban-card stays; the ring that used to sit in it is gone. */
+.kanban-card:focus-visible,
+.kanban-column-header:focus-visible,
+.kanban-add-ticket:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 3px;
+}
+
+/* Unread-notification dot on Kanban Card -- presence only, no count */
+/* Carried, by mouse or by keyboard, ONE language (doc/kanban_keyboard_plan.md,
+   D2): lifted, with a hard offset shadow and no blur, the "raised" the
+   primary action speaks; soft shadows stay with popovers and modals.
+   Sortable's chosenClass is this class; the keyboard sets it itself
+   (kanban_board_controller#pickUp). The shadow's dark alpha is the brief's;
+   in the dark theme the lift and the placeholder carry the state. */
+.kanban-card.kanban-carried {
+  cursor: grabbing;
+  transform: translate(-2px, -3px);
+  box-shadow: 4px 6px 0 -1px rgba(35, 34, 30, 0.16);
+}
+
+/* What stays where the card was: the card itself at 55% with the plain
+   edge, so one sees WHAT is missing, not an empty box. kanban-ghost is
+   Sortable's marker under the mouse, kanban-placeholder the keyboard's copy
+   at the origin. */
+.kanban-card.kanban-ghost,
+.kanban-card.kanban-placeholder {
+  opacity: 0.55;
+  border-color: rgb(var(--cream-300));
+  box-shadow: none;
+  transform: none;
+}
+
+/* Quiet per-column create ("+ Ticket"): ghost button, brightens on hover. */
+.kanban-add-ticket {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: rgb(var(--cream-600));
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.kanban-add-ticket:hover {
+  background: rgb(var(--white) / 0.7);
+  color: rgb(var(--ink));
+}
+/* Its focus ring stands with the card's, above. */
+
+/* Reduced motion: the state stays, the transition goes (37a, section 6).
+   The reveal passes "auto" itself (kanban_board_controller#reveal). */
+@media (prefers-reduced-motion: reduce) {
+  .kanban-card,
+  .kanban-card:hover,
+  .kanban-card.kanban-carried {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* --- Dashboard inline edit mode (dashboard_inline_edit_controller) ----------------
+   Chrome + drag states for the WYSIWYG editor. The generic .sortable-* classes are
+   scoped to the editor root so they don't collide with other SortableJS surfaces
+   (ticket attributes / view config). Elevation is carried by BORDER + raised surface,
+   never shadow, so it survives Dark (where global [class*="shadow-["] is stripped,
+   §19.7). Tokens only (rgb(var(--…))) — no hardcoded hex, no Action-Lime. --- */
+
+/* 44px touch targets for handles / menu / row buttons (§19.5). */
+.dashboard-edit-touch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.dashboard-edit-slot {
+  /* A quiet raised card so each widget reads as distinct from the recessed (cream) row, instead of
+     white-on-white nested boxes. Draggability is signalled by the grip handle, not the border. */
+  border: 1px solid rgb(var(--stroke) / 0.15);
+  box-shadow: 0 1px 2px rgb(var(--stroke) / 0.06);
+}
+
+.dashboard-edit-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: rgb(var(--ink) / 0.6);
+  cursor: grab;
+}
+.dashboard-edit-handle:hover {
+  color: rgb(var(--ink));
+  background-color: rgb(var(--cream-50));
+}
+
+.dashboard-edit-menu-btn,
+.dashboard-edit-row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.25rem;
+  color: rgb(var(--ink) / 0.7);
+}
+.dashboard-edit-menu-btn:hover,
+.dashboard-edit-row-btn:hover {
+  color: rgb(var(--ink));
+  background-color: rgb(var(--cream-50));
+}
+
+/* Themed focus ring (§19.7: --ink, not a fixed ring-blue/gray). */
+.dashboard-edit-handle:focus-visible,
+.dashboard-edit-menu-btn:focus-visible,
+.dashboard-edit-row-btn:focus-visible,
+.dashboard-edit-menu-item:focus-visible,
+.dashboard-edit-pick:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--ink));
+}
+
+.dashboard-edit-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  color: rgb(var(--ink) / 0.6);
+  background-color: rgb(var(--cream-50));
+}
+
+/* Inline-expand action panel — elevation via border + raised surface (NOT a S3 float),
+   so it reads as "raised" in Dark too (§19.4/§19.7). */
+.dashboard-edit-menu {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 2px solid rgb(var(--stroke));
+  border-radius: 0.5rem;
+  background-color: rgb(var(--white));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.dashboard-edit-menu-heading {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(var(--ink) / 0.5);
+  margin-bottom: 0.25rem;
+}
+.dashboard-edit-menu-item,
+.dashboard-edit-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  color: rgb(var(--ink));
+  text-align: left;
+}
+.dashboard-edit-menu-item {
+  padding: 0.4rem 0.6rem;
+  min-height: 2.75rem;
+}
+.dashboard-edit-menu-item:hover,
+.dashboard-edit-pick:hover {
+  background-color: rgb(var(--cream-50));
+}
+.dashboard-edit-menu-danger {
+  color: rgb(220 38 38); /* red-600 — semantic delete, identical across themes */
+}
+
+/* Settings panel sections separated by quiet dividers: Einstellungen │ Anordnen │ Widget entfernen.
+   A section divider only appears between two sections (not above the first); the destructive remove
+   action always gets its own divider above. */
+/* Scoped to the menu's remove button (.dashboard-edit-menu-item.dashboard-edit-menu-danger), NOT the
+   bare .dashboard-edit-menu-danger — the row header's trash button reuses that class only for its red
+   colour and must not inherit the divider's padding/border (which dropped its icon). */
+.dashboard-edit-menu-section + .dashboard-edit-menu-section,
+.dashboard-edit-menu-item.dashboard-edit-menu-danger {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgb(var(--stroke) / 0.12);
+}
+
+/* Anordnen: light, clearly-clickable chips (subtle border), grouped — not heavy buttons. */
+.dashboard-edit-arrange {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.dashboard-edit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgb(var(--stroke) / 0.25);
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  color: rgb(var(--ink) / 0.85);
+  background-color: transparent;
+}
+.dashboard-edit-chip:hover {
+  background-color: rgb(var(--cream-50));
+  border-color: rgb(var(--stroke) / 0.45);
+  color: rgb(var(--ink));
+}
+.dashboard-edit-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--ink));
+}
+.dashboard-edit-chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.dashboard-edit-chip:disabled:hover {
+  background-color: transparent;
+  border-color: rgb(var(--stroke) / 0.25);
+  color: rgb(var(--ink) / 0.85);
+}
+
+.dashboard-edit-pick {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+}
+
+/* Drag states — token-driven, scoped to the editor (§19.7): chosen = raised surface +
+   emphasised stroke + a small transform lift (NO Action-Lime, NO #000); ghost = dashed
+   stroke at reduced opacity. */
+[data-controller~="dashboard-inline-edit"] .sortable-ghost {
+  opacity: 0.4;
+  background-color: rgb(var(--cream-50));
+  border: 1px dashed rgb(var(--stroke)) !important;
+}
+[data-controller~="dashboard-inline-edit"] .sortable-chosen {
+  background-color: rgb(var(--white));
+  border-color: rgb(var(--stroke));
+  transform: translate(-1px, -1px);
+}
+[data-controller~="dashboard-inline-edit"] .sortable-drag {
+  cursor: grabbing;
+}
+
+/* ── Width controls (auto-columns): drag handle + "+ widget" column; row-height segment ─── */
+
+/* Width drag handle: sits in the GREY CHANNEL between two boxes (the lg:gap-5 the row provides),
+   centered, NOT on a box edge where it blurred into the box border. The slot is position:relative,
+   so right:-1.25rem places the handle's full hit area across the 1.25rem gap to its right. The
+   controller hides it (.is-hidden) for single-widget rows and the rightmost widget (nothing to its
+   right). Pointer-only; the ⋯-menu breiter/schmaler is the keyboard path. */
+.dashboard-edit-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Sits centred in the ~1.25rem gap between two widgets. */
+  right: -1.25rem;
+  width: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none; /* the pointer drag owns the gesture */
+  z-index: 5;
+}
+/* A floating grip KNOB (not a faint line): a rounded handle with a real border + soft shadow + grip
+   dots, so it reads as physically grabbable in the channel — the standard column-splitter pattern.
+   On hover/focus it lifts into the accent colour (with col-resize cursor) so the drag target is
+   unmistakable. */
+.dashboard-edit-resize-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 38px;
+  flex-shrink: 0; /* keep the full knob width; the flex handle is narrower than the knob */
+  border-radius: 8px;
+  background-color: rgb(var(--white));
+  border: 1px solid rgb(var(--stroke) / 0.5);
+  box-shadow: 0 1px 3px rgb(var(--stroke) / 0.2);
+  color: rgb(var(--ink) / 0.75);
+  font-size: 1.05rem; /* big enough that the direction caret/arrow is clearly legible */
+  line-height: 1;
+  transition: border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.dashboard-edit-resize:hover .dashboard-edit-resize-grip,
+.dashboard-edit-resize:focus-visible .dashboard-edit-resize-grip {
+  border-color: rgb(var(--info));
+  color: rgb(var(--info));
+  box-shadow: 0 2px 6px rgb(var(--info) / 0.35);
+}
+
+/* "+ widget" column at the end of a row's flex track: a full-width add bar on mobile, a narrow
+   stretched column on desktop. position:relative so the picker can open as a popover anchored to it.
+   The controller hides the whole column (.is-hidden) when the row is full. */
+.dashboard-edit-add-col {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .dashboard-edit-add-col { width: 2.5rem; align-self: stretch; }
+}
+/* Row is full (no widget minimum still fits): the "+" stays VISIBLE but muted — it is not removed,
+   so the affordance never silently vanishes. A click still fires (button is not `disabled`) and
+   shows the "row full" hint instead of the picker. */
+.dashboard-edit-add-col.is-full .dashboard-edit-add-widget-col {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.dashboard-edit-add-col.is-full .dashboard-edit-add-widget-col:hover {
+  border-color: rgb(var(--stroke) / 0.5);
+  color: rgb(var(--ink) / 0.5);
+  background-color: transparent;
+}
+/* The "row full" hint is itself the dismiss target (no close button) — signal that it is clickable. */
+.dashboard-edit-row-full {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.dashboard-edit-row-full:hover {
+  background-color: rgb(var(--cream-50));
+}
+.dashboard-edit-add-widget-col {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 2.5rem;
+  border: 2px dashed rgb(var(--stroke) / 0.5);
+  border-radius: 0.5rem;
+  color: rgb(var(--ink) / 0.5);
+  background-color: transparent;
+}
+.dashboard-edit-add-widget-col:hover {
+  border-color: rgb(var(--stroke));
+  color: rgb(var(--ink));
+  background-color: rgb(var(--cream-50));
+}
+
+/* "Add row" zone: a full-width dashed bar mirroring the per-row "+" add-widget zones, so adding a
+   row and adding a widget share the same affordance. */
+.dashboard-edit-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3rem;
+  margin-bottom: 1.5rem;
+  border: 2px dashed rgb(var(--stroke) / 0.5);
+  border-radius: 0.5rem;
+  color: rgb(var(--ink) / 0.6);
+  background-color: transparent;
+  font-weight: 600;
+}
+.dashboard-edit-add-row:hover {
+  border-color: rgb(var(--stroke));
+  color: rgb(var(--ink));
+  background-color: rgb(var(--cream-50));
+}
+
+/* The widget picker opens as a popover anchored to the "+" column (right-aligned, from its top), so
+   the choice appears where the new widget will land — not as a panel below the row. */
+.dashboard-edit-add-picker {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 30;
+  width: 16rem;
+  max-width: 85vw;
+}
+
+/* JS-toggled visibility for the resize handle (kept off the HTML [hidden] attr because the author
+   display rules above would otherwise win over it). */
+.dashboard-edit-resize.is-hidden {
+  display: none;
+}
+
+/* ── Flip card: ⋯ flips a widget slot to its settings/actions back, in place of the widget ── */
+/* Perspective is scoped to a wrapper around ONLY the flip card — NOT the whole slot. The resize
+   handle is an absolutely-positioned sibling of the flip; putting perspective on the slot dragged
+   the handle into the slot's 3D space and rendered its direction glyph edge-on (a triangle looked
+   like a thin vertical bar). Scoping perspective to the flip alone keeps the 3D flip and leaves the
+   handle in flat 2D. */
+.dashboard-edit-flip-perspective {
+  perspective: 1400px;
+}
+.dashboard-edit-flip {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1), height 0.3s ease;
+}
+.dashboard-edit-slot.is-flipped .dashboard-edit-flip {
+  transform: rotateY(180deg);
+}
+.dashboard-edit-flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  min-width: 0;
+}
+/* Front is in flow and defines the card height; the back overlays it at the same size and scrolls
+   if its form is taller, so flipping never grows the row or leaves empty space. */
+.dashboard-edit-flip-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  overflow: auto;
+  border-radius: 0.5rem;
+  /* Opaque raised surface (--white, theme-aware) with a faint info-blue wash, so flipping a card to
+     its edit form is also signalled by a subtle background-colour shift. --info is blue in all three
+     themes (Hell/Dark/Pop), so the hint reads consistently and stays quiet. */
+  background-color: rgb(var(--white));
+  background-image: linear-gradient(rgb(var(--info) / 0.09), rgb(var(--info) / 0.09));
+}
+/* While flipped, the front's edge drag handle must not float over the settings back. */
+.dashboard-edit-slot.is-flipped .dashboard-edit-resize {
+  display: none;
+}
+
+/* The front is a non-interactive PREVIEW, not a live widget — dim it so its buttons don't look
+   clickable, and make the whole front a pointer (clicking it opens the settings). Hovering brightens
+   the preview to its real dashboard look. Only the preview content is dimmed; the chrome (grip /
+   gear / label) stays full so it remains usable. */
+.dashboard-edit-flip-front {
+  cursor: pointer;
+}
+.dashboard-edit-flip-front [data-preview] {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+.dashboard-edit-slot:hover .dashboard-edit-flip-front [data-preview] {
+  opacity: 1;
+}
+
+/* Compact edit mode: crop each preview so rows stay short and a far-away target row is reachable
+   when dragging. Only the preview content is capped; the header chrome (grip / label / gear) stays.
+   `is-cropped` is set in JS ONLY when the content is actually taller than the cap, so short widgets
+   (e.g. a couple of stat cards) are not faded for no reason. */
+.dashboard-edit-compact [data-preview] {
+  max-height: 150px;
+  overflow: hidden;
+}
+.dashboard-edit-compact [data-preview].is-cropped {
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-edit-flip {
+    transition: none;
+  }
+}
+/* During a drag, Sortable's transform flattens the flip's 3D context, so the rotateY(180) back leaks
+   through as a mirrored overlay on the card. A dragged item is never flipped, so hide the back
+   outright while it carries any Sortable drag class (covers both the slot and row drags). */
+.sortable-chosen .dashboard-edit-flip-back,
+.sortable-ghost .dashboard-edit-flip-back,
+.sortable-drag .dashboard-edit-flip-back {
+  visibility: hidden;
+}
+
+/* ==========================================================================
+   Sidebar theme switcher — collapsed trigger + popover
+   ==========================================================================
+   The trigger renders all three theme icons but reveals only the active one.
+   Which one is decided purely by the <html> theme class, which the <head>
+   script sets before the first paint — so the correct icon is shown with no
+   flash and no JS touching the trigger. Mapping: light = <html> without
+   .dark/.theme-pop, dark = .dark, pop = .theme-pop. */
+[data-theme-trigger-icon] {
+  display: none;
+}
+:root:not(.dark):not(.theme-pop) [data-theme-trigger-icon="light"],
+.dark [data-theme-trigger-icon="dark"],
+.theme-pop [data-theme-trigger-icon="pop"] {
+  display: inline-block;
+}
+
+/* Popover option check mark: shown only for the active theme. The active
+   option's button carries aria-pressed="true" (set by the same <head> script
+   that marks the segmented switcher), so no extra JS is needed here. */
+.theme-option .theme-check {
+  visibility: hidden;
+}
+.theme-option[aria-pressed="true"] .theme-check {
+  visibility: visible;
+}
+
+
+/* First-use empty state in master-detail lists (style guide "Leerzustände"):
+   while the detail pane is open (.show-content — e.g. the "create first
+   meeting" form loaded into the detail frame), the CTA card would prompt for
+   the very action already in progress → hide it and let the explainer use the
+   full (narrow) list column. Purely declarative: closing the detail pane
+   removes .show-content and the card returns. */
+.labor-layout-view.show-content .first-use-empty-card {
+  display: none;
+}
+.labor-layout-view.show-content .first-use-empty-grid {
+  grid-template-columns: 1fr;
+}
+
+/* "Liste | Kanban" lives in the PAGE head and stands in both views at every
+   state, with a ticket open too (user, 09.09.2026). It used to step aside
+   while the lane was open on the table, because the board had no lane and a
+   switch there threw the ticket away. Since doc/kanban_ticket_als_bahn_plan.md
+   both views open the ticket in the same lane, and update_view_mode redirects
+   back to the live address, which carries the ticket_id: the switch keeps the
+   ticket in both directions and only swaps what one picks from (rule 7). */
+[data-page-view-switch] {
+  display: flex;
+}

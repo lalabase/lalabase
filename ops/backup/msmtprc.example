@@ -1,0 +1,15 @@
+# Copy to /etc/lalabase-backup/msmtprc on BOTH hosts, then: chmod 600.
+# Use a DEDICATED mailbox, not the application's SMTP account — a compromised
+# server should be able to raise alarms, never to write to customers in the
+# product's name.
+
+account        default
+host           mail.your-server.de
+port           587
+auth           on
+tls            on
+tls_starttls   on
+from           ops@example.com
+user           ops@example.com
+password       HIER_EINTRAGEN
+logfile        /var/log/msmtp.log

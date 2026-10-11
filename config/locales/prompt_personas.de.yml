@@ -1,0 +1,107 @@
+# Prompt-Personas v2 — Verwaltungs-UI (Operator-Backend + In-App per Org).
+# Eigene Datei statt Streuung in views/controllers.yml: Rails merged YAML aus
+# allen Load-Path-Dateien deep, daher landen die Keys an ihren konventionellen
+# Pfaden (views.admin.prompt_personas, views.organisations.prompt_personas,
+# settings.*, flash.*).
+---
+de:
+  settings:
+    chat_personas: "Chat-Personas"
+  views:
+    admin:
+      navigation:
+        prompt_personas: "Chat-Personas"
+      prompt_personas:
+        index:
+          title: "Chat-Personas"
+          subtitle: "Globaler, system-weiter Pool an Antwort-Personas für den KI-Assistenten. Organisationen können einzelne überschreiben."
+          add: "Persona hinzufügen"
+          table_title: "Globale Personas"
+          th_key: "Schlüssel"
+          th_label: "Bezeichnung"
+          th_position: "Position"
+          th_status: "Status"
+          th_type: "Typ"
+          th_actions: "Aktionen"
+          status_active: "Aktiv"
+          status_inactive: "Inaktiv"
+          type_system: "System"
+          type_custom: "Eigene"
+          edit: "Bearbeiten"
+          delete: "Löschen"
+          confirm_delete: "Persona „%{key}“ wirklich löschen?"
+          system_locked_note: "System-Personas können nicht gelöscht werden."
+          empty_title: "Noch keine globalen Personas"
+          empty_description: "Lege die erste Persona an oder spiele die Standard-Personas über die Seeds ein."
+          empty_add_first: "Erste Persona anlegen"
+        new:
+          title: "Neue Persona"
+          subtitle: "Lege eine neue globale Antwort-Persona für alle Organisationen an."
+        edit:
+          title: "Persona „%{key}“ bearbeiten"
+          subtitle: "Bezeichnung und Intent-Text je Sprache pflegen."
+          system_badge: "System"
+        form:
+          errors_title: "Speichern nicht möglich – %{count} Fehler"
+          label_key: "Schlüssel"
+          key_hint: "Technischer Bezeichner, z. B. „feature_planning“. Eindeutig im globalen Pool."
+          key_locked_hint: "Der Schlüssel einer System-Persona ist fest und kann nicht geändert werden."
+          label_position: "Position"
+          position_hint: "Sortierreihenfolge im Picker (kleinere Zahl zuerst)."
+          label_active: "Aktiv (im Picker auswählbar)"
+          section_content: "Inhalt je Sprache"
+          cancel: "Abbrechen"
+          submit_create: "Persona anlegen"
+          submit_save: "Änderungen speichern"
+    organisations:
+      prompt_personas:
+        index:
+          your_personas: "Ihre Personas"
+          your_personas_hint: "Eigene Personas Ihrer Organisation. Sie überschreiben gleichnamige globale Vorlagen im Chat-Picker."
+          add: "Persona hinzufügen"
+          th_key: "Schlüssel"
+          th_label: "Bezeichnung"
+          th_position: "Position"
+          th_actions: "Aktionen"
+          edit: "Bearbeiten"
+          delete: "Löschen"
+          confirm_delete: "Persona „%{key}“ wirklich löschen?"
+          badge_override: "Override"
+          empty_your_title: "Noch keine eigenen Personas"
+          empty_your_description: "Legen Sie eine eigene Persona an oder erstellen Sie unten einen Override einer globalen Vorlage."
+          global_templates: "Globale Vorlagen"
+          global_templates_hint: "Von Lalabase bereitgestellt. Erstellen Sie einen Override, um Bezeichnung und Intent-Text für Ihre Organisation anzupassen."
+          create_override: "Override anlegen"
+          already_overridden: "Bereits überschrieben"
+        new:
+          title: "Neue Persona"
+        edit:
+          title: "Persona „%{key}“ bearbeiten"
+        shared:
+          back: "Zurück"
+        form:
+          errors_title: "Speichern nicht möglich – %{count} Fehler"
+          label_key: "Schlüssel"
+          key_hint: "Technischer Bezeichner. Gleicher Schlüssel wie eine globale Vorlage = Override."
+          label_position: "Position"
+          cancel: "Abbrechen"
+          submit_create: "Persona anlegen"
+          submit_save: "Änderungen speichern"
+    prompt_personas:
+      locale_fields:
+        label_label: "Bezeichnung (%{language})"
+        label_placeholder: "z. B. Überblick"
+        fragment_label: "Intent-Text (%{language})"
+        fragment_placeholder: "Was bringt der Nutzer mit, und wie soll geantwortet werden?"
+        fragment_hint: "Wird in den System-Prompt eingefügt, um Ton und Schwerpunkt der Antwort zu steuern."
+  flash:
+    admin:
+      prompt_personas:
+        created: "Persona wurde erstellt."
+        updated: "Persona wurde aktualisiert."
+        deleted: "Persona wurde gelöscht."
+        delete_blocked: "Diese Persona kann nicht gelöscht werden (System-Persona)."
+    prompt_personas:
+      created: "Persona wurde erstellt."
+      updated: "Persona wurde aktualisiert."
+      deleted: "Persona wurde gelöscht."

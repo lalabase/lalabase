@@ -1,0 +1,243 @@
+de:
+  views:
+    organisations:
+      meetings:
+        index:
+          title: Meetings
+          new_meeting: Neues Meeting
+          select_meeting_hint: Meeting aus der Liste wählen
+          placeholder_title: Kein Meeting ausgewählt
+          placeholder_body: Wähle ein Meeting aus der Liste, um die Details zu sehen.
+          mobile_list_view: Zur Liste
+          col_duration: Dauer
+          empty_no_results: Keine Meetings gefunden
+          empty_first_time_title: Noch keine Meetings
+          empty_first_time_description: Halte Kundengespräche, Telefonate und Meetings als eigenes Arbeitsobjekt fest — mit Notizen oder Transkript.
+          empty_cta: Erstes Meeting erfassen
+          explainer:
+            title: Was ist ein Meeting?
+            point_capture: Halte fest, was besprochen wurde — mit einer kurzen Zusammenfassung und den Teilnehmern.
+            point_transcript: Du kannst auch ein fertiges Transkript hochladen, z. B. aus einem Videocall.
+            point_search: Auf Wunsch fließt der Inhalt in die Suche ein — so findest du später wieder, was besprochen wurde.
+            point_chat: Und im KI-Chat kannst du Fragen dazu stellen, z. B. „Was wurde mit dem Kunden vereinbart?“
+            not_title: Was es nicht ist
+            not_body: Kein Kalender und keine Terminplanung — ein Meeting hältst du hier fest, nachdem es stattgefunden hat.
+          no_filter_options: Keine Optionen verfügbar
+          filter_op_or: ist
+          filter_op_and: ist alle
+          filter_op_not: ist nicht
+          filter_op_logic_label: Logik
+          filter_connector_and: und
+          filter_connector_or: oder
+          save_as_smart_folder: Filter speichern
+          save_filter_title: Filter als Smart Folder speichern
+          save_filter_name_label: Name
+          save_filter_name_placeholder: z. B. Wochenplanung
+          save_filter_save_button: Speichern
+          save_filter_cancel_button: Abbrechen
+          save_filter_unsupported_hint: Einige Filter können nicht konvertiert werden und werden
+            übersprungen.
+          filter_bar:
+            search_placeholder: Meetings durchsuchen
+            add_filter: Filter
+            sentence_subject: Meetings
+            search_depth_label: Suchtiefe
+            search_depth_title_only: Nur Titel
+            search_depth_title_content: Titel + Inhalt
+            search_depth_everything: Alles
+            search_depth_quick: Schnell
+            search_depth_standard: Standard
+            search_depth_deep: Tief
+        show:
+          type_label: Meeting
+          ask_assistant: "Assistent fragen"
+          edit_meeting: Meeting bearbeiten
+          back_to_list: Zurück zur Liste
+          close: Meeting schließen
+          no_content: Keine Notizen oder Transkript erfasst.
+          notes_heading: Notizen
+          transcript_heading: Transkript
+          transcript_show_full: Vollständiges Transkript anzeigen
+          transcript_collapse: Transkript einklappen
+          participants_heading: Teilnehmer
+          summary_heading: Zusammenfassung
+          generate_summary: Zusammenfassung erstellen
+          regenerate_summary: Neu erstellen
+          summary_retry: Erneut versuchen
+          summary_in_progress: Zusammenfassung wird erstellt …
+          summary_refresh: Aktualisieren
+          summary_setup_hint: KI ist aktiviert, aber noch nicht konfiguriert. Ein Administrator kann den KI-Zugang in den KI-Einstellungen hinterlegen.
+          summary_no_content_hint: Erfasse Notizen oder ein Transkript, um eine Zusammenfassung zu erstellen.
+          summary_empty: Für dieses Meeting wurde noch keine Zusammenfassung erstellt.
+        form:
+          title_label: Titel
+          title_placeholder: Worum ging es im Meeting?
+          occurred_at_label: Datum & Uhrzeit
+          occurred_at_hint: 'Wann das Meeting stattfand (Vorgabe: jetzt).'
+          duration_label: Dauer (Minuten)
+          duration_placeholder: z. B. 90
+          notes_label: Notizen
+          notes_placeholder: Freie Notizen zum Meeting — auch ohne Transkript.
+          transcript_label: Transkript
+          transcript_placeholder: Transkript aus dem Aufnahme-Tool hier einfügen.
+          consent_hint: 'Hinweis: Für Aufzeichnung und Transkription von Meetings ist die Einwilligung der Teilnehmer einzuholen — dies liegt in deiner Verantwortung.'
+          create_embeddings_label: Für Suche & Chat freigeben
+          create_embeddings_hint: Notizen und Transkript werden damit für Projektmitglieder mit Meeting-Leserecht über die Suche und die Suche im KI-Chat auffindbar. Wer ein Meeting ausdrücklich als Assistenten-Bezug auswählt, kann es mit Meeting-Leserecht auch ohne diese Freigabe lesen lassen.
+          create_embeddings_disabled_hint: Erst Inhalt (Notizen oder Transkript) erfassen und speichern, dann freigeben.
+          participants_label: Teilnehmer
+          participants_placeholder: Name eingeben oder aus Vorschlägen wählen …
+          participants_addable: '„{value}" als Namen hinzufügen'
+          participants_search_empty: "Keine Treffer"
+          participants_no_speakers: Keine Sprecher im Transkript erkannt.
+          participants_detected: "{count} Teilnehmer aus dem Transkript übernommen."
+          detect_button: "Teilnehmer mit KI erkennen"
+          detect_setup_hint: "KI ist aktiviert, aber noch nicht konfiguriert. Ein Administrator kann den KI-Zugang in den KI-Einstellungen hinterlegen."
+          ai_mode_hint: "KI-Modus aktiv: Das Transkript wird zur Teilnehmer-Erkennung an den KI-Anbieter übertragen."
+          ai_mode_hint_settings: "Einstellung ändern"
+          detecting: "KI-Erkennung läuft …"
+          detect_failed: "Die KI-Erkennung ist fehlgeschlagen. Bitte versuche es später erneut."
+          detect_rate_limited: "Zu viele KI-Erkennungen in kurzer Zeit. Bitte einen Moment warten und erneut versuchen."
+          detect_too_large: "Das Transkript ist zu groß für die KI-Erkennung (max. {max_kb} KB)."
+          ai_detected: "{count} Teilnehmer von der KI übernommen."
+          ai_none_detected: "Die KI hat keine weiteren Teilnehmer erkannt."
+          cancel: Abbrechen
+          save: Speichern
+          delete: Löschen
+        ticket_links:
+          heading: Verknüpfte Aufgaben
+          empty: Noch keine Aufgaben mit diesem Meeting verknüpft.
+          add: Verknüpfen
+          remove: Verknüpfung entfernen
+          picker_placeholder: Aufgabe suchen …
+          deleted_badge: gelöscht
+        shared:
+          duration_minutes: "%{count} Min"
+          participant_type:
+            project_member: Projektmitglied
+            org_member: Organisationsmitglied
+            external: Externer Teilnehmer
+        search_status:
+          label_searchable: In Suche & Chat auffindbar
+          label_off: Nicht für Suche freigegeben
+          label_processing: Wird für Suche vorbereitet…
+          label_waiting_ai: Wartet auf KI-Konfiguration
+          label_failed: Fehler beim Indexieren
+          error_title: "Fehler beim Indexieren: %{error}"
+          action_release: Für Suche & Chat freigeben
+          action_unrelease: Aus der Suche nehmen
+          confirm_unrelease: Aus der Suche nehmen? Der Inhalt wird danach weder über die Suche noch über die Suche im KI-Chat gefunden. Als ausdrücklich gewählter Assistenten-Bezug bleibt das Meeting mit Meeting-Leserecht lesbar.
+        claim:
+          heading: Externe Teilnehmer verknüpfen
+          suggestion_html:
+            one: "%{name} war als externer Teilnehmer in 1 Meeting — mit dem Mitglied verknüpfen?"
+            other: "%{name} war als externer Teilnehmer in %{count} Meetings — mit dem Mitglied verknüpfen?"
+          link: Verknüpfen
+          dismiss: Nicht verknüpfen
+        analyses:
+          suggestions:
+            decisions:
+              label: Entscheidungen zusammenfassen
+              text: Fasse alle im Meeting getroffenen Entscheidungen als Liste zusammen — je Entscheidung, wer sie getroffen hat und die Begründung.
+            open_points:
+              label: Offene Punkte
+              text: Liste alle offenen Fragen und ungeklärten Punkte aus dem Meeting auf.
+            risks:
+              label: Risiken & Blocker
+              text: Nenne die Risiken, Blocker und Abhängigkeiten, die im Meeting angesprochen wurden.
+            summary:
+              label: Kurzprotokoll
+              text: Erstelle ein knappes Protokoll des Meetings in fünf bis sieben Stichpunkten.
+            followups:
+              label: Nächste Schritte
+              text: Welche nächsten Schritte und Folgetermine wurden im Meeting vereinbart?
+          saved_heading: Gespeicherte Analysen
+          create_with_assistant: Analyse erstellen
+          create_with_assistant_hint: Öffnet den Assistenten mit diesem Meeting als Bezug. Der KI-Auftrag startet erst nach dem Absenden.
+          assistant_unavailable: Der Assistent ist für die Erstellung derzeit nicht verfügbar. Ein Administrator kann den KI-Zugang in den KI-Einstellungen hinterlegen. Gespeicherte Analysen bleiben lesbar.
+          assistant_not_enabled: Analysen entstehen jetzt im Assistenten, der für dich nicht freigeschaltet ist. Ein Administrator kann ihn freischalten. Gespeicherte Analysen bleiben lesbar.
+          legacy_lane_moved: Analyseaufträge entstehen jetzt im Assistenten. Gespeicherte Ergebnisse bleiben am Meeting.
+          reload_meeting: Meeting neu laden
+          empty_saved: Noch keine Analyse gespeichert. Fertige Antworten aus dem Assistenten erscheinen hier, nachdem du sie ausdrücklich als Analyse speicherst.
+          no_content_hint: Erfasse Notizen oder ein Transkript, um eine Analyse zu erstellen.
+          badge_private: Privat
+          badge_published: Veröffentlicht
+          unknown_creator: Unbekannt
+          publish: Veröffentlichen
+          unpublish: Zurückziehen
+          delete: Löschen
+          delete_confirm: Diese Analyse wirklich löschen?
+          retry: Erneut versuchen
+          in_progress: Analyse wird erstellt …
+          show_result: Ergebnis anzeigen
+          search_enable: Für Suche & Chat freigeben
+          search_disable: Aus Suche & Chat entfernen
+          search_on_badge: In Suche & Chat
+          search_hint: Diese Analyse wird damit für alle Projektmitglieder mit Meeting-Leserecht in Suche und KI-Chat auffindbar — unabhängig davon, ob das Meeting selbst freigegeben ist.
+          search_locked_hint: Erst veröffentlichen, dann für Suche & Chat freigeben.
+        ticket_suggestions:
+          heading: Ticket-Vorschläge
+          intro: Aus dem Meeting abgeleitete Aufgaben — einzeln als Ticket anlegen oder verwerfen.
+          generate: Aufgaben ableiten
+          regenerate: Neu ableiten
+          assistant_hint: Öffnet den Assistenten, übernimmt dieses Meeting und bereitet den Aufgabenmodus vor. Es wird noch nichts abgesendet.
+          assistant_unavailable: Die KI für Ticket-Vorschläge ist derzeit nicht verfügbar. Ein Administrator kann den KI-Zugang in den KI-Einstellungen hinterlegen. Vorhandene Vorschläge bleiben nutzbar.
+          assistant_not_enabled: Ticket-Vorschläge entstehen jetzt im Assistenten, der für dich nicht freigeschaltet ist. Ein Administrator kann ihn freischalten. Vorhandene Vorschläge bleiben nutzbar.
+          in_progress: Ticket-Vorschläge werden erstellt …
+          refresh: Aktualisieren
+          no_content_hint: Erfasse Notizen oder ein Transkript, um Vorschläge zu erzeugen.
+          empty: Noch keine Vorschläge. Leite Aufgaben über den Assistenten ab.
+          description_toggle: Beschreibung
+          similar_ticket: "Ähnliches Ticket:"
+          accept: Ticket anlegen
+          dismiss: Verwerfen
+      meetings_overview:
+        index:
+          title: Alle Meetings
+          new_meeting: Neues Meeting
+          modal_title: Neues Meeting
+          modal_close: Schließen
+          modal_project_label: Projekt
+          modal_project_prompt: Projekt wählen …
+          modal_select_project_first: Wähle zuerst ein Projekt.
+          search_placeholder: Titel & Inhalt durchsuchen …
+          filter_participant_label: Teilnehmer
+          filter_participant_all: Alle Teilnehmer
+          filter_project_label: Projekt
+          filter_project_all: Alle Projekte
+          col_title: Titel
+          col_project: Projekt
+          col_date: Datum
+          col_participants: Teilnehmer
+          empty_no_results: Keine Meetings gefunden
+          empty_reset: Filter zurücksetzen
+          empty_first_time_title: Noch keine Meetings
+          empty_first_time_description: Sobald in deinen Projekten Meetings erfasst werden, findest du sie hier projektübergreifend — zum Beispiel alle Meetings mit einer bestimmten Person.
+  models:
+    view_configuration:
+      meeting_columns:
+        title: Titel
+        occurred_at: Meetingdatum
+        duration_minutes: Dauer
+        participants: Teilnehmer
+        creator: Erstellt von
+        created_at: Erstellt am
+        updated_at: Geändert am
+  smart_folders:
+    all_meetings: Alle Meetings
+    fields:
+      creator: Erstellt von
+      participant: Teilnehmer
+      occurred_at: Meetingdatum
+    object_types:
+      Meeting: Meetings
+    new_title_by_type:
+      Meeting: Neue Meeting-Ansicht
+    edit_title_by_type:
+      Meeting: Meeting-Ansicht bearbeiten
+    field_operators:
+      participant:
+        equals: hat Teilnehmer
+        not_equals: hat Teilnehmer nicht
+        has_any_of: hat einen der Teilnehmer
+        has_all_of: hat alle Teilnehmer
+        not_has: hat keinen der Teilnehmer

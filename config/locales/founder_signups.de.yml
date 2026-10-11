@@ -1,0 +1,49 @@
+---
+# Neugründer-Rabatt: Antrag bei der Registrierung
+# (doc/billing_preisliste_rabatt_plan.md § 12.3).
+#
+# Modell-Vokabular und Betreiber-Mail in einer Datei — die View-Strings des
+# Registrierungsformulars liegen dagegen bei den übrigen Devise-Keys in
+# de.yml/en.yml, weil sie dort ihren Lazy-Lookup-Pfad haben.
+#
+# Die Umsatzspannen sind KEINE freie Beschriftung: sie sind die einzige
+# Darstellung von FounderSignup::REVENUE_BANDS. Ein Band ohne Übersetzung
+# erscheint dem Antragsteller als roher Schlüssel.
+de:
+  activerecord:
+    attributes:
+      founder_signup:
+        company_name: Firmenname
+        company_seat: Sitz
+        founded_on: Gegründet am
+        marketing_consent: Einwilligung in Vertriebskontakt
+        note: Notiz
+        phone: Telefon
+        previous_tools: Bisher genutzte Werkzeuge
+        revenue_band: Umsatz (ungefähr)
+        status: Status
+    errors:
+      models:
+        founder_signup:
+          attributes:
+            founded_on:
+              in_the_future: darf nicht in der Zukunft liegen
+  founder_signup:
+    marketing_consent_granted: erteilt
+    marketing_consent_withheld: nicht erteilt
+    revenue_bands:
+      up_to_50k: bis 50.000 €
+      50k_to_250k: 50.000 – 250.000 €
+      250k_to_1m: 250.000 € – 1 Mio. €
+      above_1m: über 1 Mio. €
+    statuses:
+      open: offen
+      granted: gewährt
+      declined: abgelehnt
+  founder_signup_mailer:
+    new_request:
+      subject: "Neugründer-Rabatt beantragt: %{company}"
+      intro: Ein neuer Kunde hat bei der Registrierung den Neugründer-Rabatt beantragt.
+      account: "Account: %{name}"
+      cta: Account im Adminbereich öffnen
+      reminder: Der Rabatt ist noch nicht gewährt. Er entsteht erst, wenn er nach dem Telefonat im Adminbereich eingetragen wird.

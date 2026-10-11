@@ -1,0 +1,25 @@
+en:
+  views:
+    shared:
+      legal:
+        operator_credit: "© %{year} %{operator}"
+        powered_by: "powered by %{product}"
+        imprint: Imprint
+        privacy: Privacy Policy
+        terms: Terms
+        back_to_sign_in: Back to sign-in
+        body_hint: "Only fill this in if you do not host the page elsewhere. An address takes precedence. Markdown is allowed."
+  activemodel:
+    attributes:
+      legal_identity:
+        operator_name: Operator
+        imprint_page_url: Imprint address
+        privacy_page_url: Privacy policy address
+        terms_page_url: Terms address
+        imprint_body: Imprint as text
+        privacy_body: Privacy policy as text
+        terms_body: Terms as text
+    errors:
+      models:
+        legal_identity:
+          not_absolute_url: must be a complete address starting with https:// or http://

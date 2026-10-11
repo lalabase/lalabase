@@ -1,0 +1,36 @@
+en:
+  views:
+    organisations:
+      smart_folders:
+        form:
+          errors:
+            one: "%{count} error saving:"
+            other: "%{count} errors saving:"
+          sort_label: Sort
+          sort_title: Title
+          sort_number: Number
+          sort_desc: Descending
+          sort_asc: Ascending
+          filter_rules: Filter Rules
+          add_or_rule: Add OR rule
+          rule_explanation: Rules within a group are combined with AND. Different groups are combined with OR.
+        sidebar:
+          edit: Edit
+          delete: Delete
+        modal_form:
+          close: Close
+      smart_folder_rule_groups:
+        rule_group_fields:
+          delete_group: Delete group
+      view_configurations:
+        modal:
+          title: Configure view
+          saved: Saved
+          close: Close
+      power_search:
+        power_search_results:
+          fulltext_match: Full-text match
+          semantic_match: Semantic match
+          unknown_match: Unknown match
+          similarity: 'Similarity:'
+          no_results: No results found.

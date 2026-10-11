@@ -1,0 +1,9 @@
+[Unit]
+Description=Lalabase: verschluesseltes Anhang-Backup auf die Storage Box
+After=network-online.target
+Wants=network-online.target
+OnFailure=lalabase-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lalabase-attachments-backup.sh

@@ -1,0 +1,90 @@
+# What is left of the documentation chrome in the core (doc/docs_delivery_plan.md, D5).
+#
+# The public documentation is its own program (gboyke/lalabase-documentation) and
+# brings its own text. Only the two places the in-app help renders itself stay:
+#
+#   docs.chrome.copy / .copied   -> the labels of the copy button on a code block.
+#                                   The markup comes from the catalogue; the words
+#                                   are handed to the Stimulus controller by
+#                                   help/_page.html.erb.
+#   docs.contextual_help.*       -> the 49 contextual help questions. Their MAP is
+#                                   Docs::ContextualHelp, and `rake anchors:check`
+#                                   over there tests that its anchors still answer.
+#
+# The file name stayed because the keys are `docs.*` and they are spelled out in
+# the map, in both locale files and in the help view; renaming them would be
+# movement without gain.
+en:
+  docs:
+    chrome:
+      copy: "Copy"
+      copied: "Copied"
+    contextual_help:
+      tickets:
+        change_view: "How do I change the view (table/board)?"
+        assign_or_watch: "How do I assign or just follow?"
+        custom_fields: "How do I add custom fields?"
+      knowledge:
+        organize_notes: "What can I store in Knowledge?"
+        versioning: "How does versioning work?"
+      chat:
+        what_can_it_see: "What can the chat access?"
+        repository_context: "How do I use repository code in chat?"
+      inbox:
+        how_it_works: "How do notifications work?"
+        what_reaches_me: "What ends up in my inbox?"
+      dashboard:
+        customize_overview: "How do I customize the overview?"
+        cockpit_vs_overview: "What's the difference from Cockpit?"
+      time_sessions:
+        what_and_where: "What are times — and what can I attach them to?"
+        filter_review: "How do I review and filter times?"
+        what_is_billing: "What is a billing group?"
+        partial_billing: "What does partially billed mean?"
+      billing:
+        what_is_it: "What is a billing group — does Lalabase create invoices?"
+        prepare_export: "How do I create customer descriptions and export?"
+        mark_billed: "How do I mark it as billed (invoice number)?"
+      meetings:
+        what_is_it: "What is a meeting?"
+        capture: "How do I capture a meeting?"
+        external_participant: "What does \"external participant\" mean?"
+        what_is_linking: "What happens when I link?"
+        analyses: "How do I create an AI analysis?"
+      documentation:
+        what_is_it: "What is documentation — and what is it not?"
+        stays_current: "How does the documentation stay up to date?"
+        search_and_chat: "Can I search the docs and use them in chat?"
+      # Organisation settings (settings tabs) — doc/settings_kontexthilfe_plan.md
+      settings_members:
+        what_is_it: "What is the Members area?"
+        project_access: "How do I control access per project?"
+      settings_roles:
+        what_is_a_role: "What is a role?"
+        create_role: "How do I create my own role?"
+        default_role: "What is the default role?"
+      settings_general:
+        what_is_org: "What is an organisation?"
+        rename: "How do I rename it — and what to watch for?"
+      settings_ai_provider:
+        what_is_byok: "What is an AI provider (BYOK)?"
+        enable_disable: "How do I enable or disable AI?"
+      settings_ai_sync:
+        what_for: "What is the AI sync for?"
+        reprocess: "What does Reprocess do?"
+        states: "What do processed, pending and errors mean?"
+      settings_prompt_personas:
+        what_is_it: "What is a chat persona?"
+        override: "What does Override mean?"
+        create: "How do I create my own persona?"
+      settings_import:
+        what: "What can I import?"
+        order: "In what order do I import?"
+        undo: "How do I undo an import?"
+      settings_appearance:
+        accent_color: "What does the accent colour do?"
+        light_dark: "How do I switch light/dark/pop?"
+      account:
+        why_confirm: "Why do I have to confirm my email address?"
+        no_mail: "No confirmation email arrives — what now?"
+        change_email: "Why is my new email address not active yet?"

@@ -1,0 +1,9 @@
+[Unit]
+Description=Lalabase: verschluesseltes DB-Backup auf die Storage Box
+After=network-online.target
+Wants=network-online.target
+OnFailure=lalabase-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lalabase-db-backup.sh

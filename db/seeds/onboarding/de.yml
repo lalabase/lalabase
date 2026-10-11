@@ -1,0 +1,43 @@
+# Onboarding tutorial content (German).
+#
+# Loaded by Actors::SeedOnboarding for the locale of the registered user
+# (fallback: de). The content is v1-frozen: changes here apply only to
+# NEW organisations, existing onboarding projects are not updated
+# (doc/onboarding_plan.md, Outside Voice #5).
+#
+# The keys are stable, language-independent identifiers (tests, S2 extension).
+# The order is the creation/number order on the board. Ticket 1 is deliberately
+# an action that can be done right away (debriefing calibration Q1).
+project:
+  name: "Lalabase kennenlernen"
+  description: >
+    Dieses Projekt zeigt dir Lalabase beim Benutzen: Jede Aufgabe hier ist ein
+    kleiner Schritt, den du direkt ausführen kannst. Wenn du fertig bist,
+    kannst du das ganze Projekt einfach löschen.
+tickets:
+  - key: complete_this
+    title: "Hake diese Aufgabe ab"
+    description: >
+      Das hier ist eine Aufgabe (Ticket) — das wichtigste Objekt in Lalabase.
+      Öffne sie und setze ihren Status auf „Erledigt". Genau so arbeitest du
+      später jede echte Aufgabe ab. Das war's schon: ein Klick, erster Erfolg.
+  - key: create_own_ticket
+    title: "Lege deine erste eigene Aufgabe an"
+    description: >
+      Erstelle über „Neues Ticket" eine eigene Aufgabe — Titel genügt, alles
+      andere ist optional. Aufgaben können Status, Priorität, Zuständige und
+      Tags tragen; sie leben immer in einem Projekt wie diesem.
+  - key: track_time
+    title: "Erfasse 15 Minuten Zeit auf diese Aufgabe"
+    description: >
+      Lalabase kann Arbeitszeit direkt an Aufgaben erfassen. Öffne diese
+      Aufgabe und trage über die Zeiterfassung 15 Minuten ein. Später findest
+      du jede erfasste Zeit unter „Zeiten" wieder — auswertbar pro Projekt,
+      Person und Zeitraum.
+  - key: write_note
+    title: "Schreibe deine erste Notiz im Wissen-Bereich"
+    description: >
+      Im Bereich „Wissen" sammelst du Notizen und Dokumente, die kein Ticket
+      sind: Entscheidungen, Anleitungen, Besprechungsergebnisse. Öffne den
+      Wissen-Bereich dieses Projekts und lege eine kurze Notiz an — sie ist
+      sofort für dein Team durchsuchbar.

@@ -1,0 +1,80 @@
+<%# Org-wide meetings index (Gespräche Slice 1c): "all conversations with person
+    X" across project boundaries. A flat lookup table (NOT a master-detail)
+    modelled on the "Zeiten" page — a row click opens the meeting in its own
+    project's master-detail. Filters submit via GET into the results turbo-frame
+    so the search input keeps focus; a reset link does a full navigation to clear
+    the inputs (which live outside the frame).
+
+    Since 05.09.2026 the page also creates: the "+" in the title box opens a modal
+    that asks for a project and then loads that project's real meeting form. %>
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
+
+<div class="w-full">
+  <%# Header via the shared title box (like "Zeiten" and the other overview
+      pages) so the h1 typography stays consistent app-wide — no bespoke
+      icon/font-black heading. The "?" carries the contextual meetings help
+      (what a meeting is / is not), same wiring as the per-project page. %>
+  <%= render NeoTitleBoxComponent.new(
+    title: t('views.organisations.meetings_overview.index.title'),
+    variant: :organisation
+  ) do |box| %>
+    <%# Same square primary "+" as the project meetings page and the Zeiten list.
+        Only where this person may write meetings somewhere: a button that leads
+        to an error message is a promise without cover. %>
+    <% if can_create_meeting? %>
+      <% box.with_title_action do %>
+        <%= render 'organisations/meetings_overview/new_meeting_modal', projects: writable_meeting_projects %>
+      <% end %>
+    <% end %>
+    <% box.with_right_content do %>
+      <%= render 'common/contextual_help_menu', context: :meetings %>
+    <% end %>
+  <% end %>
+
+  <%# Claim hint (Nachtrag): outside the results frame so a filter GET never wipes it. %>
+  <%= render 'organisations/meetings/claim_suggestions', matches: meeting_claim_matches %>
+
+  <%# Filter row (search + participant + project). GET, targets the results frame
+      so the detail navigation and the inputs survive a filter. Search is
+      debounced, the selects submit immediately (auto-submit controller). %>
+  <%# No data-turbo-action="advance": like the sibling filter forms (knowledge,
+      project meetings, time_sessions), the frame-scoped submit must not promote
+      each debounced keystroke into a history entry. %>
+  <%# The id is read by meeting_modal_controller: the modal sits outside this frame
+      and needs the CURRENT filter values, not the ones ERB baked into its options. %>
+  <%= form_with url: organisation_meetings_path(@current_organisation),
+                method: :get,
+                id: 'meetings-overview-filters',
+                data: { turbo_frame: 'meetings_overview_results', controller: 'auto-submit' },
+                class: 'mb-4' do %>
+    <div class="flex flex-wrap items-center gap-2">
+      <%= search_field_tag :search, params[:search],
+          placeholder: t('views.organisations.meetings_overview.index.search_placeholder'),
+          autocomplete: 'off',
+          class: 'w-full md:w-80 py-2 px-4 border border-cream-300 rounded-lg focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink bg-surface-raised' %>
+
+      <% participant_options = participant_filter_options %>
+      <% if participant_options.any? %>
+        <%= select_tag :participant,
+            options_for_select([[t('views.organisations.meetings_overview.index.filter_participant_all'), '']] + participant_options, params[:participant]),
+            'aria-label': t('views.organisations.meetings_overview.index.filter_participant_label'),
+            class: 'py-2 px-4 border border-cream-300 rounded-lg bg-surface-raised focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink' %>
+      <% end %>
+
+      <% project_options = project_filter_options %>
+      <% if project_options.many? %>
+        <%= select_tag :project_id,
+            options_for_select([[t('views.organisations.meetings_overview.index.filter_project_all'), '']] + project_options, params[:project_id]),
+            'aria-label': t('views.organisations.meetings_overview.index.filter_project_label'),
+            class: 'py-2 px-4 border border-cream-300 rounded-lg bg-surface-raised focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink' %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# The <turbo-frame> is inside the partial, so MeetingsController#create can
+      replace it wholesale without deleting it. %>
+  <%= render 'organisations/meetings_overview/results',
+             meetings: @meetings, filters_active: filters_active? %>
+</div>

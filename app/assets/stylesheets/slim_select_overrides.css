@@ -1,0 +1,184 @@
+/* SlimSelect Neo-Brutalist Overrides */
+
+/* Main select container */
+.ss-main {
+  border: 1px solid black !important;
+  border-radius: 0.375rem !important;
+  background-color: rgb(var(--white)) !important;
+  transition: all 0.2s !important;
+}
+
+.ss-main:hover {
+  background-color: rgb(247 254 231) !important; /* lime-50 */
+  box-shadow: 2px 2px 0 0 #000000 !important;
+}
+
+.ss-main:focus,
+.ss-main.ss-open {
+  box-shadow: 2px 2px 0 0 #000000 !important;
+  outline: none !important;
+}
+
+/* Dark mode */
+.dark .ss-main {
+  background-color: black !important;
+  color: white !important;
+}
+
+/* Single select display */
+.ss-single-selected {
+  background-color: transparent !important;
+  border: none !important;
+  color: black !important;
+  padding: 0.5rem 0.75rem !important;
+  height: 2.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.dark .ss-single-selected {
+  color: white !important;
+}
+
+/* Arrow icon */
+.ss-arrow {
+  border-color: black !important;
+}
+
+.dark .ss-arrow {
+  border-color: white !important;
+}
+
+/* Dropdown content */
+.ss-content {
+  border: 1px solid black !important;
+  border-radius: 0.375rem !important;
+  background-color: rgb(var(--white)) !important;
+  margin-top: 0.25rem !important;
+  box-shadow: 4px 4px 0 0 #000000 !important;
+}
+
+.dark .ss-content {
+  background-color: black !important;
+  border-color: white !important;
+}
+
+/* Options */
+.ss-option {
+  background-color: rgb(var(--white)) !important;
+  color: black !important;
+  padding: 0.5rem 0.75rem !important;
+  transition: all 0.15s !important;
+}
+
+.dark .ss-option {
+  background-color: black !important;
+  color: white !important;
+}
+
+.ss-option:hover,
+.ss-option.ss-highlighted {
+  background-color: rgb(247 254 231) !important; /* lime-50 */
+  color: black !important;
+}
+
+.dark .ss-option:hover,
+.dark .ss-option.ss-highlighted {
+  background-color: rgb(38 38 38) !important; /* gray-800 */
+  color: white !important;
+}
+
+.ss-option.ss-selected {
+  background-color: rgb(217 249 157) !important; /* lime-200 */
+  color: black !important;
+}
+
+.dark .ss-option.ss-selected {
+  background-color: rgb(101 163 13) !important; /* lime-700 */
+  color: white !important;
+}
+
+/* Multi-select specific styles */
+.ss-multi-selected {
+  min-height: 38px !important;
+  padding: 0.25rem !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+}
+
+/* Multi-select values (tags) */
+.ss-values .ss-value {
+  background-color: #e0e7ff !important; /* indigo-100 */
+  border: 1px solid #4f46e5 !important; /* indigo-600 */
+  border-radius: 0.5rem !important;
+  padding: 0.125rem 0.5rem !important;
+  margin: 0.125rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+.ss-values .ss-value .ss-value-text {
+  color: #312e81 !important; /* indigo-900 */
+}
+
+.ss-values .ss-value-delete {
+  margin-left: 0.25rem !important;
+  cursor: pointer !important;
+  color: #6366f1 !important; /* indigo-500 */
+}
+
+.ss-values .ss-value-delete:hover {
+  color: #4f46e5 !important; /* indigo-600 */
+}
+
+/* Search box */
+.ss-search input {
+  border: 1px solid black !important;
+  border-radius: 0.25rem !important;
+  padding: 0.5rem !important;
+  background-color: rgb(var(--white)) !important;
+  color: black !important;
+}
+
+.dark .ss-search input {
+  background-color: black !important;
+  border-color: white !important;
+  color: white !important;
+}
+
+.ss-search input:focus {
+  outline: none !important;
+  box-shadow: 2px 2px 0 0 #000000 !important;
+}
+
+/* Disabled state */
+.ss-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Remove any gray colors */
+.ss-main,
+.ss-content,
+.ss-option,
+.ss-single-selected,
+.ss-search input {
+  border-color: black !important;
+}
+
+/* Ensure no gray backgrounds */
+.ss-main:not(:hover),
+.ss-content,
+.ss-option:not(:hover):not(.ss-highlighted):not(.ss-selected) {
+  background-color: rgb(var(--white)) !important;
+}
+
+.dark .ss-main:not(:hover),
+.dark .ss-content,
+.dark .ss-option:not(:hover):not(.ss-highlighted):not(.ss-selected) {
+  background-color: black !important;
+}

@@ -1,0 +1,131 @@
+/*
+ *= require lexxy-variables
+ *= require lexxy-content
+ *= require lexxy-editor
+ *= require bootstrap-icons/font/bootstrap-icons.min
+ *= require layout
+ *= require views
+ *= require slim_select_overrides
+ *= require components/help_system
+ *= require components/custom_select
+ *= require components/wiki_mention
+ *= require components/rich_text_embeds
+ *= require components/writing_surface
+ *= require components/view_switch
+ *= require components/assistant_panel
+ *= require components/hover_reveal
+ *= require components/post_composer
+ *= require components/markdown_preview
+ *= require components/filter_bar
+ *= require components/column_picker
+ *= require components/sidebar_nav
+ *= require components/mobile_app
+ */
+
+mark {
+  background-color: yellow;
+  color: inherit; /* Keeps the text color */
+}
+
+/* No focus ring on a field (user, 09.09.2026). A text field matches :focus-visible
+   even when it was never touched by the keyboard, so the magnifier in the filter
+   bar — which focuses the field for you (filter_bar_controller#openSearch) — lit
+   up a 2px ink outline around the pill on a plain mouse click.
+
+   The `focus:outline-none` the fields already carry does not settle it. Measured
+   on the running app: the utility resolves to `outline: transparent solid 2px`,
+   yet the focused field computes `rgb(var(--ink)) solid 2px` at offset 2px. No
+   author rule in the bundle sets that colour; where it enters was not pinned
+   down, so the rule below works at the outline itself and carries !important.
+
+   Fields only — input, textarea, select and the contenteditable editors. Buttons,
+   links, cards and the kanban tiles keep the themed ring of §19.7: those are
+   reached BY keyboard, where the ring is the only thing saying where you are. A
+   field says it with its caret instead. */
+:where(input, textarea, select, [contenteditable="true"]):focus,
+:where(input, textarea, select, [contenteditable="true"]):focus-visible {
+  outline: none !important;
+}
+
+/* Spacing between the tag label and the remove button — used by NeoTagComponent
+   and tag_input_controller.js (Slim-Select values) */
+.tag-text {
+  margin-right: 0.25rem;
+}
+
+/* Timeline items (Posts/Activities/TimeSessions) in the lazy frame:
+   stagger-fade from top to bottom once the frame has loaded its content.
+   fill-mode backwards, NOT both/forwards: the to-frame ends on
+   transform: translateY(0), and a forwards fill pins that identity transform
+   on every frame child FOREVER. A transform creates a stacking context, and
+   the first frame child is the "Verlauf" header line with the filter
+   dropdown - its z-indexed menu got trapped in that context, so every later
+   sibling painted (and clicked!) straight through it (found live 04.09.).
+   backwards keeps the stagger (hidden during the delay) and lets the base
+   state (no transform) return after the run - same trap as the .column
+   slide-in documented in layout.css ("Any non-none transform"). */
+.posts-container > turbo-frame > * {
+  animation: timeline-item-fade-in 0.25s ease-out backwards;
+}
+.posts-container > turbo-frame > *:nth-child(1) { animation-delay: 0ms; }
+.posts-container > turbo-frame > *:nth-child(2) { animation-delay: 75ms; }
+.posts-container > turbo-frame > *:nth-child(3) { animation-delay: 150ms; }
+.posts-container > turbo-frame > *:nth-child(4) { animation-delay: 225ms; }
+.posts-container > turbo-frame > *:nth-child(5) { animation-delay: 300ms; }
+.posts-container > turbo-frame > *:nth-child(6) { animation-delay: 375ms; }
+.posts-container > turbo-frame > *:nth-child(7) { animation-delay: 450ms; }
+.posts-container > turbo-frame > *:nth-child(8) { animation-delay: 525ms; }
+.posts-container > turbo-frame > *:nth-child(n+9) { animation-delay: 600ms; }
+
+@keyframes timeline-item-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Two-phase reveal of the buttons below the timeline (via reveal-after-frame
+   controller): emerge with reduced saturation + offset, then settle into the
+   full Neo Brutalist look. */
+.timeline-secondary-reveal {
+  animation:
+    timeline-secondary-emerge 0.4s ease-out 0.6s both,
+    timeline-secondary-settle 0.3s ease-out 1.0s both;
+}
+
+@keyframes timeline-secondary-emerge {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.94);
+    filter: saturate(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-2px) scale(0.98);
+    filter: saturate(0.7);
+  }
+}
+
+@keyframes timeline-secondary-settle {
+  from {
+    transform: translateY(-2px) scale(0.98);
+    filter: saturate(0.7);
+  }
+  to {
+    transform: translateY(0) scale(1);
+    filter: saturate(1);
+  }
+}
+
+/* Turbo 8 View Transitions: cross-fade when navigating between same-origin
+   pages (e.g. list ↔ detail). Enabled via <meta name="view-transition">. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}

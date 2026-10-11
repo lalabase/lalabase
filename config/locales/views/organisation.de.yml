@@ -1,0 +1,714 @@
+de:
+  views:
+    organisations:
+      archives:
+        index:
+          projects_section: Projekte
+          table_headers:
+            name: Projekt
+            archived_at: Archiviert am
+            archived_by: Archiviert von
+            actions: Aktionen
+          restore: Wiederherstellen
+          empty_title: Nichts archiviert
+          empty_description: Archivierte Projekte sammeln sich hier und lassen sich von hier aus wiederherstellen.
+      projects:
+        index:
+          archived_projects: Archivierte Projekte
+          archived_badge: Archiviert
+          archived_by: von
+          delete_project_title: Projekt unwiderruflich löschen
+          delete_project_warning: Diese Aktion kann nicht rückgängig gemacht werden. Alle Tickets, Dokumente, Notizen, Zeiteinträge und Custom Fields werden unwiderruflich gelöscht.
+          delete_project_confirm_hint: Bitte geben Sie den Projektnamen
+          delete_project_confirm_suffix: 'ein, um das Löschen zu bestätigen:'
+          delete_project_placeholder: Projektname eingeben
+          cancel: Abbrechen
+          delete_permanently: Endgültig löschen
+        new:
+          title: Neues Projekt
+          back: Zurück
+        show:
+          configure_dashboard: Dashboard konfigurieren
+        details:
+          title: Projektdetails
+          back_to_settings: Einstellungen
+        edit:
+          settings_title: Einstellungen
+          details_title: Projektdetails
+          details_description: Name und Beschreibung des Projekts.
+          details_no_description: Keine Beschreibung hinterlegt.
+          edit_details: Projektdetails bearbeiten
+          danger_zone: Gefahrenzone
+          archive_project: Projekt archivieren
+          archive_description: Das Projekt wird aus der Sidebar und Projektliste entfernt. Alle ungelesenen Benachrichtigungen werden archiviert.
+          archive_button: Archivieren
+          restore_project: Projekt wiederherstellen
+          restore_description: Das Projekt wird wieder in der Sidebar und Projektliste angezeigt.
+          restore_button: Wiederherstellen
+          delete_project_title: Projekt unwiderruflich löschen
+          delete_project_description: Alle Tickets, Dokumente, Notizen, Zeiteinträge und Custom Fields werden endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+          delete_permanently: Endgültig löschen
+          delete_modal_title: Projekt unwiderruflich löschen
+          delete_modal_warning: Diese Aktion kann nicht rückgängig gemacht werden. Alle Tickets, Dokumente, Notizen, Zeiteinträge und Custom Fields werden unwiderruflich gelöscht.
+          delete_modal_confirm_hint: Bitte geben Sie den Projektnamen
+          delete_modal_confirm_suffix: 'ein, um das Löschen zu bestätigen:'
+          delete_modal_placeholder: Projektname eingeben
+          cancel: Abbrechen
+          ticket_fields: Ticket-Felder
+          ticket_fields_description: Felder konfigurieren, die auf Tickets angezeigt werden.
+          manage_ticket_fields: Ticket-Felder verwalten
+          active_fields_count: "%{count} aktive Felder"
+          inactive_fields_count: "%{count} inaktive Felder"
+          chat_with_code_title: Mit deinem Code chatten
+          chat_with_code_empty: Willst du dem KI-Assistenten Fragen an deinen Source-Code stellen? Verbinde ein Repository — der Code wird indexiert und steht im Chat als Kontext bereit.
+          documentation_title: Dokumentation anzeigen
+          documentation_empty: Willst du die Dokumentation deines Projekts hier sehen? Verbinde ein Repository — die Doku-Seiten erscheinen im Bereich „Dokumentation“ und bleiben automatisch synchron.
+          code_and_docs_title: Code & Dokumentation
+          connect_repository: Repository verbinden
+          manage_repositories: Repositories verwalten
+          view_repositories: Repositories ansehen
+          repositories_no_permission: Du hast keine Berechtigung, Repositories zu verwalten. Wende dich an die Projekt-Verwaltung.
+      memberships:
+        edit:
+          title: Mitgliedschaft bearbeiten
+          back: Zurück
+          name_label: Name
+          role_label: Rolle
+          no_role_assigned: Keine Rolle zugewiesen
+          active_member: Aktives Mitglied
+          cancel: Abbrechen
+          save: Speichern
+      roles:
+        edit:
+          title: Rolle bearbeiten
+          back: Zurück
+          default_role_badge: Standard-Rolle
+          admin_badge: Administrator
+          custom_role_badge: Benutzerdefinierte Rolle
+          errors_html: "%{count} Fehler verhindert das Speichern dieser Rolle:"
+          basic_info: Grundlegende Informationen
+          title_label: Titel
+          description_label: Beschreibung
+          permissions_title: Berechtigungen
+          permissions_description: Wählen Sie die Berechtigungen aus, die dieser Rolle zugewiesen werden sollen. Diese Berechtigungen gelten für alle Benutzer, die diese Rolle haben.
+          search_placeholder: Berechtigungen durchsuchen...
+          search_hint: Wählen Sie unten eine Kategorie aus, um spezifische Berechtigungen zu konfigurieren
+          tab_all: Alle Berechtigungen
+          tab_projects: Projekt-Details
+          select_all: Alle auswählen
+          deselect_all: Alle abwählen
+          read_permissions: Lese-Berechtigungen
+          write_permissions: Schreib-Berechtigungen
+          other_permissions: Andere Berechtigungen
+          permissions_group: Berechtigungen
+          project_details_info: Verwenden Sie die bereichsspezifischen Berechtigungen, um detailliert zu steuern, welche Benutzer auf welche Projektdaten zugreifen können. Die Berechtigungen sind nach Funktionsbereichen (Tickets, Notizen, Chats, Dokumente, Zeiterfassung) organisiert.
+          read_access: Lesezugriff
+          write_access: Schreibzugriff
+          project_management: Projektmanagement
+          cancel: Abbrechen
+          save: Speichern
+        index:
+          new_role_tooltip: Neue Rolle erstellen
+          matrix_view_tooltip: 'Rechte-Matrix: Übersicht aller Rollen und Berechtigungen'
+      project_permissions:
+        index:
+          title: Team
+          back: Zurück
+          team_members: Team-Mitglieder
+          no_team_members: Noch keine Team-Mitglieder zugewiesen
+          other_users: Weitere verfügbare Benutzer
+          project_rights_info_link: Informationen zu Projektrechten
+          col_member: Mitglied
+          col_actions: Aktionen
+          empty_title: Noch niemand im Team
+          empty_hint: Füge unten ein Mitglied hinzu, um Projektrechte zu vergeben.
+          add_member: Mitglied hinzufügen
+          add_search_placeholder: Name suchen…
+          add: Hinzufügen
+        areas:
+          tickets: Tickets
+          notes: Notizen
+          meetings: Meetings
+          chats: Chats
+          documents: Dateien
+          members: Team
+          documentation: Dokumentation
+          time_sessions: Zeit
+        levels:
+          no_access: Kein Zugriff
+          read_only: Lesen
+          read_write: Schreiben
+        time:
+          standard: Standard
+          custom: Angepasst
+          settings: Zeit-Rechte einstellen
+        member_row:
+          source_admin: Admin
+          source_direct: Direkt
+          source_role: via Rolle „%{role}“
+          source_blocked: Rollenrecht „%{role}“ gesperrt
+          you: "(Du)"
+          time_full: Voll
+          edit: Bearbeiten
+          make_explicit: Explizit setzen
+          remove: Entfernen
+          unblock: Sperre aufheben
+          blocked: Gesperrt
+          edit_title: Rechte bearbeiten für %{name}
+          cancel: Abbrechen
+          save: Speichern
+        edit:
+          title: Berechtigungen bearbeiten für %{name}
+          errors_html: "%{count} Fehler verhindert das Speichern dieser Berechtigung:"
+          access_permissions: Zugriffsberechtigungen
+          access_permissions_description: Wählen Sie die Zugriffsberechtigungen für die verschiedenen Bereiche des Projekts.
+          area_chats: Chats
+          area_tasks: Tickets
+          area_notes: Notizen
+          area_files: Dateien
+          area_time: Time
+          area_team: Team
+          area_documentation: Dokumentation
+          no_access: Kein Zugriff
+          read_only: Nur Lesen
+          read_write: Lesen & Schreiben
+          create_own: Eigene erstellen
+          view_own: Eigene sehen
+          view_all: Alle sehen
+          edit_own: Eigene bearbeiten
+          edit_all: Alle bearbeiten
+          delete_own: Eigene löschen
+          delete_all: Alle löschen
+          advanced_time_settings: Erweiterte Einstellungen für Time Sessions
+          back: Zurück
+          save_permissions: Berechtigungen speichern
+        info:
+          back_to_permissions: Zurück zur Berechtigungsverwaltung
+          title: Informationen zu Projektrechten
+          subtitle: Alles, was Sie über die Rechteverwaltung in Projekten wissen müssen
+          toc_title: Inhalt
+          toc_overview: Übersicht der Berechtigungsebenen
+          toc_access_levels: Die drei Zugriffsstufen
+          toc_areas: Bereiche und ihre Bedeutung
+          toc_time_sessions: Spezielle TimeSession-Berechtigungen
+          toc_removing: Jemanden aus dem Projekt nehmen
+          toc_who_can_change: Wer kann Berechtigungen ändern?
+          toc_faq: Häufige Fragen
+          overview_title: Übersicht der Berechtigungsebenen
+          overview_intro: 'Die Rechteverwaltung in Lalabase erfolgt auf drei Ebenen:'
+          level_admin_title: 1. Account-Admin
+          level_admin_description: Hat vollen Zugriff auf alle Projekte und Funktionen der Organisation.
+          level_role_title: 2. Rollen-basiert
+          level_role_description: Globale Rechte über die Rolle des Benutzers in der Organisation.
+          level_project_title: 3. Projekt-spezifisch
+          level_project_description: Individuelle Rechte pro Benutzer und Projekt.
+          override_notice: 'Wichtig: Projekt-spezifische Rechte überschreiben Rollen-basierte Rechte!'
+          removing_title: Jemanden aus dem Projekt nehmen
+          removing_intro: '„Entfernen“ bedeutet immer dasselbe: Diese Person soll hier nicht mehr arbeiten. Wie das umgesetzt wird, hängt davon ab, woher ihr Zugriff kommt.'
+          removing_plain_title: Ohne Rollenrecht
+          removing_plain_description: Das Projektrecht wird gelöscht. Die Person verschwindet aus der Liste und steht wieder unter „Mitglied hinzufügen“.
+          removing_blocked_title: Mit Rollenrecht
+          removing_blocked_description: Löschen würde nichts bringen, weil die Rolle den Zugriff sofort wieder erlaubt. Stattdessen wird ein Projektrecht mit „Kein Zugriff“ gesetzt, das die Rolle aushebelt. Die Zeile bleibt sichtbar und ist mit „Gesperrt“ markiert. „Sperre aufheben“ macht das rückgängig, danach gilt wieder, was die Rolle erlaubt.
+          removing_admin_notice: 'Ausnahme: Ein Account-Admin hat Zugriff auf alle Projekte, und kein Projektrecht kann das überschreiben. Hier hilft nur, die Rolle zu ändern.'
+          access_levels_title: Die drei Zugriffsstufen
+          no_access_title: Kein Zugriff
+          no_access_description: Der Benutzer kann diesen Bereich nicht sehen oder darauf zugreifen.
+          read_only_title: Nur Lesen
+          read_only_description: Der Benutzer kann Inhalte anzeigen, aber keine Änderungen vornehmen.
+          read_write_title: Lesen & Schreiben
+          read_write_description: Der Benutzer kann Inhalte anzeigen, erstellen, bearbeiten und löschen.
+          areas_title: Bereiche und ihre Bedeutung
+          area_chats_label: Chats
+          area_chats_description: Projektkommunikation und Diskussionen
+          area_tasks_label: Tickets
+          area_tasks_description: Aufgaben und Arbeitsaufträge im Projekt
+          area_notes_label: Notizen
+          area_notes_description: Projektnotizen und Dokumentationen
+          area_files_label: Dateien
+          area_files_description: Dokumente und Anhänge im Projekt
+          area_time_label: Time
+          area_time_description: Zeiterfassung (siehe erweiterte Einstellungen unten)
+          area_team_label: Team
+          area_team_description: Verwaltung der Projektmitglieder und deren Rechte
+          time_sessions_title: Spezielle TimeSession-Berechtigungen
+          time_sessions_intro: 'Für die Zeiterfassung gibt es erweiterte, granulare Berechtigungen:'
+          own_time_sessions: Eigene TimeSessions
+          own_create: Eigene erstellen
+          own_view: Eigene ansehen
+          own_edit: Eigene bearbeiten
+          own_delete: Eigene löschen
+          all_time_sessions: Alle TimeSessions
+          all_view: Alle ansehen
+          all_edit: Alle bearbeiten
+          all_delete: Alle löschen
+          time_sessions_override_notice: Diese Einstellungen überschreiben die Standard-Zugriffsrechte für den Time-Bereich.
+          who_can_change_title: Wer kann Berechtigungen ändern?
+          general_permissions_title: Projektrechte allgemein
+          general_admin_can: Account-Admins können alle Berechtigungen verwalten
+          general_team_write_can: Benutzer mit "Team"-Schreibrechten können Projektmitglieder verwalten
+          general_self_cannot: Benutzer können ihre eigenen Rechte NICHT ändern
+          time_permissions_title: TimeSession-Berechtigungen
+          time_admin_can: Account-Admins haben vollen Zugriff
+          time_team_write_can: Benutzer mit "Team"-Schreibrechten können TimeSession-Rechte anderer ändern
+          time_self_cannot: Benutzer können ihre eigenen TimeSession-Rechte NICHT ändern
+          faq_title: Häufige Fragen
+          faq_q1: Warum sehe ich bei manchen Bereichen keine Buttons?
+          faq_a1: Bei TimeSession-Berechtigungen werden statt Buttons die tatsächlichen Rechte als Text angezeigt. Nicht vorhandene Rechte sind durchgestrichen.
+          faq_q2: Was bedeutet "modifiziert" bei einer Rolle?
+          faq_a2: Dies zeigt an, dass die Projekt-spezifischen Rechte von den Standard-Rechten der Rolle abweichen.
+          faq_q3: Kann ich einem Benutzer nur Leserechte für TimeSessions geben, aber keine Erstellungsrechte?
+          faq_a3: Ja! Über die erweiterten TimeSession-Einstellungen können Sie genau festlegen, welche Aktionen erlaubt sind.
+          faq_q4: Was passiert, wenn ich einem Benutzer alle Rechte entziehe?
+          faq_a4: Der Benutzer wird aus der Projektmitgliederliste entfernt und hat keinen Zugriff mehr auf das Projekt.
+          faq_q5: Was passiert mit den Rechten, wenn ein Benutzer die Rolle wechselt?
+          faq_a5: Die Rollen-basierten Rechte werden automatisch angepasst. Projekt-spezifische Rechte bleiben jedoch unverändert, da sie die Rollen-Rechte überschreiben.
+          faq_q6: Kann ich Rechte-Vorlagen erstellen oder Rechte von einem Benutzer auf einen anderen kopieren?
+          faq_a6: Derzeit gibt es keine Vorlagen-Funktion. Sie müssen die Rechte für jeden Benutzer individuell einstellen. Dies stellt sicher, dass Rechte bewusst und gezielt vergeben werden.
+          faq_q7: Wie kann ich sehen, welche Rechte aus der Rolle kommen und welche projekt-spezifisch sind?
+          faq_a7: Wenn Projekt-Rechte von den Rollen-Rechten abweichen, erscheint "(modifiziert)" neben der Rolle. Im Bearbeitungsmodus können Sie durch Klick auf das Info-Symbol die Rollen-Rechte einblenden.
+          faq_q8: Gibt es eine Übersicht, wer in allen meinen Projekten welche Rechte hat?
+          faq_a8: Die Rechteverwaltung erfolgt pro Projekt. Für eine organisationsweite Übersicht müssten Sie jedes Projekt einzeln prüfen. Account-Admins haben automatisch vollen Zugriff auf alle Projekte.
+          faq_q9: Was passiert mit TimeSessions, wenn ich einem Benutzer nachträglich die Rechte entziehe?
+          faq_a9: Bereits erstellte TimeSessions bleiben bestehen. Der Benutzer kann sie je nach neuen Rechten möglicherweise nicht mehr sehen oder bearbeiten. Die Daten werden nicht gelöscht, nur der Zugriff wird eingeschränkt.
+        time_sessions_settings:
+          back_to_permissions: Zurück zur Berechtigungsverwaltung
+          title: TimeSession-Berechtigungen
+          subtitle: für %{user} im Projekt %{project}
+          own_title: Eigene TimeSessions
+          can_create_own: Eigene TimeSessions erstellen
+          can_view_own: Eigene TimeSessions ansehen
+          can_edit_own: Eigene TimeSessions bearbeiten
+          can_delete_own: Eigene TimeSessions löschen
+          all_title: Alle TimeSessions im Projekt
+          can_view_all: Alle TimeSessions ansehen
+          can_edit_all: Alle TimeSessions bearbeiten
+          can_delete_all: Alle TimeSessions löschen
+          current_permission: 'Aktuelle Berechtigung:'
+          save_permissions: Berechtigungen speichern
+          cancel: Abbrechen
+        shared:
+          no_access: Kein Zugriff
+          read_only: Nur Lesen
+          read_write: Lesen & Schreiben
+          not_assigned: Nicht zugewiesen
+          inherited: Geerbt
+          full_access_admin: Vollzugriff (Admin)
+          read_only_via_role: Nur Lesen (über Rolle)
+          read_write_via_role: Lesen & Schreiben (über Rolle)
+          default_label: Standard
+          role_label: 'Rolle:'
+          configured: Konfiguriert
+          settings: Einstellungen
+          advanced_settings: Erweiterte Einstellungen
+          advanced: Erweitert
+          save: Speichern
+          cancel: Abbrechen
+          permissions: Berechtigungen
+          admin_access: Admin Zugriff
+          user_label: Benutzer
+          you_label: "(Du)"
+          modified: "(modifiziert)"
+          own_permissions: Eigene Berechtigungen
+          set_explicit_permissions: Explizite Berechtigungen setzen
+          add: Hinzufügen
+          admin_full_access: Hat als Admin vollen Zugriff auf alle Bereiche
+          no_project_access: Kein Zugriff auf dieses Projekt
+          permissions_for: Berechtigungen für %{name}
+          select_no_access: Kein Zugriff
+          select_read: Lesen
+          select_write: Schreiben
+          select_no_access_emoji: "❌ Kein Zugriff"
+          select_read_emoji: "\U0001F441️ Nur Lesen"
+          select_write_emoji: "✏️ Bearbeiten"
+          own_create: Eigene erstellen
+          own_view: Eigene sehen
+          all_view: Alle sehen
+          area_chats: Chats
+          area_tasks: Tickets
+          area_notes: Notizen
+          area_files: Dateien
+          area_time: Time
+          area_team: Team
+          show_role_info: Rolleninformationen anzeigen
+        legend:
+          title: 'Zugriffsrechte-Legende:'
+          not_assigned: Nicht zugewiesen
+          no_access: Kein Zugriff
+          read_only: Nur Lesen
+          read_write: Lesen & Schreiben
+          inherited: Geerbt (aus Rolle/Admin)
+        explanations:
+          title: Erläuterung der Berechtigungen
+          areas_title: 'Bereiche:'
+          area_chats: 'Chats:'
+          area_chats_desc: Zugriff auf projektbezogene Chats und Unterhaltungen
+          area_tasks: 'Tickets:'
+          area_tasks_desc: Verwaltung von Tickets im Projekt
+          area_notes: 'Notizen:'
+          area_notes_desc: Erstellen und Bearbeiten von Projektnotizen
+          area_files: 'Dateien:'
+          area_files_desc: Upload und Verwaltung von Projektdateien
+          area_time: 'Time:'
+          area_time_desc: Zeiterfassung und Auswertung von Arbeitszeiten
+          area_team: 'Team:'
+          area_team_desc: Verwaltung der Projektmitglieder und deren Berechtigungen
+          levels_title: 'Berechtigungsstufen:'
+          level_no_access: 'Kein Zugriff:'
+          level_no_access_desc: Der Benutzer kann diesen Bereich nicht sehen oder darauf zugreifen
+          level_read_only: 'Nur Lesen:'
+          level_read_only_desc: Der Benutzer kann Inhalte anzeigen, aber keine Änderungen vornehmen
+          level_read_write: 'Lesen & Schreiben:'
+          level_read_write_desc: Der Benutzer hat vollständigen Zugriff und kann Inhalte erstellen, bearbeiten und löschen
+          role_hint: '"Rolle: [Icon]" zeigt die Berechtigung an, die der Benutzer durch seine zugewiesene Rolle im System hätte. Diese wird angezeigt, wenn die individuelle Berechtigung von der Rollenberechtigung abweicht.'
+          hint_label: 'Hinweis:'
+      access_matrix:
+        index:
+          title: Zugriffsübersicht
+          back_to_members: Zu den Mitgliedern
+          member_header: Mitglied
+          column_link_title: Team von %{project} bearbeiten
+          wide_screen_hint: Für die vollständige Matrix empfiehlt sich ein breiter Bildschirm — der Filter grenzt Spalten und Zeilen ein.
+        link: Zugriffsübersicht
+        states:
+          blocked: Gesperrt
+          none: Kein Zugriff
+        cell:
+          details_label: Zugriff je Bereich
+        filter:
+          search_placeholder: Nach Name suchen…
+          projects_label: Projekte
+        legend:
+          title: Legende
+          read_write: Schreibzugriff
+          read_only: Lesezugriff
+          blocked: Explizit gesperrt (sticht Rollenrecht aus)
+          none: Kein Zugriff
+          inherited: Geerbt (über Admin-Rolle oder globales Rollenrecht)
+        empty:
+          title: Noch keine aktiven Projekte
+          body: Sobald es aktive Projekte gibt, erscheinen sie hier als Spalten.
+          cta: Projekt anlegen
+      # Rechnungsbereich des Accounts (doc/billing_stammdaten_plan.md B2/B3).
+      # Begriffe: "Rechnung" als Menuepunkt, "Rechnungskonto" fuer die Account-Ebene,
+      # "Rechnungsdaten"/"Rechnungsanschrift"/"USt-IdNr." in den Feldern. NICHT
+      # "Abrechnung" -- so heisst in dieser App die Zeit-Abrechnung.
+      organisation_settings:
+        show:
+          title: Organisations-Einstellungen
+          general_settings: Allgemeine Einstellungen
+          errors:
+            one: "%{count} Fehler verhindert das Speichern:"
+            other: "%{count} Fehler verhindern das Speichern:"
+          name_label: Name
+          name_placeholder: Organisation Name
+          name_help: Der vollständige Name Ihrer Organisation
+          subdomain_label: Subdomain
+          subdomain_placeholder: subdomain
+          subdomain_help: Subdomain für den Zugriff auf Ihre Organisation (z.B. subdomain.example.com)
+          domain_label: Domain
+          domain_placeholder: beispiel.de
+          domain_help: Die Domain Ihrer Organisation (optional)
+          cancel: Abbrechen
+          save: Einstellungen speichern
+      ai_settings:
+        show:
+          # Was hier NICHT mehr steht: die Strings des alten Anbieter-Formulars
+          # (System-/eigene Credentials, API-Key-Feld, Sicherheitshinweis, „Eigene
+          # Konfiguration“ …). Das Formular ist mit S7 auf die eigene Seite gezogen und
+          # hat seine Schlüssel unter views.organisations.ai_overview.configuration.*
+          # neu bekommen; die 27 Schlüssel hier blieben ohne einen einzigen Leser
+          # zurück. Ein Schlüssel ohne Leser ist keine Reserve, sondern eine Behauptung
+          # über eine Oberfläche, die es nicht gibt.
+          test_connection: Verbindung testen
+          # Der Schalter wohnt seit dem Umbau auf der Übersicht (doc/ki_zugang_umbau_plan.md
+          # D1/D5). Was hier stand — Statusüberschrift, „aktiviert am X durch Y", der
+          # Einwilligungs-Langtext und die beiden Schalter-Beschriftungen — ist mit ihm
+          # umgezogen und steht jetzt unter views.organisations.ai_overview.activation.*.
+          # Zurück bleibt eine Zeile Orientierung mit Link, ohne eigene Daten: keine
+          # zweite Wahrheit über einen Zustand, den die Übersicht vollständig beschreibt.
+          status_line_active_html: KI-Features sind aktiv. Ein- und ausgeschaltet wird auf der %{link}.
+          status_line_inactive_html: KI-Features sind nicht aktiviert. Den Zugang können Sie hier schon vorbereiten, aktiviert wird auf der %{link}.
+          status_line_overview_link: Übersicht
+        # KI-Pakete §7/§7.1: Kartenkatalog samt Zwei-Filter. Der Block spannt
+        # show.html.erb und die _package_*-Partials — daher ein eigener,
+        # partial-übergreifender Besitzer (Muster: views.admin.ai_credentials.seam).
+        packages:
+          title: KI-Paket
+          intro: Ein Paket legt fest, welcher Anbieter Chat und Suche Ihrer Organisation verarbeitet und in welchem Rechtsraum das geschieht.
+          current_label_package: "Aktuell: %{name} — %{description}"
+          current_label_custom: "Aktuell: Eigene Konfiguration"
+          current_custom_hint: Es gelten die eigenen Zugangsdaten der Organisation, hinterlegt unter „Eigene Konfiguration".
+          # doc/ki_zugang_umbau_plan.md D7, Zustand Z3: weder Paket noch eigene
+          # Zugangsdaten. Hier stand bis zum Umbau „Aktuell: Eigene Konfiguration" — eine
+          # Entscheidung, die niemand getroffen hatte. Der Text sagt jetzt, was zutrifft,
+          # und nennt beide Wege, statt einen zu behaupten.
+          none_configured_title: Noch kein KI-Zugang eingerichtet
+          none_configured_hint: Wählen Sie ein Systempaket oder hinterlegen Sie eigene Zugangsdaten. Bis dahin steht keiner der beiden Wege zur Verfügung.
+          # doc/ki_zugang_umbau_plan.md D6: die Entweder-oder-Frage als zwei Kacheln.
+          # `active_chip` sagt, welcher Weg GILT — welcher Weg gerade GEÖFFNET ist, sagt
+          # der Auswahlrahmen. Zwei Aussagen, zwei Träger: sonst sähe ein Blick auf den
+          # anderen Weg wie ein bereits vollzogener Wechsel aus.
+          chooser:
+            packages_title: Systempaket
+            packages_subline: Kuratierte Pakete mit geprüftem Rechtsraum und Verarbeitungsort.
+            custom_title: Eigene Konfiguration
+            custom_subline: Eigene API-Schlüssel und Anbieter-Einstellungen dieser Organisation.
+            active_chip: Aktiv
+          # P4c (E1): der Zustand eines laufenden Paketwechsels, direkt unter der
+          # „Aktuell“-Zeile. Die Schlüssel heißen wie die Zustände in
+          # Embeddings::SwitchProgress::STATES — wer dort einen Zustand ergänzt,
+          # findet hier die Lücke, statt sie zu übersehen.
+          progress:
+            building_title: Umstellung der Suche läuft
+            building_body: "Noch %{remaining} von %{total} Datensätzen — %{percent} % sind im neuen Suchindex."
+            awaiting_flip_title: Neuaufbau abgeschlossen
+            awaiting_flip_body: Der neue Suchindex ist vollständig. Er wird in der Regel innerhalb einer Viertelstunde automatisch aktiv — Sie müssen nichts tun.
+            paused_title: Umstellung pausiert
+            paused_body: Ihr KI-Kontingent für diesen Monat ist aufgebraucht, deshalb ruht der Neuaufbau. Er wird automatisch fortgesetzt, sobald das Kontingent im nächsten Monat zurückgesetzt wird.
+            # Kein Fortschritt, sondern ein Halt: der Zielraum ist vollständig, aber
+            # aus dem Index genommen. Ein Neuaufbau repariert das NICHT (er fände
+            # nichts zu tun), es braucht die Reaktivierung durch den Betreiber —
+            # deshalb nennt der Text keine Wartezeit, sondern eine Zuständigkeit.
+            retired_target_title: Umstellung steht
+            retired_target_body: Der Zielindex ist vollständig, aber derzeit nicht in Benutzung. Das löst sich nicht von selbst — bitte wenden Sie sich an den Systemadministrator. Ihre Suche arbeitet währenddessen unverändert weiter.
+            # EINE Suchzeile: jeder Zustand, der die Anzeige erreicht, hat einen
+            # aufgelösten Zeiger, also bedient der alte Index bis zum Umschalten weiter.
+            # Die frühere zweite Variante für zeigerlose Orgs ist entfallen — sie hätte
+            # jede gesunde Org mitgewarnt (Review-Blocker 1).
+            search_kept: Ihre bestehenden Inhalte bleiben währenddessen auffindbar — die Suche liest bis zum Abschluss aus dem bisherigen Index. Inhalte, die in dieser Zeit neu entstehen, sind erst danach durchsuchbar.
+          # P4c (E5): das eigene Paket steht nicht im Raster — zwei Wege dorthin mit
+          # ungleichem Ausgang.
+          outside_grid:
+            filtered_title: Ihr aktuelles Paket wird von den Filtern ausgeblendet
+            filtered_body: Es erfüllt die oben eingestellten Kriterien nicht. Die Karte steht trotzdem hier, damit Sie Ihre Leistungsstufe umstellen können. Lockern Sie die Filter, um es wieder im Katalog zu sehen.
+            withdrawn_title: Ihr aktuelles Paket wird nicht mehr angeboten
+            withdrawn_body: Der Betreiber hat dieses Paket zurückgezogen. Für Sie läuft es unverändert weiter, die Leistungsstufe lässt sich aber nicht mehr umstellen. Wählen Sie dafür unten ein anderes Paket oder „Eigene Konfiguration“.
+          filters:
+            heading: Auswahl eingrenzen
+            hint: Voreingestellt ist die strengste Kombination. Jede Lockerung ist eine bewusste Entscheidung.
+            provider: Anbieter
+            provider_eu: EU-Unternehmen
+            provider_any: auch außereuropäische Unternehmen
+            processing: Verarbeitung
+            processing_eu: nur in der EU
+            processing_any: auch außerhalb der EU
+          jurisdictions:
+            blank: Keine Angabe
+            eu_native: Europäisch
+            eu_region_foreign_provider: EU-Region, außereuropäischer Anbieter
+            eu_provider_foreign_region: EU-Anbieter, Drittland-Region
+            non_eu: Außerhalb der EU
+            self_hosted: Eigener Server
+          # Der einschränkende Zusatz aus §7, bewusst in derselben Schriftgröße wie
+          # die Beschreibung. `eu_native` hat KEINEN Eintrag: es ist die einzige
+          # Stufe ohne Drittlandübermittlung (§3.1). Dass jede andere Stufe einen
+          # Zusatz trägt, erzwingt ein Spec — sonst fiele eine neu ergänzte Stufe
+          # stillschweigend in den harmlos aussehenden Zustand.
+          jurisdiction_notes:
+            eu_region_foreign_provider: Die Verarbeitung findet in der EU statt, der Anbieter ist aber ein außereuropäisches Unternehmen und untersteht dem Recht seines Sitzlandes. Das gilt rechtlich als Drittlandübermittlung.
+            eu_provider_foreign_region: Der Anbieter ist ein europäisches Unternehmen, die Daten werden aber außerhalb der EU verarbeitet. Ihre Daten verlassen damit die EU.
+            non_eu: Anbieter und Verarbeitung liegen außerhalb der EU. Ihre Daten verlassen damit die EU.
+            self_hosted: Die Verarbeitung läuft auf einem selbst betriebenen Server. Verantwortlich dafür ist der Betreiber dieser Installation, nicht ein externer Anbieter.
+          # T5: der zweite Badge. Der STRENGSTE Wert der beteiligten Zugangsdaten —
+          # ein Paket ist nur so gut wie sein schwächstes Credential. `self_hosted`
+          # hat keinen Eintrag und braucht keinen: dort rendert die Karte gar
+          # keinen Badge, weil die Frage gegenstandslos ist.
+          training_usages:
+            excluded: Kein Training
+            used: Training durch den Anbieter
+            unspecified: Training nicht zugesichert
+          # Zusatz zu jedem Wert AUSSER dem unbedenklichen — dieselbe Regel wie bei
+          # den Rechtsraum-Stufen, und aus demselben Grund per Guard-Spec erzwungen:
+          # eine fehlende Angabe liest sich als Entwarnung.
+          training_notes:
+            used: Der Anbieter nutzt Inhalte, die Sie über die KI-Funktionen verarbeiten lassen, zum Training seiner Modelle.
+            unspecified: Für dieses Paket liegt uns keine vertragliche Zusage zum Modelltraining vor. Das heißt nicht, dass trainiert wird — es heißt, dass wir es nicht belegen können.
+          # Die dritte Aussage steht als Satz statt als Badge (E1). Anders als beim
+          # Rechtsraum trägt hier AUCH der gute Wert einen Satz: die Achse hat keinen
+          # eigenen Badge, ohne Satz bliebe „wird nicht gespeichert" unsichtbar.
+          retention_notes:
+            none: Ihre Inhalte werden beim Anbieter nicht gespeichert.
+            limited:
+              one: Ihre Inhalte werden beim Anbieter bis zu einen Tag gespeichert.
+              other: Ihre Inhalte werden beim Anbieter bis zu %{count} Tage gespeichert.
+            unlimited: Der Anbieter speichert Ihre Inhalte ohne zugesicherte Frist.
+            unspecified: Für dieses Paket liegt uns keine vertragliche Zusage zur Speicherdauer vor.
+          card:
+            processing_region: "Verarbeitungsort: %{region}"
+            tiers_heading: Enthaltene Stufen
+            # Dieselbe Staffel, zwei Lesarten: auf einer fremden Karte
+            # beschreibt sie das Paket, auf der gewählten ist sie der
+            # Umschalter (§7).
+            tier_switch_heading: Leistungsstufe
+            tier_provider_missing: Anbieter noch nicht hinterlegt
+            tier_unavailable: Zugangsdaten deaktiviert — derzeit nicht wählbar
+            # P4c (E5): ein ANDERER Grund als tier_unavailable und deshalb ein eigener
+            # Text. Die Stufe ist nicht kaputt — der Chat dahinter läuft, die Org sitzt
+            # auf einer davon —, das Paket wird nur nicht mehr angeboten. „Zugangsdaten
+            # deaktiviert“ hier zu recyceln schickte den Kunden zu den Credentials statt
+            # zum Paket.
+            tier_withdrawn: Paket wird nicht mehr angeboten — Stufe nicht umstellbar
+            tier_utility_hint: Hilfsaufgaben — Teilnehmererkennung, Zusammenfassungen von Tickets und Dokumenten, Ticket-Vorschläge und die Indexierung angebundener Repositories — laufen unabhängig davon immer auf „%{tier}“. Der Rechtsraum ändert sich dadurch nicht.
+            # Dieselbe Aussage mit umgekehrtem Vorzeichen: die Hilfsaufgaben laufen
+            # weiterhin auf dieser Stufe — nur kann die gerade nicht bedienen. Ohne
+            # eigenen Text verspricht der Hinweis oben fuenf Funktionen, die alle
+            # stillstehen, und zwar genau dann, wenn der Kunde eine ANDERE Stufe
+            # gewaehlt hat und sein Chat weiterlaeuft.
+            tier_utility_unavailable: Hilfsaufgaben — Teilnehmererkennung, Zusammenfassungen von Tickets und Dokumenten, Ticket-Vorschläge und die Indexierung angebundener Repositories — laufen immer auf „%{tier}“. Die Zugangsdaten dieser Stufe sind derzeit deaktiviert, diese Funktionen stehen deshalb nicht zur Verfügung — auch wenn Sie eine andere Stufe gewählt haben. Bitte wenden Sie sich an den Systemadministrator.
+            provider_note_summary: Was der Anbieter vertraglich mit den Daten tut
+            selected_badge: Gewählt
+            select_button: Dieses Paket wählen
+            selected_button: Aktuell gewählt
+            # P4b: aus der Absage wurde ein Umweg. Der Wechsel ist möglich, führt
+            # aber über den Konsequenzen-Dialog (#confirm_package) statt über
+            # einen nackten Knopf.
+            switch_notice: Dieses Paket nutzt einen anderen Suchindex als Ihr aktuelles. Vor dem Wechsel zeigen wir Ihnen, was sich rechtlich ändert, was der Neuaufbau der Suche kostet und was in der Zwischenzeit mit Ihrer Suche passiert.
+            switch_button: Wechsel prüfen
+            # Zweite Absage-Tuer derselben Karte (P3): die Stufe, auf der eine frische
+            # Auswahl landet, hat keine nutzbaren Zugangsdaten. Eigener Text, weil es
+            # weder um den Rechtsraum noch um den Suchindex geht.
+            selection_blocked: Dieses Paket ist derzeit nicht wählbar — die Zugangsdaten seiner Standard-Stufe sind deaktiviert. Bitte wenden Sie sich an den Systemadministrator.
+            selection_blocked_button: Derzeit nicht wählbar
+          empty:
+            title: Kein Paket erfüllt beide Kriterien
+            hint_provider: Auf „auch außereuropäische Unternehmen“ gestellt, zeigt der Anbieter-Filter mindestens ein Paket.
+            hint_processing: Auf „auch außerhalb der EU“ gestellt, zeigt der Verarbeitungs-Filter mindestens ein Paket.
+            hint_both: Jeder der beiden Filter zeigt einzeln gelockert mindestens ein Paket — lockern Sie den, der für Sie weniger wiegt.
+            hint_relax_both: Erst wenn Sie beide Filter lockern, erscheint ein Paket — einzeln reicht keine der beiden Lockerungen.
+            hint_none: Derzeit ist kein Paket veröffentlicht. Bitte wenden Sie sich an den Systemadministrator.
+          custom:
+            title: Eigene Konfiguration
+            description: Kein kuratiertes Paket, sondern die eigenen Anbieter-Einstellungen dieser Organisation — inklusive eigener API-Schlüssel.
+            note: Rechtsraum und Verarbeitungsort verantworten Sie damit selbst; sie stehen in keinem Paket-Text.
+            # Der Rückweg ist derselbe Wechsel wie der Hinweg und nimmt denselben
+            # Umweg — eigener Text, weil die Richtung eine andere ist.
+            switch_notice: Zurück zur eigenen Konfiguration würde Ihre Inhalte mit einem anderen Modell durchsuchen. Auch dieser Wechsel führt zuerst über die Übersicht der Konsequenzen.
+            select_button: Eigene Konfiguration nutzen
+            selected_badge: Gewählt
+            # S7: die Karte war bis dahin die WAHL ohne etwas dahinter — die
+            # EINRICHTUNG war ein zweites Formular auf derselben Seite. Diese Zeile
+            # ist die Tür, die §3.4 von Anfang an vorsah.
+            configure_link: Zugangsdaten einrichten
+            access_present: "Hinterlegt: eigener Zugang für %{provider}."
+            access_failed: Der letzte Verbindungstest ist fehlgeschlagen.
+            # D7: die Abwesenheit als Aussage. Vorher stand hier nichts, ausgerechnet im
+            # Zustand mit dem größten Erklärungsbedarf. `not_ready_hint` kommt zusätzlich,
+            # wenn dieser Weg GILT und trotzdem nichts dahintersteht.
+            not_configured: Noch keine Zugangsdaten hinterlegt.
+            not_ready_hint: Ohne hinterlegte Zugangsdaten können die KI-Funktionen nicht arbeiten. Richten Sie den Zugang ein oder wählen Sie ein Systempaket.
+          # KI-Pakete P4b (doc/ki_pakete_p4_plan.md §4): der Konsequenzen-Dialog vor
+          # einem Wechsel, der den Suchindex bewegt. Eigene Seite statt Modal —
+          # Begründung im Kopf von confirm_package.html.erb.
+          switch:
+            title: Paketwechsel prüfen
+            intro: "Sie sind dabei, auf „%{target}“ zu wechseln. Was das bedeutet, steht hier — der Wechsel startet erst, wenn Sie ihn unten bestätigen."
+            unavailable: Dieses Paket steht derzeit nicht zur Auswahl.
+            tier_unusable: Dieses Paket lässt sich derzeit nicht auswählen — die vorgesehene Leistungsstufe ist nicht verfügbar. Bitte wenden Sie sich an den Betreiber.
+            same_lane: Für diese Auswahl ändert sich der Vektorraum der Suche nicht — sie lässt sich direkt in der Übersicht wählen.
+            legal_heading: Rechtsraum
+            side_today: Heute
+            side_after: Nach dem Wechsel
+            jurisdiction_unstated: Für diese Konfiguration ist kein Rechtsraum hinterlegt — Rechtsraum und Verarbeitungsort verantworten Sie damit selbst.
+            # Vier Fälle, nicht drei: ein Paket, das gar nichts zusichert, darf
+            # weder als Verbesserung noch als Verschlechterung gemeldet werden.
+            jurisdiction_change:
+              unchanged: Der Rechtsraum bleibt unverändert.
+              to_eu_native: Mit dem Wechsel entfällt die Drittlandübermittlung — Anbieter und Verarbeitung liegen danach in der EU.
+              from_eu_native: Mit dem Wechsel entsteht eine Drittlandübermittlung. Ihre Inhalte werden danach nicht mehr ausschließlich von einem europäischen Unternehmen in der EU verarbeitet.
+              changed: Der Rechtsraum ändert sich. Bitte vergleichen Sie die beiden Angaben oben.
+              unstated: Zu mindestens einer der beiden Seiten ist kein Rechtsraum hinterlegt — ob sich an der Drittlandübermittlung etwas ändert, lässt sich daraus nicht ableiten. Bitte vergleichen Sie die beiden Angaben oben.
+              self_hosted_target: Die Verarbeitung wandert auf einen selbst betriebenen Server. Eine Übermittlung an einen externen Anbieter findet danach nicht mehr statt; verantwortlich für Rechtsraum und Verarbeitungsort ist dann der Betreiber dieser Installation.
+              self_hosted_source: Die Verarbeitung verlässt den selbst betriebenen Server und geht an einen externen Anbieter. Bitte prüfen Sie die Angabe zum Rechtsraum oben.
+            # T7: dieselbe Bauart wie oben, eine Achse tiefer. Es gibt bewusst
+            # KEINEN Eintrag für „eine Seite sagt nichts" — dort rendert die View
+            # gar keine Zeile, weil die Rechtsraum-Zeile den Fall schon erklärt
+            # (self_hosted oder „Eigene Konfiguration"). Ein Satz an dieser Stelle
+            # müsste über die leere Seite etwas behaupten, und genau das war der
+            # Defekt, den der #437-Review viermal aus der Nachbarmethode geholt hat.
+            training_change:
+              unchanged: An der Trainings-Zusage ändert sich nichts.
+              to_used: "Achtung: Der neue Anbieter nutzt Ihre Inhalte zum Training seiner Modelle. Bisher war das vertraglich ausgeschlossen."
+              to_excluded: Der neue Anbieter schließt die Nutzung Ihrer Inhalte zum Modelltraining vertraglich aus. Bisher war das nicht zugesichert.
+              not_comparable: Zu mindestens einer der beiden Seiten liegt keine vertragliche Zusage zum Modelltraining vor — ob sich daran etwas ändert, lässt sich daraus nicht ableiten. Bitte vergleichen Sie die beiden Angaben oben.
+            cost_heading: Umfang und Kosten
+            cost_estimate: "Die Umstellung umfasst ca. %{records} Datensätze und entspricht schätzungsweise %{credits} Credits."
+            cost_estimate_hint: Eine Schätzung, kein Preis — die Tokenmenge ist überschlagen (Abweichung nach oben wie nach unten möglich), und bereits vorhandene Einträge werden übersprungen. Die tatsächliche Abrechnung kann darunter, bei sehr code-lastigen Inhalten auch darüber liegen.
+            quota_covered: "Ihr verbleibendes Monatskontingent (%{remaining} Credits) deckt die Umstellung auch mit Sicherheitsaufschlag ab."
+            quota_short_title: Die Schätzung übersteigt Ihr verbleibendes Kontingent
+            quota_short_body: "Von Ihrem Monatskontingent sind noch %{remaining} Credits übrig. Weil die Schätzung ungenau ist, rechnen wir mit einem Sicherheitsaufschlag von 30 %% — also mit %{planned} Credits, und damit %{shortfall} Credits mehr, als Ihnen bleiben. Wird das Kontingent aufgebraucht, stehen Chat und semantische Suche bis zum nächsten Monatsbeginn nicht mehr zur Verfügung."
+            quota_exhausted_title: Ihr Monatskontingent ist aufgebraucht
+            quota_exhausted_body: Der Wechsel wird gespeichert, der Neuaufbau beginnt aber erst, wenn im nächsten Monat wieder Kontingent zur Verfügung steht.
+            search_heading: Suche während der Umstellung
+            search_body: Ihre Inhalte werden im Hintergrund neu für die Suche aufbereitet. Bis das abgeschlossen ist, liefert die Suche unverändert Treffer aus dem bisherigen Index — je nach Anbieter und Datenmenge dauert das Minuten bis Stunden.
+            search_body_hard: Ihre Inhalte werden im Hintergrund neu für die Suche aufbereitet. Für diese Organisation ist kein bestehender Suchindex hinterlegt, auf den in der Zwischenzeit zurückgegriffen werden kann — Suche und Chat-Antworten mit Bezug auf Ihre Inhalte liefern deshalb bis zum Abschluss keine Treffer. Je nach Anbieter und Datenmenge dauert das Minuten bis Stunden.
+            search_body_paused: Ihre Inhalte werden neu für die Suche aufbereitet, sobald im nächsten Monat wieder Kontingent zur Verfügung steht. Bis dahin liefert die Suche unverändert Treffer aus dem bisherigen Index.
+            search_body_hard_paused: Ihre Inhalte werden neu für die Suche aufbereitet, sobald im nächsten Monat wieder Kontingent zur Verfügung steht. Für diese Organisation ist kein bestehender Suchindex hinterlegt — Suche und Chat-Antworten mit Bezug auf Ihre Inhalte liefern deshalb bis dahin keine Treffer.
+            search_recipients: "Suchanfragen und Sucheinträge gehen heute an %{today}, nach der Umstellung an %{after}."
+            search_gap: Inhalte, die während der Umstellung neu entstehen, sind erst auffindbar, wenn die Umstellung abgeschlossen ist.
+            recipient_custom: die Anbieter-Konfiguration dieser Organisation
+            ai_disabled_note: Die KI-Features dieser Organisation sind nicht aktiviert. Es werden deshalb keine Inhalte an einen Anbieter übertragen, kein Suchindex neu aufgebaut und keine Credits verbraucht. Der Wechsel legt nur fest, welches Paket gilt, sobald Sie die KI-Features aktivieren.
+            confirm_button: Wechsel starten
+            cancel_button: Abbrechen
+      ai_sync_statuses:
+        show:
+          overview: Gesamtübersicht
+          total_content: Gesamt Inhalte
+          with_embeddings: Mit Embeddings
+          pending: Wartend
+          errors: Fehler
+          total_fragments: Gesamt Fragments
+          fragments_with_embeddings: Fragments mit Embeddings
+          projects: Projekte
+          content_count: "%{count} Inhalte"
+          processed: Verarbeitet
+          types:
+            notes: Notizen
+            posts: Posts
+            tickets: Tickets
+            document_versions: Dokumente
+            documentation_pages: Doku-Seiten
+            meetings: Meetings
+            meeting_analyses: Gesprächsanalysen
+            ticket_documents: Ticket-Anhänge
+            post_documents: Kommentar-Anhänge
+          total: Gesamt
+          enabled: Aktiviert
+          fragments: Fragments
+          no_projects: Keine Projekte gefunden.
+          fragment_statistics: Fragment-Statistiken
+          by_content_type: Nach Content-Typ
+          count_total: "%{count} gesamt"
+          count_with_embeddings: "%{count} mit Embeddings"
+          recent_fragments: Neueste Fragments
+          with_embedding: Mit Embedding
+          without_embedding: Ohne Embedding
+          no_fragments: Keine Fragments gefunden.
+          refresh_status: Status aktualisieren
+          reprocess_embeddings: Embeddings neu verarbeiten
+      invitation_mailer:
+        invite_email:
+          greeting: Hallo,
+          intro: "%{first_name} %{last_name} hat dich eingeladen, Teil der Organisation zu werden."
+          link_instruction: 'Klicke auf den folgenden Link, um die Einladung anzunehmen:'
+          accept_link: Einladung annehmen
+          ignore_hint: Wenn du die Einladung nicht angefordert hast, ignoriere diese E-Mail bitte.
+          thanks: Danke,
+          signature: Dein Team von Lalabase
+      new:
+        title: Neue Organisation anlegen
+        subtitle: Erstellen Sie eine neue Organisation und werden Sie automatisch Administrator.
+        back_to_selection: Zurück zur Organisationsauswahl
+      select:
+        # E10: Einstieg in den Rechnungsbereich direkt von der Kachel aus.
+        title: Organisation auswählen
+        subtitle: Wählen Sie eine Organisation oder erstellen Sie eine neue.
+        member_count:
+          one: "%{count} Mitglied"
+          other: "%{count} Mitglieder"
+        new_organisation: Neue Organisation
+        new_organisation_modal_title: Neue Organisation anlegen
+        info_title: Organisation & Projekte
+        info_paragraph_1: Organisationen sind die oberste Ebene in Lalabase. Innerhalb einer Organisation können Sie Projekte erstellen und verwalten.
+        info_paragraph_2: Jedes Projekt bietet Ihnen Aufgabenverwaltung, Dokumentenmanagement und KI-gestützte Suche.
+        info_paragraph_3: Laden Sie Teammitglieder ein und arbeiten Sie gemeinsam in Echtzeit.
+        logout: Abmelden

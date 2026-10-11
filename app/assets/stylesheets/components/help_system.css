@@ -1,0 +1,25 @@
+/* Help System Styles */
+
+/* Accessibility: Focus styles */
+.neo-help-icon-component button:focus-visible {
+  outline: 2px solid #84cc16;
+  outline-offset: 2px;
+}
+
+/* Ensure proper stacking */
+#help-modal-ticket_header {
+  z-index: 50; /* modal */
+}
+
+/* Screen reader only class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

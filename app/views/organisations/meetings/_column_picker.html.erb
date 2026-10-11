@@ -1,0 +1,9 @@
+<%= render Neo::ColumnPickerComponent.new(
+  available: @view_configuration.available_columns,
+  chosen: @columns,
+  editable: @active_smart_folder.nil? || policy(@active_smart_folder).update?,
+  view_name: @active_smart_folder&.name || t('smart_folders.all_meetings'),
+  fit: initial_column_fit(@columns.reject { |column| column[:required] }, content_open: @selected_meeting.present? || @new_meeting.present?),
+  pinned_keys: @active_smart_folder&.pinned_column_keys || @view_configuration.pinned_column_keys,
+  apply_all_url: apply_columns_to_all_organisation_project_view_configuration_path(@current_organisation, @project, view_type: 'meetings')
+) %>

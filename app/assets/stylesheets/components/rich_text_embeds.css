@@ -1,0 +1,71 @@
+/* Hint under a rich-text editor when the browser-side image check refused a file
+   (neo_rich_text_embeds_controller). The rule lives on the server; this only explains. */
+.rich-text-embeds__hint {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid rgb(var(--stroke));
+  background: rgb(var(--white));
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.rich-text-embeds__hint[hidden] {
+  display: none;
+}
+
+/* Placeholder for an <action-text-attachment> whose image no longer exists
+   (app/views/active_storage/blobs/_missing.html.erb). */
+.attachment--missing {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border: 2px dashed rgb(var(--stroke));
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+
+/* Zoom link around an inline image (active_storage/blobs/_blob.html.erb); the cursor is
+   the only hint, the image itself stays as Lexxy's content stylesheet renders it. */
+.lexxy-content .attachment__zoom {
+  cursor: zoom-in;
+  display: block;
+}
+
+/* Lightbox opened by neo_rich_text_zoom_controller: a native <dialog>, so Escape and
+   focus handling come from the browser. Backdrop and close button are deliberately
+   theme-independent (always near-black stage, light controls), like the scrim token. */
+.rich-text-zoom {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+.rich-text-zoom::backdrop {
+  background: rgba(0, 0, 0, 0.88);
+}
+
+.rich-text-zoom__image {
+  display: block;
+  max-width: 96vw;
+  max-height: 92vh;
+  border: 2px solid rgb(var(--stroke));
+  /* Deliberately theme-independent: the backdrop is near-black in every theme, and a
+     transparent image needs a light plate to stay readable. */
+  background: #fff;
+  cursor: zoom-out;
+}
+
+.rich-text-zoom__close {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid #fff;
+  background: #111;
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}

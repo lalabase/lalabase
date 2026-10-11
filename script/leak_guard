@@ -1,0 +1,218 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Checks this repository for what only the maintainers know
+# (Lalabase::LeakGuard). Run by .github/workflows/leaks.yml on every pull
+# request; locally with LEAK_GUARD_KEY from the environment or .env.
+#
+#   script/leak_guard                 every tracked file: names, contents, links,
+#                                     and .gitleaks.toml for exceptions
+#   script/leak_guard history RANGE   every commit in RANGE: the names it adds or
+#                                     renames (binaries and links too), its message
+#                                     and the lines it added (a merge: what it
+#                                     added to main), also what a later commit removed
+#   script/leak_guard range BASE      prints BASE..HEAD, or HEAD without a BASE;
+#                                     stops when BASE is not in this clone
+#   script/leak_guard net BASE DIR [--own]
+#                                     writes the leak net (this script, its module,
+#                                     the digests, .gitleaks.toml) as BASE has it
+#                                     into DIR (--own: as the checkout has it), and
+#                                     names the net files changed since BASE
+#   script/leak_guard pull-request    the branch name, title and body of a pull
+#                                     request (LEAK_GUARD_PR_BRANCH, _TITLE, _BODY):
+#                                     they become the merge commit on main
+#
+# The checks read the digests next to the script that runs, and the
+# repository LEAK_GUARD_ROOT (default: the one the script is in). The workflow
+# runs the net of the base on the pull request, so a pull request does not
+# judge itself.
+#
+# Stops when the key is not the one the digests were made with: a wrong key
+# finds nothing. Prints locations, never a matching word on its own (CI logs
+# are public); a matching file name is its own location.
+
+require 'English'
+require 'fileutils'
+require 'open3'
+require 'securerandom'
+require_relative '../lib/lalabase/leak_guard'
+
+NET_ROOT = File.expand_path('..', __dir__)
+ROOT = File.expand_path(ENV.fetch('LEAK_GUARD_ROOT', NET_ROOT))
+GUARD = Lalabase::LeakGuard
+NO_COMMIT = '0' * 40
+EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+NET_FILES = ['script/leak_guard', 'lib/lalabase/leak_guard.rb', GUARD::DIGESTS_FILE, '.gitleaks.toml'].freeze
+# The workflow runs from the pull request itself (GitHub's choice): a change
+# to it is named, not prevented.
+WATCHED_FILES = [*NET_FILES, '.github/workflows/leaks.yml'].freeze
+WORD_FOUND = 'a word only the maintainers may know'
+
+def git(*args)
+  out, err, status = Open3.capture3('git', '-C', ROOT, '-c', 'core.quotePath=false', *args, binmode: true)
+  abort "git #{args.first} failed: #{err}" unless status.success?
+  out
+end
+
+def git_text(*args) = git(*args).force_encoding(Encoding::UTF_8)
+
+def git_ok?(*args) = Open3.capture3('git', '-C', ROOT, *args)[2].success?
+
+def key_and_digests
+  key = ENV['LEAK_GUARD_KEY'].to_s.strip
+  env_file = File.join(ROOT, '.env')
+  key = GUARD.env_value(File.read(env_file), 'LEAK_GUARD_KEY').to_s if key.empty? && File.file?(env_file)
+  abort 'LEAK_GUARD_KEY is not set (CI secret, or .env locally). Nothing was checked.' if key.empty?
+
+  text = File.read(File.join(NET_ROOT, GUARD::DIGESTS_FILE))
+  abort "LEAK_GUARD_KEY is not the key the digests in #{GUARD::DIGESTS_FILE} were made with. Nothing was checked." unless GUARD.key_matches?(key, text)
+  digests = GUARD.read_digests(text)
+  abort "#{GUARD::DIGESTS_FILE} lists no digests. Nothing was checked." if digests.empty?
+
+  [key, digests]
+end
+
+# Lines for the terminal, and for the job summary on GitHub.
+def note(lines)
+  puts(*lines)
+  summary = ENV.fetch('GITHUB_STEP_SUMMARY', '')
+  File.write(summary, "#{lines.join("\n")}\n", mode: 'a') unless summary.empty?
+end
+
+def report(problems, summary)
+  if problems.empty?
+    puts "Leak guard: #{summary}, nothing found."
+  else
+    puts "Leak guard found #{problems.size}:", *problems.map { |p| "  #{p}" }
+    exit 1
+  end
+end
+
+def words_found(texts, key, digests) = GUARD.findings(texts, key: key, digests: digests).map { |at| "#{at}: #{WORD_FOUND}" }
+
+def check_files
+  key, digests = key_and_digests
+  entries = git_text('ls-files', '-s', '-z').split("\0").map { |line| line.split("\t", 2) }
+  problems = entries.filter_map do |meta, path|
+    next "#{path}: a symbolic link (its target is a path on someone's machine)" if meta.start_with?('120000')
+
+    reason = GUARD.forbidden_file(path, size: File.size?(File.join(ROOT, path)).to_i)
+    "#{path}: #{reason}" if reason
+  end
+  config = File.join(ROOT, '.gitleaks.toml')
+  problems.concat(GUARD.gitleaks_config_problems(File.read(config)).map { |p| ".gitleaks.toml: #{p}" }) if File.file?(config)
+
+  files = entries.to_h do |_, path|
+    full = File.join(ROOT, path)
+    [path, File.file?(full) && !File.symlink?(full) ? GUARD.readable(File.binread(full)) : '']
+  end
+  problems.concat(words_found(files, key, digests))
+  report(problems, "#{files.size} files, #{digests.size} digests")
+end
+
+# Every name a commit adds, changes or renames to, read without parsing a
+# diff: binary files, links and paths with spaces or umlauts come through.
+def check_names(commits, key, digests)
+  problems = []
+  binaries = []
+  commits.each do |sha|
+    parent = git_ok?('rev-parse', '--verify', '-q', "#{sha}^1") ? "#{sha}^1" : EMPTY_TREE
+    commit = sha[0, 10]
+    GUARD.raw_entries(git_text('diff-tree', '-r', '-z', '--raw', '-M', parent, sha)).each do |status, mode, path|
+      next if status == 'D'
+
+      problems << "#{commit} #{path}: a symbolic link (its target is a path on someone's machine)" if mode == '120000'
+      size = GUARD::RUNTIME_DIR.match?(path) ? git('cat-file', '-s', "#{sha}:#{path}").to_i : 1
+      reason = GUARD.forbidden_file(path, size: size)
+      problems << "#{commit} #{path}: #{reason}" if reason
+      problems.concat(words_found({ "#{commit} #{path} (name)" => '' }, key, digests))
+    end
+    git_text('diff-tree', '-r', '-z', '--numstat', parent, sha).split("\0").each do |line|
+      binaries << "#{commit} #{line.split("\t", 3).last}" if line.start_with?("-\t-\t")
+    end
+  end
+  [problems, binaries]
+end
+
+# Messages and added lines, streamed commit by commit.
+def check_contents(range, key, digests)
+  marker = "leak-guard-#{SecureRandom.hex(8)}"
+  problems = []
+  cmd = ['git', '-C', ROOT, '-c', 'core.quotePath=false', 'log', '-p', '-U0', '--text', '--no-color', '--no-ext-diff',
+         '--diff-merges=first-parent', "--format=#{GUARD.log_format(marker)}", range]
+  IO.popen(cmd, 'rb') do |io|
+    lines = io.each_line.lazy.map { |line| GUARD.readable(line) }
+    GUARD.history_records(lines, marker: marker) { |texts| problems.concat(words_found(texts, key, digests)) }
+  end
+  abort "git log #{range} failed: nothing was checked." unless $CHILD_STATUS.success?
+  problems
+end
+
+def check_history(range)
+  key, digests = key_and_digests
+  commits = git_text('rev-list', range).split
+  abort "There are no commits in #{range}: nothing was checked." if commits.empty?
+
+  problems, binaries = check_names(commits, key, digests)
+  problems.concat(check_contents(range, key, digests))
+  note(["New binary files in #{range} (read as noise only, look at them yourself):", *binaries.map { |b| "- #{b}" }]) if binaries.any?
+  report(problems, "#{commits.size} commits in #{range}, #{digests.size} digests")
+end
+
+def base_commit(base)
+  base = base.to_s.strip
+  return if base.empty? || base == NO_COMMIT
+
+  abort "#{base} is not a commit in this clone: nothing can be scanned from it (fetch-depth 0?)." unless
+    git_ok?('cat-file', '-e', "#{base}^{commit}")
+  base
+end
+
+def print_range(base)
+  base = base_commit(base)
+  puts base ? "#{base}..HEAD" : 'HEAD'
+end
+
+# The leak net as the base has it, file by file; a file the base lacks (the
+# pull request that brings the net) comes from the checkout, and so does
+# every file with own. The changed files are named either way.
+def write_net(base, dir, own: false)
+  base = base_commit(base)
+  lines = NET_FILES.map do |file|
+    target = File.join(dir, file)
+    FileUtils.mkdir_p(File.dirname(target))
+    if !own && base && git_ok?('cat-file', '-e', "#{base}:#{file}")
+      File.binwrite(target, git('show', "#{base}:#{file}"))
+      "Leak net from the base: #{file}"
+    else
+      FileUtils.cp(File.join(ROOT, file), target)
+      "Leak net from this checkout: #{file}"
+    end
+  end
+  File.chmod(0o755, File.join(dir, 'script/leak_guard'))
+  changed = base ? git_text('diff', '--name-only', base, 'HEAD', '--', *WATCHED_FILES).split("\n") : []
+  lines << "This pull request changes the leak net: #{changed.join(', ')}. Read that part of the diff yourself." if changed.any?
+  note(lines)
+  puts "::warning::#{lines.last}" if changed.any?
+end
+
+# What a pull request makes public besides its commits: GitHub writes the
+# branch name and the title (a squash: maybe the body) into the commit on
+# main, after every check of the commits ran.
+def check_pull_request
+  key, digests = key_and_digests
+  texts = { 'pull request branch' => 'LEAK_GUARD_PR_BRANCH', 'pull request title' => 'LEAK_GUARD_PR_TITLE',
+            'pull request body' => 'LEAK_GUARD_PR_BODY' }.transform_values { |name| ENV.fetch(name, '') }
+  abort 'LEAK_GUARD_PR_BRANCH and LEAK_GUARD_PR_TITLE are empty: nothing was checked.' if texts.values.first(2).all?(&:empty?)
+
+  report(words_found(texts, key, digests), "the pull request's branch, title and body, #{digests.size} digests")
+end
+
+case ARGV[0]
+when nil then check_files
+when 'history' then check_history(ARGV[1] || abort('Usage: script/leak_guard history RANGE'))
+when 'range' then print_range(ARGV[1])
+when 'net' then write_net(ARGV[1], ARGV[2] || abort('Usage: script/leak_guard net BASE DIR [--own]'), own: ARGV[3] == '--own')
+when 'pull-request' then check_pull_request
+else abort File.read(__FILE__)[/^#   script.*?(?=\n#\n)/m].gsub(/^# ?/, '')
+end

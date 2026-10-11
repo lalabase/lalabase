@@ -1,0 +1,86 @@
+name: Importmap Verification
+
+# This file is in its OWN path list. Without that, a change to it never
+# tests itself: #501 repaired the missing SECRET_KEY_BASE_DUMMY marker,
+# but did not trigger the job in doing so and went to main
+# unchecked. The list is deliberately written out twice instead of as a
+# YAML anchor, because GitHub Actions does not resolve anchors reliably.
+on:
+  # Allows a manual run, even without a matching file change.
+  workflow_dispatch:
+  push:
+    paths:
+      - 'config/importmap.rb'
+      - 'app/javascript/controllers/**'
+      - 'lib/tasks/importmap_*.rake'
+      - '.github/workflows/importmap-verify.yml'
+  pull_request:
+    paths:
+      - 'config/importmap.rb'
+      - 'app/javascript/controllers/**'
+      - 'lib/tasks/importmap_*.rake'
+      - '.github/workflows/importmap-verify.yml'
+
+jobs:
+  verify-importmap:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v7
+      
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Verify Importmap Configuration (DB-free)
+        run: bin/verify-importmap
+      
+      - name: Auto-pin Controllers
+        run: bundle exec rails importmap:auto_pin
+        
+      - name: Check for changes after auto-pin
+        run: |
+          if git diff --quiet config/importmap.rb; then
+            echo "✅ No changes needed after auto-pin"
+          else
+            echo "❌ config/importmap.rb was modified by auto-pin"
+            git diff config/importmap.rb
+            exit 1
+          fi
+      
+      - name: Test Asset Precompilation (with stub DB)
+        env:
+          RAILS_ENV: production
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          SECRET_KEY_BASE: test_secret_key_base_for_ci_only
+          # Marks this as a BUILD context for config/initializers/active_record_encryption.rb.
+          # Since #446 the app refuses to boot in a non-local environment without
+          # encryption keys, and this step boots RAILS_ENV=production to precompile.
+          # The initializer already has the escape hatch (build_context?), it just
+          # looks for the standard Rails marker, which this job never set. A build
+          # gets random per-boot keys and never decrypts anything, which is exactly
+          # what an asset precompile needs.
+          SECRET_KEY_BASE_DUMMY: '1'
+        run: |
+          # Start postgres for stub connection
+          sudo systemctl start postgresql
+          sudo -u postgres createdb postgres || true
+          
+          # Precompile assets
+          bundle exec rails assets:clobber assets:precompile
+          
+          # Verify controllers were compiled
+          ls -la public/assets/controllers/ || echo "No controllers directory found"
+          
+      - name: Verify final importmap state
+        run: bin/verify-importmap

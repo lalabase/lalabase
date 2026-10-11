@@ -1,0 +1,485 @@
+---
+en:
+  flash:
+    shared:
+      not_authorized: "You are not authorized to perform this action."
+      not_member: "You are not an active member of this organisation."
+      no_org_access: "You do not have access to this organisation."
+      project_not_found: "The requested project could not be found."
+      no_project_access: "You do not have permission for this project."
+      admin_required: "You need admin privileges for this action."
+      save_error: "Error saving: %{error}"
+      delete_error: "Error deleting: %{error}"
+      unexpected_error: "An unexpected error occurred: %{error}"
+      object_updated: "%{object} was successfully updated."
+    bot_trap:
+      # Deliberately vague: naming the trigger would let the sender tune around it.
+      rejected: "This form could not be processed. Please reload the page and try again."
+    accept_invitations:
+      invalid_invitation: "Invalid or already accepted invitation."
+      accepted: "Invitation successfully accepted!"
+      accept_terms: "Please accept the terms and conditions and privacy policy."
+      sign_in_required: "An account with this email address already exists. Please sign in, then you can accept the invitation."
+      wrong_account: "This invitation is for a different email address than the one you are signed in with."
+    signup_handoffs:
+      # One answer for every failure (expired, already used, made up):
+      # telling them apart would only help somebody who is guessing.
+      invalid: "This sign-in link is no longer valid. Please sign in with your email address and password."
+    registrations:
+      accept_terms: "Please accept the terms and conditions and confirm that you have taken note of the privacy policy."
+      disposable_email: "Please sign up with your work email address. We cannot accept addresses from throw-away services."
+      organisation_creation_failed: "The organisation could not be set up, so no account was created either. Please try again or contact support."
+      founder_signup_incomplete: "Please complete the new-founder discount details, or untick the box if you do not want to apply."
+      # Deliberately "we will call you", NOT "discount active": the discount only
+      # comes into existence after the phone call and only takes effect on the
+      # first invoice (§ 12.3.4 doc/billing_preisliste_rabatt_plan.md).
+      founder_signup_received: "We have received your new-founder discount request and will call you. In the meantime you can use Lalabase as normal."
+    account_deletions:
+      deleted_immediately: "Your account has been successfully deleted. Goodbye!"
+      scheduled: "Your account deletion has been scheduled for %{date}. You have %{days} days to cancel the deletion."
+      error: "Error deleting: %{error}"
+      wrong_password: "The password is not correct. Your account was not deleted."
+    notification_unsubscribes:
+      unsubscribed: "You have been unsubscribed from %{event_type} notifications."
+      link_expired: "This unsubscribe link has expired."
+      link_invalid: "Invalid unsubscribe link."
+      link_error: "Invalid or expired unsubscribe link."
+      processing_error: "An error occurred processing your request."
+    organisations:
+      select_required: "Please select an organisation."
+      selected: "Organisation successfully selected."
+      select_error: "There was a problem selecting the organisation. Please try again."
+      not_found: "Organisation could not be determined."
+    admin:
+      sessions:
+        logged_in: "Successfully logged in"
+        invalid_credentials: "Invalid email or password"
+        logged_out: "Successfully logged out"
+      forgery:
+        stale_form: "The form had expired. Please reload the page and submit it again."
+      organisations:
+        toggle_success: "Code index for %{name} is now %{state}."
+        toggle_data_import_success: "Data import for %{name} is now %{state}."
+        toggle_assistant_success: "Assistant for %{name} is now %{state}."
+        quota_updated: "AI quota for %{name} has been updated."
+      beusers:
+        saved: "Data has been saved"
+        created: "A new administrator has been created."
+        password_changed: "Password has been changed"
+        deleted: "User was deleted."
+        delete_failed: "User could not be deleted."
+        cannot_delete_self: "You cannot delete your own admin account."
+      ai_credentials:
+        delete_blocked: "The credential could not be deleted because an AI package now uses it."
+        created: "AI Credential was successfully created."
+        updated: "AI Credential was successfully updated."
+        deleted: "AI Credential was successfully deleted."
+        activated: "%{name} is now the default credential for %{provider}."
+        activate_error: "Error setting the default: %{error}"
+        enabled: "%{name} has been enabled."
+        disabled: "%{name} has been disabled."
+        connection_success: "Connection to %{provider} successfully tested."
+        connection_failed: "Connection test to %{provider} failed."
+        vertex_availability_checked: "Model availability has been checked."
+        vertex_availability_error: "Availability check failed: %{error}"
+        vertex_availability_unsupported: "Model availability is only available for Google credentials."
+      ai_packages:
+        created: "AI package was successfully created."
+        updated: "AI package was successfully updated."
+        deleted: "AI package was successfully deleted."
+        vertex_checked: "Model availability was checked for this package's Google credentials."
+        delete_blocked: "The package could not be deleted because something still references it."
+        vertex_check_error: "Availability check failed: %{error}"
+        vertex_check_unsupported: "This package references no Google credential — there is nothing to check."
+      ai_credential_documents:
+        created: "The document has been recorded."
+        updated: "The document has been corrected."
+        deleted: "The document has been deleted."
+        delete_blocked: "The document cannot be deleted — it supports a recorded assessment."
+        version_conflict: "Someone else just recorded this version of the paper. Please reload the list and look at the existing row."
+        file_unreadable: "The file could not be read. Please pick the PDF again."
+      ai_credential_contracts:
+        created: "The assessment has been recorded."
+        ended: "The assessment has been ended."
+        end_date_invalid: "The end date could not be parsed."
+        end_date_not_earlier: "A running assessment can only be shortened — the new end date must be before the current one and not before its start."
+      system_settings:
+        registration_updated: "Registration settings have been updated."
+        deletion_updated: "Deletion settings have been updated."
+        ai_quota_updated: "AI quota default has been updated."
+        legal_identity_updated: "Operator and legal pages have been saved."
+      email_logs:
+        date_range_limited: "Date range limited to %{days} days"
+        resend_queued: "Email queued for resending"
+        resend_failed: "Email cannot be resent"
+      users:
+        created_with_new_org: "User %{email} and organisation '%{org_name}' were successfully created. Temporary password: %{password}"
+        created_with_existing_org: "User %{email} was added to organisation '%{org_name}' with role '%{role}'. Temporary password: %{password}"
+        create_error: "Error creating: %{error}"
+        toggled: "User %{email} has been %{status}."
+        toggle_error: "Error changing status: %{error}"
+        deleted: "Account %{email} was successfully deleted."
+        email_confirmation_mismatch: "Deletion aborted: the email address you entered does not match the account."
+        membership_removed: "User %{email} was removed from %{org_name}."
+        membership_removed_backend: "User %{email} was removed from %{org_name} (backend operation)."
+        deletion_recommended: " The user has no other organisations and has been flagged for deletion."
+        membership_remove_error: "Error removing membership: %{error}"
+        membership_remove_service_error: "Error removing: %{error}"
+    projects:
+      created: "Project was successfully created."
+      updated: "Project was successfully updated."
+      archived: "Project '%{name}' archived. %{count} notifications archived."
+      already_archived: "Project '%{name}' had already been archived."
+      restored: "Project '%{name}' restored."
+      already_restored: "Project '%{name}' had already been restored."
+      deleting: "Project '%{name}' is being deleted in the background."
+      default_attributes_created: "Default attributes were successfully created."
+    roles:
+      permission_beyond_reach: "You can only grant or remove rights you hold yourself."
+      created: "Role was successfully created. Please set the permissions now."
+      updated: "Role and permissions were successfully updated."
+      deleted: "Role was successfully deleted."
+      default_set: "Default role was successfully set."
+      account_admin_no_edit: "The account admin role cannot be edited."
+      account_admin_no_change: "The account admin role cannot be changed."
+      account_admin_no_delete: "The account admin role cannot be deleted."
+      account_admin_no_default: "The account admin role cannot be set as default."
+      has_members: "This role cannot be deleted because it is still assigned to users."
+    memberships:
+      last_active_admin: "%{organisation} needs at least one active admin. Make someone else an admin first."
+      updated: "Membership was successfully updated."
+      remove_error: "Error removing: %{error}"
+    invitations:
+      sent: "Invitation sent."
+      deleted: "Invitation deleted."
+      send_error: "Error sending the invitation."
+    project_permissions:
+      restored: "Project permission was successfully restored."
+      created: "Project permission was successfully created."
+      updated: "Project permission was successfully updated."
+      update_failed: "The permission could not be saved."
+      deleted: "Project permission was successfully removed."
+      blocked: "Access to this project is blocked. The role right no longer applies here."
+      block_lifted: "Block lifted. What the role allows applies again."
+      admin_cannot_be_revoked: "An account admin has access to every project. Only their role can change that."
+      not_a_member: "This person has no access to this project."
+      use_revoke_instead: "This permission cannot be deleted here. Use \"Remove\" to take someone off the project."
+      time_sessions_updated: "Time session permissions were updated."
+      no_view_permission: "You do not have permission to view project members."
+      no_manage_permission: "You do not have permission to manage project members."
+    documentation_sets:
+      create:
+        success: "Documentation connected."
+      update:
+        success: "Documentation updated."
+      destroy:
+        success: "Documentation disconnected."
+      sync:
+        started: "Sync started."
+    tickets:
+      created: "Ticket was successfully created."
+      updated: "Ticket was successfully updated."
+      deleted: "Ticket was successfully deleted."
+      delete_error: "The ticket could not be deleted. Please try again later."
+      delete_error_detail: "The ticket could not be deleted: %{error}"
+      not_found: "The requested ticket could not be found."
+      no_edit_permission: "You do not have permission to edit tickets."
+      no_delete_permission: "You do not have permission to delete this ticket."
+      ai_not_configured: "AI service is not configured for this organisation."
+      ai_no_api_key: "The summary feature is not available because no valid API key is configured."
+      ai_invalid_key: "The API key is invalid. Please check the configuration."
+      ai_error: "Error creating the summary. Please try again later."
+      summary_created: "Summary was created."
+      summary_error: "Error creating the summary."
+      target_project_not_found: "Target project not found."
+    posts:
+      created: "Post was successfully created."
+      deleted: "Post was successfully deleted."
+      create_error: "Post could not be created."
+      no_create_permission: "You do not have permission to create posts."
+      no_edit_permission: "You do not have permission to edit posts."
+      no_delete_permission: "You do not have permission to delete posts."
+      not_found: "The requested post could not be found."
+      ticket_not_found: "The requested ticket could not be found."
+      ai_not_configured: "AI service is not configured for this organisation."
+      ai_invalid_key: "The AI service could not be used: Invalid API key. Please check the configuration."
+      ai_error: "The AI service could not be used: %{error}"
+      ai_fallback: "The AI service could not be used. The post was saved without AI support."
+    notes:
+      created: "Note was successfully created."
+      updated: "Note was successfully updated."
+      deleted: "Note was successfully deleted."
+      delete_error: "The note could not be deleted. Please try again later."
+      delete_error_detail: "The note could not be deleted: %{error}"
+      no_create_permission: "You do not have permission to create new notes."
+      no_edit_permission: "You do not have permission to edit this note."
+      no_delete_permission: "You do not have permission to delete this note."
+      save_error: "The note could not be saved: %{errors}"
+    meetings:
+      created: "Meeting was successfully created."
+      created_hidden_by_filter: "Meeting created. The active filter hides it from this list."
+      updated: "Meeting was successfully updated."
+      deleted: "Meeting was successfully deleted."
+      delete_error: "The meeting could not be deleted. Please try again later."
+      not_found: "This meeting no longer exists."
+      no_create_permission: "You do not have permission to create new meetings."
+      no_edit_permission: "You do not have permission to edit this meeting."
+      no_delete_permission: "You do not have permission to delete this meeting."
+      summary_started: "The summary is being generated."
+      summary_no_content: "This meeting has neither notes nor a transcript to summarize."
+      summary_ai_unavailable: "The AI summary is not available. Please check the AI settings."
+      summary_already_running: "The summary is already being generated."
+      search_enabled: "Released for search & chat — the content is being indexed."
+      search_disabled: "Removed from search."
+      search_no_content: "This meeting has no content yet — save notes or a transcript first, then release it."
+      search_toggle_error: "The search release could not be changed. Please try again."
+    meeting_ticket_links:
+      created: "Task was linked to the meeting."
+      removed: "Link was removed."
+      already_linked: "This task is already linked to the meeting."
+      blank_selection: "Please pick a task first."
+    ticket_relations:
+      created: "The tickets are linked."
+      removed: "The relation was removed."
+    meeting_analyses:
+      started: "The analysis is being generated."
+      published: "The analysis was published."
+      unpublished: "The analysis was retracted."
+      search_enabled: "The analysis is now findable in search & chat."
+      search_disabled: "The analysis was removed from search & chat."
+      deleted: "The analysis was deleted."
+      discarded: "The analysis was discarded."
+      already_running: "An analysis is already running for this meeting."
+      flip_running: "The analysis is still being generated and cannot be changed yet."
+      no_content: "This meeting has neither notes nor a transcript to analyse."
+      ai_unavailable: "The AI analysis is not available. Please check the AI settings."
+      assistant_unavailable: "Analyses are now created in the assistant, which is not enabled for you."
+      error: "The analysis could not be processed."
+    analysis_prompts:
+      deleted: "The template was deleted."
+    meeting_ticket_suggestions:
+      started: "The ticket suggestions are being generated."
+      accepted: "A task was created from the suggestion."
+      dismissed: "The suggestion was dismissed."
+      no_ticket_write: "You need ticket write access to create tasks in this project."
+      assistant_unavailable: "Ticket suggestions are now created in the assistant, which is not enabled for you."
+      error: "The suggestion could not be processed."
+    meeting_participant_claims:
+      linked:
+        one: "%{name}: linked 1 meeting."
+        other: "%{name}: linked %{count} meetings."
+      nothing_to_link: "%{name}: no new meetings to link."
+      link_failed: "The participations could not be linked."
+      rejected: "%{name} will no longer be shown as a link suggestion."
+      target_missing: "The member could not be found."
+    documents:
+      created: "File was successfully uploaded."
+      updated: "File was successfully updated."
+      deleted: "File was successfully deleted."
+      delete_error: "The file could not be deleted. Please try again later."
+      delete_error_detail: "Error deleting the file: %{error}"
+      not_found: "The requested document could not be found."
+      no_file_selected: "Please select a file."
+      save_error: "The document could not be saved. Please check the error messages."
+      no_file_for_version: "No file available for this version."
+      no_text_version: "No text version is available for this version."
+      all_versions_deleted: "The document was deleted because no versions remain."
+      version_deleted: "Version was successfully deleted."
+      version_not_found: "This version no longer exists."
+      version_delete_error: "Error deleting the version: %{error}"
+      no_view_permission: "You do not have permission to view documents."
+      file_required: "A file must be selected"
+      no_edit_permission: "You do not have permission to edit documents."
+      smart_folder_not_found: "The specified Ticket Filter was not found."
+      save_error_detail: "The document could not be saved: %{errors}"
+    time_sessions:
+      created: "Time session was successfully created"
+      updated: "Time session was successfully updated"
+      deleted: "Time session was deleted"
+      only_own_delete: "You can only delete your own time sessions"
+      only_own_groups: "You can only assign your own time sessions to groups."
+      already_assigned: "%{count} time session(s) were already assigned to groups and have been reassigned."
+      multi_project: "The assigned time sessions are from %{count} different projects: %{names}"
+      assigned_to_group: "%{count} time session(s) were successfully assigned to group '%{group}'."
+      assign_error: "Error assigning: %{error}"
+      select_project: "Please select a project to create a new time session."
+      no_view_permission: "You do not have permission to view time sessions."
+      no_create_permission: "You do not have permission to create time sessions."
+      no_edit_permission: "You do not have permission to edit this time session."
+      no_overview_permission: "You do not have permission to view the time tracking overview."
+      smart_folder_not_found: "The specified Ticket Filter was not found."
+    time_session_groups:
+      created: "Time session group was successfully created."
+      updated: "Time session group was successfully updated."
+      update_error: "The time session group could not be updated. Please try again later."
+      deleted: "Time session group was deleted."
+      descriptions_background: "Customer descriptions are being created in the background. This may take a few minutes."
+      descriptions_error: "Error creating customer descriptions. Please try again later."
+      export_error: "Error creating the export."
+    smart_folders:
+      results_error: "Error loading results."
+      cloned: "Ticket Filter was successfully copied."
+      clone_error: "Ticket Filter could not be copied: %{error}"
+      not_found: "Ticket Filter not found."
+      share_success:
+        one: "%{count} share added successfully."
+        other: "%{count} shares added successfully."
+      share_error: "Sharing could not be saved."
+      share_select_users: "Please select at least one user to share with."
+      unshared: "Sharing removed."
+      created_from_filters: "Smart Folder created successfully."
+      create_from_filters_error: "Smart Folder could not be created."
+      updated_from_filters: "Filter has been saved."
+      update_from_filters_error: "Error saving filter."
+      destroy:
+        success: "SmartFolder has been deleted."
+    assistant_preferences:
+      persona_error: That focus is not available to you.
+    assistant_chats:
+      scope_error: That project is not available to you.
+      reference_error: A reference cannot be set here.
+      reference_busy: The current message will finish first. Your draft and its references remain unchanged.
+      # The limit from Assistant::ReferenceRegistry::MAX_REFERENCES, passed as
+      # count rather than spelled into the sentence: the number has one owner, and
+      # a second place for it is the first place it goes stale.
+      reference_limit: A conversation carries at most %{count} references. Take one off and the next one fits.
+      created: "New conversation started."
+      create_error: "The conversation could not be started."
+      deleted: "Conversation deleted."
+      delete_error: "The conversation could not be deleted."
+    chatposts:
+      create_error: "Message could not be created."
+      first_post_undeletable: "The first message of a conversation cannot be deleted."
+      deleted: "Message was successfully deleted."
+      delete_error: "Message could not be deleted."
+      chat_not_found: "The requested chat could not be found."
+      no_permission: "You do not have permission to work with messages."
+    project_repositories:
+      create:
+        success: "Repository %{name} successfully connected."
+      destroy:
+        success: "Repository %{name} disconnected. Index data deleted."
+      reindex:
+        started: "Reindex for %{name} started. The status updates automatically."
+        already_running: "An indexing run for %{name} is already in progress."
+        feature_disabled: "Code indexing is not enabled for this organisation."
+      update_token:
+        success: "Access token for %{name} updated. You can reindex now."
+        error: "The access token for %{name} could not be updated."
+    tags:
+      created: "Tag was successfully created."
+      updated: "Tag was successfully updated."
+      deleted: "Tag was successfully deleted."
+    appearances:
+      saved: "Appearance has been saved."
+    notifications:
+      deleted: "Notification deleted."
+      marked_read: "%{count} notifications marked as read."
+      invalid_action: "Invalid action"
+      no_permission: "No permission."
+      unmuted: "Mute removed."
+      exception_removed: "Exception removed."
+      settings_saved: "Settings saved"
+      settings_error: "Error: %{error}"
+      wrong_user: "This notification link was sent to a different user, but you have access to view this ticket."
+      wrong_user_redirect: "This notification link belongs to a different user. You've been redirected to your notifications."
+      not_found_deleted: "This notification could not be found. It may have been deleted."
+    organisation_settings:
+      saved: "Settings saved."
+    ai_settings:
+      updated: "AI settings were successfully updated."
+      no_client: "No AI client configured for %{provider}."
+      connection_success: "Connection to %{provider} successfully tested."
+      connection_no_models: "Connection test failed: No models found."
+      client_configured: "Client for %{provider} configured."
+      connection_error: "Connection test failed: %{error}"
+      activated: "AI features have been activated for this organisation."
+      activated_without_embedding_access: >-
+        AI features are active. Embedding access is still missing. New content stays
+        findable through text search, but AI chat and semantic search will not see it. Set
+        the access up under "Access", then "Reprocess" catches up on what was missed.
+      activated_backfill_failed: >-
+        AI features are active. Catching up on existing content did not start: %{error}
+      deactivated: "AI features have been deactivated for this organisation."
+      package_selected: "AI package \"%{package}\" is now active."
+      # Its own copy because it is a different decision (§2): the package stays,
+      # only the cost tier moves.
+      package_tier_selected: "Performance tier \"%{tier}\" is now active. Jurisdiction and search index stay unchanged."
+      package_cleared: "AI package deselected — your own provider configuration applies again."
+    # "Eigene Konfiguration" (doc/ki_bereich_navigation_plan.md S7). Its own owner
+    # next to ai_settings, because it is a separate controller with its own write
+    # paths; the connection_* texts are deliberately shared with ai_settings
+    # (AiConnectionCheckable: one wording for both buttons).
+    ai_configurations:
+      saved: "Your own credentials have been saved."
+      removed: "The own access has been removed. The operator's access applies again, as far as one is stored for the selected provider."
+    ai_sync_statuses:
+      started: "Embedding processing started for %{count} entries."
+      start_error: "Error starting embedding processing: %{error}"
+      no_view_permission: "You do not have permission to view the AI sync status."
+    view_configurations:
+      updated: "View settings were updated."
+      applied_to_all:
+        one: "Columns applied to one view."
+        other: "Columns applied to %{count} views."
+    ticket_attribute_definitions:
+      created: "Attribute was successfully added."
+      updated: "Attribute was successfully updated."
+      deleted: "Attribute was successfully deleted."
+      activated: "Field has been activated."
+      deactivated: "Field has been deactivated."
+      option_not_found: "Option not found."
+      options_merged: "Option \"%{source}\" was merged into \"%{target}\". %{count} %{tickets} updated."
+    user_activities:
+      user_not_found: "User not found."
+      no_view_permission: "You do not have permission to view these activities."
+      not_member: "This user is not a member of the organisation."
+    activities:
+      no_view_permission: "You do not have permission to view the project activities."
+    codebase_import_files:
+      file_required: "Please select a file"
+      uploaded: "File '%{filename}' was successfully uploaded."
+      xml_parse_error: "Error parsing the XML file"
+      processing_locked: "The file is currently being processed and cannot be deleted."
+      delete_error: "Error deleting the file: %{error}"
+      preview_users_only: "Import preview is only available for user files."
+      already_imported: "This file has already been imported."
+      already_imported_no_reprocess: "This file has already been imported and cannot be reprocessed."
+      import_running: "The import for this file is already running."
+      preview_not_available: "The import preview is no longer available."
+      import_users_only: "Import is only available for user files."
+      user_import_started: "The user import has been started. You will receive a notification when it is completed."
+      project_select_time_tracking_only: "Project selection is only available for time tracking files."
+      no_time_entries: "Error parsing the XML file or no time entries found."
+      ticket_preview_only: "Ticket preview is only available for ticket files."
+      no_tickets_found: "Error parsing the XML file or no tickets found."
+      ticket_import_only: "Ticket import is only available for ticket files."
+      project_name_required: "Project name is required."
+      project_create_error: "Error creating the project: %{error}"
+      ticket_import_started: "The ticket import has been started. The project '%{project}' was created. You will receive a notification when the import is completed."
+      time_preview_only: "Time sessions preview is only available for time tracking files."
+      select_project: "Please select a project."
+      time_import_only: "Time sessions import is only available for time tracking files."
+      project_required: "A project is required."
+      time_import_started: "The time sessions import has been started. You will receive a notification when it is completed."
+      rollback_ticket_time_only: "Rollback is only available for ticket and time session imports."
+      rollback_ticket_only: "Rollback is only available for ticket imports."
+      no_imported_objects: "No imported objects found for this file."
+      rollback_success: "Rollback successful: %{tickets} tickets, %{posts} posts and %{tags} tags deleted."
+      rollback_error: "Error during rollback: %{error}"
+      import_tickets_first: "Please import tickets for this project first before you can assign uploads."
+      select_upload_file: "Please select an upload file."
+      not_upload_file: "The selected file is not an upload file."
+      upload_already_processed: "This upload file has already been processed."
+      upload_assignment_started: "The upload assignment has been started. You will receive a notification when it is completed."
+      no_import_permission: "You do not have permission for import functions."
+    cancel_account_deletions:
+      canceled: "Your scheduled account deletion was successfully canceled."
+      cancel_error: "The deletion could not be canceled."
+      no_deletion_scheduled: "No account deletion is scheduled."
+    sessions:
+      no_organisations: "You do not have any organisations yet."
+      no_organisation_found: "No organisation found. Please contact the administrator."
+      form_expired: "The sign-in form had expired. Please sign in again."
+    static:
+      no_organisations_create: "You do not have any organisations yet. Please create one."

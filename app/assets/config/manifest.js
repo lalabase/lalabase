@@ -1,0 +1,10 @@
+//= link_tree ../images
+//= link_tree ../builds
+//= link_directory ../../javascript/controllers .js
+//= link_tree ../../javascript .js
+//= link_tree ../../../vendor/javascript .js
+//= link lalabase-fonts.css
+//= link auth.css
+//= link slimselect.css
+//= link alpinejs.min.js
+//= link sortable.min.js

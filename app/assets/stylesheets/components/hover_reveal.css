@@ -1,0 +1,51 @@
+/* ==========================================================================
+   Hover-reveal of per-row actions (29.08.2026)
+   --------------------------------------------------------------------------
+   One owner for a rule that was hand-written in nine places: the row the
+   pointer is on shows its actions, every other row stays quiet.
+
+   The dynamic half is a class on the actions node itself (.is-pointed, set by
+   hover_reveal_controller): "at most one" is a rule about all rows together,
+   and only something that sees all of them can hold it. `.group:hover` decided
+   per row and could not.
+
+   ⚠️ The switch is NOT animated. Rows that stayed lit after the pointer left
+   (several at once, until a resize repainted the transcript) were never a
+   stale class: the class came off, Safari 26.6 kept the old pixels. Measured
+   from a screen recording on 29.08.2026 at 10 frames per second: a row crossed
+   in under 100 ms went dark the next frame, a row rested on for 200 ms stayed
+   lit. The line between the two is the 150 ms opacity transition this file
+   used to declare. WebKit fades opacity on a compositing layer of its own and
+   drops that layer when the fade ends; Safari then fails to repaint the patch
+   of the scrolling transcript under it, so the row at full opacity stays on
+   screen. No transition, no layer, no stale patch. Guard:
+   spec/architecture/hover_reveal_no_opacity_transition_guard_spec.rb.
+
+   The static half hides nothing unless .hover-reveal-ready is present, and only
+   the controller puts it there. So a page whose JavaScript never ran shows the
+   actions instead of hiding affordances behind a hover that will never fire.
+   ========================================================================== */
+
+/* Only where there IS a pointer that can hover. Touch has no hover, so the
+   actions simply stay visible -- otherwise they would be unreachable.
+   ⚠️ hover/pointer, NOT a viewport width: a narrow desktop window and a zoomed
+   page both have a mouse (the 29.08.2026 correction that preceded this file). */
+/* ⚠️ The actions node must sit INSIDE a marked row to be hidden at all. A list
+   that mounts the controller but forgets the row markers is a real mistake to
+   make, and without this descendant it would be a silent one of the worst kind:
+   the rows would never be marked, so nothing would ever reveal, and the delete
+   button would be invisible for good. Written this way the same mistake leaves
+   the actions standing, which is merely untidy. */
+@media (hover: hover) and (pointer: fine) {
+  .hover-reveal-ready
+  [data-hover-reveal-target="row"]
+  [data-hover-reveal-target="actions"] {
+    opacity: 0;
+  }
+
+  .hover-reveal-ready
+  [data-hover-reveal-target="row"]
+  [data-hover-reveal-target="actions"].is-pointed {
+    opacity: 1;
+  }
+}

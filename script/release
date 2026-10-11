@@ -1,0 +1,257 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Cuts a release of the core, in three steps:
+#
+#   script/release draft              print the next version and draft notes, change nothing
+#   script/release prepare [VERSION]  write the draft into CHANGELOG.md (then edit, PR, merge)
+#   script/release publish VERSION    tag main and create the GitHub release from CHANGELOG.md
+#
+# draft changes nothing. prepare refuses a version that is already in
+# CHANGELOG.md, and marks the section with the commit it was drafted from.
+#
+# publish runs on an up-to-date main and refuses while:
+# - CHANGELOG.md is not in shape (Lalabase::Release.problems), or Unreleased has lines;
+# - a pull request merged since the mark is not named in the section as (#N);
+#   a pull request into main that changed only CHANGELOG.md is exempt;
+# - a commit on main's first-parent line is no pull request (a rebase merge, a
+#   direct push).
+# --anyway skips the last two, after you read what they name.
+# publish can be run again after it stopped: a tag on origin is finished (if it
+# is on origin/main and its notes are in shape), a tag never pushed says how
+# to remove it, an existing GitHub release is kept.
+#
+# The pull requests of a draft are those on main since the last release tag:
+# merge commits, squash merges "(#N)" and the inner pull requests of a stack.
+# Their titles come from `gh` and are sorted by type (feat, fix, security, …).
+# The upgrade notes list what a self-hoster has to look at: breaking changes
+# (feat!:), new environment variables in the example files, a changed
+# Dockerfile or compose.yml, a changed list of data backfills.
+# Rules: lib/lalabase/release.rb.
+
+require 'date'
+require 'json'
+require 'open3'
+require_relative '../lib/lalabase/release'
+
+ROOT = File.expand_path('..', __dir__)
+CHANGELOG = File.join(ROOT, 'CHANGELOG.md')
+# The release date, in UTC like the application (no Rails here to ask).
+TODAY = Time.now.utc.to_date
+ENV_EXAMPLES = %w[.env.example .env.docker.example .env.production.example].freeze
+WATCHED = {
+  'Dockerfile' => 'The Dockerfile changed: rebuild the image.',
+  'compose.yml' => 'compose.yml changed: compare it with your copy before `docker compose up -d`.',
+  'lib/lalabase/data_backfills.rb' => 'The data backfills changed; they run by themselves when the container starts ' \
+                                      '(without Docker: `bin/rails lalabase:data_backfills`).'
+}.freeze
+
+# stdout only; stderr is shown when the command fails, never parsed.
+def sh(*cmd, stdin_data: nil)
+  out, err, status = Open3.capture3(*cmd, chdir: ROOT, stdin_data: stdin_data)
+  abort "Failed: #{cmd.join(' ')}\n#{err}#{out}" unless status.success?
+  out.strip
+end
+
+def ok?(*cmd) = Open3.capture3(*cmd, chdir: ROOT)[2].success?
+
+# Tags from the remote too, so a draft on a fresh clone knows the last
+# release. Without them a draft would call itself the first release again.
+def fetch_tags
+  abort 'Could not fetch the tags of origin: without them the last release is unknown.' unless
+    ok?('git', 'fetch', '--quiet', '--tags', 'origin')
+end
+
+def tags = sh('git', 'tag', '--list').split("\n")
+
+def last_release = Lalabase::Release.latest(tags)
+
+# Every pull request in a range: merge commits, squash merges, inner pull
+# requests of a stack (all parents). The one rule, Lalabase::Release.
+def merged_numbers(range)
+  Lalabase::Release.pull_request_numbers(sh('git', 'log', range, '--format=%s').split("\n"))
+end
+
+def titles(numbers)
+  return [] if numbers.empty?
+
+  listed = JSON.parse(sh('gh', 'pr', 'list', '--state', 'merged', '--limit', '1000', '--json', 'number,title'))
+               .to_h { |pr| [pr['number'], pr['title']] }
+  numbers.map do |number|
+    title = listed[number] || JSON.parse(sh('gh', 'pr', 'view', number.to_s, '--json', 'title'))['title']
+    { number: number, title: title }
+  end
+end
+
+# Names in an example file now that it did not have at the last release, also
+# when commented out (an optional variable). A changed value is not new.
+def new_env_keys(tag)
+  ENV_EXAMPLES.flat_map do |file|
+    now = tracked?('HEAD', file) ? env_keys(sh('git', 'show', "HEAD:#{file}")) : []
+    before = tracked?(tag, file) ? env_keys(sh('git', 'show', "#{tag}:#{file}")) : []
+    now - before
+  end.uniq
+end
+
+def env_keys(text) = text.scan(/^#?\s*([A-Z][A-Z0-9_]*)=/).flatten
+
+def tracked?(ref, file) = ok?('git', 'cat-file', '-e', "#{ref}:#{file}")
+
+def upgrade_hints(tag)
+  return [] unless tag
+
+  hints = new_env_keys(tag).map { |key| "New environment variable `#{key}` (see the example files)." }
+  changed = sh('git', 'diff', '--name-only', "#{tag}..HEAD").split("\n")
+  hints + WATCHED.filter_map { |path, hint| hint if changed.include?(path) }
+end
+
+def draft_block(version)
+  tag = last_release
+  prs = tag ? titles(merged_numbers("#{tag}..HEAD")) : []
+  Lalabase::Release.draft(version, TODAY.iso8601, prs, first: tag.nil?, upgrade_hints: upgrade_hints(tag),
+                                                       drafted_from: sh('git', 'rev-parse', 'HEAD'))
+end
+
+def check_format!(version)
+  abort "Not a version: #{version.inspect} (YEAR.MONTH.PATCH, e.g. 2026.11.0)" unless Lalabase::Release.version?(version)
+end
+
+def draft
+  fetch_tags
+  version = Lalabase::Release.next_version(tags, today: TODAY)
+  puts "Last release: #{last_release || 'none (this will be the first)'}"
+  puts "Next version: #{version}\n\n"
+  puts draft_block(version)
+end
+
+def prepare(version)
+  fetch_tags
+  version ||= Lalabase::Release.next_version(tags, today: TODAY)
+  check_format!(version)
+  abort "Tag #{version} exists already." if tags.include?(version)
+  latest = last_release
+  abort "#{version} is not newer than the last release #{latest}." if latest && Lalabase::Release.latest([latest, version]) == latest
+  changelog = File.read(CHANGELOG)
+  abort "CHANGELOG.md has a section for #{version} already: edit it, do not prepare it twice." if Lalabase::Release.section(changelog, version)
+
+  File.write(CHANGELOG, Lalabase::Release.insert(changelog, draft_block(version)))
+  puts "CHANGELOG.md has a draft for #{version}. Edit it (drop what a self-hoster does not need,"
+  puts 'write the upgrade notes), open a pull request, merge it, then:'
+  puts "  script/release publish #{version}"
+end
+
+# Every pull request since the commit the notes were drafted from is named in
+# them as (#N). Exempt is a pull request merged into main that changed nothing
+# but CHANGELOG.md (the notes themselves, or a fix to them); a commit inside it
+# excuses nothing, whatever number its subject ends on. And every commit on
+# main's first-parent line has to be a pull request, a merge or a squash with
+# (#N): a rebase merge or a direct push carries no number and could hold
+# anything. Returns [missing numbers, commits without a pull request].
+def unaccounted(section)
+  drafted = Lalabase::Release.drafted_from(section) or
+    abort 'The section has no "drafted from" mark: run prepare for it (or restore the mark).'
+  range = "#{drafted}..HEAD"
+  exempt = []
+  direct = []
+  sh('git', 'log', '--first-parent', range, '--format=%H%x09%s').split("\n").each do |line|
+    sha, subject = line.split("\t", 2)
+    number = Lalabase::Release.pull_request_numbers([subject]).first
+    next direct << "#{sha[0, 10]} #{subject}" unless number
+
+    exempt << number if sh('git', 'diff', '--name-only', "#{sha}^", sha).split("\n") == ['CHANGELOG.md']
+  end
+  [merged_numbers(range) - exempt - Lalabase::Release.mentioned_numbers(section), direct]
+end
+
+def check_publishable!(version, anyway:)
+  abort 'Check out main first.' unless sh('git', 'branch', '--show-current') == 'main'
+  abort 'The checkout has changes.' unless sh('git', 'status', '--porcelain').empty?
+  sh('git', 'fetch', '--quiet', 'origin', 'main')
+  abort 'main is not origin/main: pull first.' unless sh('git', 'rev-parse', 'HEAD') == sh('git', 'rev-parse', 'origin/main')
+  changelog = File.read(CHANGELOG)
+  problems = Lalabase::Release.problems(changelog)
+  abort "CHANGELOG.md is not in shape:\n  #{problems.join("\n  ")}" unless problems.empty?
+  section = Lalabase::Release.section(changelog, version)
+  abort "CHANGELOG.md on main has no section for #{version}: run prepare and merge it first." if section.nil?
+  reasons = []
+  reasons << 'Unreleased is not empty: move its lines into the release (a pull request) or wait with them.' unless Lalabase::Release.section_body(changelog, Lalabase::Release::UNRELEASED).empty?
+  missing, direct = anyway ? [[], []] : unaccounted(section)
+  unless missing.empty?
+    reasons << "Merged since the notes were drafted, not in the release notes: #{missing.map { |n| "##{n}" }.join(', ')}. " \
+               'Add a line naming each, like "- what it does (#N)", to the section (a pull request on CHANGELOG.md), ' \
+               'or publish with --anyway.'
+  end
+  unless direct.empty?
+    reasons << "On main without a pull request (a rebase merge or a direct push), so nothing says what they are: #{direct.join('; ')}. " \
+               'Read them, put what a self-hoster needs into the section, then publish with --anyway.'
+  end
+  abort reasons.join("\n") unless reasons.empty?
+
+  section
+end
+
+# The commit a tag on origin points at, lightweight or annotated, or nil.
+def remote_tag(version)
+  lines = sh('git', 'ls-remote', '--tags', 'origin', "refs/tags/#{version}", "refs/tags/#{version}^{}").split("\n")
+  peeled = lines.find { |l| l.end_with?('^{}') } || lines.first
+  peeled&.split&.first
+end
+
+def tag!(version)
+  head = sh('git', 'rev-parse', 'HEAD')
+  if tags.include?(version)
+    unless sh('git', 'rev-list', '-n', '1', version) == head
+      abort "Tag #{version} exists here, was never pushed, and is not HEAD (main moved on). " \
+            "Delete it with `git tag -d #{version}` and publish again."
+    end
+  else
+    sh('git', 'tag', '-a', version, head, '-m', "Lalabase #{version}")
+  end
+  sh('git', 'push', '--quiet', 'origin', version)
+end
+
+def create_release(version, section)
+  if ok?('gh', 'release', 'view', version)
+    puts "The GitHub release #{version} exists already."
+  else
+    sh('gh', 'release', 'create', version, '--title', "Lalabase #{version}", '--notes-file', '-',
+       stdin_data: Lalabase::Release.notes(section))
+  end
+  puts "Released #{version}: tag on origin, GitHub release created."
+end
+
+def publish(version, anyway:)
+  check_format!(version)
+  abort 'gh is not logged in (gh auth status): nothing was tagged.' unless ok?('gh', 'auth', 'status')
+  if remote_tag(version)
+    # A publish that stopped after the push: main may have moved on since, so
+    # the notes come from the tagged commit, and only the release is missing.
+    # A tag on origin is not trusted for being there: it has to be on main,
+    # with notes in shape.
+    sh('git', 'fetch', '--quiet', '--force', 'origin', 'main', "refs/tags/#{version}:refs/tags/#{version}")
+    unless ok?('git', 'merge-base', '--is-ancestor', version, 'origin/main')
+      abort "The tag #{version} on origin is not on origin/main, so publish did not make it. Look at it, " \
+            "remove it (git push origin :refs/tags/#{version}), then publish again."
+    end
+    tagged = sh('git', 'show', "#{version}:CHANGELOG.md")
+    problems = Lalabase::Release.problems(tagged)
+    abort "CHANGELOG.md of the tag #{version} is not in shape:\n  #{problems.join("\n  ")}" unless problems.empty?
+    section = Lalabase::Release.section(tagged, version) or
+      abort "The tag #{version} on origin has no section for it in CHANGELOG.md."
+    return create_release(version, section)
+  end
+
+  section = check_publishable!(version, anyway: anyway)
+  abort "The section for #{version} still has unsorted entries: move each into a section or delete it." if section.include?(Lalabase::Release::UNSORTED)
+
+  tag!(version)
+  create_release(version, section)
+end
+
+anyway = ARGV.delete('--anyway')
+case ARGV[0]
+when 'draft' then draft
+when 'prepare' then prepare(ARGV[1])
+when 'publish' then publish(ARGV[1] || abort('Usage: script/release publish VERSION [--anyway]'), anyway: !anyway.nil?)
+else abort File.read(__FILE__)[/^# Cuts.*?(?=\n\n)/m].gsub(/^# ?/, '')
+end

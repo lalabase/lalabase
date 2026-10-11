@@ -1,0 +1,85 @@
+# Karte: app/controllers/concerns (Stand: 2026-09-30)
+
+> Für die Ticket-**Domäne** (Attributsystem, Kanban, Actors, Fallen) gilt zusätzlich
+> `docs/architektur/tickets_lesepfad.md`. Diese Karte hier beschreibt nur den **Stack**.
+
+Hier liegt der **ObjectListController-Stack**, der Listen-Features treibt (v. a. Tickets).
+Lese-Reihenfolge, um eine Listen-Seite wirklich zu verstehen:
+
+1. `object_list_controller.rb` (~470 LOC) — definiert eigene Default-`index`/`show`, zieht via
+   `included do` transitiv `Sortable`, `Pageable`, `Searchable`, `AdHocFilterable` herein und
+   registriert 5 before_actions (`set_project`, `set_objects`, `set_object`,
+   `authorize_project_access`, `set_smart_folders`), die am einbindenden Controller NICHT
+   sichtbar sind. Seit 08.09.2026 ist `filtered_objects` (Ordner, dann Ad-hoc, Suche,
+   Sortierung) der EINE Besitzer der gefilterten Liste: `index` paginiert ihn, die
+   Sammeländerung (`doc/ticket_bulk_edit_plan.md`, S0) löst „alle Treffer" daraus. Kanban,
+   `show` und die Seitenberechnung spielen die Pipeline noch von Hand nach (Befund im
+   Lesepfad, eigener Strang).
+2. **Der einbindende Controller darf `index`/`show` überschreiben — TicketsController tut das.**
+   Immer BEIDE Versionen lesen (Concern-Default + Controller-Override), sonst falsches Bild.
+3. Frame-IDs und Partial-Pfade werden per String-Interpolation gebaut (`results_partial_path`,
+   `object_show_partial`, `results_frame_id` — inkl. hartkodiertem Ticket-Sonderfall
+   `tickets_list_frame`). Frames/Partials NICHT per Literal-grep suchen — diese Methoden auswerten.
+4. `sortable.rb` (~390 LOC) — Whitelist-Sort-DSL (`setup_sortable`, `add_sortable_columns`),
+   ORDER BY via `Arel.sql`, hartkodierte DISTINCT-JOIN-Sonderfälle pro Tabelle.
+5. `ad_hoc_filterable.rb` — liest `filter[]`, `filter_op[]`, `filter_drop[]`. Seit der
+   Filterleisten-Umbau (S3a, `doc/filterleiste_s1_s4_plan.md`) gilt: trägt die Adresse eine
+   auflösbare gespeicherte Ansicht UND Änderungen daran (`edited_saved_view?`), wendet die
+   Liste den EFFEKTIVEN Satz an (`list_filter_params`) statt Ordner-Query ∩ Adresse. Dieselbe
+   Regel liegt clientseitig in `lib/filter_bar/change_set.js`; wer eine Seite ändert, ändert
+   beide. Ordner-Query-Aufrufer prüfen `edited_saved_view?` (`apply_smart_folder_filter`,
+   `TicketsController#find_objects`, `KnowledgeController#index` über `apply_folder_query`).
+6. `ticket_list_columns.rb` (07.09.2026, `doc/spaltenwahl_plan.md` S1): EINE Methode
+   `ticket_list_columns(project)` für jeden Stream, der eine Ticketzeile oder die Liste außerhalb
+   von `index` neu rendert (Tickets + Posts). Ruft `Tickets::ResolveColumns` (Adresse `cols[]` vor
+   Ordner vor Grundansicht). Vorher rechneten die beiden Controller das sechsmal von Hand.
+   Seit 08.09.2026 auch `ticket_list_selectable?` (helper_method, Memo je Request): ob die
+   Zeile ein Auswahlkästchen trägt (`doc/ticket_bulk_edit_plan.md`, Scheibe 1).
+   Seit 29.09.2026 auch der Zeilen-Stream selbst: `ticket_list_row_streams(ticket, selected_ticket:)`
+   (Desktop- und Mobilzeile, je mit eigenem Partial). Wer eine Ticketzeile streamt, nimmt diese
+   Methode. Seit 30.09.2026 auch `Tickets::RelationsController` (Spalte „Wartet“, Karte und
+   Handy-Zeile des OFFENEN Tickets nach Anlegen/Entfernen einer Beziehung). Die Zeile eines
+   ANDEREN Tickets streamt dort niemand, auch nicht die eines wartenden Tickets, wenn sein
+   Blocker erledigt wird (`doc/ticket_relations_plan.md` §4, `ticket_waiting_visibility_spec.rb`).
+   Sie hängt `ticket_list_parent_streams` an (allein bei Quick-Add und Löschen): für jede
+   Spalte aus `ViewConfiguration::CHILDREN_COLUMN_KEYS` (heute `subtask_count`) NUR Zelle und
+   Eintrag unter dem Titel des Haupttickets (bei Umzug auch des alten), nie dessen ganze Zeile.
+   Eine ganze Zeile braucht, was nur `index` kennt (Spalten des aktiven Ordners, den kein Formular
+   mitschickt; ungelesene Benachrichtigungen) und verlor beides. Deshalb heißt „kein Wert“ am
+   Eintrag unter dem Titel `:empty` (CSS), `hidden` nur „nicht angepinnt“.
+7. Rest: `pageable.rb`, `searchable.rb`, `performance_optimized.rb`,
+   `viewport_switchable.rb` (Mobile/Desktop-Umschaltung), `project_controller.rb`
+   (Projekt-Scope-Basis, nutzt z. B. der MeetingsController), `ai_feature_gate.rb`
+   (`ensure_ai_enabled`, org-Ebene; aus `project_controller.rb` extrahiert in S3a T2,
+   damit die projektlosen Assistant-Controller dasselbe Gate nutzen).
+
+Daneben liegen **Patches in Rails-eigene Controller**, die nicht per `include` im App-Controller,
+sondern über einen `to_prepare`-Initializer eingehängt werden: `direct_uploads_guard.rb` →
+`ActiveStorage::DirectUploadsController` (Initializer `config/initializers/direct_uploads_guard.rb`,
+Muster: `active_storage_tenant_patch.rb`). Diese Controller erben von `ActionController::Base`,
+nicht von `ApplicationController`; kein `before_action` der App gilt dort, jede Regel muss
+explizit hinein.
+
+Ist-Zustand (bewusst dokumentiert): Die fünf Master-Detail-Features nutzen fünf verschiedene
+Fundamente — Tickets = dieser Stack, Knowledge = `Pageable`+`AdHocFilterable`+
+`ViewportSwitchable`+`ProjectController` mit `KnowledgeSearchQuery` (UNION über
+`Knowledge::TypeRegistry`, kein `ObjectListController`), TimeSessions = `Sortable`+`Pageable`
+direkt, Notifications = bespoke + `MasterListPresenter`, Meetings =
+`ProjectController`+`ViewportSwitchable`.
+Der Entscheid für EINE kanonische Listen-Architektur steht aus; bis dahin gilt für neue
+Listen-Features: am ähnlichsten Bestands-Feature orientieren und die Wahl im PR begründen.
+Seit 10.09.2026 teilen Tickets und Knowledge immerhin die OBERFLÄCHE der Liste-mit-Bahn
+(`doc/wissen_als_bahn_plan.md`): `NeoTwoColumnGridComponent` mit `lane: true`, den einen
+Öffner `list_row` (Adressregeln in `lib/list_row/address.js`), die Markierung `.selected-row`
+und die Kopfzeile der Bahn. Das Listen-Fundament dahinter bleibt je Bereich verschieden.
+
+## Mobile Ticketdarstellung (PR #807)
+
+`ViewportSwitchable` akzeptiert den expliziten Parameter `viewport`. Den Header
+`X-Viewport` wertet ausschließlich `TicketsController#set_viewport_mode` aus.
+Andere Listen dürfen dadurch nicht auf die breitere Ticket-Grenze umgeschaltet werden.
+Die mobile Liste verwendet `tickets_list_frame`, das Detail `ticket_display_frame`
+wie am Desktop. `ticket_display_frame_mobile` existiert nicht mehr.
+Mobile vollständige Listenaufrufe behalten ihre Seitenzahl; der bisherige
+Desktop-Seite-1-Redirect bleibt bestehen. Ticket- und Post-Streams müssen mobile
+Listenzeilen ebenso berücksichtigen wie Tabellenzeilen.

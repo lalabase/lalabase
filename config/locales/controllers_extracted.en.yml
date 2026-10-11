@@ -1,0 +1,46 @@
+---
+en:
+  flash:
+    shared:
+      object_not_found: "%{object} not found"
+    codebase_import_files:
+      file_too_large: File is too large (max. %{max})
+      only_xml_allowed: Only XML files are allowed
+      archive_required: A TAR or ZIP file is required for upload imports
+      archive_too_large: Archive file is too large (max. %{max})
+      only_tar_zip_allowed: Only TAR or ZIP files are allowed
+      invalid_xml_format: Invalid XML format
+      invalid_users_data: The XML file does not contain valid CodebaseHQ user data
+      invalid_tickets_data: The XML file does not contain valid CodebaseHQ ticket
+        data
+      invalid_uploads_data: The XML file does not contain valid CodebaseHQ upload
+        data
+      invalid_time_tracking_data: The XML file does not contain valid CodebaseHQ time
+        tracking data
+      processing_error: Error processing the file
+      deleted: File '%{filename}' was deleted.
+      deleted_objects_suffix: " (%{count} associated import objects were also removed.)"
+      item_type_time_entries: Time entries
+      attribute_name_status: Status
+      attribute_name_priority: Priority
+      unknown_user: Unknown
+    smart_folders:
+      invalid_field: 'Invalid field: %{field}'
+      no_reference_options: No reference options available for '%{field}'
+      unknown_error: Unknown error.
+    notifications:
+      ticket_settings_saved: Ticket settings saved
+      notifiable_deleted: "%{type} (deleted)"
+    time_session_groups:
+      customer_description_updated: Customer description updated
+      customer_description_update_failed: Error while updating
+      customer_description_update_error: Error while updating the customer description
+      descriptions_created: "%{count} descriptions created"
+      descriptions_failed: "%{count} failed"
+      descriptions_skipped: "%{count} skipped"
+      no_descriptions_created: No descriptions created
+    tickets:
+      deleted_empty_content_title: The task was successfully deleted.
+      deleted_empty_content_description: Please select another task from the list
+        or create a new task.
+      deleted_notice: Task was successfully deleted.

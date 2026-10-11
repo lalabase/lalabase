@@ -1,0 +1,45 @@
+---
+de:
+  flash:
+    shared:
+      object_not_found: "%{object} nicht gefunden"
+    codebase_import_files:
+      file_too_large: Datei ist zu groß (max. %{max})
+      only_xml_allowed: Nur XML-Dateien sind erlaubt
+      archive_required: Für Upload-Importe ist eine TAR- oder ZIP-Datei erforderlich
+      archive_too_large: Archiv-Datei ist zu groß (max. %{max})
+      only_tar_zip_allowed: Nur TAR- oder ZIP-Dateien sind erlaubt
+      invalid_xml_format: Ungültiges XML-Format
+      invalid_users_data: Die XML-Datei enthält keine gültigen CodebaseHQ Benutzer-Daten
+      invalid_tickets_data: Die XML-Datei enthält keine gültigen CodebaseHQ Ticket-Daten
+      invalid_uploads_data: Die XML-Datei enthält keine gültigen CodebaseHQ Upload-Daten
+      invalid_time_tracking_data: Die XML-Datei enthält keine gültigen CodebaseHQ
+        Time Tracking-Daten
+      processing_error: Fehler beim Verarbeiten der Datei
+      deleted: Datei '%{filename}' wurde gelöscht.
+      deleted_objects_suffix: " (%{count} zugehörige Import-Objekte wurden ebenfalls
+        entfernt.)"
+      item_type_time_entries: Zeit-Einträge
+      attribute_name_status: Status
+      attribute_name_priority: Priorität
+      unknown_user: Unbekannt
+    smart_folders:
+      invalid_field: 'Ungültiges Feld: %{field}'
+      no_reference_options: Keine Referenzoptionen verfügbar für '%{field}'
+      unknown_error: Unbekannter Fehler.
+    notifications:
+      ticket_settings_saved: Ticket-Einstellungen gespeichert
+      notifiable_deleted: "%{type} (gelöscht)"
+    time_session_groups:
+      customer_description_updated: Kundenbeschreibung aktualisiert
+      customer_description_update_failed: Fehler beim Aktualisieren
+      customer_description_update_error: Fehler beim Aktualisieren der Kundenbeschreibung
+      descriptions_created: "%{count} Beschreibungen erstellt"
+      descriptions_failed: "%{count} fehlgeschlagen"
+      descriptions_skipped: "%{count} übersprungen"
+      no_descriptions_created: Keine Beschreibungen erstellt
+    tickets:
+      deleted_empty_content_title: Der Task wurde erfolgreich gelöscht.
+      deleted_empty_content_description: Bitte wählen Sie einen anderen Task aus der
+        Liste oder erstellen Sie einen neuen Task.
+      deleted_notice: Task wurde erfolgreich gelöscht.

@@ -1,0 +1,212 @@
+# Karte: app/models (Stand: 2026-10-09)
+
+~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
+`knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
+Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
+
+* **Kern/Tenancy**: `organisation` (= Tenant), `project`, `user` (+ `user/*` — Split-Vertrag
+  in den Kommentaren von `user.rb`, **Include-Reihenfolge ist load-bearing!**;
+  Namens-Rendering hat EINEN Owner: `user/name_display.rb`), `membership`,
+  `role`, `permission`, `project_permission`, `invitation`, `account` (Billing-Ebene ÜBER Orgs),
+  `current` (`Current.user` = Audit-Actor der Activity-Kette)
+* **Tickets**: `ticket`, `ticket_assignment`, `ticket_attribute_definition`, `ticket_document`,
+  `tag`, `tagging`, `ticket_relation` (typisierte Beziehung zweier Tickets einer Organisation,
+  `doc/ticket_relations_plan.md`: EINE Zeile je Beziehung, „blockiert von“/„folgt auf“ sind
+  dieselbe Zeile vom Ziel aus, `KINDS` bildet sieben Beschriftungen auf vier Arten ab; Enum-Zahlen
+  fest, zwei Guards vergleichen sie mit Index und CHECK; kein Trackable, kein Verlauf).
+  ⚠️ „Wartet“ und „hält auf“ beantwortet NUR `Tickets::Waiting`, „erledigt“ je eigenem Projekt
+  an beiden Enden (`closed_status_values_by_project`, nicht der Topf `closed_status_values_for`);
+  Handbauten lehnt `spec/architecture/ticket_waiting_owner_guard_spec.rb` ab. Liste, Kanban und
+  Handy zählen je Seite über `Tickets::WaitingCountsCache`. Wie Subs und Zeiten meldet eine Liste
+  nur ihre Seite an (`TicketsHelper#register_ticket_count_page`), der erste Lesezugriff lädt sie
+  (`Tickets::LazyPagePreload`, per `prepend`). Ein neuer Zähler: Modul voranstellen,
+  `answered?` bereitstellen, `preload` beantwortet jedes übergebene Ticket, eine Zeile in
+  `register_ticket_count_page`, ein Eintrag in `builders` der Modul-Spec; braucht er einen
+  Leser, bekommt er ihn beim Bauen (`new(user:)`). Keine View lädt von Hand vor. Die Spalte
+  `waiting` steht bewusst NICHT in `ViewConfiguration::CHILDREN_COLUMN_KEYS` (andere Zeilen
+  stimmen erst beim Neuladen). Als Regel einer Ansicht: `smart_folders/filters/waiting_state_filter.rb`
+  (IS/IS_NOT × true/false, `wants_state?` liest auch der Dissolver), Felder `waiting`/`blocking`.
+  Anlegen/Löschen nur über `Actors::CreateTicketRelation`/`DestroyTicketRelation`
+  (Kreis-Prüfung unter Sperre je Org).
+  ⚠️ Wer einem Ticket NEU ZUGEWIESEN werden (oder ihm folgen) darf, entscheidet nur
+  `Project#assignable_users`: Ticket-Leserecht im Projekt UND aktive Mitgliedschaft. Formular,
+  Kopfmenü, Board, Sammelbearbeitung, MCP und die Beobachter-Auswahl lesen es;
+  `users_with_access` allein kennt deaktivierte Mitglieder noch (es entscheidet auch
+  Benachrichtigungen und was ein Verschieben behält, darum nicht dort). Wer schon zugewiesen
+  ist, bleibt es (`Ticket#assignable_user_ids`): sonst entfernt jedes Speichern im Formular
+  eine deaktivierte Person still, und das Board lehnt jede weitere Zuweisung ab. „Bleibt" heißt
+  nur Behalten: ein erneutes `add` einer nicht mehr zuweisbaren Person ist `value_not_allowed`.
+  Entfernen darf eine Änderung jede Person der Organisation und jede, die auf den Tickets der
+  Änderung zugewiesen ist oder ein Abo hat, auch nach gelöschter Mitgliedschaft
+  (`BulkFields::Field#removable`, erst bei Bedarf gelesen: ein Status-Zug zahlt nichts dafür).
+  Ein Rückgängig nimmt die Personen seines Laufs an, legt aber nicht mehr Zuweisbare nicht
+  zurück (`AddRemoveBase#restorable`); der Rest des Tickets wird zurückgesetzt.
+  Titel: höchstens `Ticket::TITLE_MAX_LENGTH` (255), geprüft nur bei geändertem Titel.
+  ⚠️ Wer eine Beziehung SEHEN darf, entscheidet nur `TicketRelation.visible_to(user, org, token:)`:
+  beide Enden lesbar (`TicketPolicy::Scope`), mit Token zusätzlich in dessen Reichweite. Titel,
+  Nummer und Projekt eines Tickets ohne Leserecht erscheinen nirgends (Plan §4).
+* **Activity/Notifications**: `activity`, `user_activity`, `outbox_event`, `notification`,
+  `notification_preference`, `notification_subscription`, `email_log` — Services dazu unter
+  `app/services/notifications/` (eigene Karte dort)
+* **Ansichten/SmartFolders**: `smart_folder{,_rule,_rule_group,_share}`, `view_configuration`,
+  `view_state`, `dashboard_configuration`, `overview_configuration` (+ `smart_folders/`, `overview/`)
+* **Zeiterfassung**: `time_session`, `time_session_group`, `time_session_permission`
+  (+ `time_sessions/`: `list_period`, der EINE Besitzer der acht Zeitraum-Keys:
+  Reihenfolge, Labels und Fenster für die Filterzeile UND die Statustabelle. Die vier mit
+  `overview/time_period` geteilten Fenster werden dorthin delegiert, als `KEYS &
+  Overview::TimePeriod::KEYS`, damit ein Widget-Drilldown seine Zahl reproduziert.
+  ⚠️ Liste und Tabelle haben verschiedene Voreinstellungen, `this_month` gegen `all`,
+  und `custom` gibt es nur in der Liste.) Daneben `list_filters`, die EINE Erklärung der
+  Filter der Zeitenliste (Service-Attribute, Entfernen, Zähler, Zurücksetzen, versteckte
+  Formularfelder). Ein neuer Filter ist ein Eintrag dort; `list_filters_spec.rb` wird rot,
+  wenn `TimeSessionFilterService` ein Attribut kennt, das dort fehlt.
+  * ⚠️ `time_session_permission` ist ein zweites Recht AUF der Projekt-Mitgliedschaft: es
+    endet mit ihr (`ProjectPermission`-Callbacks, `Actors::RevokeProjectMember` beim Block,
+    `Membership#destroy`) und zählt nur mit lebender `ProjectPermission` dahinter
+    (`backed_by_project_access`). Ein nacktes Lesen lehnt
+    `spec/architecture/time_session_permission_guard_spec.rb` ab (Stand 27.09.2026).
+* **Wissen/Kommunikation**: `note`, `note_version`, `post`, `post_document`, `chat`, `chatpost`,
+  `prompt_persona`, `chat_style_preference` (+ `knowledge/`)
+  * ⚠️ `post` (= Kommentar): Wer einen privaten Kommentar lesen darf, entscheidet EINE Regel,
+    `Post.readable_by(user, organisation)` bzw. `#readable_by?` (Adressat, Autor, Kontoadmins;
+    `PostPolicy` fragt sie). Was ALLE Leser des Tickets sehen (Aktivitäts-Auszug,
+    Zusammenfassung, KI-Antwort), nimmt `public_posts`. Ein nacktes `ticket.posts` beim Lesen
+    lehnt `spec/architecture/post_visibility_guard_spec.rb` ab (Stand 27.09.2026). Das ältere
+    `visible_to` (nur der Adressat) ist gelöscht.
+  * `chat_style_preference` traegt seit 30.08.2026 NEBEN den Stil-Stufen die stehende
+    Persona-Wahl einer Person je Org. Welche Persona ueberhaupt angehaengt werden darf,
+    entscheidet EIN Ort: `concerns/prompt_persona_selectable.rb`, eingebunden von `chat`
+    UND `chat_style_preference`. Die Aufloesungsreihenfolge im Prompt (Thread-Pin, dann
+    diese Wahl, dann `PromptPersona.default_for`) steht im `ChatResponseJob`.
+  * ⚠️ Zwei Pools, nicht einer, und sie beantworten verschiedene Fragen. `available_for`
+    ist die Berechtigungsgrenze (darf diese Org die Zeile ueberhaupt halten) und traegt
+    die VALIDIERUNG; sie muss die weitere bleiben, sonst wird eine Zeile mit
+    ueberschriebener Persona unspeicherbar. `pickable_for` faltet je Schluessel zusammen,
+    die Org-Zeile gewinnt, und beantwortet "welche gilt gerade" -- daran haengen der
+    Picker, der Schreibpfad UND `#resolved_persona`. Wer eine gespeicherte Persona gegen
+    `available_for` aufloest, zeigt in der Oberflaeche das eine und schickt dem Modell das
+    andere, ohne dass irgendetwas es sagt.
+  * ⚠️ `chatpost#broadcast_completed` (S3a T4): der Abschluss einer Antwort verzweigt nach
+    Thread-Art. Projekt-Threads bekommen wie bisher einen `broadcast_refresh_to`,
+    also einen SEITEN-Refresh, der auf der Chat-Seite dank Morph-Meta harmlos ist.
+    **Org-Threads dürfen das nicht**: ihr Abonnent ist das Begleit-Panel, und das reitet auf
+    einer beliebigen Seite ohne Morph-Meta mit, wo aus dem Refresh ein voller Replace-Visit
+    würde. Dort wird stattdessen gezielt die VORHERIGE Antwort ersetzt (Regenerier-Pille).
+    Wer diesen Zweig anfasst, prüft beide Seiten.
+  ⚠️ **Bilder im Rich-Text**: jedes `has_rich_text :content` (Ticket, Post, Note) bindet
+  `concerns/rich_text_embed_guard.rb` ein (Guard-Spec erzwingt das). Der Validator prüft nur das
+  **Delta** eines Speicherns (neue Blobs, neue tote `sgid`s), identifiziert den Typ selbst,
+  streicht `url`/`href` aus den Attachment-Knoten (war ein unbefristeter Link) und reiht je
+  neuem Blob `RichTextEmbedVariantJob` ein. Zahlen und Typliste besitzt allein
+  `rich_text_embeds.rb`. Plan: `doc/inline_bilder_spike_plan.md` (E1, D2 bis D10).
+  ⚠️ Sein Auslöser `rich_text_content_changing?` antwortet aus dem SPEICHER
+  (`association_cached?`), nie per Query: `content.present?` lud den Text bei jedem Save
+  jedes Trägers (N+1 bei Massen-Updates), und `association(...)` instanziiert die
+  Assoziation, die Rails' Autosave-Validierung dann selbst nachlädt. Pin:
+  `spec/models/action_text/rich_text_embed_guard_query_spec.rb`.
+  ⚠️ Seit Rails 8.1 hängt der RichText seine `embeds` bei JEDER Validierung im Speicher um.
+  Das Delta liest deshalb die **gespeicherten** Anhänge aus der Datenbank
+  (`persisted_embed_blob_ids`), nie `content.embeds`: sonst läuft ein Blob, den das erste
+  `valid?` abgelehnt hat, beim zweiten durch (PDF, fremde Organisation). Die Prüfung steht mit
+  `prepend: true` vor der Autosave-Validierung, weil ein Blob ohne Datei dort schon
+  `FileNotFoundError` wirft, und hält dann per `throw :abort` an.
+* **Dokumente/Doku/Codebase**: `document`, `document_version`, `documentation_*`, `codebase_*`,
+  `code_symbol`, `project_index{,_run}`, `project_repository`, `project_capability`,
+  `project_layer4_vision`, `reference`, `fragment`, `imported_object`, `product_knowledge_entry`
+  (Lalabases eigene Hilfetexte als Suchtabelle, tenant-frei, siehe Falle 3)
+* **Meetings**: `meeting`, `meeting_participant`, `meeting_participant_claim_rejection`,
+  `meeting_analysis` (Post-Sichtbarkeitsmuster: `is_private`+`visible_to_user`), `analysis_prompt` (org-weite Prompt-Bibliothek)
+* **Kein AR-Modell, liegt aber hier**: `acquisition_source` — Value Object über
+  `accounts.acquisition` (Herkunft eines Neukunden). Besitzt die Kanal-Priorität
+  ref > utm_source > referrer_host > direct an genau EINER Stelle (`doc/akquise_herkunft.md`).
+  Ebenso `assistant_panel_state` (S3a T4) — Value Object über das Panel-Cookie des
+  Assistenten. Besitzt Format, Breitengrenzen und die Sidebar-Breite an EINER Stelle; der
+  Stimulus-Controller bekommt MIN/MAX von dort, statt eigene Zahlen zu führen. ⚠️ Die
+  Sidebar-Breite ist der Zwilling von `w-64`/`lg:ms-64` im Application-Layout.
+  Ebenso `legal_identity` — Betreiber und Rechtsseiten der Instanz über vier
+  `SystemSetting`-Zeilen (`legal_*`). Einziger Leser und Schreiber dieser Zeilen, prüft die
+  URLs beim Speichern; `LegalIdentity.current` merkt sich den Stand je Anfrage in `Current`.
+  Ebenso `provisioning/request_context` — Wertobjekt in Anfrage-Form für `UserActivity.track!`,
+  wenn die getrennte Website ein Konto anlegt: es trägt den BESUCHER (Adresse, Programm), nicht
+  den Website-Server. Kein Service, darum hier und nicht unter `app/services`.
+* **AI/Billing**: `ai_credential`, `ai_usage`, `system_setting`, `personal_access_token{,_organisation,_project}`
+  (`personal_access_token/reach.rb` = der Token-Vertrag als Wertobjekt, gegen `#accessible_project?` gepinnt;
+  welche Organisationen ein Token erreicht, beantwortet NUR `#organisation_scopes`, auch für
+  `all_organisations`, nie die Verknüpfungszeilen selbst),
+  `content_embedding` (Sidecar-Vektor je Record je Raum), `embedding_space` (ein von der Org
+  GEHALTENER Vektorraum: Tripel + verschlüsselter Credential-Snapshot; welcher davon die Suche
+  bedient, sagt `organisations.active_embedding_space_id`),
+  `price_list` + `price_tier` (EIN veröffentlichter Preisstand + seine Seat-Staffel: Zeitfenster
+  hängt an der Liste, Staffelung an den Stufen), `account_discount` (Prozent-Rabatt je Account,
+  ausschließlich im Adminbereich vergeben; genau EINER aktiv, ein laufender ist nur
+  BEENDBAR statt änderbar). `EffectiveDating` (Zeitfenster + Überlappungsregel) teilen
+  sich `price_list` und `account_discount` — **`price_tier` NICHT**, eine Stufe erbt das
+  Fenster ihrer Liste. `founder_signup` ist der **Antrag** auf den Neugründer-Rabatt, nicht
+  seine Bewilligung: er entsteht bei der Registrierung, blockiert nichts und wird nach einem
+  Telefonat von Hand entschieden — der Rabatt selbst bleibt ein `account_discount`. Von seinen
+  Feldern hat nur `phone` eine Frist (gelöscht nach der Entscheidung, spätestens nach 3
+  Monaten); Firmenname und Sitz stehen ohnehin am Account.
+  S. `doc/billing_preisliste_rabatt_plan.md`,
+  `ai_usage_rollup` (ein Monat quota-relevanter KI-Verbrauch je Org, gebucht am ACCOUNT —
+  die einzige Kopie, die die Löschung der Org überlebt; `ai_usages` hängt an
+  `dependent: :destroy`. Zeilen sind **write-once**, `organisation_id` trägt bewusst
+  KEINEN FK, der Name steht als Snapshot daneben. Geschrieben von
+  `Subscriptions::AiUsageAggregator` aus zwei Einstiegen: Monatsjob und
+  `before_destroy`-Flush. S. `doc/billing_agentur_konto_plan.md` §17.3b),
+  `seat_event` + `seat_snapshot` (Grundlage der Platz-Abrechnung,
+  `doc/abrechnungsmodell_plan.md`; die vier Dienste darüber stehen in `app/services/CLAUDE.md`
+  unter „Die Seat-Kette"). `seat_event` ist **append-only** und erzwingt das (`readonly?` +
+  `before_destroy { throw :abort }`); Organisation, User und Rolle sind Herkunftsangaben ohne
+  FK, der Organisationsname steht eingefroren daneben, weil das Verschwinden der Org der
+  Normalfall ist. `seat_snapshot` ist umgekehrt **abgeleitet und überschreibbar** — die beiden
+  Regeln nie aneinander angleichen: die Quelle eines Rollups wird gelöscht, `seat_events` nie.
+  ⚠️ Beide sind bewusst **NICHT** `acts_as_tenant` (Falle 3 unten): sie werden von Batch-Läufen
+  ohne Tenant gelesen, ein Default-Scope würde dort still jede Zeile wegfiltern statt zu werfen.
+* **Sonstiges**: `org_color`, `personal_task`, `user_data_export`, `user_deletion`,
+  `mcp_idempotency_key`, `beuser` (Admin-Login, NICHT tenant-gebunden)
+
+Fallen:
+1. **Ticket-`status` ist KEINE Spalte** — lebt im `custom_attributes`-JSONB
+   (`CustomAttributable` + `TicketAttributeDefinition` + `SystemFunctions`). Schreibpfad ist
+   `Actors::SaveTicket`, nicht `ticket.update!(status: …)`.
+2. **Updates an Trackable-Modellen lösen implizit die Notification-Kette aus** — vor Änderungen
+   an Ticket/Project/Document/Note-Writes: `docs/architektur/seiteneffekt_ketten.md` lesen.
+3. **`acts_as_tenant` auf fast allen Modellen** — in Tests den Tenant VOR der Model-Erzeugung
+   setzen. Plain `.find` in Jobs ist kein Tenant-Bug (Tenant wird in Jobs serialisiert).
+   Bewusst tenant-FREI: `account` + `account_discount` + `price_list`/`price_tier` (Billing liegt
+   über den Orgs, und `/pricing` liest ohne Tenant), `ai_usage_rollup` (überlebt die Org, deren
+   Verbrauch es zählt — ein Tenant-Scope würde genau die Zeilen wegfiltern, für die es existiert),
+   `seat_event` + `seat_snapshot` (dieselbe Begründung, gelesen von Batch-Läufen ohne Tenant),
+   `beuser`, `system_setting`, `ai_package*`, `product_knowledge_entry` (Lalabases eigene
+   Texte, für jede Org gleich und vom Assistenten aus jedem Tenant gelesen; eine abgeleitete
+   Kopie der Hilfedateien, `doc/product_knowledge_plan.md`).
+   Dort ein `acts_as_tenant` nachzurüsten filtert still alles weg, ohne einen Fehler zu werfen.
+   ⚠️ Umgekehrt gilt: **eine Organisation lässt sich nur MIT gesetztem Tenant zerstören** —
+   ihre tenant-gescopten Kaskaden werfen sonst `NoTenantSet` (gemessen beim Bau von T17;
+   einen Org-Löschpfad gibt es in der App bis heute nicht).
+4. Boy-Scout-Regel: flaches Modell einer Namespace-Domäne wird substanziell angefasst →
+   in den Namespace ziehen (`self.table_name` behalten, keine Migration nötig).
+5. **`admin/*` sind Zwillinge auf denselben Tabellen ohne gemeinsamen Save-Zyklus** — ein
+   Callback oder Concern nur auf der Tenant-Seite wirkt im Adminbereich still nicht
+   (`spec/models/admin_twin_concern_parity_guard_spec.rb` prüft die Includes). Die
+   Kontolöschung hat deshalb ZWEI Implementierungen (`user/deletion_lifecycle.rb`,
+   `admin/user.rb`, Trennung bewusst); was ein Konto an Datensätzen BESITZT (Export-Archive,
+   private Analysen und Ticket-Posts, persönliche Aufgaben, eigene Chats, Token-Widerruf),
+   löscht allein `concerns/personal_data_erasure.rb` für beide.
+   Neue Datensorte → dort ergänzen, nie in einer der Methoden.
+   `spec/models/user_erasure_path_parity_spec.rb` pinnt beide Pfade und die Zeile danach.
+
+
+## Sammeländerung (08.09.2026, `doc/ticket_bulk_edit_plan.md`)
+
+* `ticket_bulk_run.rb`: ein Durchlauf (Änderungen `change_list`, nicht `changes`: das ist
+  ActiveRecords eigenes; Ergebnisse je Ticket mit Vorher-Werten; `undone_at`, `undo_of`;
+  `UNDO_WINDOW` 24 h; `undoable_by?` = Ausführender oder Account-Admin).
+* `Trackable#activity_context`: der EINE generische Haken der Sammeländerung, siehe
+  `docs/architektur/seiteneffekt_ketten.md` unten. nil = heutiges Verhalten.
+* `Activity.feed`: Feed ohne die Ticket-Aktivitäten eines Durchlaufs; der Ticket-Verlauf liest
+  ohne den Scope.
+* Scheibe 7: `ticket_bulk_run.kind` (`change`/`move`/`delete`, nur `change` ist rückgängig
+  machbar); `Activity.feed` filtert `bulk_run_member` an JEDEM Trackable (Verschieben schreibt
+  Projekt-Aktivitäten); `ProjectTrackable#track_tickets_bulk_moved/_moved_in/_deleted`, die
+  Lösch-Zeile trägt `follower_ids`, weil die Abos mit den Tickets gehen.

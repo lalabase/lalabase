@@ -1,0 +1,575 @@
+---
+de:
+  views:
+    shared:
+      consent:
+        accept_terms_business_html: Ich handle als Unternehmer im Sinne des § 14 BGB,
+          akzeptiere die %{terms_link} und habe die %{privacy_link} zur Kenntnis genommen.
+        accept_terms_html: Ich akzeptiere die %{terms_link} und habe die %{privacy_link}
+          zur Kenntnis genommen.
+        terms_link_text: AGB
+        privacy_link_text: Datenschutzerklärung
+    admin:
+      user_activities:
+        show:
+          back_to_overview: Zurück zur Übersicht
+          action: Aktion
+          category: Kategorie
+          user: Benutzer
+          timestamp: Zeitpunkt
+          time_ago: "%{time} ago"
+          organisation: Organisation
+          ip_address: IP-Adresse
+          description: Beschreibung
+          failure_reason: Fehlergrund
+          technical_details: Technische Details
+          changes: Änderungen
+          more_activities_in_session: Weitere Activities in dieser Session
+          previous_activity: Vorherige Activity
+          next_activity: Nächste Activity
+        user_activities:
+          breadcrumb_admin: Admin
+          breadcrumb_users: Benutzer
+          breadcrumb_activities: Activities
+          title: Aktivitätsverlauf
+          user_label: 'Benutzer: %{email}'
+          back_to_profile: Zurück zum Profil
+          export_csv: Export CSV
+          stat_total_activities: Gesamt-Aktivitäten
+          stat_last_login: Letzte Anmeldung
+          never: Nie
+          stat_last_ip: Letzte IP
+          stat_total_logins: Logins (gesamt)
+          stat_security_events: Security Events
+          activities_by_category: Aktivitäten nach Kategorie
+          recent_sessions: Letzte Sessions
+          session_login: Anmeldung
+          session_logout: Abmeldung
+          full_activity_log: Vollständiger Aktivitätsverlauf
+          th_time: Zeit
+          th_action: Aktion
+          th_category: Kategorie
+          th_status: Status
+          th_details: Details
+          th_ip_address: IP-Adresse
+          th_action_col: Aktion
+          status_success: Erfolgreich
+          status_failed: Fehlgeschlagen
+          status_pending: Ausstehend
+          no_activities: Keine Activities für diesen Benutzer gefunden
+          showing_count: Zeige %{count} von maximal 100 Activities
+      users:
+        notification_settings:
+          title: Benachrichtigungseinstellungen
+          ticket_notifications: Ticket-Benachrichtigungen
+          on_status_change: Bei Statusänderung
+          on_priority_change: Bei Prioritätsänderung
+          on_comment: Bei Kommentar
+          auto_follow_created: Erstellte Tickets automatisch folgen
+          'on': An
+          'off': Aus
+          event_settings: Ereignis-Einstellungen
+          org_level: "(Organisations-Ebene)"
+          th_event: Ereignis
+          th_in_app: In-App
+          th_email: E-Mail
+          no_custom_settings: Keine benutzerdefinierten Einstellungen
+          all_defaults_active: Alle System-Defaults aktiv
+        role_select:
+          role: Rolle
+          select_role: Rolle auswählen...
+        new:
+          title: Neuen Benutzer erstellen
+          subtitle: Erstellen Sie einen neuen Benutzer mit einer neuen oder bestehenden
+            Organisation.
+          user_information: Benutzer-Informationen
+          first_name: Vorname
+          last_name: Nachname
+          email: E-Mail-Adresse
+          temp_password_hint: Der Benutzer erhält ein temporäres Passwort, das nach
+            der Erstellung angezeigt wird.
+          user_is_active: Benutzer ist aktiv
+          active_hint: Nur aktive Benutzer können sich anmelden und das System verwenden.
+          organisation: Organisation
+          create_new_organisation: Neue Organisation erstellen
+          add_to_existing_organisation: Zu bestehender Organisation hinzufügen
+          organisation_name: Name der Organisation
+          subdomain_optional: Subdomain (optional)
+          subdomain_hint: Wird für URL-Zugriff verwendet (z.B. muster-gmbh.lalabase.com)
+          custom_domain_optional: Custom Domain (optional)
+          custom_domain_hint: Custom Domain für die Organisation
+          select_organisation: Organisation auswählen...
+          select_organisation_first: Bitte zuerst eine Organisation auswählen.
+          back_to_overview: Zurück zur Übersicht
+          create_user: Benutzer erstellen
+          important_info_title: Wichtige Informationen
+          important_info_new_org_html: 'Bei <strong>neuer Organisation</strong>: Der
+            Benutzer wird automatisch als Account-Admin eingerichtet'
+          important_info_existing_org_html: 'Bei <strong>bestehender Organisation</strong>:
+            Die gewählte Rolle wird dem Benutzer zugewiesen'
+          important_info_temp_password: Ein temporäres Passwort wird generiert und
+            nach der Erstellung angezeigt
+          important_info_change_password: Der Benutzer sollte dieses Passwort beim
+            ersten Login ändern
+    devise:
+      registrations:
+        new:
+          mockup_steps_eyebrow: Erste Schritte
+          mockup_step_create_account: Konto anlegen
+          mockup_step_create_project: Erstes Projekt erstellen
+          mockup_step_invite_team: Team einladen
+      sessions:
+        new:
+          mockup_eyebrow: Deine Inbox wartet
+          mockup_new_tickets: 3 neue Tickets warten
+          mockup_commented: Maria hat kommentiert
+          mockup_time_tracking: Zeiterfassung läuft
+    helpers:
+      application:
+        unknown_user: Unbekannter Benutzer
+        document_fallback: Dokument
+        time_session_for: Zeitsitzung für %{title}
+        status_label: 'Status:'
+        priority_label: 'Priorität:'
+        event_description:
+          mention: Wenn du in Kommentaren oder Tickets erwähnt wirst
+          ticket_assigned: Wenn dir ein Ticket zugewiesen wird
+          ticket_blocker: Wenn sich die Priorität eines Tickets ändert
+          ticket_commented: Wenn jemand ein Ticket kommentiert
+          ticket_status_changed: Wenn sich der Status eines Tickets ändert
+          document_added: Wenn neue Dokumente zu Projekten hinzugefügt werden
+          project_announcement: Wichtige Projektankündigungen
+          system_message: Systemnachrichten und administrative Mitteilungen
+          index_completed: Wenn die Code-Indexierung eines verbundenen Repositories
+            abgeschlossen ist
+          index_failed: Wenn die Code-Indexierung eines Repositories fehlschlägt
+      roles:
+        descriptions:
+          accounts:
+            add_edit_delete_roles: Ermöglicht das Erstellen, Bearbeiten und Löschen
+              von Rollen.
+            create_account_admins: Erlaubt das Erstellen von Account-Administratoren.
+            manage_users: Ermöglicht die Verwaltung aller Benutzer der Organisation.
+            remove_account_admins: Erlaubt das Entfernen von Account-Administrator-Berechtigungen.
+            close_account: Ermöglicht das Schließen des gesamten Kontos der Organisation.
+          projects:
+            change_project_properties: Erlaubt das Ändern von Projekteigenschaften
+              wie Name und Beschreibung und das Bearbeiten von Projektmitgliedern.
+            create_new_projects: Ermöglicht das Erstellen neuer Projekte in der Organisation.
+            delete_projects: Erlaubt das Löschen von Projekten.
+            read_access_chats_all_projects: Gibt Lesezugriff auf die Chat-Bereiche
+              aller Projekte der Organisation.
+            read_access_notes_all_projects: Gibt Lesezugriff auf die Notiz-Bereiche
+              aller Projekte der Organisation.
+            read_access_tickets_all_projects: Gibt Lesezugriff auf die Ticket-Bereiche
+              aller Projekte der Organisation.
+            read_access_documents_all_projects: Gibt Lesezugriff auf die Dokument-Bereiche
+              aller Projekte der Organisation.
+            read_access_time_tracking_all_projects: Gibt Lesezugriff auf die Zeiterfassung
+              aller Projekte der Organisation.
+            write_access_chats_all_projects: Gibt Schreibzugriff auf die Chat-Bereiche
+              aller Projekte der Organisation.
+            write_access_notes_all_projects: Gibt Schreibzugriff auf die Notiz-Bereiche
+              aller Projekte der Organisation.
+            write_access_tickets_all_projects: Gibt Schreibzugriff auf die Ticket-Bereiche
+              aller Projekte der Organisation.
+            write_access_documents_all_projects: Gibt Schreibzugriff auf die Dokument-Bereiche
+              aller Projekte der Organisation.
+            write_access_time_tracking_all_projects: Gibt Schreibzugriff auf die Zeiterfassung
+              aller Projekte der Organisation.
+          tickets:
+            delete_tickets: Erlaubt das Löschen von Tickets und deren zugehörigen
+              Inhalten.
+            move_tickets: Erlaubt das Verschieben von Tickets in andere Projekte.
+          users:
+            view_user_contact_details: Ermöglicht das Anzeigen von Kontaktdaten anderer
+              Benutzer.
+            view_user_full_name: Erlaubt das Anzeigen vollständiger Namen anderer
+              Benutzer.
+          assistant:
+            use_assistant: Erlaubt die Nutzung des organisationsweiten KI-Assistenten.
+          none_available: Keine Beschreibung verfügbar
+        categories:
+          assistant: Assistent
+          accounts: Konten & Organisationen
+          projects: Projekte
+          tickets: Tickets
+          users: Benutzer
+    layouts:
+      docs:
+        title_with_page: "%{page} · Lalabase Docs"
+        title_default: Lalabase Dokumentation
+    organisations:
+      briefings:
+        onboarding_banner:
+          title: Das hier ist deine Organisation — dein eigener Bereich in Lalabase.
+          body: Am besten startest du im Projekt „%{project_name}“ — ein paar kurze Aufgaben zeigen dir dort, wie Lalabase funktioniert.
+          cta: Loslegen
+          dismiss: Hinweis ausblenden
+      new_organisation_form:
+        name_label: Name der Organisation
+        name_placeholder: z.B. Mein Unternehmen GmbH
+        admin_hint: Sie werden automatisch Administrator der neuen Organisation.
+        merge_warning_html: "<strong>Achtung:</strong> Eine eigene Organisation nur
+          für eine eigenständige Einheit anlegen (andere Firma, Rechtsform, eigene
+          Abrechnung). Organisationen lassen sich später <strong>nicht zusammenführen</strong>
+          &mdash; für Abteilungen oder Teams sind <strong>Projekte</strong> die bessere
+          Wahl."
+        cancel: Abbrechen
+        submit: Organisation anlegen
+      accept_invitations:
+        show:
+          title: Einladung annehmen
+          errors_heading: 'Fehler:'
+          email_label: E-Mail-Adresse
+          password_label: Passwort
+          password_confirmation_label: Passwort bestätigen
+          submit: Einladung annehmen
+          signed_in_hint: Sie sind mit dieser E-Mail-Adresse angemeldet. Die Einladung wird Ihrem bestehenden Konto hinzugefügt.
+          wrong_account_hint: Sie sind als %{email} angemeldet. Melden Sie sich ab und öffnen Sie den Einladungslink erneut, oder bitten Sie um eine Einladung an diese Adresse.
+        success:
+          title: Einladung erfolgreich angenommen
+          message_can_sign_in: Ihre Einladung wurde erfolgreich angenommen. Sie können
+            sich jetzt anmelden.
+          message: Ihre Einladung wurde erfolgreich angenommen.
+      memberships:
+        edit:
+          role_blank: Keine Rolle zugewiesen
+          active_label: Aktives Mitglied
+      notes:
+        note_show:
+          edit_title: Notiz bearbeiten
+          embedding_error_title: 'Fehler beim Erstellen der Embeddings: %{error}'
+      permissions:
+        index:
+          title: Berechtigungen für Rolle "%{role}"
+          back_to_roles: Zurück zu Rollen
+      posts:
+        edit:
+          content_placeholder: Nachricht eingeben...
+        form:
+          content_placeholder: Nachricht eingeben...
+          unavailable: Formular kann nicht angezeigt werden. Bitte aktualisieren Sie
+            die Seite.
+        edit_view:
+          content_placeholder: Nachricht eingeben...
+          remove_attachment: Entfernen
+          attach_files: Dateien anhängen
+          ask_ai: KI um Hilfe bitten
+          delete: Löschen
+          cancel: Abbrechen
+          update: Aktualisieren
+      power_search:
+        index:
+          title: Suchergebnisse
+        power_search_results:
+          match_fulltext: Volltext Treffer
+          match_semantic: Semantischer Treffer
+          match_unknown: Unbekannter Treffer
+      activities:
+        shared:
+          empty_title: Keine Aktivitäten gefunden
+          empty_filtered: Es wurden keine Aktivitäten gefunden, die Ihren Filterkriterien
+            entsprechen.
+          reset_filter: Filter zurücksetzen
+          empty_none: Für dieses Projekt wurden noch keine Aktivitäten aufgezeichnet.
+      roles:
+        edit:
+          badge_default: Standard-Rolle
+          badge_admin: Administrator
+          badge_custom: Benutzerdefinierte Rolle
+          error_noun: Fehler
+          error_prevented: 'verhindert das Speichern dieser Rolle:'
+          label_title: Titel
+          label_description: Beschreibung
+          permissions: Berechtigungen
+          permissions_intro: Wählen Sie die Berechtigungen aus, die dieser Rolle zugewiesen
+            werden sollen. Diese Berechtigungen gelten für alle Benutzer, die diese
+            Rolle haben.
+          category_hint: Wählen Sie unten eine Kategorie aus, um spezifische Berechtigungen
+            zu konfigurieren
+          tab_project_details: Projekt-Details
+          group_read: Lese-Berechtigungen
+          group_write: Schreib-Berechtigungen
+          group_other: Andere Berechtigungen
+          group_permissions: Berechtigungen
+          project_scope_info: Verwenden Sie die bereichsspezifischen Berechtigungen,
+            um detailliert zu steuern, welche Benutzer auf welche Projektdaten zugreifen
+            können. Die Berechtigungen sind nach Funktionsbereichen (Tickets, Notizen,
+            Chats, Dokumente, Zeiterfassung) organisiert.
+      select:
+        unread_title:
+          one: 1 ungelesene Benachrichtigung
+          other: "%{count} ungelesene Benachrichtigungen"
+        faq_heading: Hilfe & Erklärungen
+        faq_q_org: Was ist eine Organisation?
+        faq_q_project: Was ist ein Projekt?
+        faq_q_when: Wann sollte ich eine neue Organisation anlegen?
+        faq_q_membership: Kann ich Mitglied mehrerer Organisationen sein?
+        info_org_html: Eine <strong>Organisation</strong> ist Ihr Unternehmen oder
+          Team. Sie bildet den Rahmen für Mitglieder, Rollen und Berechtigungen. Alle
+          Daten sind strikt nach Organisation getrennt.
+        info_projects_html: "<strong>Projekte</strong> sind Arbeitsbereiche innerhalb
+          einer Organisation. Sie enthalten Tickets, Dokumente und Zeiterfassung.
+          Ein Team kann beliebig viele Projekte verwalten."
+        faq_a_when_html: Legen Sie eine neue Organisation nur an, wenn es sich um eine
+          eigenständige Einheit handelt &mdash; z.&thinsp;B. eine andere Firma, eine
+          separate Rechtsform oder einen Bereich mit eigener Abrechnung. Daten zwischen
+          Organisationen lassen sich nachträglich <strong>nicht zusammenführen</strong>.
+          Die meisten Fälle (Abteilungen, Teams, Themenbereiche) bilden Sie besser mit
+          <strong>Projekten</strong> innerhalb einer Organisation ab.
+        info_membership_html: Sie können Mitglied mehrerer Organisationen sein &mdash;
+          z.B. wenn Sie in verschiedenen Unternehmen oder Teams arbeiten. Der Wechsel
+          zwischen Organisationen ist jederzeit hier möglich.
+        your_organisations: Deine Organisationen
+        cockpit:
+          needs_you:
+            one: 1 Sache braucht dich
+            other: "%{count} Dinge brauchen dich"
+          subtitle: Über alle deine Organisationen hinweg.
+          tasks_count:
+            one: 1 Aufgabe
+            other: "%{count} Aufgaben"
+          load_error: Konnte diese Organisation gerade nicht laden.
+          open_org: Alle ansehen
+          open_org_aria: Alle Einträge in %{org} öffnen
+          unread_count:
+            one: 1 ungelesen
+            other: "%{count} ungelesen"
+          empty_title: Alles ruhig
+          empty_description: Über alle deine Organisationen hinweg ist gerade nichts Offenes für dich.
+          rows:
+            organisation: Organisation
+            tasks: Aufgaben
+            todos: Meine To-dos
+            quiet: alles ruhig
+            members:
+              one: 1 Mitglied
+              other: "%{count} Mitglieder"
+            overdue: überfällig
+            new_organisation: Neue Organisation
+        cockpit_settings:
+          gear_label: Cockpit-Einstellungen
+          title: Cockpit-Einstellungen
+          actions_label: Org-Aufgaben
+          actions_help: Was über alle Organisationen ansteht.
+          show: anzeigen
+          importance_label: Wichtigkeit
+          importance_help: Wie streng gefiltert wird.
+          importance:
+            notifications: Nur Benachrichtigungen
+            notifications_help: Nur Ungelesenes.
+            important: Wichtiges
+            important_help: Ungelesenes + überfällige / hohe Priorität.
+            all: Alles
+            all_help: Alle zugewiesenen aktiven Aufgaben.
+          todos_label: Persönliche To-dos
+          todos_help: Deine private Liste je Organisation.
+          layout_label: Layout
+          layout_help: Anordnung des Cockpits.
+          layout:
+            stacked: Gestapelt
+            rows_compact: Zeilen kompakt
+            rows_detailed: Zeilen detailliert
+          save: Speichern
+          cancel: Abbrechen
+        todos:
+          heading: Meine To-dos
+          priority:
+            medium: Mittel
+            high: Hoch
+      smart_folders:
+        form:
+          error_noun: Fehler
+          error_on_save: 'beim Speichern:'
+          sorting_label: Sortierung
+          rules_hint_1: Definieren Sie eine oder mehrere Regelgruppen.
+          rules_hint_2: Regeln innerhalb einer Gruppe werden mit UND verknüpft.
+          rules_hint_3: Gruppen untereinander werden mit ODER verknüpft.
+          columns_chosen_in_list: Welche Spalten diese Ansicht zeigt, wählst du in der Liste über das Reglersymbol am Ende der Kopfzeile.
+        edit:
+          title: Smart Folder bearbeiten
+        new:
+          title: Neuer Smart Folder
+      tags:
+        tag_form:
+          placeholder: Tags eingeben, durch Kommas getrennt
+          hint: Tags durch Kommas trennen (z.B. "wichtig, meeting, todo")
+        tag_list:
+          label: Tags
+      ticket_attribute_definitions:
+        form:
+          errors_prevent_save: "%{count} Fehler verhindert das Speichern:"
+          label_de_placeholder: z.B. Kundentyp
+          label_en_placeholder: z.B. Customer Type
+          required_label: Pflichtfeld
+          min_length_label: Min. Länge
+          max_length_label: Max. Länge
+          more_settings_heading: Weitere Einstellungen
+          section_placeholder: z.B. general, contact, technical
+          section_hint: Gruppiert Felder in Abschnitte
+          width_label: Feldbreite
+          width_full: Volle Breite
+          width_half: Halbe Breite
+          width_third: Ein Drittel
+          active_label: Aktiv
+          usage_tickets:
+            one: "%{count} Ticket"
+            other: "%{count} Tickets"
+          merge_option_link: Zusammenführen
+        merge_option:
+          project_label: Projekt
+          attribute_label: Attribut
+          field_type_label: Feldtyp
+          source_option_label: Quell-Option (wird entfernt)
+          target_option_label: Ziel-Option (Werte werden hierhin verschoben)
+          target_option_prompt: Ziel-Option wählen...
+          affected_tickets:
+            one: "%{count} Ticket betroffen"
+            other: "%{count} Tickets betroffen"
+          affected_hint: Diese Tickets werden automatisch auf den neuen Wert umgeschrieben.
+          none_affected_hint: Keine Tickets verwenden diesen Wert. Die Option wird
+            nur entfernt.
+          smart_folders_hint_title: Hinweis zu Smart Folders
+          smart_folders_hint_body: Smart-Folder-Regeln, die den Quell-Wert verwenden,
+            werden nicht automatisch aktualisiert und müssen manuell angepasst werden.
+      tickets:
+        overdue: "überfällig"
+        due_on: "fällig am %{date}"
+        overdue_since: "überfällig seit %{date}"
+        due_today: "heute fällig"
+        update:
+          errors_found: "%{count} Fehler gefunden:"
+          success_message: Task wurde erfolgreich aktualisiert.
+        detail_settings_modal:
+          preview:
+            heading_date: vor 3 Tagen
+            example_task: Beispiel-Aufgabe
+            subtask_example_1: Texte liefern
+            subtask_example_2: Bilder besorgen
+            status_new: Neu
+            priority_high: Hoch
+            time_verbose: 2,50 Stunden (gesamt)
+            subscriber_you: Du
+      time_sessions:
+        show_errors:
+          errors_count:
+            one: "%{count} Fehler"
+            other: "%{count} Fehler"
+          found_suffix: 'gefunden:'
+  components:
+    neo_activity_filter:
+      add_filter: Filter
+      reset_button: Zurücksetzen
+      search_label: Aktivitäten durchsuchen
+      search_placeholder: Suchen
+      remove_filter: "Filter %{label} entfernen"
+      result_count:
+        one: Aktivität
+        other: Aktivitäten
+      tabs:
+        label: Aktivitätsansicht
+        all: Alles
+        mine: Von mir
+        tickets: Nur Tickets
+      sentence:
+        all: Alle Änderungen
+        filtered: Nur Änderungen
+        and: und
+      categories:
+        area: Bereich
+        action: Aktion
+        actor: Person
+        period: Zeitraum
+      areas:
+        tickets: Tickets
+        knowledge: Wissen
+        times: Zeiten
+        administration: Verwaltung
+      periods:
+        last_7_days: Letzte 7 Tage
+        last_30_days: Letzte 30 Tage
+        in_month: "im %{month}"
+        custom: Eigener Zeitraum
+        apply: Übernehmen
+        from: ab
+        until: bis
+      actions:
+        created: Erstellt
+        updated: Aktualisiert
+        deleted: Gelöscht
+        status_changed: Status geändert
+        priority_changed: Priorität geändert
+        title_changed: Titel geändert
+        description_changed: Beschreibung geändert
+        assigned: Zugewiesen
+        unassigned: Zuweisung entfernt
+        comment_added: Kommentar hinzugefügt
+        post_added: Kommentar geschrieben
+        moved: Verschoben
+        moved_in: Ins Projekt verschoben
+        moved_out: Aus Projekt verschoben
+        ticket_created: Ticket erstellt
+        ticket_moved_in: Ins Projekt verschoben
+        ticket_moved_out: Aus Projekt verschoben
+        document_created: Dokument erstellt
+        note_created: Notiz erstellt
+        chat_created: Chat erstellt
+        meeting_created: Meeting erstellt
+        meeting_deleted: Meeting gelöscht
+        smart_folder_created: Smart Folder erstellt
+        codebase_imported: Codebase importiert
+        started: Gestartet
+        stopped: Beendet
+        paused: Pausiert
+        resumed: Fortgesetzt
+        member_added: Mitglied hinzugefügt
+        member_removed: Mitglied entfernt
+        permission_changed: Berechtigung geändert
+        role_changed: Rolle geändert
+    neo_autosuggest:
+      placeholder: Auswählen...
+      blank_text: Alle
+      server:
+        hint: Nummer oder Titel eingeben
+        loading: Suche …
+        empty: Keine Treffer
+        error: Die Suche ist fehlgeschlagen. Bitte noch einmal tippen.
+    neo_notification_card:
+      mark_read_title: Als gelesen markieren
+      show: Anzeigen
+      archive_title: Archivieren
+      from: 'Von:'
+      go_to_ticket_title: Zum Ticket gehen
+      ticket: Ticket
+      read: Gelesen
+      archive: Archiv
+      event_labels:
+        ticket_commented: Neuer Kommentar
+        ticket_assigned: Zugewiesen
+        ticket_unassigned: Zuweisung entfernt
+        ticket_status_changed: Status geändert
+        ticket_created: Ticket erstellt
+        ticket_updated: Ticket aktualisiert
+        ticket_closed: Ticket geschlossen
+        mention: Erwähnung
+        document_added: Dokument hinzugefügt
+        project_announcement: Projekt-Ankündigung
+      more_activities:
+        one: und 1 weitere Aktivität
+        other: und %{count} weitere Aktivitäten
+      fallback_message: 'Benachrichtigung: %{actor} hat eine Aktion zu %{notifiable}
+        durchgeführt'
+      document_fallback: Dokument
+    neo:
+      buttons:
+        delete_button:
+          confirm: Sind Sie sicher?
+          title: Löschen
+        watch_button:
+          override_active: Manuell aktiviert
+          override_inactive: Manuell deaktiviert
+          text_active: Aktiv
+          text_inactive: Aus
+          title_deactivate: Benachrichtigungen deaktivieren
+          title_activate: Benachrichtigungen aktivieren

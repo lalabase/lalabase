@@ -1,0 +1,28 @@
+{
+  "data": {
+    "price_list": {
+      "plan": "cloud",
+      "currency": "EUR",
+      "billing_intervals": [
+        { "key": "monthly", "months": 1 },
+        { "key": "yearly", "months": 12 }
+      ],
+      "tiers": [
+        { "billing_interval": "monthly", "min_seats": 1, "max_seats": 2, "base_amount_cents": 2900, "per_seat_amount_cents": 0 },
+        { "billing_interval": "monthly", "min_seats": 3, "max_seats": 3, "base_amount_cents": 4400, "per_seat_amount_cents": 0 },
+        { "billing_interval": "monthly", "min_seats": 4, "max_seats": 4, "base_amount_cents": 5900, "per_seat_amount_cents": 0 },
+        { "billing_interval": "monthly", "min_seats": 5, "max_seats": 5, "base_amount_cents": 7400, "per_seat_amount_cents": 0 },
+        { "billing_interval": "monthly", "min_seats": 6, "max_seats": 6, "base_amount_cents": 8900, "per_seat_amount_cents": 0 },
+        { "billing_interval": "monthly", "min_seats": 7, "max_seats": 10, "base_amount_cents": 10000, "per_seat_amount_cents": 0 },
+        { "billing_interval": "monthly", "min_seats": 11, "max_seats": null, "base_amount_cents": 0, "per_seat_amount_cents": 1000 },
+        { "billing_interval": "yearly", "min_seats": 1, "max_seats": 2, "base_amount_cents": 27840, "per_seat_amount_cents": 0 },
+        { "billing_interval": "yearly", "min_seats": 3, "max_seats": 3, "base_amount_cents": 42240, "per_seat_amount_cents": 0 },
+        { "billing_interval": "yearly", "min_seats": 4, "max_seats": 4, "base_amount_cents": 56640, "per_seat_amount_cents": 0 },
+        { "billing_interval": "yearly", "min_seats": 5, "max_seats": 5, "base_amount_cents": 71040, "per_seat_amount_cents": 0 },
+        { "billing_interval": "yearly", "min_seats": 6, "max_seats": 6, "base_amount_cents": 85440, "per_seat_amount_cents": 0 },
+        { "billing_interval": "yearly", "min_seats": 7, "max_seats": 10, "base_amount_cents": 96000, "per_seat_amount_cents": 0 },
+        { "billing_interval": "yearly", "min_seats": 11, "max_seats": null, "base_amount_cents": 0, "per_seat_amount_cents": 9600 }
+      ]
+    }
+  }
+}

@@ -1,0 +1,498 @@
+---
+de:
+  flash:
+    shared:
+      not_authorized: "Sie haben keine Berechtigung für diese Aktion."
+      not_member: "Sie sind kein aktives Mitglied dieser Organisation."
+      no_org_access: "Sie haben keinen Zugriff auf diese Organisation."
+      project_not_found: "Das angeforderte Projekt konnte nicht gefunden werden."
+      no_project_access: "Sie haben keine Berechtigung für dieses Projekt."
+      admin_required: "Sie benötigen Admin-Rechte für diese Aktion."
+      save_error: "Fehler beim Speichern: %{error}"
+      delete_error: "Fehler beim Löschen: %{error}"
+      unexpected_error: "Ein unerwarteter Fehler ist aufgetreten: %{error}"
+      object_updated: "%{object} wurde erfolgreich aktualisiert."
+    bot_trap:
+      # Bewusst neutral: die Meldung darf nicht verraten, WAS ausgeloest hat,
+      # sonst baut der Absender seinen Bot genau daran vorbei.
+      rejected: "Das Formular konnte nicht verarbeitet werden. Bitte lade die Seite neu und versuche es noch einmal."
+    accept_invitations:
+      invalid_invitation: "Ungültige oder bereits angenommene Einladung."
+      accepted: "Einladung erfolgreich angenommen!"
+      accept_terms: "Bitte akzeptieren Sie die AGB und Datenschutzbestimmungen."
+      sign_in_required: "Zu dieser E-Mail-Adresse gibt es schon ein Konto. Bitte melden Sie sich an, danach können Sie die Einladung annehmen."
+      wrong_account: "Diese Einladung gilt für eine andere E-Mail-Adresse als die, mit der Sie angemeldet sind."
+    signup_handoffs:
+      # Eine Antwort für jeden Fehlschlag (abgelaufen, schon benutzt, erfunden):
+      # Unterscheiden würde nur dem helfen, der rät.
+      invalid: "Dieser Anmeldelink ist nicht mehr gültig. Bitte melden Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort an."
+    registrations:
+      accept_terms: "Bitte akzeptieren Sie die AGB und bestätigen Sie, dass Sie die Datenschutzerklärung zur Kenntnis genommen haben."
+      # Nennt die Liste nicht und macht keine Ansage ueber den Anbieter: die
+      # Meldung soll den nächsten Versuch mit einer echten Adresse nahelegen,
+      # nicht den nächsten Versuch mit der nächsten Wegwerf-Domain.
+      disposable_email: "Bitte melde dich mit deiner geschäftlichen E-Mail-Adresse an. Adressen von Wegwerf-Diensten können wir nicht annehmen."
+      organisation_creation_failed: "Die Organisation konnte nicht angelegt werden, deshalb wurde auch kein Konto erstellt. Bitte versuche es noch einmal oder kontaktiere den Support."
+      founder_signup_incomplete: "Bitte fülle die Angaben zum Neugründer-Rabatt vollständig aus, oder entferne den Haken, wenn du ihn nicht beantragen möchtest."
+      # Bewusst "wir melden uns", NICHT "Rabatt aktiv": der Rabatt entsteht erst
+      # nach dem Telefonat und wird erst auf der ersten Rechnung wirksam
+      # (§ 12.3.4 doc/billing_preisliste_rabatt_plan.md).
+      founder_signup_received: "Deinen Antrag auf den Neugründer-Rabatt haben wir erhalten, wir melden uns telefonisch bei dir. Bis dahin kannst du Lalabase ganz normal nutzen."
+    account_deletions:
+      deleted_immediately: "Ihr Account wurde erfolgreich gelöscht. Auf Wiedersehen!"
+      scheduled: "Ihre Account-Löschung wurde für den %{date} geplant. Sie haben %{days} Tage Zeit, um die Löschung abzubrechen."
+      error: "Fehler beim Löschen: %{error}"
+      wrong_password: "Das Passwort ist nicht korrekt. Ihr Account wurde nicht gelöscht."
+    notification_unsubscribes:
+      unsubscribed: "Sie wurden von %{event_type}-Benachrichtigungen abgemeldet."
+      link_expired: "Dieser Abmelde-Link ist abgelaufen."
+      link_invalid: "Ungültiger Abmelde-Link."
+      link_error: "Ungültiger oder abgelaufener Abmelde-Link."
+      processing_error: "Bei der Verarbeitung Ihrer Anfrage ist ein Fehler aufgetreten."
+    organisations:
+      select_required: "Bitte wählen Sie eine Organisation aus."
+      selected: "Organisation erfolgreich ausgewählt."
+      select_error: "Es gab ein Problem bei der Auswahl der Organisation. Bitte versuchen Sie es erneut."
+      not_found: "Organisation konnte nicht ermittelt werden."
+    admin:
+      sessions:
+        logged_in: "Erfolgreich eingeloggt"
+        invalid_credentials: "Ungültige E-Mail oder Passwort"
+        logged_out: "Erfolgreich ausgeloggt"
+      forgery:
+        stale_form: "Das Formular war abgelaufen. Bitte die Seite neu laden und noch einmal senden."
+      organisations:
+        toggle_success: "Code-Index für %{name} ist jetzt %{state}."
+        toggle_data_import_success: "Datenimport für %{name} ist jetzt %{state}."
+        toggle_assistant_success: "Assistent für %{name} ist jetzt %{state}."
+        quota_updated: "KI-Kontingent für %{name} wurde aktualisiert."
+      beusers:
+        saved: "Daten wurden gespeichert"
+        created: "Ein neuer Administrator wurde angelegt."
+        password_changed: "Passwort wurde geändert"
+        deleted: "User wurde gelöscht."
+        delete_failed: "User konnte nicht gelöscht werden."
+        cannot_delete_self: "Das eigene Admin-Konto kann nicht gelöscht werden."
+      ai_credentials:
+        delete_blocked: "Die Zugangsdaten konnten nicht gelöscht werden, weil ein KI-Paket sie inzwischen verwendet."
+        created: "AI Credential wurde erfolgreich erstellt."
+        updated: "AI Credential wurde erfolgreich aktualisiert."
+        deleted: "AI Credential wurde erfolgreich gelöscht."
+        activated: "%{name} ist jetzt Standard-Credential für %{provider}."
+        activate_error: "Fehler beim Setzen des Standards: %{error}"
+        enabled: "%{name} wurde aktiviert."
+        disabled: "%{name} wurde deaktiviert."
+        connection_success: "Verbindung zu %{provider} erfolgreich getestet."
+        connection_failed: "Verbindungstest zu %{provider} fehlgeschlagen."
+        vertex_availability_checked: "Modell-Verfügbarkeit wurde geprüft."
+        vertex_availability_error: "Verfügbarkeitsprüfung fehlgeschlagen: %{error}"
+        vertex_availability_unsupported: "Modell-Verfügbarkeit gibt es nur für Google-Credentials."
+      ai_packages:
+        created: "KI-Paket wurde erfolgreich erstellt."
+        updated: "KI-Paket wurde erfolgreich aktualisiert."
+        deleted: "KI-Paket wurde erfolgreich gelöscht."
+        vertex_checked: "Modell-Verfügbarkeit wurde für die Google-Credentials dieses Pakets geprüft."
+        delete_blocked: "Das Paket konnte nicht gelöscht werden, weil noch etwas darauf verweist."
+        vertex_check_error: "Verfügbarkeitsprüfung fehlgeschlagen: %{error}"
+        vertex_check_unsupported: "Dieses Paket referenziert kein Google-Credential — es gibt nichts zu prüfen."
+      ai_credential_documents:
+        created: "Das Dokument wurde hinterlegt."
+        updated: "Das Dokument wurde berichtigt."
+        deleted: "Das Dokument wurde gelöscht."
+        delete_blocked: "Das Dokument kann nicht gelöscht werden — es belegt eine erfasste Bewertung."
+        version_conflict: "Diese Fassung des Papiers wurde soeben von jemand anderem angelegt. Bitte die Liste neu laden und die vorhandene Zeile ansehen."
+        file_unreadable: "Die Datei konnte nicht gelesen werden. Bitte das PDF erneut auswählen."
+      ai_credential_contracts:
+        created: "Die Bewertung wurde erfasst."
+        ended: "Die Bewertung wurde beendet."
+        end_date_invalid: "Das Enddatum konnte nicht gelesen werden."
+        end_date_not_earlier: "Eine laufende Bewertung kann nur verkürzt werden — das neue Enddatum muss vor dem bisherigen und darf nicht vor dem Beginn liegen."
+      system_settings:
+        registration_updated: "Registrierungseinstellungen wurden aktualisiert."
+        deletion_updated: "Löschungseinstellungen wurden aktualisiert."
+        ai_quota_updated: "KI-Kontingent-Standard wurde aktualisiert."
+        legal_identity_updated: "Betreiber und Rechtsseiten wurden gespeichert."
+      email_logs:
+        date_range_limited: "Datumsbereich auf %{days} Tage begrenzt"
+        resend_queued: "E-Mail zum erneuten Senden eingereiht"
+        resend_failed: "E-Mail kann nicht erneut gesendet werden"
+      users:
+        created_with_new_org: "Benutzer %{email} und Organisation '%{org_name}' wurden erfolgreich erstellt. Temporäres Passwort: %{password}"
+        created_with_existing_org: "Benutzer %{email} wurde der Organisation '%{org_name}' mit Rolle '%{role}' hinzugefügt. Temporäres Passwort: %{password}"
+        create_error: "Fehler beim Erstellen: %{error}"
+        toggled: "Benutzer %{email} wurde %{status}."
+        toggle_error: "Fehler beim Ändern des Status: %{error}"
+        deleted: "Account %{email} wurde erfolgreich gelöscht."
+        email_confirmation_mismatch: "Löschung abgebrochen: Die eingegebene E-Mail-Adresse stimmt nicht mit der des Accounts überein."
+        membership_removed: "User %{email} wurde aus %{org_name} entfernt."
+        membership_removed_backend: "User %{email} wurde aus %{org_name} entfernt (Backend-Operation)."
+        deletion_recommended: " Der Benutzer hat keine weiteren Organisationen und wurde zur Löschung markiert."
+        membership_remove_error: "Fehler beim Entfernen der Mitgliedschaft: %{error}"
+        membership_remove_service_error: "Fehler beim Entfernen: %{error}"
+    projects:
+      created: "Projekt wurde erfolgreich angelegt."
+      updated: "Projekt wurde erfolgreich aktualisiert."
+      archived: "Projekt '%{name}' archiviert. %{count} Benachrichtigungen archiviert."
+      already_archived: "Projekt '%{name}' war bereits archiviert."
+      restored: "Projekt '%{name}' wiederhergestellt."
+      already_restored: "Projekt '%{name}' war bereits wiederhergestellt."
+      deleting: "Projekt '%{name}' wird im Hintergrund gelöscht."
+      default_attributes_created: "Standard-Attribute wurden erfolgreich angelegt."
+    roles:
+      permission_beyond_reach: "Du kannst nur Rechte vergeben oder entziehen, die du selbst hast."
+      created: "Rolle wurde erfolgreich erstellt. Bitte legen Sie nun die Berechtigungen fest."
+      updated: "Rolle und Berechtigungen wurden erfolgreich aktualisiert."
+      deleted: "Rolle wurde erfolgreich gelöscht."
+      default_set: "Standardrolle wurde erfolgreich festgelegt."
+      account_admin_no_edit: "Die Account-Admin-Rolle kann nicht bearbeitet werden."
+      account_admin_no_change: "Die Account-Admin-Rolle kann nicht geändert werden."
+      account_admin_no_delete: "Die Account-Admin-Rolle kann nicht gelöscht werden."
+      account_admin_no_default: "Die Account-Admin-Rolle kann nicht als Standard festgelegt werden."
+      has_members: "Diese Rolle kann nicht gelöscht werden, da sie noch Benutzern zugeordnet ist."
+    memberships:
+      last_active_admin: "%{organisation} braucht mindestens einen aktiven Admin. Ernenne zuerst eine andere Person zum Admin."
+      updated: "Mitgliedschaft wurde erfolgreich bearbeitet."
+      remove_error: "Fehler beim Entfernen: %{error}"
+    invitations:
+      sent: "Einladung gesendet."
+      deleted: "Einladung gelöscht."
+      send_error: "Fehler beim Senden der Einladung."
+    project_permissions:
+      restored: "Projektberechtigung wurde erfolgreich wiederhergestellt."
+      created: "Projektberechtigung wurde erfolgreich erstellt."
+      updated: "Projektberechtigung wurde erfolgreich aktualisiert."
+      update_failed: "Berechtigung konnte nicht gespeichert werden."
+      deleted: "Projektberechtigung wurde erfolgreich entfernt."
+      blocked: "Zugriff auf dieses Projekt gesperrt. Das Rollenrecht gilt hier nicht mehr."
+      block_lifted: "Sperre aufgehoben. Es gilt wieder, was die Rolle erlaubt."
+      admin_cannot_be_revoked: "Ein Account-Admin hat Zugriff auf alle Projekte. Das lässt sich nur über die Rolle ändern."
+      not_a_member: "Diese Person hat keinen Zugriff auf dieses Projekt."
+      use_revoke_instead: "Diese Berechtigung kann hier nicht gelöscht werden. Nutzen Sie „Entfernen“, um jemanden aus dem Projekt zu nehmen."
+      time_sessions_updated: "TimeSession-Berechtigungen wurden aktualisiert."
+      no_view_permission: "Sie haben keine Berechtigung, die Projektmitglieder anzusehen."
+      no_manage_permission: "Sie haben keine Berechtigung, Projektmitglieder zu verwalten."
+    documentation_sets:
+      create:
+        success: "Dokumentation wurde verbunden."
+      update:
+        success: "Dokumentation wurde aktualisiert."
+      destroy:
+        success: "Dokumentation wurde getrennt."
+      sync:
+        started: "Synchronisierung wurde gestartet."
+    tickets:
+      created: "Ticket wurde erfolgreich erstellt."
+      updated: "Ticket wurde erfolgreich aktualisiert."
+      deleted: "Ticket wurde erfolgreich gelöscht."
+      delete_error: "Das Ticket konnte nicht gelöscht werden. Bitte versuchen Sie es später erneut."
+      delete_error_detail: "Das Ticket konnte nicht gelöscht werden: %{error}"
+      not_found: "Das angeforderte Ticket konnte nicht gefunden werden."
+      no_edit_permission: "Sie haben keine Berechtigung, Tickets zu bearbeiten."
+      no_delete_permission: "Sie haben keine Berechtigung, dieses Ticket zu löschen."
+      ai_not_configured: "AI-Service ist für diese Organisation nicht konfiguriert."
+      ai_no_api_key: "Die Zusammenfassungsfunktion ist nicht verfügbar, da kein gültiger API-Schlüssel konfiguriert ist."
+      ai_invalid_key: "Der API-Schlüssel ist ungültig. Bitte prüfen Sie die Konfiguration."
+      ai_error: "Fehler beim Erstellen der Zusammenfassung. Bitte versuchen Sie es später erneut."
+      summary_created: "Zusammenfassung wurde erstellt."
+      summary_error: "Fehler beim Erstellen der Zusammenfassung."
+      target_project_not_found: "Zielprojekt nicht gefunden."
+    posts:
+      created: "Post wurde erfolgreich erstellt."
+      deleted: "Beitrag wurde erfolgreich gelöscht."
+      create_error: "Post konnte nicht erstellt werden."
+      no_create_permission: "Sie haben keine Berechtigung, Beiträge zu erstellen."
+      no_edit_permission: "Sie haben keine Berechtigung, Beiträge zu bearbeiten."
+      no_delete_permission: "Sie haben keine Berechtigung, Beiträge zu löschen."
+      not_found: "Der angeforderte Beitrag konnte nicht gefunden werden."
+      ticket_not_found: "Das angeforderte Ticket konnte nicht gefunden werden."
+      ai_not_configured: "AI-Service ist für diese Organisation nicht konfiguriert."
+      ai_invalid_key: "Der AI-Service konnte nicht genutzt werden: Ungültiger API-Schlüssel. Bitte prüfen Sie die Konfiguration."
+      ai_error: "Der AI-Service konnte nicht genutzt werden: %{error}"
+      ai_fallback: "Der AI-Service konnte nicht genutzt werden. Der Post wurde ohne AI-Unterstützung gespeichert."
+    notes:
+      created: "Notiz wurde erfolgreich erstellt."
+      updated: "Notiz wurde erfolgreich aktualisiert."
+      deleted: "Notiz wurde erfolgreich gelöscht."
+      delete_error: "Die Notiz konnte nicht gelöscht werden. Bitte versuchen Sie es später erneut."
+      delete_error_detail: "Die Notiz konnte nicht gelöscht werden: %{error}"
+      no_create_permission: "Sie haben keine Berechtigung, neue Notizen zu erstellen."
+      no_edit_permission: "Sie haben keine Berechtigung, diese Notiz zu bearbeiten."
+      no_delete_permission: "Sie haben keine Berechtigung, diese Notiz zu löschen."
+      save_error: "Die Notiz konnte nicht gespeichert werden: %{errors}"
+    meetings:
+      created: "Meeting wurde erfolgreich erstellt."
+      created_hidden_by_filter: "Meeting wurde erstellt. Der aktive Filter blendet es in dieser Liste aus."
+      updated: "Meeting wurde erfolgreich aktualisiert."
+      deleted: "Meeting wurde erfolgreich gelöscht."
+      delete_error: "Das Meeting konnte nicht gelöscht werden. Bitte versuchen Sie es später erneut."
+      not_found: "Das Meeting existiert nicht mehr."
+      no_create_permission: "Sie haben keine Berechtigung, neue Meetings zu erstellen."
+      no_edit_permission: "Sie haben keine Berechtigung, dieses Meeting zu bearbeiten."
+      no_delete_permission: "Sie haben keine Berechtigung, dieses Meeting zu löschen."
+      summary_started: "Die Zusammenfassung wird erstellt."
+      summary_no_content: "Dieses Meeting enthält weder Notizen noch ein Transkript für eine Zusammenfassung."
+      summary_ai_unavailable: "Die KI-Zusammenfassung ist nicht verfügbar. Bitte prüfen Sie die KI-Einstellungen."
+      summary_already_running: "Die Zusammenfassung wird bereits erstellt."
+      search_enabled: "Für Suche & Chat freigegeben — der Inhalt wird indexiert."
+      search_disabled: "Aus der Suche entfernt."
+      search_no_content: "Dieses Meeting hat noch keinen Inhalt — erst Notizen oder Transkript speichern, dann freigeben."
+      search_toggle_error: "Die Such-Freigabe konnte nicht geändert werden. Bitte versuchen Sie es erneut."
+    meeting_ticket_links:
+      created: "Aufgabe wurde mit dem Meeting verknüpft."
+      removed: "Verknüpfung wurde entfernt."
+      already_linked: "Diese Aufgabe ist bereits mit dem Meeting verknüpft."
+      blank_selection: "Bitte zuerst eine Aufgabe auswählen."
+    ticket_relations:
+      created: "Die Tickets sind verknüpft."
+      removed: "Die Beziehung wurde entfernt."
+    meeting_analyses:
+      started: "Die Analyse wird erstellt."
+      published: "Die Analyse wurde veröffentlicht."
+      unpublished: "Die Analyse wurde zurückgezogen."
+      search_enabled: "Die Analyse ist jetzt in Suche & Chat auffindbar."
+      search_disabled: "Die Analyse wurde aus Suche & Chat entfernt."
+      deleted: "Die Analyse wurde gelöscht."
+      discarded: "Die Analyse wurde verworfen."
+      already_running: "Für dieses Meeting läuft bereits eine Analyse."
+      flip_running: "Die Analyse wird gerade erstellt und kann noch nicht geändert werden."
+      no_content: "Dieses Meeting enthält weder Notizen noch ein Transkript für eine Analyse."
+      ai_unavailable: "Die KI-Analyse ist nicht verfügbar. Bitte prüfen Sie die KI-Einstellungen."
+      assistant_unavailable: "Analysen entstehen jetzt im Assistenten, der für dich nicht freigeschaltet ist."
+      error: "Die Analyse konnte nicht verarbeitet werden."
+    analysis_prompts:
+      deleted: "Die Vorlage wurde gelöscht."
+    meeting_ticket_suggestions:
+      started: "Die Ticket-Vorschläge werden erstellt."
+      accepted: "Aus dem Vorschlag wurde eine Aufgabe angelegt."
+      dismissed: "Der Vorschlag wurde verworfen."
+      no_ticket_write: "Du hast keine Berechtigung, Aufgaben in diesem Projekt anzulegen."
+      assistant_unavailable: "Ticket-Vorschläge entstehen jetzt im Assistenten, der für dich nicht freigeschaltet ist."
+      error: "Der Vorschlag konnte nicht verarbeitet werden."
+    meeting_participant_claims:
+      linked:
+        one: "%{name}: 1 Meeting verknüpft."
+        other: "%{name}: %{count} Meetings verknüpft."
+      nothing_to_link: "%{name}: keine neuen Meetings zu verknüpfen."
+      link_failed: "Die Teilnahmen konnten nicht verknüpft werden."
+      rejected: "%{name} wird nicht mehr als Verknüpfungs-Vorschlag angezeigt."
+      target_missing: "Das Mitglied wurde nicht gefunden."
+    documents:
+      created: "Datei wurde erfolgreich hochgeladen."
+      updated: "Datei wurde erfolgreich aktualisiert."
+      deleted: "Datei wurde erfolgreich gelöscht."
+      delete_error: "Die Datei konnte nicht gelöscht werden. Bitte versuchen Sie es später erneut."
+      delete_error_detail: "Fehler beim Löschen der Datei: %{error}"
+      not_found: "Das gewünschte Dokument konnte nicht gefunden werden."
+      no_file_selected: "Bitte wählen Sie eine Datei aus."
+      save_error: "Das Dokument konnte nicht gespeichert werden. Bitte überprüfen Sie die Fehlermeldungen."
+      no_file_for_version: "Keine Datei für diese Version verfügbar."
+      no_text_version: "Für diese Version ist keine Textversion verfügbar."
+      all_versions_deleted: "Das Dokument wurde gelöscht, da keine Versionen mehr vorhanden sind."
+      version_deleted: "Version wurde erfolgreich gelöscht."
+      version_not_found: "Diese Version gibt es nicht mehr."
+      version_delete_error: "Fehler beim Löschen der Version: %{error}"
+      no_view_permission: "Sie haben keine Berechtigung, Dokumente anzusehen."
+      file_required: "Eine Datei muss ausgewählt werden"
+      no_edit_permission: "Sie haben keine Berechtigung, Dokumente zu bearbeiten."
+      smart_folder_not_found: "Der angegebene Ticket Filter wurde nicht gefunden."
+      save_error_detail: "Das Dokument konnte nicht gespeichert werden: %{errors}"
+    time_sessions:
+      created: "Zeitsession wurde erfolgreich erstellt"
+      updated: "Zeitsession wurde erfolgreich aktualisiert"
+      deleted: "Zeitsession wurde gelöscht"
+      only_own_delete: "Sie können nur Ihre eigenen Zeitsessions löschen"
+      only_own_groups: "Sie können nur eigene Zeit-Sessions Gruppen zuweisen."
+      already_assigned: "%{count} Zeit-Session(s) waren bereits Gruppen zugewiesen und wurden neu zugewiesen."
+      multi_project: "Die zugewiesenen Zeit-Sessions stammen aus %{count} verschiedenen Projekten: %{names}"
+      assigned_to_group: "%{count} Zeit-Session(s) wurden erfolgreich der Gruppe '%{group}' zugewiesen."
+      assign_error: "Fehler beim Zuweisen: %{error}"
+      select_project: "Bitte wählen Sie ein Projekt aus, um eine neue Zeitsession zu erstellen."
+      no_view_permission: "Sie haben keine Berechtigung, Zeitsessions anzusehen."
+      no_create_permission: "Sie haben keine Berechtigung, Zeitsessions zu erstellen."
+      no_edit_permission: "Sie haben keine Berechtigung, diese Zeitsession zu bearbeiten."
+      no_overview_permission: "Sie haben keine Berechtigung, die Zeiterfassung-Übersicht zu sehen."
+      smart_folder_not_found: "Der angegebene Ticket Filter wurde nicht gefunden."
+    time_session_groups:
+      created: "Abrechnung wurde erfolgreich erstellt."
+      updated: "Abrechnung wurde erfolgreich aktualisiert."
+      update_error: "Die Abrechnung konnte nicht aktualisiert werden. Bitte versuchen Sie es später erneut."
+      deleted: "Abrechnung wurde gelöscht."
+      descriptions_background: "Kundenbeschreibungen werden im Hintergrund erstellt. Dies kann einige Minuten dauern."
+      descriptions_error: "Fehler beim Erstellen der Kundenbeschreibungen. Bitte versuchen Sie es später erneut."
+      export_error: "Fehler beim Erstellen des Exports."
+    smart_folders:
+      results_error: "Fehler beim Laden der Ergebnisse."
+      cloned: "Ticket Filter wurde erfolgreich kopiert."
+      clone_error: "Ticket Filter konnte nicht kopiert werden: %{error}"
+      not_found: "Ticket Filter nicht gefunden."
+      share_success:
+        one: "%{count} Freigabe erfolgreich hinzugefügt."
+        other: "%{count} Freigaben erfolgreich hinzugefügt."
+      share_error: "Freigabe konnte nicht gespeichert werden."
+      share_select_users: "Bitte wählen Sie mindestens einen Benutzer zum Teilen aus."
+      unshared: "Freigabe entfernt."
+      created_from_filters: "Smart Folder erfolgreich erstellt."
+      create_from_filters_error: "Smart Folder konnte nicht erstellt werden."
+      updated_from_filters: "Filter wurde gespeichert."
+      update_from_filters_error: "Fehler beim Speichern des Filters."
+      destroy:
+        success: "SmartFolder wurde gelöscht."
+    assistant_preferences:
+      persona_error: Dieser Fokus steht dir nicht zur Auswahl.
+    assistant_chats:
+      scope_error: Dieses Projekt steht dir nicht zur Auswahl.
+      reference_error: Ein Bezug lässt sich hier nicht setzen.
+      reference_busy: Die laufende Nachricht wird erst abgeschlossen. Dein Entwurf und seine Bezüge bleiben unverändert.
+      # Die Obergrenze aus Assistant::ReferenceRegistry::MAX_REFERENCES, als
+      # count übergeben statt als Ziffer im Satz: die Zahl hat einen Besitzer,
+      # und ein zweiter Ort für sie wäre der erste Ort, an dem sie veraltet.
+      reference_limit: Mehr als %{count} Bezüge trägt ein Gespräch nicht. Nimm einen weg, dann geht der nächste.
+      created: "Neuer Verlauf gestartet."
+      create_error: "Der Verlauf konnte nicht gestartet werden."
+      deleted: "Verlauf gelöscht."
+      delete_error: "Der Verlauf konnte nicht gelöscht werden."
+    chatposts:
+      create_error: "Nachricht konnte nicht erstellt werden."
+      first_post_undeletable: "Die erste Nachricht eines Verlaufs kann nicht gelöscht werden."
+      deleted: "Nachricht wurde erfolgreich gelöscht."
+      delete_error: "Nachricht konnte nicht gelöscht werden."
+      chat_not_found: "Der angeforderte Chat konnte nicht gefunden werden."
+      no_permission: "Sie haben keine Berechtigung, mit Nachrichten zu arbeiten."
+    project_repositories:
+      create:
+        success: "Repository %{name} erfolgreich verbunden."
+      destroy:
+        success: "Repository %{name} wurde getrennt. Indexdaten gelöscht."
+      reindex:
+        started: "Neu-Indexierung für %{name} gestartet. Der Status aktualisiert sich automatisch."
+        already_running: "Für %{name} läuft bereits eine Indexierung."
+        feature_disabled: "Die Code-Indexierung ist für diese Organisation nicht aktiviert."
+      update_token:
+        success: "Zugriffstoken für %{name} aktualisiert. Du kannst jetzt neu indexieren."
+        error: "Der Zugriffstoken für %{name} konnte nicht aktualisiert werden."
+    tags:
+      created: "Tag wurde erfolgreich erstellt."
+      updated: "Tag wurde erfolgreich aktualisiert."
+      deleted: "Tag wurde erfolgreich gelöscht."
+    appearances:
+      saved: "Erscheinungsbild wurde gespeichert."
+    notifications:
+      deleted: "Benachrichtigung gelöscht."
+      marked_read: "%{count} Benachrichtigungen als gelesen markiert."
+      invalid_action: "Ungültige Aktion"
+      no_permission: "Keine Berechtigung."
+      unmuted: "Stummschaltung aufgehoben."
+      exception_removed: "Ausnahme entfernt."
+      settings_saved: "Einstellungen gespeichert"
+      settings_error: "Fehler: %{error}"
+      wrong_user: "Dieser Benachrichtigungslink wurde an einen anderen Benutzer gesendet, aber Sie haben Zugriff, um dieses Ticket anzuzeigen."
+      wrong_user_redirect: "Dieser Benachrichtigungslink gehört einem anderen Benutzer. Sie wurden zu Ihren Benachrichtigungen weitergeleitet."
+      not_found_deleted: "Diese Benachrichtigung konnte nicht gefunden werden. Sie wurde möglicherweise gelöscht."
+    organisation_settings:
+      saved: "Einstellungen gespeichert."
+    ai_settings:
+      updated: "AI-Einstellungen wurden erfolgreich aktualisiert."
+      no_client: "Kein AI-Client für %{provider} konfiguriert."
+      connection_success: "Verbindung zu %{provider} erfolgreich getestet."
+      connection_no_models: "Verbindungstest fehlgeschlagen: Keine Modelle gefunden."
+      client_configured: "Client für %{provider} konfiguriert."
+      connection_error: "Verbindungstest fehlgeschlagen: %{error}"
+      activated: "KI-Features wurden für diese Organisation aktiviert."
+      # Die Einwilligung ist erteilt, der Zugang fehlt trotzdem. Ohne diesen Satz meldete
+      # die Seite schlicht Erfolg, und die erste Rueckmeldung war Tage spaeter eine Suche,
+      # die etwas nicht findet: ohne Einbettungs-Zugang bekommt neuer Inhalt keinen Vektor.
+      # ⚠️ Bis zur Trennung von Fragment und Einbettung entstand gar kein Fragment,
+      # der Inhalt fehlte also auch der TEXTSUCHE. Das stimmt nicht mehr, und der Satz
+      # unten sagt deshalb das engere: betroffen sind KI-Chat und semantische Suche.
+      activated_without_embedding_access: >-
+        KI-Features sind aktiviert. Ein Zugang zur Einbettung fehlt aber noch. Neuer Inhalt
+        bleibt ueber die Textsuche auffindbar, KI-Chat und semantische Suche finden ihn
+        aber nicht. Hinterlege den Zugang unter „Zugang“, danach holt „Neu verarbeiten“
+        das Versaeumte nach.
+      activated_backfill_failed: >-
+        KI-Features sind aktiviert. Das Nachholen der bereits vorhandenen Inhalte hat nicht
+        begonnen: %{error}
+      deactivated: "KI-Features wurden für diese Organisation deaktiviert."
+      package_selected: "KI-Paket „%{package}\" ist jetzt aktiv."
+      # Eigener Text, weil es eine andere Entscheidung ist (§2): das Paket bleibt,
+      # nur die Kostenstufe wandert. „Paket ist jetzt aktiv" würde eine
+      # Rechtsraum-Entscheidung melden, die niemand getroffen hat.
+      package_tier_selected: "Leistungsstufe „%{tier}\" ist jetzt aktiv. Rechtsraum und Suchindex bleiben unverändert."
+      package_cleared: "KI-Paket abgewählt — es gilt wieder die eigene Anbieter-Konfiguration."
+    # „Eigene Konfiguration" (doc/ki_bereich_navigation_plan.md S7). Eigener
+    # Besitzer neben ai_settings, weil es ein eigener Controller mit eigenen
+    # Schreibwegen ist; die connection_*-Texte teilt er sich bewusst mit
+    # ai_settings (AiConnectionCheckable: eine Formulierung fuer beide Knoepfe).
+    ai_configurations:
+      saved: "Die eigenen Zugangsdaten wurden gespeichert."
+      removed: "Der eigene Zugang wurde entfernt. Es gilt wieder der Zugang des Betreibers, sofern für den gewählten Anbieter einer hinterlegt ist."
+    ai_sync_statuses:
+      started: "Embedding-Verarbeitung für %{count} Einträge gestartet."
+      start_error: "Fehler beim Starten der Embedding-Verarbeitung: %{error}"
+      no_view_permission: "Sie haben keine Berechtigung, den AI Sync Status anzuzeigen."
+    view_configurations:
+      updated: "Ansichtseinstellungen wurden aktualisiert."
+      applied_to_all:
+        one: "Spalten für eine Ansicht übernommen."
+        other: "Spalten für %{count} Ansichten übernommen."
+    ticket_attribute_definitions:
+      created: "Attribut wurde erfolgreich hinzugefügt."
+      updated: "Attribut wurde erfolgreich aktualisiert."
+      deleted: "Attribut wurde erfolgreich gelöscht."
+      activated: "Feld wurde aktiviert."
+      deactivated: "Feld wurde deaktiviert."
+      option_not_found: "Option nicht gefunden."
+      options_merged: "Option \"%{source}\" wurde in \"%{target}\" zusammengeführt. %{count} %{tickets} aktualisiert."
+    user_activities:
+      user_not_found: "Benutzer nicht gefunden."
+      no_view_permission: "Sie haben keine Berechtigung, diese Aktivitäten einzusehen."
+      not_member: "Dieser Benutzer ist kein Mitglied der Organisation."
+    activities:
+      no_view_permission: "Sie haben keine Berechtigung, die Projektaktivitäten anzusehen."
+    codebase_import_files:
+      file_required: "Bitte wählen Sie eine Datei aus"
+      uploaded: "Datei '%{filename}' wurde erfolgreich hochgeladen."
+      xml_parse_error: "Fehler beim Parsen der XML-Datei"
+      processing_locked: "Die Datei wird gerade verarbeitet und kann nicht gelöscht werden."
+      delete_error: "Fehler beim Löschen der Datei: %{error}"
+      preview_users_only: "Import-Preview ist nur für Benutzer-Dateien verfügbar."
+      already_imported: "Diese Datei wurde bereits importiert."
+      already_imported_no_reprocess: "Diese Datei wurde bereits importiert und kann nicht erneut verarbeitet werden."
+      import_running: "Der Import für diese Datei läuft bereits."
+      preview_not_available: "Die Import-Vorschau ist nicht mehr verfügbar."
+      import_users_only: "Import ist nur für Benutzer-Dateien verfügbar."
+      user_import_started: "Der User-Import wurde gestartet. Sie erhalten eine Benachrichtigung, wenn er abgeschlossen ist."
+      project_select_time_tracking_only: "Projekt-Auswahl ist nur für Time Tracking-Dateien verfügbar."
+      no_time_entries: "Fehler beim Parsen der XML-Datei oder keine Zeit-Einträge gefunden."
+      ticket_preview_only: "Ticket-Preview ist nur für Ticket-Dateien verfügbar."
+      no_tickets_found: "Fehler beim Parsen der XML-Datei oder keine Tickets gefunden."
+      ticket_import_only: "Ticket-Import ist nur für Ticket-Dateien verfügbar."
+      project_name_required: "Projektname ist erforderlich."
+      project_create_error: "Fehler beim Erstellen des Projekts: %{error}"
+      ticket_import_started: "Der Ticket-Import wurde gestartet. Das Projekt '%{project}' wurde erstellt. Sie erhalten eine Benachrichtigung, wenn der Import abgeschlossen ist."
+      time_preview_only: "Time Sessions-Preview ist nur für Time Tracking-Dateien verfügbar."
+      select_project: "Bitte wählen Sie ein Projekt aus."
+      time_import_only: "Time Sessions-Import ist nur für Time Tracking-Dateien verfügbar."
+      project_required: "Projekt ist erforderlich."
+      time_import_started: "Der Time Sessions-Import wurde gestartet. Sie erhalten eine Benachrichtigung, wenn er abgeschlossen ist."
+      rollback_ticket_time_only: "Rollback ist nur für Ticket- und Time Sessions-Importe verfügbar."
+      rollback_ticket_only: "Rollback ist nur für Ticket-Importe verfügbar."
+      no_imported_objects: "Keine importierten Objekte für diese Datei gefunden."
+      rollback_success: "Rollback erfolgreich: %{tickets} Tickets, %{posts} Posts und %{tags} Tags gelöscht."
+      rollback_error: "Fehler beim Rollback: %{error}"
+      import_tickets_first: "Bitte importieren Sie zuerst Tickets für dieses Projekt, bevor Sie Uploads zuordnen können."
+      select_upload_file: "Bitte wählen Sie eine Upload-Datei aus."
+      not_upload_file: "Die ausgewählte Datei ist keine Upload-Datei."
+      upload_already_processed: "Diese Upload-Datei wurde bereits verarbeitet."
+      upload_assignment_started: "Die Upload-Zuordnung wurde gestartet. Sie erhalten eine Benachrichtigung, wenn sie abgeschlossen ist."
+      no_import_permission: "Sie haben keine Berechtigung für Import-Funktionen."
+    cancel_account_deletions:
+      canceled: "Ihre geplante Account-Löschung wurde erfolgreich abgebrochen."
+      cancel_error: "Die Löschung konnte nicht abgebrochen werden."
+      no_deletion_scheduled: "Es ist keine Account-Löschung geplant."
+    sessions:
+      no_organisations: "Sie haben noch keine Organisationen."
+      no_organisation_found: "Keine Organisation gefunden. Bitte kontaktieren Sie den Administrator."
+      form_expired: "Das Anmeldeformular war abgelaufen. Bitte melde dich noch einmal an."
+    static:
+      no_organisations_create: "Sie haben noch keine Organisationen. Bitte erstellen Sie eine."

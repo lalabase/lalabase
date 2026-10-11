@@ -1,0 +1,55 @@
+<%# locals: (meeting:, detail_frame_id: nil, context: nil, cancel_action: nil, overview_project_id: nil) %>
+<%# The ONE "new meeting" form, rendered into whichever frame asked for it: the
+    detail pane of the project master-detail, or the modal on the org-wide list.
+    Submits as turbo_stream — MeetingsController#create decides what to refresh from
+    the `context` field below, because the two pages have different frames.
+
+    context / cancel_action / overview_project_id are the modal's three additions:
+    where the save came from, how "Abbrechen" closes (a link back to the list makes
+    no sense inside a modal) and the org-wide project filter, which cannot travel as
+    project_id because that is the nested route's own parameter. %>
+<% modal_context = context.present? %>
+<div id="meeting-form-card" class="<%= modal_context ? 'bg-cream-50 py-6 px-8 rounded-lg border border-cream-300 relative' : 'meeting-content min-w-0 relative' %>">
+  <% current_frame_id = detail_frame_id || 'meeting_display_frame' %>
+  <% unless modal_context %>
+    <%= render 'organisations/meetings/form_lane_head', new_form: true %>
+    <h2 class="text-[22px] leading-snug font-bold text-cream-900 mb-6">
+      <%= t('views.organisations.meetings.index.new_meeting') %>
+    </h2>
+  <% end %>
+  <%= form_with(model: [@current_organisation, @project, meeting], format: :turbo_stream,
+                data: { turbo_frame: current_frame_id }) do |form| %>
+    <%= hidden_field_tag :frame_id, current_frame_id %>
+    <%= hidden_field_tag :context, context if context.present? %>
+    <%# Carry the active list filter through the write flow — the success
+        turbo_stream re-renders the list the form was opened from; without this the
+        filtered list silently snaps back to "all". %>
+    <%= meeting_list_hidden_fields %>
+    <%= hidden_field_tag :overview_project_id, overview_project_id if overview_project_id.present? %>
+    <%= render 'organisations/meetings/form_fields', form: form, meeting: meeting %>
+
+    <div class="flex justify-end items-center gap-2 mt-6">
+      <%# One cancel button, two behaviours: inside the modal it closes the modal
+          (a link back to the list makes no sense there), otherwise it leaves the
+          detail frame. Rendered once so a future label or icon change lands in
+          both places. %>
+      <% cancel_options = if cancel_action.present?
+                            { type: 'button', data: { action: cancel_action } }
+                          else
+                            { url: organisation_project_meetings_path(
+                                     @current_organisation,
+                                     @project,
+                                     meeting_list_state
+                                   ),
+                              data: { turbo_frame: '_top', lane_back: true } }
+                          end %>
+      <%= render Neo::Buttons::ButtonComponent.new(variant: :edit, **cancel_options) do %>
+        <%= t('views.organisations.meetings.form.cancel') %>
+      <% end %>
+
+      <%= render Neo::Buttons::ButtonComponent.new(variant: :primary, type: 'submit') do %>
+        <%= t('views.organisations.meetings.form.save') %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

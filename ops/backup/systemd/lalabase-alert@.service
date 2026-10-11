@@ -1,0 +1,6 @@
+[Unit]
+Description=Alarm-Mail fuer %i
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lalabase-alert-unit.sh %i

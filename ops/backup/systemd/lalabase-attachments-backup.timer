@@ -1,0 +1,9 @@
+[Unit]
+Description=Taeglich 03:20 UTC: Anhang-Backup
+
+[Timer]
+OnCalendar=*-*-* 03:20:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

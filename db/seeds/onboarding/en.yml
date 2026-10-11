@@ -1,0 +1,41 @@
+# Onboarding tutorial content (English).
+#
+# Loaded by Actors::SeedOnboarding for the registering user's locale
+# (fallback: de). Content is v1-frozen: changes here only apply to NEW
+# organisations; existing onboarding projects are not upgraded
+# (doc/onboarding_plan.md, Outside Voice #5).
+#
+# Keys are stable, language-independent identifiers (tests, S2 extension).
+# Order equals creation/number order on the board — ticket 1 is deliberately
+# an instantly completable action (debriefing calibration Q1).
+project:
+  name: "Getting to know Lalabase"
+  description: >
+    This project shows you Lalabase by using it: every task here is a small
+    step you can do right away. Once you are done, simply delete the whole
+    project.
+tickets:
+  - key: complete_this
+    title: "Check off this task"
+    description: >
+      This is a task (ticket) — the most important object in Lalabase. Open it
+      and set its status to "Done". That is exactly how you will complete every
+      real task later. That's it: one click, first win.
+  - key: create_own_ticket
+    title: "Create your first own task"
+    description: >
+      Use "New ticket" to create a task of your own — a title is enough,
+      everything else is optional. Tasks can carry status, priority, assignees
+      and tags; they always live inside a project like this one.
+  - key: track_time
+    title: "Track 15 minutes on this task"
+    description: >
+      Lalabase tracks working time directly on tasks. Open this task and log
+      15 minutes via time tracking. You will find every tracked time under
+      "Times" later — reportable per project, person and period.
+  - key: write_note
+    title: "Write your first note in the Knowledge area"
+    description: >
+      The "Knowledge" area collects notes and documents that are not tickets:
+      decisions, how-tos, meeting outcomes. Open this project's Knowledge area
+      and create a short note — it is instantly searchable for your team.

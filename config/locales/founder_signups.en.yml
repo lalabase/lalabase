@@ -1,0 +1,48 @@
+---
+# New-founder discount: request captured at registration
+# (doc/billing_preisliste_rabatt_plan.md § 12.3).
+#
+# Model vocabulary and the operator mail live here; the sign-up form strings sit
+# with the other Devise keys in de.yml/en.yml, where their lazy-lookup path is.
+#
+# The revenue bands are NOT free-form labels: they are the only rendering of
+# FounderSignup::REVENUE_BANDS. A band without a translation reaches the
+# applicant as a raw key.
+en:
+  activerecord:
+    attributes:
+      founder_signup:
+        company_name: Company name
+        company_seat: Registered office
+        founded_on: Founded on
+        marketing_consent: Consent to sales contact
+        note: Note
+        phone: Phone
+        previous_tools: Tools used so far
+        revenue_band: Turnover (approximate)
+        status: Status
+    errors:
+      models:
+        founder_signup:
+          attributes:
+            founded_on:
+              in_the_future: must not be in the future
+  founder_signup:
+    marketing_consent_granted: granted
+    marketing_consent_withheld: not granted
+    revenue_bands:
+      up_to_50k: up to €50,000
+      50k_to_250k: €50,000 – €250,000
+      250k_to_1m: €250,000 – €1m
+      above_1m: over €1m
+    statuses:
+      open: open
+      granted: granted
+      declined: declined
+  founder_signup_mailer:
+    new_request:
+      subject: "New-founder discount requested: %{company}"
+      intro: A new customer requested the new-founder discount during registration.
+      account: "Account: %{name}"
+      cta: Open the account in the admin area
+      reminder: The discount has not been granted yet. It only exists once it is entered in the admin area after the phone call.

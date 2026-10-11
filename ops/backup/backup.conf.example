@@ -1,0 +1,24 @@
+# Copy to /etc/lalabase-backup/backup.conf on BOTH hosts and adjust.
+# Values only — this file is sourced by the backup scripts. No secrets here: the
+# private age key never touches a server, and the SSH key is referenced by path.
+#
+# Why this file exists: the Storage Box sub-account is an operator's coordinate,
+# not part of the product. Hardcoding it in the scripts meant a published copy of
+# this repo would carry our account. The `: "${VAR:=…}"` form assigns only when the
+# variable is not already set, so an environment override keeps winning — which is
+# what ops/backup/test/run-tests.sh relies on.
+
+# Storage Box sub-account for THIS host. Each host gets its own, jailed to its own
+# directory: the DB host writes db/, the app server writes attachments/. A taken
+# over app server must not reach the database dumps, and the other way round.
+: "${REMOTE:=uXXXXXX-subN@uXXXXXX.your-storagebox.de}"
+
+# Private half of the SSH key registered with that sub-account. Mode 600, root-owned.
+: "${SSH_KEY:=/root/.ssh/id_ed25519_storagebox}"
+
+# DB host only: the database lalabase-db-backup.sh dumps.
+: "${DB_NAME:=lalabase_production}"
+
+# App server only: the Active Storage directory lalabase-attachments-backup.sh
+# mirrors, inside the deploy root (<deploy root>/shared/storage).
+: "${SRC:=/home/deploy/lalabase_production/shared/storage}"

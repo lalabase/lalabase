@@ -1,0 +1,91 @@
+# Was von der Doku-Oberflaeche im Kern geblieben ist (doc/docs_delivery_plan.md, D5).
+#
+# Die oeffentliche Dokumentation ist ein eigenes Programm
+# (gboyke/lalabase-documentation) und bringt ihre eigenen Texte mit. Hier stehen
+# nur noch die zwei Stellen, die die In-App-Hilfe selbst rendert:
+#
+#   docs.chrome.copy / .copied   -> die Beschriftungen des Kopier-Knopfes an einem
+#                                   Codeblock. Das Markup kommt aus dem Katalog,
+#                                   die Woerter setzt help/_page.html.erb in den
+#                                   Stimulus-Controller.
+#   docs.contextual_help.*       -> die 49 Fragen der Kontexthilfe. Die KARTE dazu
+#                                   ist Docs::ContextualHelp; `rake anchors:check`
+#                                   drueben prueft, ob ihre Anker noch antworten.
+#
+# Der Dateiname ist geblieben, weil die Schluessel `docs.*` heissen und in der
+# Karte, in beiden Sprachdateien und in der Hilfe-View stehen; sie umzubenennen
+# waere Bewegung ohne Gewinn.
+de:
+  docs:
+    chrome:
+      copy: "Kopieren"
+      copied: "Kopiert"
+    contextual_help:
+      tickets:
+        change_view: "Wie ändere ich die Ansicht (Tabelle/Board)?"
+        assign_or_watch: "Wie weise ich zu oder beobachte nur?"
+        custom_fields: "Wie lege ich eigene Felder an?"
+      knowledge:
+        organize_notes: "Was kann ich in Wissen speichern?"
+        versioning: "Wie funktioniert die Versionierung?"
+      chat:
+        what_can_it_see: "Worauf kann der Chat zugreifen?"
+        repository_context: "Wie nutze ich Code aus dem Repository im Chat?"
+      inbox:
+        how_it_works: "Wie funktionieren Benachrichtigungen?"
+        what_reaches_me: "Was landet in meiner Inbox?"
+      dashboard:
+        customize_overview: "Wie passe ich die Übersicht an?"
+        cockpit_vs_overview: "Was ist der Unterschied zu Cockpit?"
+      time_sessions:
+        what_and_where: "Was sind Zeiten – und woran kann ich sie hängen?"
+        filter_review: "Wie werte ich Zeiten aus und filtere?"
+        what_is_billing: "Was ist eine Abrechnung?"
+        partial_billing: "Was bedeutet teilweise abgerechnet?"
+      billing:
+        what_is_it: "Was ist eine Abrechnung – schreibt Lalabase Rechnungen?"
+        prepare_export: "Wie erstelle ich Kundenbeschreibungen und exportiere?"
+        mark_billed: "Wie markiere ich als abgerechnet (Rechnungsnummer)?"
+      meetings:
+        what_is_it: "Was ist ein Meeting?"
+        capture: "Wie halte ich ein Meeting fest?"
+        external_participant: "Was heißt „externer Teilnehmer\"?"
+        what_is_linking: "Was passiert beim Verknüpfen?"
+        analyses: "Wie erstelle ich eine KI-Analyse?"
+      documentation:
+        what_is_it: "Was ist eine Dokumentation – und was nicht?"
+        stays_current: "Wie bleibt die Dokumentation aktuell?"
+        search_and_chat: "Kann ich die Doku durchsuchen und im Chat nutzen?"
+      # Organisations-Verwaltung (Settings-Tabs) — doc/settings_kontexthilfe_plan.md
+      settings_members:
+        what_is_it: "Was ist der Bereich Mitglieder?"
+        project_access: "Wie steuere ich den Zugriff pro Projekt?"
+      settings_roles:
+        what_is_a_role: "Was ist eine Rolle?"
+        create_role: "Wie lege ich eine eigene Rolle an?"
+        default_role: "Was ist die Standard-Rolle?"
+      settings_general:
+        what_is_org: "Was ist eine Organisation?"
+        rename: "Wie ändere ich den Namen — und was ist zu beachten?"
+      settings_ai_provider:
+        what_is_byok: "Was ist ein AI-Provider (BYOK)?"
+        enable_disable: "Wie aktiviere oder deaktiviere ich KI?"
+      settings_ai_sync:
+        what_for: "Wozu dient die KI-Synchronisation?"
+        reprocess: "Was macht „Neu verarbeiten\"?"
+        states: "Was heißt verarbeitet, ausstehend, Fehler?"
+      settings_prompt_personas:
+        what_is_it: "Was ist eine Chat-Persona?"
+        override: "Was bedeutet „Override\"?"
+        create: "Wie lege ich eine eigene Persona an?"
+      settings_import:
+        what: "Was kann ich importieren?"
+        order: "In welcher Reihenfolge importiere ich?"
+        undo: "Wie mache ich einen Import rückgängig?"
+      settings_appearance:
+        accent_color: "Was macht die Erkennungsfarbe?"
+        light_dark: "Wie wechsle ich Hell/Dunkel/Pop?"
+      account:
+        why_confirm: "Warum muss ich meine E-Mail-Adresse bestätigen?"
+        no_mail: "Es kommt keine Bestätigungsmail an — was tun?"
+        change_email: "Warum gilt meine neue E-Mail-Adresse noch nicht?"

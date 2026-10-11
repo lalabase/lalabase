@@ -1,0 +1,3 @@
+
+css: bin/rails tailwindcss:watch
+solid_queue: bin/rails solid_queue:start

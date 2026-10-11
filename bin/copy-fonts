@@ -1,0 +1,20 @@
+#!/bin/bash
+# Copy the Bootstrap Icons fonts into public/fonts, the only place the CSS reads them from
+# (bootstrap_icons_custom.css and bootstrap-icons.min.css both resolve to /fonts/).
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
+echo "Copying Bootstrap Icons fonts..."
+
+mkdir -p "$PROJECT_ROOT/public/fonts"
+
+if [ -d "$PROJECT_ROOT/node_modules/bootstrap-icons/font/fonts" ]; then
+  cp -f "$PROJECT_ROOT/node_modules/bootstrap-icons/font/fonts/"* "$PROJECT_ROOT/public/fonts/"
+  echo "✓ Fonts copied to public/fonts"
+elif [ -f "$PROJECT_ROOT/public/fonts/bootstrap-icons.woff2" ]; then
+  echo "⚠ Bootstrap Icons not found in node_modules"
+  echo "✓ Using the fonts committed to public/fonts"
+else
+  echo "⚠ Bootstrap Icons not found in node_modules and public/fonts is empty - icons will not render"
+fi

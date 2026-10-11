@@ -1,0 +1,138 @@
+THIRD-PARTY NOTICES
+
+Lalabase is licensed under the GNU Affero General Public License, version 3
+(see LICENSE). This file lists the third-party code and fonts that are checked
+into this repository, each with its license and copyright notice.
+
+Dependencies installed by Bundler or npm are not copied into this repository
+and are not listed here. Each of them ships its own license file.
+
+Every "Path:" line names a file, or with a trailing slash a directory, in this
+repository. spec/architecture/third_party_license_guard_spec.rb reads these
+lines and the "License:" lines: a checked-in third-party file without a notice
+fails the build, and so does a notice that states a license off its allowlist.
+
+
+================================================================================
+slim-select
+================================================================================
+
+Version:  2.9.2 (the JavaScript file; the stylesheet carries no version)
+Source:   https://github.com/brianvoe/slim-select
+License:  MIT (text under "MIT License" below)
+Path: vendor/javascript/slim-select.js
+Path: vendor/assets/stylesheets/slimselect.css
+
+Copyright (c) 2017 Brian Voelker
+
+
+================================================================================
+SortableJS
+================================================================================
+
+Version:  1.15.2
+Source:   https://github.com/SortableJS/Sortable
+License:  MIT (text under "MIT License" below)
+Path: vendor/javascript/sortablejs.js
+Path: vendor/assets/javascripts/sortable.min.js
+
+Copyright (c) 2019 All contributors to Sortable
+
+
+================================================================================
+Alpine.js
+================================================================================
+
+Version:  3.15.12
+Source:   https://github.com/alpinejs/alpine
+License:  MIT (text under "MIT License" below)
+Path: vendor/assets/javascripts/alpinejs.min.js
+
+Copyright © 2019-2025 Caleb Porzio and contributors
+
+
+================================================================================
+Bootstrap Icons
+================================================================================
+
+Version:  1.11.3
+Source:   https://github.com/twbs/icons
+License:  MIT (text under "MIT License" below, and in the directory itself)
+Path: app/assets/stylesheets/bootstrap-icons/
+Path: public/fonts/bootstrap-icons.woff
+Path: public/fonts/bootstrap-icons.woff2
+
+Copyright (c) 2019-2024 The Bootstrap Authors
+
+
+================================================================================
+tree-sitter-typescript
+================================================================================
+
+Version:  generated parser sources, tree-sitter language version 14
+Source:   https://github.com/tree-sitter/tree-sitter-typescript
+License:  MIT (text under "MIT License" below, and in the directory itself)
+Path: vendor/tree-sitter-typescript/
+
+Copyright (c) 2017 Max Brunsfeld
+
+The headers under src/tree_sitter/ belong to the tree-sitter runtime
+(https://github.com/tree-sitter/tree-sitter), also MIT:
+
+Copyright (c) 2018-2024 Max Brunsfeld
+
+
+================================================================================
+Archivo (font)
+================================================================================
+
+Source:   https://github.com/Omnibus-Type/Archivo
+License:  OFL-1.1 (SIL Open Font License, Version 1.1;
+          full text in public/fonts/lalabase/Archivo-OFL.txt)
+Path: public/fonts/lalabase/archivo-latin.woff2
+Path: public/fonts/lalabase/archivo-latin-ext.woff2
+Path: public/fonts/lalabase/Archivo-OFL.txt
+
+Copyright 2020 The Archivo Project Authors
+(https://github.com/Omnibus-Type/Archivo)
+
+
+================================================================================
+JetBrains Mono (font)
+================================================================================
+
+Source:   https://github.com/JetBrains/JetBrainsMono
+License:  OFL-1.1 (SIL Open Font License, Version 1.1;
+          full text in public/fonts/lalabase/JetBrainsMono-OFL.txt)
+Path: public/fonts/lalabase/jetbrains-mono-latin.woff2
+Path: public/fonts/lalabase/jetbrains-mono-latin-ext.woff2
+Path: public/fonts/lalabase/JetBrainsMono-OFL.txt
+
+Copyright 2020 The JetBrains Mono Project Authors
+(https://github.com/JetBrains/JetBrainsMono)
+
+
+================================================================================
+MIT License
+================================================================================
+
+Applies to every component above that names MIT, together with the copyright
+notice printed in its section.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

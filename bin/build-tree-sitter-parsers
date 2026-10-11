@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Compiles the vendored tree-sitter grammar C sources into tmp/tree_sitter/.
+#
+# Why this exists: the tree-sitter RUNTIME ships precompiled with the
+# ruby_tree_sitter gem (multi-platform), but the per-language GRAMMARS do not.
+# We vendor their pre-generated C sources under vendor/tree-sitter-* and build a
+# platform-specific shared library here. The output (.dylib on macOS, .so on
+# Linux) is git-ignored and built PER ENVIRONMENT — a macOS .dylib will not load
+# on the Linux server and vice versa, so it must never be committed.
+#
+# Run on: dev setup (bin/setup) today; the deploy hook (Capistrano, #41) is
+# planned but not yet wired. Loaded at runtime by
+# Lalabase::Indexer::Symbols::TreeSitterGrammar — keep the output path convention
+# (tmp/tree_sitter/libtree-sitter-<name>.<ext>) in sync with it.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VENDOR="$ROOT/vendor"
+OUT="$ROOT/tmp/tree_sitter"
+CC_BIN="${CC:-cc}"
+case "$(uname -s)" in Darwin) EXT=dylib ;; *) EXT=so ;; esac
+
+mkdir -p "$OUT"
+
+# build <language-name> <source-dir-under-vendor>
+# NOTE: a grammar's scanner.c may #include "../../common/scanner.h" (the
+# tree-sitter-typescript grammars do), resolved relative to scanner.c — so the
+# vendored layout MUST keep common/ two dirs above each src/. Re-vendoring in a
+# way that flattens that will break the compile with a cryptic C error.
+build() {
+  local name="$1" src_dir="$2"
+  local dir="$VENDOR/$src_dir"
+  local srcs=("$dir/parser.c")
+  [ -f "$dir/scanner.c" ] && srcs+=("$dir/scanner.c") # some grammars have an external scanner, some don't
+  echo "  libtree-sitter-${name}.${EXT}"
+  "$CC_BIN" -fPIC -shared -O2 -I "$dir" "${srcs[@]}" -o "$OUT/libtree-sitter-${name}.${EXT}"
+}
+
+echo "Compiling tree-sitter grammars ($CC_BIN -> $OUT):"
+build typescript tree-sitter-typescript/typescript/src
+build tsx        tree-sitter-typescript/tsx/src # JSX superset — for .tsx / .jsx
+
+echo "Done."

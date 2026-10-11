@@ -1,0 +1,601 @@
+de:
+  views:
+    organisations:
+      documents:
+        index:
+          placeholder_title: Bitte wählen Sie eine Datei aus der Liste
+          placeholder_body: Der Inhalt der ausgewählten Datei wird hier angezeigt.
+          new_document: Neues Dokument erstellen
+        show:
+          title: Dateien
+          new_file: Neue Datei
+          list: Liste
+        new:
+          title: Dateien
+          new_file: Neue Datei
+          list: Liste
+          error: Fehler!
+        edit:
+          title: Dokument bearbeiten
+        document_list:
+          title_header: Titel
+          created_header: Erstellt
+        document_form:
+          title_label: Titel
+          description_label: Beschreibung
+          optional: optional
+          create_summary: Zusammenfassung von der KI erstellen lassen
+          summary_description: Kann je nach Größe der Datei einige Minuten dauern.
+          cancel: Abbrechen
+          save: Datei anlegen
+        upload_zone:
+          prompt: Datei hierher ziehen oder auswählen
+          none_chosen: Noch keine Datei gewählt
+        ai_locked_state:
+          sentence: KI-Funktionen brauchen noch einen Zugang. Die Datei wird gespeichert, aber nicht durchsuchbar.
+          set_up: Zugang einrichten
+        document_row:
+          no_title: Kein Titel
+        document_show:
+          edit_document: Dokument bearbeiten
+          description_user: Beschreibung (user)
+          description_system: Beschreibung (system)
+          download_file: Datei herunterladen
+          new_version: Neue Version anlegen
+          versions: Versionen
+          th_name: Name
+          th_uploaded_by: Hochgeladen von
+          th_date: Datum
+          th_size: Größe
+          th_actions: Aktionen
+        documents_results:
+          title_header: Titel
+          version_header: Version
+          tags_header: Tags
+          created_at_header: Erstellt am
+          empty_first_time_title: Noch keine Dokumente
+          empty_first_time_description: Lade dein erstes Dokument hoch, um loszulegen.
+          empty_first_time_cta: Dokument hochladen
+          empty_no_results_title: Keine Dokumente gefunden
+          empty_no_results_description: Deine Filter haben keine Treffer ergeben. Passe die Kriterien an oder entferne Filter.
+        version_form:
+          heading: Neue Version wird %{label}
+          title_label: Titel dieser Version
+          changed_label: Was hat sich geändert?
+          optional: optional
+          create_summary: Zusammenfassung von der KI erstellen lassen
+          summary_description: Kann je nach Größe der Datei einige Minuten dauern.
+          keeps_previous: "%{label} bleibt erhalten und kann jederzeit zurückgeholt werden."
+          cancel: Abbrechen
+          save: Version anlegen
+        document_edit_form:
+          title_label: Titel
+          description_label: Beschreibung
+        document_edit:
+          editing: Bearbeiten
+        document_content_for_frame:
+          edit_document: Dokument bearbeiten
+          rename: Umbenennen
+          delete_document: Dokument löschen …
+          new_version: Neue Version anlegen
+          versions: Versionen
+          type: Typ
+          versions_count:
+            one: Version
+            other: Versionen
+          created_by: Erstellt von
+          created_at: Erstellt am
+          ai_indexed: indexiert
+          ai_failed: Index fehlgeschlagen
+          ai_unavailable: KI nicht verfügbar
+          summary_heading: Von der KI zusammengefasst
+          summary_show_full: ganz lesen
+          summary_collapse: einklappen
+        preview:
+          back_to_document: Zurück zum Dokument
+          # Hinter dem Titel im Assistenten-Angebot, wenn die Vorschau eine ältere
+          # Version zeigt: der Bezug meint das Dokument, gelesen wird die aktuelle.
+          assistant_current_version: "(aktuelle Version)"
+          open_in_new_tab: In neuem Tab öffnen
+          download: Herunterladen
+          no_preview: Für diese Datei gibt es keine Vorschau.
+          image_failed: Das Bild lässt sich hier nicht anzeigen.
+          text_unavailable: Eine Textvorschau ist derzeit nicht verfügbar.
+          refresh: Aktualisieren
+        version_row:
+          no_file: Keine Datei
+          preview: Vorschau öffnen
+          open_in_new_tab: In neuem Tab öffnen
+          delete: Version löschen
+          delete_last: Version und Dokument löschen …
+          download: Herunterladen
+          text_version: Textfassung herunterladen
+          set_current: als aktuell setzen
+          uploaded_by_unknown: ohne Angabe
+          current: aktuell
+          index_failed: Index fehlgeschlagen
+      documentation:
+        index:
+          title: Dokumentation
+          last_synced: Zuletzt synchronisiert vor %{time}
+          sync_now: Jetzt synchronisieren
+          connect: Dokumentation verbinden
+          search_placeholder: In der Dokumentation suchen...
+          search_empty: Keine Treffer.
+          search_clear: Suche zurücksetzen
+          results_count:
+            one: "%{count} Treffer"
+            other: "%{count} Treffer"
+          changed_since_visit: Seit deinem letzten Besuch geändert
+          back_to_tree: Zurück zur Übersicht
+          select_page: Wähle links eine Seite aus.
+          logbook: Logbuch
+          manage_repository: Repository verwalten
+        sync_status:
+          never_synced: Noch nicht synchronisiert
+          syncing: Synchronisiert...
+          ready: Aktuell
+          failed: Fehlgeschlagen
+        sync_error:
+          auth: Zugriff verweigert – bitte die Repository-Zugangsdaten prüfen.
+          repo_unreachable: Repository nicht erreichbar – bitte später erneut versuchen.
+          path_not_found: Der konfigurierte Doku-Ordner wurde im Repository nicht gefunden.
+          markdown_invalid: Eine Markdown-Datei konnte nicht verarbeitet werden.
+          asset_failed: Eine eingebettete Datei konnte nicht geladen werden.
+          source_deleted: Das Repository oder der Branch existiert nicht mehr.
+          generic: Die Synchronisierung ist fehlgeschlagen.
+        empty:
+          admin_hint: Bitte einen Projekt-Administrator, die Dokumentation zu verbinden oder zu synchronisieren.
+          connect_repository: Zuerst Repository verbinden
+          setup_no_permission: Du hast keine Berechtigung, hier Dokumentation einzurichten. Wende dich an die Projekt-Verwaltung.
+          explainer:
+            title: Was ist eine Dokumentation?
+            point_source: Sie entsteht im Quellcode des Projekts – gepflegt vom Entwicklungsteam, nicht von Hand hier in Lalabase.
+            point_sync: Sie wird automatisch hierher gespiegelt und bleibt so immer auf dem neuesten Stand.
+            point_ai: Auf Wunsch hält ein KI-Werkzeug sie beim Programmieren automatisch aktuell.
+            point_search_chat: Sie fließt in die globale Suche ein, und im Chat kannst du Fragen dazu stellen.
+            not_title: Was sie nicht ist
+            not_body: Kein Notizblock zum Selberschreiben in Lalabase – Änderungen macht das Team immer im Projekt-Repository.
+          no_set:
+            title: Noch keine Dokumentation verbunden
+            body: Verbinde einen Ordner aus dem Projekt-Repository, um die Dokumentation hier zu spiegeln.
+          no_pages:
+            title: Diese Dokumentation ist noch leer
+            body: Starte eine Synchronisierung, um die Seiten aus dem Repository zu laden.
+          no_results:
+            title: Keine Treffer
+            body: Zu deiner Suche wurde keine Seite gefunden.
+        form:
+          name: Name
+          repository: Repository
+          repository_prompt: Repository auswählen
+          path_prefix: Ordner im Repository
+          path_prefix_hint: 'Standard: .lalabase/doku/'
+          save: Speichern
+          cancel: Abbrechen
+        new:
+          title: Dokumentation verbinden
+          no_repository: Für dieses Projekt ist noch kein Repository verbunden. Verbinde zuerst ein Repository, um Dokumentation zu spiegeln.
+          connect_repository: Repository verbinden
+        edit:
+          title: Dokumentation bearbeiten
+          disconnect: Trennen
+          disconnect_confirm: Diese Dokumentation wirklich trennen? Die gespiegelten Seiten werden entfernt.
+        history:
+          title: Logbuch
+          back: Zurück zur Dokumentation
+          commits_heading: Änderungen im Repository
+          commits_empty: Noch keine Änderungen erfasst. Nach der nächsten Synchronisierung erscheinen hier die Commits aus dem Repository.
+          runs_heading: Synchronisierungs-Läufe
+          runs_empty: Noch keine Synchronisierung gelaufen.
+          run_duration: "%{seconds} s"
+          trigger:
+            manual: Manuell
+            polling: Automatisch
+            webhook: Webhook
+      codebase_import_files:
+        index:
+          title: CodebaseHQ Import
+          new_file_btn: Neue Datei importieren
+          description: Importieren Sie Daten aus CodebaseHQ in %{organisation}
+          supported_file_types: Unterstützte Dateitypen
+          users_xml: Benutzer-Daten
+          tickets_xml: Ticket-Daten
+          time_tracking_xml: Zeiterfassung
+          uploads_xml: Datei-Uploads
+          uploaded_files: Hochgeladene Dateien
+          general_imports: Allgemeine Importe
+          project_imports: Projekt-spezifische Importe
+          unknown_project: Unbekanntes Projekt
+          assign_uploads: Uploads zuordnen
+          no_files_title: Keine Dateien vorhanden
+          no_files_description: Laden Sie Ihre erste CodebaseHQ XML-Datei hoch, um mit dem Import zu beginnen.
+          upload_first_file: Erste Datei hochladen
+        import_files_table:
+          th_filename: Dateiname
+          th_type: Typ
+          th_size: Größe
+          th_uploaded_by: Hochgeladen von
+          th_date: Datum
+          th_status: Status
+          th_actions: Aktionen
+          status_uploaded: Hochgeladen
+          status_processing: Verarbeitung
+          status_processed: Verarbeitet
+          status_rolled_back: Rollback
+          status_error: Fehler
+          tooltip_view: Ansehen
+          tooltip_rollback: Import rückgängig machen
+          tooltip_delete: Löschen
+        new:
+          title: CodebaseHQ Datei hochladen
+          back: Zurück
+          file_upload: Datei-Upload
+          file_type_label: Dateityp
+          file_type_users: Benutzer (users.xml)
+          file_type_tickets: Tickets (tickets.xml)
+          file_type_time_tracking: Zeiterfassung (time_tracking.xml)
+          file_type_uploads: Uploads (uploads.xml)
+          file_type_prompt: Bitte wählen Sie einen Dateityp
+          xml_file_label: XML-Datei
+          max_file_size: 'Maximale Dateigröße: %{size}'
+          tar_file_label: TAR/ZIP-Datei (Attachments)
+          upload_in_progress: Upload läuft...
+          upload_notes_title: Hinweise zum Upload
+          upload_note_stored: Die Datei wird sicher in der Datenbank gespeichert
+          upload_note_preview: Nach dem Upload können Sie die Inhalte als Tabelle ansehen
+          upload_note_delete: Die Datei kann jederzeit wieder gelöscht werden
+          upload_note_format: Nur XML-Dateien im CodebaseHQ-Format werden akzeptiert
+          submit: Datei hochladen
+          cancel: Abbrechen
+          help_title: Wo finde ich meine CodebaseHQ Daten?
+          help_step1_title: 1. Export aus CodebaseHQ
+          help_step1_text: Melden Sie sich in Ihrem CodebaseHQ Account an und gehen Sie zu den Export-Optionen.
+          help_step2_title: 2. XML-Dateien herunterladen
+          help_step2_text: Laden Sie die gewünschten XML-Dateien (users.xml, tickets.xml, etc.) herunter.
+          help_step3_title: 3. Hier hochladen
+          help_step3_text: Wählen Sie den passenden Dateityp und laden Sie die XML-Datei hoch.
+        select_project:
+          title_tickets: Projekt für Ticket-Import auswählen
+          title_time: Projekt für Zeit-Einträge-Import auswählen
+          subtitle: Wählen Sie das Ziel-Projekt für den Import der %{count} %{type} aus der CodebaseHQ-Datei.
+          back: Zurück
+          file_info: Datei-Informationen
+          filename: Dateiname
+          item_count: Anzahl %{type}
+          uploaded_by: Hochgeladen von
+          uploaded_at: Hochgeladen am
+          select_target_project: Ziel-Projekt auswählen
+          project_prompt: Projekt auswählen...
+          note_import_html: "<strong>Hinweis:</strong> Alle %{type} werden in das ausgewählte Projekt importiert."
+          preview_btn: Preview
+          new_project_title: Oder neues Projekt erstellen
+          new_project_description: Falls das gewünschte Projekt noch nicht existiert, können Sie es hier erstellen.
+          new_project_hint: Nach der Erstellung können Sie hierher zurückkehren und das neue Projekt auswählen.
+          new_project_btn: Neues Projekt erstellen
+        assign_uploads:
+          title: Uploads zuordnen
+          subtitle: Ordnen Sie Upload-Dateien den Tickets im Projekt "%{project}" zu
+          back: Zurück zur Übersicht
+          project_info: Projekt-Informationen
+          project_label: 'Projekt:'
+          processed_tickets: 'Verarbeitete Tickets:'
+          assign_upload_files: Upload-Dateien zuordnen
+          select_upload_file: 'Wählen Sie eine Upload-Datei aus:'
+          uploaded_by_at: 'Hochgeladen von: %{name} am %{date}'
+          size_label: 'Größe: %{size}'
+          archive_file: "+ Archiv-Datei: %{size}"
+          important_info_title: Wichtige Informationen
+          important_info_text: Die Upload-Zuordnung wird nur für Tickets durchgeführt, die bereits im System importiert wurden. Nur Uploads vom Typ "Tickets::Update" werden den entsprechenden Ticket-Posts zugeordnet.
+          start_assignment: Upload-Zuordnung starten
+          cancel: Abbrechen
+          no_uploads_title: Keine Upload-Dateien verfügbar
+          no_uploads_description: Es sind keine Upload-Dateien für die Zuordnung vorhanden. Laden Sie zuerst eine uploads.xml-Datei hoch.
+          upload_file_btn: Upload-Datei hochladen
+        preview_import:
+          title: User-Import Vorschau
+          subtitle: Entscheiden Sie für jeden User aus der CodebaseHQ-Datei, wie er importiert werden soll.
+          back: Zurück
+          import_overview: Import-Übersicht
+          progress: Fortschritt
+          progress_text: "%{configured} von %{total} User konfiguriert"
+          stat_total: Gesamt
+          stat_create: Neu erstellen
+          stat_map: Zuordnen
+          stat_skip: Überspringen
+          user_mappings: User-Zuordnungen
+          th_codebase_user: CodebaseHQ User
+          th_action: Aktion
+          th_mapping_role: Zuordnung/Rolle
+          th_potential_matches: Potentielle Matches
+          action_placeholder: "-- Bitte wählen --"
+          action_map_exact: Zuordnen (Exakt)
+          action_create: Neu erstellen
+          action_map_to: 'Zuordnen zu: %{email}'
+          action_skip: Überspringen
+          role_label: 'Rolle:'
+          username_label: 'Username:'
+          no_roles: Keine Rollen definiert. Bitte erstellen Sie zuerst Rollen.
+          no_action_selected: Keine Aktion gewählt
+          exact_match: Exakter Match
+          more_matches: "+%{count} weitere..."
+          no_matches: Keine Matches
+          users_ready: "%{count} User zum Import bereit"
+          cancel: Abbrechen
+          start_import: Import starten
+        preview_tickets:
+          title: Ticket-Import Preview
+          subtitle: "%{count} Tickets werden in ein neues Projekt importiert"
+          back: Zurück
+          new_project: Neues Projekt
+          project_name: Projektname
+          project_name_placeholder: Name für das neue Projekt
+          project_auto_create: Ein neues Projekt und eine zugehörige Attributgruppe werden automatisch erstellt.
+          values_from_import: "%{name}-Werte aus Import"
+          values_auto_create_desc: 'Diese Werte werden automatisch in der neuen Attributgruppe erstellt:'
+          auto_creation: Automatische Erstellung
+          auto_creation_desc: Alle %{count} %{name}-Werte werden automatisch in der neuen Attributgruppe erstellt. Kein manuelles Mapping erforderlich.
+          no_values_found: Keine %{name}-Werte in der Import-Datei gefunden.
+          user_references_status: User-Referenzen Status
+          codebase_user_id: 'CodebaseHQ User ID: %{id}'
+          mapped_to: 'Gemappt zu: %{type} #%{id}'
+          not_found_null: Nicht gefunden - wird als NULL gespeichert
+          user_ref_note_html: "<strong>Hinweis:</strong> Fehlende User-Referenzen werden als NULL gespeichert und können später über die CodebaseImportMapping-Tabelle nachträglich zugeordnet werden."
+          no_user_references: Keine User-Referenzen in den Tickets gefunden.
+          tag_import_settings: Tag-Import Einstellungen
+          tickets_with_tags: Tickets mit Tags
+          unique_tags: Einzigartige Tags
+          total_tag_assignments: Gesamt Tag-Zuweisungen
+          import_tags: Tags importieren
+          import_tags_desc: Aktivieren Sie diese Option, um Tags aus den Tickets zu importieren. Tags werden automatisch erstellt und den Tickets zugewiesen.
+          tag_preview: 'Vorschau der Tags die importiert werden:'
+          more_tags: "+%{count} weitere..."
+          import_summary: Import-Zusammenfassung
+          stat_tickets: Tickets
+          stat_status_values: Status-Werte
+          stat_priority_values: Prioritäts-Werte
+          stat_ticket_updates: Ticket-Updates
+          ready_for_import_html: "<strong>Bereit für Import:</strong> Neues Projekt mit automatischen Attributen wird erstellt"
+          start_ticket_import: Ticket-Import starten
+        preview_time_sessions:
+          title: Zeit-Einträge Import Preview
+          project_label: 'Projekt:'
+          summary: Zusammenfassung
+          time_entries: Zeit-Einträge
+          total_time: Gesamtzeit
+          linked_to_tickets: Mit Tickets verknüpft
+          date_range: 'Zeitraum: %{from} - %{to}'
+          time_per_user: Zeit pro Benutzer
+          th_user: Benutzer
+          th_entries: Einträge
+          th_total_time: Gesamtzeit
+          important_notes: Wichtige Hinweise
+          note_user_fallback: Zeit-Einträge werden dem Import-Benutzer zugeordnet, wenn der Original-Benutzer nicht gefunden wird
+          note_linked_tickets: Verknüpfte Tickets werden nur übernommen, wenn sie bereits importiert wurden
+          note_unlinked: "%{count} Einträge sind nicht mit Tickets verknüpft"
+          note_groups: Gebuchte Abrechnungen werden automatisch erstellt
+          start_import: Import starten
+          import_background_hint: Der Import wird im Hintergrund ausgeführt. Sie können den Fortschritt auf der Übersichtsseite verfolgen.
+          cancel: Abbrechen
+          sample_entries: Erste 10 Einträge (Beispiel)
+          th_date: Datum
+          th_time: Zeit
+          th_description: Beschreibung
+          th_ticket: Ticket
+          unknown_user: Unbekannt
+          more_entries: "... und %{count} weitere Einträge"
+        show:
+          data_from_codebase: "%{type}-Daten aus CodebaseHQ"
+          start_import: Import starten
+          prepare_import: Import vorbereiten
+          select_project: Projekt auswählen
+          import_running: Import läuft...
+          already_imported: Bereits importiert
+          rollback: Rollback
+          rollback_done: Rollback durchgeführt
+          import_failed: Import fehlgeschlagen
+          delete_file: Datei löschen
+          back_to_overview: Zurück zur Übersicht
+          file_size: Dateigröße
+          uploaded_by: Hochgeladen von
+          uploaded_at: Hochgeladen am
+          status: Status
+          status_uploaded: Hochgeladen
+          status_processing: Import läuft...
+          status_processed: Erfolgreich importiert
+          status_failed: Import fehlgeschlagen
+          user_data: Benutzer-Daten
+          users_found: "%{count} Benutzer gefunden"
+          th_id: ID
+          th_username: Benutzername
+          th_email: E-Mail
+          th_full_name: Vollständiger Name
+          th_role: Rolle
+          th_company: Firma
+          no_username: Kein Benutzername
+          no_company: Keine Firma
+          statistics: Statistiken
+          total_users: Gesamt Benutzer
+          administrators: Administratoren
+          with_username: Mit Benutzername
+          with_company: Mit Firma
+          import_results: Import-Ergebnisse
+          successfully_processed: Erfolgreich verarbeitet
+          total_tickets_result: Gesamt Tickets
+          total_users_result: Gesamt User
+          imported: Importiert
+          created: Neu erstellt
+          errors_result: Fehler
+          mapped: Zugeordnet
+          skipped: Übersprungen
+          tag_import_stats: Tag-Import Statistiken
+          tags_found: Tags gefunden
+          tags_created: Neue Tags erstellt
+          tags_reused: Bestehende Tags wiederverwendet
+          taggings_created: Tag-Zuweisungen erstellt
+          tag_warnings: 'Tag-Import Warnungen:'
+          more_warnings: "... und %{count} weitere Warnungen"
+          errors_occurred: 'Aufgetretene Fehler:'
+          more_errors: "... und %{count} weitere Fehler"
+          imported_in_project: 'Importiert in Projekt:'
+          import_completed_at: 'Import abgeschlossen am:'
+          ticket_data: Ticket-Daten
+          tickets_found: "%{count} Tickets gefunden"
+          th_number: Nummer
+          th_title: Titel
+          th_status: Status
+          th_priority: Priorität
+          th_tags: Tags
+          th_reporter: Reporter
+          th_updates: Updates
+          no_tags: Keine Tags
+          unknown: Unbekannt
+          more_tickets: "... und %{count} weitere Tickets"
+          ticket_statistics: Ticket-Statistiken
+          total_tickets: Gesamt Tickets
+          different_statuses: Verschiedene Status
+          different_priorities: Verschiedene Prioritäten
+          total_updates: Gesamt Updates
+          tag_preview: Tag-Vorschau
+          tickets_with_tags: Tickets mit Tags
+          unique_tags: Einzigartige Tags
+          total_tag_assignments: Gesamt Tag-Zuweisungen
+          found_tags: 'Gefundene Tags:'
+          more_tags: "+%{count} weitere..."
+          no_ticket_data_title: Keine Ticket-Daten
+          no_ticket_data_desc: Die XML-Datei enthält keine gültigen Ticket-Daten oder konnte nicht verarbeitet werden.
+          time_entries_data: Zeit-Einträge Daten
+          time_entries_found: "%{count} Zeit-Einträge gefunden"
+          total_time: Gesamtzeit
+          users: Benutzer
+          linked_to_tickets: Mit Tickets verknüpft
+          th_date: Datum
+          th_user: Benutzer
+          th_time: Zeit
+          th_description: Beschreibung
+          th_ticket: Ticket
+          unknown_user: Unbekannt
+          more_time_entries: "... und %{count} weitere Zeit-Einträge"
+          no_time_entries: Keine Zeit-Einträge in der Datei gefunden.
+          uploads_found: "%{count} Uploads gefunden"
+          total_uploads: Gesamt Uploads
+          object_types: Objekt-Typen
+          file_types: Dateitypen
+          total_size: Gesamtgröße
+          th_filename: Dateiname
+          th_type: Typ
+          th_size_upload: Größe
+          th_linked_to: Verknüpft mit
+          th_date_upload: Datum
+          more_uploads: "... und %{count} weitere Uploads"
+          assign_uploads_title: Uploads zu Tickets zuordnen
+          assign_uploads_desc: Ordnen Sie diese Uploads den entsprechenden Tickets und Posts zu. Nur Uploads vom Typ "Tickets::Update" werden verarbeitet.
+          archive_uploading: Die Archivdatei wird noch hochgeladen. Bitte warten Sie, bis der Upload abgeschlossen ist.
+          select_project_label: 'Projekt auswählen:'
+          start_assignment: Zuordnung starten
+          create_project_first: Erstellen Sie zuerst ein Projekt, um Uploads zuordnen zu können.
+          no_archive_file: Keine Archivdatei vorhanden. Bitte laden Sie eine ZIP-Datei mit den Anhängen hoch.
+          parse_error_title: Fehler beim Parsen
+          parse_error_desc: Die XML-Datei konnte nicht korrekt verarbeitet werden. Bitte überprüfen Sie das Dateiformat.
+        rollback:
+          page_title: Import Rollback bestätigen
+          title: Import Rollback bestätigen
+          subtitle: Sie sind dabei, alle durch diesen Import erstellten Objekte zu löschen.
+          import_file_info: Import-Datei
+          file_label: 'Datei:'
+          imported_at: 'Importiert am:'
+          imported_at_unknown: Unbekannt
+          status_label: 'Status:'
+          warning_title: 'Achtung: Diese Aktion kann nicht rückgängig gemacht werden!'
+          warning_text_1: Alle durch diesen Import erstellten Tickets und Posts werden permanent gelöscht.
+          warning_text_2: Stellen Sie sicher, dass Sie wirklich alle diese Objekte löschen möchten.
+          objects_to_delete: Zu löschende Objekte
+          stat_tickets: Tickets
+          stat_posts: Posts
+          stat_total: Gesamt
+          import_sessions: Import-Sessions
+          import_sessions_desc: 'Diese Datei umfasst %{count} Import-Sessions:'
+          objects_count: "%{count} Objekte"
+          confirm_delete: Ich bestätige, dass ich alle durch diesen Import erstellten Objekte löschen möchte.
+          confirm_irreversible: Ich verstehe, dass diese Aktion nicht rückgängig gemacht werden kann.
+          cancel: Abbrechen
+          execute_rollback: Rollback durchführen
+      project_repositories:
+        index:
+          title: Verbundene Repositories
+          connected_header: Verbundene Repositories
+          branch: Branch %{branch}
+          connected_by: Verbunden von %{name} vor %{time}
+          disconnect: Trennen
+          confirm_disconnect: "%{name} wirklich trennen? Alle Indexdaten werden gelöscht."
+          empty: Noch kein Repository verbunden. Füge eines hinzu, um den KI-Assistenten mit deinem Code zu nutzen.
+          back_settings: Einstellungen
+          back_documentation: Dokumentation
+        new:
+          title: Repository verbinden
+          header: Neues Repository verbinden
+          full_name_label: Repository (owner/name)
+          full_name_hint: 'Beispiel: acme/backend'
+          token_label: Personal Access Token
+          token_hint_html: 'Erstelle einen Fine-Grained PAT mit %{link} und nur "Contents: Read"-Berechtigung auf dem gewählten Repo.'
+          token_link_label: GitHub-Anleitung
+          connect: Verbinden
+        connect_errors:
+          not_found: 'Repository nicht gefunden. Prüfe den Namen (owner/name) — und ob dein Token dieses (private) Repository sehen darf: Fine-Grained PAT mit Resource owner = deinem Account, Repository access inkl. dieses Repos und Contents: Read. (Ein Classic Token braucht den vollen "repo"-Scope.)'
+          auth: 'Zugriffstoken ungültig oder abgelaufen. Bitte einen neuen Fine-Grained PAT (Contents: Read) erstellen.'
+          insufficient_scope: 'Der Zugriffstoken hat nicht die nötige Berechtigung. Der Fine-Grained PAT braucht "Contents: Read" auf dem gewählten Repository.'
+      indexing:
+        status:
+          pending: Wartet
+          indexing: Indexiert…
+          ready: Bereit
+          failed: Fehlgeschlagen
+          stale: Aktualisiert…
+        progress: "%{done} / %{total} Dateien"
+        last_indexed: Zuletzt indexiert vor %{time}
+        never_indexed: Noch nicht indexiert
+        error_prefix: Fehler
+        errors:
+          auth_failed: GitHub-Authentifizierung fehlgeschlagen — der Zugriffstoken ist abgelaufen oder ungültig. Bitte den Token aktualisieren.
+          insufficient_scope: 'Der Zugriffstoken hat nicht die nötige Berechtigung (Contents: Read). Bitte den Token aktualisieren.'
+          repo_not_found: Repository nicht gefunden — es wurde umbenannt, gelöscht oder der Token hat keinen Zugriff mehr.
+        reindex:
+          button: Neu indexieren
+          confirm: Repository %{name} jetzt neu indexieren? Es werden nur die Änderungen seit dem letzten Index verarbeitet.
+        token_update:
+          title: Zugriffstoken aktualisieren
+          intro: 'Token abgelaufen oder ungültig? Hier einen neuen Fine-Grained PAT (Contents: Read) hinterlegen — der Index bleibt erhalten.'
+          placeholder: Neuer Personal Access Token
+          submit: Speichern
+        webhook:
+          title: Automatische Aktualisierung (Push-Webhook)
+          intro: 'Damit der Index bei jedem Push automatisch aktualisiert wird, richte im GitHub-Repository einen Webhook ein:'
+          steps: GitHub → Repository → Settings → Webhooks → Add webhook
+          url_label: Payload-URL
+          secret_label: Secret
+          content_type_hint: Content-Type auf application/json setzen und nur das „push"-Event senden.
+          copy: Kopieren
+          copied: Kopiert!
+        runs:
+          link: Index-Verlauf
+          title: Index-Verlauf
+          back: Zurück zu den Repositories
+          empty: Noch keine Indexierungs-Läufe.
+          duration: "%{seconds} s"
+          columns:
+            time: Zeitpunkt
+            trigger: Auslöser
+            result: Ergebnis
+            duration: Dauer
+            scope: Umfang
+            commit: Commit
+          trigger:
+            initial: Erst-Index
+            manual: Manuell
+            push: Push
+          status:
+            ready: Erfolgreich
+            failed: Fehlgeschlagen
+          scope:
+            full: "%{files} Dateien · %{symbols} Symbole"
+            incremental: "%{files} Dateien · +%{added} neu, %{removed} entfernt"

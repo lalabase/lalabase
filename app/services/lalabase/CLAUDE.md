@@ -1,0 +1,228 @@
+# Karte: app/services/lalabase (Stand: 2026-10-10)
+
+AI/RAG-Domäne (Produktname „Lalabase"): alles rund um LLM-Aufrufe, Embeddings und
+Codebase-Verständnis.
+
+* `llm/` — **Provider-Factory & gated seams**: `OpenAI::Client`/`Anthropic::Client` dürfen NUR
+  in den allowlisteten Seams instanziiert werden (Guard:
+  `spec/services/lalabase/llm/direct_client_guard_spec.rb`). Grund: DSGVO-Opt-in-Gate
+  (`organisation.ai_enabled`) + BYOK-Routing über `AiCredential` dürfen nicht umgangen werden.
+* `tools/` — Tool-Klassen für Chat/MCP; Konvention `Klass.execute(args:, context:)`,
+  Sets (`:assistant`, `:assistant_with_code`, `:mcp`; `Registry::SETS` ist die eine Liste aller
+  Sets) in `tools/registry.rb`, Guard `spec/services/lalabase/tools/registry_spec.rb`.
+  Drei lesen Lalabases EIGENE Hilfe (`search_help`, `help_contents`, `get_help_page`,
+  Elternklasse `HelpTool`, nur `:assistant`): ohne Projekt, ohne Abdeckung, Sprache aus
+  `language_preference`, Zitationstyp `help_page` ohne Area (die Antwort bleibt ungesperrt),
+  Link `/hilfe/<slug>` über `CitationLink`. Links im Seitentext werden zu „(help page <slug>)",
+  nie zu `/hilfe`-Links: ein vom Modell kopierter Link öffnete sich im Chat-Frame. Leere
+  Tabelle = Fehler „nicht verfügbar", nie „keine Seite". `help_contents` hat keine Argumente:
+  `GoogleVertexProvider` schickt so ein Werkzeug ohne `parameters`, weil Gemini ein OBJECT mit
+  leeren `properties` ablehnt (Spec prüft jedes Chat-Werkzeug). Plan `doc/product_knowledge_plan.md`.
+  Reichweite je Werkzeug (`Base.scope_mode`): `:project` (Default, Dispatcher injiziert
+  `project_id` als Pflicht, ToolCall gated das Projekt) oder `:token` (Inbox-Arbeitsfluss:
+  kein Projekt-Gate, `Context#reach` = `PersonalAccessToken::Reach`, läuft OHNE Tenant, nur
+  im `:mcp`-Set, record-mode; `list_notifications`, `mark_notification_read`). Die Inbox-
+  Zeilen kommen aus `Notifications::InboxQuery` + `Serializer`, geteilt mit der HTTP-API.
+  Schreibende Werkzeuge gibt es nur im `:mcp`-Set: `create_ticket`, `post_comment`,
+  `create_time_session`, `mark_notification_read`, `update_ticket`. `post_comment` schreibt
+  über `Actors::SavePost` wie das Web-Formular (Activity `post_added`, Benachrichtigungen,
+  Embedding); ein nacktes `Post#save` löste bis zum 10.10.2026 nichts davon aus, in
+  `Api::V1::PostsController` ebenso. `update_ticket`
+  (Terminal-Client S2) ändert je Aufruf genau EINE Art (Titel, Status oder Zuweisung,
+  entschieden nach vorhandenem Schlüssel) und baut keinen eigenen Schreibweg: Status und
+  Zuweisung über `Actors::ApplyTicketChanges` wie Board und Kopfmenü, Titel über
+  `Actors::SaveTicket` ohne `assignee_ids` (das ersetzt die Liste), unter Zeilensperre im
+  Projekt (`SaveTicket` sucht organisationsweit und baut für eine fehlende ID ein NEUES
+  Ticket). Unbekannte Argumente sind `invalid_input`. Schema bewusst flach, ohne `oneOf`:
+  der Go-Client erkennt Funktionen nur an den obersten `properties`. Den Titel prüfen
+  `create_ticket` und `update_ticket` gemeinsam (`tools/ticket_title.rb`): eine Zeile, höchstens
+  255 Zeichen, unsichtbare und Steuerzeichen abgelehnt, nicht bereinigt.
+  `post_comment` (MCP 0.11.0, terminal client S2b) takes optional `format`: `html`
+  (default, unchanged ActionText input) or `plain`. `Posts::PlainTextBody` escapes
+  literal text, normalizes CR and CRLF, drops blank lines at the edges, turns blank
+  lines into paragraphs and single line breaks into `<br>`. Repeated spaces and
+  indentation are stored but collapse in the web view; no Markdown. The tool checks
+  the format itself (`FORMATS`), refuses invalid UTF-8 in either format and NUL in
+  plain bodies as `invalid_input`, and decides emptiness on the converted text (a
+  body of Unicode whitespace only is `body is required`); model save failures stay
+  `refused`.
+  Zwei Formen: `record`-Werkzeuge liefern
+  Zeilen und zitieren jede (Ticket-Werkzeuge), `report`-Werkzeuge liefern nur Zahlen und
+  zitieren die Auswertung (`summarize_time_sessions`, Zitationstyp `time_report`). Ein
+  Report prüft seine Rechte SELBST, wo die Area zu grob ist: Zeiten gehen durch
+  `TimeSessions::ViewingScope` (eigene/alle), die Area `time_sessions` bleibt nur für den
+  Riegel gesetzt (Plan `doc/persoenlicher_assistent_plan.md` §6.4, §13-9). Org-weite
+  Reichweite (S3a T3): `Context#scope` (`tools/scope.rb`, je Area über
+  `accessible_project_ids`) ADDITIV zu `project` (R-M5, MCP unberührt), `Result#coverage`
+  ist das L7-Deckungs-Vertragsfeld, mehrdeutige Ticketnummern antworten mit der geteilten
+  Kandidatenliste (`tools/ticket_candidates.rb`, §9.2).
+  Fehler eines Werkzeugs tragen eine Klasse: `Result.invalid_input(msg)` oder
+  `Result.refused(msg, reason:)`; ohne Code gilt `refused`, auch für ein abgelehntes Speichern
+  (Modellvalidierung, Actor-Fehler): das beweist keine falsche Eingabe. Spec je Fehlerstelle:
+  `spec/requests/api/mcp_result_codes_spec.rb`. `Mcp::ToolCall` legt sie als
+  Maschinenfeld in `_meta` (`lalabase/kind` bzw. `lalabase/code` + `lalabase/reason`), für
+  „fehlt“ und „fremd“ gleich (`not_found`). `kind: empty` heißt „der Aufruf fand nichts“:
+  bei Werkzeugen für einen Datensatz „nicht gefunden“, bei den Code-Suchen „keine Treffer“;
+  Listen (`list_tickets`, `search_knowledge`, `list_notifications`) antworten leer mit `ok`
+  und `data: []`. Wer das `:mcp`-Set ändert, erneuert den Vertrag
+  `spec/fixtures/mcp_contract.json` mit `RAILS_ENV=test bin/rails mcp:contract` und hebt
+  `Mcp::Dispatcher::SERVER_VERSION` (Minor); die Vertrags-Spec vergleicht nur.
+* `indexer/` — Codebase-Indizierung (befüllt `project_index`, `code_symbol`, `fragment`)
+* `project_rag/` — Retrieval für projektbezogene Chats; org-Threads (S3a T3) nur
+  Content-Schicht über `Fragment.for_context_map` (je Area verengte Projektmenge)
+* `github/` — Repo-Anbindung (Import-only, kein laufender Sync)
+* `fence_guard.rb` — Markdown-Fence-Breakout-Neutralisierung (Prompt-Injection-Schutz;
+  Spec: `spec/services/lalabase/fence_guard_spec.rb`)
+* `llm/vertex_availability_probe.rb` — Admin-Diagnose: Vertex-Modell-Verfügbarkeit
+  (Region×Modell) via kostenlosem `:countTokens`; teilt Auth/Endpoint-Klassenmethoden mit
+  `GoogleVertexProvider`. Bewusst KEIN Quota-Seam (keine Inferenz, keine Org, keine
+  Tenant-Inhalte) und KEIN Actor (reiner Read); `Rails.cache` statt Migration.
+* `query_embedding.rb`, `repo_scope.rb`, `language_detector.rb`, `languages.rb`, `citations.rb`
+
+Wichtig:
+1. **Neue KI-Aufrufer müssen durch den Kontingent-Seam** (Metering/Quota) — Vertrag in
+   `doc/ki_sourcing_kontingent_plan.md`. Ohne Metering läuft der Verbrauch an der Abrechnung vorbei.
+2. Embedding-Modell nie hardcoden — Provider über die Factory auflösen (Guard:
+   `spec/services/embedding_provider_hardcode_guard_spec.rb`).
+3. **Chat-Provider nie pinnen** — die Auflösung folgt der Anbieter-Wahl der Organisation,
+   und neuer Code fragt sie über `Factory.for_feature(:key, org)` (seit R6 der Weg JEDES
+   registrierten Seams; das rohe `for_chat` gehört allein dem Verbindungstest, s. u.);
+   `Factory.build(provider_name: …)` überschreibt die Wahl. Die Wahl ist eine
+   DSGVO-Aussage (welcher Rechtsraum sieht die Daten?), keine Vorliebe. Guard:
+   `spec/services/lalabase/llm/provider_pin_guard_spec.rb` mit shrink-only-Allowlist —
+   die **seit R3 (2026-08-02) LEER** ist. Er kennt drei
+   Türen: `Factory.build`, `PROVIDER_CLASSES` und `<X>Provider.new` (Allowlist von
+   Tür 1 und 3 leer, Tür 2 nur die Factory selbst + zwei Credential-Concerns).
+   Der eine verbliebene Pin (P5, `gpt-5-nano` ist ein Reasoning-Modell mit eigenem
+   Wire-Dialekt) steht nicht mehr im Service, sondern als `pin:`/`pin_reason:` in der
+   Registry-Zeile `:customer_description`; der Seam baut ihn über sein eigenes,
+   nacktes `build(...)`, das Tür 1 nicht trifft. Wer wirklich pinnen muss, schreibt
+   ihn dorthin — **der Pin ist damit automatisch mit einer Absage gepaart**, weil das
+   Gate dieselbe Zeile liest. Vorher war das Disziplin und ging dreimal in einer Woche
+   schief. Plan: `doc/ki_provider_reichweite_plan.md`.
+   **Gate und Routing lesen dieselbe Registry-Zeile** (`llm/feature_registry.rb`,
+   12 Einträge — je eine Routing-Entscheidung, Plan `doc/ai_feature_registry_plan.md`).
+   Seit R3 gilt das nicht mehr nur theoretisch (erster Produktivaufrufer:
+   `CustomerDescriptionGenerator`), und seit **KI-Pakete P3 (2026-08-02) routen
+   sechs weitere Seams über `Factory.for_feature`**: `TicketSummaryService`,
+   `SummaryProcessingService`, `Meetings::ParticipantDetectionService`,
+   `ProjectIndexerJob` (Chat-Hälfte, `lane: :chat`) und — über EINE Zeile in
+   `Meetings::BaseLlmService` — die drei Meetings-Unterklassen, die dafür je einen
+   `#feature_key` deklarieren. **Seit R6 routet JEDER registrierte Seam über seinen
+   Key** — auch `ChatResponseJob` (`:chat`), `Actors::CreateAiPost` (`:ask_ai_post`),
+   `EmbeddingProcessingService` (`:content_indexing`), `Lalabase::QueryEmbedding`
+   (`:semantic_search`) und die Embedding-Hälfte in `Indexer::JobSupport`
+   (`:repository_indexing, lane: :embedding`). Die rohen Lanes bleiben genau zwei
+   Aufrufern: dem Verbindungstest (`for_chat`, kein Feature) und dem
+   `OrganisationReindexer` (`for_embeddings`, muss laufen, wenn Feature-Gates nein
+   sagen). Ein neuer Pin gehört in die Registry, nie in einen Service.
+   * **`utility: true` an einer Registry-Zeile** (P3, `doc/ki_pakete_plan.md` §2.1):
+     Hilfspfade nehmen die UNTERSTE Paketstufe statt der von der Org gewählten —
+     eine Code-Eigenschaft des Pfads, keine Kundeneinstellung, und **keine
+     Provider-Aussage** (E7): das Paket und damit der Rechtsraum bleiben, nur das
+     Modell darin wird billiger. Fünf Zeilen tragen sie (`ticket_summary`,
+     `document_summary`, `meeting_participant_detection`,
+     `meeting_ticket_suggestions`, `repository_indexing`). Bei `kind: custom` /
+     `ai_package_id IS NULL` gibt es keine Staffel — dort ändert das Flag nichts.
+     Die Stufe reist als `utility:`-Kwarg durch `chat_provider_name` /
+     `curated_chat_credential` / `resolve_credentials` **und durch
+     `has_valid_ai_configuration?`**: zwei Stufen können auf verschiedenen Providern
+     liegen, ein Gate ohne den Kwarg beurteilt also eine andere Zeile als die
+     Anfrage nutzt. `pin:` + `utility:` an derselben Zeile wirft beim LADEN
+     (widersprüchlich, keine definierte Vorrangregel).
+   * **`organisation.ai_available_for?(:feature_key)` ist DER Weg für ein Gate** und der
+     einzige, der auch den Grund benennen kann (`Availability`: `available?`, `reason`,
+     `required_provider`, `lane`). Gegenstück beim Routing:
+     `Factory.for_feature(:feature_key, org)`. Ein Tippfehler im Key wirft `KeyError` —
+     ein Gate darf nie „nicht verfügbar" antworten, weil der Key falsch war.
+   * **Der Absage-TEXT hat genau eine Quelle**: `FeatureRegistry.unavailable_hint(availability, org)`
+     (R3). Mappt `reason` → `shared.ai.unavailable.<reason>`, interpoliert Anzeigenamen
+     statt Routing-Keys, und beantwortet `:ai_disabled` mit der kanonischen
+     `shared.ai.disabled_member_hint` (E4: wiederverwenden, nicht forken). Aufrufer
+     entscheiden nur, WELCHE Gründe sie erklären — die View bei `:customer_description`
+     z. B. nur `:pinned_elsewhere`, weil der Pin-Text einen Admin mit bloß fehlendem
+     Credential auf die falsche Seite schicken würde. Kein `t('shared.ai.unavailable.…')`
+     von Hand.
+   * `ai_configured_for_chat?` (nur Konfiguration) **gibt es nicht mehr** (P3): das
+     Prädikat leitete die Stufe der ORG ab, seine vier Aufrufer
+     (`TicketSummaryService` + die drei Zusammenfassungs-Einstiege in
+     `tickets/_ticket_content_for_frame`) routen aber auf der UTILITY-Stufe — bei
+     zwei Stufen auf zwei Credentials antwortete es also über ein Credential, das
+     die Anfrage nie anfasst (in beide Richtungen falsch). Alle vier fragen jetzt
+     `ai_available_for?(:ticket_summary)`. Wer wie dieser Service **zwei Zustände
+     auseinanderhalten** muss, mappt sie aus `availability.reason` (dort:
+     `TicketSummaryService#unavailable_status` — `:ai_disabled` behält seine eigene
+     Oberfläche, jeder andere Grund teilt sich das Setup-Modal). Die Regel dahinter:
+     wie viele Zustände eine Oberfläche darstellen kann, weiß nur sie selbst.
+   * `ai_available_pinned?`/`ai_pinned_elsewhere?` (S4-Paar) **gibt es nicht mehr** (R3):
+     beide Fragen sind der Grund `:pinned_elsewhere` bzw. `:no_credential` an EINER
+     Antwort. Die Registry fragt den Pin VOR dem Credential — genau die Unterscheidung,
+     für die das Paar zwei Prädikate brauchte.
+   * `ai_available?(provider)` hat seit R3 **keinen Produktivaufrufer mehr** (der letzte
+     war das S4-Paar). Bleibt als Low-Level-API und Vergleichsseite der Äquivalenz-Matrix
+     (`spec/models/organisation_ai_availability_spec.rb`) — E3. Kein Gate baut mehr darauf.
+   * **R5-Guards (2026-08-03, `feature_registry_guard_spec.rb`)**: Guard A —
+     `Factory.for_chat`/`for_embeddings` nur in der Datei-Allowlist (die Factory selbst
+     ruft nackt, braucht keinen Eintrag); Guard B — jede `seam:`-Zeile existiert und routet
+     wirklich; Routing außerhalb der eigenen Seam-Datei zählt NUR über die begründete
+     Ancestor-Liste (`BaseLlmService`, `JobSupport`) — pauschale Vererbung wäre ein
+     Freifahrtschein für Basisklassen wie `application_job`; jede routende Datei ist Seam
+     oder steht mit Begründung in `FeatureRegistry::EXCLUDED_CALLERS`
+     (`embedding_space_for` in `UNGATED_RESOLUTIONS`, Plan §7.5); Guard C — nichts
+     außerhalb seiner zwei Besitzer (`organisation.rb` definiert, `feature_registry.rb`
+     konsumiert) ruft die Low-Level-Prädikate; die Oberflächen-Allowlist bleibt zusätzlich
+     leer per Plan E3 (die zwei lokalen Controller-Methoden heißen deshalb
+     `ai_feature_available?`). Alle drei + `provider_pin_guard` + `action_registry_guard`
+     laufen seit R5 in der CI (`guards.yml`).
+     **Vier Dinge, die ein Anwesenheits-Guard NICHT sieht** und die deshalb eigene
+     Prüfungen haben (Review-Nachzug 2026-08-03): Guards A und B scannen **auch
+     Templates** — mit `.rb`-only-Glob blieb ein `Factory.for_chat` in einer View grün;
+     die Muster kennen **`Factory::for_chat`** (legales Ruby, heute null Aufrufstellen —
+     also ein stilles Loch); Guard B prüft nicht nur DASS eine Seam routet, sondern
+     **auf WELCHER Zeile**: der literale Key an der Aufrufstelle bzw. das `#feature_key`,
+     das die geerbte Aufrufstelle in `BaseLlmService` liest, muss die eigene Registry-Zeile
+     sein (ohne das durfte eine Meetings-Unterklasse auf einer fremden Zeile routen,
+     während ihr Gate die richtige fragte); und **alle vier Ausnahmelisten tragen
+     `calls:`** (die zwei Lane-Allowlists, `EXCLUDED_CALLERS`, `seam_routing_ancestors`) —
+     eine Ausnahme entschuldigt eine DATEI, ohne Zahl sammelt diese Datei beliebig viele
+     weitere Aufrufe unter derselben Begründung. Alle Zähler stehen heute auf 1; eine
+     Änderung ist ein Diff, den jemand liest.
+   * `ai_available_for_chat?` **gibt es nicht mehr** (R2, 2026-08-02): seine 11 Aufrufer
+     fragen jetzt ihren eigenen Feature-Key. Heute antworten alle ungepinnten Chat-Features
+     identisch — der Key ist also Semantik-Dokumentation, bis Pakete/R3 sie auseinander
+     laufen lassen. **Ein falscher Key ist damit in Produktion unsichtbar**, weshalb jede
+     der 11 Stellen einen eigenen Mutations-Guard trägt: ein Spec, das genau EINE
+     Registry-Zeile absagt und eine zweite unberührt lässt. Vollständig gemessen —
+     jede der 11 Stellen auf einen fremden Key verstellt bricht mindestens ein Beispiel:
+     `meetings_spec` („feature keys (R2)"), `meeting_analyses_spec` /
+     `meeting_ticket_suggestions_spec` (key-scoped `stub_ai_availability` —
+     **niemals ohne `with`**, ein Blanket-Stub antwortet für jeden Key und macht die
+     Datei blind), `meeting_detect_participants_spec` („feature key (R2)"),
+     `ai_surface_gating_spec`, `user_preferences_spec`.
+4. Das `ai_enabled`-Gate der Organisation gilt für JEDEN LLM-Call — kein Aufruf ohne Opt-in.
+   **Eine bewusste Ausnahme, nicht „vergessen":** `Llm::Factory.embedding_space_for(org)`
+   (embedding v2 PR 4b) löst NUR das Vektorraum-Tripel für einen LOKALEN DB-Read auf
+   (`Embeddings::NearestNeighbors`) — kein Daten-Egress, keine API-Kosten. Deshalb ohne
+   `ai_enabled`- und Quota-Gate: eine erschöpfte Quota darf die Suche nicht abschalten.
+   Gepinnt in `spec/services/lalabase/llm/factory_spec.rb`; `for_embeddings` (Schreibpfad)
+   bleibt unverändert gated.
+4. **`space:` ist Pflicht-Kwarg** an `for_embeddings` und `embedding_space_for` (v2 PR 6a):
+   `:configured` = wohin NEUE Embeddings gehen, `:active` = welcher Raum die Suche bedient.
+   Bewusst ohne Default — beide möglichen Defaults hätten einen STILLEN Fehlmodus, der
+   `ArgumentError` hat keinen. Reads (`QueryEmbedding`, `NearestNeighbors`,
+   `PowerSearchService`, `SpaceAlignment`) nehmen `:active`, Schreib-/Build-Pfade
+   `:configured`.
+5. **`model:` beim Embed-Call ist tragend, nicht Deko** (v2 PR 6a): `OpenAiProvider` und
+   `GoogleVertexProvider` beantworten `#default_embedding_model` aus einer KONSTANTEN und
+   ignorieren das konfigurierte Modell (bei Vertex Absicht — dort ist `default_model` das
+   CHAT-Modell). Wer einen Raum bedient, dessen Modell ≠ Konstante ist, MUSS das Modell
+   explizit durchreichen, sonst kommen die Vektoren still aus dem falschen Modell.
+   Betrifft `QueryEmbedding.embed` und `OrganisationReindexer#reembed_batch`.
+6. **Der gemessene Embed-Pfad ist der einzige** (KI-Pakete P4a+): `#embed` delegiert an
+   `#embed_with_usage`, `#embed_batch` an `#embed_batch_with_usage` — je EIN Call-Site pro
+   Form, damit ein ungemessener Aufrufer nicht am Zähler vorbeirouten kann. `OpenAiProvider`
+   implementiert die Batch-Variante echt (liest `response['usage']`), die Basisklasse fällt
+   auf `texts.map { embed_with_usage }` zurück — der Vertex-Pfad (ein `:predict` pro Text).
+   Gebucht wird EINE `AiUsage`-Zeile pro Lauf, nicht pro Batch (`UsageTracking`).
+   ⚠️ `Indexer::SymbolPersistence` nutzt weiterhin `embed_batch` und bucht NICHTS — bekannte
+   Altlast, nicht von P4a berührt.

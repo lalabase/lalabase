@@ -1,0 +1,387 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@tailwind style;
+
+/* Verwaltung / Mitglieder: compact rows and a contextual membership lane. */
+@layer components {
+  .members-toolbar { max-width: var(--width-capped-wide); @apply flex flex-wrap items-center justify-between gap-4 mb-5; }
+  .members-tools { @apply flex flex-wrap items-center gap-4; }
+  .members-text-action { color: rgb(var(--text-action)); @apply text-sm hover:underline; }
+  .members-invite { @apply inline-flex items-center rounded-lg border border-ink bg-btn-primary px-4 py-2 text-sm font-semibold text-heading; box-shadow: 2px 2px 0 rgb(var(--ink)); }
+  .members-layout { display: grid; grid-template-columns: minmax(0, 1fr); max-width: var(--width-capped-wide); gap: 24px; align-items: start; }
+  .members-list { min-width: 0; }
+  .members-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+  .members-table th { @apply border-b border-ink pb-3 text-left text-[11px] font-mono font-medium uppercase tracking-wider text-muted; }
+  .members-table td { padding: 12px 0; @apply border-b border-cream-200; }
+  .members-table td:first-child { padding-right: 16px; }
+  .members-col-role { width: 164px; padding-right: 16px !important; }
+  .members-col-since { width: 98px; padding-right: 16px !important; }
+  td.members-col-since { @apply font-mono text-xs text-muted whitespace-nowrap; }
+  .members-col-actions { width: 28px; }
+  .members-row:hover, .members-invitation-row:hover { @apply bg-cream-200/70; }
+  .members-row[data-action] { cursor: pointer; }
+  .members-name { @apply text-sm font-medium text-heading; }
+  .members-state { @apply inline-flex shrink-0 items-center gap-1 text-[11px] text-muted; }
+  .members-status-dot { width: 5px; height: 5px; @apply rounded-full bg-cream-500; }
+  .members-presence { background: #6E9A3E; @apply absolute -bottom-0.5 -end-0.5 w-2 h-2 rounded-full border border-cream-50; }
+  .members-more { @apply inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded text-cream-500 hover:bg-cream-200; list-style: none; }
+  .members-more::-webkit-details-marker { display: none; }
+  .members-menu { position: relative; }
+  .members-menu[open] { z-index: 30; }
+  .members-menu-items { @apply absolute right-0 top-full z-30 mt-1 w-64 rounded-lg border border-cream-300 bg-surface-raised py-1 shadow-md; }
+  .members-menu-items a, .members-menu-items button { @apply block w-full px-4 py-2 text-left text-sm text-heading hover:bg-cream-100; }
+  .members-danger, .members-menu-items .members-danger { color: #B63426; }
+  .members-role-select { @apply w-full cursor-pointer rounded border-0 bg-transparent py-1 pl-1 pr-6 text-[13px] text-heading hover:bg-cream-200; background-size: 12px; background-position: right 4px center; }
+  .members-invitation-row { @apply flex items-center gap-4 border-b border-cream-200 py-3; }
+  .members-invitation-row .members-menu { margin-inline-start: auto; }
+  .members-panel { @apply rounded-xl border border-cream-300 bg-surface-raised p-5; position: sticky; top: 16px; }
+  .members-panel .members-role-select { @apply border border-cream-400 px-2 pr-6; width: auto; max-width: 190px; }
+  .members-setting { @apply flex items-center justify-between gap-4 border-b border-cream-200 py-4; }
+  .members-setting form { flex-shrink: 0; }
+  .members-search { @apply flex items-center rounded-lg border border-cream-400; }
+  .members-search-input { @apply w-32 rounded-lg border-0 bg-transparent px-2 py-1 text-sm; }
+  #members_workspace :is(a, button, select, input, summary):focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 3px; }
+  .members-row:focus-within, .members-invitation-row:focus-within { @apply bg-cream-200/70; }
+  .members-row--selected, .members-row--selected:focus-within { @apply bg-cream-200; }
+  .members-row--selected:hover { background-color: rgb(var(--selected-row-hover)); }
+  .dark .members-danger { color: var(--wash-danger-text); }
+  /* The list is capped (layout.css, "Page widths"); open, the lane docks at the
+     cap and adds its 24 px gap and its 400 px. */
+  @media (min-width: 1100px) {
+    .members-layout--open { max-width: calc(var(--width-capped-wide) + 24px + 400px); grid-template-columns: minmax(380px, var(--width-capped-wide)) minmax(330px, 400px); }
+    #members_workspace:has(.members-layout--open) .members-toolbar { max-width: calc(var(--width-capped-wide) + 24px + 400px); }
+  }
+  @media (max-width: 1099px) { .members-layout--open .members-panel { grid-row: 1; position: static; } }
+  @media (max-width: 639px) {
+    #members_workspace { display: block; padding-bottom: 80px; }
+    .members-col-since { display: none; }
+    .members-col-role { width: 140px; padding-right: 6px !important; }
+    .members-toolbar, .members-tools { gap: 12px; }
+    .members-invitation-row { flex-wrap: wrap; gap: 8px; }
+    .members-invitation-row > span:first-child { flex-basis: 100%; }
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Subtly tinted scrollbar in the amber accent (e.g. Inbox).
+     Translucent + thin so that it doesn't feel intrusive; stronger on hover. */
+  .scrollbar-amber {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(251, 191, 36, 0.4) transparent; /* Firefox: amber-400 @40% */
+  }
+  .scrollbar-amber::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-amber::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-amber::-webkit-scrollbar-thumb {
+    background-color: rgba(251, 191, 36, 0.4); /* amber-400 @40% */
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-amber::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(251, 191, 36, 0.75);
+  }
+}
+
+
+
+
+
+/*
+
+@layer components {
+  .btn-primary {
+    @apply py-2 px-4 bg-blue-200;
+  }
+}
+
+*/
+
+:root {
+  --lime: #b9f279;
+  --gray: #838383;
+}
+
+/* =====================================================================
+   SEMANTIC TOKEN LAYER (Phase 1 — value-faithful, Light pixel-identical)
+   Palette variables as raw RGB triples (for <alpha-value> in tailwind.config.js).
+   Values = exactly the current state (extracted from the build). Dark/per-Org =
+   later ONLY override these variables (.dark { ... } or inline --accent).
+   See doc/token_layer_HANDOFF.md.
+   ===================================================================== */
+:root {
+  /* — warm neutral ramp (cream) — */
+  --cream-50: 250 248 245;  --cream-100: 245 241 234; --cream-200: 235 227 212;
+  --cream-300: 220 215 205; --cream-400: 188 182 169; --cream-500: 147 140 127;
+  --cream-600: 109 104 92;  --cream-700: 79 74 64;    --cream-800: 53 48 41;
+  --cream-900: 33 30 24;
+  /* — cobalt (accent/info) — */
+  --cobalt-50: 239 246 255;  --cobalt-100: 219 234 254; --cobalt-200: 191 219 254;
+  --cobalt-300: 147 197 253; --cobalt-400: 96 165 250;  --cobalt-500: 59 130 246;
+  --cobalt-600: 37 99 235;   --cobalt-700: 29 78 216;   --cobalt-800: 30 64 175;
+  --cobalt-900: 30 58 138;
+  /* — ink stroke — */
+  --ink: 20 17 12;
+  /* — cold legacy (gray) — value-faithful; redefinable in Phase 2 (.dark) or the cold→warm step — */
+  --gray-50: 249 250 251;  --gray-100: 243 244 246; --gray-200: 229 231 235;
+  --gray-300: 209 213 219; --gray-400: 156 163 175; --gray-500: 107 114 128;
+  --gray-600: 75 85 99;    --gray-700: 55 65 81;    --gray-800: 31 41 55;
+  --gray-900: 17 24 39;    --gray-950: 3 7 18;
+  /* — cold legacy (slate) — */
+  --slate-50: 248 250 252;  --slate-100: 241 245 249; --slate-200: 226 232 240;
+  --slate-300: 203 213 225; --slate-400: 148 163 184; --slate-500: 100 116 139;
+  --slate-600: 71 85 105;   --slate-700: 51 65 85;    --slate-800: 30 41 59;
+  --slate-900: 15 23 42;    --slate-950: 2 6 23;
+  /* — purple (AI/special accent) — value-equal to the Tailwind default; .dark defines a dark ramp (WS-3) — */
+  --purple-50: 250 245 255;  --purple-100: 243 232 255; --purple-200: 233 213 255;
+  --purple-300: 216 180 254; --purple-400: 192 132 252; --purple-500: 168 85 247;
+  --purple-600: 147 51 234;  --purple-700: 126 34 206;  --purple-800: 107 33 168;
+  --purple-900: 88 28 135;
+  /* — absolute — */
+  --black: 0 0 0;
+  --white: 255 255 255;
+
+  /* — SEMANTIC tokens: default = reference to the palette. accent/info own var
+       (per-Org inline overridable), status FIXED. — */
+  --text-action: 63 107 46; /* Quiet text actions, shared by desktop and mobile. */
+  --accent: var(--cobalt-600);
+  --info: var(--cobalt-600);
+  --btn-primary: 178 214 112;   /* Primary button: more pleasant, less garish lime (Light) */
+  /* — Org recognition color (per user, chrome/identity): default == lime-300, the chip
+       of the public brand mark (shared/_brand_mark), so the sidebar's chip is the public
+       one without a color set (was lime-200 until 10.09.2026, and the app's chip was a
+       shade lighter than its own start page). Users with >=2 orgs set --brand inline
+       on the <html> (BrandHelper). Deliberately NOT overridden per theme (cross-theme). — */
+  --brand: 190 242 100;   /* lime-300 #bef264 */
+  /* — WS-0 role split (Light = value-equal to today) — */
+  --stroke: 20 17 12;     /* stroke == previous ink value; own var decouples the stroke from text/scrim */
+  --scrim: 20 17 12;      /* Modal backdrop warm-dark; deliberately NOT overridden per theme -> stays dark in Dark/Pop */
+  --on-fill: 250 248 245; /* Text on colored/dark fills -> light in ALL themes (later replaces the text-white overload) */
+
+  /* — booked time as bar segments (Projektzeiten, plan §4) —
+       Three steps of increasing weight: nothing yet is NOT painted at all (the
+       outlined track shows through), assigned to a billing is grey, invoiced is
+       ink. The empty state carries no fill, so it cannot compete with the
+       filled ones.
+
+       The first version painted the empty part with cream-300, which is a light
+       sand in Light and Dark but "edge dark gray" (82 82 82) in POP -- and POP
+       is the theme the app renders by default. So the emptiest state came out
+       almost black. Measured now in all THREE themes, grey against the surface
+       it sits on and against ink beside it:
+
+                     Light            Dark            Pop
+         vs surface  3.53:1           3.06:1          3.54:1
+         vs ink      5.03:1           3.09:1          5.92:1
+
+       Grey needs its own value per theme for the same reason amber did: Dark
+       squeezes it between a near-black surface and a light ink, and only
+       100..102 fits there at all. Do not fold these into one value. — */
+  --time-in-billing: 132 132 132;
+  --time-billed: var(--ink);
+  /* — selected table row (layout.css .selected-row): "here you are" (F6) sits
+       on the warm ramp and follows every theme by itself, so no per-theme values below.
+       Lime belongs to the primary action only. — */
+  --selected-row: var(--cream-200);
+  --selected-row-hover: var(--cream-300);
+}
+
+/* =====================================================================
+   THEME MODES (sidebar switcher, test/dev). Each mode = only a single
+   variable override -> that is the point of the token layer.
+   :root = LIGHT/QUIET (default). .dark = DARK. .theme-pop = POP/brutalist.
+   Status: prototype calibration; fine-tuning = Phase 2
+   (doc/token_layer_phase2_dark_plan.md). Switch/FOUC script in the <head>.
+   ===================================================================== */
+
+/* ---- DARK ---- (warm dark ramp, elevation inverts) */
+.dark {
+  --cream-50: 26 23 20;  --cream-100: 20 18 16; --cream-200: 46 40 32;
+  --cream-300: 58 51 42; --cream-400: 92 84 72; --cream-500: 158 149 134;
+  --cream-600: 168 159 144; --cream-700: 194 186 172; --cream-800: 216 210 200;
+  --cream-900: 240 236 229;
+  --ink: 196 188 172;   /* overloaded (stroke+text) -> readable-light; Phase 2: separate the roles */
+  --black: 194 186 172;
+  --white: 37 32 25;    /* raised = lighter than surface */
+  --gray-50: 26 23 20;   --gray-100: 31 27 22;  --gray-200: 46 40 32;
+  --gray-300: 58 51 42;  --gray-400: 92 84 72;  --gray-500: 158 149 134;
+  --gray-600: 168 159 144; --gray-700: 194 186 172; --gray-800: 216 210 200;
+  --gray-900: 240 236 229; --gray-950: 245 242 236;
+  --slate-50: 26 23 20;  --slate-100: 31 27 22; --slate-200: 46 40 32;
+  --slate-300: 58 51 42; --slate-400: 92 84 72; --slate-500: 158 149 134;
+  --slate-600: 168 159 144; --slate-700: 194 186 172; --slate-800: 216 210 200;
+  --slate-900: 240 236 229; --slate-950: 245 242 236;
+  --text-action: 172 204 144;
+  --accent: 59 130 246; --info: 59 130 246;
+  --btn-primary: 178 214 112;  /* Dark: same pleasant lime tone as Light (test) */
+  --stroke: 196 188 172;  /* WS-0: lighter warm stroke in Dark (== previous Dark ink) */
+  /* Dark: squeezed between a near-black surface and a light ink. 100..102 is the
+     whole window in which grey clears 3:1 against both. */
+  --time-in-billing: 101 101 101;
+  /* --scrim / --on-fill NOT overridden -> stay dark resp. light (that is the point of the split) */
+  /* — WS-3: purple baked into vars -> AI/badge surfaces flip without a band-aid. Dark ramp:
+       50-300 = tinted dark surfaces, 200/300 == previous band-aid values; 700-900 = light lavender texts. — */
+  --purple-50: 33 26 54;   --purple-100: 42 33 66;   --purple-200: 108 86 168;
+  --purple-300: 124 102 184; --purple-400: 140 118 198; --purple-500: 167 139 250;
+  --purple-600: 182 160 235; --purple-700: 195 178 240; --purple-800: 201 184 240;
+  --purple-900: 222 214 248;
+  /* — darken cobalt tints (50/100/200) in Dark: otherwise light selection/info surfaces
+       (data-[selected]:bg-cobalt-50, time pills) are glaring-light on a dark ground. Only the tints;
+       cobalt-400..900 stay (accent/text). text-cobalt-50/100/200 is used nowhere. — */
+  --cobalt-50: 23 38 64;   --cobalt-100: 30 50 82;   --cobalt-200: 42 66 105;
+  /* — WS-4: centralized Dark status wash palette (surface + text per semantic;
+       per-Org overridable later). Used by the .dark .bg-*-50/100/200 rules below. — */
+  --wash-danger-bg: #3a1c19;  --wash-danger-text: #f3b0a8;
+  --wash-warning-bg: #382b12; --wash-warning-text: #f0cd8a;
+  --wash-success-bg: #16301f; --wash-success-text: #a9dcb6;
+  --wash-accent-bg: #15233a;  --wash-accent-text: #a8c7ff;
+  --wash-special-bg: #211a36; --wash-special-text: #c9b8f0;
+  --wash-lime-bg: #283310;    /* lime tint (text comes from the lime action rule) */
+}
+/* =====================================================================
+   DARK — LEGITIMATE THEME OVERRIDES (WS-4 organized)
+   These are NOT token-layer values, but necessary Dark adjustments that
+   a pure variable flip cannot achieve (third-party CSS, status semantics,
+   native controls, overload cases). Grouped + commented; values as far as
+   possible from tokens (--wash-*, --cream-*). Order below:
+   1) Shadows  2) Status washes  3) Form controls  4) Scrim
+   5) Third-party editors  6) Plain cold gray surfaces  7) Text-on-fill
+   8) Sidebar policy  9) bg-white inherited text
+   ===================================================================== */
+
+/* 1) Shadows: brutalist #000 shadows gone in Dark -> elevation via border. */
+.dark [class*="shadow-["] { box-shadow: none !important; }
+
+/* 2) Dampen status/tint washes (bg-*-50/100/200) -> dark tinted surface.
+      Values centrally from --wash-* tokens (see .dark block above). lime/cobalt-200..900
+      = action/info, deliberately NOT muted. */
+.dark .bg-red-50, .dark .bg-red-100, .dark .bg-red-200,
+.dark [class*="bg-red-50/"], .dark [class*="bg-red-100/"] { background-color: var(--wash-danger-bg) !important; }
+.dark .bg-amber-50, .dark .bg-amber-100, .dark .bg-amber-200,
+.dark .bg-orange-50, .dark .bg-orange-100, .dark .bg-yellow-50, .dark .bg-yellow-100, .dark .bg-yellow-200 { background-color: var(--wash-warning-bg) !important; }
+.dark .bg-green-50, .dark .bg-green-100, .dark .bg-green-200,
+.dark .bg-emerald-50, .dark .bg-emerald-100 { background-color: var(--wash-success-bg) !important; }
+.dark .bg-lime-50, .dark .bg-lime-100, .dark [class*="bg-lime-50/"] { background-color: var(--wash-lime-bg) !important; } /* only the tint, NOT action lime 200+ */
+.dark .bg-sky-50, .dark .bg-sky-100, .dark .bg-blue-50, .dark .bg-blue-100,
+.dark .bg-cobalt-50, .dark .bg-cobalt-100, .dark .bg-cyan-50, .dark .bg-cyan-100 { background-color: var(--wash-accent-bg) !important; }
+.dark .bg-indigo-50, .dark .bg-indigo-100, .dark .bg-purple-50, .dark .bg-purple-100,
+.dark .bg-violet-50, .dark .bg-violet-100 { background-color: var(--wash-special-bg) !important; }
+/* Lighten status texts on the washes (otherwise dark-on-dark). */
+.dark .text-red-700, .dark .text-red-800, .dark .text-red-900 { color: var(--wash-danger-text) !important; }
+.dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900, .dark .text-yellow-800 { color: var(--wash-warning-text) !important; }
+.dark .text-green-700, .dark .text-green-800, .dark .text-green-900, .dark .text-emerald-800 { color: var(--wash-success-text) !important; }
+.dark .text-blue-700, .dark .text-blue-800, .dark .text-blue-900, .dark .text-sky-800, .dark .text-cobalt-900 { color: var(--wash-accent-text) !important; }
+.dark .text-indigo-700, .dark .text-indigo-800, .dark .text-indigo-900, .dark .text-purple-800, .dark .text-purple-900 { color: var(--wash-special-text) !important; }
+.dark .text-slate-900, .dark .text-slate-600 { color: rgb(var(--cream-800)) !important; }
+/* 3) Form controls uniform in Dark: dark raised surface + light text + quiet border.
+   Resolves the inconsistency (bg-white flips / native select = browser white). !important, to beat the
+   various individual bg classes. (Global form rule, no band-aid.) */
+.dark select, .dark textarea,
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]) {
+  background-color: rgb(var(--white)) !important;   /* raised = lighter-than-surface */
+  color: rgb(var(--cream-800)) !important;
+  border-color: rgb(var(--cream-300)) !important;
+}
+.dark select option { background-color: rgb(var(--cream-100)); color: rgb(var(--cream-800)); }
+/* Checkboxes/radios in Dark: when unchecked not glaring-white (@tailwindcss/forms sets #fff) ->
+   dark raised surface + quiet border. ONLY :not(:checked), so that the checked cobalt fill stays. */
+.dark input[type="checkbox"]:not(:checked),
+.dark input[type="radio"]:not(:checked) {
+  background-color: rgb(var(--white));
+  border-color: rgb(var(--cream-400));
+}
+/* (The bulk action bar now uses normal surface tokens (bg-cream-100/ink/cream-900) instead
+   of the inverting cream-900 trick -> self-themed in both modes, no override needed.) */
+/* 4) Modal scrim/backdrop: must dim DARK in EVERY theme. bg-ink/black/gray-500 with opacity
+   otherwise flip light (ink/black are light in Dark -> light veil instead of dimming). Target:
+   migrate views to bg-scrim/60 (token --scrim, theme-independent dark) -> then this
+   catch-all rule goes away. Until then, fixed rgba. */
+.dark [class*="bg-ink/"], .dark [class*="bg-black/"], .dark [class*="bg-gray-500/"],
+.dark [class*="bg-gray-900/"], .dark [class*="bg-slate-900/"],
+.dark .bg-ink.bg-opacity-60, .dark .bg-black.bg-opacity-60, .dark .bg-gray-500.bg-opacity-60 { background-color: rgba(0,0,0,0.6) !important; }
+/* 5) RICH-TEXT EDITOR (Dark) */
+/* Lexxy (the ONLY rich-text editor since Paket 2) ships its own variable layer
+   (lexxy-variables.css) that never sees our tokens: text/toolbar stay near-black and
+   the canvas white in Dark. Map the Lexxy variables onto the (inverted) cream ramp --
+   variables only, no !important needed. */
+.dark {
+  --lexxy-color-ink: rgb(var(--cream-900));          /* text -> light */
+  --lexxy-color-ink-medium: rgb(var(--cream-700));   /* subtle text / toolbar icons */
+  --lexxy-color-ink-light: rgb(var(--cream-500));
+  --lexxy-color-ink-lighter: rgb(var(--cream-300));  /* borders */
+  --lexxy-color-ink-lightest: rgb(var(--cream-200)); /* code/toolbar-hover surfaces */
+  --lexxy-color-ink-inverted: rgb(var(--white));     /* canvas -> raised dark */
+  --lexxy-color-selected: rgb(var(--cobalt-100));
+  --lexxy-color-selected-hover: rgb(var(--cobalt-200));
+  --lexxy-color-code-bg: rgb(var(--cream-200));
+}
+
+/* Native file-input button in Dark */
+.dark input[type="file"] { color: rgb(var(--cream-700)) !important; }
+.dark input[type="file"]::file-selector-button { background-color: rgb(var(--cream-100)) !important; color: rgb(var(--cream-800)) !important; border: 1px solid rgb(var(--cream-300)) !important; border-radius: 4px; }
+/* Keep plain cold-gray surfaces (bg-gray/neutral/slate-5..9) warm-dark in Dark.
+   AFTER WS-1: the dark: literals are removed; what remains are PLAIN classes (e.g. bg-gray-900
+   in time_sessions/notifications/dashboard/power_search/projects), which would otherwise turn LIGHT
+   via the inverted gray/slate ramp. Legitimate rule (no more dark: neutralizer), until these
+   surfaces are migrated to semantic tokens in WS-2. The scrim rule (higher specificity) stays. */
+.dark [class*="bg-gray-5"], .dark [class*="bg-gray-6"], .dark [class*="bg-gray-7"], .dark [class*="bg-gray-8"], .dark [class*="bg-gray-9"],
+.dark [class*="bg-neutral-5"], .dark [class*="bg-neutral-6"], .dark [class*="bg-neutral-7"], .dark [class*="bg-neutral-8"], .dark [class*="bg-neutral-9"],
+.dark [class*="bg-slate-6"], .dark [class*="bg-slate-7"], .dark [class*="bg-slate-8"], .dark [class*="bg-slate-9"] { background-color: rgb(var(--cream-200)) !important; }
+/* (WS-1 removed) The dark:text-gray/neutral/slate-{1..4} neutralizer is gone: all
+   dark:text-* literals were removed from the views (0 in-scope) -> the base text color
+   (cream/black/slate) now flips by itself via the ramp. */
+/* 7) (WS-2 removed) The text-white catch-all is gone: all in-scope text-white was
+      migrated to text-on-fill (theme-independent light) -> no more overload, no band-aid needed. */
+/* Sidebar policy (WS-1): the dark:bg-black literal is removed; the default surface
+   now comes from bg-cream-100 (flips via the ramp). This rule stays ONLY for the
+   per-user sidebar color case (inline style="background-color:..."): in Dark the
+   shell should stay theme-coherent instead of showing a light wished-for color. No band-aid. */
+.dark .sidebar { background-color: rgb(var(--cream-100)) !important; }
+/* (WS-3 removed) the hardcoded selection tint -> now the --selected-row token in labor.css.
+   (WS-3 removed) bg-purple-200/300 -> purple is baked into vars, flips via the .dark ramp. */
+/* Raised bg-white surfaces (modal/card/secondary button) inherit light text color in Dark.
+   Buttons like "Show all" have NO own text class -> otherwise dark-on-dark.
+   Children with their own text-* class keep their color. */
+.dark .bg-white { color: rgb(var(--cream-800)); }
+
+/* ---- POP ---- (white + hard black strokes + lime accent = louder/more brutalist) */
+.theme-pop {
+  --cream-50: 255 255 255; --cream-100: 244 244 244; --cream-200: 212 212 212;
+  --cream-300: 82 82 82;   --cream-400: 140 140 140; --cream-500: 90 90 90;   /* edge dark gray (softer than pure black -> pills/borders not too hard) */
+  --cream-600: 60 60 60;   --cream-700: 38 38 38;    --cream-800: 20 20 20;   /* darker gray tones = more contrast */
+  --cream-900: 0 0 0;
+  --ink: 0 0 0;            /* hard brutalist stroke */
+  --black: 0 0 0;
+  --white: 255 255 255;
+  --accent: 132 204 22;    /* lime-500 = Pop/brand action */
+  --info: 37 99 235;       /* cobalt stays */
+  --btn-primary: 190 242 100; /* Pop: loud lime */
+  --stroke: 0 0 0;         /* WS-0: hard black stroke (== Pop ink) */
+  --time-in-billing: 136 136 136; /* Pop: white surface, hard black ink */
+  /* Pop's cream-300 is the edge dark gray (82 82 82): black row text on it reads 2.7:1.
+     The selected row therefore keeps its own tone under the pointer; the row still slides
+     2px on hover (layout.css .ticket-row:hover), so the feedback is not lost. */
+  --selected-row-hover: var(--cream-200);
+  /* gray/slate stay default (cool-neutral); shadows + status washes stay LOUD = the poppy part */
+}
+.theme-pop .sidebar { background-color: rgb(var(--cream-100)) !important; }
+
+/* ---- ACTION LIME: light in ALL themes -> text/icons on it ALWAYS dark + crisp ----
+   Lime action buttons set no own text color (otherwise inherit the theme default,
+   which is light in Dark -> light-on-lime = washed). Fixed dark color, theme-independent.
+   ONLY the light action steps (200-500), NOT lime-50 (own-post tint). */
+.bg-btn-primary, .mobile-primary, .bg-lime-200, .bg-lime-300, .bg-lime-400, .bg-lime-500,
+[class*="bg-lime-200"], [class*="bg-lime-300"], [class*="bg-lime-400"] { color: #14110c; }

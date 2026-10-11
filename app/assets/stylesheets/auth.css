@@ -1,0 +1,374 @@
+/*
+ *= require landing_tokens
+ *= require lp_base
+ *
+ * Authentication pages are independent from the public landing stylesheet.
+ * All rules remain scoped under .lp. Links, brand, eyebrow, buttons and the
+ * two-column field pair come from lp_base.css, which landing.css shares.
+ */
+
+/* ============================================================
+   Auth pages (handoff round 1, variants 3a sign-in / 3b sign-up).
+   Split screen: form on paper, dark context panel. Additional
+   tokens: field border #C9C2B2, focus ring rgba(43,75,217,.12),
+   panel card #1B1E24, panel chrome #22262E, panel border #2E323B.
+   ============================================================ */
+
+.lp-auth {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.lp-auth-form-col {
+  background: var(--lp-paper);
+  padding: 40px 72px 32px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lp-auth-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+.lp-auth-cross { margin: 0; font-size: 14px; color: var(--lp-text-3); }
+
+.lp-auth-cross-link {
+  color: var(--lp-accent);
+  font-weight: 600;
+  border-bottom: 1.5px solid var(--lp-accent);
+  padding-bottom: 1px;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.lp-auth-cross-link:hover { color: var(--lp-accent-hover); border-color: var(--lp-accent-hover); }
+
+.lp-auth-main {
+  margin: auto 0;
+  padding: 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 420px;
+  width: 100%;
+  align-self: center;
+}
+
+.lp-auth-h1 {
+  margin: 0;
+  font-size: var(--lp-fs-title);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+/* Keep the sign-up heading on the same shared title scale as the sign-in heading. */
+.lp-auth-h1--signup { font-size: var(--lp-fs-title); }
+.lp-auth-sub { margin: -6px 0 0; font-size: 15.5px; line-height: 1.55; color: var(--lp-text-3); }
+
+.lp-auth-form { display: flex; flex-direction: column; gap: 18px; }
+.lp-auth-form--signup { gap: 15px; }
+
+/* ---------- field building block ---------- */
+
+.lp-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.lp-field-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.lp-field-label { font-size: 14px; font-weight: 600; color: #3D4048; }
+.lp-field-optional { font-size: 13px; color: var(--lp-text-4); }
+
+.lp-input {
+  width: 100%;
+  background: var(--lp-white);
+  border: 1px solid var(--lp-border-strong);
+  border-radius: var(--lp-r-control);
+  padding: 13px 14px;
+  font: inherit;
+  font-size: 15.5px;
+  color: var(--lp-ink);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.lp-input::placeholder { color: #A7A296; }
+
+.lp-input:focus {
+  outline: none;
+  border: 1.5px solid var(--lp-accent);
+  box-shadow: 0 0 0 3px rgba(43, 75, 217, 0.12);
+  /* keep the field height constant despite the wider border */
+  padding: 12.5px 13.5px;
+}
+
+.lp-input--error { border: 1.5px solid #8A2A16; box-shadow: 0 0 0 3px rgba(138, 42, 22, 0.1); }
+.lp-field-error { margin: 0; font-size: 13px; color: #8A2A16; }
+
+.lp-hint { margin: 0; font-size: 13px; line-height: 1.5; color: var(--lp-text-4); }
+.lp-hint--small { font-size: 12.5px; }
+
+/* A value the visitor cannot change (the invited address on sign-up) */
+.lp-field-static { margin: 0; font-size: 15.5px; font-weight: 600; color: var(--lp-ink); overflow-wrap: anywhere; }
+
+/* Password field with inline text toggle */
+.lp-input-wrap { position: relative; }
+.lp-input--toggle { padding-right: 86px; }
+.lp-input--toggle:focus { padding-right: 85.5px; }
+
+.lp-input-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--lp-text-3);
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
+.lp-input-toggle:hover { color: var(--lp-ink); }
+
+.lp-auth-forgot { font-size: 13.5px; color: var(--lp-accent); border-bottom: 1px solid var(--lp-accent); }
+.lp-auth-forgot:hover { color: var(--lp-accent-hover); }
+.lp-auth-forgot-short { display: none; }
+
+/* ---------- checkboxes ---------- */
+
+.lp-checkline { display: flex; align-items: flex-start; gap: 11px; }
+.lp-checkline-label { font-size: 14.5px; line-height: 1.5; color: #3D4048; }
+.lp-checkline--terms .lp-checkline-label { font-size: 13.5px; color: var(--lp-text-2); }
+
+.lp-checkbox {
+  width: 19px;
+  height: 19px;
+  flex: none;
+  margin-top: 1px;
+  border-radius: 4px;
+  border: 1.5px solid var(--lp-border-strong);
+  accent-color: var(--lp-accent);
+}
+
+.lp-auth-textlink { color: var(--lp-accent); border-bottom: 1px solid var(--lp-accent); }
+.lp-auth-textlink:hover { color: var(--lp-accent-hover); }
+
+/* ---------- strength meter ---------- */
+
+.lp-strength { display: flex; align-items: center; gap: 10px; }
+/* An author display beats the [hidden] UA rule -- restate it (same trap as
+   the former docs.css and _ladder_cells). */
+.lp-strength[hidden] { display: none; }
+.lp-strength-bar { display: flex; gap: 3px; }
+
+.lp-strength-seg {
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--lp-line);
+}
+
+.lp-strength-on { background: var(--lp-accent); }
+.lp-strength-label { font-size: 12.5px; color: var(--lp-text-3); }
+
+/* ---------- flash ---------- */
+
+.lp-auth-flash {
+  border-left: 2px solid var(--lp-accent);
+  background: var(--lp-paper-muted);
+  padding: 13px 16px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--lp-ink);
+}
+
+.lp-auth-flash--alert { border-left-color: var(--lp-signal); }
+
+/* ---------- reassurance + legal ---------- */
+
+.lp-auth-assure {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 13px;
+  color: var(--lp-text-4);
+  flex-wrap: wrap;
+}
+
+.lp-auth-legal {
+  display: flex;
+  gap: 18px;
+  font-size: 12.5px;
+  color: var(--lp-text-4);
+  flex-wrap: wrap;
+}
+
+.lp-auth-legal a:hover { color: var(--lp-ink); }
+
+/* ---------- dark context panel ---------- */
+
+.lp-auth-panel {
+  background: var(--lp-ink);
+  color: var(--lp-on-dark);
+  display: flex;
+  align-items: center;
+  padding: 48px 56px;
+}
+
+.lp-auth-panel-in { display: flex; flex-direction: column; gap: 26px; width: 100%; max-width: 520px; margin: 0 auto; }
+
+.lp-auth-panel-kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7A97FF;
+}
+
+.lp-auth-panel-h2 {
+  margin: 0;
+  font-size: var(--lp-fs-section);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.028em;
+}
+
+.lp-auth-win { border: 1px solid #2E323B; border-radius: var(--lp-r-frame); background: #1B1E24; overflow: hidden; }
+
+.lp-auth-win-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 14px;
+  background: #22262E;
+}
+
+.lp-auth-win-dot { width: 8px; height: 8px; border-radius: 50%; background: #4E525C; }
+
+.lp-auth-win-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--lp-text-4);
+  margin-left: 8px;
+}
+
+.lp-auth-win-body { padding: 16px; display: flex; flex-direction: column; gap: 9px; }
+
+.lp-auth-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #2E323B;
+  border-radius: var(--lp-r-control);
+  padding: 12px 13px;
+}
+
+/* Highlight = border only, no fill (handoff token table). */
+.lp-auth-row--live { border-color: var(--lp-accent); }
+
+.lp-auth-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lp-accent); flex: none; }
+
+.lp-auth-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--lp-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.lp-auth-row-text { flex: 1; font-size: 13.5px; }
+.lp-auth-row-text--muted { color: #C7CDD6; }
+.lp-auth-row-text--muted b { color: var(--lp-on-dark); }
+
+.lp-auth-row-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6B7080; }
+.lp-auth-row-meta--strong { color: var(--lp-on-dark); font-weight: 700; }
+
+/* Onboarding steps (3b) */
+.lp-auth-steps { display: flex; flex-direction: column; gap: 10px; }
+
+.lp-auth-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #2E323B;
+  border-radius: var(--lp-r-card);
+  padding: 15px 16px;
+}
+
+.lp-auth-step-no { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7A97FF; }
+.lp-auth-step-title { flex: 1; font-size: 15px; font-weight: 600; }
+.lp-auth-step-title--normal { font-weight: 400; line-height: 1.5; }
+
+/* Status notice (registration disabled) */
+.lp-auth-notice {
+  background: var(--lp-paper-muted);
+  border-left: 2px solid var(--lp-accent);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-auth-notice-lead { margin: 0; font-size: 15.5px; font-weight: 600; line-height: 1.5; }
+.lp-auth-notice-text { margin: 0; font-size: 14px; line-height: 1.55; color: var(--lp-text-2); }
+.lp-auth-step-time { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #6B7080; }
+
+/* Callout inside the dark panel: bordered box, one bold line, muted text.
+   Carries a fact the page owns, such as how long a reset link stays valid.
+   Was .lp-auth-offer with an accent border and a badge until the founder
+   discount left the core on 20.09.2026. */
+.lp-auth-callout {
+  border: 1px solid #2E323B;
+  border-radius: var(--lp-r-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.lp-auth-callout-line { font-size: 15px; font-weight: 600; }
+.lp-auth-callout-text { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--lp-on-dark-2); }
+.lp-auth-callout-text b { color: var(--lp-on-dark); }
+
+/* Trust pills */
+.lp-auth-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.lp-auth-pills span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lp-on-dark-2);
+  border: 1px solid #2E323B;
+  padding: 7px 11px;
+  border-radius: var(--lp-r-pill);
+}
+
+@media (max-width: 1023px) and (min-width: 768px) {
+  .lp-auth-form-col { padding: 40px; }
+}
+
+@media (max-width: 767px) {
+  .lp-auth { grid-template-columns: 1fr; }
+  .lp-auth-form-col { padding: 14px 18px 24px; }
+  .lp-auth-main { padding: 24px 0; max-width: none; }
+
+  .lp-auth-forgot-long { display: none; }
+  .lp-auth-forgot-short { display: inline; }
+
+  .lp-auth-panel { padding: 40px 18px; }
+
+  /* Shortened panel: the third example row and the window chrome step back. */
+  .lp-auth-win-bar { display: none; }
+  .lp-auth-win { border: 0; background: none; }
+  .lp-auth-win-body { padding: 0; }
+  /* Two inbox rows on mobile -- the running timer stays, it is the hook. */
+  .lp-auth-row:nth-child(2) { display: none; }
+  .lp-auth-step:last-child { display: none; }
+
+  .lp-auth-legal { justify-content: center; }
+}

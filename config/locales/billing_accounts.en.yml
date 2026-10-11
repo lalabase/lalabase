@@ -1,0 +1,100 @@
+# English twin of billing_accounts.de.yml. See there for why this area has its own file.
+en:
+  controllers:
+    billing_accounts:
+      missing_account: There is no billing account on file for this organisation yet.
+        Please contact support.
+      update:
+        saved: Billing details saved.
+      claim:
+        claimed: You are now responsible for this billing account.
+        already_claimed: Someone else has taken over this billing account in the meantime.
+  views:
+    billing_accounts:
+      cockpit:
+        heading: Billing accounts
+      row:
+        seats:
+          one: 1 person
+          other: '%{count} people'
+        incomplete: Billing details incomplete
+        state:
+          undecided: Billing not agreed yet
+          no_seats: Nobody is being charged for
+          price_pending: Price still open
+      index:
+        title: Billing accounts
+        intro: A billing account bundles one or more organisations and receives one invoice.
+        back: Back to the overview
+        empty: You are not responsible for any billing account.
+      show:
+        title: Billing
+        back: Back to the overview
+        subtitle: The organisations listed below are invoiced together through this account.
+        claim_title: Nobody is responsible for this billing account yet
+        claim_hint: Take it over to maintain the billing address and tax details. This
+          does not change your permissions inside the organisation.
+        claim_button: Take over billing account
+        cost_heading: Cost
+        cost_intro: The price depends on how many people have their own login. Client
+          access does not count.
+        no_seats: Nobody is being charged for at the moment.
+        not_billed: No billing has been agreed for this account yet. While that is the
+          case, we invoice nothing. We will get in touch before anything changes.
+        price_pending:
+          one: There is no price on file for 1 person yet. We will sort this out with you
+            before anything is invoiced.
+          other: There is no price on file for %{count} people yet. We will sort this out
+            with you before anything is invoiced.
+        seats_row:
+          one: 1 person
+          other: '%{count} people'
+        discount_row: Discount %{percent} %
+        total_row: Total, net
+        billing_interval:
+          monthly: Monthly
+          yearly: Yearly
+        interval_note: 'Billing period: %{interval}'
+        discount_note: This includes your %{percent} % discount, valid until %{until}.
+        discount_open_end: further notice
+        preview_disclaimer: 'The preview shows what today''s number of people costs. It
+          is not a forecast of your next invoice: if a login is removed, that only takes
+          effect at the end of the current period.'
+        organisations_heading: Organisations in this billing account
+        organisations_intro: These organisations are invoiced together. Anyone working in
+          more than one of them is counted once.
+        details_heading: Billing details
+        details_intro: Address, tax details and the address we send the invoice to.
+        details_edit: Edit
+        incomplete_badge: Billing details incomplete
+        incomplete_hint: We cannot issue an invoice while details are missing. Add them
+          via “Edit”.
+      edit:
+        title: Edit billing details
+        back: Back to the billing account
+        heading: Billing details
+        intro: These details will appear on your invoice. You can change or remove them
+          at any time.
+        errors_title:
+          one: '%{count} error prevented saving'
+          other: '%{count} errors prevented saving'
+        billing_name_hint: The name the invoice is made out to.
+        billing_addressee_hint: Optional, for example a department or a name for delivery.
+        billing_email_hint: We send the invoice to this address.
+        billing_reference_hint: Optional, for example a purchase order number or cost
+          centre that should appear on the invoice.
+        country_blank_option: Please select
+        region_blank_option: Please select
+        vat_id_required_hint: Businesses in the EU outside Germany need a VAT ID. Without
+          it we would have to charge the VAT of your own country.
+        required_legend: '* Required. If you clear every field, we remove the billing
+          details completely.'
+        cancel: Cancel
+        save: Save billing details
+      details:
+        address_label: Billing address
+        vat_id_label: VAT ID
+        email_label: Billing e-mail
+        email_cc_prefix: 'Copy to:'
+        reference_label: Reference
+        not_set: Not set

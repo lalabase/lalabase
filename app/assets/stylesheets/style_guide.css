@@ -1,0 +1,44 @@
+/* app/assets/stylesheets/style_guide.css
+ *
+ * Loaded ONLY by the style-guide layout (app/views/layouts/style_guide.html.erb)
+ * and is therefore not part of the application.css bundle.
+ * Until 06/2026 these rules lived as duplicated <style> blocks in the SG views. */
+
+/* Code blocks readable (dark background, light font) */
+pre {
+  background-color: #111827 !important; /* gray-900 */
+  color: #e5e7eb !important; /* gray-200 */
+}
+
+pre code {
+  color: #e5e7eb !important; /* gray-200 */
+  background: none !important;
+}
+
+/* Demo container for component demos (e.g. smart-folder sidebar) */
+.demo-container {
+  min-height: 400px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.demo-container .grid {
+  display: block !important;
+}
+
+/* Responsive navigation of the style-guide layout */
+@media (min-width: 1024px) {
+  .mobile-header { display: none !important; }
+  .desktop-nav { display: block !important; }
+  .main-content { margin-left: 16rem; /* 64 * 0.25rem */ }
+  .mobile-nav-overlay { display: none !important; }
+}
+
+@media (max-width: 1023px) {
+  .mobile-header { display: block !important; }
+  .desktop-nav { display: none !important; }
+  .main-content {
+    margin-left: 0;
+    padding-top: 4rem; /* Height of mobile header */
+  }
+}

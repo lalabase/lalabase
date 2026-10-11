@@ -1,0 +1,28 @@
+en:
+  views:
+    organisations:
+      help:
+        shared:
+          title: Help
+        search:
+          placeholder: Search the help...
+          empty: No results.
+          clear: Clear search
+          in_section: in
+          results_count:
+            one: "%{count} result"
+            other: "%{count} results"
+        show:
+          back_to_tree: Back to the help overview
+          fallback_notice: This page is not yet available in your language — showing the German version.
+        unavailable:
+          title: The handbook lives on the web
+          body: This instance does not ship the handbook. It is publicly available and always up to date.
+          public_link: Open the handbook
+        not_found:
+          title: Help page not found
+          body: This help page does not exist (anymore).
+          home_link: Go to the help start page
+      changelog:
+        title: What's New
+        empty: No entries yet.

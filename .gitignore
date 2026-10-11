@@ -1,0 +1,72 @@
+.env
+.env.staging
+.env.production
+# The operator console's bundle (doc/oss_core_split_plan.md 9.1): adds a private gem
+# to this Gemfile. Written by hand locally; on a server the deploy copies the Gemfile
+# from shared/ (lalabase-private) and derives the lock per release. Never committed here.
+Gemfile.operator
+Gemfile.operator.lock
+node_modules/
+.DS_Store
+**/.DS_Store
+log/
+tmp/
+bin/
+!bin/verify-importmap
+!bin/build-tree-sitter-parsers
+lib/gesamter_inhalt.txt
+config/master.key
+# Credentials belong to each installation, not the public source template.
+/config/credentials.yml.enc
+/config/credentials/*.yml.enc
+/config/credentials/*.key
+/app/assets/builds/*
+!/app/assets/builds/.keep
+/public/fonts/*
+!/public/fonts/.keep
+design/
+public/
+vendor/bundle
+vendor/cache
+storage/
+/config/credentials/staging.key
+/config/master.key
+/entwicklung_backup.dump
+
+# Test coverage reports
+coverage/
+
+# Claude settings with local credentials
+.claude/settings.json
+.claude/settings.local.json
+db/*_dump.sql
+.playwright-mcp/
+.DS_Store
+.gstack/
+
+# Design-Audit: lokale Test-Daten + Screenshots (nicht committen)
+doc/design_audit_screenshots/
+doc/design_audit_local_data.md
+
+# Lokale Handoff-/Review-Prompts (Session-Artefakte, nicht committen)
+*.md.local
+
+# Fremdes Bootstrap-Theme (reines Nachschlage-Material, 51 MB / ~3.900 Dateien).
+# Null Referenzen aus Code oder Doku — war aber 42 % aller getrackten Dateien und
+# damit der groesste Rauschfaktor bei jeder Volltextsuche (bei "button" kamen 45 %
+# der Treffer von hier). Liegt weiterhin lokal auf der Platte, nur nicht mehr im Index.
+docs/design_theme/
+
+# Redis-Dump aus der lokalen Entwicklung
+dump.rdb
+
+# Internal documentation lives in lalabase-private (decision 2026-09-23).
+# Public developer documentation will be written and selected separately.
+/doc/
+/docs/
+
+# Sprockets manifest: written by assets:precompile on every deploy (config.assets.manifest)
+/config/manifest.json
+
+# Python bytecode (spec/python, the bin/lala tests)
+__pycache__/

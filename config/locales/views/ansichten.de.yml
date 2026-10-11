@@ -1,0 +1,36 @@
+de:
+  views:
+    organisations:
+      smart_folders:
+        form:
+          errors:
+            one: "%{count} Fehler beim Speichern:"
+            other: "%{count} Fehler beim Speichern:"
+          sort_label: Sortierung
+          sort_title: Titel
+          sort_number: Nummer
+          sort_desc: Absteigend
+          sort_asc: Aufsteigend
+          filter_rules: Filter-Regeln
+          add_or_rule: Füge Oder-Regel hinzu
+          rule_explanation: Regeln innerhalb einer Gruppe werden mit UND verknüpft. Verschiedene Gruppen werden mit ODER verknüpft.
+        sidebar:
+          edit: Bearbeiten
+          delete: Löschen
+        modal_form:
+          close: Schließen
+      smart_folder_rule_groups:
+        rule_group_fields:
+          delete_group: Gruppe löschen
+      view_configurations:
+        modal:
+          title: Ansicht konfigurieren
+          saved: Gespeichert
+          close: Schließen
+      power_search:
+        power_search_results:
+          fulltext_match: Volltext Treffer
+          semantic_match: Semantischer Treffer
+          unknown_match: Unbekannter Treffer
+          similarity: 'Ähnlichkeit:'
+          no_results: Keine Treffer gefunden.

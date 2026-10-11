@@ -1,0 +1,107 @@
+# Prompt-Personas v2 — management UI (operator backend + in-app per org).
+# Own file rather than scattering across views/controllers.yml: Rails deep-merges
+# YAML from every load-path file, so the keys land at their conventional paths
+# (views.admin.prompt_personas, views.organisations.prompt_personas, settings.*,
+# flash.*).
+---
+en:
+  settings:
+    chat_personas: "Chat personas"
+  views:
+    admin:
+      navigation:
+        prompt_personas: "Chat personas"
+      prompt_personas:
+        index:
+          title: "Chat personas"
+          subtitle: "The global, system-wide pool of answer personas for the AI assistant. Organisations can override individual ones."
+          add: "Add persona"
+          table_title: "Global personas"
+          th_key: "Key"
+          th_label: "Label"
+          th_position: "Position"
+          th_status: "Status"
+          th_type: "Type"
+          th_actions: "Actions"
+          status_active: "Active"
+          status_inactive: "Inactive"
+          type_system: "System"
+          type_custom: "Custom"
+          edit: "Edit"
+          delete: "Delete"
+          confirm_delete: "Really delete persona “%{key}”?"
+          system_locked_note: "System personas cannot be deleted."
+          empty_title: "No global personas yet"
+          empty_description: "Create the first persona, or load the default personas via the seeds."
+          empty_add_first: "Create the first persona"
+        new:
+          title: "New persona"
+          subtitle: "Create a new global answer persona available to all organisations."
+        edit:
+          title: "Edit persona “%{key}”"
+          subtitle: "Maintain the label and intent text per language."
+          system_badge: "System"
+        form:
+          errors_title: "Cannot save – %{count} error(s)"
+          label_key: "Key"
+          key_hint: "Technical identifier, e.g. “feature_planning”. Unique within the global pool."
+          key_locked_hint: "A system persona's key is fixed and cannot be changed."
+          label_position: "Position"
+          position_hint: "Sort order in the picker (lower number first)."
+          label_active: "Active (selectable in the picker)"
+          section_content: "Content per language"
+          cancel: "Cancel"
+          submit_create: "Create persona"
+          submit_save: "Save changes"
+    organisations:
+      prompt_personas:
+        index:
+          your_personas: "Your personas"
+          your_personas_hint: "Your organisation's own personas. They override global templates of the same key in the chat picker."
+          add: "Add persona"
+          th_key: "Key"
+          th_label: "Label"
+          th_position: "Position"
+          th_actions: "Actions"
+          edit: "Edit"
+          delete: "Delete"
+          confirm_delete: "Really delete persona “%{key}”?"
+          badge_override: "Override"
+          empty_your_title: "No personas of your own yet"
+          empty_your_description: "Create your own persona, or override one of the global templates below."
+          global_templates: "Global templates"
+          global_templates_hint: "Provided by Lalabase. Create an override to tailor the label and intent text for your organisation."
+          create_override: "Create override"
+          already_overridden: "Already overridden"
+        new:
+          title: "New persona"
+        edit:
+          title: "Edit persona “%{key}”"
+        shared:
+          back: "Back"
+        form:
+          errors_title: "Cannot save – %{count} error(s)"
+          label_key: "Key"
+          key_hint: "Technical identifier. The same key as a global template = override."
+          label_position: "Position"
+          cancel: "Cancel"
+          submit_create: "Create persona"
+          submit_save: "Save changes"
+    prompt_personas:
+      locale_fields:
+        label_label: "Label (%{language})"
+        label_placeholder: "e.g. Overview"
+        fragment_label: "Intent text (%{language})"
+        fragment_placeholder: "What does the user bring, and how should the assistant answer?"
+        fragment_hint: "Injected into the system prompt to steer the tone and focus of the answer."
+  flash:
+    admin:
+      prompt_personas:
+        created: "Persona created."
+        updated: "Persona updated."
+        deleted: "Persona deleted."
+        delete_blocked: "This persona cannot be deleted (system persona)."
+    prompt_personas:
+      created: "Persona created."
+      updated: "Persona updated."
+      deleted: "Persona deleted."

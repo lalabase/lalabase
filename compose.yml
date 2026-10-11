@@ -1,0 +1,115 @@
+# Lalabase with Docker Compose, for running it yourself.
+#
+#   cp .env.docker.example .env      # then fill in the values it asks for
+#   docker compose up -d --build
+#   docker compose exec web bin/rails lalabase:setup
+#
+# Services: web (Puma), worker (Solid Queue), db (PostgreSQL with pgvector),
+# redis (Action Cable and the cache; Valkey, a BSD-licensed Redis fork) and
+# caddy (TLS with an automatic certificate). Caddy only starts with the "tls"
+# profile, which .env.docker.example switches on; leave it off if a proxy of
+# your own terminates TLS, and point that proxy at 127.0.0.1:3000.
+#
+# Data lives in three volumes: the database, uploaded files (storage) and
+# Caddy's certificates. `docker compose down -v` deletes all of them.
+
+x-app: &app
+  build: .
+  image: lalabase:local
+  restart: unless-stopped
+  env_file: .env
+  environment: &app-env
+    # Compose stops here with this message instead of starting an instance
+    # that only answers to lalabase.com.
+    LALABASE_HOST: ${LALABASE_HOST:?Set LALABASE_HOST in .env, e.g. tickets.example.org}
+    SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Set SECRET_KEY_BASE in .env (openssl rand -hex 64)}
+    ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: ${ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY:?Set it in .env (openssl rand -hex 32)}
+    ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: ${ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY:?Set it in .env (openssl rand -hex 32)}
+    ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: ${ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT:?Set it in .env (openssl rand -hex 32)}
+    # Set here, not in .env: these values win over a DATABASE_URL, REDIS_URL or
+    # RAILS_ENV line copied into .env from a guide for installs without Docker.
+    # Such a DATABASE_URL would otherwise beat database.yml and send the data
+    # to a database the backups do not dump. User and password stay in
+    # DATABASE_USERNAME/DATABASE_PASSWORD; Rails merges them into the URL.
+    RAILS_ENV: production
+    DATABASE_URL: postgresql://db:5432/lalabase
+    DATABASE_USERNAME: lalabase
+    DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    REDIS_URL: redis://redis:6379/0
+    RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-3}
+  volumes:
+    - storage:/rails/storage
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  web:
+    <<: *app
+    # One web container. It prepares the database when it starts
+    # (bin/docker-entrypoint); two starting at once on a fresh database would
+    # both load the schema.
+    # Loopback only: from outside, the way in is Caddy (or your own proxy).
+    # A port on every interface would bypass TLS.
+    ports:
+      - "127.0.0.1:${LALABASE_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      # The first start creates the database and loads the schema.
+      start_period: 120s
+
+  worker:
+    <<: *app
+    command: ["bundle", "exec", "rails", "solid_queue:start"]
+    environment:
+      <<: *app-env
+      # config/queue.yml: one process with 3 threads, and Solid Queue keeps two
+      # more connections for its heartbeat and polling. The pool must hold all 5.
+      RAILS_MAX_THREADS: 5
+    depends_on:
+      # The web container prepares the database on its first start.
+      web:
+        condition: service_healthy
+
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lalabase
+      POSTGRES_USER: lalabase
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lalabase -d lalabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    profiles: ["tls"]
+    restart: unless-stopped
+    command: ["caddy", "reverse-proxy", "--from", "${LALABASE_HOST}", "--to", "web:3000"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy:/data
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  db:
+  storage:
+  caddy:

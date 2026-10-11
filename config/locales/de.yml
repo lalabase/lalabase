@@ -1,0 +1,3121 @@
+---
+de:
+  move_ticket:
+    success: "Ticket wurde erfolgreich nach '%{project_name}' verschoben."
+    error: "Ticket konnte nicht verschoben werden: %{error}"
+    no_write_access: Sie haben keinen Schreibzugriff auf das Zielprojekt.
+  account_deletion:
+    before_proceeding: 'Bevor Sie fortfahren, beachten Sie bitte:'
+    confirm_message: Sind Sie sicher, dass Sie Ihren Account löschen möchten? Diese
+      Aktion kann nicht rückgängig gemacht werden!
+    consequence_data_deleted: Alle Ihre Daten werden unwiderruflich gelöscht
+    consequence_irreversible: Diese Aktion kann nicht rückgängig gemacht werden
+    consequence_posts_anonymized: Alle Ihre Beiträge und Kommentare werden anonymisiert
+    consequence_removed_from_orgs: Sie werden aus allen Organisationen entfernt
+    max_characters: Maximal 500 Zeichen
+    password_label: Aktuelles Passwort
+    password_help: Zur Bestätigung, dass Sie es sind.
+    reason_label: Grund für die Löschung (optional)
+    reason_placeholder: Teilen Sie uns mit, warum Sie Ihren Account löschen möchten...
+    submit_button: Account unwiderruflich löschen
+    title: Account löschen
+    warning_message: Diese Aktion kann nicht rückgängig gemacht werden. Ihr Account
+      und alle damit verbundenen Daten werden dauerhaft gelöscht.
+    warning_title: Warnung
+  activerecord:
+    attributes:
+      account:
+        billing_addressee: Zusatz zum Empfänger
+        billing_city: Ort
+        billing_country: Land
+        billing_email: Rechnungs-E-Mail
+        billing_email_cc: Zweite Rechnungsadresse
+        billing_interval: Abrechnungsintervall
+        billing_name: Firmenname
+        billing_postal_code: Postleitzahl
+        billing_reference: Referenz auf der Rechnung
+        billing_region: Region
+        billing_starts_on: Abrechnung ab
+        billing_street: Straße und Hausnummer
+        billing_street_2: Adresszusatz
+        payment_terms_days: Zahlungsziel
+        vat_id: USt-IdNr.
+      activity:
+        created_at: Erstellt am
+        key: Aktion
+        owner: Besitzer
+        parameters: Details
+        trackable: Element
+      document:
+        created_at: Erstellt am
+        creator: Ersteller
+        description: Beschreibung
+        file: Datei
+        name: Name
+        project: Projekt
+        updated_at: Aktualisiert am
+      membership:
+        active: Aktiv
+        organisation: Organisation
+        role: Rolle
+        user: Benutzer
+      note:
+        content: Inhalt
+        created_at: Erstellt am
+        creator: Ersteller
+        description: Beschreibung
+        project: Projekt
+        title: Titel
+        updated_at: Aktualisiert am
+      notification:
+        action: Aktion
+        actor: Akteur
+        created_at: Erstellt am
+        notifiable: Element
+        read_at: Gelesen am
+        recipient: Empfänger
+      organisation:
+        created_at: Erstellt am
+        domain: Domain
+        email_subject_prefix: E-Mail-Präfix
+        name: Name
+        notification_sender_email: Benachrichtigungs-E-Mail
+        subdomain: Subdomain
+        updated_at: Aktualisiert am
+      project:
+        created_at: Erstellt am
+        description: Beschreibung
+        name: Name
+        organisation: Organisation
+        repository: Repository
+        updated_at: Aktualisiert am
+      role:
+        description: Beschreibung
+        is_default: Standardrolle
+        permissions: Berechtigungen
+        title: Titel
+      smart_folder:
+        description: Beschreibung
+        name: Name
+        project: Projekt
+        updated_at: Aktualisiert am
+      tag:
+        color: Farbe
+        name: Name
+        organisation: Organisation
+      ticket:
+        assignees: Zugewiesen an
+        content: Inhalt
+        created_at: Erstellt am
+        creator: Ersteller
+        number: Nummer
+        project: Projekt
+        summary: Zusammenfassung
+        tags: Tags
+        ticket_status: Status
+        ticket_type: Typ
+        title: Titel
+        updated_at: Aktualisiert am
+      time_session:
+        billed: Berechnet
+        created_at: Erstellt am
+        creator: Erstellt von
+        description: Beschreibung
+        duration: Dauer
+        duration_string: Dauer
+        invoice_number: Rechnungsnummer
+        occurred_on: Datum
+        project: Projekt
+        ticket: Ticket
+        updated_at: Aktualisiert am
+      user:
+        active: Aktiv
+        avatar: Profilbild
+        created_at: Erstellt am
+        current_password: Aktuelles Passwort
+        display_name: Anzeigename
+        email: E-Mail
+        first_name: Vorname
+        is_ai: KI-Benutzer
+        items_per_page_preference: Einträge pro Seite
+        language_preference: Spracheinstellung
+        last_name: Nachname
+        password: Passwort
+        password_confirmation: Passwort-Bestätigung
+        updated_at: Aktualisiert am
+    enums:
+      email_log:
+        status:
+          bounced: Zurückgewiesen
+          clicked: Geklickt
+          complaint: Beschwerde
+          deferred: Verschoben
+          delivered: Zugestellt
+          failed: Fehlgeschlagen
+          opened: Geöffnet
+          queued: Warteschlange
+          sent: Gesendet
+          unsubscribed: Abgemeldet
+      notification:
+        channel:
+          email: E-Mail
+          in_app: In-App
+          webhook: Webhook
+        event_type:
+          document_added: Dokument hinzugefügt
+          mention: Erwähnung
+          project_announcement: Projekt-Ankündigung
+          system_message: System-Nachricht
+          ticket_assigned: Ticket zugewiesen
+          ticket_blocker: Priorität geändert
+          ticket_commented: Kommentar hinzugefügt
+          ticket_status_changed: Status geändert
+          ticket_unassigned: Zuweisung entfernt
+          tickets_bulk_changed: Sammeländerung
+          tickets_bulk_moved: Sammelverschiebung
+          tickets_bulk_deleted: Sammellöschung
+        priority:
+          critical: Kritisch
+          high: Hoch
+          low: Niedrig
+          normal: Normal
+        state:
+          archived: Archiviert
+          delivered: Zugestellt
+          queued: Warteschlange
+          read: Gelesen
+          sent: Gesendet
+      notification_preference:
+        channel:
+          email: E-Mail
+          in_app: In-App
+          webhook: Webhook
+        frequency:
+          daily: Täglich
+          immediate: Sofort
+          never: Nie
+          weekly: Wöchentlich
+      notification_subscription:
+        mode:
+          follow: Folgen
+          immediate: Sofort
+          mute: Stumm
+      project_permission:
+        chats_access:
+          no_access: Kein Zugriff
+          read_only: Nur Lesen
+          read_write: Lesen & Schreiben
+        documents_access:
+          no_access: Kein Zugriff
+          read_only: Nur Lesen
+          read_write: Lesen & Schreiben
+        members_access:
+          no_access: Kein Zugriff
+          read_only: Nur Lesen
+          read_write: Lesen & Schreiben
+        notes_access:
+          no_access: Kein Zugriff
+          read_only: Nur Lesen
+          read_write: Lesen & Schreiben
+        tickets_access:
+          no_access: Kein Zugriff
+          read_only: Nur Lesen
+          read_write: Lesen & Schreiben
+    errors:
+      messages:
+        blank: darf nicht leer sein
+        confirmation: stimmt nicht überein
+        ends_before_starts_on: darf nicht vor dem Beginn liegen
+        embed_not_an_image: "enthält eine Datei, die kein Bild ist (%{filename}). Bilder als PNG, JPEG, GIF oder WebP einfügen, andere Dateien als Anhang hochladen."
+        embed_too_large: "enthält ein Bild über %{max} MB (%{filename}). Verkleinern oder als Anhang hochladen."
+        embed_file_missing: "enthält ein Bild, dessen Upload nicht abgeschlossen wurde (%{filename}). Bitte erneut einfügen."
+        embed_foreign_organisation: "enthält ein Bild aus einer anderen Organisation (%{filename}). Bitte dort herunterladen und hier neu einfügen."
+        embed_missing: "enthält ein Bild, das nicht mehr vorhanden ist. Bitte entfernen oder erneut einfügen."
+        invalid: ist ungültig
+        invalid_format: hat ein ungültiges Format
+        inclusion: ist kein gültiger Wert
+        overlapping_period: überschneidet sich mit einem bestehenden Zeitraum
+        record_invalid: 'Validierung fehlgeschlagen: %{errors}'
+        # belongs_to-Pflichtfehler. Rails liefert ihn nur auf Englisch mit; ohne
+        # diesen Eintrag rendert JEDE fehlende Zuordnung app-weit den
+        # "Translation missing"-Block statt einer Meldung.
+        required: muss vorhanden sein
+        taken: ist bereits vergeben
+        too_short: ist zu kurz (minimum %{count} Zeichen)
+        # Rails liefert too_long nur auf Englisch mit; ohne diesen Eintrag zeigt jede
+        # length-Regel (Projektname, Prozess-Titel) den "Translation missing"-Block.
+        too_long: ist zu lang (maximal %{count} Zeichen)
+      models:
+        user:
+          attributes:
+            avatar:
+              invalid_content_type: muss ein Bild im Format PNG, JPEG oder WebP sein
+              too_large: darf höchstens %{max_megabytes} MB groß sein
+            current_password:
+              blank: darf nicht leer sein
+            password:
+              too_short: ist zu kurz (mindestens %{count} Zeichen erforderlich)
+            password_confirmation:
+              confirmation: stimmt nicht mit dem Passwort überein
+    models:
+      activity: Aktivität
+      chat: Chat
+      document: Dokument
+      membership: Mitgliedschaft
+      note: Notiz
+      notification: Benachrichtigung
+      organisation: Organisation
+      project: Projekt
+      role: Rolle
+      tag: Tag
+      ticket: Ticket
+      time_session: Zeiteintrag
+      user: Benutzer
+  activities:
+    messages:
+      ticket:
+        assigned: "%{assignee} zugewiesen (%{actor}) – %{role} – %{display_name}"
+        created: Ticket erstellt (%{actor}) – %{display_name}
+        custom_attributes_changed: Eigenschaften geändert (%{actor})
+        deleted: Gelöscht (%{actor})
+        description_changed: Beschreibung geändert (%{actor})
+        post_added: Kommentar hinzugefügt (%{actor})
+        priority_changed: Priorität von '%{from_priority}' auf '%{to_priority}' (%{actor})
+        status_changed: Status von '%{from_status}' auf '%{to_status}' (%{actor})
+        tag_added: Tag '%{tag_name}' hinzugefügt (%{actor})
+        tag_removed: Tag '%{tag_name}' entfernt (%{actor})
+        title_changed: Titel geändert (%{actor})
+        unassigned: Zuweisung von %{assignee} entfernt (%{actor}) – %{display_name}
+        updated: Aktualisiert (%{actor})
+    ticket:
+      assigned: Nutzer zugewiesen
+      created: Ticket erstellt
+      custom_attributes_changed: Eigenschaften geändert
+      deleted: Ticket gelöscht
+      description_changed: Beschreibung geändert
+      post_added: Kommentar hinzugefügt
+      priority_changed: Priorität geändert
+      status_changed: Status geändert
+      tag_added: Tag hinzugefügt
+      tag_removed: Tag entfernt
+      title_changed: Titel geändert
+      unassigned: Zuweisung entfernt
+      updated: Ticket aktualisiert
+    time:
+      days_ago:
+        one: Gestern
+        other: Vor %{count} Tagen
+      hours_ago:
+        one: Vor einer Stunde
+        other: Vor %{count} Stunden
+      just_now: Gerade eben
+      minutes_ago:
+        one: Vor einer Minute
+        other: Vor %{count} Minuten
+      months_ago:
+        one: Vor einem Monat
+        other: Vor %{count} Monaten
+      weeks_ago:
+        one: Vor einer Woche
+        other: Vor %{count} Wochen
+  admin:
+    ai_credentials:
+      index:
+        subtitle: Verwalten Sie alle KI-Anbieter-Zugangsdaten und Konfigurationen
+        title: KI-Zugangsdaten
+    deletion_registers:
+      show:
+        title: Löschverzeichnis
+        description: Nachweis gelöschter Dateianhänge nach § 12 Abs. 7 des Auftragsverarbeitungsvertrags. Erfasst sind ausschließlich Metadaten, niemals der Inhalt einer Datei.
+        started_at: Das Verzeichnis wird seit dem %{date} geführt. Vorher gelöschte Dateianhänge sind nicht erfasst.
+        register_empty: Das Verzeichnis enthält noch keinen Eintrag.
+        scope_hint: Ebenfalls nicht erfasst sind Dateien ohne Verknüpfung in der Datenbank. Sie werden nicht als Anhang eines Datensatzes gelöscht, sondern als Datei, und tragen keine Zuordnung zu einer Organisation.
+        retention_hint: Einträge werden %{years} Jahre nach der Löschung im Produktivsystem automatisch entfernt.
+        organisation_label: Organisation
+        all_organisations: Alle Organisationen
+        apply: Anzeigen
+        reset: Filter zurücksetzen
+        stat_total: Einträge
+        stat_pending: Ohne Nachtrag
+        stat_pending_hint: Der Ablauf der Sicherungskopien ist für diese Einträge nicht bestätigt.
+        stat_without_organisation: Ohne Organisation
+        stat_without_organisation_hint: Nutzer-Exportarchive und Träger, deren Organisation nicht auflösbar war.
+        no_entries: Kein Eintrag zu dieser Auswahl.
+        organisation_unknown: Organisation unbekannt
+        pending_confirmation: Nachtrag ausstehend
+        expires_at: Kopien abgelaufen %{date}
+        table:
+          organisation: Organisation
+          filename: Datei
+          carrier: Träger
+          size: Größe
+          deleted_at: Gelöscht am
+          backup: Sicherung
+        pagination_label: Seitennavigation
+        previous: Zurück
+        next: Weiter
+        page_of: Seite %{page} von %{total}
+    beusers:
+      index:
+        active_admins: Aktive Admins
+        add_new_admin: Neuen Admin hinzufügen
+        administrator_users: Administrator-Benutzer
+        subtitle: Verwalten Sie alle Administrator-Benutzer des Systems
+        title: Admin-Benutzer
+        total_admins: Admins gesamt
+    billing_interval:
+      monthly: Monatliche Zahlung
+      yearly: Jährliche Zahlung
+    # Höchststand der Plätze (M2). Eigener Bereich statt unter admin.accounts.show,
+    # weil der Rake-Task seat_peaks:* dieselben Texte ausgibt: zwei Fassungen
+    # derselben vier Gründe wären zwei Pflegestellen und würden auseinanderlaufen.
+    seat_peak:
+      heading: Höchststand der Plätze
+      hint: Der größte gleichzeitig belegte Stand dieses Messmonats. Dieselbe Person in mehreren Organisationen zählt einmal.
+      previous_month: Vorheriger Monat
+      next_month: Nächster Monat
+      peak_label: Höchststand
+      reached_at_label: Erreicht am
+      organisations_label: Beteiligte Organisationen
+      seats:
+        one: 1 Platz
+        other: "%{count} Plätze"
+      shared_seats_note: "Die Zahlen je Organisation ergeben zusammen %{overlap} mehr als der Höchststand. Ursache: dieselbe Person sitzt in mehreren Organisationen und wird trotzdem nur einmal gezählt."
+      provisional: Der Monat läuft noch. Der Wert kann bis zum Monatsende steigen und gehört noch auf keine Rechnung.
+      provisional_short: laufender Monat
+      section_span: "%{from} bis %{to}"
+      share_label: Anteil am Monat
+      share_value: "%{days} von %{month_days} Tagen"
+      # Kein Plural-Zweig: der Satz erscheint erst ab zwei Abschnitten, der
+      # one-Zweig war tot. Und keine Summenaussage mehr: bei Abrechnungsbeginn
+      # am 10. plus Umzug am 20. decken die Abschnitte 22 von 31 Tagen, nicht
+      # den ganzen Monat.
+      split_note: "Dieser Monat ist in %{sections} Abschnitte geteilt: eine Organisation ist umgezogen. Jeder Abschnitt hat seinen eigenen Höchststand und seinen eigenen Tagesanteil."
+      reason:
+        month_not_started: Dieser Monat hat noch nicht begonnen.
+        snapshot_missing: Für diesen Monatsanfang wurde noch kein Schnappschuss geschrieben.
+        snapshot_failed: Der Schnappschuss dieses Monatsanfangs ist fehlgeschlagen.
+        not_reconstructible: Der Zeitraum liegt vor dem Eröffnungsstand des Platzstroms und lässt sich nicht rekonstruieren.
+        not_billable: Dieser Monat liegt vor dem Abrechnungsbeginn des Kontos. Es gibt hier nichts zu berechnen.
+    common:
+      navigation:
+        ai_credentials: KI-Zugangsdaten
+        change_password: Passwort ändern
+        dashboard: Dashboard
+        dashboard_individual: Dashboard (individuell)
+        deletion_register: Löschverzeichnis
+        logged_in_as: Angemeldet als
+        management: Verwaltung
+        my_profile: Mein Profil
+        organisations: Organisationen
+        system_settings: Systemeinstellungen
+        user_menu_right: Benutzermenü (rechts)
+        users: Benutzer
+    dashboard:
+      title: Admin Dashboard
+      subtitle: Systemübersicht und Verwaltung
+      group_management: Verwaltung
+      group_monitoring: Monitoring
+      group_settings: Einstellungen
+      organisations: Organisationen
+      users: Benutzer
+      admins: Admins
+      job_queue: Job Queue
+      job_queue_desc: Hintergrundjobs & Warteschlangen
+      email_dashboard: E-Mail-Dashboard
+      email_dashboard_desc: Zustellstatus & Fehler
+      system_monitoring: System-Monitoring
+      system_monitoring_desc: Deployment & Betriebsdaten
+      system_settings: Systemeinstellungen
+      system_settings_desc: Registrierung & Löschregeln
+      ai_credentials: KI-Zugangsdaten
+      ai_credentials_desc: Anbieter & Zugangsdaten
+      prompt_personas: Chat-Personas
+      prompt_personas_desc: Prompt-Personas verwalten
+    organisations:
+      ai_routing:
+        source_package: Paket
+        source_byok: Eigene Credentials
+        source_system: System-Credentials
+        source_none: Kein Credential
+        broken_hint: Dieses Credential kann Chat nicht bedienen (deaktiviert, falscher Zweck oder kein Endpunkt) — Aufrufe schlagen fehl.
+        model_default: Standardmodell des Anbieters
+      index:
+        ago: "%{time} her"
+        description: Verwaltung aller Organisationen im System
+        no_organisations: Keine Organisationen vorhanden
+        data_import_off: Aus
+        data_import_on: An
+        toggle_data_import: Umschalten
+        toggle_data_import_confirm: "Datenimport für %{name} umschalten?"
+        code_indexing_off: Aus
+        code_indexing_on: An
+        toggle_code_indexing: Umschalten
+        toggle_code_indexing_confirm: "Code-Indexierung für %{name} umschalten?"
+        assistant_off: Aus
+        assistant_on: An
+        toggle_assistant: Umschalten
+        toggle_assistant_confirm: "Assistent für %{name} umschalten?"
+        stats:
+          costs_30d: Kosten (30d)
+          own_credentials: Eigene Credentials
+          routing_split: "Paket: %{package} · System: %{system}"
+          tokens_30d: Token (30d)
+          total: Gesamt
+        table:
+          ai_routing: Genutzte KI
+          created: Erstellt
+          members: Mitglieder
+          data_import: Datenimport
+          assistant: Assistent
+          organisation: Organisation
+          code_indexing: Code-Index
+        table_title: Alle Organisationen
+        title: Organisationen
+        details: Kontingent
+      show:
+        breadcrumb_organisations: Organisationen
+        ai_status: KI-Status
+        ai_on: aktiv
+        ai_off: deaktiviert
+        ai_routing_section: Genutzte KI
+        ai_routing_chat: Chat
+        ai_routing_search: Suche (Embeddings)
+        quota_section: KI-Kontingent (Override)
+        budget_label: "Monatsbudget (Credits) — leer = Standard"
+        buffer_label: "Kulanz-Puffer (Credits) — leer = Standard"
+        override_hint: "Leer lassen für den Systemstandard (Budget %{budget}, Puffer %{buffer} Credits). 0 = harte Grenze."
+        save: Speichern
+        consumption_section: Verbrauch (dieser Monat)
+        history_section: Verbrauchshistorie
+    system_settings:
+      index:
+        deletion_settings_section: Löschungseinstellungen
+        registration_settings_section: Registrierungseinstellungen
+        subtitle: Konfigurieren Sie systemweite Einstellungen und Optionen
+        title: Systemeinstellungen
+        ai_quota_section: KI-Kontingent (Standard)
+        ai_quota_hint: "Systemweiter Standard für monatliches KI-Inklusiv-Kontingent und Kulanz-Puffer (in Credits). Pro Organisation auf deren Detailseite überschreibbar."
+        ai_quota_monthly_label: Monatliches Kontingent (Credits)
+        ai_quota_buffer_label: Kulanz-Puffer (Credits)
+        ai_quota_save: Kontingent speichern
+        legal_identity_section: Betreiber und Rechtsseiten
+        legal_identity_hint: Diese Angaben zeigt Lalabase in der Fußzeile der Anmeldeseite und der Seiten ohne Anmeldung, in der Zustimmung beim Annehmen einer Einladung, beim Einschalten der KI und im Datenexport. Ohne Betreiber steht dort „powered by Lalabase“, ein leeres Adressfeld zeigt keinen Link.
+        legal_identity_missing: 'Keine Adresse für: %{pages}. Dafür erscheint kein Link, auch nicht in der Zustimmung beim Annehmen einer Einladung.'
+        legal_identity_errors_title: 'Nicht gespeichert:'
+        legal_identity_operator_placeholder: leer lassen = „powered by Lalabase“
+        legal_identity_url_placeholder: https://
+        legal_identity_save: Angaben speichern
+  application:
+    title: Projektmanagement
+  attributes:
+    active: Aktiv
+    created_at: Erstellt am
+    deleted_at: Gelöscht am
+    description: Beschreibung
+    email: E-Mail
+    id: ID
+    name: Name
+    status: Status
+    title: Titel
+    type: Typ
+    updated_at: Aktualisiert am
+  business_logic:
+    access_denied: Zugriff verweigert
+    already_exists: Existiert bereits
+    cannot_delete: Dieses Element kann nicht gelöscht werden
+    cannot_modify: Dieses Element kann nicht geändert werden
+    invalid_operation: Ungültige Operation
+    maximum_reached: Maximales Limit erreicht
+    minimum_required: Mindestanforderung nicht erfüllt
+    not_found: Ressource nicht gefunden
+    operation_failed: Operation fehlgeschlagen
+    permission_required: Berechtigung erforderlich
+  buttons:
+    back: Zurück
+    back_to_list: Zurück zur Liste
+    cancel: Abbrechen
+    create: Erstellen
+    delete: Löschen
+    edit: Bearbeiten
+    export: Exportieren
+    filter: Filtern
+    import: Importieren
+    login: Anmelden
+    logout: Abmelden
+    new: Neu
+    next: Weiter
+    previous: Zurück
+    register: Registrieren
+    reset_to_defaults: Auf Standard zurücksetzen
+    save: Speichern
+    to_homepage: Zur Startseite
+    save_changes: Änderungen speichern
+    search: Suchen
+    update: Aktualisieren
+  cancel_account_deletion:
+    account_preserved: Ihr Account bleibt vollständig erhalten
+    can_reapply: Sie können die Löschung jederzeit erneut beantragen
+    confirm_message: Möchten Sie die geplante Account-Löschung wirklich abbrechen?
+    data_unchanged: Alle Ihre Daten bleiben unverändert
+    if_cancelled: 'Wenn Sie die Löschung abbrechen:'
+    info_title: Information
+    normal_usage: Sie können die Anwendung weiterhin normal nutzen
+    reason_label: Grund für die Stornierung (optional)
+    reason_placeholder: Teilen Sie uns mit, warum Sie die Löschung abbrechen möchten...
+    scheduled_info: Ihre Account-Löschung ist für den %{date} geplant.
+    submit_button: Löschung abbrechen
+    time_remaining: Sie haben noch %{days} %{days_text} Zeit, um die Löschung abzubrechen.
+    title: Account-Löschung abbrechen
+  common:
+    all: Alle
+    back: Zurück
+    cancel: Abbrechen
+    close: Schließen
+    edit: Bearbeiten
+    save: Speichern
+    help:
+      show_help: Hilfe anzeigen
+      default_subtitle: Hier finden Sie Erklärungen zu allen verfügbaren Aktionen
+      footer_hint: "Tipp: Fahren Sie mit der Maus über Buttons für Kurzhilfe"
+    max_characters:
+      one: Maximal %{count} Zeichen
+      other: Maximal %{count} Zeichen
+    undo: Rückgängig
+  dashboard:
+    briefing:
+      greeting:
+        morning: Guten Morgen
+        afternoon: Hallo
+        evening: Guten Abend
+      global_overview_title: Übersicht
+      unread_notifications_summary:
+        one: 1 ungelesene Benachrichtigung
+        other: "%{count} ungelesene Benachrichtigungen"
+      no_unread_notifications: Keine ungelesenen Benachrichtigungen.
+      since: seit %{time}
+      someone: Jemand
+      system: System
+      update_singular: Update
+      update_plural: Updates
+      empty_summary: Nichts Neues seit deinem letzten Cutoff — Kaffee in Ruhe.
+      attention_only: Es gibt offene Punkte, die deine Aufmerksamkeit brauchen.
+      summary:
+        one: 1 Update wartet seit dem letzten Cutoff.
+        other: "%{count} Updates seit dem letzten Cutoff."
+      attention:
+        title: Braucht deine Aufmerksamkeit
+        mentions:
+          one: 1 Erwähnung
+          other: "%{count} Erwähnungen"
+        stale:
+          one: 1 Ticket lange nicht angefasst
+          other: "%{count} Tickets lange nicht angefasst"
+      new_section:
+        title: Neu seit Cutoff
+      empty:
+        title: Alles ruhig.
+        body: Seit dem letzten Cutoff ist nichts passiert. Zeit für Fokus-Arbeit.
+      week:
+        title: Diese Woche
+        tracked_label: h erfasst
+        unbilled_label: h offen
+      period:
+        week_number: KW %{n}
+        quarter: Q%{q} %{year}
+        drilldown_title: Alle Zeiten in diesem Zeitraum anzeigen
+        peak: Spitze %{hours} h
+        today: heute
+        title:
+          this_week: Diese Woche
+          this_month: Dieser Monat
+          this_quarter: Dieses Quartal
+          last_10_days: Letzte 10 Tage
+        tab:
+          this_week: Woche
+          this_month: Monat
+          this_quarter: Quartal
+          last_10_days: 10 Tage
+      empty_overview:
+        title: Hier ist gerade nichts für dich
+        body: Sobald in deinen Projekten etwas passiert, erscheint es hier.
+      footer:
+        all_projects: Alle Projekte
+        all_notifications: Alle Benachrichtigungen
+      actions:
+        time_tracking: Zeit erfassen
+        created: erstellt
+        assigned: zugewiesen
+        commented: kommentiert
+        status_changed: Status geändert
+        edited: bearbeitet
+        more_changes:
+          one: "+ 1 weitere Änderung"
+          other: "+ %{count} weitere Änderungen"
+      sections:
+        lane:
+          show_more:
+            one: 1 weiteren anzeigen
+            other: "%{count} weitere anzeigen"
+          show_less: Weniger anzeigen
+        notifications:
+          title: Benachrichtigungen
+          empty: Keine ungelesenen Benachrichtigungen.
+          view_all: Alle anzeigen
+          count:
+            one: 1 ungelesen
+            other: "%{count} ungelesen"
+        activity:
+          title: Im Hintergrund
+          empty: Aktuell ruhig im Hintergrund.
+          view_all: Alle Aktivitäten
+        projects:
+          title: Projekte
+          empty: Du hast aktuell keinen Zugriff auf Projekte.
+          empty_selected: Keine Projekte ausgewählt. Wähle in den Einstellungen des Widgets Projekte aus.
+          empty_pinned: Keine angepinnten Projekte. Pinne Projekte in der Navigation an, damit sie hier erscheinen.
+          empty_with_entries: Keine Projekte mit offenen Einträgen.
+          unread_badge:
+            one: 1 ungelesen
+            other: "%{count} ungelesen"
+          table:
+            project: Projekt
+            notifications: Ungelesen
+            last_activity: Letzte Aktivität
+            total: Gesamt
+    widgets:
+      stats_cards: Statistik-Karten
+      recent_tickets: Aktuelle Tickets
+      recent_notes: Aktuelle Notizen
+      team_members: Teammitglieder
+      notifications: Benachrichtigungen
+      time_tracking: Zeiterfassung
+      smart_folder_tickets: Ticket Filter
+      project_info: Projektinfo
+    placeholder:
+      unavailable: Dieser Bereich ist aktuell nicht verfügbar
+    stat_cards:
+      tickets:
+        label: Tickets
+        completed: abgeschlossen
+      notes:
+        label: Notizen
+        this_week: diese Woche
+      documents:
+        label: Dokumente
+        last_month: im letzten Monat
+      open_hours:
+        label: Offene Stunden
+        open_tickets: offene Tickets
+      open_tickets:
+        label: Offene Tickets
+        high_priority: hohe Priorität
+      my_tickets:
+        label: Meine Tickets
+        open: offen
+      notifications:
+        label: Benachrichtigungen
+        unread: ungelesen
+      activities:
+        label: Aktivitäten
+        this_week: diese Woche
+      my_hours:
+        label: Meine Stunden
+        this_week: diese Woche
+      billed_time:
+        label: Berechnete Zeit
+        sessions: Sessions
+      periods:
+        all_time: Gesamt
+        today: Heute
+        this_week: Diese Woche
+        this_month: Dieser Monat
+        last_30_days: Letzte 30 Tage
+        this_quarter: Dieses Quartal
+      scopes:
+        all: Alle
+        mine: Meine
+    recent_tickets:
+      title: Aktuelle Tickets
+      view_all: Alle anzeigen
+      all: Alle
+      new_task: Neues Ticket
+      updated: Aktualisiert
+      no_tasks: Noch keine Tickets vorhanden
+      search_placeholder: Tickets durchsuchen…
+      no_search_results: 'Keine Treffer für „%{query}“'
+      view_all_results: Alle %{count} Treffer ansehen
+    recent_notes:
+      title: Aktuelle Notizen
+      view_all: Alle anzeigen
+      all: Alle
+      no_notes: Noch keine Notizen vorhanden
+    team_members:
+      title: Team
+      manage: Mitglieder verwalten
+      no_members: Noch keine Teammitglieder zugewiesen
+      source_admin: Admin
+      source_role: 'via Rolle „%{role}“'
+    notifications:
+      title: Benachrichtigungen
+      view_all: Alle anzeigen
+      all: Alle
+      notification: Benachrichtigung
+      ago: her
+      no_notifications: Keine ungelesenen Benachrichtigungen
+    smart_folder_tickets:
+      view_all: Alle anzeigen
+      all: Alle
+      updated: Aktualisiert
+      no_tickets: Keine Tickets in diesem Folder
+      unavailable: Ticket Filter
+      unavailable_message: Dieser Ticket Filter ist nicht mehr verfügbar
+    time_tracking:
+      title: Zeiterfassung
+      view_all: Alle anzeigen
+      all: Alle
+      unbilled: Nicht berechnet
+      sessions: Sessions
+      open_tickets: Offene Tickets
+      no_ticket: Ohne Ticket
+      no_sessions: Noch keine Zeitsessions vorhanden
+    configuration:
+      title: Dashboard anpassen
+      save: Speichern
+      cancel: Abbrechen
+      saved: Dashboard-Konfiguration gespeichert
+      saved_as_default: Als Projekt-Standard gespeichert
+      reset: Dashboard auf Standard zurückgesetzt
+      reset_label: Auf Standard zurücksetzen
+      reset_confirm: Möchten Sie Ihre Dashboard-Konfiguration zurücksetzen?
+      move_up: Nach oben
+      move_down: Nach unten
+      move_left: Nach links
+      move_right: Nach rechts
+      remove_row: Zeile entfernen
+      select_widget: Widget wählen
+      select_folder: Ticket Filter wählen
+      select_cards: Karten auswählen
+      add_row: Zeile hinzufügen
+      row_full: Zeile voll — mach ein Widget schmaler, um Platz zu schaffen.
+      undo: Rückgängig
+      redo: Wiederholen
+      view_full: Volle Vorschau
+      view_compact: Kompakte Ansicht
+      save_scope_label: Speichern für …
+      scope_personal_this: Nur für mich · dieses Projekt
+      scope_personal_this_hint: Dein persönliches Layout für dieses Projekt
+      scope_personal_all: Nur für mich · alle meine Projekte
+      scope_personal_all_hint: Setzt dieses Layout als dein persönliches Layout in allen deinen Projekten
+      scope_default_this: Standard für alle · dieses Projekt
+      scope_default_this_hint: Wird für alle Mitglieder als Standard-Layout dieses Projekts verwendet; ersetzt dabei auch deine eigene persönliche Anpassung
+      scope_default_all: Standard für alle · alle Projekte
+      scope_default_all_hint: Setzt dieses Layout als Projekt-Standard in allen Projekten der Organisation; ersetzt dabei auch deine eigenen persönlichen Anpassungen
+      saved_as_default_all: Als Projekt-Standard für %{count} Projekte gespeichert
+      saved_personal_all: Als dein persönliches Layout für %{count} Projekte gespeichert
+      confirm_apply_all: Dieses Layout wird auf ALLE Projekte angewendet und überschreibt die dort bestehenden Layouts. Fortfahren?
+      smart_folder_warning: Dieses Layout enthält Ticket-Filter-Widgets. Diese sind projektspezifisch und werden in anderen Projekten leer angezeigt.
+      display_mode: Darstellung
+      item_count: Anzahl Einträge
+      display_cards: Karten
+      display_list: Liste
+      display_grouped_status: Gruppiert nach Status
+      display_grouped_priority: Gruppiert nach Priorität
+      period: Zeitraum
+      edit_mode_done: Fertig
+      unsaved_changes: Nicht gespeicherte Änderungen — zum Übernehmen auf „Speichern" klicken.
+      add_widget: Widget hinzufügen
+      no_access: Kein Zugriff
+      actions_menu: Aktionen
+      close_settings: Einstellungen schließen
+      drag_handle: Zum Verschieben ziehen
+      arrange: Anordnen
+      remove_widget: Widget entfernen
+      resize_width: Zum Ändern der Breite ziehen
+      widen_width: Breiter
+      narrow_width: Schmaler
+      unsaved_confirm: Ungespeicherte Änderungen gehen verloren. Trotzdem fortfahren?
+      empty_rows_error: Das Dashboard braucht mindestens eine Zeile. Zum Zurücksetzen auf den Standard nutze die Zurücksetzen-Aktion.
+      empty_cards_error: Ein Statistik-Widget braucht mindestens eine Karte. Wähle eine Karte aus oder entferne das Widget.
+  overview:
+    widgets:
+      org_activity_feed: Aktivitäten
+      projects_table: Projekte
+      my_week_stats: Meine Woche
+      my_week_chart: Wochenverlauf
+      unread_summary: Ungelesenes
+      unread_summary_label: ungelesen
+      org_stats_cards: Kennzahlen
+      my_open_tickets: Meine offenen Tickets
+      my_mentions: Erwähnungen
+      billing_overview: Abrechnung
+      recent_notifications: Benachrichtigungen
+    configuration:
+      title: Übersicht anpassen
+      configure: Übersicht anpassen
+      saved: Übersicht gespeichert
+      saved_as_default: Als Organisations-Standard gespeichert
+      reset: Übersicht auf Standard zurückgesetzt
+      confirm_org_default: Dieses Layout wird zum Standard für alle Mitglieder der Organisation und ersetzt dabei auch deine persönliche Anpassung. Fortfahren?
+      scope_personal: Nur für mich
+      scope_personal_hint: Deine persönliche Übersicht in dieser Organisation
+      scope_default: Standard für alle
+      scope_default_hint: Wird für alle Mitglieder als Standard-Übersicht der Organisation verwendet; ersetzt dabei auch deine eigene persönliche Anpassung
+      projects_table:
+        mode_label: Welche Projekte anzeigen
+        mode_all: Alle Projekte
+        mode_selected: Einzelne Projekte
+        mode_pinned: Alle angepinnten Projekte
+        mode_with_entries: Projekte mit Einträgen (Benachrichtigungen oder offene Stunden)
+        select_projects: Projekte auswählen
+        no_projects: Keine Projekte verfügbar.
+    cards:
+      active_projects: Aktive Projekte
+      open_tickets: Offene Tickets
+      overdue_tickets: Überfällige Tickets
+      new_activities: Neue Aktivitäten
+      unbilled_hours: Ausstehend
+      hours_unit: h
+    tickets:
+      empty: Keine offenen Tickets
+      view_all: Alle ansehen
+    my_open_tickets:
+      picker_label: Welche Gruppen anzeigen
+      deduplicate_label: Jedes Ticket nur einmal anzeigen
+      display_mode_label: Darstellung
+      mode_sections: Abschnitte (gestapelt)
+      mode_tabs: Reiter (Pillen)
+      group_empty: Keine
+      group_all_open: Alle offenen
+      group_overdue: Überfällig
+      group_due_today: Heute fällig
+      group_due_this_week: Diese Woche fällig
+      group_due_next_7_days: Nächste 7 Tage
+    mentions:
+      empty: Keine neuen Erwähnungen
+    notifications:
+      empty: Keine Benachrichtigungen
+      time_ago: vor %{time}
+    billing:
+      hours_unit: h
+      empty: Noch keine erfassten Zeiten
+    drilldown:
+      view_aria: 'Zeiten anzeigen: %{label}'
+  date:
+    abbr_day_names:
+    - So
+    - Mo
+    - Di
+    - Mi
+    - Do
+    - Fr
+    - Sa
+    abbr_month_names:
+    -
+    - Jan
+    - Feb
+    - Mär
+    - Apr
+    - Mai
+    - Jun
+    - Jul
+    - Aug
+    - Sep
+    - Okt
+    - Nov
+    - Dez
+    day_names:
+    - Sonntag
+    - Montag
+    - Dienstag
+    - Mittwoch
+    - Donnerstag
+    - Freitag
+    - Samstag
+    formats:
+      default: "%d.%m.%Y"
+      long: "%d. %B %Y"
+      short: "%d.%m."
+      # Die zwei Grenzen einer Zeitraum-Pille (Zeitenliste, S7). Eigene
+      # Formate, weil die Pille die Jahreszahl nur EINMAL traegt, am Ende:
+      # "01.06. - 31.08.2026". short haette den Anfang geliefert, default das
+      # Ende, aber in EN ist default ISO und die Mischung unlesbar.
+      range_start: "%d.%m."
+      range_bound: "%d.%m.%Y"
+      # Monat und Jahr ohne Tag, fuer Zeitraum-Ueberschriften (Messmonat, M2).
+      # Ein eigenes Format statt short: short traegt KEIN Jahr, und ein
+      # Abrechnungszeitraum ohne Jahreszahl ist im Januar sofort mehrdeutig.
+      month_year: "%B %Y"
+    month_names:
+    -
+    - Januar
+    - Februar
+    - März
+    - April
+    - Mai
+    - Juni
+    - Juli
+    - August
+    - September
+    - Oktober
+    - November
+    - Dezember
+    order:
+    - :day
+    - :month
+    - :year
+  datetime:
+    distance_in_words:
+      # Dativ-Formen: diese Distanzen werden in der App fast ausschliesslich mit
+      # "vor %{time}" / "in %{time}" verwendet (Relativzeit) → "vor 5 Tagen",
+      # "vor einem Monat". Siehe SegmentStylesHelper-Nachbarschaft / display_time_ago.
+      about_x_hours:
+        one: etwa einer Stunde
+        other: etwa %{count} Stunden
+      about_x_months:
+        one: etwa einem Monat
+        other: etwa %{count} Monaten
+      about_x_years:
+        one: etwa einem Jahr
+        other: etwa %{count} Jahren
+      almost_x_years:
+        one: fast einem Jahr
+        other: fast %{count} Jahren
+      half_a_minute: einer halben Minute
+      less_than_x_minutes:
+        one: weniger als einer Minute
+        other: weniger als %{count} Minuten
+      less_than_x_seconds:
+        one: weniger als einer Sekunde
+        other: weniger als %{count} Sekunden
+      over_x_years:
+        one: über einem Jahr
+        other: über %{count} Jahren
+      x_days:
+        one: einem Tag
+        other: "%{count} Tagen"
+      x_minutes:
+        one: einer Minute
+        other: "%{count} Minuten"
+      x_months:
+        one: einem Monat
+        other: "%{count} Monaten"
+      x_seconds:
+        one: einer Sekunde
+        other: "%{count} Sekunden"
+    duration_invalid: Ungültiges Dauerformat
+    duration_too_long: Dauer ist zu lang
+    duration_too_short: Dauer ist zu kurz
+    future_date_required: Datum muss in der Zukunft liegen
+    invalid_format: Ungültiges Datum-/Uhrzeitformat
+    past_date_required: Datum muss in der Vergangenheit liegen
+  devise:
+    confirmations:
+      confirmed: Deine E-Mail-Adresse wurde erfolgreich bestätigt.
+      new:
+        cross: Adresse schon bestätigt?
+        email_label: E-Mail
+        eyebrow: Bestätigung fehlt
+        # Die Fristen kommen aus Devise.allow_unconfirmed_access_for und
+        # Devise.confirm_within, nicht aus diesem Text.
+        grace_period:
+          one: Du kannst einen Tag lang uneingeschränkt arbeiten.
+          other: Du kannst %{count} Tage lang uneingeschränkt arbeiten.
+        link_validity:
+          one: Danach brauchst du die Bestätigung. Der Link gilt einen Tag.
+          other: Danach brauchst du die Bestätigung. Der Link gilt %{count} Tage.
+        no_mail_line: Keine E-Mail bekommen?
+        no_mail_text: Sieh im Spam-Ordner nach. Kommt gar nichts an, steht womöglich
+          der Mailversand dieser Instanz still; dann hilft der Administrator weiter.
+        panel_label: Die Fristen
+        panel_title: Wie lange du Zeit hast.
+        submit: Link erneut senden
+        submitting: Wird gesendet …
+        subtitle: Gib deine E-Mail-Adresse ein, dann schicken wir dir den Bestätigungslink
+          noch einmal.
+        title: Bestätigungslink erneut senden
+      send_instructions: In wenigen Minuten erhältst du eine E-Mail mit einem Link
+        zur Bestätigung deiner E-Mail-Adresse.
+      send_paranoid_instructions: Falls deine E-Mail-Adresse in unserer Datenbank
+        existiert, erhältst du in wenigen Minuten eine E-Mail mit einem Link zur Bestätigung
+        deiner E-Mail-Adresse.
+    failure:
+      already_authenticated: Du bist bereits angemeldet.
+      inactive: Dein Konto ist nicht aktiviert.
+      invalid: Ungültige E-Mail oder Passwort.
+      last_attempt: Du hast noch einen Versuch, bevor dein Konto gesperrt wird.
+      locked: Dein Konto ist gesperrt.
+      not_found_in_database: Ungültige E-Mail oder Passwort.
+      timeout: Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.
+      unauthenticated: Du musst dich anmelden oder registrieren, bevor du fortfahren
+        kannst.
+      unconfirmed: Du musst deine E-Mail-Adresse bestätigen, bevor du fortfahren kannst.
+    index:
+      active: Aktiv
+      create_organisation_hint: Erstellen Sie eine neue Organisation, um zu beginnen
+      details: Details
+      domain: Domain
+      members_count:
+        one: "%{count} Mitglied"
+        other: "%{count} Mitglieder"
+      new_organisation: Neue Organisation
+      no_organisations: Noch keine Organisationen vorhanden
+      subdomain: Subdomain
+      title: Organisationsverwaltung
+    invitations:
+      new:
+        back: Zurück
+        cancel: Abbrechen
+        email_label: E-Mail-Adresse
+        email_placeholder: name@beispiel.de
+        errors_prevent_save:
+          one: "%{count} Fehler verhindert das Speichern:"
+          other: "%{count} Fehler verhindern das Speichern:"
+        form_title: Neue Einladung senden
+        send_invitation: Einladung senden
+        title: Mitglied einladen
+    mailer:
+      confirmation_instructions:
+        confirm_link: E-Mail-Adresse bestätigen
+        grace_hint:
+          one: Ohne Bestätigung endet dein Zugang nach %{count} Tag.
+          other: Ohne Bestätigung endet dein Zugang nach %{count} Tagen.
+        greeting: Hallo %{email}!
+        ignore_if_not_requested: Wenn du das nicht warst, ignoriere diese E-Mail
+          bitte einfach.
+        instruction: 'Bitte bestätige mit einem Klick, dass diese Adresse dir gehört:'
+        reconfirmation_hint: Bis dahin bleibt %{old_email} deine aktive Adresse
+          — dein Zugang läuft ganz normal weiter.
+        subject: Bestätige deine E-Mail-Adresse
+      email_changed:
+        subject: E-Mail-Adresse geändert
+      password_change:
+        subject: Passwort geändert
+      reset_password_instructions:
+        change_password_link: Mein Passwort ändern
+        greeting: Hallo %{email}!
+        ignore_if_not_requested: Wenn Sie dies nicht angefordert haben, ignorieren
+          Sie diese E-Mail bitte.
+        password_change_request: Jemand hat einen Link zum Ändern Ihres Passworts
+          angefordert. Sie können dies über den unten stehenden Link tun.
+        password_wont_change: Ihr Passwort wird erst geändert, wenn Sie den obigen
+          Link aufrufen und ein neues erstellen.
+        subject: Anleitung zum Zurücksetzen deines Passworts
+      unlock_instructions:
+        subject: Anleitung zum Entsperren deines Kontos
+    memberships:
+      index:
+        confirm_delete_invitation: Sind Sie sicher?
+        confirm_delete_member: Sind Sie sicher?
+        delete: Löschen
+        delete_member: Löschen
+        edit_member: Bearbeiten
+        invitations_table:
+          actions: Aktionen
+          email: E-Mail
+          invitation_link: Einladungs-Link
+          invitation_sent: Einladung gesendet
+        invite_member: Mitglied einladen
+        pending_invitations: Offene Einladungen
+        show_activity_history: Aktivitätsverlauf anzeigen
+        table_headers:
+          actions: Aktionen
+          active: Aktiv
+          email: E-Mail
+          member_since: Mitglied seit
+          name: Name
+          role: Rolle
+        status:
+          active: Aktiv
+          inactive: Inaktiv
+        role_labels:
+          account_admin: Account-Admin
+          member: Mitglied
+        title: Mitglieder
+    omniauth_callbacks:
+      failure: 'Du konntest nicht mit %{kind} authentifiziert werden. Grund: "%{reason}".'
+      success: Erfolgreich mit %{kind} authentifiziert.
+    passwords:
+      edit:
+        confirm_password_label: Passwort wiederholen
+        cross: Doch kein neues Passwort?
+        eyebrow: Link aus der E-Mail
+        minimum_length:
+          one: Mindestens ein Zeichen.
+          other: Mindestens %{count} Zeichen.
+        new_password_label: Neues Passwort
+        panel_label: Gut zu wissen
+        panel_title: Einmal setzen, dann bist du drin.
+        signed_in_after: Nach dem Speichern bist du direkt angemeldet und musst dich
+          nicht noch einmal anmelden.
+        submit: Passwort speichern
+        submitting: Wird gespeichert …
+        subtitle: Wähl ein neues Passwort. Danach bist du direkt angemeldet.
+        title: Neues Passwort setzen
+      new:
+        cross: Wieder eingefallen?
+        email_label: E-Mail
+        eyebrow: Zugang wiederherstellen
+        link_expired_hint: Ist er abgelaufen, fordere hier einfach einen neuen an.
+        # Die Stundenzahl kommt aus Devise.reset_password_within, nicht aus
+        # diesem Text: eine geänderte Frist darf die Seite nicht überleben.
+        link_validity:
+          one: Der Link gilt eine Stunde.
+          other: Der Link gilt %{count} Stunden.
+        panel_label: So geht es weiter
+        panel_title: So kommst du wieder rein.
+        step_link: Öffne den Link darin.
+        step_mail: Du bekommst eine E-Mail an diese Adresse.
+        step_new_password: Setz dein neues Passwort.
+        submit: Link anfordern
+        submitting: Wird gesendet …
+        subtitle: Trag deine E-Mail-Adresse ein. Wir schicken dir einen Link, mit
+          dem du ein neues Passwort setzt.
+        title: Passwort vergessen
+      no_token: Du kannst diese Seite nur über den Link aus der E-Mail zum Zurücksetzen
+        des Passworts aufrufen. Falls du über einen solchen Link kommst, stelle sicher,
+        dass du die vollständige URL verwendest.
+      send_instructions: Du erhältst in wenigen Minuten eine E-Mail mit einem Link
+        zum Zurücksetzen deines Passworts.
+      send_paranoid_instructions: Falls deine E-Mail-Adresse in unserer Datenbank
+        existiert, erhältst du in wenigen Minuten eine E-Mail mit einem Link zum Zurücksetzen
+        deines Passworts.
+      updated: Dein Passwort wurde erfolgreich geändert. Du bist jetzt angemeldet.
+      updated_not_active: Dein Passwort wurde erfolgreich geändert.
+    registrations:
+      destroyed: Tschüss! Dein Konto wurde erfolgreich gelöscht. Wir hoffen, dich
+        bald wiederzusehen.
+      new:
+        already_registered: Bereits registriert?
+        email_label: E-Mail
+        eyebrow: Neues Konto
+        first_name_label: Vorname
+        invited_email_hint: Die Einladung gilt für diese Adresse. Für eine andere Adresse bitte die Person, die dich eingeladen hat, um eine neue Einladung.
+        last_name_label: Nachname
+        meta_title: Konto anlegen | Lalabase
+        optional: optional
+        organisation_name_hint: Dein eigener Bereich in Lalabase. Leer lassen = wir benennen ihn nach dir, umbenennen geht jederzeit.
+        organisation_name_label: Name deiner Organisation
+        organisation_name_placeholder: z. B. Boyke Solutions
+        panel_label: In 5 Minuten startklar
+        panel_title_l1: Dein neuer
+        panel_title_l2: Arbeitsplatz wartet.
+        password_label: Passwort
+        # "Zahlung per Rechnung" und "Monatlich kuendbar" sind UNSERE
+        # Vertragsbedingungen, nicht die des Betreibers. Was bleibt, gilt der
+        # Software.
+        reassurance:
+          - Jederzeit exportierbar
+        register_button: Konto anlegen
+        registering: Wird angelegt …
+        step_account: Konto anlegen
+        step_account_time: 1 Min.
+        step_invite: Team & Kunden einladen
+        step_invite_time: 2 Min.
+        step_project: Erstes Projekt erstellen
+        step_project_time: 2 Min.
+        subtitle: Fünf Felder, dann bist du drin. Alles Weitere richtest du in Ruhe im Produkt ein.
+        title: Konto anlegen.
+      signed_up: Willkommen! Du hast dich erfolgreich registriert.
+      signed_up_but_inactive: Du hast dich erfolgreich registriert. Wir konnten dich
+        jedoch nicht anmelden, da dein Konto noch nicht aktiviert ist.
+      signed_up_but_locked: Du hast dich erfolgreich registriert. Wir konnten dich
+        jedoch nicht anmelden, da dein Konto gesperrt ist.
+      signed_up_but_unconfirmed: Eine E-Mail mit einem Bestätigungslink wurde an deine
+        E-Mail-Adresse gesendet. Bitte klicke auf den Link, um dein Konto zu aktivieren.
+      update_needs_confirmation: Dein Konto wurde erfolgreich aktualisiert, aber wir
+        müssen deine neue E-Mail-Adresse bestätigen. Bitte überprüfe deine E-Mails
+        und klicke auf den Bestätigungslink, um deine neue E-Mail-Adresse zu bestätigen.
+      updated: Dein Konto wurde erfolgreich aktualisiert.
+      updated_but_not_signed_in: Dein Konto wurde erfolgreich aktualisiert, aber da
+        dein Passwort geändert wurde, musst du dich erneut anmelden.
+    roles:
+      index:
+        confirm_delete: Sind Sie sicher?
+        default_role: Standard-Rolle
+        delete: Löschen
+        edit: Bearbeiten
+        list_view: Listen-Ansicht
+        matrix:
+          admin_badge: Admin
+          automatic_permission_tooltip: Automatische Berechtigung (Admin-Rolle)
+          default_badge: Standard
+          edit_role: Bearbeiten
+          legend:
+            automatic_permission: Automatische Berechtigung (Admin)
+            no_permission: Keine Berechtigung
+            permission_granted: Berechtigung erteilt
+            title: 'Legende:'
+          no_permission_tooltip: Keine Berechtigung
+          permission_granted_tooltip: Berechtigung erteilt
+          permissions_roles_header: Berechtigungen / Rollen
+        matrix_view: Matrix-Ansicht
+        new_role: Neue Rolle
+        role_labels:
+          account_admin: Account-Admin
+          member: Mitglied
+        set_as_default: Als Standard setzen
+        system_role: System-Rolle
+        table_headers:
+          actions: Aktionen
+          default: Standard
+          description: Beschreibung
+          title: Titel
+        title: Rollen & Berechtigungen
+        view_label: Ansicht
+    sessions:
+      already_signed_out: Erfolgreich abgemeldet.
+      new:
+        email_label: E-Mail
+        eyebrow: Willkommen zurück
+        forgot_password: Passwort vergessen?
+        forgot_password_short: Vergessen?
+        # Inbox-Beispieldaten des Kontext-Panels (Handoff 3a) - bewusst
+        # generisch, der Besucher ist nicht angemeldet.
+        inbox_comment_html: 'Maria hat auf <b>#142</b> kommentiert'
+        inbox_minutes: 2 Min.
+        inbox_now: jetzt
+        inbox_tickets_html: 3 neue Tickets in <b>Kundenportal v2</b>
+        inbox_timer_html: 'Zeiterfassung läuft auf <b>#140</b>'
+        # Der einzige Weg auf die Bestaetigungs- und die Entsperrseite.
+        locked: Konto gesperrt?
+        resend_confirmation: Link erneut senden
+        unconfirmed: Konto nicht bestätigt?
+        unlock_account: Entsperren
+        meta_title: Anmelden | Lalabase
+        no_account: Noch kein Konto?
+        panel_label: Während du weg warst
+        panel_title: Deine Inbox wartet.
+        password_label: Passwort
+        register: Registrieren
+        remember_me: Angemeldet bleiben
+        sign_in: Anmelden
+        signing_in: Anmelden …
+        title: Melde dich an.
+      signed_in: Erfolgreich angemeldet.
+      signed_out: Erfolgreich abgemeldet.
+    shared:
+      links:
+        log_in: Anmelden
+    time_session_groups:
+      index:
+        billed_at: 'Berechnet: %{date}'
+        billed_groups: Berechnet
+        billed_status: Berechnet
+        confirm_delete: Möchten Sie diese Abrechnung wirklich löschen?
+        confirm_delete_with_sessions: Möchten Sie diese Abrechnung wirklich löschen? Die
+          Zeit-Sessions werden nicht gelöscht, nur die Zuordnung zur Abrechnung wird entfernt.
+        created_at: 'Erstellt: %{date}'
+        delete: Löschen
+        edit: Bearbeiten
+        new: Neu
+        new_group: Neue Abrechnung
+        no_billed_groups: Noch nichts berechnet.
+        no_groups_available: Keine Abrechnungen vorhanden.
+        no_unbilled_groups: Alles berechnet.
+        sessions_count:
+          one: "%{count} Session"
+          other: "%{count} Sessions"
+        stats:
+          billed: Berechnet
+          groups_count:
+            one: "%{count} Abrechnung"
+            other: "%{count} Abrechnungen"
+          total: Gesamt
+          total_time: "%{time} gesamt"
+          unbilled: Nicht berechnet
+        status_open: Offen
+        table:
+          actions: Aktionen
+          created_at: Erstellt am
+          description: Beschreibung
+          invoice_number: Rechnungsnr.
+          name: Name
+          sessions: Sessions
+          status: Status
+          total_time: Gesamtzeit
+        title: Abrechnungen
+        unbilled_groups: Offen
+        view: Anzeigen
+    unlocks:
+      new:
+        cross: Konto wieder frei?
+        email_label: E-Mail
+        eyebrow: Konto gesperrt
+        panel_label: Warum das passiert
+        panel_title: Eine Sperre schützt dein Konto.
+        submit: Link zum Entsperren anfordern
+        submitting: Wird gesendet …
+        subtitle: Trag deine E-Mail-Adresse ein. Wir schicken dir einen Link, mit
+          dem du dein Konto wieder entsperrst.
+        title: Konto entsperren
+        # Zahlen aus Devise.unlock_in und Devise.maximum_attempts.
+        unlocks_itself:
+          one: Es entsperrt sich nach einer Stunde von selbst.
+          other: Es entsperrt sich nach %{count} Stunden von selbst.
+        why_locked:
+          one: Ein Konto sperrt sich nach einem Fehlversuch.
+          other: Ein Konto sperrt sich nach %{count} Fehlversuchen.
+      send_instructions: In wenigen Minuten erhältst du eine E-Mail mit einer Anleitung,
+        wie du dein Konto entsperren kannst.
+      send_paranoid_instructions: Falls dein Konto existiert, erhältst du in wenigen
+        Minuten eine E-Mail mit einer Anleitung, wie du es entsperren kannst.
+      unlocked: Dein Konto wurde erfolgreich entsperrt. Bitte melde dich an, um fortzufahren.
+    view_configurations:
+      form:
+        table_columns_title: Spalten
+        table_columns_description: "Häkchen heißt zeigen, die Reihenfolge ist die Wichtigkeit: was oben steht, bleibt bei wenig Platz zuerst sichtbar."
+        cancel: Abbrechen
+        required_field: Pflichtfeld
+        save: Speichern
+  documents:
+    new: Neues Dokument
+    index:
+      chat: Chat
+      chat_description: Hier könnte in Zukunft ein Chat zum aktuellen Dokument angezeigt
+        werden.
+      chat_in_development: Chat-Funktion in Entwicklung
+      chat_title: Chat
+      new_file: Datei
+      search_placeholder: Suche in Dateien
+      select_file_description: Der Inhalt der ausgewählten Datei wird hier angezeigt.
+      select_file_title: Bitte wählen Sie eine Datei aus der Liste
+      title: Dateien
+  errors:
+    attributes:
+      password:
+        too_short: ist zu kurz (mindestens %{count} Zeichen)
+    messages:
+      blank: darf nicht leer sein
+      greater_than: muss größer als %{count} sein
+      greater_than_or_equal_to: muss größer oder gleich %{count} sein
+      not_a_number: ist keine Zahl
+      not_an_integer: muss eine ganze Zahl sein
+      inclusion: ist nicht in der Liste enthalten
+      invalid: ist ungültig
+      less_than_or_equal_to: muss kleiner oder gleich %{count} sein
+      record_invalid: 'Validierung fehlgeschlagen: %{errors}'
+      taken: ist bereits vergeben
+      too_short: ist zu kurz (mindestens %{count} Zeichen)
+      already_confirmed: wurde bereits bestätigt, bitte versuche dich anzumelden
+      confirmation_period_expired: muss innerhalb von %{period} bestätigt werden,
+        bitte fordere eine neue an
+      expired: ist abgelaufen, bitte fordere eine neue an
+      not_found: nicht gefunden
+      not_locked: war nicht gesperrt
+      not_saved:
+        one: '1 Fehler verhinderte, dass %{resource} gespeichert werden konnte:'
+        other: "%{count} Fehler verhinderten, dass %{resource} gespeichert werden
+          konnte:"
+    models:
+      chatpost:
+        attributes:
+          content:
+            textile_syntax_error: 'Textile-Syntax-Fehler: %{message}'
+      document_version:
+        attributes:
+          document_version_file:
+            file_required: Eine Datei muss ausgewählt werden
+      smart_folder:
+        attributes:
+          base:
+            conversion_error: 'Fehler bei der Konvertierung: %{message}'
+      smart_folder_rule:
+        attributes:
+          field:
+            invalid_field: ist nicht gültig. Bitte wählen Sie ein unterstütztes Feld
+              aus
+      smart_folder_share:
+        attributes:
+          user_id:
+            already_has_access: Dieser Benutzer hat bereits Zugriff auf den Ordner
+            cannot_share_with_owner: Der Besitzer hat bereits vollen Zugriff auf diesen
+              Ticket Filter
+  generic:
+    'no': Nein
+    'yes': Ja
+    actions: Aktionen
+    back_to_details: Zurück zum Ordner
+    back_to_list: Zurück zur Übersicht
+    cancel: Abbrechen
+    create: Erstellen
+    days: Tage
+    delete: Löschen
+    edit: Bearbeiten
+    'false': Nein
+    save: Speichern
+    'true': Ja
+    update: Aktualisieren
+  hello: Hallo Welt
+  helpers:
+    select:
+      prompt: Bitte wählen...
+  # Sentence joining for Array#to_sentence ("Status, Priorität und Titel").
+  # The same gap as number.* below: rails-i18n is not bundled, so without these
+  # lines to_sentence fell back to the English Rails defaults and a German page
+  # read "Status, Priorität, and Titel" (activity feed, 10.09.2026) - and so did
+  # every flash message that joins validation errors.
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " und "
+      last_word_connector: " und "
+
+  # Deutsche Zahlenformate. Das Projekt bindet rails-i18n NICHT ein, und ohne
+  # diese Zeilen fällt number_to_currency & Co. auf die englischen Rails-Defaults
+  # zurück — die deutsche Oberfläche zeigt dann "€14.50" statt "14,50 €".
+  # Aufgefallen ist es auf der öffentlichen Preisseite (doc/billing_preisliste_
+  # rabatt_plan.md §7); die Eingabeseite rechnete längst deutsch
+  # (Subscriptions::MoneyInput parst "29,50 €").
+  number:
+    format:
+      separator: ","
+      delimiter: "."
+      precision: 2
+      significant: false
+      strip_insignificant_zeros: false
+    currency:
+      format:
+        format: "%n %u"
+        unit: "€"
+        separator: ","
+        delimiter: "."
+        precision: 2
+    percentage:
+      format:
+        format: "%n %"
+        separator: ","
+        delimiter: "."
+  navigation:
+    all_meetings: Alle Meetings
+    all_organisations: Alle Organisationen
+    all_projects: Alle Projekte
+    times: Zeiten
+    times_tabs:
+      label: Zeiten und Abrechnungen
+      times: Zeiten
+      billings: Abrechnungen
+    current_project: Aktuelles Projekt
+    dashboard: Dashboard
+    documents: Dokumente
+    files: Dateien
+    global_search: Globale Suche...
+    logout: Abmelden
+    no_more_projects: Keine weiteren Projekte verfügbar
+    theme:
+      label: Ansicht
+      light: Hell
+      dark: Dunkel
+      pop: Pop
+    notizblock:
+      title: Notizblock
+      open: Notizblock öffnen
+      close: Notizblock schließen
+      loading: Lädt …
+      add_label: Neue Notiz
+      add_placeholder: Notiz hinzufügen …
+      add_submit: Hinzufügen
+      open_heading: Offen
+      done_heading: Erledigt
+      empty_title: Noch keine Notizen
+      empty_subtitle: Nur für dich. Kurz festhalten, dann abhaken.
+      complete: Als erledigt markieren
+      reopen: Wieder öffnen
+      cycle_priority: Priorität ändern
+      delete: Löschen
+    menu: Menü
+    search: Suche
+    assistant: Assistent
+    search_in_organisation: Suche in %{organisation}
+    search_close: Suche schließen
+    search_placeholder: Suchen...
+    create_new: Neu erstellen
+    knowledge: Wissen
+    documentation: Dokumentation
+    notes: Notizen
+    notifications: Inbox
+    notifications_label:
+      zero: Inbox
+      one: Inbox
+      other: Inbox
+    org_attention_count:
+      one: "%{count} ungelesene Meldung"
+      other: "%{count} ungelesene Meldungen"
+    organisation: Organisation
+    other_orgs_signal: Ungelesene Meldungen in anderen Organisationen
+    profile: Profil
+    project: Projekt
+    projects: Projekte
+    search_project: Projekt suchen...
+    select_organisation_prompt: Bitte wählen Sie eine Organisation aus
+    settings: Einstellungen
+    settings_general: Allgemein
+    settings_display: Namensanzeige
+    settings_tickets: Tickets
+    settings_meetings: Meetings
+    settings_datetime: Datum/Zeit
+    settings_language: Sprache
+    settings_session: Session-Dauer
+    settings_api_tokens: API-Tokens
+    management: Verwaltung
+    preferences: Präferenzen
+    show_all_projects: Alle Projekte anzeigen
+    org_dashboard: Dashboard
+    activities: Aktivitäten
+    smart_folders: Ticket Filter
+    invite_member: Mitglied einladen
+    account_section: Mein Konto
+    billing_accounts: Rechnungskonten
+    back_to_organisation: Zurück zur Organisation
+    delete_account: Konto löschen
+    tasks: Tickets
+    team: Team
+    tickets: Tickets
+    meetings: Meetings
+    changelog: Neuigkeiten
+    expand_project_links: Projekt-Schnelllinks ein-/ausklappen
+    more: mehr …
+    less: weniger
+    more_projects:
+      one: "%{count} weiteres Projekt"
+      other: "%{count} weitere Projekte"
+    fewer_projects: weniger
+    pin_project: Projekt anpinnen
+    unpin_project: Projekt lösen
+    pin_section: Menüpunkt anpinnen
+    unpin_section: Menüpunkt lösen
+    pin_search: Suche anpinnen
+    unpin_search: Suche lösen
+    new_project: Neues Projekt
+    projects_label: Projekte
+    no_projects_yet: Noch keine Projekte.
+    help: Hilfe
+    show_more_projects: mehr Projekte
+    show_less_projects: weniger Projekte
+  neo_navigation_component:
+    dashboard: Dashboard
+  neo_open_hours_component:
+    open_hours: Offene Stunden
+  notes:
+    new: Neue Notiz
+  notifications:
+    activities:
+      index:
+        title: Aktivitäten
+    bulk:
+      all_marked: Alle markiert
+      done: Fertig
+      error: Fehler
+      processing: Verarbeitung...
+    chatposts:
+      chatpost:
+        delete: Löschen
+        time_ago: "%{time} vor"
+    dropdown:
+      bulk_error: Fehler bei der Massenverarbeitung
+      bulk_success: Massenverarbeitung erfolgreich
+      empty_sub: Sie erhalten Benachrichtigungen, wenn etwas Wichtiges passiert
+      empty_title: Keine neuen Benachrichtigungen
+      mark_all_read: Alle als gelesen markieren
+      menu_aria: Benachrichtigungsmenü
+      open_aria: Benachrichtigungen öffnen
+      open_menu_aria: Benachrichtigungsmenü öffnen
+      preferences: Einstellungen
+      shortcut_hint: Drücken Sie N für neue Benachrichtigungen
+      view_all: Alle anzeigen
+    index:
+      all_notifications_loaded: Alle Benachrichtigungen geladen
+      archive_all: Archivieren
+      archive_all_confirm: Alle gelesenen Benachrichtigungen archivieren?
+      errors:
+        archive_error: Fehler beim Archivieren.
+        loading_error: Fehler beim Laden der Benachrichtigungen. Bitte versuchen Sie
+          es erneut.
+        mark_read_error: Fehler beim Markieren als gelesen.
+      loading_more: Lade weitere...
+      mark_all_read: Alle lesen
+      mark_all_read_confirm: "%{count} Benachrichtigungen als gelesen markieren?"
+      no_notifications_found: Keine Benachrichtigungen gefunden
+      notifications_count:
+        one: "%{count} Benachrichtigung"
+        other: "%{count} Benachrichtigungen"
+      settings: Einstellungen
+      showing_notifications: "%{shown} von %{total} angezeigt"
+      title: Alle Benachrichtigungen
+      go_to_ticket: "Zum Ticket"
+      go_to_project: "Zum Projekt"
+      mark_group_read: "Gruppe gelesen"
+      archive_group: "Gruppe archivieren"
+      try_different_filters: Versuche andere Filter oder setze sie zurück.
+      unread_notifications:
+        one: "%{count} ungelesene Benachrichtigung"
+        other: "%{count} ungelesene Benachrichtigungen"
+      up_to_date: Du bist auf dem neuesten Stand! Neue Benachrichtigungen erscheinen
+        hier.
+    item:
+      archive: Archivieren
+      archived: Archiviert
+      in_project: in %{project}
+      mark_as_read: Als gelesen markieren
+      mark_this_as_read: Diese als gelesen markieren
+      time_ago: vor %{time}
+      updates:
+        one: '%{count} Update'
+        other: '%{count} Updates'
+      view: Anzeigen
+    memberships:
+      index:
+        activate: Aktivieren
+        active_members: Aktive Mitglieder
+        confirm_activate: Möchten Sie dieses Mitglied wirklich aktivieren?
+        confirm_deactivate: Möchten Sie dieses Mitglied wirklich deaktivieren?
+        confirm_delete: Möchten Sie dieses Mitglied wirklich löschen? Diese Aktion
+          kann nicht rückgängig gemacht werden.
+        deactivate: Deaktivieren
+        delete: Löschen
+        edit_role: Rolle bearbeiten
+        inactive_members: Inaktive Mitglieder
+        invite_members: Mitglieder einladen
+        last_activity: Letzte Aktivität
+        member_since: Mitglied seit
+        no_activity: Keine Aktivität
+        pending_invitations: Offene Einladungen
+        role: Rolle
+        title: Mitgliederverwaltung
+        view_activities: Aktivitäten anzeigen
+      new:
+        cancel: Abbrechen
+        email_label: E-Mail-Adresse
+        email_placeholder: mitglied@example.com
+        message_label: Persönliche Nachricht (optional)
+        message_placeholder: Geben Sie eine persönliche Nachricht für die Einladung
+          ein...
+        role_help: Wählen Sie die Rolle für das neue Mitglied
+        role_label: Rolle
+        send_invitation: Einladung senden
+        subtitle: Laden Sie neue Mitglieder zu Ihrer Organisation ein
+        title: Mitglieder einladen
+    messages:
+      document_added: '%{actor} hat ein Dokument hinzugefügt: %{document}'
+      document_added_grouped: '%{actor} hat %{count} Dokumente hinzugefügt'
+      mention: '%{actor} hat Sie erwähnt: %{excerpt}'
+      mention_grouped: '%{actor} hat Sie %{count} Mal erwähnt'
+      project_announcement: 'Projektankündigung: %{message}'
+      project_announcement_grouped: '%{count} Projektankündigungen'
+      system_message: 'Systemnachricht: %{message}'
+      system_message_grouped: '%{count} Systemnachrichten'
+      index_completed: 'Code-Index für %{full_name} ist bereit'
+      index_failed: 'Code-Index für %{full_name} ist fehlgeschlagen'
+      ticket_assigned: '%{actor} hat Ihnen ein Ticket zugewiesen: %{ticket}'
+      ticket_assigned_grouped: '%{actor} hat Ihnen %{count} Tickets zugewiesen'
+      ticket_blocker: 'Ticket Priorität geändert: %{ticket} von %{actor}'
+      ticket_blocker_grouped: '%{count} Tickets blockiert'
+      ticket_commented: '%{actor} hat kommentiert: %{excerpt}'
+      ticket_commented_grouped: '%{actor} hat %{count} Kommentare hinzugefügt'
+      ticket_status_changed: '%{actor} hat den Status geändert zu %{status}: %{ticket}'
+      ticket_status_changed_grouped: '%{actor} hat %{count} Statuswechsel vorgenommen'
+      ticket_unassigned: '%{actor} hat die Zuweisung entfernt: %{ticket}'
+      ticket_unassigned_grouped: '%{actor} hat %{count} Zuweisungen entfernt'
+      tickets_bulk_changed: '%{actor} hat mehrere Tickets in %{notifiable} auf einmal geändert'
+      tickets_bulk_changed_grouped: '%{actor} hat %{count} Sammeländerungen in %{notifiable} vorgenommen'
+      tickets_bulk_moved: '%{actor} hat mehrere Tickets aus %{notifiable} in ein anderes Projekt verschoben'
+      tickets_bulk_moved_grouped: '%{actor} hat %{count} Mal mehrere Tickets aus %{notifiable} verschoben'
+      tickets_bulk_deleted: '%{actor} hat mehrere Tickets in %{notifiable} gelöscht'
+      tickets_bulk_deleted_grouped: '%{actor} hat %{count} Mal mehrere Tickets in %{notifiable} gelöscht'
+    posts:
+      index:
+        chat_description: Hier könnte in Zukunft ein Chat zum aktuellen Beitrag angezeigt
+          werden.
+        chat_in_development: Chat-Funktion in Entwicklung
+        chat_title: Chat
+        new_post: Neuer Beitrag
+        search_placeholder: Suche in Beiträgen
+        select_post_description: Der Inhalt des ausgewählten Beitrags wird hier angezeigt.
+        select_post_title: Bitte wählen Sie einen Beitrag aus der Liste
+        title: Beiträge
+    projects:
+      form:
+        cancel: Abbrechen
+        create_default_attributes: "Standard-Attribute anlegen (Status, Priorität)"
+        create_default_attributes_hint: "Erstellt vorkonfigurierte Felder für Status und Priorität mit Farben und System Functions."
+        description: Beschreibung
+        description_placeholder: Beschreiben Sie Ihr Projekt...
+        errors_prevent_save:
+          one: "%{count} Fehler verhindert das Speichern dieses Projekts:"
+          other: "%{count} Fehler verhindern das Speichern dieses Projekts:"
+        name_placeholder: Geben Sie einen Projektnamen ein
+        project_name: Projektname
+        save: Speichern
+      show:
+        custom_fields: Custom Fields
+        custom_fields_count:
+          one: "%{count} Custom Field definiert"
+          other: "%{count} Custom Fields definiert"
+        no_custom_fields: Keine Custom Fields definiert
+        completed: abgeschlossen
+        current_notes: Aktuelle Notizen
+        current_tasks: Aktuelle Tickets
+        dashboard_title: Dashboard
+        description: Beschreibung
+        documents_card_title: Dokumente
+        edit: Bearbeiten
+        last_month: letzter Monat
+        no_description: Keine Beschreibung vorhanden
+        no_tasks: Noch keine Tickets
+        notes_card_title: Notizen
+        tasks_card_title: Tickets
+        this_week: diese Woche
+        manage_members: Mitglieder verwalten
+        no_team_members_assigned: Noch keine Teammitglieder zugewiesen
+        team: Team
+        updated: Aktualisiert
+        view_all: Alle anzeigen
+        all: Alle
+    roles:
+      new:
+        back: Zurück
+        cancel: Abbrechen
+        create_role: Rolle erstellen
+        description_label: Beschreibung
+        errors_prevent_save:
+          one: "%{count} Fehler verhindert das Speichern dieser Rolle:"
+          other: "%{count} Fehler verhindern das Speichern dieser Rolle:"
+        permissions_info: Nach dem Erstellen der Rolle können Sie die Berechtigungen
+          detailliert konfigurieren.
+        title: Neue Rolle
+        title_label: Titel
+    time_sessions:
+      form_organization_wide:
+        cancel: Abbrechen
+        create_new_group: Neue Abrechnung erstellen
+        date_label: Datum
+        description_label: Beschreibung
+        description_placeholder: Beschreiben Sie kurz Ihre Tätigkeit...
+        duration_label: Dauer
+        duration_placeholder: z.B. 2h 30m oder 2:30
+        group_label: Abrechnung (optional)
+        no_group: Keine Abrechnung
+        project_label: Projekt
+        project_prompt: Bitte Projekt auswählen
+        save: Speichern
+        select_project_first: Bitte zuerst Projekt auswählen
+        tags_help_text: Durch Komma getrennte Tags
+        tags_label: Tags
+        tags_placeholder: Tag1, Tag2, Tag3
+        ticket_label: Ticket (optional)
+        title: Neue organisationsweite Zeitsession
+        validation_errors:
+          one: 'Ein Fehler verhindert das Speichern dieser Zeitsession:'
+          other: "%{count} Fehler verhindern das Speichern dieser Zeitsession:"
+    titles:
+      document_added: Dokument hinzugefügt
+      mention: Erwähnung
+      project_announcement: Projektankündigung
+      system_message: Systemnachricht
+      index_completed: Code-Index bereit
+      index_failed: Code-Index fehlgeschlagen
+      ticket_assigned: Ticket zugewiesen
+      ticket_blocker: Ticket Priorität geändert
+      ticket_commented: Kommentar hinzugefügt
+      ticket_status_changed: Status geändert
+      ticket_unassigned: Zuweisung entfernt
+    user_activities:
+      index:
+        active_member: Aktives Mitglied
+        back_to_members: Zurück zur Mitgliederverwaltung
+        filter:
+          activity: Aktivitäten
+          all: Alle
+          apply: Anwenden
+          category: Kategorie
+          custom_range: Benutzerdefiniert
+          date_range: Zeitraum
+          failed_login: Fehlgeschlagene Logins
+          from: Von
+          last_30_days: Letzte 30 Tage
+          last_7_days: Letzte 7 Tage
+          reset: Zurücksetzen
+          security: Security Events
+          session: Login/Logout
+          status: Status
+          to: Bis
+        inactive_member: Inaktives Mitglied
+        member_since: 'Mitglied seit: %{date}'
+        no_activities: Keine Aktivitäten gefunden.
+        no_role: Keine Rolle
+        role: 'Rolle: %{role}'
+        stats:
+          activities: Aktivitäten
+          failed_24h: Fehlgeschlagen (24h)
+          last_login: Letzte Anmeldung
+          logins: Anmeldungen
+          never: Nie
+          security_events: Security Events
+        title: Aktivitätsverlauf
+        try_different_filter: Versuchen Sie andere Filter oder setzen Sie sie zurück.
+  organisations:
+    appearances:
+      show:
+        title: Darstellung
+        org_color: Erkennungsfarbe der Organisation
+        org_color_description: Färbt Logo, Seitenleisten-Kante und die Org-Auswahl ein, damit du diese Organisation auf einen Blick erkennst. Sichtbar, sobald du in mindestens zwei Organisationen bist.
+        color_auto: Automatisch
+        color_off: Aus
+        color_sand: Sand
+        color_mint: Mint
+        color_sky: Sky
+        color_lavender: Lavender
+        color_rose: Rose
+        color_peach: Peach
+        color_cyan: Cyan
+        color_lime: Lime
+        save: Speichern
+        cancel: Abbrechen
+      update:
+        saved: Darstellung gespeichert.
+    chatposts:
+      chatpost:
+        delete: Löschen
+        time_ago: 'vor %{time}'
+    documents:
+      index:
+        chat: Chat
+        chat_description: Hier könnte in Zukunft ein Chat zum aktuellen Dokument angezeigt werden
+        chat_in_development: Chat-Funktion in Entwicklung
+        chat_title: Chat
+        new_file: Neue Datei
+        search_placeholder: Suche in Dateien
+        select_file_description: Der Inhalt der ausgewählten Datei wird hier angezeigt
+        select_file_title: Bitte wählen Sie eine Datei aus der Liste
+        title: Dateien
+    index:
+      active: Aktiv
+      create_organisation_hint: Erstellen Sie eine neue Organisation, um zu beginnen
+      details: Details
+      domain: Domain
+      members_count:
+        one: '%{count} Mitglied'
+        other: '%{count} Mitglieder'
+      new_organisation: Neue Organisation
+      no_organisations: Noch keine Organisationen
+      subdomain: Subdomain
+      title: Organisationsverwaltung
+    invitations:
+      new:
+        back: Zurück
+        cancel: Abbrechen
+        email_label: E-Mail-Adresse
+        email_placeholder: mitglied@example.com
+        errors_prevent_save:
+          one: '%{count} Fehler verhindert das Speichern'
+          other: '%{count} Fehler verhindern das Speichern'
+        form_title: Neue Einladung senden
+        send_invitation: Einladung senden
+        title: Mitglied einladen
+    memberships:
+      index:
+        cannot_delete_self: Sie können sich nicht selbst aus der Organisation entfernen
+        confirm_delete_member: Sind Sie sicher?
+        delete: Löschen
+        delete_member: Mitglied löschen
+        edit_member: Mitglied bearbeiten
+        invitations_table:
+          invitation_link: Einladungslink
+          invitation_sent: Einladung gesendet
+        invite_member: Mitglied einladen
+        member_count:
+          one: '%{count} Mitglied'
+          other: '%{count} Mitglieder'
+        pending_invitations: Ausstehende Einladungen
+        presence:
+          online: Online
+        show_activity_history: Aktivitätsverlauf anzeigen
+        table_headers:
+          actions: Aktionen
+          active: Aktiv
+          email: E-Mail
+          member_since: Mitglied seit
+          name: Name
+          role: Rolle
+        status:
+          active: Aktiv
+          inactive: Inaktiv
+        role_labels:
+          account_admin: Account-Admin
+          member: Mitglied
+        title: Mitgliederverwaltung
+    notifications:
+      index:
+        all_notifications_loaded: Alle Benachrichtigungen geladen
+        all_loaded_short: Alle geladen
+        archive_all: Alle archivieren
+        archive_all_confirm: Alle gelesenen Benachrichtigungen archivieren?
+        loading_more: Lade weitere...
+        loading_short: Lade...
+        mark_all_read: Alle als gelesen markieren
+        mark_all_read_confirm: '%{count} Benachrichtigungen als gelesen markieren?'
+        no_notifications_found: Keine Benachrichtigungen gefunden
+        notifications_count:
+          one: '%{count} Benachrichtigung'
+          other: '%{count} Benachrichtigungen'
+        select_all: Alle auswählen
+        settings: Einstellungen
+        showing_notifications: '%{shown} von %{total} angezeigt'
+        title: Inbox
+        title_mobile: Inbox
+        go_to_ticket: "Ticket"
+        go_to_project: "Projekt"
+        mark_group_read: "Gruppe gelesen"
+        archive_group: "Gruppe archivieren"
+        try_different_filters: Versuchen Sie andere Filter oder setzen Sie sie zurück
+        unread_notifications:
+          one: '%{count} ungelesene Benachrichtigung'
+          other: '%{count} ungelesene Benachrichtigungen'
+        up_to_date: Sie sind auf dem neuesten Stand!
+    organisation_settings:
+      show:
+        title: Domain & Organisation
+        section_title: Name & Domain
+        errors_title:
+          one: '%{count} Fehler verhindert das Speichern'
+          other: '%{count} Fehler verhindern das Speichern'
+        name_label: Name
+        name_placeholder: Organisationsname
+        name_hint: Der vollständige Name Ihrer Organisation
+        subdomain_label: Subdomain
+        subdomain_placeholder: subdomain
+        subdomain_hint: Subdomain für den Zugriff auf Ihre Organisation (z.B. subdomain.example.com)
+        domain_label: Domain
+        domain_placeholder: beispiel.de
+        domain_hint: Die Domain Ihrer Organisation (optional)
+        save_button: Speichern
+    posts:
+      post:
+        confirm_delete: Sind Sie sicher, dass Sie diesen Beitrag löschen möchten?
+        delete: Löschen
+        edit: Bearbeiten
+        time_ago: 'vor %{time}'
+    projects:
+      activities:
+        index:
+          title: Aktivitäten
+          placeholder_title: Eintrag aus der Liste auswählen
+          placeholder_body: Der zugehörige Inhalt wird hier angezeigt.
+      form:
+        add_description: Beschreibung hinzufügen
+        cancel: Abbrechen
+        create_default_attributes: "Standard-Attribute anlegen (Status, Priorität)"
+        create_default_attributes_hint: "Erstellt vorkonfigurierte Felder für Status und Priorität mit Farben und System Functions."
+        description: Beschreibung
+        description_placeholder: Beschreiben Sie Ihr Projekt...
+        errors_prevent_save:
+          one: '%{count} Fehler verhindert das Speichern'
+          other: '%{count} Fehler verhindern das Speichern'
+        name_placeholder: Geben Sie einen Projektnamen ein
+        project_name: Projektname
+        save: Speichern
+      index:
+        actions: Aktionen
+        active: Aktiv
+        active_ago: "Aktiv %{time}"
+        assigned_to_me: "mir zugewiesen"
+        confirm_delete: Sind Sie sicher, dass Sie dieses Projekt löschen möchten?
+        contact_admin: Administrator kontaktieren
+        create_first_project: Erstes Projekt erstellen
+        current_tasks: Aktuelle Tickets
+        tasks_title: Tickets
+        my_tasks: Meine Tickets
+        all_tasks: Alle Tickets
+        all_caught_up: Alles gelesen
+        of_total_open: "von %{count} offenen Tickets"
+        no_assigned_tickets: Keine offenen Tickets zugewiesen
+        delete: Löschen
+        edit: Bearbeiten
+        last_30_days: 30 Tage
+        last_90_days: 90 Tage
+        last_week: 7 Tage
+        my_open_hours: Meine offenen Stunden
+        no_activity: Keine Aktivität
+        no_description: Keine Beschreibung
+        no_open_tickets: Keine offenen Tickets in diesem Zeitraum
+        no_permission: Keine Berechtigung
+        no_projects: Noch keine Projekte
+        no_title: Ohne Titel
+        number_col: "#"
+        open_hours: Offene Stunden
+        open_tickets: Offene Tickets
+        priority_col: Priorität
+        project_col: Projekt
+        action_document: "hat ein Dokument aktualisiert"
+        action_note: "hat eine Notiz aktualisiert"
+        action_time_session: "hat Zeit erfasst"
+        recent_activities: Letzte Aktivitäten
+        unknown_user: "Unbekannt"
+        status_col: Status
+        tickets_mine: "mir"
+        tickets_open: "offen"
+        tickets_total: "Tickets"
+        title: Projekte
+        title_col: Titel
+        type_col: Typ
+        type_document: Dokument
+        type_note: Notiz
+        type_time_session: Zeiterfassung
+        unread_notifications: Ungelesen
+        unread_notifications_label: Ungelesene Benachrichtigungen
+        updated_col: Aktualisiert
+        more_projects: "%{count} weitere Projekte"
+        more_tasks: weitere
+        show_all_tasks: "Alle %{count} Tickets anzeigen"
+        show_all_activities: "Alle %{count} Aktivitäten anzeigen"
+        help_title: Ticketliste Erklärung
+        help_my_tasks_desc: "Zeigt Tickets mit ungelesenen Benachrichtigungen (auch geschlossene) sowie offene Tickets, die dir zugewiesen sind. Tickets mit Benachrichtigungen erscheinen immer zuerst, sortiert nach Priorität."
+        help_all_tasks_desc: "Zeigt alle kürzlich aktualisierten offenen Tickets aus allen Projekten der letzten 90 Tage."
+        help_highlights_title: Hervorhebungen
+        help_highlight_priority: "Roter Rand links + roter Hintergrund = Ticket mit hoher Priorität (Urgent, Critical, High). Geschlossene oder erledigte Tickets werden nicht hervorgehoben."
+        help_highlight_badge: "Rotes Badge mit Zahl = Anzahl ungelesener Benachrichtigungen für dieses Ticket"
+        appearance_settings: Darstellung anpassen
+        new_project: Neues Projekt erstellen
+      show:
+        completed: abgeschlossen
+        custom_fields: Benutzerdefinierte Felder
+        custom_fields_count:
+          one: "%{count} benutzerdefiniertes Feld"
+          other: "%{count} benutzerdefinierte Felder"
+        no_custom_fields: Keine benutzerdefinierten Felder
+        add_field: Feld hinzufügen
+        current_notes: Aktuelle Notizen
+        current_tasks: Aktuelle Tickets
+        dashboard_title: Dashboard
+        description: Beschreibung
+        documents_card_title: Dokumente
+        edit: Bearbeiten
+        last_month: im letzten Monat
+        manage_members: Mitglieder verwalten
+        no_description: Keine Beschreibung vorhanden
+        no_tasks: Noch keine Tickets vorhanden
+        notes_card_title: Notizen
+        tasks_card_title: Tickets
+        this_week: diese Woche
+        updated: Aktualisiert
+        view_all: Alle anzeigen
+      edit:
+        default_attributes_available: "Standard-Attribute verfügbar"
+        default_status: "Status (Neu, In Bearbeitung, Erledigt, Geschlossen)"
+        default_priority: "Priorität (Niedrig, Normal, Hoch, Dringend)"
+        create_defaults_button: "Anlegen"
+    roles:
+      index:
+        confirm_delete: Sind Sie sicher?
+        default_role: Standardrolle
+        delete: Löschen
+        edit: Bearbeiten
+        list_view: Listenansicht
+        matrix:
+          admin_badge: Admin
+          automatic_permission_tooltip: Automatisch durch Admin-Rolle
+          default_badge: Standard
+          edit_role: Rolle bearbeiten
+          legend:
+            automatic_permission: Automatische Berechtigung
+            no_permission: Keine Berechtigung
+            permission_granted: Berechtigung erteilt
+            title: Legende
+          no_permission_tooltip: Keine Berechtigung
+          permission_granted_tooltip: Berechtigung erteilt
+          permissions_roles_header: Berechtigungen / Rollen
+        new_role: Neue Rolle
+        role_labels:
+          account_admin: Account-Admin
+          member: Mitglied
+        set_as_default: Als Standard setzen
+        system_role: Systemrolle
+        table_headers:
+          actions: Aktionen
+          default: Standard
+          description: Beschreibung
+          title: Titel
+        title: Rollen & Berechtigungen
+        view_label: Ansicht
+      new:
+        back: Zurück
+        cancel: Abbrechen
+        create_role: Rolle erstellen
+        description_label: Beschreibung
+        errors_prevent_save:
+          one: '%{count} Fehler verhindert das Speichern'
+          other: '%{count} Fehler verhindern das Speichern'
+        permissions_info: Nach dem Erstellen können Sie die Berechtigungen konfigurieren
+        title: Neue Rolle
+        title_label: Titel
+    smart_folders:
+      create:
+        success: Ticket Filter erfolgreich erstellt
+      destroy:
+        success: Ticket Filter erfolgreich gelöscht
+      share:
+        add_new_share: Neue Freigabe hinzufügen
+        can_edit: Bearbeiten
+        can_edit_hint: Benutzer kann Regeln und Einstellungen bearbeiten
+        can_share: Teilen
+        can_share_hint: Benutzer kann den Ordner mit anderen teilen
+        confirm_remove_share: Sind Sie sicher?
+        no_shares: Dieser Ordner wurde noch nicht geteilt
+        permissions: Berechtigungen
+        remove_share: Freigabe entfernen
+        select_users: Benutzer auswählen
+        share_button: Freigabe speichern
+        shared_with: Geteilt mit
+        title: Ticket Filter teilen
+        users_hint: Halten Sie Strg/Cmd gedrückt für Mehrfachauswahl
+      update:
+        success: Ticket Filter erfolgreich aktualisiert
+    tickets:
+      index:
+        chat_description: Hier könnte in Zukunft ein Chat angezeigt werden
+        chat_in_development: Chat-Funktion in Entwicklung
+        chat_title: Chat
+        new_task: Neues Ticket
+        search_modes:
+          deep: Tief
+          everything: Alles inkl. Dateien
+          quick: Schnell
+          standard: Standard
+          title_content: Titel + Inhalt
+          title_only: Nur Titel
+        search_placeholder: Suche in Tickets
+        select_task_description: Der Inhalt wird hier angezeigt
+        select_task_title: Bitte wählen Sie ein Ticket aus
+      move_ticket_modal:
+        title: Ticket verschieben
+        select_project: Zielprojekt auswählen
+        select_project_placeholder: "-- Projekt auswählen --"
+        cancel: Abbrechen
+        confirm: Verschieben
+        no_target_projects: Keine anderen Projekte verfügbar.
+      move_ticket_impact:
+        new_number: "Neue Ticketnummer: #%{number}"
+        lost_assignments_warning: "Folgende Zuweisungen werden entfernt (kein Zugriff auf Zielprojekt):"
+        lost_subscriptions_warning: "Folgende Benachrichtigungs-Abonnements werden entfernt:"
+        time_sessions_info: "%{count} Zeitsession(s) werden mitverschoben."
+        no_impact: Keine Auswirkungen – alle Zuweisungen und Abonnements bleiben erhalten.
+    time_session_groups:
+      form:
+        billing_date_help: Datum der Berechnung
+        billing_date_label: Berechnungsdatum
+        billing_help: Markieren Sie diese Abrechnung als berechnet
+        billing_status: Abrechnungsstatus
+        billing_warning_html: '<strong>Bereits berechnet:</strong> Diese Abrechnung wurde schon zur Rechnung gegeben. Änderungen können deine Buchhaltung betreffen.'
+        cancel: Abbrechen
+        create: Erstellen
+        description_label: Beschreibung
+        description_placeholder: Beschreiben Sie diese Abrechnung...
+        invoice_number_help: Die Rechnung selbst erstellst du in deinem Rechnungsprogramm — hier hältst du nur ihre Nummer fest.
+        invoice_number_label: Rechnungsnummer
+        invoice_number_placeholder: z.B. INV-2024-001
+        mark_as_billed: Rechnungsnummer erfassen
+        name_help: Ein aussagekräftiger Name für diese Abrechnung
+        name_label: Name
+        name_placeholder: z.B. Sprint 1, Januar 2024
+        save: Speichern
+        validation_errors:
+          one: '%{count} Fehler gefunden'
+          other: '%{count} Fehler gefunden'
+      index:
+        billed_at: 'Berechnet: %{date}'
+        billed_groups: Berechnet
+        billed_status: Berechnet
+        confirm_delete: Sind Sie sicher?
+        confirm_delete_with_sessions: Die Zeitsessions werden nicht gelöscht
+        created_at: 'Erstellt: %{date}'
+        delete: Löschen
+        edit: Bearbeiten
+        new: Neu
+        new_group: Neue Abrechnung
+        no_billed_groups: Noch nichts berechnet.
+        no_groups_available: Keine Abrechnungen vorhanden
+        no_unbilled_groups: Keine offenen Abrechnungen
+        sessions_count:
+          one: '%{count} Session'
+          other: '%{count} Sessions'
+        stats:
+          billed: Berechnet
+          groups_count:
+            one: '%{count} Abrechnung'
+            other: '%{count} Abrechnungen'
+          total: Gesamt
+          total_time: Gesamtzeit
+          unbilled: Offen
+        status_open: Offen
+        table:
+          actions: Aktionen
+          created_at: Erstellt am
+          description: Beschreibung
+          invoice_number: Rechnungsnr.
+          name: Name
+          sessions: Sessions
+          status: Status
+          total_time: Gesamtzeit
+        title: Abrechnungen
+        unbilled_groups: Offen
+        view: Anzeigen
+    time_sessions:
+      form:
+        no_ticket_assignment: Kein Ticket
+        ticket_label: Ticket
+        ticket_search_placeholder: Ticket suchen...
+      form_fields:
+        cancel: Abbrechen
+        create_new_group: Neue Abrechnung erstellen
+        date_label: Datum
+        description_label: Beschreibung
+        description_placeholder: Beschreiben Sie kurz Ihre Tätigkeit...
+        duration_label: Dauer (HH:MM)
+        duration_placeholder: '1:30'
+        group_label: Abrechnung (optional)
+        no_group: Keine Abrechnung
+        save: Speichern
+        tags_help_text: Durch Komma getrennte Tags
+        tags_label: Tags
+        tags_placeholder: Tag1, Tag2, Tag3
+        validation_errors:
+          one: '%{count} Fehler gefunden'
+          other: '%{count} Fehler gefunden'
+      form_organization_wide:
+        project_label: Projekt
+        project_prompt: Projekt wählen
+        select_project_first: Bitte erst Projekt wählen
+        ticket_label: Ticket (optional)
+    user_activities:
+      index:
+        active_member: Aktives Mitglied
+        activities_list:
+          title: Aktivitätsliste
+        back_to_members: Zurück zu Mitgliedern
+        category_breakdown:
+          title: Kategorienübersicht
+        filter:
+          all: Alle
+          authentication: Authentifizierung
+          category: Kategorie
+          failed: Fehlgeschlagen
+          from: Von
+          invitations: Einladungen
+          pending: Ausstehend
+          permissions: Berechtigungen
+          profile: Profil
+          reset: Zurücksetzen
+          security: Sicherheit
+          status: Status
+          submit: Anwenden
+          successful: Erfolgreich
+          to: Bis
+        inactive_member: Inaktives Mitglied
+        member_since: Mitglied seit
+        no_activities:
+          description: Es wurden noch keine Aktivitäten aufgezeichnet
+          title: Keine Aktivitäten
+        no_role: Keine Rolle
+        role: Rolle
+        stats:
+          activities: Aktivitäten
+          failed_24h: Fehler (24h)
+          last_login: Letzte Anmeldung
+          logins: Anmeldungen
+          never: Nie
+          security_events: Sicherheitsereignisse
+        status:
+          failed: Fehlgeschlagen
+          successful: Erfolgreich
+        title: Aktivitätsverlauf
+    view_configurations:
+      form:
+        table_columns_title: Spalten
+        table_columns_description: "Häkchen heißt zeigen, die Reihenfolge ist die Wichtigkeit: was oben steht, bleibt bei wenig Platz zuerst sichtbar."
+        cancel: Abbrechen
+        required_field: Pflichtfeld
+        save: Speichern
+  pagy:
+    combo_nav_js: "<label>Seite %{page_input} von %{pages}</label>"
+    info:
+      multiple_pages: Zeige %{item_name} <b>%{from}-%{to}</b> von <b>%{count}</b>
+        insgesamt
+      no_items: Keine %{item_name} gefunden
+      single_page: Zeige <b>%{count}</b> %{item_name}
+    item_name:
+      one: Eintrag
+      other: Einträge
+    items_selector_js: "<label>Zeige %{items_input} %{item_name} pro Seite</label>"
+    nav:
+      gap: "&hellip;"
+      next: Weiter&nbsp;&rsaquo;
+      prev: "&lsaquo;&nbsp;Zurück"
+  projects:
+    not_found: Projekt nicht gefunden
+  roles:
+    admin: Administrator
+    user: Benutzer
+  services:
+    extract_plain_text:
+      errors:
+        file_read_error: 'Fehler beim Lesen der %{file_type}-Datei: %{message}'
+    notifications:
+      preferences:
+        help:
+          ticket_assigned: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Wenn Ihnen ein Ticket zugewiesen wird
+            • Wenn Sie als Mitverantwortlicher hinzugefügt werden
+            • Wenn die Zuweisung an Sie geändert wird
+            
+            ⚙️ FEINSTEUERUNG PRO TICKET:
+            Sie können diese Einstellung für einzelne Tickets überschreiben:
+            → Im Ticket-Header mit dem Watch-Button (4 Modi verfügbar)
+            → Watch = Standard-Benachrichtigungen (diese Einstellungen)
+            → Following = Wichtige Updates folgen
+            → Live Updates = ALLE Updates sofort
+            → Muted = Komplett stumm (auch bei Zuweisung!)
+            
+            💡 TIPP: Nutzen Sie "Immediate" für kritische Projekte, bei denen Sie sofort reagieren müssen. Bei weniger wichtigen Projekten reicht oft "Daily digest".
+          ticket_unassigned: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Wenn Ihre Zuweisung von einem Ticket entfernt wird
+            • Wenn Sie als Mitverantwortlicher entfernt werden
+            • Wenn ein Ticket komplett unassigned wird
+            
+            ⚙️ FEINSTEUERUNG PRO TICKET:
+            Überschreibbar mit dem Watch-Button im Ticket-Header:
+            → Muted = Keine Benachrichtigung, auch nicht bei Unassignment
+            → Live Updates = Sofortige Benachrichtigung bei jeder Änderung
+            
+            💡 TIPP: Aktivieren Sie diese Benachrichtigung, um sicherzustellen, dass keine Tickets "verloren" gehen, wenn Zuweisungen entfernt werden.
+          ticket_blocker: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Wenn ein Ticket als Blocker markiert wird
+            • Wenn die Priorität auf kritisch/blockierend geändert wird
+            • Wenn ein kritisches Problem die Arbeit verhindert
+            
+            ⚙️ FEINSTEUERUNG PRO TICKET:
+            Mit dem Watch-Button können Sie einzelne Tickets anders behandeln:
+            → Live Updates = Sofort über Blocker informiert werden
+            → Muted = Auch kritische Blocker werden ignoriert (Vorsicht!)
+            
+            ⚠️ WICHTIG: Blocker betreffen oft mehrere Team-Mitglieder. Überlegen Sie gut, bevor Sie diese Benachrichtigungen deaktivieren. Ein übersehener Blocker kann das ganze Team aufhalten!
+          ticket_commented: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Wenn jemand einen Kommentar zu einem Ticket hinzufügt
+            • Wenn Diskussionen in Tickets stattfinden
+            • Bei Fragen oder Antworten zu Tickets
+            
+            ⚙️ FEINSTEUERUNG PRO TICKET:
+            Individuelle Kontrolle über den Watch-Button:
+            → Following = Nur wichtige Kommentare
+            → Live Updates = Jeden Kommentar sofort sehen
+            → Muted = Keine Kommentar-Benachrichtigungen
+            
+            💡 TIPP: "Daily digest" ist ideal für normale Projekte. Bei aktiven Diskussionen können Sie temporär auf "Live Updates" für das spezifische Ticket wechseln.
+          document_added: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Wenn neue Dokumente zu einem Projekt hinzugefügt werden
+            • Wenn Dateien hochgeladen oder verlinkt werden
+            • Bei wichtigen Dokumenten-Updates
+            
+            ⚙️ FEINSTEUERUNG PRO TICKET:
+            Für tickets-bezogene Dokumente über Watch-Button steuerbar:
+            → Following = Nur wichtige Dokumente
+            → Muted = Keine Dokumenten-Benachrichtigungen
+            
+            💡 TIPP: Nützlich bei Projekten mit häufigen Dokumenten-Updates. Weekly digest reicht oft aus, es sei denn, Sie arbeiten aktiv mit den Dokumenten.
+          ticket_status_changed: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Wenn der Status eines Tickets geändert wird
+            • Bei Fortschritt von "Offen" zu "In Bearbeitung" zu "Erledigt"
+            • Bei Rückschritten oder Wiedereröffnungen
+            
+            ⚙️ FEINSTEUERUNG PRO TICKET:
+            Kontrolle über einzelne Tickets mit Watch-Button:
+            → Live Updates = Jede Status-Änderung sofort
+            → Following = Nur wichtige Status-Änderungen
+            → Muted = Keine Status-Updates
+            
+            💡 TIPP: Für Projekt-Manager oft auf "Immediate" sinnvoll. Entwickler bevorzugen meist "Daily digest", um nicht ständig unterbrochen zu werden.
+          mention: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Wenn Sie mit @IhrName erwähnt werden
+            • In Kommentaren, Beschreibungen oder Diskussionen
+            • Direkte Ansprache, die Ihre Aufmerksamkeit erfordert
+            
+            ⚙️ FEINSTEUERUNG PRO TICKET:
+            ACHTUNG: Muted-Tickets blockieren auch @-Erwähnungen!
+            → Watch/Following/Live = @-Erwähnungen kommen durch
+            → Muted = BLOCKIERT auch direkte @-Erwähnungen
+            
+            ⚠️ WICHTIG: Diese Einstellung sollte fast immer auf "Immediate" stehen! @-Erwähnungen sind direkte Kommunikation und erwarten meist eine zeitnahe Reaktion.
+          system_message: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Wichtige System-Ankündigungen
+            • Wartungsarbeiten und Ausfallzeiten
+            • Sicherheitsupdates und kritische Informationen
+            
+            ⚙️ FEINSTEUERUNG:
+            System-Nachrichten sind global und können nicht pro Ticket gesteuert werden.
+            
+            ⚠️ WICHTIG: Wir empfehlen, diese Benachrichtigungen aktiviert zu lassen. Sie erhalten nur wichtige systemweite Informationen, keine Spam-Nachrichten.
+          project_announcement: |
+            🔔 WANN SIE BENACHRICHTIGT WERDEN:
+            • Ankündigungen vom Projekt-Manager
+            • Wichtige Projekt-Updates und Meilensteine
+            • Team-weite Informationen und Deadlines
+            
+            ⚙️ FEINSTEUERUNG:
+            Gilt für alle Tickets eines Projekts. Einzelne Tickets können über Watch-Button anders behandelt werden.
+            
+            💡 TIPP: "Weekly digest" ist oft ausreichend für allgemeine Ankündigungen. Bei zeitkritischen Projekten sollten Sie "Immediate" oder "Daily" wählen.
+      fanout:
+        errors:
+          processing_failed: 'Benachrichtigungsverarbeitung fehlgeschlagen: %{message}'
+      update_preferences:
+        errors:
+          organisation_required: Organisation erforderlich
+          update_failed: 'Fehler beim Aktualisieren der Einstellungen: %{message}'
+          user_required: Benutzer erforderlich
+    preferences:
+      help:
+        ticket_assigned: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Wenn Ihnen ein Ticket zugewiesen wird\n• Wenn Sie zu einem bestehenden Ticket hinzugefügt werden\n• Wenn ein automatischer Workflow Sie zuweist\n• Wenn ein Ticket an Ihr Team delegiert wird\n\n⚙️ FEINSTEUERUNG PRO TICKET:\nSie können für jedes einzelne Ticket die Benachrichtigungen anpassen:\n• Watch-Button im Ticket-Header nutzen\n• 4 Modi: Watch → Following → Live Updates → Muted\n• 'Muted' überschreibt ALLE globalen Einstellungen\n\n💡 TIPP: Diese Benachrichtigungen sind kritisch für Ihre Arbeit und sollten normalerweise aktiv bleiben."
+        ticket_unassigned: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Wenn Sie von einem Ticket entfernt werden\n• Wenn die Zuweisung geändert wird\n• Wenn ein Ticket neu zugewiesen wird\n\n⚙️ FEINSTEUERUNG PRO TICKET:\nÜber den Watch-Button im Ticket können Sie entscheiden:\n• Trotzdem weiter folgen (Following)\n• Komplett stummschalten (Muted)\n\n💡 TIPP: Hilfreich bei Team-Übergaben und um den Überblick zu behalten, welche Tickets nicht mehr in Ihrer Verantwortung liegen."
+        ticket_blocker: "⚠️ KRITISCH - BETRIFFT ALLE TICKETS!\n\n🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Wenn IRGENDEIN Ticket als Blocker markiert wird\n• Wenn die Priorität auf 'Critical' gesetzt wird\n• Gilt für ALLE Projekte mit Zugriff - nicht nur Ihre Tickets!\n\n⚙️ FEINSTEUERUNG PRO TICKET:\n• Nur über 'Muted' im Ticket-Header deaktivierbar\n• Muted überschreibt auch diese kritischen Alerts\n\n⚠️ WARNUNG: Diese Einstellung erzeugt potentiell VIELE Benachrichtigungen, da sie für alle Tickets in all Ihren Projekten gilt!"
+        ticket_status_changed: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Bei Statusänderungen Ihrer zugewiesenen Tickets\n• Bei Statusänderungen von Tickets denen Sie folgen\n• Beispiele: 'Open' → 'In Progress' → 'Review' → 'Done'\n\n⚙️ FEINSTEUERUNG PRO TICKET:\n• Watch-Button: Following für normale Updates\n• Watch-Button: Live Updates für sofortige Benachrichtigung\n• Watch-Button: Muted zum Stummschalten\n\n💡 TIPP: Bei vielen Tickets empfiehlt sich 'Daily Digest' statt 'Immediate', um nicht überflutet zu werden."
+        ticket_commented: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Neue Kommentare in Tickets die Sie erstellt haben\n• Neue Kommentare in Tickets die Ihnen zugewiesen sind\n• Neue Kommentare in Tickets denen Sie aktiv folgen\n• Antworten auf Ihre eigenen Kommentare\n\n⚙️ FEINSTEUERUNG PRO TICKET:\n• Watch-Button auf 'Muted' = keine Kommentar-Benachrichtigungen\n• Watch-Button auf 'Live Updates' = sofort bei jedem Kommentar\n\n💡 EMPFEHLUNG: Bei hohem Ticket-Volumen 'Daily Digest' wählen. Sie erhalten dann eine tägliche Zusammenfassung aller Kommentare."
+        document_added: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Neue Dokumente in Ihren Projekten\n• Neue Versionen bestehender Dokumente\n• Wichtige Anhänge und Dateien\n\n⚙️ FEINSTEUERUNG:\n• Aktuell nur global steuerbar\n• Projekt-spezifische Einstellungen kommen später\n\n💡 TIPP: Wichtig um keine Spezifikationen, Designs oder Dokumentationen zu verpassen."
+        mention: "🚧 FEATURE IN ENTWICKLUNG\n\nDiese Funktion wird Sie benachrichtigen wenn:\n• Sie mit @IhrName in Kommentaren erwähnt werden\n• Jemand Sie direkt anspricht\n• Sie in eine Diskussion einbezogen werden\n\n⏳ STATUS: Die @-Mention Erkennung wird derzeit implementiert und bald verfügbar sein."
+        project_announcement: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Wichtige Projektankündigungen\n• Release-Informationen\n• Deadline-Änderungen\n• Team-Meeting Einladungen\n\n⚙️ WICHTIG:\n• Meist zeitkritische Informationen\n• Betrifft alle Projektmitglieder\n\n💡 TIPP: Diese sollten Sie nicht deaktivieren, da sie oft wichtige organisatorische Informationen enthalten."
+        system_message: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Geplante Wartungsarbeiten\n• Neue Features und Updates\n• Wichtige Systemänderungen\n• Sicherheitsupdates\n\n⚙️ HÄUFIGKEIT:\n• Sehr selten (1-2x pro Monat)\n• Nur wirklich wichtige Informationen\n\n💡 TIPP: Sollte aktiv bleiben, da diese Nachrichten Ihre Arbeit beeinflussen können."
+    power_search:
+      match_types:
+        fulltext: Volltext Treffer
+        semantic: Semantischer Treffer
+        unknown: Unbekannter Treffer
+      object_types:
+        document: Dokument
+        document_deleted: Dokument (gelöscht)
+        note: Notiz
+        note_deleted: Notiz (gelöscht)
+        post: Post
+        ticket: Ticket
+        unknown: Unbekannt
+  settings:
+    # Tab-Label des KI-Bereichs (S2). Die Seitennamen des Bereichs stehen unter
+    # views.organisations.ai_overview.pages.*; ai_provider/ai_sync_status haben
+    # seit S2 keinen Aufrufer mehr und stehen nur noch hier.
+    ai: KI
+    ai_provider: AI-Provider
+    ai_sync_status: AI Sync Status
+    archive: Archiv
+    custom_fields: Custom Fields
+    import_data: Import Data
+    members: Mitglieder
+    organisation_settings: Allgemein
+    organisations: Organisationen
+    roles_permissions: Rollen und Rechte
+    appearance: Darstellung
+    billing: Rechnung
+  shared:
+    # Canonical AI opt-in copy (GDPR gate). ONE source per audience — referenced
+    # from controllers, jobs, services and views alike; do not fork per context.
+    ai:
+      disabled_member_hint: "KI-Features sind für diese Organisation deaktiviert. Ein Administrator kann sie in den KI-Einstellungen aktivieren."
+      disabled_admin_hint: "KI-Features sind für diese Organisation deaktiviert. Bitte aktivieren Sie sie zuerst in den KI-Einstellungen."
+      quota_exhausted_member_hint: "Das KI-Inklusiv-Kontingent dieser Organisation ist für diesen Monat aufgebraucht. Ein Administrator kann in den KI-Einstellungen einen eigenen API-Schlüssel hinterlegen oder den Monatsreset abwarten."
+      quota_exhausted_admin_hint: "Das KI-Inklusiv-Kontingent ist für diesen Monat aufgebraucht. Hinterlegen Sie einen eigenen API-Schlüssel in den KI-Einstellungen oder warten Sie den Monatsreset ab."
+      # Feature-Registry (doc/ai_feature_registry_plan.md E4): WARUM eine KI-Funktion
+      # nicht angeboten wird — ein Grund je Zustand, den es wirklich gibt.
+      # Ein Grund fehlt hier ABSICHTLICH: :ai_disabled nutzt weiter die kanonischen
+      # disabled_member_hint/_admin_hint oben (wiederverwenden statt forken), und
+      # Kontingent ist gar kein Verfügbarkeits-Grund — es hat seine eigene UI
+      # (quota.* unten), sonst verschwände der Button statt das Banner zu zeigen.
+      unavailable:
+        no_credential: "Für %{provider} ist kein nutzbarer Zugang hinterlegt. Ein Administrator kann ihn in den KI-Einstellungen ergänzen."
+        provider_incapable: "%{provider} kann diese Funktion nicht bereitstellen — für die semantische Suche und die Indexierung ist ein Anbieter mit Embedding-Unterstützung nötig."
+        pinned_elsewhere: "Diese Funktion ist technisch an %{provider} gebunden und steht daher nicht zur Verfügung — diese Organisation nutzt %{current} als KI-Anbieter."
+        unsupported_provider: "Der eingetragene Anbieter %{provider} wird nicht mehr unterstützt. Bitte in den KI-Einstellungen einen aktuellen Anbieter wählen."
+      # Funktions-Namen je Registry-Eintrag (Muster: actions unten). Ein Guard-Spec
+      # erzwingt DE UND EN für jeden Eintrag — Lalabase::Llm::FeatureRegistry.
+      features:
+        chat: Chat
+        document_summary: Dokument-Zusammenfassung
+        ticket_summary: Aufgaben-Zusammenfassung
+        ask_ai_post: KI-Antwort
+        customer_description: Kundenbeschreibung
+        meeting_participant_detection: Teilnehmer-Erkennung
+        meeting_summary: Meeting-Zusammenfassung
+        meeting_analysis: Meeting-Analyse
+        meeting_ticket_suggestions: Ticket-Vorschläge
+        content_indexing: Inhalts-Indexierung
+        semantic_search: Semantische Suche
+        repository_indexing: Repository-Indexierung
+      # Kontingent-Aktions-Labels (ai_usages.action). Guard-Spec erzwingt DE UND EN
+      # für jede Registry-Aktion — Lalabase::Llm::ActionRegistry.
+      actions:
+        chat_message: Chat-Nachricht
+        semantic_search: Semantische Suche
+        document_indexing: Indexierung
+        summary: Zusammenfassung
+        post_ai: KI-Antwort
+        customer_description: Kundenbeschreibung
+        participant_detection: Teilnehmer-Erkennung
+        meeting_analysis: Meeting-Analyse
+        ticket_suggestions: Ticket-Vorschläge
+      # Kontingent-UI (Verbrauchsbalken, Banner, Historie) — geteilte Partials
+      # shared/ai/*, verwendet von Org-KI-Einstellungen UND Admin-Backend.
+      quota:
+        heading: "KI-Kontingent (dieser Monat)"
+        used_of: "%{used} von %{budget} Credits verbraucht (%{percent} %)"
+        warn_80: "Über 80 % des Monatskontingents verbraucht."
+        grace_banner: "Inklusiv-Kontingent aufgebraucht — die KI läuft weiter auf Kulanz. Bitte einen eigenen API-Schlüssel hinterlegen oder den Monatsreset abwarten."
+        exhausted_title: "KI-Kontingent aufgebraucht"
+        exhausted_options_intro: "So geht es weiter:"
+        exhausted_byok: "Eigenen API-Schlüssel in den KI-Einstellungen hinterlegen"
+        exhausted_reset: "Auf den Monatsreset warten — das Kontingent füllt sich dann neu"
+        history_heading: "Verbrauchshistorie (letzte 6 Monate)"
+        history_month: "Monat"
+        history_used: "Verbrauch"
+        history_limit: "Limit (Budget + Kulanz)"
+        history_empty: "Noch kein KI-Verbrauch erfasst."
+        # Aufklappbare Aufschlüsselung pro Aktion je Monatszeile. action_unknown
+        # deckt Altzeilen ohne ai_usages.action ab (nullable-first-Rollout) —
+        # ohne diesen Eimer summierten sich die Detailzeilen nicht auf.
+        history_detail_toggle: "Details"
+        history_detail_credits:
+          one: "%{formatted} Credit"
+          other: "%{formatted} Credits"
+        history_detail_calls:
+          one: "%{formatted} Aufruf"
+          other: "%{formatted} Aufrufe"
+        action_unknown: "Ohne Zuordnung"
+        settings_link: "Zu den KI-Einstellungen"
+        # Sagt, WAS fehlt, nicht nur DASS etwas fehlt. Der alte Satz („Ohne KI-Ranking")
+        # klang nach einer schlechteren Sortierung derselben Treffer. Bis zur
+        # Fragment/Einbettung-Trennung stimmte das nicht einmal: ohne Einbettung entstand
+        # gar kein Fragment, der Inhalt fehlte der Suche vollstaendig. Seither ist die
+        # Aussage wahr und darf endlich genau sein. Ohne Geviertstrich (Projektregel).
+        search_degraded: >-
+          Die KI-Sortierung ist gerade nicht verfügbar. Alles, was deine Suchwörter
+          enthält, wird weiterhin gefunden. Es fehlen nur sinnverwandte Treffer, in denen
+          keines deiner Wörter vorkommt.
+    empty_content:
+      default_description: Es gibt noch keine Einträge anzuzeigen
+      default_title: Keine Daten vorhanden
+    errors:
+      not_authorized: Sie sind nicht berechtigt, diese Aktion auszuführen
+      rate_limit: Zu viele Anfragen. Bitte versuchen Sie es später erneut
+    guest_ceiling:
+      exceeded_hint: "%{user} überschreitet die konfigurierten Gast-Grenzen dieses Kontos. Dies wird nicht blockiert, ist aber im Lalabase-Adminbereich sichtbar."
+    account:
+      default_name: Unbenannter Account
+    form_errors:
+      errors_found:
+        one: "%{count} Fehler gefunden:"
+        other: "%{count} Fehler gefunden:"
+  smart_folders:
+    all_documents: Alle Dokumente
+    all_tickets: Alle Tickets
+    all_time_sessions: Alle Zeitsessions
+    display:
+      date_between: zwischen %{start} und %{end}
+    general_settings: Allgemeine Einstellungen
+    is_public: Öffentlich
+    no_document_folders: Keine Dokument-Ordner vorhanden
+    no_rules_in_group: Keine Regeln in dieser Gruppe
+    no_ticket_folders: Keine Ticket-Ordner vorhanden
+    no_time_session_folders: Keine Zeitsession-Ordner vorhanden
+    public_access: Öffentlicher Zugriff
+    remove_group: Gruppe entfernen
+    remove_rule: Regel entfernen
+    access_levels:
+      copy: Kopieren erlaubt
+      use_rules: Regeln verwenden
+      view_only: Nur Ansicht
+    add_rule: Neue UND-Regel hinzufügen
+    add_rule_group: Neue ODER-Gruppe hinzufügen
+    all_notes: Alle Notizen
+    and: UND
+    clone: Kopieren
+    confirm_delete_group: Sind Sie sicher, dass Sie diese Regelgruppe löschen möchten?
+    confirm_delete_rule: Sind Sie sicher, dass Sie diese Regel löschen möchten?
+    create_document_folder: Neuen Filter erstellen
+    create_first: Erstellen Sie Ihren ersten Ticket Filter
+    create_note_folder: Neuen Filter erstellen
+    create_ticket_folder: Neuen Filter erstellen
+    create_time_session_folder: Neuen Filter erstellen
+    details: Details
+    edit: Ticket Filter bearbeiten
+    edit_rules: Regeln bearbeiten
+    fields:
+      assignee: Zugewiesen an
+      billed: Berechnet
+      content: Inhalt
+      created_at: Erstellt am
+      duration: Dauer (Minuten)
+      has_time_sessions: Hat Zeiterfassung
+      priority: Priorität
+      status: Status
+      tag: Tag
+      time_session_billed: Zeitsitzungen berechnet
+      time_session_count: Anzahl der Zeitsitzungen
+      time_session_duration: Gesamtdauer der Zeitsitzungen
+      title: Titel
+      updated_at: Geändert am
+      version_count: Anzahl Versionen
+    items:
+      document: Dokument
+      note: Notiz
+      ticket: Ticket
+      time_session: Zeiterfassung
+    max_value: Max. Wert
+    min_value: Min. Wert
+    new_folder: Neuer Filter
+    no_folders: Keine Ticket Filter gefunden.
+    no_note_folders: Keine Ticket Filter für Notizen verfügbar
+    no_results: Keine Ergebnisse entsprechen den definierten Regeln.
+    no_rules: Keine Regeln definiert. Fügen Sie Regeln hinzu, um Ergebnisse zu sehen.
+    not_found: Der angegebene Ticket Filter wurde nicht gefunden.
+    object_types:
+      All: Alle Objekttypen
+      Document: Dokumente
+      Note: Notizen
+      Ticket: Tickets
+      TimeSession: Zeitsitzungen
+    operators:
+      after: ist nach
+      before: ist vor
+      between: ist zwischen
+      contains: enthält
+      ends_with: endet mit
+      equals: ist gleich
+      greater_than: ist größer als
+      has: hat Tag
+      has_all_of: hat alle Tags
+      has_any_of: hat einen der Tags
+      in_the_last_days: ist in den letzten (Tagen)
+      is: ist
+      is_not: ist nicht
+      less_than: ist kleiner als
+      not_contains: enthält nicht
+      not_equals: ist nicht gleich
+      not_has: hat Tag nicht
+      starts_with: beginnt mit
+      within_days: ist innerhalb der letzten (Tage)
+    or: ODER
+    organisation_wide: Organisationsweit
+    ownership:
+      from: Von
+      own: Eigener Filter
+      you: Sie
+    public_level:
+      '0': Nur ansehen
+      '1': Regeln verwenden
+      '2': Kopieren erlaubt
+    results: Ergebnisse
+    rule_group: Regelgruppe
+    rules: Regeln
+    share:
+      add_new_share: Neue Freigabe hinzufügen
+      can_edit: Bearbeiten
+      can_edit_hint: Benutzer können die Regeln und Einstellungen des Ordners bearbeiten
+      can_share: Weiterfreigeben
+      can_share_hint: Benutzer können den Ordner mit anderen teilen
+      confirm_remove_share: Sind Sie sicher, dass Sie die Freigabe für diesen Benutzer
+        entfernen möchten?
+      edit_permissions: Berechtigungen bearbeiten
+      no_shares: Dieser Ordner wurde noch nicht geteilt.
+      owner: "(Besitzer)"
+      permissions: Berechtigungen für ausgewählte Benutzer
+      remove_share: Freigabe entfernen
+      search_users: Benutzer suchen...
+      select_users: Benutzer zum Teilen auswählen
+      share_button: Freigabe speichern
+      shared_with: Geteilt mit
+      title: Ticket Filter '%{name}' teilen
+      users_hint: Halten Sie Strg/Cmd gedrückt, um mehrere Benutzer auszuwählen
+    sidebar_title: Ticket Filter
+    sorting:
+      created_asc: Älteste zuerst
+      created_desc: Neueste zuerst
+      title_asc: Titel A-Z
+      title_desc: Titel Z-A
+      updated_asc: Zuerst aktualisiert
+      updated_desc: Zuletzt aktualisiert
+    success: Ticket Filter wurde erfolgreich gespeichert.
+    target_object_type: Objekttyp
+    title: Ticket Filter
+    try_editing: Versuchen Sie die Filterregeln zu bearbeiten, um andere Ergebnisse
+      zu erhalten.
+    value_placeholder: Wert eingeben...
+  stimulus:
+    admin_user_form:
+      select_organisation_first: Bitte zuerst eine Organisation auswählen.
+    attribute_form:
+      choose_color: Farbe wählen
+      move_down: Nach unten
+      move_up: Nach oben
+      option_placeholder: Option eingeben
+    contextual_help_drawer:
+      closed: Hilfe geschlossen
+      load_error: Die Hilfe konnte nicht geladen werden. Bitte erneut versuchen oder die ganze Seite öffnen.
+      opened: Hilfe geöffnet
+    document:
+      confirm_delete: Möchten Sie dieses Dokument wirklich löschen?
+      upload_failed: Upload fehlgeschlagen
+      upload_successful: Upload erfolgreich
+    form:
+      required_field: Dieses Feld ist erforderlich
+      unsaved_changes: Sie haben ungespeicherte Änderungen. Möchten Sie die Seite
+        wirklich verlassen?
+    frame_error:
+      content_not_found: Der angeforderte Inhalt konnte nicht gefunden werden.
+      invalid_url: Ungültige URL. Bitte laden Sie die Seite neu.
+      page_not_found: Die angeforderte Seite wurde nicht gefunden.
+      reload_page: Seite neu laden
+    general:
+      input_field_error: Fehler im Eingabefeld
+      loading_content_error: Fehler beim Laden des Inhalts
+      loading_data_error: Fehler beim Laden der Daten
+      loading_form_error: Fehler beim Laden des Formulars
+      loading_operators_error: Fehler beim Laden der Operatoren
+      loading_options_error: Fehler beim Laden der Optionen
+      modal_found: Modal gefunden
+      sort_update_error: Fehler beim Aktualisieren der Sortierung
+      sort_updated: Sortierung aktualisiert
+      ticket_loading_error: Fehler beim Laden des Tickets
+    help_modal:
+      closed: Hilfe-Dialog geschlossen
+      opened: Hilfe-Dialog geöffnet
+    modal:
+      confirm_close: Möchten Sie dieses Modal wirklich schließen?
+      edit_time_session: Zeit-Session bearbeiten
+      form_load_error: 'Fehler beim Laden des Formulars: %{error}'
+      new_ticket: Neues Ticket
+    navigation:
+      confirm_leave: Möchten Sie diese Seite wirklich verlassen?
+    notification_bulk:
+      confirm_archive_all: Alle gelesenen Benachrichtigungen archivieren?
+      confirm_mark_all_read: Alle ungelesenen Benachrichtigungen als gelesen markieren?
+    personal_access_token:
+      all_projects: "%{org} — alle Projekte"
+      all_organisations: Alle Organisationen, in denen du aktiv bist, auch künftige, jeweils mit allen Projekten
+      no_projects: "%{org} — keine Projekte ausgewählt"
+      projects_count: "%{org} — %{count} Projekt(e): %{names}"
+    registration_toggle:
+      disabled: Neue Registrierungen sind deaktiviert. Nur Einladungen funktionieren.
+      enabled: Neue Benutzer können sich selbst registrieren.
+    search:
+      no_results: Keine Ergebnisse gefunden
+      searching: Suche läuft...
+    slim_select:
+      select_user_placeholder: Benutzer auswählen
+    smart_folder:
+      confirm_delete: Möchten Sie diesen Ticket Filter wirklich löschen?
+      folder_created: Ticket Filter erstellt
+      folder_updated: Ticket Filter aktualisiert
+      field_load_error: Fehler beim Laden des Eingabefelds
+      no_options: Keine Optionen verfügbar
+      please_select: Bitte wählen...
+      tag_input_hint: Trenne mehrere Tags durch Kommas, nutze Pfeiltasten ↑↓ und Enter zur Auswahl
+      tags_placeholder: Tags eingeben (mindestens 2 Zeichen für Vorschläge)
+      value_placeholder: Wert eingeben
+    tag_input:
+      add_tag_placeholder: Tag hinzufügen...
+    ticket:
+      assignment_failed: Zuweisung fehlgeschlagen
+      confirm_delete: Möchten Sie dieses Ticket wirklich löschen?
+      ticket_updated: Ticket aktualisiert
+    time_session:
+      being_saved: Wird gespeichert...
+      bulk_assignment_url_not_found: Bulk-Assignment-URL nicht gefunden
+      bulk_update_failed: Bulk-Update fehlgeschlagen
+      bulk_update_successful: Bulk-Update erfolgreich
+      confirm_bulk_delete: Möchten Sie die ausgewählten Zeitsitzungen wirklich löschen?
+      confirm_delete: Möchten Sie diese Zeitsitzung wirklich löschen?
+      delete_error: Fehler beim Löschen
+      error_occurred: Ein Fehler ist aufgetreten
+      loading_form_error: Fehler beim Laden des Formulars
+      network_delete_error: Netzwerkfehler beim Löschen
+      select_at_least_one: Bitte mindestens eine Zeitsitzung auswählen
+      session_updated: Zeitsitzung aktualisiert
+      selection_intro:
+        one: "Diese Zeit wird übernommen"
+        other: "Diese %{count} Zeiten werden übernommen"
+      deselect: "Aus der Auswahl entfernen"
+      billing_after: "Summe nach dem Übernehmen"
+      selection_already:
+        one: "Diese Zeit ist schon vorhanden und wird nicht übernommen"
+        other: "Diese %{count} Zeiten sind schon vorhanden und werden nicht übernommen"
+    time_session_actions:
+      cancel_button: Abbrechen
+      confirm_delete: Möchten Sie diese Zeitsession wirklich löschen?
+      delete_error: Fehler beim Löschen der Zeitsession
+      deleting: Wird gelöscht...
+      edit_title: Zeitsession bearbeiten
+      form_load_error: Fehler beim Laden des Formulars
+      loading_form: Formular wird geladen...
+      network_error: Netzwerkfehler beim Löschen der Zeitsession
+      save_button: Speichern
+      saving: Wird gespeichert...
+      try_again_later: Bitte versuchen Sie es später erneut
+    post_composer:
+      files_selected:
+        one: "%{count} Datei ausgewählt"
+        other: "%{count} Dateien ausgewählt"
+    time_session_form:
+      select_project_first: Bitte zuerst Projekt auswählen
+    timeline_filter:
+      hide_activities: Aktivitätsverlauf ausblenden
+      hide_comments: Kommentare ausblenden
+      hide_subtasks: Unteraufgaben ausblenden
+      hide_time_tracking: Zeiterfassung ausblenden
+      show_activities: Aktivitätsverlauf anzeigen
+      show_comments: Kommentare anzeigen
+      show_subtasks: Unteraufgaben anzeigen
+      show_time_tracking: Zeiterfassung anzeigen
+      state_all: alles
+      state_filtered: gefiltert
+      state_only_changes: nur Änderungen
+      state_only_comments: nur Kommentare
+      state_only_time_entries: nur Zeiteinträge
+    turbo_cache:
+      select_element: Wählen Sie ein Element aus der Liste
+      select_entry: Bitte wählen Sie einen Eintrag aus der Liste
+      select_ticket: Bitte wählen Sie einen Task aus der Liste
+      select_time_session: Bitte wählen Sie eine Zeitsession aus der Liste
+      ticket_content_hint: Der Inhalt des ausgewählten Tasks wird hier angezeigt.
+    undefined_url_guard:
+      load_error: Fehler beim Laden des Inhalts. Bitte versuchen Sie es erneut.
+    upload:
+      bytes: Bytes
+      drag_drop_files: Dateien hier ablegen oder klicken zum Auswählen
+      error: 'Fehler: %{error}'
+      file_too_large: Datei ist zu groß
+      gb: GB
+      import_button: Importieren
+      invalid_file_type: Ungültiger Dateityp
+      kb: KB
+      mb: MB
+      please_wait: Bitte warten...
+      progress: "%{loaded} von %{total} (%{percent}%)"
+      upload_completed: Upload abgeschlossen!
+      upload_progress: Upload läuft...
+      uploading_file: Lade %{filename} hoch (%{size})...
+    user_import:
+      import_failed: Import fehlgeschlagen
+      import_successful: Import erfolgreich
+      invalid_format: Ungültiges Dateiformat
+      processing_file: Datei wird verarbeitet...
+    user_preferences:
+      confirm_reset: Möchten Sie wirklich zurücksetzen?
+      confirm_reset_defaults: Möchten Sie wirklich alle Einstellungen auf die Standardwerte
+        zurücksetzen?
+      few_seconds_ago: vor wenigen Sekunden
+      format_code_unsupported: Format-Code nicht unterstützt
+      format_invalid_chars: Format enthält ungültige Zeichen
+      invalid_format: Ungültiges Format
+      unknown_format_codes: Unbekannte Format-Codes verwendet
+  ticket_header_help:
+    title: Ticket-Aktionen erklärt
+    subtitle: Diese Aktionen stehen Ihnen im Ticket-Header zur Verfügung
+    groups:
+      viewing: Ansicht & Informationen
+      notifications: Benachrichtigungen
+      editing: Bearbeitung
+    buttons:
+      activity_timeline:
+        icon: activity
+        title: Aktivitätsverlauf
+        description: Der Chip „Änderungen" über dem Verlauf blendet alle Statuswechsel und sonstigen Aktionen an diesem Ticket ein oder aus. Die Zahl am Chip zeigt, wie viele Einträge es gibt.
+        shortcut: ""
+      time_tracking:
+        icon: clock
+        title: Zeiterfassung
+        description: Der Chip „Zeiteinträge" über dem Verlauf blendet die erfassten Arbeitszeiten dieses Tickets ein oder aus. Die Zahl am Chip zeigt die Anzahl der Einträge.
+        shortcut: ""
+      notifications_toggle:
+        icon: bell
+        title: Benachrichtigungen ein/aus
+        description: "Schalten Sie Benachrichtigungen für dieses Ticket ein oder aus.\n\n🔔 Aktiv: Sie erhalten Benachrichtigungen bei Änderungen an diesem Ticket.\n🔕 Aus: Keine Benachrichtigungen für dieses Ticket."
+      edit:
+        icon: pencil
+        title: Ticket bearbeiten
+        description: Ändern Sie Titel, Beschreibung, Status, Priorität und andere Eigenschaften des Tickets. Nur verfügbar mit Schreibrechten.
+        shortcut: ""
+      move_ticket:
+        icon: arrow-right-square
+        title: Ticket verschieben
+        description: Verschiebt das Ticket in ein anderes Projekt. Zuweisungen und Abonnements werden geprüft und ggf. angepasst.
+        shortcut: ""
+  tickets:
+    new: Neues Ticket
+    sections:
+      crm: CRM
+      custom: Benutzerdefiniert
+      support: Support
+    index:
+      new_task: Neues Ticket
+      search_modes:
+        deep: Tief
+        everything: Alles inkl. Dateien
+        quick: Schnell
+        standard: Standard
+        title_content: Titel + Inhalt
+        title_only: Nur Titel
+      search_placeholder: Suche in Tickets
+      select_task_description: Der Inhalt des ausgewählten Tickets wird hier angezeigt.
+      select_task_title: Bitte wählen Sie ein Ticket aus der Liste
+  time:
+    am: vormittags
+    days:
+      one: Tag
+      other: Tage
+    formats:
+      default: "%a, %d %b %Y %H:%M:%S %z"
+      long: "%d. %B %Y, %H:%M"
+      short: "%d %b %H:%M"
+    pm: nachmittags
+  cockpit_settings:
+    updated: Cockpit-Einstellungen gespeichert.
+  user_preferences:
+    datetime:
+      areas:
+        activity_logs: Aktivitätsprotokolle
+        posts: Beiträge
+        ticket_header: Ticket-Kopf
+        ticket_list_compact: Ticketliste kompakt
+        ticket_list_large: Ticketliste groß
+      custom_format: Eigenes Format (%{custom})
+      example: Beispiel
+      format: Format
+      german_example: Deutsch (23.08.2025 14:30)
+      global_format: Globales Format
+      individual_areas: Individuelle Bereiche
+      inherit_global: Wie global
+      international_example: International (2025-08-23 14:30)
+      relative_example: Relativ (vor 2 Tagen)
+    edit:
+      actions:
+        reset_defaults: Auf Standard zurücksetzen
+        save: Speichern
+      datetime:
+        custom_format_label: "Eigenes Format"
+        format_codes_hint: "Format-Codes: %d = Tag, %m = Monat, %Y = Jahr, %H = Stunde, %M = Minute"
+        area_formats:
+          inherit: Wie global
+        formats:
+          custom: Eigenes Format
+          german: Deutsch (23.08.2025 14:30)
+          international: International (2025-08-23 14:30)
+          relative: Relativ (vor 2 Tagen)
+        global_format:
+          label: Standard-Format
+          title: Globales Format
+        individual_areas:
+          title: Individuelle Bereiche
+        title: Datums- und Zeitanzeige
+        use_global:
+          description: Aktivieren Sie diese Option, um das globale Format überall
+            zu verwenden
+          label: Globales Format für alle Bereiche verwenden
+      display:
+        intro: "Das Profilbild wird bei Kommentaren, Listen und Zuweisungen immer angezeigt. Hier wählst du zusätzlich, wie Namen für dich geschrieben werden. Beides gilt nur für deine eigene Ansicht."
+        avatar:
+          label: Profilbild
+          hint: PNG, JPEG oder WebP, maximal %{max_megabytes} MB. Wird immer neben deinem Namen angezeigt, z. B. bei Kommentaren und in Listen; ohne Bild stehen dort deine Initialen.
+          remove: Profilbild entfernen
+          crop_hint: "Ausschnitt wählen: Bild mit der Maus verschieben, Regler zoomt. Gespeichert wird der sichtbare Ausschnitt."
+          zoom_label: Zoom
+        name_display:
+          label: Schreibweise von Benutzernamen
+          full: Voller Name
+          first_last_initial: Vorname und abgekürzter Nachname
+          initial_last: Abgekürzter Vorname und Nachname
+          description: "Die Vorschau neben jeder Option zeigt deinen eigenen Namen in der jeweiligen Schreibweise."
+        title: Namensanzeige
+      general:
+        future_settings: Weitere allgemeine Einstellungen werden hier in Zukunft verfügbar
+          sein.
+        items_per_page:
+          description: Anzahl der Elemente, die in Listen angezeigt werden (Tickets,
+            Notizen, Dokumente)
+          label: Einträge pro Seite
+          options:
+            '10': 10 Einträge
+            '100': 100 Einträge
+            '20': 20 Einträge
+            '50': 50 Einträge
+        title: Allgemeine Einstellungen
+      meetings:
+        intro: "Diese Einstellung steuert, wie Teilnehmer beim Einfügen eines Meeting-Transkripts erkannt werden. Sie gilt für alle Organisationen und Projekte."
+        detection_mode:
+          label: "Erkennungsmodus für Transkripte"
+          offline: "Offline (Standard) — Erkennung nur im Browser"
+          ai: "KI-Modus — Transkript wird zur Erkennung an den KI-Anbieter übertragen"
+          description: "Im Offline-Modus verlässt das Transkript für die Teilnehmer-Erkennung nie den Browser; die KI-Erkennung lässt sich pro Meeting per Button auslösen. Im KI-Modus wird das eingefügte Transkript automatisch zur Erkennung an den KI-Anbieter übertragen. Der KI-Modus wirkt nur in Organisationen mit aktivierten KI-Funktionen — die Organisations-Einstellung ist stets übergeordnet."
+          ai_unavailable_hint: "Der KI-Modus ist derzeit nicht wählbar: In keiner deiner Organisationen sind KI-Funktionen aktiviert und konfiguriert."
+      tickets:
+        intro: "Diese Einstellungen gelten für deine Ticket-Ansicht in allen Projekten. Spalten und Felder pro Projekt passt du direkt im Ticket über „Detail-Ansicht anpassen“ an."
+        description_collapse:
+          always_full: Immer die ganze Beschreibung anzeigen
+          auto: Bei bekannten Tickets einklappen
+          description: "Bei Tickets, auf denen du schon kommentiert hast, wird die Beschreibung eingeklappt angezeigt. Gilt für alle Projekte."
+          label: Beschreibung bei bekannten Tickets
+        timeline_order:
+          chronological: Chronologisch (älteste zuerst)
+          description: Reihenfolge der Kommentare, Zeiten und Aktivitäten in Ticket-Details
+          label: Timeline-Reihenfolge
+          reverse: Umgekehrt (neueste zuerst)
+      navigation:
+        appearance: Erscheinungsbild
+        coming_soon: Demnächst verfügbar
+        datetime: Datum/Zeit
+        general: Allgemein
+        notifications: Benachrichtigungen
+      title: Einstellungen
+    general:
+      chronological_oldest_first: Chronologisch (älteste zuerst)
+      entries: Einträge
+      entries_count: Anzahl Einträge
+      entries_description: Bestimmt, wie viele Einträge pro Seite in Listen angezeigt
+        werden.
+      entries_per_page: Einträge pro Seite
+      order: Reihenfolge
+      reverse_newest_first: Umgekehrt (neueste zuerst)
+      timeline_description: Reihenfolge der Kommentare, Zeiten und Aktivitäten in
+        Ticket-Details.
+      timeline_order: Timeline-Reihenfolge
+    language:
+      coming_soon: Demnächst
+      current_language: Aktuelle Sprache
+      interface_description: Bestimmt die Sprache der Benutzeroberfläche, Menüs und
+        Nachrichten.
+      interface_language: Interface-Sprache
+      note: Die Sprachänderung wird sofort wirksam. Einige Bereiche werden möglicherweise
+        erst nach einem Seitenwechsel aktualisiert.
+      regional_description: Zeitzone, Zahlenformat, Währung und weitere regionale
+        Einstellungen.
+      regional_settings: Regionale Einstellungen
+      title: Spracheinstellungen
+    language_update_failed: Sprache konnte nicht geändert werden
+    language_updated: Sprache wurde erfolgreich geändert
+    posts:
+      post:
+        confirm_delete: Bist du sicher, dass du diesen Post löschen möchtest?
+        delete: Löschen
+        edit: Bearbeiten
+        time_ago: "%{time} her"
+    sections:
+      appearance: Erscheinungsbild
+      coming_soon: Demnächst verfügbar
+      datetime: Datum/Zeit
+      datetime_display: Datums- und Zeitanzeige
+      general: Allgemein
+      general_settings: Allgemeine Einstellungen
+      notifications: Benachrichtigungen
+    settings_update_failed: Fehler beim Speichern der Einstellungen
+    settings_updated: Einstellungen wurden erfolgreich gespeichert

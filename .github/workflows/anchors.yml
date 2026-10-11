@@ -1,0 +1,82 @@
+name: Anchors
+
+# Does every deep link in Docs::ContextualHelp still land on a heading in the
+# documentation? The map lives HERE, the headings live in
+# gboyke/lalabase-documentation, and an anchor is Redcarpet's slug of one of
+# them (it differs per language: "Status ändern" becomes "status-ndern").
+#
+# This is the direction for when the MAP changes: a mistyped anchor in a PR here
+# used to stay green and surface only on the documentation repository's next
+# run (doc/docs_delivery_plan.md, D4 criterion 14, which accepted that delay).
+# The documentation repository runs the same check the other way, for when a
+# HEADING changes.
+#
+# Only when the map changes, because the check needs the documentation
+# program's whole bundle. The documentation is PRIVATE, so it is checked out
+# with a read-only deploy key: DOCUMENTATION_DEPLOY_KEY here, whose public half
+# is attached to gboyke/lalabase-documentation with read access and nothing
+# else. The check itself is that repository's code (`rake anchors:check`), run
+# against this checkout, so the two directions cannot disagree about what an
+# anchor is. The path filter below is that code's MAP_PATH
+# (Docs::AnchorCheck in the documentation repository): move the map and both
+# must move with it.
+#
+# Both directions read the other repository's MAIN, so a renamed heading can
+# only ever be green on one side at a time: merge the documentation first (its
+# own run is red until the map follows), then the map change here is green.
+# The other way round leaves a red run on main here that nothing re-triggers,
+# which is what the manual switch is for.
+#
+# The check LOADS the map as Ruby, next to a checkout that is private. That is
+# fine for a pull request from this repository, whose authors can read it
+# anyway, and the reason the job never runs on `pull_request_target`: a fork
+# would get the deploy key and the checkout. A fork gets no secrets at all, so
+# its run is skipped with a message rather than failing on a checkout it cannot
+# explain; the push to main checks its map after the merge.
+
+on:
+  # Allows a run by hand, for a red main that no map change would re-check.
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - app/services/docs/contextual_help.rb
+      - .github/workflows/anchors.yml
+  push:
+    branches: [main]
+    paths:
+      - app/services/docs/contextual_help.rb
+      - .github/workflows/anchors.yml
+
+permissions:
+  contents: read
+
+jobs:
+  anchors:
+    runs-on: ubuntu-latest
+    # Only this repository's own branches carry the deploy key (see above).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The map is loaded as Ruby below; no token is to be lying around then.
+          persist-credentials: false
+
+      - name: Check out the documentation, read-only
+        uses: actions/checkout@v7
+        with:
+          repository: gboyke/lalabase-documentation
+          ssh-key: ${{ secrets.DOCUMENTATION_DEPLOY_KEY }}
+          path: documentation
+          fetch-depth: 1
+          persist-credentials: false
+
+      # The documentation program's Ruby and bundle, not this repository's:
+      # the check runs inside that program.
+      - uses: ruby/setup-ruby@v1
+        with:
+          working-directory: documentation
+          bundler-cache: true
+
+      - name: Every anchor this map links to exists in the documentation
+        working-directory: documentation
+        run: bin/rails "anchors:check[${{ github.workspace }}]"

@@ -1,0 +1,28 @@
+de:
+  views:
+    organisations:
+      help:
+        shared:
+          title: Hilfe
+        search:
+          placeholder: Hilfe durchsuchen...
+          empty: Keine Treffer.
+          clear: Suche zurücksetzen
+          in_section: in
+          results_count:
+            one: "%{count} Treffer"
+            other: "%{count} Treffer"
+        show:
+          back_to_tree: Zur Hilfe-Übersicht
+          fallback_notice: Diese Seite ist noch nicht in deiner Sprache verfügbar — angezeigt wird die deutsche Fassung.
+        unavailable:
+          title: Das Handbuch liegt im Netz
+          body: Diese Instanz bringt das Handbuch nicht mit. Es steht öffentlich zur Verfügung und ist immer auf dem neuesten Stand.
+          public_link: Handbuch öffnen
+        not_found:
+          title: Hilfe-Seite nicht gefunden
+          body: Diese Hilfe-Seite existiert nicht (mehr).
+          home_link: Zur Hilfe-Startseite
+      changelog:
+        title: Neuigkeiten
+        empty: Noch keine Einträge vorhanden.

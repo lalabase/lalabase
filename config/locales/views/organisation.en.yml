@@ -1,0 +1,707 @@
+en:
+  views:
+    organisations:
+      archives:
+        index:
+          projects_section: Projects
+          table_headers:
+            name: Project
+            archived_at: Archived on
+            archived_by: Archived by
+            actions: Actions
+          restore: Restore
+          empty_title: Nothing archived
+          empty_description: Archived projects collect here and can be restored from here.
+      projects:
+        index:
+          archived_projects: Archived Projects
+          archived_badge: Archived
+          archived_by: by
+          delete_project_title: Permanently delete project
+          delete_project_warning: This action cannot be undone. All tickets, documents, notes, time entries and custom fields will be permanently deleted.
+          delete_project_confirm_hint: Please enter the project name
+          delete_project_confirm_suffix: 'to confirm the deletion:'
+          delete_project_placeholder: Enter project name
+          cancel: Cancel
+          delete_permanently: Delete permanently
+        new:
+          title: New Project
+          back: Back
+        show:
+          configure_dashboard: Configure dashboard
+        details:
+          title: Project details
+          back_to_settings: Settings
+        edit:
+          settings_title: Settings
+          details_title: Project details
+          details_description: The project's name and description.
+          details_no_description: No description yet.
+          edit_details: Edit project details
+          danger_zone: Danger Zone
+          archive_project: Archive project
+          archive_description: The project will be removed from the sidebar and project list. All unread notifications will be archived.
+          archive_button: Archive
+          restore_project: Restore project
+          restore_description: The project will be shown again in the sidebar and project list.
+          restore_button: Restore
+          delete_project_title: Permanently delete project
+          delete_project_description: All tickets, documents, notes, time entries and custom fields will be permanently deleted. This action cannot be undone.
+          delete_permanently: Delete permanently
+          delete_modal_title: Permanently delete project
+          delete_modal_warning: This action cannot be undone. All tickets, documents, notes, time entries and custom fields will be permanently deleted.
+          delete_modal_confirm_hint: Please enter the project name
+          delete_modal_confirm_suffix: 'to confirm the deletion:'
+          delete_modal_placeholder: Enter project name
+          cancel: Cancel
+          ticket_fields: Ticket Fields
+          ticket_fields_description: Configure fields displayed on tickets.
+          manage_ticket_fields: Manage ticket fields
+          active_fields_count: "%{count} active fields"
+          inactive_fields_count: "%{count} inactive fields"
+          chat_with_code_title: Chat with your code
+          chat_with_code_empty: Want to ask the AI assistant about your project's source code? Connect a repository — the code is indexed and becomes available as chat context.
+          documentation_title: Show documentation
+          documentation_empty: Want to see your project's documentation here? Connect a repository — the documentation pages appear in the “Documentation” area and stay in sync automatically.
+          code_and_docs_title: Code & documentation
+          connect_repository: Connect repository
+          manage_repositories: Manage repositories
+          view_repositories: View repositories
+          repositories_no_permission: You don't have permission to manage repositories. Contact the project administration.
+      memberships:
+        edit:
+          title: Edit Membership
+          back: Back
+          name_label: Name
+          role_label: Role
+          no_role_assigned: No role assigned
+          active_member: Active member
+          cancel: Cancel
+          save: Save
+      roles:
+        edit:
+          title: Edit Role
+          back: Back
+          default_role_badge: Default Role
+          admin_badge: Administrator
+          custom_role_badge: Custom Role
+          errors_html: "%{count} error(s) prevented saving this role:"
+          basic_info: Basic Information
+          title_label: Title
+          description_label: Description
+          permissions_title: Permissions
+          permissions_description: Select the permissions to assign to this role. These permissions apply to all users who have this role.
+          search_placeholder: Search permissions...
+          search_hint: Select a category below to configure specific permissions
+          tab_all: All Permissions
+          tab_projects: Project Details
+          select_all: Select all
+          deselect_all: Deselect all
+          read_permissions: Read Permissions
+          write_permissions: Write Permissions
+          other_permissions: Other Permissions
+          permissions_group: Permissions
+          project_details_info: Use the area-specific permissions to control in detail which users can access which project data. Permissions are organised by functional areas (Tickets, Notes, Chats, Documents, Time Tracking).
+          read_access: Read Access
+          write_access: Write Access
+          project_management: Project Management
+          cancel: Cancel
+          save: Save
+        index:
+          new_role_tooltip: Create new role
+          matrix_view_tooltip: 'Permission matrix: Overview of all roles and permissions'
+      project_permissions:
+        index:
+          title: Team
+          back: Back
+          team_members: Team Members
+          no_team_members: No team members assigned yet
+          other_users: Other available users
+          project_rights_info_link: Information about project permissions
+          col_member: Member
+          col_actions: Actions
+          empty_title: No one on the team yet
+          empty_hint: Add a member below to grant project permissions.
+          add_member: Add member
+          add_search_placeholder: Search name…
+          add: Add
+        areas:
+          tickets: Tickets
+          notes: Notes
+          meetings: Meetings
+          chats: Chats
+          documents: Files
+          members: Team
+          documentation: Documentation
+          time_sessions: Time
+        levels:
+          no_access: No access
+          read_only: Read
+          read_write: Write
+        time:
+          standard: Standard
+          custom: Custom
+          settings: Configure time rights
+        member_row:
+          source_admin: Admin
+          source_direct: Direct
+          source_role: via role “%{role}”
+          source_blocked: Role right “%{role}” blocked
+          you: "(You)"
+          time_full: Full
+          edit: Edit
+          make_explicit: Set explicit
+          remove: Remove
+          unblock: Lift block
+          blocked: Blocked
+          edit_title: Edit permissions for %{name}
+          cancel: Cancel
+          save: Save
+        edit:
+          title: Edit permissions for %{name}
+          errors_html: "%{count} error(s) prevented saving this permission:"
+          access_permissions: Access Permissions
+          access_permissions_description: Select the access permissions for the different areas of the project.
+          area_chats: Chats
+          area_tasks: Tickets
+          area_notes: Notes
+          area_files: Files
+          area_time: Time
+          area_team: Team
+          area_documentation: Documentation
+          no_access: No Access
+          read_only: Read Only
+          read_write: Read & Write
+          create_own: Create own
+          view_own: View own
+          view_all: View all
+          edit_own: Edit own
+          edit_all: Edit all
+          delete_own: Delete own
+          delete_all: Delete all
+          advanced_time_settings: Advanced settings for Time Sessions
+          back: Back
+          save_permissions: Save permissions
+        info:
+          back_to_permissions: Back to permission management
+          title: Information about Project Permissions
+          subtitle: Everything you need to know about permission management in projects
+          toc_title: Contents
+          toc_overview: Overview of permission levels
+          toc_access_levels: The three access levels
+          toc_areas: Areas and their meaning
+          toc_time_sessions: Special TimeSession permissions
+          toc_removing: Taking someone off a project
+          toc_who_can_change: Who can change permissions?
+          toc_faq: Frequently asked questions
+          overview_title: Overview of Permission Levels
+          overview_intro: 'Permission management in Lalabase operates on three levels:'
+          level_admin_title: 1. Account Admin
+          level_admin_description: Has full access to all projects and features of the organisation.
+          level_role_title: 2. Role-based
+          level_role_description: Global permissions through the user's role in the organisation.
+          level_project_title: 3. Project-specific
+          level_project_description: Individual permissions per user and project.
+          override_notice: 'Important: Project-specific permissions override role-based permissions!'
+          removing_title: Taking someone off a project
+          removing_intro: '"Remove" always means the same thing: this person should no longer work here. How it is carried out depends on where their access comes from.'
+          removing_plain_title: Without a role right
+          removing_plain_description: The project permission is deleted. The person leaves the list and shows up under "Add member" again.
+          removing_blocked_title: With a role right
+          removing_blocked_description: Deleting would achieve nothing, because the role hands the access straight back. Instead a project permission with "No access" is written, which overrides the role. The row stays visible and is marked "Blocked". "Lift block" undoes it, and what the role allows applies again.
+          removing_admin_notice: 'Exception: an account admin has access to every project and no project permission can override that. Only changing their role helps here.'
+          access_levels_title: The Three Access Levels
+          no_access_title: No Access
+          no_access_description: The user cannot see or access this area.
+          read_only_title: Read Only
+          read_only_description: The user can view content but cannot make changes.
+          read_write_title: Read & Write
+          read_write_description: The user can view, create, edit and delete content.
+          areas_title: Areas and Their Meaning
+          area_chats_label: Chats
+          area_chats_description: Project communication and discussions
+          area_tasks_label: Tickets
+          area_tasks_description: Tickets and work items in the project
+          area_notes_label: Notes
+          area_notes_description: Project notes and documentation
+          area_files_label: Files
+          area_files_description: Documents and attachments in the project
+          area_time_label: Time
+          area_time_description: Time tracking (see advanced settings below)
+          area_team_label: Team
+          area_team_description: Management of project members and their permissions
+          time_sessions_title: Special TimeSession Permissions
+          time_sessions_intro: 'For time tracking, there are advanced, granular permissions:'
+          own_time_sessions: Own TimeSessions
+          own_create: Create own
+          own_view: View own
+          own_edit: Edit own
+          own_delete: Delete own
+          all_time_sessions: All TimeSessions
+          all_view: View all
+          all_edit: Edit all
+          all_delete: Delete all
+          time_sessions_override_notice: These settings override the standard access permissions for the Time area.
+          who_can_change_title: Who Can Change Permissions?
+          general_permissions_title: Project permissions general
+          general_admin_can: Account admins can manage all permissions
+          general_team_write_can: Users with "Team" write permissions can manage project members
+          general_self_cannot: Users CANNOT change their own permissions
+          time_permissions_title: TimeSession Permissions
+          time_admin_can: Account admins have full access
+          time_team_write_can: Users with "Team" write permissions can change TimeSession permissions of others
+          time_self_cannot: Users CANNOT change their own TimeSession permissions
+          faq_title: Frequently Asked Questions
+          faq_q1: Why don't I see buttons for some areas?
+          faq_a1: For TimeSession permissions, the actual permissions are displayed as text instead of buttons. Missing permissions are shown with strikethrough.
+          faq_q2: What does "modified" mean for a role?
+          faq_a2: This indicates that the project-specific permissions differ from the default permissions of the role.
+          faq_q3: Can I give a user read-only permissions for TimeSessions but no create permissions?
+          faq_a3: Yes! Through the advanced TimeSession settings, you can precisely control which actions are allowed.
+          faq_q4: What happens when I revoke all permissions from a user?
+          faq_a4: The user is removed from the project member list and no longer has access to the project.
+          faq_q5: What happens to permissions when a user changes roles?
+          faq_a5: Role-based permissions are automatically adjusted. However, project-specific permissions remain unchanged as they override role permissions.
+          faq_q6: Can I create permission templates or copy permissions from one user to another?
+          faq_a6: Currently there is no template feature. You need to set permissions individually for each user. This ensures that permissions are granted consciously and deliberately.
+          faq_q7: How can I see which permissions come from the role and which are project-specific?
+          faq_a7: When project permissions differ from role permissions, "(modified)" appears next to the role. In edit mode, you can click the info icon to show role permissions.
+          faq_q8: Is there an overview of who has which permissions across all my projects?
+          faq_a8: Permission management is per project. For an organisation-wide overview, you would need to check each project individually. Account admins automatically have full access to all projects.
+          faq_q9: What happens to TimeSessions when I subsequently revoke a user's permissions?
+          faq_a9: Already created TimeSessions remain. Depending on the new permissions, the user may no longer be able to view or edit them. The data is not deleted, only access is restricted.
+        time_sessions_settings:
+          back_to_permissions: Back to permission management
+          title: TimeSession Permissions
+          subtitle: for %{user} in project %{project}
+          own_title: Own TimeSessions
+          can_create_own: Create own TimeSessions
+          can_view_own: View own TimeSessions
+          can_edit_own: Edit own TimeSessions
+          can_delete_own: Delete own TimeSessions
+          all_title: All TimeSessions in project
+          can_view_all: View all TimeSessions
+          can_edit_all: Edit all TimeSessions
+          can_delete_all: Delete all TimeSessions
+          current_permission: 'Current permission:'
+          save_permissions: Save permissions
+          cancel: Cancel
+        shared:
+          no_access: No Access
+          read_only: Read Only
+          read_write: Read & Write
+          not_assigned: Not assigned
+          inherited: Inherited
+          full_access_admin: Full Access (Admin)
+          read_only_via_role: Read Only (via role)
+          read_write_via_role: Read & Write (via role)
+          default_label: Default
+          role_label: 'Role:'
+          configured: Configured
+          settings: Settings
+          advanced_settings: Advanced settings
+          advanced: Advanced
+          save: Save
+          cancel: Cancel
+          permissions: Permissions
+          admin_access: Admin Access
+          user_label: User
+          you_label: "(You)"
+          modified: "(modified)"
+          own_permissions: Own permissions
+          set_explicit_permissions: Set explicit permissions
+          add: Add
+          admin_full_access: Has full admin access to all areas
+          no_project_access: No access to this project
+          permissions_for: Permissions for %{name}
+          select_no_access: No Access
+          select_read: Read
+          select_write: Write
+          select_no_access_emoji: "❌ No Access"
+          select_read_emoji: "\U0001F441️ Read Only"
+          select_write_emoji: "✏️ Edit"
+          own_create: Create own
+          own_view: View own
+          all_view: View all
+          area_chats: Chats
+          area_tasks: Tickets
+          area_notes: Notes
+          area_files: Files
+          area_time: Time
+          area_team: Team
+          show_role_info: Show role information
+        legend:
+          title: 'Access Permissions Legend:'
+          not_assigned: Not assigned
+          no_access: No Access
+          read_only: Read Only
+          read_write: Read & Write
+          inherited: Inherited (from role/admin)
+        explanations:
+          title: Permission Explanations
+          areas_title: 'Areas:'
+          area_chats: 'Chats:'
+          area_chats_desc: Access to project-related chats and conversations
+          area_tasks: 'Tickets:'
+          area_tasks_desc: Management of tickets in the project
+          area_notes: 'Notes:'
+          area_notes_desc: Creating and editing project notes
+          area_files: 'Files:'
+          area_files_desc: Upload and management of project files
+          area_time: 'Time:'
+          area_time_desc: Time tracking and evaluation of working hours
+          area_team: 'Team:'
+          area_team_desc: Management of project members and their permissions
+          levels_title: 'Permission Levels:'
+          level_no_access: 'No Access:'
+          level_no_access_desc: The user cannot see or access this area
+          level_read_only: 'Read Only:'
+          level_read_only_desc: The user can view content but cannot make changes
+          level_read_write: 'Read & Write:'
+          level_read_write_desc: The user has full access and can create, edit and delete content
+          role_hint: '"Role: [Icon]" shows the permission that the user would have through their assigned role in the system. This is displayed when the individual permission differs from the role permission.'
+          hint_label: 'Note:'
+      access_matrix:
+        index:
+          title: Access overview
+          back_to_members: To members
+          member_header: Member
+          column_link_title: Edit the %{project} team
+          wide_screen_hint: A wide screen is recommended for the full matrix — the filter narrows columns and rows.
+        link: Access overview
+        states:
+          blocked: Blocked
+          none: No access
+        cell:
+          details_label: Access per area
+        filter:
+          search_placeholder: Search by name…
+          projects_label: Projects
+        legend:
+          title: Legend
+          read_write: Write access
+          read_only: Read access
+          blocked: Explicitly blocked (overrides a role right)
+          none: No access
+          inherited: Inherited (via admin role or a global role right)
+        empty:
+          title: No active projects yet
+          body: As soon as there are active projects, they appear here as columns.
+          cta: Create project
+      # Billing area of the account (doc/billing_stammdaten_plan.md B2/B3).
+      # Wording: "Billing" as the menu entry, "billing account" for the account level,
+      # "billing details"/"billing address"/"VAT ID" in the fields.
+      organisation_settings:
+        show:
+          title: Organisation Settings
+          general_settings: General Settings
+          errors:
+            one: "%{count} error prevented saving:"
+            other: "%{count} errors prevented saving:"
+          name_label: Name
+          name_placeholder: Organisation name
+          name_help: The full name of your organisation
+          subdomain_label: Subdomain
+          subdomain_placeholder: subdomain
+          subdomain_help: Subdomain for accessing your organisation (e.g. subdomain.example.com)
+          domain_label: Domain
+          domain_placeholder: example.com
+          domain_help: Your organisation's domain (optional)
+          cancel: Cancel
+          save: Save settings
+      ai_settings:
+        show:
+          # What is NO LONGER here: the strings of the old provider form (system vs. own
+          # credentials, the API key field, the security notice, "Own configuration" …).
+          # S7 moved that form onto its own page, where it got fresh keys under
+          # views.organisations.ai_overview.configuration.*; the 27 keys here were left
+          # without a single reader. A key with no reader is not a spare, it is a claim
+          # about a screen that does not exist.
+          test_connection: Test connection
+          # The switch now lives on the overview (doc/ki_zugang_umbau_plan.md D1/D5).
+          # What stood here — the status heading, "activated on X by Y", the consent
+          # long-text and the two switch labels — moved with it and is now under
+          # views.organisations.ai_overview.activation.*. What stays is one line of
+          # orientation with a link and no data of its own.
+          status_line_active_html: AI features are active. They are switched on and off on the %{link}.
+          status_line_inactive_html: AI features are not activated. You can prepare the access here; activation happens on the %{link}.
+          status_line_overview_link: overview
+        # KI-Pakete §7/§7.1: card catalogue plus the two filters. The block spans
+        # show.html.erb and the _package_* partials — hence its own
+        # partial-spanning owner (pattern: views.admin.ai_credentials.seam).
+        packages:
+          title: AI package
+          intro: A package decides which provider processes your organisation's chat and search, and under which jurisdiction that happens.
+          current_label_package: "Current: %{name} — %{description}"
+          current_label_custom: "Current: own configuration"
+          current_custom_hint: The organisation's own credentials apply, stored under "Own configuration".
+          # doc/ki_zugang_umbau_plan.md D7, state Z3: neither a package nor own
+          # credentials. This line used to read "Current: own configuration" — a decision
+          # nobody had made. It states what is true and names both ways instead.
+          none_configured_title: No AI access set up yet
+          none_configured_hint: Pick a system package or store your own credentials. Until then neither way is available.
+          # doc/ki_zugang_umbau_plan.md D6: the either/or as two tiles. `active_chip`
+          # says which way is IN FORCE; which way is currently OPEN is said by the
+          # selection frame. Two statements, two carriers: otherwise looking at the
+          # other way would read as a switch already made.
+          chooser:
+            packages_title: System package
+            packages_subline: Curated packages with a checked jurisdiction and processing location.
+            custom_title: Own configuration
+            custom_subline: This organisation's own API keys and provider settings.
+            active_chip: Active
+          # P4c (E1): the state of a package switch already underway, right below the
+          # "Current" line. The keys are named after Embeddings::SwitchProgress::STATES,
+          # so adding a state there surfaces the gap here instead of hiding it.
+          progress:
+            building_title: Search is being rebuilt
+            building_body: "%{remaining} of %{total} records still to go — %{percent} % are in the new index."
+            awaiting_flip_title: Rebuild complete
+            awaiting_flip_body: The new search index is complete. It usually becomes active automatically within fifteen minutes — nothing for you to do.
+            paused_title: Switch paused
+            paused_body: Your AI allowance for this month is used up, so the rebuild is on hold. It resumes automatically once the allowance resets next month.
+            # Not progress but a halt: the target space is complete yet taken out of
+            # the index. A rebuild does NOT repair this (it would find nothing to do);
+            # it needs reactivation by the operator — so the text names a
+            # responsibility rather than a waiting time.
+            retired_target_title: Switch stalled
+            retired_target_body: The target index is complete but currently not in use. This will not resolve on its own — please contact your system administrator. Your search keeps working unchanged in the meantime.
+            # ONE search sentence: every state that reaches the notice has a resolved
+            # pointer, so the old index keeps serving until the flip. The former second
+            # variant for pointerless orgs is gone — it would have warned every healthy
+            # organisation along with them (review blocker 1).
+            search_kept: Your existing content stays findable in the meantime — search reads from the previous index until the rebuild finishes. Content created during that window becomes searchable afterwards.
+          # P4c (E5): the org's own package is not in the grid — two ways in, with
+          # different outcomes.
+          outside_grid:
+            filtered_title: Your current package is hidden by the filters
+            filtered_body: It does not meet the criteria set above. The card is shown here anyway so you can change your service tier. Relax the filters to see it in the catalogue again.
+            withdrawn_title: Your current package is no longer offered
+            withdrawn_body: The operator has withdrawn this package. It keeps running for you unchanged, but its service tier can no longer be changed. To change that, pick another package below or "own configuration".
+          filters:
+            heading: Narrow the selection
+            hint: The strictest combination is preselected. Every relaxation is a deliberate decision.
+            provider: Provider
+            provider_eu: EU companies
+            provider_any: non-European companies too
+            processing: Processing
+            processing_eu: in the EU only
+            processing_any: outside the EU too
+          jurisdictions:
+            blank: Not stated
+            eu_native: European
+            eu_region_foreign_provider: EU region, non-European provider
+            eu_provider_foreign_region: EU provider, third-country region
+            non_eu: Outside the EU
+            self_hosted: Own server
+          # The restricting addendum from §7, deliberately in the same font size as
+          # the description. `eu_native` has NO entry: it is the only rung without a
+          # third-country transfer (§3.1). That every other rung carries an addendum
+          # is enforced by a spec — otherwise a newly added rung would silently fall
+          # into the harmless-looking state.
+          jurisdiction_notes:
+            eu_region_foreign_provider: Processing happens in the EU, but the provider is a non-European company and is subject to the law of its home country. Legally this counts as a third-country transfer.
+            eu_provider_foreign_region: The provider is a European company, but the data is processed outside the EU. Your data therefore leaves the EU.
+            non_eu: Provider and processing are both outside the EU. Your data therefore leaves the EU.
+            self_hosted: Processing runs on a self-operated server. The operator of this installation is responsible for it, not an external provider.
+          # T5: the second badge. The STRICTEST value of the referenced credentials —
+          # a package is only as good as its weakest one. `self_hosted` has no entry
+          # and needs none: the card renders no badge there, because the question is
+          # groundless rather than unanswered.
+          training_usages:
+            excluded: No training
+            used: Training by the provider
+            unspecified: Training not assured
+          # An addendum for every value but the harmless one — same rule as the
+          # jurisdiction rungs, pinned by a guard spec for the same reason: a
+          # missing statement reads as an all-clear.
+          training_notes:
+            used: The provider uses content you process through the AI features to train its models.
+            unspecified: We hold no contractual assurance about model training for this package. That does not mean training happens — it means we cannot evidence that it does not.
+          # The third claim is a sentence, not a badge (E1). Unlike the jurisdiction,
+          # the good value carries a sentence too: this axis has no badge of its own,
+          # so without one "not stored" would stay invisible.
+          retention_notes:
+            none: Your content is not stored by the provider.
+            limited:
+              one: Your content is stored by the provider for up to one day.
+              other: Your content is stored by the provider for up to %{count} days.
+            unlimited: The provider stores your content with no assured time limit.
+            unspecified: We hold no contractual assurance about the storage period for this package.
+          card:
+            processing_region: "Processing location: %{region}"
+            tiers_heading: Included tiers
+            # Same ladder, two readings: on another card it describes the
+            # package, on the selected one it is the switcher (§7).
+            tier_switch_heading: Performance tier
+            tier_provider_missing: Provider not configured yet
+            tier_unavailable: Credentials disabled — not selectable right now
+            # P4c (E5): a DIFFERENT reason from tier_unavailable, hence its own text.
+            # The tier is not broken — its chat works and the org is running on one of
+            # them — the package is simply no longer offered. Recycling "credentials
+            # disabled" here would send the customer to the credentials instead of to
+            # the package.
+            tier_withdrawn: Package no longer offered — tier cannot be changed
+            tier_utility_hint: Helper tasks — participant detection, ticket and document summaries, ticket suggestions and the indexing of connected repositories — always run on "%{tier}" regardless. This does not change the jurisdiction.
+            # The same statement with the sign flipped: helper tasks still run on
+            # this tier, it just cannot serve right now. Without its own copy the
+            # hint above promises five features that are all down — precisely when
+            # the customer picked a DIFFERENT tier and their chat keeps working.
+            tier_utility_unavailable: Helper tasks — participant detection, ticket and document summaries, ticket suggestions and the indexing of connected repositories — always run on "%{tier}". That tier's credentials are currently disabled, so these features are unavailable — even though you selected a different tier. Please contact your system administrator.
+            provider_note_summary: What the provider contractually does with the data
+            selected_badge: Selected
+            select_button: Choose this package
+            selected_button: Currently selected
+            # P4b turned the refusal into a detour: the switch is possible, but it
+            # goes through the consequence dialog (#confirm_package) rather than
+            # from a bare button.
+            switch_notice: This package uses a different search index than your current one. Before the switch we show you what changes legally, what rebuilding the search costs and what happens to your search in the meantime.
+            switch_button: Review switch
+            # The second refusal door of the same card (P3): the tier a fresh
+            # selection would land on has no usable credentials. Its own copy, because
+            # it is about neither the jurisdiction nor the search index.
+            selection_blocked: This package cannot be selected right now — the credentials of its default tier are disabled. Please contact your system administrator.
+            selection_blocked_button: Not selectable right now
+          empty:
+            title: No package meets both criteria
+            hint_provider: Set to "non-European companies too", the provider filter shows at least one package.
+            hint_processing: Set to "outside the EU too", the processing filter shows at least one package.
+            hint_both: Relaxed on its own, either filter shows at least one package — relax the one that matters less to you.
+            hint_relax_both: Only relaxing both filters brings a package into view — neither relaxation is enough on its own.
+            hint_none: No package is published at the moment. Please contact your system administrator.
+          custom:
+            title: Own configuration
+            description: Not a curated package but this organisation's own provider settings — including your own API keys.
+            note: Jurisdiction and processing location are then yours to answer for; no package text covers them.
+            # The way back is the same switch as the way in and takes the same
+            # detour — its own text because the direction differs.
+            switch_notice: Going back to your own configuration would search your content with a different model. This switch, too, goes through the consequence overview first.
+            select_button: Use own configuration
+            selected_badge: Selected
+            # S7: until then the card was the SELECTION with nothing behind it — the
+            # SETUP was a second form on the same page. This line is the door §3.4
+            # asked for from the start.
+            configure_link: Set up credentials
+            access_present: "Stored: own access for %{provider}."
+            access_failed: The last connection check failed.
+            # D7: absence, stated. There was nothing here before, in the very state
+            # that needs explaining most. `not_ready_hint` is added on top when this way
+            # is IN FORCE and still has nothing behind it.
+            not_configured: No credentials stored yet.
+            not_ready_hint: Without stored credentials the AI functions cannot work. Set the access up or pick a system package.
+          # KI-Pakete P4b (doc/ki_pakete_p4_plan.md §4): the consequence dialog in
+          # front of a switch that moves the search index. A page of its own rather
+          # than a modal — reasoning at the top of confirm_package.html.erb.
+          switch:
+            title: Review package switch
+            intro: 'You are about to switch to "%{target}". What that means is set out below — the switch only starts once you confirm it.'
+            unavailable: This package is not available for selection right now.
+            tier_unusable: This package cannot be selected at the moment — its default performance tier is unavailable. Please contact the operator.
+            same_lane: This choice does not move the search index — you can pick it directly from the overview.
+            legal_heading: Jurisdiction
+            side_today: Today
+            side_after: After the switch
+            jurisdiction_unstated: No jurisdiction is recorded for this configuration — jurisdiction and processing location are yours to answer for.
+            # Four cases, not three: a package that claims nothing must be reported
+            # as neither an improvement nor a deterioration.
+            jurisdiction_change:
+              unchanged: The jurisdiction stays the same.
+              to_eu_native: The switch removes the third-country transfer — provider and processing are then both in the EU.
+              from_eu_native: The switch creates a third-country transfer. Your content will no longer be processed exclusively by a European company inside the EU.
+              changed: The jurisdiction changes. Please compare the two statements above.
+              unstated: At least one of the two sides records no jurisdiction — whether anything changes about the third-country transfer cannot be derived from that. Please compare the two statements above.
+              self_hosted_target: Processing moves to a self-operated server. No transfer to an external provider takes place after that; the operator of this installation is then responsible for jurisdiction and processing location.
+              self_hosted_source: Processing leaves the self-operated server and goes to an external provider. Please check the jurisdiction statement above.
+            # T7: same construction as above, one axis deeper. There is deliberately
+            # NO entry for "one side states nothing" — the view renders no line at
+            # all there, because the jurisdiction verdict already explains the case
+            # (self_hosted or "own configuration"). A sentence here would have to
+            # claim something about the empty side, which is exactly the defect the
+            # #437 review pulled out of the neighbouring method four times.
+            training_change:
+              unchanged: The training assurance does not change.
+              to_used: "Careful: the new provider uses your content to train its models. Until now that was contractually excluded."
+              to_excluded: The new provider contractually excludes using your content for model training. Until now that was not assured.
+              not_comparable: At least one of the two sides carries no contractual assurance about model training — whether anything changes cannot be derived from that. Please compare the two statements above.
+            cost_heading: Scope and cost
+            cost_estimate: "The migration covers roughly %{records} records and corresponds to an estimated %{credits} credits."
+            cost_estimate_hint: An estimate, not a price — the token count is approximated (it can come out higher as well as lower), and entries that already exist are skipped. The actual billing may land below this, or above it for very code-heavy content.
+            quota_covered: "Your remaining monthly quota (%{remaining} credits) covers the migration even with the safety margin."
+            quota_short_title: The estimate exceeds your remaining quota
+            quota_short_body: "Your monthly quota has %{remaining} credits left. Because the estimate is imprecise we plan with a 30%% safety margin — that is %{planned} credits, and therefore %{shortfall} more than you have left. If the quota runs out, chat and semantic search stop working until the start of next month."
+            quota_exhausted_title: Your monthly quota is used up
+            quota_exhausted_body: The switch is saved, but the rebuild only starts once quota is available again next month.
+            search_heading: Search during the migration
+            search_body: Your content is being prepared for search again in the background. Until that finishes, search keeps returning results from the existing index — depending on the provider and the amount of data this takes minutes to hours.
+            search_body_hard: Your content is being prepared for search again in the background. This organisation has no existing search index to fall back on in the meantime, so search — and chat answers that draw on your content — will return nothing until it finishes. Depending on the provider and the amount of data this takes minutes to hours.
+            search_body_paused: Your content will be prepared for search again once quota is available next month. Until then, search keeps returning results from the existing index.
+            search_body_hard_paused: Your content will be prepared for search again once quota is available next month. This organisation has no existing search index, so search — and chat answers that draw on your content — will return nothing until then.
+            search_recipients: "Search queries and search entries go to %{today} today and to %{after} after the migration."
+            search_gap: Content created during the migration only becomes findable once the migration has finished.
+            recipient_custom: this organisation's own provider configuration
+            ai_disabled_note: This organisation's AI features are not activated. No content is therefore transmitted to any provider, no search index is rebuilt and no credits are spent. The switch merely records which package applies once you activate the AI features.
+            confirm_button: Start switch
+            cancel_button: Cancel
+      ai_sync_statuses:
+        show:
+          overview: Overview
+          total_content: Total Content
+          with_embeddings: With Embeddings
+          pending: Pending
+          errors: Errors
+          total_fragments: Total Fragments
+          fragments_with_embeddings: Fragments with Embeddings
+          projects: Projects
+          content_count: "%{count} items"
+          processed: Processed
+          types:
+            notes: Notes
+            posts: Posts
+            tickets: Tickets
+            document_versions: Documents
+            documentation_pages: Documentation pages
+            meetings: Meetings
+            meeting_analyses: Conversation analyses
+            ticket_documents: Ticket attachments
+            post_documents: Comment attachments
+          total: Total
+          enabled: Enabled
+          fragments: Fragments
+          no_projects: No projects found.
+          fragment_statistics: Fragment Statistics
+          by_content_type: By Content Type
+          count_total: "%{count} total"
+          count_with_embeddings: "%{count} with embeddings"
+          recent_fragments: Recent Fragments
+          with_embedding: With Embedding
+          without_embedding: Without Embedding
+          no_fragments: No fragments found.
+          refresh_status: Refresh status
+          reprocess_embeddings: Reprocess embeddings
+      invitation_mailer:
+        invite_email:
+          greeting: Hello,
+          intro: "%{first_name} %{last_name} has invited you to become part of the organisation."
+          link_instruction: 'Click the following link to accept the invitation:'
+          accept_link: Accept invitation
+          ignore_hint: If you did not request this invitation, please ignore this email.
+          thanks: Thanks,
+          signature: Your team at Lalabase
+      new:
+        title: Create new organisation
+        subtitle: Create a new organisation and automatically become its administrator.
+        back_to_selection: Back to organisation selection
+      select:
+        # E10: entry point into the billing area straight from the tile.
+        title: Select Organisation
+        subtitle: Choose an organisation or create a new one.
+        member_count:
+          one: "%{count} member"
+          other: "%{count} members"
+        new_organisation: New Organisation
+        new_organisation_modal_title: Create new organisation
+        info_title: Organisation & Projects
+        info_paragraph_1: Organisations are the top level in Lalabase. Within an organisation, you can create and manage projects.
+        info_paragraph_2: Each project offers task management, document management and AI-powered search.
+        info_paragraph_3: Invite team members and collaborate in real time.
+        logout: Sign out

@@ -1,0 +1,239 @@
+# KI-Bereich: Hub und Bereichs-Kopf (doc/ki_bereich_navigation_plan.md S2).
+# Eigene Datei statt Streuung in views.de.yml — der Bereich wächst noch um
+# „Verbrauch" (S6) und „Protokoll" (S5), und die gehören dann hierher.
+# Liegt unter config/locales/views/, wie CLAUDE.md es für Bereichs-Dateien nennt
+# (tickets, meetings, organisation und die übrigen liegen daneben).
+---
+de:
+  views:
+    organisations:
+      ai_overview:
+        # Seitennamen im Bereichs-Kopf. Bewusst nicht die alten Tab-Labels:
+        # „AI-Provider" war der einzige englische Ausreißer der Leiste, und
+        # „AI Sync Status" ist Implementierungssprache — der Nutzer will wissen,
+        # ob seine Inhalte durchsuchbar sind, nicht ob ein Sync gelaufen ist.
+        pages:
+          access: "Zugang"
+          index: "Indexierung"
+          personas: "Chat-Personas"
+          switch: "Wechsel bestätigen"
+        # EIN Stringsatz für den Kasten „KI ist aus", nicht einer je Seite. Er stand
+        # zweimal wortgleich (Übersicht, Verbrauch), und der Einrichtungs-Screen aus S7
+        # wäre das dritte Vorkommen gewesen. Die früheren seitenspezifischen Sätze
+        # („die Karten unten bleiben sichtbar", „es entsteht kein Verbrauch") sind
+        # bewusst weg: sie wären als `body:`-Local wieder zwei Kopien.
+        disabled_notice:
+          title: "KI-Funktionen sind nicht aktiviert"
+          body: >-
+            Solange die KI aus ist, werden keine Inhalte an einen Anbieter übertragen.
+            Einrichten lässt sich der Bereich trotzdem: Was hier steht, gilt ab dem
+            Moment der Aktivierung.
+          action: "Zur Übersicht"
+        # Der Einwilligungs-Langtext des KI-Schalters (doc/ki_zugang_umbau_plan.md D1/D2),
+        # gerendert von organisations/shared/_opt_in_explanation auf der Übersicht, solange
+        # die KI aus ist. Unverändert übernommen: er ist die rechtliche Grundlage jeder
+        # KI-Übertragung. Statussatz und Aktionen des Schalters stehen unter status: und
+        # actions: (doc/ki_uebersicht_zeilenliste_plan.md).
+        activation:
+          explanation: Mit der Aktivierung werden Inhalte Ihrer Organisation — Tickets, Notizen, Kommentare, Dokumente, Meetings (z. B. für KI-Zusammenfassungen, KI-Analysen mit wählbaren Prompts, die Teilnehmer-Erkennung aus Transkripten, das Ableiten von Ticket-Vorschlägen sowie – bei Freigabe – für Suche und Chat) und verbundene Repositories — zur Verarbeitung an den gewählten KI-Anbieter (OpenAI bzw. Anthropic, USA) übertragen.
+          privacy_link: Details in der Datenschutzerklärung.
+          usage_note: Zur Nachvollziehbarkeit des monatlichen KI-Kontingents wird pro KI-Aktion festgehalten, wer sie ausgelöst hat, wann und wie viele Credits sie gekostet hat. Diese Nutzungsübersicht ist für Administratoren Ihrer Organisation einsehbar.
+        # „Eigene Konfiguration" (S7, E6-A). Eigener Block wie `usage:` und `protocol:`
+        # daneben, aus demselben Grund: alles zu einer Unterseite an einer Stelle.
+        configuration:
+          title: "Eigene Konfiguration"
+          intro: >-
+            Hier hinterlegst du die Zugangsdaten deines eigenen KI-Anbieters. Sie gelten,
+            solange kein KI-Paket gewählt ist. Welche Felder ein Anbieter braucht, ist
+            unterschiedlich: was das Formular für den gewählten Anbieter nicht zeigt, gilt
+            für ihn auch nicht und wird beim Speichern geleert.
+          current: "Hinterlegt: %{provider} · %{token}"
+          check_never: "Dieser Zugang wurde noch nie geprüft."
+          check_ok: "Zuletzt geprüft am %{date}, die Verbindung stand."
+          check_failed: "Zuletzt geprüft am %{date}, die Verbindung kam nicht zustande."
+          none_title: "Noch kein eigener Zugang hinterlegt"
+          none_body: >-
+            Ohne eigene Zugangsdaten läuft die KI über das gewählte Paket oder über den
+            Zugang des Betreibers.
+          provider_label: "Anbieter"
+          provider_hint: "Bestimmt, welche Felder unten gelten."
+          key_label: "Schlüssel"
+          key_hint: >-
+            Wird verschlüsselt gespeichert und nie im Klartext angezeigt. Leer lassen,
+            um den bestehenden Schlüssel zu behalten.
+          service_account_label: "Service-Account-JSON"
+          service_account_hint: >-
+            Vertex arbeitet ausschließlich mit einem Service-Account. Ein einfacher
+            API-Schlüssel würde still den globalen Endpunkt nutzen und die Verarbeitung
+            in der EU aushebeln.
+          organization_id_label: "Organisation-ID (optional)"
+          organization_id_hint: "Nur nötig, wenn dein OpenAI-Konto mehrere Organisationen führt."
+          api_base_label: "Endpunkt-URL"
+          api_base_hint: >-
+            Pflicht bei einem eigenen Endpunkt, zusammen mit dem Modellnamen. Nur https,
+            und nur eine öffentlich erreichbare Adresse.
+          model_label: "Modellname"
+          model_hint: "Der Name, unter dem dein Endpunkt das Chat-Modell führt."
+          save: "Nur speichern"
+          save_and_check: "Speichern und prüfen"
+          remove_title: "Zugang entfernen"
+          remove_body: >-
+            Löscht Schlüssel, Endpunkt und Modellnamen dieser Organisation. Der gewählte
+            Anbieter bleibt stehen: Danach greift wieder der Zugang des Betreibers, sofern
+            für diesen Anbieter einer hinterlegt ist.
+          remove_button: "Zugang entfernen"
+        # Eigener Block statt eines weiteren Eintrags in `pages:` oben. Entstanden,
+        # weil S4, S5 und S6 gleichzeitig gebaut wurden und drei Zeilen in `pages:`
+        # drei Konflikte gewesen wären; geblieben, weil alles zu einer Unterseite
+        # jetzt an einer Stelle steht. `usage.title` ist der Name im Bereichs-Kopf.
+        usage:
+          title: "Verbrauch"
+          # L8 in einem Satz: Credits sind die Größe, an der der Kunde gemessen wird —
+          # Tokens sind unsere Einkaufsgröße und stehen deshalb unten, nicht oben.
+          intro: >-
+            Verbindlich ist der Verbrauch in Credits gegen das Monatskontingent. Die
+            Historie darunter bleibt als Nachweis erhalten, auch wenn sich das
+            Kontingent zum Monatsanfang wieder füllt.
+          tokens_heading: "Tokens der letzten 30 Tage"
+          # Warum die Zahl überhaupt noch da ist: sie beantwortet „woher kommt der
+          # Verbrauch", nicht „was schulde ich". Der Satz sagt das, damit niemand die
+          # Tokenzahl für die Abrechnungsgröße hält.
+          tokens_hint: >-
+            Tokens sind die Einheit, in der die Anbieter rechnen. Für das Kontingent
+            zählen ausschließlich die Credits oben.
+          tokens_value: "%{formatted} Tokens"
+        # Alles zum Protokoll steht hier zusammen, auch der Seitenname und die
+        # Hub-Karte, statt oben in `pages:` und unten in `cards:`. Gleicher Grund wie
+        # bei `usage:` darüber: drei parallel gebaute Slices hätten sich in `pages:`
+        # gegenseitig im Weg gestanden, und die Bündelung liest sich ohnehin besser.
+        # ⚠️ Die ANZEIGETEXTE der Einträge stehen NICHT hier, sondern in
+        # config/locales/activities.{de,en}.yml unter activities.organisation.* und
+        # activities.messages.organisation.* — geschrieben von P4e und S0. Nicht
+        # doppeln: Activity#message und #action_text lesen ausschließlich dort.
+        protocol:
+          title: "Protokoll"
+          intro: >-
+            Wer die KI-Einstellungen dieser Organisation geändert hat, wann, und von
+            welchem Stand auf welchen. Die Liste beginnt mit der jüngsten Änderung.
+          jurisdiction_change: "Verarbeitung: %{from} → %{to}"
+          reindex_triggered: "Die Suche wurde daraufhin neu aufgebaut."
+          empty_title: "Noch keine Änderungen protokolliert"
+          empty_body: >-
+            Sobald jemand die KI ein- oder ausschaltet, das Paket oder die
+            Leistungsstufe wechselt, steht der Vorgang hier. Änderungen von vor der
+            Einführung des Protokolls sind nicht enthalten.
+        index_summary:
+          heading_clear: "Alles verarbeitet"
+          heading_pending: "Verarbeitung läuft"
+          heading_failed: "Es sind Fehler aufgetreten"
+          heading_stalled: "Es arbeitet gerade niemand daran"
+          heading_paused: "Die KI ist ausgeschaltet"
+          body_clear: >-
+            Alle Inhalte, für die die KI-Aufbereitung vorgesehen ist, stehen im Index.
+            KI-Chat und semantische Suche finden sie.
+          pending:
+            one: "%{count} Inhalt ist vorgemerkt und noch nicht verarbeitet. Bis dahin findet die KI ihn nicht."
+            other: "%{count} Inhalte sind vorgemerkt und noch nicht verarbeitet. Bis dahin findet die KI sie nicht."
+          failed:
+            one: "Bei %{count} Inhalt ist die Aufbereitung fehlgeschlagen."
+            other: "Bei %{count} Inhalten ist die Aufbereitung fehlgeschlagen."
+          # Eine Zahl allein sagt nicht, ob jemand sie abarbeitet. Ohne diesen Satz liest
+          # sich „vorgemerkt“ wie „ist gleich fertig“, auch wenn seit Monaten nichts läuft.
+          stalled: >-
+            Die Hintergrundverarbeitung läuft gerade nicht. Die vorgemerkten Inhalte bleiben
+            liegen, bis sie wieder läuft. Ein Nachhol-Lauf ändert daran nichts.
+          action_hint: >-
+            „Neu verarbeiten“ holt die ausstehenden Inhalte nach. Bereits verarbeitete
+            bleiben unangetastet.
+          nothing_to_do: "Hier ist gerade nichts zu tun."
+          # Die Zahlen stimmen, nur „ausstehend" war das falsche Wort dafuer: ohne
+          # Einwilligung wird nichts eingebettet, es wartet also niemand auf etwas.
+          body_paused: >-
+            Solange die KI aus ist, wird nichts eingebettet. Die Zahl unten sagt, wie viele
+            Inhalte einen KI-Index bekaemen, wenn du sie einschaltest. Ueber die normale
+            Textsuche sind sie auch jetzt auffindbar.
+          paused_hint: "Der Weg hier heraus ist der Schalter auf der Uebersicht, nicht diese Seite."
+          # Seit eine Organisation mehr als einen Vektorraum halten kann, ist eine Zahl
+          # ohne den Raum, in dem sie gilt, keine vollständige Aussage mehr (§3.5).
+          space: "Aktiver Vektorraum: %{provider} / %{model} (%{dims} Dimensionen)."
+          space_unknown: >-
+            Welcher Vektorraum gerade bedient wird, lässt sich nicht bestimmen. Das deutet
+            auf einen fehlenden oder gesperrten Zugang hin.
+          switch:
+            heading: "Ein Modellwechsel läuft"
+            building: >-
+              Der neue Vektorraum wird aufgebaut: %{completed} von %{total} Inhalten
+              (%{percent} %). Dass währenddessen Inhalte ausstehen, ist normal, und der
+              Aufbau läuft ohne dein Zutun weiter.
+            paused: >-
+              Der Aufbau pausiert, weil das KI-Kontingent aufgebraucht ist. Übertragen sind
+              %{completed} von %{total} Inhalten. Ein Nachhol-Lauf ändert daran nichts,
+              solange kein Kontingent da ist.
+            awaiting_flip: >-
+              Der neue Vektorraum ist vollständig. Die Umschaltung geschieht automatisch,
+              du musst nichts tun.
+            retired_target: >-
+              Der Zielraum ist stillgelegt. Ein Nachhol-Lauf hilft hier nicht, der Raum
+              muss zuerst wieder in den Index aufgenommen werden.
+        # Der Statussatz über der Liste (doc/ki_uebersicht_zeilenliste_plan.md D4, D6).
+        # Kein Datum, kein Name mehr: die Zeile „Protokoll" sagt, seit wann es Einträge
+        # gibt, und die Seite dahinter nennt jede Schaltung mit Zeitpunkt und Person.
+        # `on_without_access` hängt an ai_available?, nicht am Einrichtungszustand: eine
+        # Organisation ohne eigene Wahl läuft ggf. über den Zugang des Betreibers.
+        status:
+          active: "Aktiv für alle Projekte dieser Organisation."
+          active_without_access: "Eingeschaltet für alle Projekte dieser Organisation, aber noch ohne nutzbaren Zugang. Bis der eingerichtet ist, arbeitet keine KI-Funktion."
+          inactive: "Ausgeschaltet für diese Organisation. Verbrauch, Indexierung und Chat-Personas öffnen sich nach dem Einschalten."
+          privacy_link: "Was verarbeitet wird"
+        # Die eine Hauptaktion der Seite (erster offener Schritt: Zugang, dann Schalter)
+        # und die Textaktionen des Schalters. Die Bestätigungsdialoge stehen unverändert
+        # unter views.confirm.ai_activate / ai_deactivate.
+        actions:
+          set_up_access: "Zugang einrichten"
+          switch_on: "KI einschalten"
+          switch_off: "Ausschalten"
+        # Die fünf Zeilen. Werte mit Zahlen enden auf _html, weil die Zahl in Mono steht
+        # (AiOverviewHelper#ai_overview_figure); die Wörter drumherum bleiben Fließtext.
+        # `state_*` sind die Titel der Punkte: nur wo etwas fehlt oder kaputt ist.
+        rows:
+          access:
+            title: "Zugang"
+            value_none: "nicht eingerichtet"
+            value_custom: "eigene Zugangsdaten"
+            description_none: "Systempaket wählen oder eigene Zugangsdaten hinterlegen"
+            description_custom: "Eigene Zugangsdaten, kein Paket"
+            description_package: "Verarbeitung: %{jurisdiction} · Stufe: %{tier}"
+            no_tier: "Standard"
+            description_switching: "Der Wechsel läuft. Die Suche baut sich im Hintergrund neu auf."
+            description_check_failed: "Verbindungstest am %{date} fehlgeschlagen"
+            state_missing: "muss eingerichtet werden"
+            state_failed: "Verbindung fehlgeschlagen"
+          usage:
+            title: "Verbrauch"
+            value_html: "%{used} von %{budget}"
+            description: "Monatskontingent an Credits, Verlauf und Grenzwerte"
+            state_exhausted: "Kontingent aufgebraucht"
+            state_nearly: "Kontingent fast aufgebraucht"
+          index:
+            title: "Indexierung"
+            value_failed_html: "%{failed} Fehler"
+            value_pending_html: "%{pending} ausstehend"
+            value_clear: "nichts ausstehend"
+            description_clear: "Alle Inhalte sind durchsuchbar"
+            description_pending: "Verarbeitung läuft im Hintergrund weiter"
+            description_failed: "Einzelne Inhalte konnten nicht verarbeitet werden"
+            description_failed_pending: "%{pending} ausstehend · einzelne Inhalte konnten nicht verarbeitet werden"
+            description_paused: "Ohne eingeschaltete KI wird nichts eingebettet"
+            state_failed: "Fehler bei der Verarbeitung"
+          personas:
+            title: "Chat-Personas"
+            value_html:
+              zero: "keine eigenen"
+              one: "%{number} eigene"
+              other: "%{number} eigene"
+            description: "Tonfall und Rolle der KI im Chat"
+          protocol:
+            title: "Protokoll"
+            value_since_html: "seit %{date}"
+            value_empty: "noch leer"
+            description: "Jede Änderung mit Zeitpunkt und Person"

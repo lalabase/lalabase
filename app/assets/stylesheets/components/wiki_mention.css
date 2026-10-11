@@ -1,0 +1,37 @@
+/* Wiki @-mention reference chip (note → note | document).
+ * Rendered by app/views/wiki/mentions/_mention.html.erb in both the Lexxy editor and the
+ * displayed note. Makes a reference stand out from running text as a small pill with a
+ * type icon (journal = note, file = document), instead of looking like plain text. */
+
+.wiki-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.05em 0.45em;
+  border: 1px solid #e2d9c7;
+  border-radius: 0.35em;
+  background-color: #f1ece1;
+  color: #4a4032;
+  font-weight: 500;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.wiki-mention .bi {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+/* Only the linked (accessible) variant reacts to hover. */
+a.wiki-mention:hover {
+  border-color: #cbbfa6;
+  background-color: #e9e0cd;
+  color: #2c2418;
+}
+
+/* No read access (e.g. a document mention seen without documents access): muted, no link. */
+.wiki-mention--inaccessible {
+  cursor: default;
+  opacity: 0.65;
+}

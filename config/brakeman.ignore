@@ -1,0 +1,339 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Mass Assignment",
+      "check_name": "PermitAttributes",
+      "message": "Potentially dangerous key allowed for mass assignment",
+      "file": "app/controllers/admin/beusers_controller.rb",
+      "line": 80,
+      "fingerprint": "fd002826ebf6d9393b0b63c966668177ef1b172f5615ea217d70f32361efc818",
+      "note": "Reviewed 26.09.2026: instance-admin only. Admin::Authentication#require_login admits only active Beusers with role admin, so no lower tier exists that could raise its own role or permissions."
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "check_name": "PermitAttributes",
+      "message": "Potentially dangerous key allowed for mass assignment",
+      "file": "app/controllers/admin/beusers_controller.rb",
+      "line": 84,
+      "fingerprint": "f80b9c509ca84a2af1124082000d69fe7089493a9b168f3265ca5bc7523fb7ae",
+      "note": "Reviewed 26.09.2026: instance-admin only. Admin::Authentication#require_login admits only active Beusers with role admin, so no lower tier exists that could raise its own role or permissions."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/controllers/concerns/sortable.rb",
+      "line": 291,
+      "fingerprint": "973c30db7fbe5adaa25dd6b8ec937ab068ed727f293c93c87037b8420619cf3f",
+      "note": "Reviewed 26.09.2026: sort_direction is limited to asc/desc; sort_column is an alias target from related_sortable_columns or passes is_valid_sort_column? against model.column_names plus add_sortable_columns literals, otherwise the default."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/controllers/concerns/sortable.rb",
+      "line": 296,
+      "fingerprint": "2f4c979958b49b32daaf200391c1a4ac7becf6dd63fb8afa61d0ce51a49d340c",
+      "note": "Reviewed 26.09.2026: sort_direction is limited to asc/desc; sort_column is an alias target from related_sortable_columns or passes is_valid_sort_column? against model.column_names plus add_sortable_columns literals, otherwise the default."
+    },
+    {
+      "warning_type": "Dynamic Render Path",
+      "check_name": "Render",
+      "message": "Render path contains parameter value",
+      "file": "app/controllers/organisations/assistant_artefacts_controller.rb",
+      "line": 47,
+      "fingerprint": "bc2fac9cc2ae06f7eb3c888cc4e721d04d87c4c885631d302faf1a154dafa9bf",
+      "note": "AssistantArtefactsController#show: the rendered name is Assistant::PanelRegistry.canonical_kind, i.e. an element of the frozen PANELS hash keys, never the parameter itself; an unknown kind returns nil and the action renders :unavailable before reaching this line. The indirection exists FOR this reason and is pinned by spec/services/assistant/panel_registry_spec.rb ('returns the frozen key of the registry, not the argument object'). Reviewed in Assistent S3c-T3."
+    },
+    {
+      "warning_type": "Dynamic Render Path",
+      "check_name": "Render",
+      "message": "Render path contains parameter value",
+      "file": "app/controllers/organisations/dashboard_widgets_controller.rb",
+      "line": 46,
+      "fingerprint": "1c17c4ff403a6b84f25d3f5f91d28537ad1561fda64cf790efe5feb2edfd3a98",
+      "note": "Reviewed 26.09.2026: the component class comes from the frozen WIDGETS hash (unknown key -> 404); the project is tenant-scoped via ProjectController#set_project, and the action answers 403 unless component.should_render? (area read access)."
+    },
+    {
+      "warning_type": "Dynamic Render Path",
+      "check_name": "Render",
+      "message": "Render path contains parameter value",
+      "file": "app/controllers/organisations/overview_widgets_controller.rb",
+      "line": 41,
+      "fingerprint": "c260cbfc0d08809b9b671858389ac445dbd2d21cd53d38301072f56b42bcbba3",
+      "note": "Reviewed 26.09.2026: the component class comes from the frozen PERIOD_WIDGETS hash (unknown key -> 404); the organisation is loaded through current_user.organisations, and the action answers 403 unless should_render?."
+    },
+    {
+      "warning_type": "Cross-Site Scripting",
+      "check_name": "LinkToHref",
+      "message": "Unsafe parameter value in `link_to` href",
+      "file": "app/helpers/application_helper.rb",
+      "line": 185,
+      "fingerprint": "f4216f76e73e5392d12dc8e5b46c500457cbd163b14170ed53ef5bd3651c8e8e",
+      "note": "Reviewed 26.09.2026: url_for gets an explicit params.permit list without :host, :protocol or :only_path, so the href is always a relative path on this app; link_to escapes it."
+    },
+    {
+      "warning_type": "Remote Code Execution",
+      "check_name": "UnsafeReflection",
+      "message": "Unsafe reflection method `constantize` called on model attribute",
+      "file": "app/helpers/smart_folder_helper.rb",
+      "line": 133,
+      "fingerprint": "62e37f859b5b22e8659e6fa974736dd24805681989368699f8b442a6b816440b",
+      "note": "Reviewed 26.09.2026: reference_model only comes from the static SmartFolderRule.field_config (literal User); custom-attribute entries never set it, so no user or DB value reaches constantize."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/jobs/documentation_sync_job.rb",
+      "line": 342,
+      "fingerprint": "fbf2fb8142218c9550e118d25b822dbd6335db0fea7f011667082ce4c849b4e0",
+      "note": "Reviewed 26.09.2026: advisory lock id is Zlib.crc32(...), an Integer computed locally; the id string only goes into the hash, never into SQL."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/jobs/documentation_sync_job.rb",
+      "line": 347,
+      "fingerprint": "2e1f1330bd32e2271372f15cc56aea96ae1398eb54b9beeb8f3a7a581762e082",
+      "note": "Reviewed 26.09.2026: advisory lock id is Zlib.crc32(...), an Integer computed locally; the id string only goes into the hash, never into SQL."
+    },
+    {
+      "warning_type": "Format Validation",
+      "check_name": "ValidationRegex",
+      "message": "Insufficient validation for `url` using `/\\Ahttps?:\\/\\//i`. Use `\\A` and `\\z` as anchors",
+      "file": "app/models/ai_credential_document.rb",
+      "line": 39,
+      "fingerprint": "92b631ed4373251cbee0c12dd193bcd8e5df98dafaa9977e8745a8bd81f8160a",
+      "note": "Reviewed 26.09.2026: ALLOWED_URL_SCHEMES is anchored with \\A; it only has to fix the scheme, and a value starting with https:// cannot be a javascript: or data: URL."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/fragment.rb",
+      "line": 161,
+      "fingerprint": "f9bd37d04a758679076b3941ff27f7ef63ac8371f1b8806adb55961c975d351a",
+      "note": "Fragment.for_context_map: the interpolated piece is the BIND NAME, derived from the keys of the frozen TYPE_CONTEXT_PREDICATES hash (unknown types are skipped before formatting); the project ids themselves travel as named binds. No user input reaches the SQL string. Reviewed in PR #602 (Assistent S3a-T3). Fingerprint refreshed 04.09.2026: the join list grew by the two attachment types, which changes the hashed code without changing the finding. Same entry, not a new exception - the file still holds the same number of them."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 56,
+      "fingerprint": "9ed0d338df2e1a2f49ba4d6b4e5de540f0769cec89808346b1f25af35d1c70d7",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 60,
+      "fingerprint": "e44207a59b93a70831ce9f724cb7f57e6c4d39976ffd89500a85eb799c7607ca",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 67,
+      "fingerprint": "f2bdf076d5093df2a3b6a74baf76437dd8db38f136e4a50bdae47da708e040cc",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 71,
+      "fingerprint": "b17b19d9fb63b33888e666e384ef9df3dae49a44b5f45306ce9fa7485eb6f4b1",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 78,
+      "fingerprint": "0d90b538fc06e725d659ad61964540e3215d470ebc4ffbc7cefac0f3a64b0f6f",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 83,
+      "fingerprint": "090a77a3120fa7eabd61a3a0c4b7e48a84f3bc53da4177005f3ea103e117f625",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 93,
+      "fingerprint": "cf0c75f94ea22a13dca1cae27fda708f01e68c506bff4d3d82c4cc593dbf97bc",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 95,
+      "fingerprint": "2df847c281806a25e42e033e7640c3ef6b7d8415f07aed196e82e53e16c4ce7a",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/custom_attribute_filter.rb",
+      "line": 102,
+      "fingerprint": "72ef07219e621384b459cd05f58ff235031f2139c9a973d37b25781412c63ff3",
+      "note": "Reviewed 26.09.2026: table is query.table_name and operator a literal > or < from the case statement; attribute names and values are binds, LIKE patterns are escaped."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/time_session_filter.rb",
+      "line": 37,
+      "fingerprint": "468de227506f076d5f3754173ab317325b158b135b86f4852a8472a2a1afed01",
+      "note": "Reviewed 26.09.2026: aggregate is one of the constants DURATION_AGGREGATE or COUNT_AGGREGATE; values are bound integers."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/time_session_filter.rb",
+      "line": 40,
+      "fingerprint": "35ed323c8bf38ed7c5d821ee9b03c9f2614ffdf5b0ff101ab632447bbf7ecf59",
+      "note": "Reviewed 26.09.2026: aggregate is one of the constants DURATION_AGGREGATE or COUNT_AGGREGATE; values are bound integers."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/time_session_filter.rb",
+      "line": 42,
+      "fingerprint": "c721a32c436d060e8a62f4e76e9e461458c40a3cdf7e8d9bd67e4716eb4c9629",
+      "note": "Reviewed 26.09.2026: aggregate is one of the constants DURATION_AGGREGATE or COUNT_AGGREGATE; values are bound integers."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/time_session_filter.rb",
+      "line": 44,
+      "fingerprint": "c8876da4186b02f8b2e88900ada25f01dea6d5add9e86aeb9472447445a9b48a",
+      "note": "Reviewed 26.09.2026: aggregate is one of the constants DURATION_AGGREGATE or COUNT_AGGREGATE; values are bound integers."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/smart_folders/filters/time_session_filter.rb",
+      "line": 47,
+      "fingerprint": "154c33b07153fc2d0d2821979eb5701089dde0f8fd705a760cefcb290206b59c",
+      "note": "Reviewed 26.09.2026: aggregate is one of the constants DURATION_AGGREGATE or COUNT_AGGREGATE; values are bound integers."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/ticket.rb",
+      "line": 442,
+      "fingerprint": "27d803966e3c08191d4b4fcbf28af13655049f9a701978a7ba8bdbf6645ab982",
+      "note": "Reviewed 26.09.2026: advisory lock id is Zlib.crc32(\"ticket_number:#{project_id}\"), an Integer computed locally."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/queries/knowledge_search_query.rb",
+      "line": 45,
+      "fingerprint": "63306a7a2960df759a864c34de53523b730175ca50c75f63f9f317b17ae555c9",
+      "note": "Reviewed 26.09.2026: keys come from Knowledge::TypeRegistry.keys & accessible_type_keys; title SQL and scopes come from the registry with an :s bind; order is checked against SORTABLE_COLUMNS and asc/desc; LIMIT/OFFSET use to_i."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/queries/knowledge_search_query.rb",
+      "line": 48,
+      "fingerprint": "db4316377a55671d589ffeb72d92b0ec67b04d400906600999651a95823746b9",
+      "note": "Reviewed 26.09.2026: keys come from Knowledge::TypeRegistry.keys & accessible_type_keys; title SQL and scopes come from the registry with an :s bind; order is checked against SORTABLE_COLUMNS and asc/desc; LIMIT/OFFSET use to_i."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/ad_hoc_filter_service.rb",
+      "line": 136,
+      "fingerprint": "591f3d9ea6ba0daa1bb4fe24743e01da091eef130b5aa5ee59d94a7167dd8439",
+      "note": "Reviewed 26.09.2026: fragments are only query.table_name plus ? placeholders; attribute names and values go into bound JSON strings; due-date presets are intersected with Ticket::DUE_DATE_PRESET_KEYS."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/ad_hoc_filter_service.rb",
+      "line": 268,
+      "fingerprint": "05000bca56cfc5db687b451fa156488b9e056cb969c412b0c375df2536b01891",
+      "note": "Reviewed 26.09.2026: fragments are only query.table_name plus ? placeholders; attribute names and values go into bound JSON strings; due-date presets are intersected with Ticket::DUE_DATE_PRESET_KEYS."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/embeddings/space_alignment.rb",
+      "line": 479,
+      "fingerprint": "886d8517c477dcffbf36ae6a2bc9ad7da692542120800c06f684a9a3445d4749",
+      "note": "Reviewed 26.09.2026: live_record_sql is built only from OrganisationReindexer::TARGETS (class and table names), class names escaped with connection.quote; no request data reaches it."
+    },
+    {
+      "warning_type": "Command Injection",
+      "check_name": "Execute",
+      "message": "Possible command injection",
+      "file": "app/services/lalabase/indexer/git_cloner.rb",
+      "line": 87,
+      "fingerprint": "d46f3d81216c5a8c920ed2916e54a3228ba987c19345634c4336a60ba39df30b",
+      "note": "Reviewed 26.09.2026: no shell (separate argv entries); the ref argument always starts with refs/heads/, clone_url with https://x-access-token:...@github.com/ and a full_name validated by FULL_NAME_PATTERN; default_branch comes from the GitHub API."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/notifications/group_key_builder.rb",
+      "line": 218,
+      "fingerprint": "a146d4c62dc1df96c2a5696336ff25ea00190e4cca073ee94ea5a2044e427e51",
+      "note": "Reviewed 26.09.2026: advisory lock id is Digest::SHA1.hexdigest(...).hex % (2**31 - 1), an Integer computed locally."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/notifications/group_key_builder.rb",
+      "line": 226,
+      "fingerprint": "ae7749af40df6c9c75bbf1b9297ab1f2d9f919f5eb29e6ff9a3a27047fac0746",
+      "note": "Reviewed 26.09.2026: advisory lock id is Digest::SHA1.hexdigest(...).hex % (2**31 - 1), an Integer computed locally."
+    },
+    {
+      "warning_type": "Dynamic Render Path",
+      "check_name": "Render",
+      "message": "Render path contains parameter value",
+      "file": "app/views/shared/dashboards/_widget_preview.html.erb",
+      "line": 8,
+      "fingerprint": "6290e53c8c83863741d60e150142e37c0a44000507f36ffd071a9f2a81ec6086",
+      "note": "Reviewed 26.09.2026: the component is built by Dashboards::LayoutEngine.component_for_widget from a server-side registry constant (nil for unknown keys); the preview action authorizes the project and the partial renders only if should_render?."
+    }
+  ],
+  "updated": "2026-08-27 00:00:00 +0200",
+  "brakeman_version": "7.0.0"
+}

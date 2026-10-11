@@ -1,0 +1,156 @@
+en:
+  views:
+    organisations:
+      notifications:
+        index:
+          title: Inbox
+          ticket_exceptions: Ticket Exceptions
+        filter:
+          status_label: 'Status:'
+          view_label: 'View:'
+          extended: More filters
+          search_label: Search
+          search_placeholder: Search notifications...
+          project_label: Project
+          type_label: Type
+          unread: Unread
+          read: Read
+          archived: Archived
+          view_chronological: Chronological
+          view_grouped: Grouped
+          all_types: All types
+          all_projects: All projects
+        bulk:
+          selected: selected
+          mark_read: Mark read
+          archive: Archive
+          clear: Clear selection
+        item:
+          system_actor: System
+          unread_label: Unread
+          archived_badge: Archived
+          select_aria: Select notification
+          time_ago: "%{time} ago"
+          bundle_badge:
+            one: "%{count} update"
+            other: "%{count} updates"
+          bundle_badge_title:
+            one: "%{count} update on this ticket"
+            other: "%{count} updates on this ticket"
+        event_short:
+          ticket_commented: commented
+          ticket_assigned: assigned this to you
+          ticket_unassigned: removed an assignment
+          ticket_status_changed: changed the status
+          ticket_blocker: reported a blocker
+          project_announcement: project announcement
+          document_added: added a document
+          mention: mentioned you in
+          system_message: system message
+        pane:
+          status_unread: Unread
+          status_read: Read
+          status_archived: Archived
+          unarchive: Unarchive
+          archive: Archive
+          empty_title: Select a notification
+          empty_subtitle: Click an item on the left to open the ticket here — no page switch.
+          missing_title: This notification no longer exists
+          missing_subtitle: It was deleted or you no longer have access.
+          unauthorized_title: No access to this ticket
+          unauthorized_subtitle: You're not a member of this project.
+          open_full_view: Open ticket
+          go_to_ticket: Go to Ticket
+          go_to_project: Go to Project
+          loading_short: Loading...
+          all_loaded_short: All loaded
+        stats:
+          title: Notification Statistics
+          description: Overview of your notification activity in this organization
+          total_notifications: Total Notifications
+          unread: Unread
+          read: Read
+          archived: Archived
+          last_7_days: Last 7 Days
+          back_to_notifications: Back to Notifications
+        preferences:
+          page_title: Notification Preferences
+          title: Notifications
+          subtitle: Choose which notifications you receive
+          back: Back
+          ticket_notifications: Ticket Notifications
+          ticket_notifications_desc: Choose what you get notified about for watched tickets
+          on_status_change: On status change
+          on_status_change_desc: Notification when the status of a ticket changes
+          on_priority_change: On priority change
+          on_priority_change_desc: Notification when the priority of a ticket changes
+          on_comment: On new comment
+          on_comment_desc: Notification when a new comment is created
+          auto_follow_created: Automatically follow own tickets
+          auto_follow_created_desc: Automatically watch tickets you create
+          assigned_auto_follow: Tickets assigned to you are always automatically watched.
+          per_ticket_toggle: You can toggle notifications for individual tickets directly on the ticket.
+          th_event: Event
+          th_in_app: In-App
+          th_email: Email
+          projects_documents: Projects & Documents
+          projects_documents_desc: Project announcements and document updates
+          system: System
+          system_desc: System messages and administrative updates
+          code_index: Code index
+          code_index_desc: Notifications when a repository's code index finishes or fails
+          save: Save
+        ticket_exceptions:
+          title: Ticket Exceptions
+          subtitle: Tickets with individual notification settings that differ from your default settings
+          back: Back
+          muted: muted
+          manually_followed: manually followed
+          badge_muted: Muted
+          badge_manually_followed: Manually followed
+          open_ticket: 'Open ticket #%{number}'
+          since: since
+          activate: Activate
+          unfollow: Unfollow
+          no_exceptions: No Exceptions
+          all_default: All tickets use your default settings.
+        list:
+          no_notifications: No notifications
+          all_caught_up: You're all caught up! New notifications will appear here.
+        update:
+          notification_archived: Notification archived
+          marked_as_read: Marked as read
+          notification_updated: Notification updated
+        archive_all:
+          all_archived: All notifications archived
+          list_clean: Your notification list is now clean
+          count_archived: "%{count} notifications archived"
+        mark_all_read:
+          no_notifications: No notifications yet
+          will_notify: We'll notify you when something happens
+          all_marked_read: All notifications marked as read
+      notification_subscriptions:
+        subscriber_list:
+          label: 'Notified:'
+          you: You
+          source_creator: Creator
+          source_assignee: Assigned
+          source_self: Watching
+          source_manual: Added by %{name}
+          source_manual_unknown: Manually added
+          add_person: Add person
+          search_placeholder: Name or email...
+          remove: Remove
+          confirm_remove: Remove %{name} from notifications?
+          no_results: No results
+          user_muted: Notifications muted
+          toggle_follow: Enable notifications
+          toggle_mute: Disable notifications
+          not_subscribed: Not subscribed
+          muted_label: Muted
+          click_to_add: Add %{name} to notifications
+          add_more: More...
+      activities:
+        activity:
+          show_details: Show details
+          time_ago_suffix: ago

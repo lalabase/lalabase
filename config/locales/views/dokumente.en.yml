@@ -1,0 +1,599 @@
+en:
+  views:
+    organisations:
+      documents:
+        index:
+          placeholder_title: Please select a file from the list
+          placeholder_body: The content of the selected file is shown here.
+          new_document: Create new document
+        show:
+          title: Files
+          new_file: New File
+          list: List
+        new:
+          title: Files
+          new_file: New File
+          list: List
+          error: Error!
+        edit:
+          title: Edit Document
+        document_list:
+          title_header: Title
+          created_header: Created
+        document_form:
+          title_label: Title
+          description_label: Description
+          optional: optional
+          create_summary: Let the AI write a summary
+          summary_description: Can take a few minutes, depending on the file's size.
+          cancel: Cancel
+          save: Create file
+        upload_zone:
+          prompt: Drag a file here or choose one
+          none_chosen: No file chosen yet
+        ai_locked_state:
+          sentence: AI features still need an access. The file is saved, but not searchable.
+          set_up: Set up access
+        document_row:
+          no_title: No title
+        document_show:
+          edit_document: Edit document
+          description_user: Description (user)
+          description_system: Description (system)
+          download_file: Download file
+          new_version: Create new version
+          versions: Versions
+          th_name: Name
+          th_uploaded_by: Uploaded by
+          th_date: Date
+          th_size: Size
+          th_actions: Actions
+        documents_results:
+          title_header: Title
+          version_header: Version
+          tags_header: Tags
+          created_at_header: Created at
+          empty_first_time_title: No documents yet
+          empty_first_time_description: Upload your first document to get started.
+          empty_first_time_cta: Upload document
+          empty_no_results_title: No documents found
+          empty_no_results_description: Your filters didn't return any results. Adjust the criteria or remove filters.
+        version_form:
+          heading: New version becomes %{label}
+          title_label: Title of this version
+          changed_label: What has changed?
+          optional: optional
+          create_summary: Let the AI write a summary
+          summary_description: Can take a few minutes, depending on the file's size.
+          keeps_previous: "%{label} is kept and can be brought back at any time."
+          cancel: Cancel
+          save: Create version
+        document_edit_form:
+          title_label: Title
+          description_label: Description
+        document_edit:
+          editing: Edit
+        document_content_for_frame:
+          edit_document: Edit document
+          rename: Rename
+          delete_document: Delete document …
+          new_version: Create new version
+          versions: Versions
+          type: Type
+          versions_count:
+            one: version
+            other: versions
+          created_by: Created by
+          created_at: Created on
+          ai_indexed: indexed
+          ai_failed: Index failed
+          ai_unavailable: AI not available
+          summary_heading: Summarised by the AI
+          summary_show_full: read all
+          summary_collapse: collapse
+        preview:
+          back_to_document: Back to the document
+          assistant_current_version: "(current version)"
+          open_in_new_tab: Open in a new tab
+          download: Download
+          no_preview: There is no preview for this file.
+          image_failed: The image cannot be shown here.
+          text_unavailable: A text preview is not available at the moment.
+          refresh: Refresh
+        version_row:
+          no_file: No file
+          preview: Open preview
+          open_in_new_tab: Open in a new tab
+          delete: Delete version
+          delete_last: Delete version and document …
+          download: Download
+          text_version: Download text version
+          set_current: set as current
+          uploaded_by_unknown: not recorded
+          current: current
+          index_failed: Index failed
+      documentation:
+        index:
+          title: Documentation
+          last_synced: Last synced %{time} ago
+          sync_now: Sync now
+          connect: Connect documentation
+          search_placeholder: Search the documentation...
+          search_empty: No matches.
+          search_clear: Clear search
+          results_count:
+            one: "%{count} result"
+            other: "%{count} results"
+          changed_since_visit: Changed since your last visit
+          back_to_tree: Back to overview
+          select_page: Pick a page on the left.
+          logbook: Logbook
+          manage_repository: Manage repository
+        sync_status:
+          never_synced: Not synced yet
+          syncing: Syncing...
+          ready: Up to date
+          failed: Failed
+        sync_error:
+          auth: Access denied – please check the repository credentials.
+          repo_unreachable: Repository unreachable – please try again later.
+          path_not_found: The configured docs folder was not found in the repository.
+          markdown_invalid: A markdown file could not be processed.
+          asset_failed: An embedded asset could not be loaded.
+          source_deleted: The repository or branch no longer exists.
+          generic: The sync failed.
+        empty:
+          admin_hint: Ask a project administrator to connect or sync the documentation.
+          connect_repository: Connect a repository first
+          setup_no_permission: You don't have permission to set up documentation here. Contact the project administration.
+          explainer:
+            title: What is documentation?
+            point_source: It's created in the project's source code – maintained by the development team, not written by hand here in Lalabase.
+            point_sync: It's mirrored here automatically and so always stays up to date.
+            point_ai: If you like, an AI tool keeps it current automatically while coding.
+            point_search_chat: It feeds into global search, and you can ask questions about it in chat.
+            not_title: What it is not
+            not_body: Not a notepad to write in inside Lalabase – the team always makes changes in the project repository.
+          no_set:
+            title: No documentation connected yet
+            body: Connect a folder from the project repository to mirror its documentation here.
+          no_pages:
+            title: This documentation is still empty
+            body: Start a sync to load the pages from the repository.
+          no_results:
+            title: No matches
+            body: No page matched your search.
+        form:
+          name: Name
+          repository: Repository
+          repository_prompt: Choose a repository
+          path_prefix: Folder in the repository
+          path_prefix_hint: 'Default: .lalabase/doku/'
+          save: Save
+          cancel: Cancel
+        new:
+          title: Connect documentation
+          no_repository: This project has no connected repository yet. Connect a repository first to mirror documentation.
+          connect_repository: Connect repository
+        edit:
+          title: Edit documentation
+          disconnect: Disconnect
+          disconnect_confirm: Really disconnect this documentation? The mirrored pages will be removed.
+        history:
+          title: Logbook
+          back: Back to documentation
+          commits_heading: Changes in the repository
+          commits_empty: No changes recorded yet. After the next sync the repository commits will appear here.
+          runs_heading: Sync runs
+          runs_empty: No sync has run yet.
+          run_duration: "%{seconds} s"
+          trigger:
+            manual: Manual
+            polling: Automatic
+            webhook: Webhook
+      codebase_import_files:
+        index:
+          title: CodebaseHQ Import
+          new_file_btn: Import new file
+          description: Import data from CodebaseHQ into %{organisation}
+          supported_file_types: Supported file types
+          users_xml: User data
+          tickets_xml: Ticket data
+          time_tracking_xml: Time tracking
+          uploads_xml: File uploads
+          uploaded_files: Uploaded files
+          general_imports: General imports
+          project_imports: Project-specific imports
+          unknown_project: Unknown project
+          assign_uploads: Assign uploads
+          no_files_title: No files available
+          no_files_description: Upload your first CodebaseHQ XML file to start importing.
+          upload_first_file: Upload first file
+        import_files_table:
+          th_filename: Filename
+          th_type: Type
+          th_size: Size
+          th_uploaded_by: Uploaded by
+          th_date: Date
+          th_status: Status
+          th_actions: Actions
+          status_uploaded: Uploaded
+          status_processing: Processing
+          status_processed: Processed
+          status_rolled_back: Rolled back
+          status_error: Error
+          tooltip_view: View
+          tooltip_rollback: Undo import
+          tooltip_delete: Delete
+        new:
+          title: Upload CodebaseHQ file
+          back: Back
+          file_upload: File upload
+          file_type_label: File type
+          file_type_users: Users (users.xml)
+          file_type_tickets: Tickets (tickets.xml)
+          file_type_time_tracking: Time tracking (time_tracking.xml)
+          file_type_uploads: Uploads (uploads.xml)
+          file_type_prompt: Please select a file type
+          xml_file_label: XML file
+          max_file_size: 'Maximum file size: %{size}'
+          tar_file_label: TAR/ZIP file (Attachments)
+          upload_in_progress: Upload in progress...
+          upload_notes_title: Upload notes
+          upload_note_stored: The file is securely stored in the database
+          upload_note_preview: After uploading, you can view the contents as a table
+          upload_note_delete: The file can be deleted at any time
+          upload_note_format: Only XML files in CodebaseHQ format are accepted
+          submit: Upload file
+          cancel: Cancel
+          help_title: Where can I find my CodebaseHQ data?
+          help_step1_title: 1. Export from CodebaseHQ
+          help_step1_text: Log in to your CodebaseHQ account and navigate to the export options.
+          help_step2_title: 2. Download XML files
+          help_step2_text: Download the desired XML files (users.xml, tickets.xml, etc.).
+          help_step3_title: 3. Upload here
+          help_step3_text: Select the appropriate file type and upload the XML file.
+        select_project:
+          title_tickets: Select project for ticket import
+          title_time: Select project for time entry import
+          subtitle: Select the target project for importing %{count} %{type} from the CodebaseHQ file.
+          back: Back
+          file_info: File information
+          filename: Filename
+          item_count: Number of %{type}
+          uploaded_by: Uploaded by
+          uploaded_at: Uploaded at
+          select_target_project: Select target project
+          project_prompt: Select project...
+          note_import_html: "<strong>Note:</strong> All %{type} will be imported into the selected project."
+          preview_btn: Preview
+          new_project_title: Or create new project
+          new_project_description: If the desired project does not exist yet, you can create it here.
+          new_project_hint: After creation, you can return here and select the new project.
+          new_project_btn: Create new project
+        assign_uploads:
+          title: Assign uploads
+          subtitle: Assign upload files to tickets in project "%{project}"
+          back: Back to overview
+          project_info: Project information
+          project_label: 'Project:'
+          processed_tickets: 'Processed tickets:'
+          assign_upload_files: Assign upload files
+          select_upload_file: 'Select an upload file:'
+          uploaded_by_at: 'Uploaded by: %{name} on %{date}'
+          size_label: 'Size: %{size}'
+          archive_file: "+ Archive file: %{size}"
+          important_info_title: Important information
+          important_info_text: The upload assignment is only performed for tickets that have already been imported into the system. Only uploads of type "Tickets::Update" are assigned to the corresponding ticket posts.
+          start_assignment: Start upload assignment
+          cancel: Cancel
+          no_uploads_title: No upload files available
+          no_uploads_description: No upload files are available for assignment. Please upload an uploads.xml file first.
+          upload_file_btn: Upload file
+        preview_import:
+          title: User import preview
+          subtitle: Decide for each user from the CodebaseHQ file how they should be imported.
+          back: Back
+          import_overview: Import overview
+          progress: Progress
+          progress_text: "%{configured} of %{total} users configured"
+          stat_total: Total
+          stat_create: Create new
+          stat_map: Map
+          stat_skip: Skip
+          user_mappings: User mappings
+          th_codebase_user: CodebaseHQ User
+          th_action: Action
+          th_mapping_role: Mapping/Role
+          th_potential_matches: Potential matches
+          action_placeholder: "-- Please select --"
+          action_map_exact: Map (Exact)
+          action_create: Create new
+          action_map_to: 'Map to: %{email}'
+          action_skip: Skip
+          role_label: 'Role:'
+          username_label: 'Username:'
+          no_roles: No roles defined. Please create roles first.
+          no_action_selected: No action selected
+          exact_match: Exact match
+          more_matches: "+%{count} more..."
+          no_matches: No matches
+          users_ready: "%{count} users ready for import"
+          cancel: Cancel
+          start_import: Start import
+        preview_tickets:
+          title: Ticket import preview
+          subtitle: "%{count} tickets will be imported into a new project"
+          back: Back
+          new_project: New project
+          project_name: Project name
+          project_name_placeholder: Name for the new project
+          project_auto_create: A new project and an associated attribute group will be created automatically.
+          values_from_import: "%{name} values from import"
+          values_auto_create_desc: 'These values will be automatically created in the new attribute group:'
+          auto_creation: Automatic creation
+          auto_creation_desc: All %{count} %{name} values will be automatically created in the new attribute group. No manual mapping required.
+          no_values_found: No %{name} values found in the import file.
+          user_references_status: User references status
+          codebase_user_id: 'CodebaseHQ User ID: %{id}'
+          mapped_to: 'Mapped to: %{type} #%{id}'
+          not_found_null: Not found - will be saved as NULL
+          user_ref_note_html: "<strong>Note:</strong> Missing user references will be saved as NULL and can be mapped later via the CodebaseImportMapping table."
+          no_user_references: No user references found in the tickets.
+          tag_import_settings: Tag import settings
+          tickets_with_tags: Tickets with tags
+          unique_tags: Unique tags
+          total_tag_assignments: Total tag assignments
+          import_tags: Import tags
+          import_tags_desc: Enable this option to import tags from tickets. Tags will be automatically created and assigned to tickets.
+          tag_preview: 'Preview of tags to be imported:'
+          more_tags: "+%{count} more..."
+          import_summary: Import summary
+          stat_tickets: Tickets
+          stat_status_values: Status values
+          stat_priority_values: Priority values
+          stat_ticket_updates: Ticket updates
+          ready_for_import_html: "<strong>Ready for import:</strong> New project with automatic attributes will be created"
+          start_ticket_import: Start ticket import
+        preview_time_sessions:
+          title: Time entries import preview
+          project_label: 'Project:'
+          summary: Summary
+          time_entries: Time entries
+          total_time: Total time
+          linked_to_tickets: Linked to tickets
+          date_range: 'Period: %{from} - %{to}'
+          time_per_user: Time per user
+          th_user: User
+          th_entries: Entries
+          th_total_time: Total time
+          important_notes: Important notes
+          note_user_fallback: Time entries will be assigned to the import user if the original user is not found
+          note_linked_tickets: Linked tickets will only be taken over if they have already been imported
+          note_unlinked: "%{count} entries are not linked to tickets"
+          note_groups: Booked billings will be automatically created
+          start_import: Start import
+          import_background_hint: The import will be executed in the background. You can track the progress on the overview page.
+          cancel: Cancel
+          sample_entries: First 10 entries (sample)
+          th_date: Date
+          th_time: Time
+          th_description: Description
+          th_ticket: Ticket
+          unknown_user: Unknown
+          more_entries: "... and %{count} more entries"
+        show:
+          data_from_codebase: "%{type} data from CodebaseHQ"
+          start_import: Start import
+          prepare_import: Prepare import
+          select_project: Select project
+          import_running: Import running...
+          already_imported: Already imported
+          rollback: Rollback
+          rollback_done: Rollback completed
+          import_failed: Import failed
+          delete_file: Delete file
+          back_to_overview: Back to overview
+          file_size: File size
+          uploaded_by: Uploaded by
+          uploaded_at: Uploaded at
+          status: Status
+          status_uploaded: Uploaded
+          status_processing: Import running...
+          status_processed: Successfully imported
+          status_failed: Import failed
+          user_data: User data
+          users_found: "%{count} users found"
+          th_id: ID
+          th_username: Username
+          th_email: Email
+          th_full_name: Full name
+          th_role: Role
+          th_company: Company
+          no_username: No username
+          no_company: No company
+          statistics: Statistics
+          total_users: Total users
+          administrators: Administrators
+          with_username: With username
+          with_company: With company
+          import_results: Import results
+          successfully_processed: Successfully processed
+          total_tickets_result: Total tickets
+          total_users_result: Total users
+          imported: Imported
+          created: Created
+          errors_result: Errors
+          mapped: Mapped
+          skipped: Skipped
+          tag_import_stats: Tag import statistics
+          tags_found: Tags found
+          tags_created: New tags created
+          tags_reused: Existing tags reused
+          taggings_created: Tag assignments created
+          tag_warnings: 'Tag import warnings:'
+          more_warnings: "... and %{count} more warnings"
+          errors_occurred: 'Errors occurred:'
+          more_errors: "... and %{count} more errors"
+          imported_in_project: 'Imported in project:'
+          import_completed_at: 'Import completed at:'
+          ticket_data: Ticket data
+          tickets_found: "%{count} tickets found"
+          th_number: Number
+          th_title: Title
+          th_status: Status
+          th_priority: Priority
+          th_tags: Tags
+          th_reporter: Reporter
+          th_updates: Updates
+          no_tags: No tags
+          unknown: Unknown
+          more_tickets: "... and %{count} more tickets"
+          ticket_statistics: Ticket statistics
+          total_tickets: Total tickets
+          different_statuses: Different statuses
+          different_priorities: Different priorities
+          total_updates: Total updates
+          tag_preview: Tag preview
+          tickets_with_tags: Tickets with tags
+          unique_tags: Unique tags
+          total_tag_assignments: Total tag assignments
+          found_tags: 'Found tags:'
+          more_tags: "+%{count} more..."
+          no_ticket_data_title: No ticket data
+          no_ticket_data_desc: The XML file does not contain valid ticket data or could not be processed.
+          time_entries_data: Time entries data
+          time_entries_found: "%{count} time entries found"
+          total_time: Total time
+          users: Users
+          linked_to_tickets: Linked to tickets
+          th_date: Date
+          th_user: User
+          th_time: Time
+          th_description: Description
+          th_ticket: Ticket
+          unknown_user: Unknown
+          more_time_entries: "... and %{count} more time entries"
+          no_time_entries: No time entries found in the file.
+          uploads_found: "%{count} uploads found"
+          total_uploads: Total uploads
+          object_types: Object types
+          file_types: File types
+          total_size: Total size
+          th_filename: Filename
+          th_type: Type
+          th_size_upload: Size
+          th_linked_to: Linked to
+          th_date_upload: Date
+          more_uploads: "... and %{count} more uploads"
+          assign_uploads_title: Assign uploads to tickets
+          assign_uploads_desc: Assign these uploads to the corresponding tickets and posts. Only uploads of type "Tickets::Update" are processed.
+          archive_uploading: The archive file is still uploading. Please wait until the upload is complete.
+          select_project_label: 'Select project:'
+          start_assignment: Start assignment
+          create_project_first: Please create a project first to be able to assign uploads.
+          no_archive_file: No archive file present. Please upload a ZIP file with the attachments.
+          parse_error_title: Parsing error
+          parse_error_desc: The XML file could not be processed correctly. Please check the file format.
+        rollback:
+          page_title: Confirm import rollback
+          title: Confirm import rollback
+          subtitle: You are about to delete all objects created by this import.
+          import_file_info: Import file
+          file_label: 'File:'
+          imported_at: 'Imported at:'
+          imported_at_unknown: Unknown
+          status_label: 'Status:'
+          warning_title: 'Warning: This action cannot be undone!'
+          warning_text_1: All tickets and posts created by this import will be permanently deleted.
+          warning_text_2: Make sure you really want to delete all these objects.
+          objects_to_delete: Objects to delete
+          stat_tickets: Tickets
+          stat_posts: Posts
+          stat_total: Total
+          import_sessions: Import sessions
+          import_sessions_desc: 'This file includes %{count} import sessions:'
+          objects_count: "%{count} objects"
+          confirm_delete: I confirm that I want to delete all objects created by this import.
+          confirm_irreversible: I understand that this action cannot be undone.
+          cancel: Cancel
+          execute_rollback: Execute rollback
+      project_repositories:
+        index:
+          title: Connected Repositories
+          connected_header: Connected Repositories
+          branch: Branch %{branch}
+          connected_by: Connected by %{name} %{time} ago
+          disconnect: Disconnect
+          confirm_disconnect: Really disconnect %{name}? All index data will be deleted.
+          empty: No repository connected yet. Add one to use the AI assistant with your code.
+          back_settings: Settings
+          back_documentation: Documentation
+        new:
+          title: Connect a repository
+          header: Connect a new repository
+          full_name_label: Repository (owner/name)
+          full_name_hint: 'Example: acme/backend'
+          token_label: Personal Access Token
+          token_hint_html: 'Create a fine-grained PAT with %{link} and only the "Contents: Read" permission on the selected repo.'
+          token_link_label: GitHub instructions
+          connect: Connect
+        connect_errors:
+          not_found: 'Repository not found. Check the name (owner/name) — and whether your token can see this (private) repository: a fine-grained PAT with resource owner = your account, repository access including this repo, and Contents: Read. (A classic token needs the full "repo" scope.)'
+          auth: 'Access token invalid or expired. Please create a new fine-grained PAT (Contents: Read).'
+          insufficient_scope: 'The access token lacks the required permission. The fine-grained PAT needs "Contents: Read" on the selected repository.'
+      indexing:
+        status:
+          pending: Pending
+          indexing: Indexing…
+          ready: Ready
+          failed: Failed
+          stale: Updating…
+        progress: "%{done} / %{total} files"
+        last_indexed: Last indexed %{time} ago
+        never_indexed: Not indexed yet
+        error_prefix: Error
+        errors:
+          auth_failed: GitHub authentication failed — the access token has expired or is invalid. Please update the token.
+          insufficient_scope: 'The access token lacks the required permission (Contents: Read). Please update the token.'
+          repo_not_found: Repository not found — it was renamed, deleted, or the token no longer has access.
+        reindex:
+          button: Reindex
+          confirm: Reindex repository %{name} now? Only the changes since the last index will be processed.
+        token_update:
+          title: Update access token
+          intro: 'Token expired or invalid? Enter a new fine-grained PAT (Contents: Read) here — the index is kept.'
+          placeholder: New personal access token
+          submit: Save
+        webhook:
+          title: Automatic updates (push webhook)
+          intro: 'To keep the index up to date on every push, set up a webhook in the GitHub repository:'
+          steps: GitHub → Repository → Settings → Webhooks → Add webhook
+          url_label: Payload URL
+          secret_label: Secret
+          content_type_hint: Set Content-Type to application/json and send only the "push" event.
+          copy: Copy
+          copied: Copied!
+        runs:
+          link: Index history
+          title: Index history
+          back: Back to repositories
+          empty: No indexing runs yet.
+          duration: "%{seconds} s"
+          columns:
+            time: Time
+            trigger: Trigger
+            result: Result
+            duration: Duration
+            scope: Scope
+            commit: Commit
+          trigger:
+            initial: Initial index
+            manual: Manual
+            push: Push
+          status:
+            ready: Succeeded
+            failed: Failed
+          scope:
+            full: "%{files} files · %{symbols} symbols"
+            incremental: "%{files} files · +%{added} new, %{removed} removed"

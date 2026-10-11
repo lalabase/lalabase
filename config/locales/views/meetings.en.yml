@@ -1,0 +1,242 @@
+en:
+  views:
+    organisations:
+      meetings:
+        index:
+          title: Meetings
+          new_meeting: New meeting
+          select_meeting_hint: Select a meeting from the list
+          placeholder_title: No meeting selected
+          placeholder_body: Select a meeting from the list to view its details.
+          mobile_list_view: Back to list
+          col_duration: Duration
+          empty_no_results: No meetings found
+          empty_first_time_title: No meetings yet
+          empty_first_time_description: Capture client calls, phone conversations and meetings as their own work object — with notes or a transcript.
+          empty_cta: Record your first meeting
+          explainer:
+            title: What is a meeting?
+            point_capture: Capture what was discussed — with a short summary and the participants.
+            point_transcript: You can also upload a finished transcript, e.g. from a video call.
+            point_search: If you want, the content flows into search — so you can later find what was discussed.
+            point_chat: And in the AI chat you can ask questions about it, e.g. “What did we agree on with the client?”
+            not_title: What it is not
+            not_body: Not a calendar and not scheduling — you capture a meeting here after it took place.
+          no_filter_options: No options available
+          filter_op_or: is
+          filter_op_and: is all
+          filter_op_not: is not
+          filter_op_logic_label: Logic
+          filter_connector_and: and
+          filter_connector_or: or
+          save_as_smart_folder: Save filter
+          save_filter_title: Save filter as Smart Folder
+          save_filter_name_label: Name
+          save_filter_name_placeholder: e.g. Weekly planning
+          save_filter_save_button: Save
+          save_filter_cancel_button: Cancel
+          save_filter_unsupported_hint: Some filters cannot be converted and will be skipped.
+          filter_bar:
+            search_placeholder: Search meetings
+            add_filter: Filter
+            sentence_subject: Meetings
+            search_depth_label: Search depth
+            search_depth_title_only: Title only
+            search_depth_title_content: Title + Content
+            search_depth_everything: Everything
+            search_depth_quick: Quick
+            search_depth_standard: Standard
+            search_depth_deep: Deep
+        show:
+          type_label: Meeting
+          ask_assistant: "Ask assistant"
+          edit_meeting: Edit meeting
+          back_to_list: Back to list
+          close: Close meeting
+          no_content: No notes or transcript recorded.
+          notes_heading: Notes
+          transcript_heading: Transcript
+          transcript_show_full: Show full transcript
+          transcript_collapse: Collapse transcript
+          participants_heading: Participants
+          summary_heading: Summary
+          generate_summary: Create summary
+          regenerate_summary: Regenerate
+          summary_retry: Try again
+          summary_in_progress: Generating summary …
+          summary_refresh: Refresh
+          summary_setup_hint: AI is enabled but not yet configured. An administrator can set up AI access in the AI settings.
+          summary_no_content_hint: Add notes or a transcript to create a summary.
+          summary_empty: No summary has been created for this meeting yet.
+        form:
+          title_label: Title
+          title_placeholder: What was the meeting about?
+          occurred_at_label: Date & time
+          occurred_at_hint: When the meeting took place (defaults to now).
+          duration_label: Duration (minutes)
+          duration_placeholder: e.g. 90
+          notes_label: Notes
+          notes_placeholder: Free-form notes about the meeting — transcript optional.
+          transcript_label: Transcript
+          transcript_placeholder: Paste the transcript from your recording tool here.
+          consent_hint: 'Note: obtaining consent from participants for recording and transcription is your responsibility.'
+          create_embeddings_label: Release for search & chat
+          create_embeddings_hint: Notes and transcript then become findable through search and searches in AI chat for project members with meeting read access. Anyone explicitly selecting a meeting as an assistant reference can have it read with meeting read access, even without this release.
+          create_embeddings_disabled_hint: Add and save content (notes or transcript) first, then release.
+          participants_label: Participants
+          participants_placeholder: Type a name or pick from suggestions …
+          participants_addable: 'Add "{value}" as a name'
+          participants_search_empty: "No matches"
+          participants_no_speakers: No speakers detected in the transcript.
+          participants_detected: "{count} participant(s) added from the transcript."
+          detect_button: "Detect participants with AI"
+          detect_setup_hint: "AI is activated but not yet configured. An administrator can add the AI access in the AI settings."
+          ai_mode_hint: "AI mode active: the transcript is transferred to the AI provider for participant detection."
+          ai_mode_hint_settings: "Change setting"
+          detecting: "AI detection running …"
+          detect_failed: "AI detection failed. Please try again later."
+          detect_rate_limited: "Too many AI detections in a short time. Please wait a moment and try again."
+          detect_too_large: "The transcript is too large for AI detection (max. {max_kb} KB)."
+          ai_detected: "{count} participant(s) added by the AI."
+          ai_none_detected: "The AI detected no additional participants."
+          cancel: Cancel
+          save: Save
+          delete: Delete
+        ticket_links:
+          heading: Linked tasks
+          empty: No tasks linked to this meeting yet.
+          add: Link
+          remove: Remove link
+          picker_placeholder: Search tasks …
+          deleted_badge: deleted
+        shared:
+          duration_minutes: "%{count} min"
+          participant_type:
+            project_member: Project member
+            org_member: Organisation member
+            external: External participant
+        search_status:
+          label_searchable: Findable in search & chat
+          label_off: Not released for search
+          label_processing: Preparing for search…
+          label_waiting_ai: Waiting for AI configuration
+          label_failed: Indexing failed
+          error_title: "Indexing error: %{error}"
+          action_release: Release for search & chat
+          action_unrelease: Remove from search
+          confirm_unrelease: Remove from search? The content will no longer be found through search or searches in AI chat. The meeting remains readable as an explicitly selected assistant reference with meeting read access.
+        claim:
+          heading: Link external participants
+          suggestion_html:
+            one: "%{name} attended 1 meeting as an external participant — link them to the member?"
+            other: "%{name} attended %{count} meetings as an external participant — link them to the member?"
+          link: Link
+          dismiss: Don't link
+        analyses:
+          suggestions:
+            decisions:
+              label: Summarise decisions
+              text: Summarise every decision made in the meeting as a list — for each, who made it and the reasoning.
+            open_points:
+              label: Open points
+              text: List all open questions and unresolved points from the meeting.
+            risks:
+              label: Risks & blockers
+              text: Name the risks, blockers and dependencies raised in the meeting.
+            summary:
+              label: Short minutes
+              text: Write concise minutes of the meeting in five to seven bullet points.
+            followups:
+              label: Next steps
+              text: What next steps and follow-up meetings were agreed in the meeting?
+          saved_heading: Saved analyses
+          create_with_assistant: Create analysis
+          create_with_assistant_hint: Opens the assistant with this meeting as a reference. The AI request starts only when you send it.
+          assistant_unavailable: The assistant is currently unavailable for creation. An administrator can set up AI access in the AI settings. Saved analyses remain readable.
+          assistant_not_enabled: Analyses are now created in the assistant, which is not enabled for you. An administrator can enable it. Saved analyses remain readable.
+          legacy_lane_moved: Analysis requests now start in the assistant. Saved results remain on the meeting.
+          reload_meeting: Reload meeting
+          empty_saved: No analysis saved yet. Finished assistant answers appear here after you explicitly save them as an analysis.
+          no_content_hint: Add notes or a transcript to create an analysis.
+          badge_private: Private
+          badge_published: Published
+          unknown_creator: Unknown
+          publish: Publish
+          unpublish: Retract
+          delete: Delete
+          delete_confirm: Really delete this analysis?
+          retry: Try again
+          in_progress: Analysis is being generated …
+          show_result: Show result
+          search_enable: Make findable in search & chat
+          search_disable: Remove from search & chat
+          search_on_badge: In search & chat
+          search_hint: This makes the analysis findable in search and AI chat for all project members with meetings read access — independent of whether the meeting itself is released.
+          search_locked_hint: Publish first, then release it for search & chat.
+        ticket_suggestions:
+          heading: Ticket suggestions
+          intro: Tasks derived from the meeting — create each as a ticket or dismiss it.
+          generate: Derive tasks
+          regenerate: Derive again
+          assistant_hint: Opens the assistant, adopts this meeting and prepares task mode. Nothing is sent yet.
+          assistant_unavailable: AI for ticket suggestions is currently unavailable. An administrator can set up AI access in the AI settings. Existing suggestions remain usable.
+          assistant_not_enabled: Ticket suggestions are now created in the assistant, which is not enabled for you. An administrator can enable it. Existing suggestions remain usable.
+          in_progress: Ticket suggestions are being generated …
+          refresh: Refresh
+          no_content_hint: Add notes or a transcript to generate suggestions.
+          empty: No suggestions yet. Derive tasks through the assistant.
+          description_toggle: Description
+          similar_ticket: "Similar ticket:"
+          accept: Create ticket
+          dismiss: Dismiss
+      meetings_overview:
+        index:
+          title: All Meetings
+          new_meeting: New meeting
+          modal_title: New meeting
+          modal_close: Close
+          modal_project_label: Project
+          modal_project_prompt: Choose a project …
+          modal_select_project_first: Choose a project first.
+          search_placeholder: Search title & content …
+          filter_participant_label: Participant
+          filter_participant_all: All participants
+          filter_project_label: Project
+          filter_project_all: All projects
+          col_title: Title
+          col_project: Project
+          col_date: Date
+          col_participants: Participants
+          empty_no_results: No meetings found
+          empty_reset: Reset filters
+          empty_first_time_title: No meetings yet
+          empty_first_time_description: As soon as meetings are recorded in your projects, you'll find them here across project boundaries — for example every meeting with a particular person.
+  models:
+    view_configuration:
+      meeting_columns:
+        title: Title
+        occurred_at: Meeting date
+        duration_minutes: Duration
+        participants: Participants
+        creator: Created by
+        created_at: Created at
+        updated_at: Updated at
+  smart_folders:
+    all_meetings: All meetings
+    fields:
+      creator: Created by
+      participant: Participants
+      occurred_at: Meeting date
+    object_types:
+      Meeting: Meetings
+    new_title_by_type:
+      Meeting: New meeting view
+    edit_title_by_type:
+      Meeting: Edit meeting view
+    field_operators:
+      participant:
+        equals: has participant
+        not_equals: does not have participant
+        has_any_of: has any participant
+        has_all_of: has all participants
+        not_has: has none of the participants

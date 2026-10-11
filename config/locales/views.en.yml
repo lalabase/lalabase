@@ -1,0 +1,1303 @@
+en:
+  # Project-owned timestamp format: rails-i18n's :short carries no year,
+  # and the admin Vertex screens show a full date.
+  time:
+    formats:
+      stamp: "%Y-%m-%d %H:%M"
+  views:
+    action_text:
+      embed_hint_not_image: "%{filename} is not an image. Only PNG, JPEG, GIF and WebP fit into the text."
+      embed_hint_too_large: "%{filename} is larger than %{max} MB and does not fit into the text."
+      embed_hint_redirected: "The file was moved to the attachments field."
+      embed_hint_shrink: "Please shrink it and insert it again."
+      zoom_open: "Enlarge image"
+      zoom_close: "Close image"
+      missing_image: "Image no longer available"
+    session_timeout:
+      dialog_label: Sign-in status
+      expired_title: You are no longer signed in
+      expired_body: Your entries remain in this tab but have not been saved yet. Sign in with the same account in a new tab, then return here to continue.
+      sign_in: Sign in in a new tab
+      checking_title: Checking your sign-in status
+      checking_body: Please wait a moment. Your entries are preserved.
+      account_changed_title: A different account is signed in
+      account_changed_body: This form belongs to the previously signed-in account and remains locked. Sign back in with that account in another tab to continue with your entries.
+      open_app: Open the app in a new tab
+      check_failed: Your sign-in status could not be checked. Check your connection and try again. Your entries are preserved.
+      check_again: Check sign-in status again
+      warning_title: You'll be logged out shortly
+      warning_body_html: For security reasons your session will end in %{countdown} seconds.
+      stay_logged_in: Stay logged in
+      session_settings: Adjust session duration
+    user_preferences:
+      session:
+        title: Session duration
+        subtitle: How long you stay logged in while you're not actively using the app.
+        label: Log me out after
+        hint: Longer sessions are more convenient but less secure — especially on shared devices.
+        save: Save
+        options:
+          '30': 30 minutes (default)
+          '120': 2 hours
+          '480': 8 hours
+          '1440': 24 hours
+    users:
+      personal_access_tokens:
+        index:
+          title: Personal Access Tokens
+          subtitle: Only needed to connect external programs like Claude Code — not required for normal use.
+          new_button: Create token
+          empty: You have no tokens yet.
+          col_scope: Scope
+          col_created: Created
+          col_expires: Expires
+          col_last_used: Last used
+          status_active: Active
+          status_expired: Expired
+          status_revoked: Revoked
+          scope_all_projects: All projects
+          scope_all_organisations: All organisations (including future ones)
+          scope_n_projects:
+            zero: no projects
+            one: 1 project
+            other: "%{count} projects"
+          scope_unknown_org: Unknown organisation
+          edit: Rename
+          revoke: Revoke
+          revoke_confirm: Really revoke this token? This action cannot be undone.
+          explainer:
+            title: What is this for?
+            intro: "An access token is like a password — but for programs instead of you. It lets an external tool (e.g. the AI assistant Claude Code) access Lalabase on your behalf: read your projects and tasks and, if you allow it, edit them too."
+            point_purpose: Only for connecting external programs — such as an AI assistant that works directly with your projects.
+            point_scope: "You decide exactly what a token may access: which organisations and projects, read-only or read-write, and how long it stays valid."
+            point_permissions: A token can never see or do more than you can yourself. You can revoke it at any time.
+            not_title: What this is NOT
+            not_body: Not a login and not an invitation for colleagues. For normal use of Lalabase in your browser you don't need anything here.
+            reassure: Not sure whether you need this? Then you very likely don't.
+        new:
+          title: Create new token
+          block_basic: Basics
+          block_organisations: Organisations & projects
+          block_summary: Summary
+          name_label: Name
+          name_placeholder: e.g. 'Claude Code – Client Bank XY'
+          name_help: Choose a name that helps you identify this token later.
+          read_only_label: Read-only access
+          read_only_help: 'On (default): the token can only read. Turn off to create tickets and comments, change the status, assignees and title of tickets, book time and mark notifications as read via MCP/API.'
+          expiry_label: Expiry
+          expiry_7_days: 7 days
+          expiry_30_days: 30 days (recommended)
+          expiry_60_days: 60 days
+          expiry_90_days: 90 days
+          expiry_custom: Custom
+          expiry_help: "At most %{days} days. Changing or resetting your password revokes all your tokens."
+          org_pick_label: Which organisations should this token access?
+          org_mode_selected: Selected organisations only
+          org_mode_all: All organisations, including future ones
+          org_mode_all_hint: Also organisations you join later, each with all projects. When you leave an organisation or are deactivated there, access there ends at once. The token never sees more than you may see yourself.
+          org_no_orgs: You are not a member of any active organisation – cannot create token.
+          project_all: All projects (including future ones)
+          project_selected: Selected projects only
+          project_no_projects: No projects in this organisation.
+          summary_intro: 'This token will have access to:'
+          summary_pick_org: Pick at least one organisation.
+          summary_valid_until: Valid until %{date}
+          password_label: Current password
+          password_help: A token outlives this session, so we ask for your password once more.
+          submit: Create token
+          cancel: Cancel
+        edit:
+          title: Rename token
+          hint: Only the name is editable. To change scope or expiry, revoke the token and create a new one.
+          submit: Save
+        update:
+          success: Token updated.
+        created:
+          title: Token created
+          warning_title: Copy the token now
+          warning_body: This token will not be shown again. Save it in a secure place.
+          token_label: Your new token
+          scope_overview: 'Scope of this token:'
+          copy: Copy
+          copied: Copied!
+          back_to_index: Back to overview
+        create:
+          wrong_password: The password is not correct. Please try again.
+          success_title: Token created.
+        destroy:
+          success: Token revoked.
+    common:
+      filter: Filter
+      clear: Clear
+      close: Close
+      preview: Preview
+      resend: Resend
+      loading: Loading...
+      na: N/A
+      unknown: Unknown
+      error: Error
+      no_subject: No subject
+      status: Status
+      actions: Actions
+      active: Active
+      inactive: Inactive
+      deleted: Deleted
+      edit: Edit
+      delete: Delete
+      cancel: Cancel
+      save: Save
+      first_name: First name
+      last_name: Last name
+      email: Email address
+      details: Details
+      role: Role
+      none: None
+      all: All
+      remove: Remove
+      protected: Protected
+      you: You
+      ago_suffix: ago
+      relative_time_ago: "%{time} ago"
+      password: Password
+      password_confirm: Confirm password
+      ai: AI
+      organisations: Organisations
+      projects: Projects
+      created_at: Created at
+      updated_at: Last updated
+      errors_occurred: "%{count} error(s) occurred:"
+      error_messages:
+        errors: Errors
+      navigation_auth:
+        register: Register
+      button_container:
+        delete: Delete
+        cancel: Cancel
+        update: Update
+      upgrade_box:
+        title: Upgrade to Pro
+        description: Are you looking for more features? Check out our Pro version.
+        button: Upgrade Now
+    confirm:
+      are_you_sure: Are you sure?
+      delete_time_session: Are you sure you want to delete this time entry?
+      delete_all_document_versions: Are you sure? This will delete ALL versions of this document.
+      delete_document_version: Delete this version and its file?
+      delete_last_document_version: This is the last version. Deleting it deletes the document. Delete anyway?
+      set_current_document_version_renames: 'The document will be called "%{new_title}" instead of "%{old_title}". Continue?'
+      delete_post: Are you sure you want to delete this post?
+      delete_chat: Are you sure you want to delete this chat?
+      ai_activate: Activate AI features for this organisation? Content of your organisation will then be transferred to the selected AI provider (USA) for processing.
+      ai_deactivate: Deactivate AI features for this organisation? No content will be transferred to the AI provider anymore.
+      ai_configuration_remove: Remove the own access? Key, endpoint and model name are deleted and cannot be restored.
+      delete_import_file: Are you sure you want to delete '%{filename}'?
+      delete_note: Are you sure?
+      start_import: Are you sure you want to start the import? This action cannot be undone.
+      start_ticket_import: Are you sure you want to start the ticket import? A new project will be created.
+      import_time_sessions: Do you want to import %{count} time entries?
+      generate_descriptions: Generate customer descriptions for all sessions? Existing descriptions will be skipped.
+      regenerate_descriptions: Regenerate all customer descriptions? Existing descriptions will be overwritten.
+      archive_project: Archive project '%{name}'? All unread notifications will be archived.
+      restore_project: Restore project '%{name}'?
+      rollback_permanent: Are you really sure? This action will permanently delete %{count} objects!
+      unmute_ticket: 'Unmute notifications for #%{number}?'
+      unfollow_ticket: 'Stop following #%{number}?'
+      change_password: Are you sure you want to change the password? The user will need to log in with the new password.
+      resend_email: Are you sure you want to resend this email?
+      resend_email_short: Resend this email?
+      toggle_user_status: Change status of %{email} to %{action}?
+      toggle_user_deactivate: deactivate
+      toggle_user_activate: activate
+      remove_membership: Remove %{name} from %{organisation}?
+      delete_tag: Are you sure?
+      really_delete: Really delete?
+      remove_user: Are you sure you want to remove this user?
+      unblock_user: Lift the block? What the role allows will apply again.
+      revoke_all_permissions: Are you sure you want to revoke all project permissions for this user?
+      save_notification_preferences: Save all notification preferences?
+      reprocess_embeddings: Are you sure you want to reprocess all pending embeddings? This may take some time depending on the number of entries.
+      delete_account_irreversible: Are you sure? This action cannot be undone.
+      delete_ai_credential: Are you sure you want to delete this AI credential?
+      delete_ai_package: Are you sure you want to delete this AI package? Its tiers will be deleted with it.
+      delete_admin_user: Are you sure you want to delete this admin user?
+    admin:
+      email_logs:
+        index:
+          title: Email Dashboard
+          export_csv: Export CSV
+          refresh: Refresh
+          recent_failures: Recent Email Failures
+          failures_last_24h: "%{count} emails failed in the last 24 hours"
+          unknown_recipient: Unknown recipient
+          ago: "%{time} ago"
+          status_distribution_chart: Email Status Distribution (7 Days)
+          daily_volume_chart: Daily Send Volume (7 Days)
+          emails_sent: Emails Sent
+          no_chart_data: No data in this period
+          filter_status_all: All
+          filter_status_queued: Queued
+          filter_status_sent: Sent
+          filter_status_delivered: Delivered
+          filter_status_opened: Opened
+          filter_status_clicked: Clicked
+          filter_status_bounced: Bounced
+          filter_status_failed: Failed
+          recipient_email: Recipient Email
+          search_placeholder: Search by email...
+          from_date: From Date
+          to_date: To Date
+          table_recipient: Recipient
+          table_subject: Subject
+          table_organisation: Organisation
+          table_status: Status
+          table_sent_at: Sent At
+          table_actions: Actions
+          email_preview: Email Preview
+          failed_to_load: Failed to load preview
+        show:
+          from: From
+          to: To
+          subject: Subject
+          sent: Sent
+          delivery_status: Delivery Status
+          message_id: Message ID
+          timeline: Timeline
+          queued: Queued
+          delivered: Delivered
+          opened: Opened
+          times: "%{count} times"
+          bounced: Bounced
+          email_content: Email Content
+          preview_label: Preview
+          html_content: HTML Content
+          text_content: Text Content
+          no_content: No email content available
+          additional_info: Additional Information
+          resend_email: Resend Email
+      sessions:
+        new:
+          title: Backend Login
+          email_label: Email
+          email_placeholder: Email
+          password_label: Password
+          password_placeholder: Password
+          submit: Log in
+      monitoring:
+        index:
+          title: System Monitoring
+          subtitle: Live operational data of the current deployment instance
+          last_deployment: Last deployment
+          current_commit: Current commit
+      navigation:
+        backend_admins: Backend Admins
+        monitoring: Monitoring
+        all_activities: All Activities
+        security_events: Security Events
+        job_queue: Job Queue
+        email_dashboard: Email Dashboard
+        system_monitoring: System Monitoring
+        deleted_users: Deleted Users
+        settings: Settings
+        logout: Log out
+        open_main_menu: Open main menu
+        dashboard: Dashboard
+        management_section: Management
+        organisations: Organisations
+        users: Users
+        monitoring_section: Monitoring
+        activities: Activities
+        settings_section: Settings
+        system_settings: System Settings
+        ai_credentials: AI Credentials
+        ai_packages: AI Packages
+        deletion_register: Deletion register
+      ai_credentials:
+        contract:
+          section_title: Provider contract terms
+          section_help: Documents are the evidence, the assessment is the statement. What is recorded here appears as a badge on the package's customer card.
+          current_title: Current assessment
+          none_yet: No assessment recorded yet — packages using these credentials show customers "training not assured".
+          label_training: Training
+          label_retention: Retention
+          label_subprocessors: Sub-processors
+          label_subprocessors_list: Which sub-processors
+          valid_since: "in force since %{date}"
+          recorded_by: "recorded by %{email}"
+          based_on: "Supported by:"
+          retention_days_value: "%{days} days"
+          label_end_on: End on
+          end_contract: End assessment
+          end_contract_help: A running assessment can only be shortened, never changed — record a new version for a different statement.
+          history_title: Previous assessments
+          history_period: Period
+          history_recorded_by: Recorded by
+          open_end: open
+          announced_badge: announced
+          edit_document: Edit
+          save_edit: Save changes
+          edit_key_help: Groups the versions of one paper. Changing it moves this row into a different history.
+          edit_file_help: Leave empty to keep the current PDF. A new file replaces it.
+          edit_valid_from_help: The date printed on the paper ("Last modified"), not the day it was recorded.
+          label_remove_file: Remove PDF
+          remove_file_help: Detaches the file without deleting the row — for a paper uploaded by mistake. Takes effect once the changes are saved.
+          training_usages:
+            excluded: No training — contractually excluded
+            used: Training — the provider uses content for model training
+            unspecified: Not assured — no contractual statement verified
+          retention_policies:
+            none: No retention
+            limited: Limited
+            unlimited: Unlimited
+            unspecified: Not assured
+          subprocessors_disclosures:
+            disclosed: Disclosed
+            undisclosed: Not disclosed
+            unspecified: Not assured
+          documents_title: Documents
+          no_documents: No documents recorded yet.
+          current_badge: current
+          pdf: PDF
+          link: Link
+          delete: Delete
+          confirm_delete: Really delete this document?
+          add_document: Add document
+          label_doc_title: Title
+          placeholder_doc_title: e.g. Service Specific Terms
+          label_doc_key: Document key
+          placeholder_doc_key: e.g. sst
+          doc_key_help: Stays the same across all versions of the same paper — the history hangs on it.
+          label_valid_from: Version valid from
+          label_url: Link
+          label_locator: Location in the document
+          placeholder_locator: e.g. Generative AI section, Training Restriction
+          locator_help: Where exactly the statement sits. Without it a 60-page PDF is worthless as evidence.
+          label_summary: Summary
+          label_body: Text
+          body_help: The pasted excerpt or full text.
+          label_file: PDF
+          file_help: PDF only, 25 MB maximum.
+          save_document: Save document
+          add_contract: Record new assessment
+          add_contract_help: The assessment is an assurance to your customers. Only set "contractually excluded" when the document says so — when in doubt, "not assured".
+          label_starts_on: Applies from
+          label_retention_days: Days
+          retention_days_help: Only fill in for "Limited".
+          label_note: Internal reasoning
+          note_help: Why this assessment — visible in the admin area only.
+          label_documents: Supported by
+          documents_help: Which documents support this assessment?
+          save_contract: Save assessment
+        # Rendered identically by the index column and the show section —
+        # partial-spanning strings get one owner (house convention, cf. `seam`).
+        shared:
+          package_badge: "%{package} · %{role}"
+          package_role_embedding: Embedding
+        seam:
+          section_routing: Routing & attribution
+          label_display_name: Display name
+          placeholder_display_name: e.g. Mistral EU
+          display_name_help: Carries attribution, provenance and the Art. 13 notice — instead of the generic routing key.
+          label_purpose: Purpose
+          purpose_chat: Chat
+          purpose_embedding: Embeddings
+          purpose_both: Chat + embeddings
+          label_api_base: Endpoint URL (api_base)
+          placeholder_api_base: https://endpoint.example/v1
+          api_base_help: Preferred OpenAI-compatible endpoint. Supersedes the older endpoint-URL field above (kept only as a fallback).
+          label_region: Region
+          region_none: "— none —"
+          label_company_domicile: Provider's company domicile
+          company_domicile_none: "— not recorded —"
+          company_domicile_eu: EU
+          company_domicile_non_eu: Outside the EU
+          company_domicile_help: The second axis next to the region — it says where the company is based, not where the server stands. Together they derive an AI package's jurisdiction.
+          label_included_in_quota: Counts against quota
+          included_in_quota_help: A system credential whose usage we bill — prices are then required.
+          section_pricing: Prices (cents per 1M tokens)
+          pricing_help: Basis for the actual-cost calculation; required > 0 for quota-metered credentials.
+          label_input_cost: Input (cents/1M)
+          label_output_cost: Output (cents/1M)
+          label_embedding_cost: Embedding (cents/1M)
+        index:
+          active_count: "%{enabled}/%{total} enabled"
+          no_active_credential: No default credential
+          tokens_30d: "%{count} Tokens (30d)"
+          total_credentials: Total Credentials
+          active_providers: Providers with default credential
+          add_credential: Add new AI credential
+          table_title: AI Credentials
+          th_credential: Credential
+          th_provider_model: Provider & Model
+          th_purpose: Purpose
+          th_packages: Packages
+          th_billing: Billing
+          th_usage_30d: Usage (30d)
+          th_status: Status
+          th_actions: Actions
+          badge_active: Default
+          purpose:
+            chat: Chat
+            embedding: Embedding
+            both: Both
+          packages_none: "—"
+          billing_metered: Quota
+          billing_unmetered: Not metered
+          price_in_out: "%{in}/%{out} ct/1M"
+          price_embedding: "Emb %{emb} ct/1M"
+          usage_tokens: "%{count} tok"
+          usage_cost: "≈ %{cost}"
+          usage_none: "—"
+          status_enabled: Enabled
+          status_disabled: Disabled
+          tooltip_test_connection: Test connection
+          tooltip_details: Show details
+          btn_set_default: Set as default
+          empty_title: No AI credentials found
+          empty_description: Create AI credentials to work with different AI providers.
+          empty_add_first: Add first AI credential
+        show:
+          badge_active: Default
+          badge_disabled: Disabled
+          created_at: Created on %{date}
+          btn_test_connection: Test connection
+          btn_edit: Edit
+          btn_activate: Set as default
+          stat_status: Status
+          stat_active: Default
+          stat_inactive: Not default
+          stat_usage_30d: Usage (30d)
+          stat_cost_30d: Cost (30d)
+          stat_last_usage: Last usage
+          stat_last_usage_ago: "%{time} ago"
+          stat_never: Never
+          config_title: Configuration
+          config_provider: Provider
+          config_model: Model
+          config_api_key: API Key
+          config_org_id: Organisation ID
+          config_enabled: Enabled
+          config_active: Default
+          config_yes: 'Yes'
+          config_no: 'No'
+          config_description: Description
+          section_packages: Referenced by
+          section_packages_help: Packages using this credential. As long as one is listed here, it cannot be deleted.
+          packages_none: No package uses this credential.
+          quick_actions_title: Quick Actions
+          btn_enable: Enable
+          btn_deactivate: Deactivate
+          btn_set_active: Set as default
+          btn_delete: Delete
+          btn_delete_blocked_title: "Referenced by packages: %{packages}"
+          usage_title: Recent usage (7 days)
+          usage_th_date: Date
+          usage_th_organisation: Organisation
+          usage_th_model: Model
+          usage_th_tokens: Tokens
+          usage_th_cost: Cost
+          usage_empty_title: No usage yet
+          usage_empty_description: This credential has not been used yet.
+          availability_title: Model availability (Vertex AI)
+          availability_intro: Checks free of charge via countTokens which models are reachable in which EU region for project %{project}.
+          availability_btn_check: Check now
+          availability_btn_refresh: Refresh
+          availability_last_checked: Last checked %{time}
+          availability_empty: Not checked yet.
+          availability_th_region: Region
+          availability_cell_available: available
+          availability_cell_unavailable: not available
+          availability_cell_error: Error
+          availability_cell_status: HTTP %{code}
+          availability_legend_available: 200 — model available in the region (embedding models answer 400)
+          availability_legend_unavailable: 404 — not available / no access
+          availability_legend_error: other status — cell failed individually (403 everywhere = missing IAM role)
+          availability_global_badge: info only — not residency-compliant
+          availability_missing_project: The GCP project ID (additional_config['project_id']) is missing on this credential.
+        edit:
+          title: Edit AI credential
+          subtitle_html: Edit settings for <strong>%{name}</strong> (%{provider})
+          btn_test_connection: Test connection
+          btn_activate: Set as default
+          stat_status: Status
+          stat_active: Default
+          stat_inactive: Not default
+          stat_usage_30d: Usage (30d)
+          stat_created: Created
+          errors_title: "%{count} error(s) occurred:"
+          section_basic: Basic Information
+          label_name: Name
+          placeholder_name: e.g. OpenAI Production
+          label_provider: AI Provider
+          label_description: Description (optional)
+          placeholder_description: Additional information about this credential...
+          section_api: API Configuration
+          label_api_key: API Key
+          show_full_key: Show full key
+          hide_key: Mask key
+          security_notice_html: "<strong>Security notice:</strong> Leave the field empty to keep the existing API key."
+          label_api_key_keep: API Key (leave empty to keep)
+          placeholder_api_key: Enter new API key or leave empty
+          label_sa_json_keep: Service account JSON (Google only — leave masked to keep)
+          placeholder_sa_json: Paste a new service account JSON or leave the masked value
+          sa_json_help: The full GCP service account JSON. The masked value is kept unchanged on save.
+          label_org_id: Organisation ID (optional)
+          label_default_model: Default Model
+          label_uri_base: Endpoint URL (OpenAI-compatible only)
+          uri_base_help: Base URL of an OpenAI-compatible endpoint (Azure, LiteLLM, self-hosted). Only used for the OpenAI-compatible provider.
+          placeholder_uri_base: https://endpoint.example/v1
+          label_project_id: GCP project ID (Google only)
+          project_id_help: ID of the Google Cloud project with Vertex AI enabled. Only used for the Google provider.
+          placeholder_project_id: my-gcp-project
+          label_location: Vertex AI region (Google only)
+          location_help: "Regional Vertex AI endpoint, e.g. europe-west3 (Frankfurt). Required for EU data residency — \"global\" is rejected."
+          placeholder_location: europe-west3
+          section_settings: Settings
+          label_enabled: Credential enabled
+          enabled_help: When disabled, the credential will not be used
+          label_active: Set as default credential for %{provider}
+          active_help: "Default for provider-based resolution: organisations using this provider without their own keys get this credential. Removes default status from other credentials of the same provider."
+          btn_cancel: Cancel
+          btn_save: Save changes
+          recent_usage_title: Recent Usage
+          usage_th_date: Date
+          usage_th_organisation: Organisation
+          usage_th_model: Model
+          usage_th_tokens: Tokens
+          usage_th_cost: Cost
+        new:
+          title: Create new AI credential
+          subtitle: Add a new AI provider or additional credentials.
+          errors_title: "%{count} error(s) occurred:"
+          section_basic: Basic Information
+          label_name: Name
+          placeholder_name: e.g. OpenAI Production
+          name_help: A unique name for this credential
+          label_provider: AI Provider
+          provider_help: Select the AI provider
+          label_description: Description (optional)
+          placeholder_description: Additional information about this credential...
+          section_api: API Configuration
+          security_title: Security Notice
+          security_text: API keys are stored encrypted in the database. Make sure to only use trusted keys.
+          label_api_key: API Key
+          api_key_help: The API key for the selected provider
+          label_sa_json: Service account JSON (Google only)
+          sa_json_help: The full GCP service account JSON (stored encrypted). No API key — only service account auth guarantees the regional EU endpoint.
+          placeholder_sa_json: '{ "type": "service_account", "project_id": "...", "private_key": "...", "client_email": "..." }'
+          label_org_id: Organisation ID (optional)
+          org_id_help: Provider-specific organisation ID
+          label_default_model: Default Model
+          default_model_help: The default model for this provider
+          label_uri_base: Endpoint URL (OpenAI-compatible only)
+          uri_base_help: Base URL of an OpenAI-compatible endpoint (Azure, LiteLLM, self-hosted). Only used for the OpenAI-compatible provider.
+          placeholder_uri_base: https://endpoint.example/v1
+          label_project_id: GCP project ID (Google only)
+          project_id_help: ID of the Google Cloud project with Vertex AI enabled. Only used for the Google provider.
+          placeholder_project_id: my-gcp-project
+          label_location: Vertex AI region (Google only)
+          location_help: "Regional Vertex AI endpoint, e.g. europe-west3 (Frankfurt). Required for EU data residency — \"global\" is rejected."
+          placeholder_location: europe-west3
+          section_settings: Settings
+          label_enabled: Enable credential
+          enabled_help: The credential is immediately available
+          label_active: Set as default credential for this provider
+          active_help: "Default for provider-based resolution: organisations using this provider without their own keys get this credential. Removes default status from other credentials of the same provider."
+          btn_cancel: Cancel
+          btn_create: Create AI credential
+          provider_hints_title: Provider-specific hints
+          openai_label: 'OpenAI:'
+          openai_key_format: 'API key format:'
+          openai_org_id: 'Organisation ID: %{code} (optional)'
+          openai_models: 'Recommended models:'
+          anthropic_label: 'Anthropic:'
+          anthropic_key_format: 'API key format:'
+          anthropic_models: 'Models:'
+          openai_compatible_label: 'OpenAI-compatible (custom endpoint):'
+          openai_compatible_hint: Set the endpoint URL + a 1536-dimensional embedding model (Azure OpenAI, LiteLLM, self-hosted).
+          label_preset: EU preset (optional)
+          preset_blank: "— no preset —"
+          preset_help: Prefills provider, endpoint URL and model for an EU provider. All fields remain editable afterwards.
+          eu_label: 'EU providers (Mistral, IONOS, OVHcloud):'
+          eu_sovereignty_hint: Run via the OpenAI-compatible provider with data processing in the EU — configurable without guesswork via the EU preset above (data sovereignty/GDPR).
+          eu_chat_only_hint: 'Presets are deliberately chat-only: EU embedding models return 1024 dimensions and do not fit the 1536 embedding lane.'
+          eu_azure_hint: Azure OpenAI (EU region) is also OpenAI-compatible, but uses a deployment-specific endpoint URL — please enter it manually.
+          google_label: 'Google Gemini (Vertex AI):'
+          google_auth_hint: Auth via service account JSON only (no API key — this is what guarantees the regional EU endpoint and data residency). The service account needs the "Vertex AI User" role.
+          google_region_hint: 'GCP project ID and region are required, EU region e.g.'
+          google_models_hint: 'Models (verify availability in the selected region):'
+      ai_packages:
+        # Rendered by _published_badge from BOTH index and show — one wording,
+        # so the two callers cannot drift apart again.
+        shared:
+          published_yes: Published
+          published_no: Not published
+        jurisdictions:
+          blank: Not stated
+          eu_native: European — provider and servers in the EU
+          eu_region_foreign_provider: EU region, non-European provider — servers in the EU, corporation outside
+          eu_provider_foreign_region: EU provider, third-country region — provider in the EU, servers outside
+          non_eu: Outside the EU — provider and servers outside the EU
+          self_hosted: Own server — self-hosted, the operator is the processor
+        index:
+          title: AI Packages
+          subtitle: Curated offerings for the customer catalogue. Credentials are the stock room, packages the shop window.
+          add: New package
+          table_title: All packages
+          th_name: Name
+          th_jurisdiction: Jurisdiction
+          th_tiers: Tiers
+          th_published: Published
+          th_position: Position
+          th_actions: Actions
+          tier_count:
+            one: "%{count} tier"
+            other: "%{count} tiers"
+          tooltip_details: Details
+          tooltip_edit: Edit
+          tooltip_delete: Delete
+          empty_title: No AI packages yet
+          empty_description: A package bundles jurisdiction, vector space and chat tiers into one offering an organisation picks as a whole.
+          empty_add_first: Create the first package
+        new:
+          title: New AI package
+          subtitle: Name, description, jurisdiction and provider note appear verbatim on the customer side.
+        edit:
+          title: Edit %{name}
+          subtitle: Changes to the embedding model or dimension affect every organisation using this package.
+        form:
+          errors_title: "%{count} error(s) occurred:"
+          section_basic: Basics
+          label_name: Name
+          placeholder_name: e.g. European
+          name_help: Appears as the card title in the customer catalogue.
+          label_position: Position
+          position_help: Card order in the catalogue, lower number first.
+          label_description: Description
+          placeholder_description: One plain sentence, e.g. Processed in France by Mistral AI, a French company.
+          description_help: Appears verbatim on the customer card — not an internal note.
+          label_active: Published (visible in the customer catalogue)
+          active_help: Unpublished packages can be finished at your own pace; organisations cannot select them.
+          section_legal: Legal classification
+          label_jurisdiction: Legal classification (appears in the DPA)
+          jurisdiction_blank: Please select
+          jurisdiction_help: This statement flows verbatim onto the customer card, into the Art. 13 notice and into the DPA. You are giving an assurance, not picking a label.
+          jurisdiction_warning_title: Check the classification
+          jurisdiction_warning_body: "This package is classified as “European”, yet it references a Google credential (%{credentials}). By the tier definition that would be “EU region, non-European provider” — an EU server run by a US corporation."
+          label_processing_region: Processing region
+          placeholder_processing_region: e.g. France or europe-west3
+          processing_region_help: Display only, no routing — routing is decided by the credential.
+          label_provider_note: Provider note
+          placeholder_provider_note: What the provider contractually does with the data — training, retention, sub-processors.
+          provider_note_help: Required. Two providers on the same tier can differ here; the region does not cover it.
+          section_embedding: Vector space (embedding)
+          section_embedding_help: Credential, model and dimension together form the package's vector space. It deliberately hangs on the jurisdiction, not on the performance tier — otherwise switching tiers would trigger a reindex.
+          label_embedding_credential: Embedding credential
+          credential_blank: Please select
+          credential_link: "Open credential: %{name}"
+          badge_not_metered: does not count against the quota
+          label_embedding_model: Embedding model
+          placeholder_embedding_model: e.g. mistral-embed
+          embedding_model_help: A change here triggers a reindex for every organisation on this package.
+          label_embedding_dims: Dimensions
+          dims_blank: Please select
+          embedding_dims_help: Must match the model. This cannot be verified automatically — check the provider documentation; a wrong value only surfaces on the first embed call.
+          section_tiers: Performance tiers
+          section_tiers_help: Two fixed tiers. Key and label are a product decision and therefore not editable per package; the lower tier also handles the helper tasks.
+          label_chat_credential: Chat credential
+          label_chat_model: Chat model (optional)
+          placeholder_chat_model: e.g. gemini-2.5-flash
+          chat_model_help: Overrides the credential's default model. Leaving it empty means the default applies.
+          submit_create: Create package
+          submit_save: Save changes
+          cancel: Cancel
+        show:
+          subtitle: "Catalogue position: %{position}"
+          btn_edit: Edit
+          section_customer: What the customer reads
+          section_customer_help: All customer-facing copy in one place. The real catalogue card comes later — this is the honest approximation, not a second rendering of the same thing.
+          label_jurisdiction: Legal classification
+          label_processing_region: Processing region
+          label_description: Description
+          label_provider_note: Provider note
+          value_blank: "—"
+          section_config: Technical configuration
+          label_embedding: Vector space
+          label_embedding_credential: Credential
+          label_embedding_model: Model
+          label_embedding_dims: Dimensions
+          label_tiers: Performance tiers
+          th_tier: Tier
+          th_credential: Credential
+          th_model: Effective model
+          model_from_credential: (credential default)
+          tiers_empty: No tier configured for this package yet.
+          section_vertex: Vertex availability
+          section_vertex_help: Only for referenced Google credentials. Shows the cached state; "Check again" queries live.
+          th_slot: Used for
+          th_region: Region
+          th_state: State
+          slot_embedding: Embedding
+          vertex_available: available
+          vertex_unavailable: unavailable
+          vertex_unknown: unverified
+          vertex_last_checked: "As of: %{time}"
+          btn_vertex_check: Check again
+      system_settings:
+        registration:
+          title: Registration Settings
+          status_title: Registration Status
+          status_enabled: New users can register themselves.
+          status_disabled: New registrations are disabled. Only invitations work.
+          btn_disable: Disable registrations
+          btn_enable: Enable registrations
+          click_to_lock: Click to lock
+          click_to_unlock: Click to unlock
+          btn_save: Save changes
+          message_label: Message when registration is disabled
+          message_placeholder: Message displayed to users...
+          message_help: This message is displayed to users when they try to register.
+          btn_save_message: Save message
+          status_active: 'Status: Registrations enabled'
+          status_inactive: 'Status: Registrations disabled'
+        deletion:
+          title: Account Deletion
+          grace_period_label: Grace Period (waiting time before permanent deletion)
+          days: Days
+          grace_period_help_html: 'Time in days a user has to undo their account deletion.<br><strong>0 days</strong> = Immediate deletion (no grace period)<br><strong>Max: 365 days</strong>'
+          info_title: Important Information
+          info_immediate: With 0 days, accounts are deleted immediately and irreversibly
+          info_cancel: During the grace period, users can cancel their deletion
+          info_job: A background job checks hourly for overdue deletions
+          info_admin: Backend deletions by admins are always immediate
+          current_setting_html: 'Current setting: Users have <strong>%{days} days</strong> to undo their account deletion.'
+          warning_no_grace_html: "<strong>Warning:</strong> Grace period is disabled. Account deletions are immediate and irreversible!"
+          btn_save: Save settings
+      user_activities:
+        index:
+          title: User Activities
+          subtitle: Overview of all user activities in the system
+          stat_active_today: Active today
+          stat_activities_today: Activities today
+          stat_failed_logins: Failed Logins
+          stat_new_registrations: New Registrations
+          filter_category: Category
+          filter_all: All
+          filter_status: Status
+          filter_status_success: Successful
+          filter_status_failed: Failed
+          filter_status_pending: Pending
+          filter_action: Action
+          filter_date_from: From
+          filter_date_to: To
+          btn_filter: Filter
+          btn_reset_filters: Reset filters
+          btn_csv_export: CSV Export
+          top_users_title: Most active users (last 7 days)
+          table_title: Activities
+          table_title_for_user: for %{email}
+          th_time: Time
+          th_user: User
+          th_action: Action
+          th_category: Category
+          th_status: Status
+          th_ip: IP
+          th_organisation: Organisation
+          th_details: Details
+          empty: No activities found
+          showing_count: Showing %{count} of max 100 activities
+          btn_security_events: Show security events
+        security:
+          title: Security Events
+          subtitle: Monitoring of security-relevant activities
+          suspicious_users_title: Suspicious users (>3 failed logins in 24h)
+          failed_attempts: "%{count} failed attempts"
+          suspicious_ips_title: Suspicious IP addresses (>5 failed logins in 24h)
+          ip_attempts: "%{count} attempts"
+          table_title: Security Events Log
+          th_time: Time
+          th_severity: Severity
+          th_user: User
+          th_event: Event
+          th_ip: IP Address
+          th_details: Details
+          th_actions: Actions
+          tooltip_details: Show details
+          tooltip_manage_user: Manage user
+          empty_title: No security events in this time period
+          showing_count: Showing %{count} of max 100 security events
+          btn_back: Back to all activities
+          btn_export: Export security report
+      users:
+        index:
+          title: Users
+          subtitle: Management of all users in the system
+          total: Total
+          show_deleted: Show deleted
+          create_new_user: Create new user
+          active_users: Active Users
+          inactive_users: Inactive Users
+          all_users: All Users
+          user: User
+          created: Created
+          deletion_scheduled: Deletion scheduled
+          no_users_found: No users found
+          organisation_count:
+            one: "%{count} Organisation"
+            other: "%{count} Organisations"
+        show:
+          breadcrumb_users: Users
+          deactivate: Deactivate
+          activate: Activate
+          delete_account: Delete account
+          active_memberships: Active Memberships
+          member_since: Member Since
+          organisations_and_roles: Organisations & Roles
+          role_label: 'Role:'
+          domain_label: 'Domain:'
+          no_organisation: Not assigned to any organisation
+          project_permissions: Project Permissions
+          no_permissions: No specific permissions
+          access_via_roles: Access via roles
+          activity_history: Activity History
+          show_all_activities: Show all activities →
+          failed: Failed
+          last_seen: Last active
+          online: Online
+          last_login: Last Login
+          never: Never
+          logins_30d: Logins (30 days)
+          failed_24h: Failed (24h)
+          total_activities: Total Activities
+          no_activities: No activities recorded yet
+          account_info: Account Information
+          account_status: Account Status
+          account_created: Account created
+          deletion_scheduled: Deletion scheduled
+          days_remaining: "%{count} days remaining"
+          ai_user: AI User
+          deletion_in_days: Deletion in %{count} days
+          confirm_delete_title: Confirm account deletion
+          warning_irreversible: 'WARNING: Irreversible action!'
+          account_will_be_deleted_html: The account <strong>%{email}</strong> will be permanently deleted.
+          enter_email_to_confirm: 'Please enter the email address to confirm:'
+          confirm_email: 'Confirm email:'
+          reason_optional: 'Reason (optional):'
+          reason_placeholder: e.g. GDPR request
+          delete_permanently: Delete permanently
+        deleted:
+          breadcrumb_users: Users
+          title: Deleted Users
+          subtitle: Overview of all deleted user accounts with audit trail
+          active_users: Active Users
+          total_deleted: Total deleted
+          today: Today
+          this_week: This Week
+          this_month: This Month
+          backend_deletions: Backend Deletions
+          self_service: Self-Service
+          deleted_users_count: Deleted Users (%{count})
+          user_anonymized: User (anonymized)
+          deleted_at: Deleted at
+          deleted_by: Deleted by
+          source: Source
+          reason: Reason
+          backend: Backend
+          no_reason: No reason provided
+          recommended_deletion: Recommended for deletion
+          no_deleted_users: No deleted users
+          no_users_deleted_yet: No users have been deleted yet.
+          info_title: Note about deleted users
+          info_text: 'Deleted users are stored anonymized for compliance reasons:'
+          info_anonymized: Personal data (name, email) is anonymized
+          info_memberships_removed: All organisation memberships are removed
+          info_audit_trail: A complete audit trail is created for each deletion
+          info_email_in_audit: The original email address is stored in the audit log
+          clock_suffix: ''
+      beusers:
+        index:
+          admin_user: Admin User
+          email_header: Email
+          role_and_status: Role & Status
+          created: Created
+          no_admins: No admin users found
+          no_admins_created: No admin users have been created yet.
+          add_first_admin: Add first admin
+        new:
+          title: Create New Admin
+          subtitle: Create a new administrator account for the system.
+          personal_info: Personal Information
+          security: Security
+          permissions: Permissions
+          activate_account: Activate account
+          user_can_login: The user can log in immediately
+          create_admin: Create admin
+          role_user: User
+          role_admin: Administrator
+        edit:
+          breadcrumb_admins: Backend Admins
+          breadcrumb_edit: Edit
+          title: Edit Admin
+          subtitle_html: Edit the information for <strong>%{email}</strong>
+          personal_info: Personal Information
+          account_status: Account Status
+          account_activated: Account activated
+          deactivated_hint: When deactivated, the user cannot log in
+          permissions: Permissions
+          admin_area_warning_html: "<strong>Admin area:</strong> Only admins can edit these settings."
+          special_permissions: Special Permissions
+          manage_user_list: Manage user list
+          manage_user_list_hint: Can view and manage all users
+          change_password: Change password
+          save_changes: Save changes
+          account_info: Account Information
+          current_role: Current Role
+          role_admin: Administrator
+          role_user: User
+        edit_password:
+          title: Change Password
+          subtitle_html: Set a new password for <strong>%{email}</strong>
+          security_warning_title: Important Security Notice
+          security_warning_text: The new password should be at least 8 characters long and contain a combination of letters, numbers and special characters.
+          set_new_password: Set New Password
+          new_password: New Password
+          password_hint: The password should be secure and unique.
+          confirm_password_hint: Enter the password again to confirm.
+          submit: Change password
+          security_tips_title: Password Security Tips
+          tip_mixed_case: Use a combination of uppercase and lowercase letters
+          tip_special_chars: Add numbers and special characters
+          tip_min_length: Use at least 8 characters
+          tip_no_personal: Avoid personal information or common words
+    layouts:
+      deletion_warning:
+        title: Account deletion scheduled!
+        account_deleted_on: Your account will be deleted on
+        deleted: deleted
+        in_days:
+          one: in %{count} day
+          other: in %{count} days
+        cancel_deletion: Cancel deletion
+        hide_banner: Temporarily hide banner
+      email_confirmation:
+        title: Please confirm your email address.
+        body: We sent a confirmation link to %{email}.
+        days_left:
+          one: "%{count} day left before access ends."
+          other: "%{count} days left before access ends."
+        resend: Resend email
+        why: Why?
+    shared:
+      # The file's kind as a word (AttachmentsHelper#attachment_file_kind_word).
+      file_kinds:
+        pdf: PDF
+        image: Image
+        word: Word
+        sheet: Spreadsheet
+        archive: Archive
+        text: Text
+        file: File
+      bot_trap:
+        # Only for readers that ignore aria-hidden; the field is never visible.
+        honeypot_label: Please leave this field empty
+      subscriber_list:
+        label: 'Notified:'
+        you: You
+        source_creator: Creator
+        source_assignee: Assigned
+        source_self: Watching
+        source_manual: Added by %{name}
+        source_manual_unknown: Manually added
+        add_person: Add person
+        search_placeholder: Name or email...
+        remove: Remove
+        confirm_remove: Remove %{name} from notifications?
+        no_results: No results
+        user_muted: Notifications muted
+        toggle_follow: Enable notifications
+        toggle_mute: Disable notifications
+        not_subscribed: Not subscribed
+        muted_label: Muted
+        click_to_add: Add %{name} to notifications
+        heading: Notified
+        change: change
+        done: done
+        nobody: nobody
+        search_person: Search person ...
+      close_content_panel: Close panel
+      lane_split: "Resize list and detail (drag, arrow keys, double-click resets)"
+      close_chat: Close chat
+      empty_content:
+        no_results_title: No results
+        no_results_description: Try different filter criteria or remove active filters.
+      notification_override_hint:
+        manually_enabled: Notification manually enabled
+        manually_disabled: Notification manually disabled
+      attachment:
+        open: Open
+        zoom: Enlarged view
+        download: Download
+        section_title: Attachments (%{count})
+      pagination:
+        of: of
+        entries:
+          one: "%{count} entry"
+          other: "%{count} entries"
+      pagination_compact:
+        previous_page: Previous page
+        page_of: Page %{page} of %{total}
+        next_page: Next page
+    devise:
+      shared:
+        # The login side panel. Own keys, not the pricing page copy: the public pages
+        # leave the core in step W6 of the website split.
+        # One claim left. "Hosted in Germany" and "DPA included" were about our
+        # cloud, and this application runs on other people's servers: an
+        # instance in Vienna told its own people the opposite of the truth.
+        trust_pills:
+          gdpr: GDPR compliant
+        # devise/shared/_password_field: three pages render that partial, so the
+        # four strings live here and not three times over.
+        password_field:
+          hide: Hide
+          show: Show
+          # The meter is informative; the binding rule stays with Devise
+          # (password_length). strength_rule states exactly that rule.
+          strength_labels:
+            - Too short
+            - Okay
+            - Good
+            - Strong
+          strength_rule: at least %{count} characters
+      registrations:
+        edit:
+          title: Profile
+          profile_section: Personal Information
+          password_section: Change Password
+          first_name: First name
+          last_name: Last name
+          email_change_hint: A new address only takes effect once you click the confirmation link sent to it. Until then the current one stays active.
+          pending_confirmation: 'Waiting for confirmation for: %{email}'
+          new_password: New password
+          leave_blank_password: Minimum 6 characters
+          confirm_new_password: Confirm new password
+          current_password: Current password
+          current_password_hint: required to confirm the changes
+          save_profile: Save profile
+          save_password: Change password
+          save_changes: Save changes
+          danger_zone: Danger zone
+          delete_warning: Deleting your account cannot be undone.
+          delete_account: Delete account
+        disabled:
+          title: Registration not available
+          existing_account_hint: If you already have an account, you can still log in. For questions, please contact the administrator.
+          go_to_login: Go to login
+          go_to_home: Go to homepage
+          currently_closed: Currently closed
+          temporarily_disabled: Registration is temporarily disabled.
+          what_you_can_do: 'What you can do:'
+          login_existing: Log in with an existing account
+          use_invitation: Use an invitation link, if available
+          contact_admin: Contact the administrator for more information
+  components:
+    unread_marker:
+      count_label:
+        one: 1 unread notification
+        other: "%{count} unread notifications"
+    ticket_columns:
+      unassigned: unassigned
+    neo_tag:
+      remove: "Remove %{name}"
+    column_picker:
+      title: What matters here?
+      hint: What is on top stays visible first.
+      always: always
+      done: done
+      boundary: the width runs out from here
+      applies_to_html: applies to %{name}
+      read_only: This view is shared and read-only. Its owner chooses its columns; save it as a new view to choose your own.
+      save_failed: Could not save. Please try again.
+      columns_unknown: These columns do not exist in this list.
+      apply_to_all: apply to all views
+      trigger_title: Choose columns
+      # The caption names the EFFECT, not the column: what the reader gains is
+      # "stays readable", and that sentence is the same for every row. The
+      # accessible name adds the column, because a screen reader does not see
+      # which row it is on.
+      pin: pin it, then it stays visible even when the width runs out
+      pinned: pinned, stays visible even when the width runs out
+      pin_fixed: always visible, not changeable
+      pin_label_off: "pin: %{name}"
+      pin_label_on: "%{name} is pinned"
+      pin_hint: When it gets tight the lower ones go first. Pinned stays.
+      moved: "%{name} at position %{position}"
+    filter_bar:
+      view_tabs_label: Saved views
+      more_views: "%{count} more"
+      unsaved: Not saved yet
+      connector_not: not
+      edit_condition: "Change %{category}"
+      not_editable_here: Only editable in the expert filter
+      close_menu: Close
+      back: Back
+      in_use: in use
+      change_value: Change value
+      edit_conditions: change
+      done_editing: done
+      # The caption says what the click DOES and names the thing: a cross
+      # without a word cannot be guessed on a row of controls.
+      remove_condition: "Remove condition: %{category}"
+      remove_value: "Remove %{value}"
+      add_condition: condition
+      name_of_view: Name of the view
+      name_save: Save
+      name_cancel: Cancel
+      nothing_selected: nothing selected
+      change_value_removed: "\"%{value}\" was removed."
+      change_two_values_removed: "\"%{a}\" and \"%{b}\" were removed."
+      change_values_removed: "%{count} values were removed."
+      change_value_added: "\"%{value}\" was added."
+      change_values_added: "%{count} values were added."
+      change_conditions_changed: The conditions have changed.
+      condition_count:
+        one: One condition narrows the list.
+        other: "%{count} conditions narrow the list."
+      # The word of the "+ Filter" trigger when it stands as a sign (tight
+      # head, components/filter_bar.css): the title, with the count.
+      filter_sign_title:
+        zero: Filter
+        one: Filter · 1 condition
+        other: "Filter · %{count} conditions"
+      save_changes: Save change
+      save_as_new_view: As a new view
+      save_as_view: Save as a view
+      discard: Discard
+      reset: Reset
+      undo: Undo
+      change_discarded: Change discarded
+      conditions_reset: Conditions reset
+      view_saved: View saved
+      save_failed: Save failed
+      retry: Try again
+      view_menu: Manage view
+      rename: Rename
+      duplicate_view: Duplicate
+      duplicate_failed: Duplicating failed
+      rename_save: Save
+      rename_cancel: Cancel
+      renamed: Renamed
+      rename_failed: Rename failed
+      share: Share…
+      open_expert_filter: Open in the expert filter…
+      delete_view: Delete view
+      delete_confirm: "Delete the view \"%{name}\"? This cannot be undone."
+      view_deleted: "\"%{name}\" deleted"
+      delete_failed: Delete failed
+      proposal_question_html: "Also filter by %{condition}?"
+      accept: Accept
+      decline: Decline
+      search_open: Open search
+      save_filter_type_widened_hint: "More than one type, or a type without a folder kind of its own: the view is saved for all types."
+    overflow_menu:
+      label: More actions
+    contextual_help:
+      label: Help for this area
+      drawer_title: Help
+      open_full_page: Open full page
+      close: Close help
+      loading: Loading …
+    time_session_billing_status:
+      tooltip_billed: 'Invoice: %{invoice} of %{date}'
+      tooltip_in_billing: 'Billing: %{name} (not invoiced yet)'
+    subject_time_summary:
+      scope:
+        all: "(total)"
+        own: "(own)"
+      show_time_tracking: Show time tracking
+      capture_time: Log time …
+      capture_effort: Log effort …
+      loading: Loading …
+    activity_timeline:
+      model_names:
+        project: Project
+        ticket: Ticket
+        document: Document
+        note: Note
+        chat: Chat
+        smart_folder: Smart Folder
+      titles:
+        created: "%{trackable_type} created"
+        updated: "%{trackable_type} updated"
+        deleted: "%{trackable_type} deleted"
+        member_added: Member added
+        member_removed: Member removed
+        permission_changed: Permission changed
+        ticket_created: Ticket created
+        ticket_moved_in: Ticket moved into project
+        ticket_moved_out: Ticket moved out of project
+        document_added: Document added
+        note_created: Note created
+        chat_created: Chat created
+        meeting_created: Meeting created
+        meeting_deleted: Meeting deleted
+        smart_folder_created: Smart Folder created
+        codebase_imported: Codebase imported
+        subscriber_added: Subscriber added
+        subscriber_removed: Subscriber removed
+        tickets_bulk_changed: Several tickets changed
+        tickets_bulk_undone: Bulk change taken back
+      descriptions:
+        tickets_bulk_changed: "%{actor} changed %{count} tickets: %{changes}"
+        tickets_bulk_undone: "%{actor} took a bulk change back (%{count} tickets): %{changes}"
+        member_added: "%{user_name} was added to the project"
+        member_removed: "%{user_name} was removed from the project"
+        permission_changed: Permissions for %{user_name} were changed
+        ticket_created: Ticket %{ticket_info} was created
+        ticket_moved_in: "%{actor} moved a ticket into the project (%{ticket_info})"
+        ticket_moved_out: "%{actor} moved a ticket out of the project (%{ticket_info})"
+        document_added: Document "%{doc_name}" was added
+        note_created: Note "%{note_title}" was created
+        assigned: "%{actor} assigned the ticket to %{assignee}"
+        subscriber_added: "%{actor} added %{subscriber} as subscriber"
+        subscriber_removed: "%{actor} removed %{subscriber} as subscriber"
+        chat_created: Chat "%{chat_title}" was created
+        meeting_created: Meeting "%{meeting_title}" was created
+        meeting_deleted: Meeting "%{meeting_title}" was deleted
+        smart_folder_created: Smart Folder "%{folder_name}" was created
+        codebase_imported_with_count: "%{files_count} files were imported"
+        codebase_imported: Codebase was imported
+        created_project: "%{actor} created the project"
+        created_unknown: "%{actor} has an unknown object"
+        created_generic: "%{actor} created the %{trackable_type}"
+        updated_project: "%{actor} updated the project"
+        updated_generic: "%{actor} updated the %{trackable_type}"
+        deleted_project: "%{actor} deleted the project"
+        deleted_generic: "%{actor} deleted the %{trackable_type}"
+      object_types:
+        ticket: Ticket
+        document: Document
+        note: Note
+        chat: Chat
+        meeting: Meeting
+        smart_folder: Smart Folder
+      defaults:
+        unknown_user: Unknown user
+        unknown_document: Unknown document
+        unknown_note: Unknown note
+        unknown_project: Unknown project
+        unknown_chat: Unknown chat
+        unknown_meeting: Unknown meeting
+        unknown_folder: Unknown folder
+        new_chat: New Chat
+        system_actor: System
+        empty_value: empty
+      template:
+        show_diff: View difference
+        changes_header: 'Changes:'
+        link_show: Show
+        link_documents: Go to documents
+        link_notes: Go to notes
+        link_open_chat: Open chat
+        activity_count:
+          one: "%{count} activity"
+          other: "%{count} activities"

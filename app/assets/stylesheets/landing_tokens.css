@@ -1,0 +1,117 @@
+/*
+ * Shared visual tokens for public landing and authentication pages.
+ *
+ * Keep these declarations under .lp so they cannot affect application pages.
+ */
+
+.lp {
+  --lp-paper: #F5F2EB;
+  --lp-paper-muted: #EDE8DC;
+  --lp-line: #DCD6C8;
+  /* The surface that carries content such as cards, tables, and product windows. Pure
+     white is intentionally the only palette color that does not come from the paper
+     tone. It keeps a card distinct from the band beneath it.
+
+     Before 21 August 2026, `#fff` appeared as an unnamed literal in twenty places with
+     no rule for when to use it. Identical cards consequently differed between the
+     comparison and chapter pages. */
+  --lp-white: #fff;
+  --lp-line-light: #E4DFD2;
+  --lp-border-strong: #C9C2B2;
+  --lp-ink: #14161A;
+  --lp-text-2: #4A4E57;
+  --lp-text-3: #6B6F79;
+  --lp-text-4: #8A8F99;
+  /* Signal orange for illustrations. It illustrates and marks rather than acting as
+     an interactive accent; see CLAUDE.md. */
+  --lp-signal: #E4552B;
+  --lp-accent: #2B4BD9;
+  --lp-accent-hover: #2340C2;
+  --lp-accent-bg: #F4F6FF;
+  --lp-accent-border: #C7D2F7;
+  --lp-on-dark: #F5F2EB;
+  --lp-on-dark-2: #A7ADBA;
+
+  /* ---------- Heading scale ----------
+     Five levels carry one meaning each, replacing the thirteen sizes that had
+     accumulated by 21 August 2026 (62/58/56/54/46/42/40/38/34/30/24/21/15).
+
+     The media queries at the end of the file assign each level again. A heading tied
+     to a level therefore scales on mobile without its own rule. Add a sixth level only
+     after checking that none of the five existing meanings fits. */
+  --lp-fs-hero: 62px;      /* the homepage h1 */
+  --lp-fs-display: 54px;   /* h1 for a chapter landing page */
+  --lp-fs-title: 42px;     /* h1 for a detail page and the largest h2 */
+  --lp-fs-section: 34px;   /* h2 inside a band */
+  --lp-fs-sub: 24px;       /* heading inside a card or column */
+  /* Card titles stay outside the responsive heading scale. A card becomes narrower
+     on a phone, but the same card should not also become smaller. */
+  --lp-fs-card: 17px;
+
+  /* ---------- Band spacing ----------
+     Five levels replace the eleven vertical padding values that had accumulated for
+     the same purpose by 21 August 2026.
+
+     `hero` has a separate meaning: the page header is intentionally compact on phones
+     so content starts above the fold. Horizontal spacing has one value on .lp-in rather
+     than one value per band. */
+  --lp-gutter: 56px;
+  --lp-band-xs: 24px;    /* bars and breadcrumbs */
+  --lp-band-sm: 48px;    /* indexes, card grids, and chapter bars */
+  --lp-band-md: 72px;    /* standard band */
+  --lp-band-lg: 80px;    /* closing band */
+  --lp-band-hero: 66px;  /* page header */
+
+  /* ---------- Rounding and card dimensions ----------
+     Four radii each carry one meaning. Small elements inside mock windows keep their
+     own values because they belong to the illustration and scale with it. */
+  --lp-r-control: 7px;   /* input or toggle */
+  --lp-r-card: 8px;      /* card */
+  --lp-r-frame: 10px;    /* frame around a table, window, or menu */
+  --lp-r-pill: 20px;     /* pill */
+
+  /* Card padding differs only between a card in a grid and a standalone panel. */
+  --lp-pad-card: 22px;   /* card in a grid */
+  --lp-pad-panel: 26px;  /* standalone card or prose panel */
+
+  background: var(--lp-paper);
+  color: var(--lp-ink);
+  font-family: 'Archivo', sans-serif;
+  min-height: 100vh;
+}
+
+/* The scale shrinks at two breakpoints for every heading. These are the existing
+   breakpoints from landing.css rather than new ones. */
+@media (max-width: 1279px) {
+  .lp {
+    --lp-fs-hero: 52px;
+    --lp-fs-display: 46px;
+    --lp-fs-title: 36px;
+    --lp-fs-section: 30px;
+    --lp-fs-sub: 22px;
+
+    --lp-gutter: 40px;
+    --lp-band-xs: 22px;
+    --lp-band-sm: 44px;
+    --lp-band-md: 56px;
+    --lp-band-lg: 64px;
+    --lp-band-hero: 52px;
+  }
+}
+
+@media (max-width: 767px) {
+  .lp {
+    --lp-fs-hero: 33px;
+    --lp-fs-display: 31px;
+    --lp-fs-title: 28px;
+    --lp-fs-section: 24px;
+    --lp-fs-sub: 20px;
+
+    --lp-gutter: 18px;
+    --lp-band-xs: 18px;
+    --lp-band-sm: 36px;
+    --lp-band-md: 44px;
+    --lp-band-lg: 56px;
+    --lp-band-hero: 24px;
+  }
+}

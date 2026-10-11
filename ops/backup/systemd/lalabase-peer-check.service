@@ -1,0 +1,9 @@
+[Unit]
+Description=Lalabase: Aktualitaet der eigenen und der Partner-Sicherung pruefen
+After=network-online.target
+Wants=network-online.target
+OnFailure=lalabase-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lalabase-peer-check.sh

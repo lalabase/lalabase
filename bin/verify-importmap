@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "pathname"
+
+ROOT = Pathname(__dir__).join("..").expand_path
+IMPORTMAP = ROOT.join("config/importmap.rb")
+JS_ROOT   = ROOT.join("app/javascript")
+
+def fail!(msg); warn("❌ #{msg}"); exit 1; end
+def ok!(msg);   puts("✅ #{msg}"); end
+
+fail!("config/importmap.rb fehlt") unless IMPORTMAP.file?
+fail!("app/javascript fehlt")      unless JS_ROOT.directory?
+
+content = IMPORTMAP.read
+
+# 1) Alias: controllers → controllers/index.js
+unless content.match?(/pin\s+'controllers'\s*,\s*to:\s*'controllers\/index\.js'/)
+  fail!("Pin 'controllers' → 'controllers/index.js' fehlt")
+end
+ok!("Pin 'controllers' vorhanden")
+
+# 2) All controllers are pinned (only relevant in Prod)
+controllers =
+  Dir.glob(JS_ROOT.join("controllers/**/*_controller.js")).map { |p|
+    Pathname(p).relative_path_from(JS_ROOT).to_s.sub(/\.js\z/, "")
+  }
+
+# Check controllers/index separately (can be direct pin OR alias)
+has_controllers_index = content.include?("pin 'controllers/index'") || 
+                       content.include?("pin 'controllers', to: 'controllers/index.js'")
+
+unless has_controllers_index
+  fail!("controllers/index nicht verfügbar (brauche direkten Pin oder 'controllers' Alias)")
+end
+
+missing = controllers.reject { |m| content.include?("pin '#{m}'") || content.include?("pin_all_from 'app/javascript/controllers'") }
+if missing.any?
+  warn "⚠️  Fehlende Pins:"
+  missing.each { |m| warn "   pin '#{m}', to: '#{m}.js'" }
+  exit 1
+end
+ok!("Alle #{controllers.size} Controller sind gepinnt")
+
+# 3) Sanity: No CSS via Importmap (common source of errors)
+if content.match?(/pin\s+['"].+\.css['"]/)
+  warn "⚠️  CSS wird per Importmap gepinnt. Besser via <link> oder Asset-Pipeline."
+  exit 1
+end
+ok!("Keine CSS-Pins gefunden")
+
+# 4) No orphaned Rails UJS pins
+if content.match?(/^\s*pin\s+['"]@rails\/ujs['"]/) && !content.match?(/^\s*#.*pin\s+['"]@rails\/ujs['"]/)
+  warn "⚠️  @rails/ujs ist gepinnt aber nicht verwendet (Preload-Warning)"
+  exit 1
+end
+ok!("Keine ungenutzten @rails/ujs Pins")
+
+puts "🎉 Importmap-Check OK"

@@ -1,0 +1,157 @@
+# Leak net: secrets and what only the maintainers know, on EVERY pull request.
+#
+# Its own workflow on purpose: guards.yml skips a pull request that touches only
+# Markdown in the root, and a pasted login block lands in exactly such a file
+# (the one found before the launch was in CLAUDE.md). This one has no path
+# filter, needs no database and no bundle.
+#
+# Everything a pull request makes public, not only its end state: in a public
+# repository a key committed and removed again stays in the history.
+# * gitleaks over every commit, merges included (their diff against main, so a
+#   conflict resolution counts), over the commit messages, and over the files
+#   as they end up. --text: a .gitattributes "-diff" does not hide a file.
+#   --redact keeps a found secret out of the (public) log.
+# * leak guard (script/leak_guard) over every tracked file and over the same
+#   commits: the names they add (binaries, links, renames), who wrote them,
+#   their messages and added lines, and the pull request's branch name and
+#   title, which become the merge commit on main, with the keyed digests of config/leak_guard.digests. Needs the
+#   secret LEAK_GUARD_KEY (only these two steps get it), and stops when it is
+#   not the key the digests were made with.
+#
+# The leak net (the guard, its digests, .gitleaks.toml) comes from the BASE of
+# the pull request, not from the pull request: one that weakens the net, say
+# by allowing a real key "to make the CI green", is still checked by the old
+# one. A change to the net is named in the job summary, with or without the
+# label. The label
+# leak-net-change makes a run use the pull request's own net (a new dummy key
+# in the allowlist would otherwise be found in .gitleaks.toml itself).
+#
+# One job, one status to require. Each check runs even when one before it
+# failed, so a red run shows all of them. The range is checked first:
+# gitleaks scans 0 commits of a range git cannot resolve, and says so in green.
+# No concurrency group, so no run is cancelled or dropped from a queue: a
+# commit replaced by a force push stays public by its hash, and its run is the
+# only one that sees it.
+#
+# Also on a push to main. By hand (workflow_dispatch) there is no base: the
+# whole history is scanned, with the net of the checkout.
+name: Leaks
+
+on:
+  pull_request:
+    # edited: a new title is a new merge commit message.
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  leaks:
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+      BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+      OWN_NET: ${{ contains(github.event.pull_request.labels.*.name, 'leak-net-change') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+
+      - name: Install gitleaks (pinned, checksum verified)
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP/bin" gitleaks
+          : > "$RUNNER_TEMP/empty.gitleaksignore"
+
+      - name: Range
+        id: range
+        run: |
+          range="$(ruby script/leak_guard range "$BASE")"
+          echo "range=$range" >> "$GITHUB_OUTPUT"
+          echo "Scanning $range"
+
+      - name: Leak net
+        id: net
+        run: |
+          own=""
+          if [ "$OWN_NET" = true ]; then
+            own="--own"
+            echo "::warning::Label leak-net-change: this run checks the pull request with its own leak net."
+          fi
+          ruby script/leak_guard net "$BASE" "$RUNNER_TEMP/net" $own
+          echo "dir=$RUNNER_TEMP/net" >> "$GITHUB_OUTPUT"
+
+      - name: gitleaks, commits
+        if: ${{ !cancelled() && steps.net.outcome == 'success' }}
+        env:
+          RANGE: ${{ steps.range.outputs.range }}
+          NET: ${{ steps.net.outputs.dir }}
+        run: |
+          "$RUNNER_TEMP/bin/gitleaks" git --config "$NET/.gitleaks.toml" --redact --no-banner \
+            --ignore-gitleaks-allow --gitleaks-ignore-path "$RUNNER_TEMP/empty.gitleaksignore" \
+            --log-opts="--text --diff-merges=first-parent $RANGE" .
+
+      - name: gitleaks, commit messages
+        if: ${{ !cancelled() && steps.net.outcome == 'success' }}
+        env:
+          RANGE: ${{ steps.range.outputs.range }}
+          NET: ${{ steps.net.outputs.dir }}
+        run: |
+          git log --format=%B "$RANGE" | "$RUNNER_TEMP/bin/gitleaks" stdin --config "$NET/.gitleaks.toml" \
+            --redact --no-banner --ignore-gitleaks-allow --gitleaks-ignore-path "$RUNNER_TEMP/empty.gitleaksignore"
+
+      - name: gitleaks, files
+        if: ${{ !cancelled() && steps.net.outcome == 'success' }}
+        env:
+          NET: ${{ steps.net.outputs.dir }}
+        run: |
+          "$RUNNER_TEMP/bin/gitleaks" dir --config "$NET/.gitleaks.toml" --redact --no-banner \
+            --ignore-gitleaks-allow --gitleaks-ignore-path "$RUNNER_TEMP/empty.gitleaksignore" .
+
+      - name: Leak guard, files
+        if: ${{ !cancelled() && steps.net.outcome == 'success' }}
+        env:
+          LEAK_GUARD_KEY: ${{ secrets.LEAK_GUARD_KEY }}
+          LEAK_GUARD_ROOT: ${{ github.workspace }}
+          NET: ${{ steps.net.outputs.dir }}
+        run: ruby "$NET/script/leak_guard"
+
+      - name: Leak guard, commits
+        if: ${{ !cancelled() && steps.net.outcome == 'success' }}
+        env:
+          LEAK_GUARD_KEY: ${{ secrets.LEAK_GUARD_KEY }}
+          LEAK_GUARD_ROOT: ${{ github.workspace }}
+          RANGE: ${{ steps.range.outputs.range }}
+          NET: ${{ steps.net.outputs.dir }}
+        run: ruby "$NET/script/leak_guard" history "$RANGE"
+
+      # GitHub writes the branch name and the title (a squash: maybe the body)
+      # into the commit on main, after every check above ran on its test merge.
+      # Through env only: inside run: a title would be script.
+      - name: Pull request, branch and title
+        if: ${{ !cancelled() && steps.net.outcome == 'success' && github.event_name == 'pull_request' }}
+        env:
+          LEAK_GUARD_KEY: ${{ secrets.LEAK_GUARD_KEY }}
+          LEAK_GUARD_ROOT: ${{ github.workspace }}
+          LEAK_GUARD_PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          LEAK_GUARD_PR_TITLE: ${{ github.event.pull_request.title }}
+          LEAK_GUARD_PR_BODY: ${{ github.event.pull_request.body }}
+          NET: ${{ steps.net.outputs.dir }}
+        run: |
+          printf '%s\n%s\n%s\n' "$LEAK_GUARD_PR_BRANCH" "$LEAK_GUARD_PR_TITLE" "$LEAK_GUARD_PR_BODY" \
+            | "$RUNNER_TEMP/bin/gitleaks" stdin --config "$NET/.gitleaks.toml" --redact --no-banner \
+              --ignore-gitleaks-allow --gitleaks-ignore-path "$RUNNER_TEMP/empty.gitleaksignore"
+          ruby "$NET/script/leak_guard" pull-request

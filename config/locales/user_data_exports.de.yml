@@ -1,0 +1,87 @@
+---
+# All keys for the GDPR self-service data export (Art. 15/20) in one file —
+# deep-merged into the existing namespaces (navigation, account_deletion, …).
+de:
+  navigation:
+    data_export: Datenexport
+  account_deletion:
+    export_hint: 'Tipp: Sie können vorher eine Kopie Ihrer Daten herunterladen.'
+    export_link: Zum Datenexport
+  views:
+    layouts:
+      deletion_warning:
+        export_data: Daten exportieren
+  user_data_export:
+    title: Datenexport
+    intro: 'Lade eine Kopie deiner bei Lalabase gespeicherten Daten als ZIP-Archiv
+      herunter (Auskunft nach Art. 15 und Datenübertragbarkeit nach Art. 20 DSGVO).
+      Das Archiv enthält unter anderem:'
+    includes_account: Stammdaten, Einstellungen und Mitgliedschaften deines Kontos
+    includes_security: Anmelde- und Sicherheitshistorie (inkl. IP-Adressen)
+    includes_orgs: Je Organisation deine Zeiterfassung, privaten To-dos und ein
+      Inventar deiner erstellten Inhalte
+    org_content_note: Für Inhalte innerhalb einer Organisation ist die jeweilige
+      Organisation verantwortlich. Wurdest du aus einer Organisation entfernt,
+      wende dich für dortige Inhalte an deren Administrator.
+    status:
+      pending:
+        title: Export angefordert
+        hint: Dein Export wird vorbereitet. Du bekommst eine E-Mail, sobald die
+          Datei bereitsteht.
+      processing:
+        title: Export wird erstellt …
+        hint: Das kann einige Minuten dauern. Du bekommst eine E-Mail, sobald die
+          Datei bereitsteht.
+      completed:
+        title: Dein Export ist bereit
+        hint: Lade die Datei herunter und bewahre sie sicher auf — sie enthält
+          deine Daten im Klartext.
+      expired:
+        title: Export abgelaufen
+        hint: Die Datei wurde nach Ablauf der Gültigkeit automatisch gelöscht.
+          Du kannst jederzeit einen neuen Export anfordern.
+      failed:
+        title: Export fehlgeschlagen
+        hint: Beim Erstellen ist ein Fehler aufgetreten. Du kannst sofort einen
+          neuen Export anfordern.
+    download_button: ZIP herunterladen
+    valid_until: Gültig bis %{date}
+    request_title: Neuen Export anfordern
+    request_hint: Zur Sicherheit bestätigst du die Anforderung mit deinem Passwort.
+      Pro Tag ist ein Export möglich.
+    password_label: Passwort
+    password_hint: Dein aktuelles Anmelde-Passwort.
+    request_button: Export anfordern
+  user_data_export_mailer:
+    ready:
+      subject: Dein Lalabase-Datenexport ist bereit
+      greeting: Hallo %{name},
+      body: 'dein Datenexport ist fertig. Melde dich an und lade das Archiv auf
+        der Datenexport-Seite herunter:'
+      cta: Zum Datenexport
+      expiry_note: Der Download ist bis %{date} verfügbar, danach wird die Datei
+        automatisch gelöscht.
+      signature: Dein Lalabase-Team
+  controllers:
+    user_data_exports:
+      create:
+        wrong_password: Das Passwort ist nicht korrekt. Bitte versuche es erneut.
+        requested: Dein Export wurde angefordert. Du bekommst eine E-Mail, sobald
+          die Datei bereitsteht.
+        already_running: Es läuft bereits ein Export. Du bekommst eine E-Mail,
+          sobald die Datei bereitsteht.
+      download:
+        expired: Dieser Export ist abgelaufen und wurde gelöscht. Fordere gern
+          einen neuen an.
+        not_ready: Es steht noch keine Datei zum Download bereit.
+  activerecord:
+    errors:
+      models:
+        user_data_export:
+          too_frequent: Du kannst höchstens einen Export pro Tag anfordern. Bitte
+            versuche es später erneut.
+  models:
+    user_activity:
+      descriptions:
+        data_export_requested: Datenexport angefordert
+        data_export_downloaded: Datenexport heruntergeladen

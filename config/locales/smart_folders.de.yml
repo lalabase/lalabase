@@ -1,0 +1,166 @@
+---
+de:
+  generic:
+    actions: Aktionen
+    back_to_details: Zurück zum Ordner
+    back_to_list: Zurück zur Übersicht
+    cancel: Abbrechen
+    create: Erstellen
+    days: Tage
+    delete: Löschen
+    edit: Bearbeiten
+    'false': Nein
+    save: Speichern
+    'true': Ja
+    update: Aktualisieren
+  helpers:
+    select:
+      prompt: Bitte wählen...
+  smart_folders:
+    access_levels:
+      copy: Kopieren erlaubt
+      use_rules: Regeln verwenden
+      view_only: Nur Ansicht
+    add_rule: Neue UND-Regel hinzufügen
+    add_rule_group: Neue ODER-Gruppe hinzufügen
+    all_notes: Alle Notizen
+    and: UND
+    clone: Kopieren
+    copy_of: Kopie von %{name}
+    delete: Filter löschen
+    confirm_delete: Sind Sie sicher, dass Sie diesen Filter löschen möchten?
+    confirm_delete_group: Sind Sie sicher, dass Sie diese Regelgruppe löschen möchten?
+    confirm_delete_rule: Sind Sie sicher, dass Sie diese Regel löschen möchten?
+    create_document_folder: Neuen Filter erstellen
+    create_first: Erstellen Sie Ihren ersten Ticket Filter
+    create_note_folder: Neuen Filter erstellen
+    create_ticket_folder: Neuen Filter erstellen
+    create_time_session_folder: Neuen Filter erstellen
+    details: Details
+    edit: Ticket Filter bearbeiten
+    edit_rules: Regeln bearbeiten
+    edit_title: Filter bearbeiten
+    edit_title_by_type:
+      Ticket: Ticket-Filter bearbeiten
+      Note: Wissens-Filter bearbeiten
+      Document: Dokumenten-Filter bearbeiten
+      TimeSession: Zeitsession-Filter bearbeiten
+    fields:
+      assignee: Zugewiesen an
+      billed: Berechnet
+      blocking: Hält andere auf
+      content: Inhalt
+      created_at: Erstellt am
+      duration: Dauer (Minuten)
+      has_time_sessions: Hat Zeiterfassung
+      priority: Priorität
+      status: Status
+      tag: Tag
+      time_session_billed: Zeitsitzungen berechnet
+      time_session_count: Anzahl der Zeitsitzungen
+      time_session_duration: Gesamtdauer der Zeitsitzungen
+      title: Titel
+      updated_at: Geändert am
+      version_count: Anzahl Versionen
+      waiting: Wartet auf offenes Ticket
+    items:
+      document: Dokument
+      note: Notiz
+      ticket: Ticket
+      time_session: Zeiterfassung
+    max_value: Max. Wert
+    min_value: Min. Wert
+    new: Neuer Filter
+    new_title_by_type:
+      Ticket: Neuer Ticket-Filter
+      Note: Neuer Wissens-Filter
+      Document: Neuer Dokumenten-Filter
+      TimeSession: Neuer Zeitsession-Filter
+    new_folder: Neuer Filter
+    no_folders: Keine Ticket Filter gefunden.
+    no_note_folders: Keine Ticket Filter für Notizen verfügbar
+    no_results: Keine Ergebnisse entsprechen den definierten Regeln.
+    no_rules: Keine Regeln definiert. Fügen Sie Regeln hinzu, um Ergebnisse zu sehen.
+    not_found: Der angegebene Ticket Filter wurde nicht gefunden.
+    object_types:
+      All: Alle Objekttypen
+      Document: Dokumente
+      Note: Notizen
+      Ticket: Tickets
+      TimeSession: Zeitsitzungen
+    operators:
+      after: ist nach
+      before: ist vor
+      between: ist zwischen
+      contains: enthält
+      due_next_7_days: fällig in den nächsten 7 Tagen
+      due_this_week: diese Woche fällig
+      due_today: heute fällig
+      ends_with: endet mit
+      equals: ist gleich
+      greater_than: ist größer als
+      has: hat Tag
+      has_all_of: hat alle Tags
+      has_any_of: hat einen der Tags
+      in_the_last_days: ist in den letzten (Tagen)
+      is: ist
+      is_empty: ist leer
+      is_not: ist nicht
+      is_not_empty: ist nicht leer
+      last_30_days: ist in den letzten 30 Tagen
+      last_7_days: ist in den letzten 7 Tagen
+      less_than: ist kleiner als
+      not_contains: enthält nicht
+      not_equals: ist nicht gleich
+      not_has: hat Tag nicht
+      overdue: ist überfällig
+      starts_with: beginnt mit
+      this_month: ist in diesem Monat
+      this_week: ist in dieser Woche
+      today: ist heute
+      within_days: ist innerhalb der letzten (Tage)
+      yesterday: ist gestern
+    or: ODER
+    organisation_wide: Organisationsweit
+    ownership:
+      from: Von
+      own: Eigener Filter
+      you: Sie
+    public_level:
+      '0': Nur ansehen
+      '1': Regeln verwenden
+      '2': Kopieren erlaubt
+    results: Ergebnisse
+    rule_group: Regelgruppe
+    rules: Regeln
+    share:
+      add_new_share: Neue Freigabe hinzufügen
+      can_edit: Bearbeiten
+      can_edit_hint: Benutzer können die Regeln und Einstellungen des Ordners bearbeiten
+      can_share: Weiterfreigeben
+      can_share_hint: Benutzer können den Ordner mit anderen teilen
+      confirm_remove_share: Sind Sie sicher, dass Sie die Freigabe für diesen Benutzer entfernen möchten?
+      edit_permissions: Berechtigungen bearbeiten
+      no_shares: Dieser Ordner wurde noch nicht geteilt.
+      owner: "(Besitzer)"
+      permissions: Berechtigungen für ausgewählte Benutzer
+      remove_share: Freigabe entfernen
+      search_users: Benutzer suchen...
+      select_users: Benutzer zum Teilen auswählen
+      share_button: Freigabe speichern
+      shared_with: Geteilt mit
+      title: Ticket Filter '%{name}' teilen
+      users_hint: Halten Sie Strg/Cmd gedrückt, um mehrere Benutzer auszuwählen
+    sidebar_title: Ticket Filter
+    sorting:
+      created_asc: Älteste zuerst
+      created_desc: Neueste zuerst
+      title_asc: Titel A-Z
+      title_desc: Titel Z-A
+      updated_asc: Zuerst aktualisiert
+      updated_desc: Zuletzt aktualisiert
+    success: Ticket Filter wurde erfolgreich gespeichert.
+    target_object_type: Objekttyp
+    title: Ticket Filter
+    try_editing: Versuchen Sie die Filterregeln zu bearbeiten, um andere Ergebnisse zu erhalten.
+    value_placeholder: Wert eingeben...

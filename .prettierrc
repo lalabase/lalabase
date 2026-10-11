@@ -1,0 +1,14 @@
+{
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "overrides": [
+    {
+      "files": "*.erb",
+      "options": { "parser": "html" }
+    }
+  ],
+    "printWidth": 1000,
+    "proseWrap": "never",
+    "htmlWhitespaceSensitivity": "ignore"
+  }
+  

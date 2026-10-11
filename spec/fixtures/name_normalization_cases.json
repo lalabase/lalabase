@@ -1,0 +1,17 @@
+{
+  "_comment": "Shared normalization contract for MeetingParticipant.normalize_name (Ruby) and name_normalizer.js (JS). Both the RSpec contract spec and the node:test contract test load THIS file, so the two implementations cannot drift. Rule: NFC -> trim + collapse whitespace -> downcase -> umlaut transliteration (ae/oe/ue/ss). Accents other than umlauts are NOT transliterated.",
+  "cases": [
+    { "why": "plain lowercase baseline",        "input": "Karl Krause",         "expected": "karl krause" },
+    { "why": "case-insensitive",                "input": "KARL KRAUSE",         "expected": "karl krause" },
+    { "why": "leading/trailing + inner whitespace collapse", "input": "  Karl    Krause  ", "expected": "karl krause" },
+    { "why": "umlaut ae",                       "input": "Änne Ähre",           "expected": "aenne aehre" },
+    { "why": "umlaut oe",                       "input": "Öztürk",              "expected": "oeztuerk" },
+    { "why": "umlaut ue",                       "input": "Jürgen Müller",       "expected": "juergen mueller" },
+    { "why": "eszett ss",                       "input": "Weiß",                "expected": "weiss" },
+    { "why": "capital eszett folds then ss",    "input": "WEIẞ",                "expected": "weiss" },
+    { "why": "ue<->ue spelling variance A",     "input": "Jörg",                "expected": "joerg" },
+    { "why": "ue<->ue spelling variance B (same normalized as A)", "input": "Joerg", "expected": "joerg" },
+    { "why": "NFC: decomposed u + combining diaeresis normalizes then transliterates", "input": "Müller", "expected": "mueller" },
+    { "why": "non-umlaut accent is preserved (only downcased)", "input": "André", "expected": "andré" }
+  ]
+}

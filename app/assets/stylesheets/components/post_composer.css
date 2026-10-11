@@ -1,0 +1,10 @@
+/* Ticket comment composer (T5, doc/tickets_detail_entschlackt_plan.md).
+   The Lexxy toolbar hides behind the "Format" word in the footer - the
+   composer opens without it (design mock). Hidden via :not() so the OPEN
+   state carries NO override at all: a display: revert here reverted Lexxy's
+   own flex layout to the UA default and stacked every toolbar button
+   vertically (found live, 03.09.2026). The class is toggled by
+   post_composer_controller on the card element. */
+.post-composer__card:not(.post-composer--format-open) lexxy-toolbar {
+  display: none;
+}

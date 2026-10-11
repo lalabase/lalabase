@@ -1,0 +1,278 @@
+/* The column picker (Neo::ColumnPickerComponent), doc/spaltenwahl_plan.md S2.
+ *
+ * Docked as a grid track next to the list while no detail is open (F30, a
+ * tinted surface without shadow); floating over the detail while one is open
+ * (F29, soft shadow: it closes again), so the list keeps its width and the
+ * boundary line stays true while the reader is still choosing. The grid rules
+ * for both placements sit in layout.css next to the other two-column variants;
+ * this file is the panel's inside. Colours are tokens only (rule 6 of the
+ * Belegungstabelle): the panel is cream-100, its rows cream-200 on hover, the
+ * boundary line cream-400, static text cream-600. Rows are F37, the boundary
+ * F38, the trigger in the table header F39. */
+.column-picker {
+  box-sizing: border-box;
+  width: 268px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgb(var(--cream-100));
+  overflow-y: auto;
+}
+
+.column-picker[hidden] {
+  display: none;
+}
+
+/* The slide (see layout.css, "The panel slides in"): the panel starts a
+   little to the right and transparent, and eases into place. */
+.column-picker {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.column-picker-entering > .column-picker {
+  transform: translateX(24px);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .column-picker,
+  .layout.two-column {
+    transition: none;
+  }
+}
+
+.column-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.column-picker__list {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+}
+
+/* F37: the whole row is the grip. 32 px tall, the tick and the name bound to
+   the row's height; no box of its own, the line below (F27) separates. */
+.column-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+  padding: 0 0.25rem;
+  border-bottom: 1px solid rgb(var(--cream-200));
+  border-radius: 0.25rem;
+  cursor: grab;
+}
+
+.column-picker__row:hover,
+.column-picker__row--chosen,
+.column-picker__row--ghost {
+  background: rgb(var(--cream-200));
+}
+
+.column-picker__row--chosen {
+  cursor: grabbing;
+  box-shadow: 0 4px 6px -1px rgb(var(--ink) / 0.15);
+}
+
+.column-picker__row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgb(var(--ink));
+}
+
+/* The row has TWO hit areas (designer, 07.09.2026): the left one decides
+   whether the column is shown, the right one only what happens to it when the
+   width runs out. One shared target would mean a miss on the pin switches the
+   whole column off. */
+.column-picker__zone {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px 0 0 8px;
+}
+
+.column-picker__row:hover .column-picker__zone {
+  background: rgb(var(--white) / 0.55);
+}
+
+.column-picker__pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  align-self: stretch;
+  flex: none;
+  border: 0;
+  border-left: 1px solid rgb(var(--cream-300));
+  border-radius: 0 8px 8px 0;
+  background: transparent;
+  /* Very quiet at rest: an offer, not a state. It is the only thing in the
+     panel that is louder once it has been used. */
+  color: rgb(var(--cream-400));
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.column-picker__pin:hover,
+.column-picker__pin:focus-visible {
+  color: rgb(var(--cream-900));
+  background: rgb(var(--white) / 0.55);
+  outline: none;
+}
+
+.column-picker__pin[aria-pressed="true"] {
+  color: rgb(var(--cream-900));
+}
+
+/* Filled means pinned, outline means "could be". Both signs are in the markup and
+   aria-pressed picks the one that shows, so the state lives in ONE attribute and the
+   script repaints nothing. The fixed rows carry the filled sign alone: they ARE
+   pinned, they simply cannot be anything else. */
+.column-picker__pin .bi {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.column-picker__pin[aria-pressed="true"] .column-picker__pin-icon--off,
+.column-picker__pin:not([aria-pressed="true"]) .column-picker__pin-icon--on {
+  display: none;
+}
+
+/* Unticked: no sign, because the question is not asked - a column that is not
+   shown cannot fail to fit. visibility, not display: the row keeps its shape,
+   so ticking a box does not make the list jump, and a hidden sign is out of the
+   tab order either way. */
+.column-picker__row:has(.column-picker__check:not(:checked)) .column-picker__pin {
+  visibility: hidden;
+}
+
+/* Number and title: pinned by definition. No hover, no focus, nothing to
+   press - the caption in the title says why. */
+.column-picker__pin--fixed {
+  color: rgb(var(--cream-500));
+  cursor: default;
+}
+
+.column-picker__grip {
+  color: rgb(var(--cream-500));
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* The tick: the time list's box (TimeSessionsHelper::TIME_LIST_CHECKBOX_CLASSES,
+   forms plugin); only its place in the row is set here. */
+.column-picker__check {
+  flex: none;
+  margin: 0;
+  cursor: pointer;
+}
+
+.column-picker__label {
+  flex: 1;
+  font-size: 0.875rem;
+  color: rgb(var(--cream-700));
+  cursor: pointer;
+  user-select: none;
+}
+
+.column-picker__check:checked + .column-picker__label {
+  color: rgb(var(--cream-900));
+}
+
+/* A tick the reader may not take: number and title (fixed rows), and every
+   row of a read-only shared view. Grey box, grey word, nothing reacts. */
+.column-picker__check:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.column-picker__check:disabled + .column-picker__label {
+  color: rgb(var(--cream-600));
+  cursor: default;
+}
+
+/* Number and title: fixed rows at the top. Ticked and grey, no grip (an empty
+   slot keeps the ticks in line), no hover, and the word "immer" on the right
+   says why nothing here reacts. */
+.column-picker__grip--none {
+  width: 0.5rem;
+}
+
+.column-picker__row--fixed {
+  cursor: default;
+}
+
+.column-picker__row--fixed:hover {
+  background: transparent;
+}
+
+.column-picker__always {
+  font-size: 11px;
+  color: rgb(var(--cream-500));
+}
+
+/* F38: a thin line with the sentence on it, between two rows. It moves with
+   the width and the order (column_picker_controller#placeBoundary) and is
+   hidden while everything fits. */
+.column-picker__boundary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.25rem;
+  margin: 0.125rem 0;
+  list-style: none;
+}
+
+.column-picker__boundary::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid rgb(var(--cream-400));
+}
+
+.column-picker__boundary > span {
+  position: relative;
+  padding: 0 0.5rem;
+  background: rgb(var(--cream-100));
+  font-size: 11px;
+  color: rgb(var(--cream-600));
+}
+
+.column-picker__boundary[hidden] {
+  display: none;
+}
+
+/* The footer: which view the list goes into, the status line for a save that
+   failed, and the form for the exception ("für alle Ansichten übernehmen"). */
+.column-picker__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  font-size: 12px;
+  color: rgb(var(--cream-600));
+}
+
+.column-picker__status[hidden] {
+  display: none;
+}
+
+/* F39: the trigger. Open, it carries the tinted surface. It has no label to
+   take away any more (07.09.2026): it is a sign at every width, and the count
+   is in its title. The rule that hid the label with the detail open went with
+   the label, together with the legacy bar's trigger cell in the table head. */
+.column-picker-trigger[aria-expanded="true"] {
+  background: rgb(var(--cream-200));
+}

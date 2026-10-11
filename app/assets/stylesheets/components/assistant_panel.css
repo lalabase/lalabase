@@ -1,0 +1,221 @@
+/* ==========================================================================
+   Assistant companion panel (S3a T4, plan §7.7)
+   --------------------------------------------------------------------------
+   The panel is a fixed, full-height column. Its BODY is the shared chat
+   components, which were written for a page that scrolls as a whole: the
+   transcript, the composer and the style pills simply follow each other.
+
+   Inside a fixed column that is the wrong behaviour -- the composer would
+   scroll out of reach exactly when the conversation gets long enough to need
+   it. So the panel turns that stack into a flex column here, in CSS, instead of
+   giving ChatContainerComponent a second layout mode: the components stay one
+   shape, and the surface that has a different container solves its own problem.
+
+   Everything is scoped to #assistant_panel. The same components keep rendering
+   unchanged on the chat pages.
+   ========================================================================== */
+
+/* Addressed by POSITION, not by name: `> turbo-frame` is the one direct frame
+   child the panel body has. The first version of these rules named the frame
+   (#chat-show), and the very next change gave the panel a frame id of its own --
+   at which point all three rules below silently stopped matching and the
+   transcript ran out of the panel again. A selector that repeats an identifier
+   defined somewhere else is the same defect as five hand-copied redirects, only
+   in another language. */
+
+/* The chat's own turbo frame has to become a flex column, otherwise the
+   flex-1 on the transcript below has nothing to stretch inside of. */
+#assistant_panel_body > turbo-frame {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0 1rem;
+}
+
+/* The transcript is the only part that scrolls. role="log" is the container
+   ChatContainerComponent gives the message list; assistant_panel_controller
+   remembers and restores its scrollTop across Turbo transplants by the same
+   selector, so the two stay in step. */
+#assistant_panel_body > turbo-frame > [role="log"] {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 1rem;
+}
+
+/* Composer, style pills and notices stay put at the bottom. */
+#assistant_panel_body > turbo-frame > *:not([role="log"]) {
+  flex-shrink: 0;
+}
+
+/* The panel is narrow: quotes, tables and code in an answer must scroll inside
+   their own box rather than widening the column. */
+#assistant_panel table,
+#assistant_panel pre {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* --------------------------------------------------------------------------
+   The content offset (S3a T4). Two things used to decide it: the server wrote
+   an inline margin on <main> from the cookie, and the controller wrote another
+   one after asking window.innerWidth. Two writers, and only the second knew
+   about the breakpoint -- so a hard reload on a narrow window pushed the page
+   aside for a panel that is `hidden lg:block`, and growing the window past
+   1024px left the panel lying on top of the content until something else
+   triggered a re-apply.
+
+   Now there is ONE writer of the value (an offset custom property on <body>,
+   set by the server for the first paint and by the controller afterwards) and
+   ONE place that decides whether it applies at all: this media query. It must
+   stay in step with `hidden lg:block` on the panel and with Tailwind's lg.
+   -------------------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  /* ⚠️ CHILD combinator, not a descendant one. `body.assistant-panel-open main`
+     also matches the SECOND <main> that NeoTwoColumnGridComponent renders as its
+     content column on the tickets, knowledge and meetings pages -- that column
+     then gets the same 636px offset inside its own grid track and shrinks to a
+     strip at the right edge while the list lane collapses next to it. The layout
+     <main> is a direct child of <body> (layouts/application.html.erb), so the
+     child combinator says exactly what is meant.
+
+     The first version of this offset lived in JavaScript as
+     root.querySelector("main"), which took the FIRST match and was therefore
+     accidentally right; moving the rule into CSS lost that without anything
+     going red, because no spec rendered the panel on a page that HAS lanes. */
+  body.assistant-panel-open > main {
+    margin-inline-start: var(--assistant-panel-offset, 16rem);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   The lanes (S3c T2, plan §7.2/§4). A grid INSIDE the panel, not the page-level
+   `.layout` grid of layout.css: that one lives in <main>, takes its height from
+   layout_toggle_controller at runtime and is addressed through
+   `main:has(.layout)`. The panel is a fixed element at body level and can join
+   none of that, so L6 ("use the existing three-lane grid") cannot be followed
+   literally any more since Rev. 5 turned the assistant into a companion lane.
+   What L6 wanted still holds: this is not a third hand-written master-detail
+   arrangement on a PAGE, it is the panel's own inside, with its own inhabitants.
+
+   Companion mode is ONE track. The history lane is display:none rather than
+   removed, so switching modes stays pure CSS and the chat frame is never
+   re-fetched -- a typed draft, the scroll position and a streaming answer all
+   survive the way up and back down.
+   -------------------------------------------------------------------------- */
+.assistant-lanes {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+
+.assistant-lane-history {
+  display: none;
+  min-height: 0;
+  overflow-y: auto;
+  border-inline-end: 1px solid rgb(var(--cream-300));
+}
+
+/* --------------------------------------------------------------------------
+   The full view: the same node, maximised (L11). It keeps `start-64` because the
+   sidebar is the app's anchor and must not move -- the assistant travels INSIDE
+   the app, not over it.
+
+   `width: auto` needs the inline width gone, and an inline style outranks any
+   class: the shell renders the width ONLY in companion mode, and the controller
+   clears it on the way up and writes it again on the way down. No !important,
+   and one owner of the value either way.
+   -------------------------------------------------------------------------- */
+.assistant-panel--full {
+  inset-inline-end: 0;
+  width: auto;
+}
+
+.assistant-panel--full .assistant-lanes {
+  /* R-L1: the page grid would give the history lane `minmax(380px, 2fr)`, about
+     40 percent of the width, which is the wrong shape here -- the list is a
+     column of one-line labels and the conversation is the work. Narrow, capped,
+     and it stops shrinking before the labels become unreadable. The third track
+     (the artefact lane) joins in T3. */
+  grid-template-columns: minmax(200px, 16%) 1fr;
+}
+
+.assistant-panel--full .assistant-lane-history {
+  display: block;
+}
+
+/* The page underneath is covered, not accompanied. Without this it keeps its own
+   scrollbar next to a full-screen panel, and a wheel over the panel's edges
+   moves a page nobody can see. */
+body.assistant-panel-full {
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   The artefact lane (S3c T3, plan §4, §8.1). The third track, and the only one
+   that is not always there: it appears when a panel is open and disappears with
+   it, so the grid template lives on a class of its own rather than in the
+   full-view rule above.
+
+   It is for content WITHOUT a page of its own (a report today; results and
+   proposals later). Objects that HAVE a page keep opening the real app -- the
+   panel steps down to the companion mode for that, because a page nobody can see
+   is the same as no page at all.
+
+   Both classes are required. Closing the full view therefore hides the lane
+   without forgetting it, and coming back up shows it again.
+   -------------------------------------------------------------------------- */
+.assistant-lane-artefact {
+  display: none;
+  min-height: 0;
+  flex-direction: column;
+  border-inline-start: 1px solid rgb(var(--cream-300));
+}
+
+.assistant-panel--full.assistant-panel--artefact .assistant-lanes {
+  /* §7.2's proportions: the history is a column of one-line labels, the chat is
+     where one types, and the artefact is the widest because it carries rows and
+     numbers. minmax(0, …) on both work tracks so a long unbreakable string in a
+     description cannot push the grid wider than the panel. */
+  grid-template-columns: minmax(200px, 16%) minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.assistant-panel--full.assistant-panel--artefact .assistant-lane-artefact {
+  display: flex;
+}
+
+/* --------------------------------------------------------------------------
+   The context offer (S4 T2 step 5b, plan §7.3) needs NO rule here any more.
+
+   It used to be a bar pinned to the panel's bottom edge, spanning the whole
+   shell, and in the full view that meant ~1400px with the ticket's name at one
+   end and its button at the other -- hence a max-width on its inner row. Since
+   27.08.2026 it renders inside the chat frame, above the message field
+   (Neo::Chat::ContextOfferComponent), so it is as wide as the field and the
+   cap would now make it NARROWER than the thing it belongs to.
+   -------------------------------------------------------------------------- */
+
+
+/* The existing composer also owns meeting prompts, on every viewport. */
+.assistant-analysis-template-list { max-height: 25vh; overflow-y: auto; }
+
+.assistant-analysis-tools { max-height: 30vh; overflow-y: auto; }
+
+/* Display utilities must not reveal closed forms or permission-gated links. */
+.assistant-analysis-tools [hidden],
+[data-controller~="assistant-analysis"] [hidden] { display: none; }
+
+/* Meeting examples and task options can exceed a phone's remaining height.
+   Scroll the existing composer wrapper in both new and saved chats, leaving
+   room for the conversation and keeping focus/Send inside the sheet. */
+@media (max-width: 1023px) {
+  #assistant_panel_body > div:has(> form[data-controller~="neo-chat-composer"]),
+  #assistant_panel_body > turbo-frame > turbo-frame:has(> form[data-controller~="neo-chat-composer"]) {
+    flex-shrink: 1;
+    min-height: 0;
+    max-height: 60%;
+    overflow-y: auto;
+  }
+}

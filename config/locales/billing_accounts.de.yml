@@ -1,0 +1,115 @@
+# Rechnungsbereich auf Konto-Ebene (K2, doc/konto_ebene_plan.md).
+#
+# Eigene Datei statt eines Zweigs unter config/locales/views/organisation.de.yml: der
+# Bereich haengt nicht mehr an einer Organisation, ein Zweig im Organisations-Baum waere
+# am falschen Ort. View- UND Controller-Schluessel liegen hier zusammen, weil beide
+# denselben Bereich beschreiben und diese Datei ausserhalb des views/-Ordners liegt
+# (Vorbild: user_data_exports.de.yml).
+#
+# Vokabular (§7 des Plans): „Rechnung" als Menuepunkt, „Rechnungskonto" fuer die
+# Kontoebene, „Rechnungsdaten" fuer die Felder. NICHT „Abrechnung": so heisst in dieser
+# App die Zeit-Abrechnung, samt eigener Hilfeseite.
+de:
+  controllers:
+    billing_accounts:
+      missing_account: Für diese Organisation ist noch kein Rechnungskonto hinterlegt.
+        Bitte wende dich an den Support.
+      update:
+        saved: Rechnungsdaten gespeichert.
+      claim:
+        claimed: Du bist jetzt für dieses Rechnungskonto verantwortlich.
+        already_claimed: Dieses Rechnungskonto hat inzwischen jemand anderes übernommen.
+  views:
+    billing_accounts:
+      cockpit:
+        heading: Rechnungskonten
+      row:
+        seats:
+          one: 1 Person
+          other: '%{count} Personen'
+        incomplete: Rechnungsdaten unvollständig
+        state:
+          undecided: Abrechnung noch nicht vereinbart
+          no_seats: Niemand wird berechnet
+          price_pending: Preis noch offen
+      index:
+        title: Rechnungskonten
+        intro: Ein Rechnungskonto bündelt eine oder mehrere Organisationen und bekommt
+          eine Rechnung.
+        back: Zurück zur Übersicht
+        empty: Du bist für kein Rechnungskonto verantwortlich.
+      show:
+        title: Rechnung
+        back: Zurück zur Übersicht
+        subtitle: Die unten genannten Organisationen werden über dieses Konto gemeinsam
+          abgerechnet.
+        claim_title: Für dieses Rechnungskonto ist noch niemand verantwortlich
+        claim_hint: Wenn du es übernimmst, kannst du Rechnungsanschrift und Steuerdaten
+          pflegen. An deinen Rechten in der Organisation ändert das nichts.
+        claim_button: Rechnungskonto übernehmen
+        cost_heading: Kosten
+        cost_intro: Der Preis richtet sich danach, wie viele Personen einen eigenen Zugang
+          haben. Kundenzugänge zählen nicht mit.
+        no_seats: Aktuell wird niemand berechnet.
+        not_billed: Für dieses Konto ist noch keine Abrechnung vereinbart. Solange das so
+          ist, stellen wir nichts in Rechnung. Wir melden uns, bevor sich daran etwas ändert.
+        price_pending:
+          one: Für 1 Person liegt noch kein Preis vor. Wir klären das mit dir, bevor
+            abgerechnet wird.
+          other: Für %{count} Personen liegt noch kein Preis vor. Wir klären das mit dir,
+            bevor abgerechnet wird.
+        seats_row:
+          one: 1 Person
+          other: '%{count} Personen'
+        discount_row: Rabatt %{percent} %
+        total_row: Summe netto
+        billing_interval:
+          monthly: Monatlich
+          yearly: Jährlich
+        interval_note: 'Abrechnungszeitraum: %{interval}'
+        discount_note: Enthalten ist dein Rabatt von %{percent} %, gültig bis %{until}.
+        discount_open_end: auf Weiteres
+        preview_disclaimer: 'Die Vorschau zeigt, was die heutige Zahl an Personen kostet.
+          Sie ist keine Vorhersage der nächsten Rechnung: Fällt ein Zugang weg, wirkt das
+          erst zum Ende des laufenden Zeitraums.'
+        organisations_heading: Organisationen in diesem Rechnungskonto
+        organisations_intro: Diese Organisationen werden gemeinsam abgerechnet. Wer in
+          mehreren davon arbeitet, zählt nur einmal.
+        details_heading: Rechnungsdaten
+        details_intro: Anschrift, Steuerdaten und die Adresse, an die wir die Rechnung
+          schicken.
+        details_edit: Bearbeiten
+        incomplete_badge: Rechnungsdaten unvollständig
+        incomplete_hint: Solange Angaben fehlen, können wir keine Rechnung ausstellen.
+          Ergänze sie über „Bearbeiten“.
+      edit:
+        title: Rechnungsdaten bearbeiten
+        back: Zurück zum Rechnungskonto
+        heading: Rechnungsdaten
+        intro: Diese Angaben stehen später auf deiner Rechnung. Du kannst sie jederzeit
+          ändern oder vollständig entfernen.
+        errors_title:
+          one: '%{count} Fehler verhindert das Speichern'
+          other: '%{count} Fehler verhindern das Speichern'
+        billing_name_hint: Der Name, auf den die Rechnung ausgestellt wird.
+        billing_addressee_hint: Optional, zum Beispiel eine Abteilung oder ein Name für
+          die Zustellung.
+        billing_email_hint: An diese Adresse schicken wir die Rechnung.
+        billing_reference_hint: Optional, zum Beispiel eine Bestellnummer oder
+          Kostenstelle, die auf der Rechnung stehen soll.
+        country_blank_option: Bitte wählen
+        region_blank_option: Bitte wählen
+        vat_id_required_hint: Für Unternehmen in der EU außerhalb Deutschlands ist die
+          USt-IdNr. erforderlich. Ohne sie müssten wir die Umsatzsteuer deines Landes
+          berechnen.
+        required_legend: '* Pflichtangabe. Wenn du alle Felder leerst, entfernen wir die
+          Rechnungsdaten vollständig.'
+        cancel: Abbrechen
+        save: Rechnungsdaten speichern
+      details:
+        address_label: Rechnungsanschrift
+        vat_id_label: USt-IdNr.
+        email_label: Rechnungs-E-Mail
+        email_cc_prefix: 'Kopie an:'
+        reference_label: Referenz
+        not_set: Nicht hinterlegt

@@ -1,0 +1,374 @@
+en:
+  views:
+    time_sessions:
+      # The words for the billing state of a time. ONE owner for every surface:
+      # the filter pills, the overview table, the time list, the ticket table, the
+      # hours chip, the billings list, the assistant report and the two dashboard
+      # widgets. Read only through TimeSessionsHelper#time_billing_state_label.
+      #
+      # Keys and order are TimeSession::BILLING_STATUS_FILTERS (the life cycle,
+      # left to right). Before S1 the same three states were named in nine places
+      # with five different German words.
+      billing_status:
+        without_billing: open
+        in_billing: for billing
+        billed: invoiced
+        mixed: Mixed
+        partial: "partly %{percent} %"
+        hidden_note: "%{shown} of %{total} · %{hidden} hidden"
+        visible_sum: Sum of the visible times
+        without_subject: No reference
+        entries_count:
+          one: "%{count} time"
+          other: "%{count} times"
+    organisations:
+      time_sessions:
+        index:
+          display_label: View
+          display_with_creator: with creator
+          display_all_details: all details
+          title_times: Times
+          view_switch_label: View
+          view_overview: Overview
+          view_list: List
+          overview_trail_back: to the overview
+          overview_trail_all: all time
+          smart_folder_badge: Ticket Filter
+          record_button: Record
+          search_placeholder: Search in time sessions
+          modal_title: Record Time Session
+          filter_project: Project
+          filter_all_projects: all projects
+          filter_status: Status
+          filter_status_none_here: There are no such times in this selection
+          filter_range_label: Period
+          filter_range_this_week: this week
+          filter_range_this_month: this month
+          filter_range_this_quarter: this quarter
+          filter_range_last_10_days: last 10 days
+          filter_range_30_days: last 30 days
+          filter_range_90_days: last 90 days
+          filter_range_year: this year
+          filter_range_all: all time
+          filter_range_custom: custom range
+          filter_range_from: from
+          filter_range_to: to
+          filter_range_apply: apply
+          filter_range_days:
+            one: 1 day
+            other: "%{count} days"
+          filter_only_mine: only my time
+          filter_show_creator: Creator
+          filter_expand_all: Expand sessions
+          filter_reset: reset
+          filter_extended: Extended Filters
+          filter_group: Billing
+          filter_all_groups: all billings
+          filter_all_subjects: all subjects
+          filter_all_people: all people
+          filter_all_tags: all tags
+          filter_all_ticket_phases: any status
+          filter_ticket_status_heading: Status in %{project}
+          filter_ticket_phase_notice: Times without a ticket drop out.
+          ticket_phase_backlog: in backlog
+          ticket_phase_active: in progress
+          ticket_phase_done: done
+          filter_add: + Filter
+          filter_add_person: Person
+          filter_add_tag: Tag
+          filter_add_ticket_phase: Ticket status
+          filter_row_choose: Filter
+          filter_row_status: Status
+          filter_row_search: Search
+          search_clear: Clear search
+          search_hits:
+            one: 1 hit
+            other: "%{count} hits"
+          result_summary: "%{count} · %{duration}"
+          result_times:
+            one: 1 time
+            other: "%{count} times"
+          filter_pill_search: Search
+          filter_pill_search_empty: Nothing found
+          filter_subject_capped: Only the %{count} most recently booked subjects. Pick a project to narrow the choice.
+
+          filter_group_locked: Not selectable while only time without a billing is shown.
+          filter_search_placeholder: Description or ticket title
+        show:
+          duration_label: Duration (HH:MM)
+          date_label: Date
+          description_label: Description
+          ticket_label: Ticket
+          group_label: Billing
+          tags_label: Tags
+          created_by: 'Created by:'
+          created_at: 'Created at:'
+          billed_at: 'Invoiced at:'
+          invoice_number: 'Invoice number:'
+        time_session:
+          edit_tooltip: Edit time session
+          delete_tooltip: Delete time session
+          recorded_by: recorded by %{name}
+        ticket_select:
+          no_ticket_assignment: No ticket assignment
+        form_index:
+          ticket_label: Ticket (optional)
+          ticket_search_placeholder: Search ticket...
+          no_ticket_assignment: No ticket assignment
+          subject_label: Subject
+        subject_popover:
+          heading: Log time
+          heading_edit: Edit time
+          captured: logged
+          captured_single: logged so far
+          duration_placeholder: "0:30"
+          more_fields: more details
+          hide_more_fields: hide details
+          tags_placeholder: comma separated
+          submit: Log time
+          submit_update: Save
+          cancel: Cancel
+          delete: Delete
+          editing_row: being edited
+          locked_row_title: in billing %{name} · change it there
+          open_in_list: open in the times overview
+          no_description: no description
+        empty_reason:
+          culprits:
+            one: 'One filter is too narrow. Without it there are times again:'
+            other: 'These filters rule each other out. Without one of them there are times again:'
+          none_alone: 'No single filter explains this, only all of them together. Without them there are times again:'
+          reset: Reset all filters
+          creator_other: One person's times
+          person: Person
+          remove: remove
+          with_value: '%{name}: %{value}'
+          period_between: "%{from} to %{to}"
+          period_from: from %{date}
+          period_to: until %{date}
+          names:
+            period: Period
+            project: Project
+            subject: Subject
+            billing: Billing
+            status: Status
+            creator: Only my times
+            tag: Tag
+            ticket_phase: Ticket
+            search: Search
+        index_table:
+          sum_unit: hours
+          minimize_tooltip: Minimize
+          maximize_tooltip: Maximize
+          close_tooltip: Close
+          panel_title: Bill into
+          new_group_option: Create a new billing
+          new_group_placeholder: Enter billing reference...
+          existing_group_none: There is no open billing yet.
+          selection_total: Total
+          billing_entries_none: This billing is still empty.
+          billing_entries_denied: You may not look into this billing.
+          billing_entries_toggle: Show the times it holds
+          billing_entries_loading: Loading ...
+          cancel_button: Cancel
+          assign_button: Assign
+          select_all: select all
+          without_subject: Not linked
+          no_description: No description
+          edit_tooltip: Edit
+          delete_tooltip: Delete
+          billed_locked_tooltip: Invoiced time sessions cannot be edited
+          no_group: No billing
+          group_label: 'Billing:'
+          tags_label: 'Tags:'
+          user_label: 'User:'
+          empty_first_time_title: No time entries yet
+          empty_first_time_description: Start your first time tracking session.
+          empty_first_time_cta: Track time
+          empty_no_results_title: No times found
+          empty_no_results_description: Your filters didn't return any results. Adjust the criteria or remove filters.
+          explainer:
+            title: What are times?
+            point_capture: Record how long you worked on what — while you are working or entered afterwards.
+            point_ticket: Every time entry belongs to a project and can be attached to a ticket. That makes clear what it was spent on.
+            point_overview: You can always see how much time went into a project or a single ticket.
+            point_billing: Recorded times can be bundled into billings — e.g. as the basis for the invoice to your client.
+          sessions_count:
+            one: "%{count} session"
+            other: "%{count} sessions"
+        time_session_content_for_frame:
+          title: Time Session
+          edit_button: Edit
+          delete_button: Delete
+          duration_label: Duration
+          date_label: Date
+          user_label: User
+          related_task: Related Ticket
+          no_task_assigned: No ticket assigned
+          description_label: Description
+          no_description: No description available
+          tags_label: Tags
+          no_tags: No tags available
+          related_task_section: Related Ticket
+          title_label: Title
+          status_label: Status
+          no_status: No status
+          priority_label: Priority
+          no_priority: No priority
+          view_task: View ticket
+        create:
+          errors_found: "%{count} error(s) found:"
+          success_message: Time session was successfully created
+        update:
+          success_message: Time session was successfully updated
+        # The status table above the list (the "overview" view). Its three
+        # status columns take their words from billing_status above, not here.
+        # The footnote names the chosen period: it used to claim "all sessions"
+        # whatever was selected.
+        billing_overview_panel:
+          col_project: Project
+          col_total: Total
+          total_row: TOTAL
+          footnote: 'Status of the times for: %{period}'
+          # A project without times in the period is a row of "--:--". It is
+          # rendered and folded away, or with thirty projects the ones that DO
+          # have hours drown.
+          reveal_empty_projects:
+            one: Show 1 project without times
+            other: Show %{count} projects without times
+          # Two different emptinesses: nothing booked at all, or nothing IN THIS
+          # PERIOD. The second names the period and offers the way out.
+          no_data: No times have been booked yet.
+          empty_period: 'No times are booked for the period "%{period}".'
+          empty_period_reset: Show all times
+        show_errors:
+          errors_found: "%{count} error(s) found:"
+      time_session_groups:
+        groups_list:
+          table:
+            name: Name
+            sessions: Times
+            total_time: Total
+            status: Status
+            invoice_number: Invoice
+            created_at: created
+          sessions_count:
+            one: "%{count} session"
+            other: "%{count} sessions"
+          created_at: "Created: %{date}"
+          billed_at: "Billed: %{date}"
+          without_number: no number
+          no_sessions_yet: no times yet
+          projects_more: "+%{count}"
+          visible_sum: Total of the visible billings
+          menu_label: Actions
+          menu_view_times: View times
+          menu_edit: Edit billing
+          menu_delete: Delete billing
+          confirm_delete_with_sessions: Do you really want to delete this billing? The times are not deleted, only their assignment to the billing is removed.
+          no_groups_available: No billings yet.
+          empty_filtered: No billing matches the current filters.
+        index:
+          create_new_group_title: Create new billing
+          filter_project: Project
+          filter_all_projects: all projects
+          filter_search_placeholder: Name, description or invoice number
+          filter_reset: reset
+          result_summary: "%{count} · %{duration}"
+          result_billings:
+            one: "%{count} billing"
+            other: "%{count} billings"
+        new:
+          title: New Billing
+          back_button: Back
+        edit:
+          title: Edit Billing
+        chronological:
+          th_date: Date
+          th_id: ID
+          th_subject: Related to
+          th_duration: Duration
+          th_user: User
+          no_sessions_in_group: No time sessions in this billing.
+        aggregated:
+          th_duration: Duration
+          th_count: Count
+          th_subject: Related to
+          th_period: Period
+          no_sessions_in_group: No time sessions in this billing.
+        customer_export:
+          customer_descriptions_title: Customer Descriptions
+          customer_descriptions_count: "%{with_description} of %{total} sessions have customer descriptions"
+          generate_descriptions_button: Generate Descriptions
+          regenerate_descriptions_button: Regenerate
+          excel_export_button: Excel Export
+          th_date: Date
+          th_subject: Related to
+          th_customer_description: Customer Description
+          th_duration: Duration
+          csv:
+            date: Date
+            subject_number: Reference No.
+            subject: Reference
+            internal_description: Internal description
+            customer_description: Customer description
+            duration: Duration
+          customer_description_placeholder: Enter customer description...
+          char_count: "%{count} / 160 characters"
+          save_button: Save
+          cancel_button: Cancel
+          no_customer_description: No customer description
+          no_sessions_in_group: No time sessions in this billing.
+        shared:
+          sum_all: Total of all times in this billing
+        billing_status:
+          heading_bill: Send to invoice
+          heading_unbill: Withdraw billing
+          invoice_label: Invoice number
+          date_label: Invoice date
+          submit_bill: Send to invoice
+          submit_unbill: Withdraw billing
+          billed_line: Invoice %{number} dated %{date}
+          unbill_warning: Removes the invoice number from the billing and from every time in it.
+          unbill_confirm: Really withdraw this billing?
+          close: Close
+          loading: Loading ...
+        navigation:
+          sessions_in_group: Times in this billing
+          view_chronological: chronological
+          view_by_subject: by subject
+          view_customer_export: customer export
+        show_header:
+          back_to_list: All billings
+          bill_button: Send to invoice
+          figure_duration: Duration
+          figure_status: Status
+          figure_period: Period
+          figure_scope: Scope
+          figure_projects: Projects
+          figure_invoice: Invoice
+          times_count:
+            one: "%{count} time"
+            other: "%{count} times"
+        activities:
+          activity_feed_title: History
+          activity_created: created the billing
+          activity_updated: edited the billing
+          activity_marked_billed: marked the billing as invoiced
+          activity_invoice_number: "(Invoice: %{number})"
+          activity_marked_unbilled: marked the billing as not invoiced
+          activity_billed_data_changed: changed data after billing
+          activity_sessions_added: added %{count} time sessions
+          activity_duration: "(Duration: %{duration})"
+          activity_deleted: deleted the billing
+          activity_show_details: Show details
+          activity_attr_name: Name
+          activity_attr_description: Description
+          activity_attr_billing_status: Billing Status
+          activity_attr_invoice_number: Invoice Number
+          activity_attr_billing_date: Invoice Date
+          activity_billed_value: Invoiced
+          activity_unbilled_value: Not invoiced
+          activity_empty_value: "[empty]"
+          activity_warning_billed_change: 'Warning: Change after billing was confirmed'
+          no_activities: No activities yet.

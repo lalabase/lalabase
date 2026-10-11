@@ -1,0 +1,169 @@
+/* The filter bar (NeoFilterBarComponent), doc/filterleiste_s5_s8_plan.md S8.
+ *
+ * Rule 7 of the Belegungstabelle: narrow, nothing is invented and nothing is
+ * shrunk; things are left out or moved. The bar measures its OWN width
+ * (container query), so the same rules hold in a narrow window, in the kanban
+ * frame and on a phone. Every hook is a marker of the bar's own markup
+ * (data-filter-bar-target, data-condition, data-value-tile, data-fb-*), never a
+ * Tailwind utility, so the classes the JavaScript builds stay untouched. Every
+ * rule is prefixed with .filter-bar: the bar's own utilities have the same
+ * specificity and load later, so a bare attribute selector would lose. */
+
+/* Scoped to the mounted controller, not to the bare .filter-bar class. It was
+   written this way to keep the (now deleted) legacy copy, which carried the
+   same class, from becoming a container; it stays because it says plainly
+   which element the container queries below are measured against. */
+.filter-bar[data-controller="filter-bar"],
+.filter-bar[data-controller="neo-activity-filter"] {
+  container-type: inline-size;
+  container-name: filter-bar;
+}
+
+/* The search is a magnifier, not an open field (designer, 09.09.2026): 28 x 28
+   at every width, and a click grows it into a field at the right end of the
+   row; a term already typed keeps it open. The rule this file applied to
+   tight containers only now holds everywhere: the size follows the frequency,
+   not the room. Searching is a rare act and must not be the largest element
+   of the tool group (it was 240px, a quarter of the row). */
+.filter-bar [data-fb-search]:not([data-fb-search-open]) {
+  width: 28px;
+  flex: none;
+}
+
+.filter-bar [data-fb-search]:not([data-fb-search-open]) input,
+.filter-bar [data-fb-search]:not([data-fb-search-open]) [data-fb-depth] {
+  display: none;
+}
+
+.filter-bar [data-fb-search][data-fb-search-open] [data-fb-search-open-button] {
+  display: none;
+}
+
+.filter-bar [data-fb-search][data-fb-search-open] {
+  width: 15rem;
+  flex: 0 1 15rem;
+  min-width: 0;
+}
+
+/* The funnel that stands for "+ Filter" tight; at full width the word and its
+   plus stand, so the sign does not exist there. */
+.filter-bar [data-fb-add] [data-fb-add-sign] {
+  display: none;
+}
+
+/* The search wrapper animates its WIDTH and nothing else: transition-all would
+   carry flex-basis and height of the tight fold through half-states too, and a
+   control in mid-transition lands somewhere neither state ever puts it. */
+.filter-bar [data-fb-search] {
+  transition-property: width;
+}
+
+/* A proposal row under an empty condition row: the row above it is hidden, so
+   the proposal's top edge would double the tab row's bottom edge (F27: one line). */
+.filter-bar [data-filter-bar-target="chipRow"].hidden + [data-filter-bar-target="proposalRow"] > [data-proposal]:first-child {
+  border-top: 0;
+}
+
+/* TIGHT_WIDTH is 760 px: the head has its tabs and its tools, but no room to
+   spell them out. That is the ticket list with the detail lane open - the list
+   track is minmax(380px, 2fr) against the lane's 3fr, so on any desk that can
+   show two columns at all it lands between 380 and ~700 px, while the same
+   list without the lane is the whole content width and stays above 760. The
+   rule is the WIDTH, though, not the lane: a narrow window with no lane open
+   gets the same head, for the same reason.
+   What yields here: "+ Filter" folds to its funnel, and the column tool makes
+   way while the search is open. The search is a magnifier at every width
+   already (top of this file), the column tool a sign at every width. Nothing
+   is shrunk and nothing is cut (rule 7 of the Belegungstabelle); every word
+   lives on in title/aria-label. */
+@container filter-bar (max-width: 760px) {
+  /* (No order rules any more: the three tools are one group with ms-auto at
+     every width since 07.09.2026, so the right end is where they already are.) */
+
+  /* "+ Filter" folds to its funnel (D2 of doc/kanban_ticket_als_bahn_plan.md,
+     09.09.2026). It was left OUT here before (user, 07.09.2026): the tight
+     head was the list beside an open lane, where the reader is at one object,
+     not sorting the register. The board with an open ticket is not a ticket
+     detail: one keeps picking there, so one must keep narrowing down, and
+     this is the ONLY entry to a first condition. So the word and its plus go
+     and the sign stands in their place, 32 px like the magnifier and the
+     column tool beside it (F40: one row, one size); the word moves into the
+     title with the count, "Filter · 2 Bedingungen", which the controller
+     keeps current. Rule 7 holds: nothing is shrunk, nothing is cut. */
+  .filter-bar [data-fb-add] {
+    width: 2rem;
+    padding-left: 0;
+    padding-right: 0;
+    justify-content: center;
+  }
+
+  .filter-bar [data-fb-add] [data-fb-add-plus],
+  .filter-bar [data-fb-add] [data-fb-add-label] {
+    display: none;
+  }
+
+  .filter-bar [data-fb-add] [data-fb-add-sign] {
+    display: inline;
+  }
+
+  /* F35 tight, OPEN: the column tool makes way while the field is open - one
+     errand at a time, and typing is the errand. The field opens at the SAME
+     place, the right end of this row (it used to take a line of its own above
+     the tabs, user, 07.09.2026), and may shrink below its width where the tabs
+     need the room; the strip scrolls, so nothing is hidden and nothing is cut.
+     The fold itself, magnifier at rest and field on click, is no longer
+     tight-only: it holds at every width, see the top of this file. */
+  .filter-bar [data-fb-search][data-fb-search-open] ~ [data-fb-view-tool] {
+    display: none;
+  }
+}
+
+/* NARROW_WIDTH is 520 px: a phone, where a thumb and not a pointer is doing
+   the work. The knowledge list's column rule (views.css, #knowledge_results)
+   folds at the same width; change both together. */
+@container filter-bar (max-width: 520px) {
+  /* No rule for "+ Filter" here: the tight band above (760px, which contains
+     this one) has folded it to its funnel already, and a sign has nothing
+     left to fold. */
+
+  /* A thumb needs 32 px. The pill is 32 px at every width since F13 went
+     passive, so only two things still grow here: the tab's chevron and the
+     close in the head of a layer (F20), whose sign stays small. */
+  .filter-bar [data-filter-bar-target="viewMenuButton"] {
+    min-width: 2rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    justify-content: center;
+  }
+
+  .filter-bar [data-fb-close] {
+    height: 2rem;
+    width: 2rem;
+  }
+
+  /* The words that act (F4) in the rename form and the proposal row keep
+     their form and gain a thumb's height */
+  .filter-bar [data-fb-word] {
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Every floating layer (F29) spans the bar instead of hanging at its
+     element; the JS sets left inline, hence !important. */
+  .filter-bar [data-filter-bar-target="filterMenu"],
+  .filter-bar [data-filter-bar-target="valueMenu"],
+  .filter-bar [data-filter-bar-target="viewMenu"],
+  .filter-bar [data-filter-bar-target="searchDepthMenu"] {
+    left: 0.5rem !important;
+    right: 0.5rem;
+    width: auto;
+  }
+
+  /* The save row and the proposal row stack: the sentence on its own line,
+     the decisions below it */
+  .filter-bar [data-fb-sentence] {
+    flex-basis: 100%;
+    margin-right: 0;
+  }
+}

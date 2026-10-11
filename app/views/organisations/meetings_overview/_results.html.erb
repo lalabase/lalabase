@@ -1,0 +1,91 @@
+<%# locals: (meetings:, filters_active:) %>
+<%# The meetings_overview_results frame, brought by this partial ITSELF -- the same
+    rule as the project list's _meetings_results.html.erb, and for the same reason:
+    MeetingsController#create replaces this frame wholesale after a save from the
+    overview modal. A partial without the frame would leave a plain <div> behind, and
+    from then on the filter row would target a frame that no longer exists and every
+    later save would be dropped by Turbo without a word.
+    filters_active is a local, not a helper call -- the create path runs in a
+    controller that has no such helper. %>
+<turbo-frame id="meetings_overview_results">
+  <%# One query, not two: .empty? on an unloaded relation asks the database, then the
+      loop asks it again. %>
+  <% rows = meetings.to_a %>
+  <div class="text-base min-h-[60vh]">
+    <% if rows.empty? %>
+      <div class="flex items-center justify-center min-h-[40vh]">
+        <% if filters_active %>
+          <%# Existing meetings, but the current filter/search matched none. %>
+          <% reset_cta = capture do %>
+            <%= link_to t('views.organisations.meetings_overview.index.empty_reset'),
+                        organisation_meetings_path(@current_organisation),
+                        data: { turbo_frame: '_top' },
+                        class: 'inline-flex items-center gap-1 text-sm font-medium text-cream-800 underline hover:text-ink' %>
+          <% end %>
+          <%= render 'shared/empty_content',
+              variant: :no_results,
+              icon_class: 'bi bi-search',
+              title: t('views.organisations.meetings_overview.index.empty_no_results'),
+              actions: reset_cta %>
+        <% else %>
+          <%# First time: no readable meetings exist yet in any project. %>
+          <%= render 'shared/empty_content',
+              variant: :first_time,
+              icon_class: 'bi bi-chat-quote',
+              title: t('views.organisations.meetings_overview.index.empty_first_time_title'),
+              description: t('views.organisations.meetings_overview.index.empty_first_time_description') %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="relative w-full overflow-y-auto bg-cream-50 rounded-lg">
+        <table class="min-w-full border-collapse">
+          <thead>
+            <tr>
+              <th scope="col" class="p-3 text-start text-[11px] font-mono font-medium text-cream-600 uppercase tracking-wider border-b border-ink w-[32%]">
+                <%= t('views.organisations.meetings_overview.index.col_title') %>
+              </th>
+              <th scope="col" class="p-3 text-start text-[11px] font-mono font-medium text-cream-600 uppercase tracking-wider border-b border-ink w-[22%]">
+                <%= t('views.organisations.meetings_overview.index.col_project') %>
+              </th>
+              <th scope="col" class="p-3 text-start text-[11px] font-mono font-medium text-cream-600 uppercase tracking-wider border-b border-ink w-[20%]">
+                <%= t('views.organisations.meetings_overview.index.col_date') %>
+              </th>
+              <th scope="col" class="p-3 text-start text-[11px] font-mono font-medium text-cream-600 uppercase tracking-wider border-b border-ink w-[26%]">
+                <%= t('views.organisations.meetings_overview.index.col_participants') %>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-cream-200">
+            <% rows.each do |meeting| %>
+              <% row_url = organisation_project_meetings_path(@current_organisation, meeting.project, meeting_id: meeting.id) %>
+              <%# clickable-row's default branch (no data-*-id attr) navigates the
+                  whole window to row_url — breaking out of this frame into the
+                  project master-detail. The title stays a real link for keyboard
+                  access; the controller ignores clicks on it. %>
+              <tr data-controller="clickable-row"
+                  data-clickable-row-url-value="<%= row_url %>"
+                  data-action="click->clickable-row#click"
+                  class="transition-colors duration-100 ease-in-out cursor-pointer hover:bg-cream-100">
+                <td class="p-3 w-[32%]">
+                  <%= link_to meeting.title, row_url, data: { turbo_frame: '_top' },
+                              class: 'text-sm font-medium text-cream-900 hover:text-ink hover:underline' %>
+                </td>
+                <td class="p-3 w-[22%] text-sm text-cream-700 truncate"><%= meeting.project.name %></td>
+                <td class="p-3 whitespace-nowrap w-[20%] text-sm">
+                  <%= display_time(meeting.occurred_at, user: current_user) %>
+                </td>
+                <td class="p-3 w-[26%] text-sm text-cream-600">
+                  <% if meeting.meeting_participants.any? %>
+                    <span class="truncate"><i class="bi bi-people text-[10px]"></i> <%= meeting.meeting_participants.map(&:display_name).join(', ') %></span>
+                  <% else %>
+                    <span class="text-cream-400">–</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</turbo-frame>

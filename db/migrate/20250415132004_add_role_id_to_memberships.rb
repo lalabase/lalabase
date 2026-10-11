@@ -1,0 +1,5 @@
+class AddRoleIdToMemberships < ActiveRecord::Migration[8.0]
+  def change
+    add_reference :memberships, :role, type: :uuid, foreign_key: true
+  end
+end

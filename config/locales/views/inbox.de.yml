@@ -1,0 +1,156 @@
+de:
+  views:
+    organisations:
+      notifications:
+        index:
+          title: Inbox
+          ticket_exceptions: Ticket Ausnahmen
+        filter:
+          status_label: 'Status:'
+          view_label: 'Ansicht:'
+          extended: Erweiterte Filter
+          search_label: Suche
+          search_placeholder: In Benachrichtigungen suchen...
+          project_label: Projekt
+          type_label: Typ
+          unread: Ungelesen
+          read: Gelesen
+          archived: Archiviert
+          view_chronological: Chronologisch
+          view_grouped: Gruppiert
+          all_types: Alle Typen
+          all_projects: Alle Projekte
+        bulk:
+          selected: ausgewählt
+          mark_read: Als gelesen
+          archive: Archivieren
+          clear: Auswahl aufheben
+        item:
+          system_actor: System
+          unread_label: Ungelesen
+          archived_badge: Archiviert
+          select_aria: Notification auswählen
+          time_ago: vor %{time}
+          bundle_badge:
+            one: "%{count} Update"
+            other: "%{count} Updates"
+          bundle_badge_title:
+            one: "%{count} Aktualisierung zu diesem Ticket"
+            other: "%{count} Aktualisierungen zu diesem Ticket"
+        event_short:
+          ticket_commented: hat kommentiert
+          ticket_assigned: hat dir zugewiesen
+          ticket_unassigned: hat zuweisung aufgehoben
+          ticket_status_changed: hat den Status geändert
+          ticket_blocker: Blocker gemeldet
+          project_announcement: Projekt-Ankündigung
+          document_added: hat Dokument hinzugefügt
+          mention: hat dich erwähnt in
+          system_message: Systemnachricht
+        pane:
+          status_unread: Ungelesen
+          status_read: Gelesen
+          status_archived: Archiviert
+          unarchive: Dearchivieren
+          archive: Archivieren
+          empty_title: Wähle eine Benachrichtigung aus
+          empty_subtitle: Klick links auf einen Eintrag, um das Ticket hier zu öffnen — ohne Seitenwechsel.
+          missing_title: Diese Benachrichtigung existiert nicht mehr
+          missing_subtitle: Sie wurde gelöscht oder du hast keinen Zugriff darauf.
+          unauthorized_title: Kein Zugriff auf dieses Ticket
+          unauthorized_subtitle: Du bist diesem Projekt nicht zugeordnet.
+          open_full_view: Im Ticket öffnen
+          go_to_ticket: Zum Ticket
+          go_to_project: Zum Projekt
+          loading_short: Lade...
+          all_loaded_short: Alle geladen
+        stats:
+          title: Benachrichtigungs-Statistiken
+          description: Überblick über Ihre Benachrichtigungsaktivitäten in dieser Organisation
+          total_notifications: Gesamt Benachrichtigungen
+          unread: Ungelesen
+          read: Gelesen
+          archived: Archiviert
+          last_7_days: Letzte 7 Tage
+          back_to_notifications: Zurück zu Benachrichtigungen
+        preferences:
+          page_title: Benachrichtigungseinstellungen
+          title: Benachrichtigungen
+          subtitle: Wähle aus, welche Benachrichtigungen du erhältst
+          back: Zurück
+          ticket_notifications: Ticket-Benachrichtigungen
+          ticket_notifications_desc: Wähle aus, worüber du bei beobachteten Tickets informiert wirst
+          on_status_change: Bei Statusänderung
+          on_status_change_desc: Benachrichtigung wenn sich der Status eines Tickets ändert
+          on_priority_change: Bei Prioritätsänderung
+          on_priority_change_desc: Benachrichtigung wenn sich die Priorität eines Tickets ändert
+          on_comment: Bei neuem Kommentar
+          on_comment_desc: Benachrichtigung wenn ein neuer Kommentar erstellt wird
+          auto_follow_created: Automatisch bei eigenen Tickets folgen
+          auto_follow_created_desc: Tickets die du erstellst automatisch beobachten
+          assigned_auto_follow: Tickets die dir zugewiesen werden, werden immer automatisch beobachtet.
+          per_ticket_toggle: Du kannst Benachrichtigungen für einzelne Tickets direkt am Ticket an- und ausschalten.
+          th_event: Ereignis
+          th_in_app: In-App
+          th_email: Email
+          projects_documents: Projekte & Dokumente
+          projects_documents_desc: Projektankündigungen und Dokument-Updates
+          system: System
+          system_desc: Systemnachrichten und administrative Updates
+          code_index: Code-Index
+          code_index_desc: Benachrichtigungen, wenn der Code-Index eines Repositories fertig ist oder fehlschlägt
+          save: Speichern
+        ticket_exceptions:
+          title: Ticket Ausnahmen
+          subtitle: Tickets mit individuellen Benachrichtigungseinstellungen, die von deinen Standard-Einstellungen abweichen
+          back: Zurück
+          muted: stummgeschaltet
+          manually_followed: manuell gefolgt
+          badge_muted: Stumm
+          badge_manually_followed: Manuell gefolgt
+          open_ticket: 'Ticket #%{number} öffnen'
+          since: seit
+          activate: Aktivieren
+          unfollow: Entfolgen
+          no_exceptions: Keine Ausnahmen
+          all_default: Alle Tickets verwenden deine Standard-Einstellungen.
+        list:
+          no_notifications: Keine Benachrichtigungen
+          all_caught_up: Alles erledigt! Neue Benachrichtigungen erscheinen hier.
+        update:
+          notification_archived: Benachrichtigung archiviert
+          marked_as_read: Als gelesen markiert
+          notification_updated: Benachrichtigung aktualisiert
+        archive_all:
+          all_archived: Alle Benachrichtigungen archiviert
+          list_clean: Ihre Benachrichtigungsliste ist jetzt leer
+          count_archived: "%{count} Benachrichtigungen archiviert"
+        mark_all_read:
+          no_notifications: Noch keine Benachrichtigungen
+          will_notify: Wir benachrichtigen Sie, wenn etwas passiert
+          all_marked_read: Alle Benachrichtigungen als gelesen markiert
+      notification_subscriptions:
+        subscriber_list:
+          label: 'Benachrichtigt:'
+          you: Du
+          source_creator: Ersteller
+          source_assignee: Zugewiesen
+          source_self: Beobachter
+          source_manual: Hinzugefügt von %{name}
+          source_manual_unknown: Manuell hinzugefügt
+          add_person: Person hinzufügen
+          search_placeholder: Name oder E-Mail...
+          remove: Entfernen
+          confirm_remove: "%{name} von Benachrichtigungen entfernen?"
+          no_results: Keine Ergebnisse
+          user_muted: Benachrichtigungen stummgeschaltet
+          toggle_follow: Benachrichtigungen aktivieren
+          toggle_mute: Benachrichtigungen deaktivieren
+          not_subscribed: Nicht abonniert
+          muted_label: Stumm
+          click_to_add: "%{name} zu Benachrichtigungen hinzufügen"
+          add_more: Weitere...
+      activities:
+        activity:
+          show_details: Details anzeigen
+          time_ago_suffix: ago

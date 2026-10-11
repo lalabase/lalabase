@@ -1,0 +1,97 @@
+---
+de:
+  activities:
+    deleted_user: "Gelöschter Nutzer"
+    messages:
+      ticket:
+        assigned: "%{assignee} zugewiesen (%{actor}) – %{role} – %{display_name}"
+        created: Ticket erstellt (%{actor}) – %{display_name}
+        custom_attributes_changed: Eigenschaften geändert (%{actor})
+        deleted: Gelöscht (%{actor})
+        post_added: Kommentar hinzugefügt (%{actor})
+        priority_changed: Priorität von '%{from_priority}' auf '%{to_priority}' (%{actor})
+        status_changed: Status von '%{from_status}' auf '%{to_status}' (%{actor})
+        tag_added: Tag '%{tag_name}' hinzugefügt (%{actor})
+        tag_removed: Tag '%{tag_name}' entfernt (%{actor})
+        title_changed: Titel geändert (%{actor})
+        unassigned: Zuweisung von %{assignee} entfernt (%{actor}) – %{display_name}
+        updated: Aktualisiert (%{actor})
+        moved: "Ticket verschoben von '%{from_project_name}' nach '%{to_project_name}' (%{actor})"
+        subscriber_added: "%{actor} hat %{subscriber} zu den Benachrichtigungen hinzugefügt – %{display_name}"
+        subscriber_removed: "%{actor} hat %{subscriber} von den Benachrichtigungen entfernt – %{display_name}"
+      # Project-scoped activities (trackable = Projekt). Fallback for generic render
+      # paths that call Activity#message; the timeline component formats these itself.
+      project:
+        tickets_bulk_changed: "%{actor} hat %{count} Tickets geändert: %{changes}"
+        tickets_bulk_undone: "%{actor} hat eine Sammeländerung zurückgenommen (%{count} Tickets): %{changes}"
+        tickets_bulk_moved: "%{actor} hat %{count} Tickets nach „%{target}“ verschoben"
+        tickets_bulk_moved_in: "%{actor} hat %{count} Tickets aus „%{source}“ hierher verschoben"
+        tickets_bulk_deleted: "%{actor} hat %{count} Tickets gelöscht: %{numbers}"
+        meeting_created: "Meeting \"%{meeting_title}\" erstellt (%{actor})"
+        meeting_deleted: "Meeting \"%{meeting_title}\" gelöscht (%{actor})"
+      # KI-Paket-Wahl (trackable = Organisation, KI-Pakete P4e / E4). Zwei Verben für
+      # die zwei Achsen aus §2: nur der Paketwechsel trägt eine Rechtsraum-Entscheidung,
+      # der Stufenwechsel nicht. Ein Protokoll, das beides gleich benennt, wäre
+      # schlechter als keines. Die Werte kommen aus Actors::SelectAiPackage —
+      # `from_package`/`to_package` sind dort bereits Labels und nie leer.
+      organisation:
+        # KI-Opt-in (S0, doc/ki_bereich_navigation_plan.md). Eigene Verben neben der
+        # Paketwahl: der Schalter ist die Rechtsgrundlagen-Entscheidung des Kunden,
+        # die Paketwahl eine Entscheidung über Unterauftragsverarbeiter.
+        ai_activated: "KI-Funktionen aktiviert (%{actor})"
+        ai_deactivated: "KI-Funktionen deaktiviert (%{actor})"
+        ai_configuration_changed: "Eigener KI-Zugang geändert (%{actor})"
+        ai_package_selected: "KI-Paket von \"%{from_package}\" auf \"%{to_package}\" gewechselt (%{actor})"
+        ai_tier_selected: "Leistungsstufe von \"%{from_tier_key}\" auf \"%{to_tier_key}\" gewechselt (%{actor})"
+    # Kurzform für Activity#action_text (activities.<key>), die Langform steht
+    # oben unter messages.organisation.
+    organisation:
+      ai_activated: KI aktiviert
+      ai_deactivated: KI deaktiviert
+      ai_configuration_changed: KI-Zugang geändert
+      ai_package_selected: KI-Paket gewechselt
+      ai_tier_selected: Leistungsstufe gewechselt
+    subscriber_added:
+      message: "%{actor} hat %{subscriber_name} zu den Benachrichtigungen hinzugefügt"
+      label: "Abonnent hinzugefügt"
+    subscriber_removed:
+      message: "%{actor} hat %{subscriber_name} von den Benachrichtigungen entfernt"
+      label: "Abonnent entfernt"
+    project:
+      tickets_bulk_changed: Mehrere Tickets geändert
+      tickets_bulk_undone: Sammeländerung zurückgenommen
+      tickets_bulk_moved: Mehrere Tickets verschoben
+      tickets_bulk_moved_in: Mehrere Tickets erhalten
+      tickets_bulk_deleted: Mehrere Tickets gelöscht
+
+    ticket:
+      assigned: Nutzer zugewiesen
+      created: Ticket erstellt
+      custom_attributes_changed: Eigenschaften geändert
+      deleted: Ticket gelöscht
+      post_added: Kommentar hinzugefügt
+      priority_changed: Priorität geändert
+      status_changed: Status geändert
+      tag_added: Tag hinzugefügt
+      tag_removed: Tag entfernt
+      title_changed: Titel geändert
+      unassigned: Zuweisung entfernt
+      updated: Ticket aktualisiert
+      moved: Ticket verschoben
+    time:
+      days_ago:
+        one: Gestern
+        other: Vor %{count} Tagen
+      hours_ago:
+        one: Vor einer Stunde
+        other: Vor %{count} Stunden
+      just_now: Gerade eben
+      minutes_ago:
+        one: Vor einer Minute
+        other: Vor %{count} Minuten
+      months_ago:
+        one: Vor einem Monat
+        other: Vor %{count} Monaten
+      weeks_ago:
+        one: Vor einer Woche
+        other: Vor %{count} Wochen

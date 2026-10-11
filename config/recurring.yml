@@ -1,0 +1,237 @@
+# Solid-Queue-Recurring-Tasks (https://github.com/rails/solid_queue#recurring-tasks)
+#
+# examples:
+#   periodic_cleanup:
+#     class: CleanSoftDeletedRecordsJob
+#     queue: background
+#     args: [ 1000, { batch_size: 500 } ]
+#     schedule: every hour
+#   periodic_cleanup_with_command:
+#     command: "SoftDeletedRecord.due.delete_all"
+#     priority: 2
+#     schedule: at 5am every day
+
+production:
+  clear_solid_queue_finished_jobs:
+    command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
+    schedule: every hour at minute 12
+  # GDPR: runs scheduled account deletions (scheduled_deletion_at exceeded)
+  # automatically — previously NEVER ran automatically (only manually via rails runner).
+  scheduled_account_deletions:
+    class: ScheduledDeletionJob
+    queue: default
+    schedule: every day at 3am
+  # Documentation auto-sync (polling; webhooks deliberately deferred). 30min is
+  # the v1 default: docs change on the cadence of pushes, not seconds, and each
+  # poll costs one shallow clone per set.
+  documentation_polling_sync:
+    class: DocumentationPollingJob
+    queue: default
+    schedule: every 30 minutes
+  # Bot defence S4 (doc/bot_registrierungen_plan.md): removes self-registrations
+  # that never confirmed their address, together with the solely-inhabited
+  # organisation. Runs as a DRY RUN until UNCONFIRMED_SIGNUP_PURGE_ENFORCE is set
+  # on the worker. 03:45 sits after the scheduled account deletions (03:00) and
+  # before the export cleanup (04:00).
+  unconfirmed_signup_purge:
+    class: UnconfirmedSignupPurgeJob
+    queue: default
+    schedule: every day at 3:45am
+  # GDPR export retention: purge expired archives (7 days), drop stale rows
+  # (30 days). Registration here is asserted by a spec so this cannot rot into
+  # "documented but never runs" (the email_logs anti-pattern, audit 1.3).
+  user_data_export_cleanup:
+    class: UserDataExportCleanupJob
+    queue: exports
+    schedule: every day at 4am
+  # T17 (billing_agentur_konto_plan.md §17.3b): aggregate the month that just
+  # closed onto each Account, so AI consumption survives the deletion of the
+  # organisation that produced it. 02:00 on the 1st — after midnight (the month
+  # must be closed; rollup rows are write-once and an open month would freeze a
+  # partial value) and before the 03:00/04:00/05:00 jobs. Each run also
+  # re-checks the previous six months, so a missed run heals itself.
+  ai_usage_rollup:
+    class: AiUsageRollupJob
+    queue: default
+    schedule: "0 2 1 * *"
+  # KI-Kontingent (S3): after the calendar month resets every org's budget, re-drive
+  # embeddings paused while the quota was exhausted (oldest backlog first). Runs on
+  # the 1st at 05:00; the per-org backfill is quota-aware (leaves the rest pending).
+  ai_quota_monthly_resume:
+    class: AiQuotaMonthlyResumeJob
+    queue: default
+    schedule: "0 5 1 * *"
+  # Embedding v2 (PR 3): reclaim sidecar/fragment rows whose owner was deleted via a
+  # callback-free path. The DAILY cadence is a GDPR property — derived vectors +
+  # source hashes of deleted content persist at most 24h (PII paths purge
+  # synchronously and never wait for this job). 04:30 sits after the export cleanup
+  # (4:00) and before the monthly quota resume (5:00). Ships DRY-RUN by default;
+  # set EMBEDDINGS_GC_ENFORCE=1 on the worker to arm real deletion (see ops docs).
+  # PR 6b added a THIRD sweep to the same job: vector spaces beyond an org's
+  # embedding_retention_limit. It has its OWN switch, EMBEDDINGS_RETENTION_ENFORCE=1 —
+  # orphan rows are worthless by definition, a retained space is the roll-back net, and
+  # arming one must not arm the other.
+  embeddings_orphan_gc:
+    class: Embeddings::OrphanGcJob
+    queue: default
+    schedule: "30 4 * * *"
+  # KI-Pakete P4d: carries a started embedding switch to its end — flip what is complete,
+  # re-drive what is not. Without it a customer package change costs quota and then hangs
+  # in `configured != active` for good. 15 minutes because the delay is FELT: content
+  # created during the switch is unfindable until the flip (E3), and the check itself
+  # touches no content_embeddings (E1) — it reads a snapshot row and resolves credentials.
+  embedding_switch_watcher:
+    class: Embeddings::SwitchWatcherJob
+    queue: default
+    schedule: every 15 minutes
+  # AVV § 12 Abs. 4: blobs without an attachment row never disappear from the
+  # production system, therefore never orphan in the backup mirror, therefore
+  # never enter the 35 + 14 day chain. Without this run the contract's deletion
+  # promise is untrue for them. 05:15 sits after the export cleanup (4:00) and
+  # the embedding GC (4:30). Ships ARMED — the grace period, not a flag, is what
+  # keeps it safe (see the job).
+  unattached_blob_purge:
+    class: UnattachedBlobPurgeJob
+    queue: default
+    schedule: "15 5 * * *"
+  # AVV § 12 Abs. 7: carries the backup script's deletion proof into the register.
+  # 05:45 — after the attachment backup (03:20 UTC) has written its lines and
+  # after the blob purge (05:15), so a file purged this morning can already be
+  # confirmed tomorrow.
+  attachment_backup_confirmation:
+    class: AttachmentBackupConfirmationJob
+    queue: default
+    schedule: "45 5 * * *"
+  # AVV § 12 Abs. 7: the register's own three-year deadline. Without it the
+  # register would be the one store in the system that expires never — the very
+  # defect it exists to document. 06:00 keeps the whole attachment chain in one
+  # window (purge 05:15, backup confirmation 05:45, expiry 06:00).
+  attachment_deletion_record_purge:
+    class: AttachmentDeletionRecordPurgeJob
+    queue: default
+    schedule: "0 6 * * *"
+
+  # Founder application (§ 12.3.4): the callback number is the ONLY field of the
+  # application that has no purpose left after the decision. Company name and
+  # seat are stored on the Account anyway. The privacy policy (section 4.1)
+  # says "gelöscht, sobald entschieden ist, spätestens nach drei Monaten"; without
+  # this run that would be a sentence, not a mechanism. 05:55, after the other
+  # cleanup jobs.
+  founder_signup_callback_number_cleanup:
+    class: FounderSignupCallbackNumberCleanupJob
+    queue: default
+    schedule: "55 5 * * *"
+
+  # M0c (doc/abrechnungsmodell_plan.md §3): does the seat event stream still
+  # match the live counter? The stream is the basis of every later billing by
+  # period, and it is written by callbacks that each cover only their own write
+  # path. The backfill check proved the state back then, this run proves the
+  # state today. 06:20, after the rest of the cleanup round, so the numbers
+  # catch a quiet moment.
+  #
+  # DELIBERATELY ONLY HERE, not under staging: the opening balance was never
+  # backfilled there, so the run reported every account as "ohne Eröffnung"
+  # every night. An alarm that fires every night is ignored after three days,
+  # and then it is also missed on production. Whoever adds staging backfills
+  # the opening balance there first.
+  seat_stream_drift_check:
+    class: SeatStreamDriftCheckJob
+    queue: default
+    schedule: "20 6 * * *"
+
+  # M1b (doc/abrechnungsmodell_plan.md §4, T18): stores the seat count at every
+  # month boundary, so the peak evaluation can replay one month instead of
+  # walking the whole history every time.
+  #
+  # On the 1st at 06:40 UTC, so 20 minutes after the nightly drift check starts
+  # at 06:20. The intent: if the stream differs from reality that morning, the
+  # check's error line sits in the log close to the snapshots that rely on the
+  # same stream. Both run on queue `default`, so this is a head start and not an
+  # enforced order. Whoever needs a real dependency chains the jobs instead of
+  # widening the gap.
+  #
+  # Monthly, although every run looks back six months: a missed boundary is
+  # caught up on the next run, one that already has an answer is not written
+  # again.
+  #
+  # DELIBERATELY ONLY HERE, not under staging, for the same reason as the drift
+  # check: the opening balance was never backfilled there, so every boundary
+  # would be "nicht rekonstruierbar". Those are rows nobody learns anything
+  # from. Whoever adds staging backfills the opening balance there first.
+  seat_snapshot:
+    class: SeatSnapshotJob
+    queue: default
+    schedule: "40 6 1 * *"
+
+  # Privacy policy § 4.2: a new customer's acquisition source is deleted twelve
+  # months after registration (AcquisitionSource::RETENTION). In BOTH
+  # environments, because the deadline is a promise to the customer and does not
+  # depend on the environment. At night: the volume is tiny and the run is one
+  # update_all.
+  acquisition_purge:
+    class: AcquisitionPurgeJob
+    queue: default
+    schedule: every day at 3:40am
+
+staging:
+  # Here too, so the dry-run log exists somewhere before enforcement is armed.
+  unconfirmed_signup_purge:
+    class: UnconfirmedSignupPurgeJob
+    queue: default
+    schedule: every day at 3:45am
+  clear_solid_queue_finished_jobs:
+    command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
+    schedule: every hour at minute 12
+  scheduled_account_deletions:
+    class: ScheduledDeletionJob
+    queue: default
+    schedule: every day at 3am
+  documentation_polling_sync:
+    class: DocumentationPollingJob
+    queue: default
+    schedule: every 30 minutes
+  user_data_export_cleanup:
+    class: UserDataExportCleanupJob
+    queue: exports
+    schedule: every day at 4am
+  ai_usage_rollup:
+    class: AiUsageRollupJob
+    queue: default
+    schedule: "0 2 1 * *"
+  ai_quota_monthly_resume:
+    class: AiQuotaMonthlyResumeJob
+    queue: default
+    schedule: "0 5 1 * *"
+  embeddings_orphan_gc:
+    class: Embeddings::OrphanGcJob
+    queue: default
+    schedule: "30 4 * * *"
+  embedding_switch_watcher:
+    class: Embeddings::SwitchWatcherJob
+    queue: default
+    schedule: every 15 minutes
+  unattached_blob_purge:
+    class: UnattachedBlobPurgeJob
+    queue: default
+    schedule: "15 5 * * *"
+  attachment_backup_confirmation:
+    class: AttachmentBackupConfirmationJob
+    queue: default
+    schedule: "45 5 * * *"
+  attachment_deletion_record_purge:
+    class: AttachmentDeletionRecordPurgeJob
+    queue: default
+    schedule: "0 6 * * *"
+  founder_signup_callback_number_cleanup:
+    class: FounderSignupCallbackNumberCleanupJob
+    queue: default
+    schedule: "55 5 * * *"
+  # Privacy policy § 4.2: a new customer's acquisition source is deleted twelve
+  # months after registration (AcquisitionSource::RETENTION). In BOTH
+  # environments, because the deadline is a promise to the customer and does not
+  # depend on the environment. At night: the volume is tiny and the run is one
+  # update_all.
+  acquisition_purge:
+    class: AcquisitionPurgeJob
+    queue: default
+    schedule: every day at 3:40am

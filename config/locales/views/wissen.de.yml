@@ -1,0 +1,183 @@
+de:
+  views:
+    wiki:
+      mentions:
+        untitled: Unbenannt
+    organisations:
+      knowledge:
+        index:
+          title: Wissen
+          search_placeholder: Suche in Notizen und Dateien...
+          filter_all_types: Alle Typen
+          filter_type_label: Typ
+          filter_notes: Notizen
+          filter_documents: Dateien
+          filter_tag: Tags
+          filter_creator: Ersteller
+          filter_created_at: Erstellt am
+          filter_updated_at: Aktualisiert am
+          date_preset_today: Heute
+          date_preset_yesterday: Gestern
+          date_preset_last_7_days: Letzte 7 Tage
+          date_preset_last_30_days: Letzte 30 Tage
+          date_preset_this_week: Diese Woche
+          date_preset_this_month: Diesen Monat
+          all_items: Alle Einträge
+          item_deleted_note: Notiz wurde gelöscht.
+          item_deleted_document: Datei wurde gelöscht.
+          item_deleted_description: Bitte wählen Sie einen anderen Eintrag aus der Liste.
+          placeholder_title: Bitte wählen Sie einen Eintrag aus der Liste
+          placeholder_body: Der Inhalt des ausgewählten Eintrags wird hier angezeigt.
+          mobile_list_view: Listenansicht
+          remove_filter: Filter entfernen
+          clear_all_filters: Alle entfernen
+          no_filter_options: Keine Optionen verfügbar
+          no_tag_options: In diesem Projekt hat noch kein Eintrag einen Tag. Sobald du Einträge mit Tags versiehst, kannst du hier danach filtern.
+          filter_op_or: ist
+          filter_op_and: ist alle
+          filter_op_not: ist nicht
+          filter_op_logic_label: Logik
+          filter_connector_and: und
+          filter_connector_or: oder
+          save_as_smart_folder: Filter speichern
+          save_filter_title: Filter als Smart Folder speichern
+          save_filter_name_label: Name
+          save_filter_name_placeholder: z.B. Projektdokumente
+          save_filter_save_button: Speichern
+          save_filter_cancel_button: Abbrechen
+          save_filter_unsupported_hint: Einige Filter können nicht konvertiert werden und werden übersprungen.
+          filter_bar:
+            saved_filters: Gespeicherte Filter
+            more_filters: "+%{count} weitere"
+            search_placeholder: Einträge durchsuchen
+            add_filter: Filter
+            sentence_subject: Einträge
+            search_depth_label: Suchtiefe
+            search_depth_title_only: Nur Titel
+            search_depth_title_content: Titel + Inhalt
+            search_depth_everything: Alles
+            search_depth_quick: Schnell
+            search_depth_standard: Standard
+            search_depth_deep: Tief
+            chip_row_label: 'Einträge mit der Bedingung:'
+            edit_smart_folder: Filter bearbeiten
+            close_filter: Filter schließen
+            filter_changed: Filter wurde geändert.
+            filter_save_changes: Änderung speichern?
+            filter_discard_changes: Verwerfen
+            filter_saved: Gespeichert
+            filter_save_error: Speichern fehlgeschlagen
+            expert_filter: Experten-Filter
+            expert_filter_description: Filter mit erweiterten Regeln
+            chip_tooltip_or: Eines dieser Kriterien muss zutreffen
+            chip_tooltip_and: Alle Kriterien müssen zutreffen
+            chip_tooltip_not: Diese Kriterien werden ausgeschlossen
+            chip_tooltip_saved_filter: 'Gespeicherter Filter: %{name}'
+          new_note: Notiz schreiben
+          new_document: Datei hochladen
+          empty_first_time_title: Noch kein Wissen vorhanden
+          empty_first_time_description: Erstelle eine Notiz oder lade eine Datei hoch.
+          empty_no_results: Keine Ergebnisse gefunden
+          explainer:
+            title: Was ist Wissen?
+            point_files: Lege hier Dateien aller Art ab — PDFs, Word, Excel, PowerPoint und mehr.
+            point_notes: Oder schreibe eine Notiz direkt in Lalabase, wenn du etwas nur festhalten willst.
+            point_search: Alles, was hier liegt, findest du später über die Suche wieder.
+            point_chat: Auf Wunsch nutzt auch der KI-Chat dieses Wissen und beantwortet Fragen dazu.
+            not_title: Unterschied zur Dokumentation
+            not_body: Die Dokumentation wird automatisch aus dem Projekt-Repository gespiegelt — Wissen pflegst du selbst hier in Lalabase.
+        lane:
+          back_to_list: Alle Einträge
+          close: Eintrag schließen
+          # Je Typ, weil der Dokument-Text die Version nennt: der Bezug meint
+          # das Dokument, gelesen wird immer seine aktuelle Version.
+          ask_assistant:
+            note: Assistenten zu dieser Notiz fragen
+            document: Assistenten zu dieser Datei fragen (gelesen wird die aktuelle Version)
+        knowledge_results:
+          title_header: Titel
+          created_at_header: Erstellt am
+          tags_header: Tags
+        knowledge_row:
+          note_type: Notiz
+          document_type: Datei
+      notes:
+        show:
+          title: Notizen
+          new_note: Neue Notiz
+          list_tab: Liste
+          chat_heading: Chat
+          chat_placeholder: Hier könnte in Zukunft ein Chat zur aktuellen Notiz angezeigt werden.
+          chat_in_development: Chat-Funktion in Entwicklung
+        index:
+          placeholder_title: Bitte wählen Sie eine Notiz aus der Liste
+          placeholder_body: Der Inhalt der ausgewählten Notiz wird hier angezeigt.
+          title: Notizen
+          new_note_tooltip: Neue Notiz erstellen
+          search_placeholder: Suche in Notizen
+          select_note_hint: Bitte wählen Sie eine Notiz aus der Liste
+          note_content_hint: Der Inhalt der ausgewählten Notiz wird hier angezeigt.
+          chat_heading: Chat
+          chat_placeholder: Hier könnte in Zukunft ein Chat zur aktuellen Notiz angezeigt werden.
+          chat_in_development: Chat-Funktion in Entwicklung
+        note_show:
+          edit_note: Notiz bearbeiten
+          searchable: Suchbar
+          embedding_error: Embedding-Fehler
+          processing: Wird verarbeitet
+        note_edit:
+          title_placeholder: Titel der Notiz
+          cancel: Abbrechen
+          delete: Löschen
+          save: Speichern
+        notes_results:
+          title: Titel
+          created_at: Erstellt am
+          tags: Tags
+      note_versions:
+        index:
+          title: Versionsverlauf
+          empty: Noch keine Versionen vorhanden.
+        show:
+          title: Änderungen dieser Version
+          initial: Erste Version
+          no_changes: Keine Änderungen in dieser Version.
+        shared:
+          back_to_note: Zurück zur Notiz
+          back_to_history: Zurück zum Verlauf
+          history_link: Verlauf
+          system_author: System
+      posts:
+        edit:
+          remove_attachment: Entfernen
+          attach_files: Dateien anhängen
+          ask_ai: KI um Hilfe bitten
+          delete: Löschen
+          cancel: Abbrechen
+          update: Aktualisieren
+          message_placeholder: Nachricht eingeben...
+        form:
+          attach_files: Dateien anhängen
+          ask_ai: KI um Hilfe bitten
+          private_post: Privater Post (nur für mich sichtbar)
+          cancel: Abbrechen
+          send: Senden
+          message_placeholder: Nachricht eingeben...
+          form_error: Formular kann nicht angezeigt werden. Bitte aktualisieren Sie die Seite.
+          status_label: Status setzen
+          status_hint: 'Optional: Ändere den Ticket-Status zusammen mit diesem Kommentar.'
+          write_comment: Kommentar schreiben …
+          format: Format
+          file: Datei
+          change_status: Status ändern
+          keep_current_status: Status unverändert
+          private_chip: Privat
+          private_hint: Nur für dich und die Kontoadmins sichtbar. Erscheint nicht im Verlauf der anderen.
+          send_private: Privat speichern
+        edit_partial:
+          remove_attachment: Entfernen
+          attach_files: Dateien anhängen
+          delete: Löschen
+          cancel: Abbrechen
+          update: Aktualisieren
+          message_placeholder: Nachricht eingeben...

@@ -1,0 +1,72 @@
+# What the image build may not see. The image is built from the repository,
+# and the repository directory of a self-hoster also holds their .env and,
+# after a first run, nothing else of value: compose.yml keeps data in volumes.
+#
+# This list names paths; it is not an allowlist. A developer checkout holds
+# more than a clone (files git ignores). An image that is published must be
+# built from a clean clone, never from a working copy.
+
+# Version control
+/.git/
+/.gitignore
+/.github/
+
+# Secrets and local configuration. The container gets its settings from the
+# environment compose.yml passes in, never from a file baked into the image.
+/.env*
+/config/master.key
+/config/credentials/
+/Gemfile.operator*
+/dump.rdb
+
+# Rebuilt inside the image
+/node_modules/
+/vendor/bundle/
+/public/*
+!/public/fonts/
+# The directory must exist when Rails boots for the precompile, or Sprockets
+# never registers it and the freshly built tailwind.css is not an asset.
+/app/assets/builds/*
+!/app/assets/builds/.keep
+/config/manifest.json
+/tmp/
+/log/
+/storage/
+/coverage/
+
+# Not needed to run the application
+/spec/
+/script/
+/ops/
+/Dockerfile
+/.dockerignore
+/compose.yml
+/Guardfile
+/.claude/
+/AGENTS.md
+/CLAUDE.md
+
+# Only in a developer checkout (git ignores them): private documentation,
+# tool output, local scripts, and theme images nothing references.
+/doc/
+/docs/
+/.gstack/
+/.playwright-mcp/
+/.ruby-lsp/
+/bin/__pycache__/
+/bin/deploy
+/bin/debug-assets
+/bin/create-letzte-arbeiten
+/bin/test_notes_search
+/bin/update_style_guide
+/app/assets/images/avatar/
+/app/assets/images/demos/
+/app/assets/images/ilustration/
+/app/assets/images/works/
+
+# Operating system and editor files
+.DS_Store
+*~
+*.swp
+/.vscode/
+/.idea/

@@ -1,0 +1,489 @@
+---
+en:
+  activerecord:
+    attributes:
+      ticket_relation:
+        source_ticket: "Source ticket"
+        target_ticket: "Target ticket"
+        relation_type: "Kind of relation"
+        delay_days: "Delay in days"
+      meeting:
+        title: "Title"
+        occurred_at: "Date & time"
+        notes: "Notes"
+        transcript: "Transcript"
+      price_list:
+        plan_key: "Plan"
+        currency: "Currency"
+        starts_on: "Applies from"
+        ends_on: "Applies until"
+        note: "Note"
+      price_tier:
+        price_list: "Price level"
+        billing_interval: "Billing interval"
+        min_seats: "From seat"
+        max_seats: "To seat"
+        base_amount_cents: "Flat amount"
+        per_seat_amount_cents: "Per-seat amount"
+      account_discount:
+        account: "Billing account"
+        percent_off: "Discount"
+        starts_on: "Applies from"
+        ends_on: "Applies until"
+        reason: "Reason"
+      ai_package:
+        name: "Name"
+        description: "Description"
+        jurisdiction: "Legal classification"
+        processing_region: "Processing region"
+        provider_note: "Provider note"
+        embedding_credential: "Embedding credentials"
+        embedding_model: "Embedding model"
+        embedding_dims: "Embedding dimension"
+        active: "Published"
+        position: "Order"
+      ai_package_tier:
+        key: "Tier"
+        label: "Label"
+        chat_credential: "Chat credentials"
+        chat_model: "Chat model"
+      ai_credential:
+        # E12: the company-seat axis. The processing location sits next to it in
+        # "region" — two independent facts, neither replaces the other (§3).
+        company_domicile: "Provider's company seat"
+      ai_credential_contract:
+        ai_credential: "Credential"
+        training_usage: "Training"
+        retention_policy: "Retention"
+        retention_days: "Retention period"
+        subprocessors_disclosure: "Sub-processors"
+        starts_on: "Valid from"
+        ends_on: "Valid until"
+      ai_credential_document:
+        document_key: "Key"
+        title: "Title"
+        valid_from: "Valid from"
+        locator: "Location in document"
+        file: "PDF"
+    errors:
+      models:
+        beuser:
+          last_active_admin: "The last active admin cannot be demoted, deactivated or deleted."
+        seat_event:
+          attributes:
+            counted:
+              cannot_count_for_event: "cannot be true on this event (the seat stops counting for this account)"
+              must_count_for_event: "must be true on this event (the seat starts counting for this account)"
+        seat_snapshot:
+          attributes:
+            period_start:
+              must_be_month_start: "must be the first day of a month (one row per account and month boundary)"
+            seat_count:
+              required_when_ok: "must be set on status ok (a measurement without a value is none)"
+              must_match_pairs: "must equal the number of distinct users in pairs (D4.1, dedup across organisations)"
+              forbidden_without_measurement: "must stay NULL without a measurement (a zero would be a lie, §3)"
+            pairs:
+              malformed_entry: "contains an entry missing organisation_id, organisation_name or user_id"
+              must_be_empty_without_measurement: "must stay empty without a measurement"
+            error:
+              required_on_failed: "must name the failure on status failed"
+              only_on_failed: "may only be set on status failed"
+        price_tier:
+          attributes:
+            max_seats:
+              below_min_seats: "must not be lower than the from-seat number"
+        user:
+          attributes:
+            base:
+              system_account_undeletable: "The Lalabase system account cannot be deleted"
+            email:
+              taken: "has already been taken"
+        note:
+          attributes:
+            content:
+              block_content_in_table_cell: "Table cells may not contain block content (lists, paragraphs)"
+        meeting:
+          content_too_large: "is too large (max. 1 MB)"
+          duplicate_participant_name: "A participant was listed twice (same name)."
+          duplicate_participant_user: "The same person was listed more than once as a participant."
+        documentation_set:
+          attributes:
+            project_repository:
+              mismatched_project: "must belong to the same project as the documentation"
+        ticket:
+          attributes:
+            parent_id:
+              cannot_be_self: "may not point to itself"
+              not_found: "parent task not found"
+              different_project: "parent task must be in the same project"
+              must_be_top_level: "parent task may not itself be a sub-task"
+              has_children: "tasks with sub-tasks cannot become a sub-task themselves"
+        reference:
+          self_reference: "A reference may not point to itself"
+        # Whole sentences on :base, so the message reads without an attribute name.
+        ticket_relation:
+          self_reference: "A ticket cannot be linked to itself."
+          duplicate: "This relation already exists."
+          reverse_exists: "These two tickets are already linked this way, from the other side."
+          delay_only_for_precedes: "A delay in days only applies to “precedes” and “follows”."
+          organisation_mismatch: "Tickets from another organisation cannot be linked."
+          attributes:
+            delay_days:
+              in: "is outside the allowed range"
+        time_session:
+          attributes:
+            occurred_on:
+              blank: "must be filled in"
+            duration:
+              blank: "must be filled in"
+              greater_than: "must be greater than 0"
+              less_than_or_equal_to: "must be at most %{count} minutes (24 hours)"
+            duration_string:
+              invalid_format: "must be a valid time format (e.g. \"1:30\" or \"90\")"
+            project_id:
+              blank: "must be filled in"
+            creator_id:
+              blank: "must be filled in"
+          billed_cannot_edit: "Invoiced time sessions cannot be edited"
+          single_subject: "A time session may be linked to either a ticket or a meeting, not both"
+          subject_in_other_project: "The ticket or meeting belongs to another project. When moving the entry, choose one from the target project or remove it"
+        personal_access_token:
+          attributes:
+            expires_at:
+              beyond_max_lifetime: "must be at most %{days} days in the future"
+          no_organisation_scope: "At least one organisation must be selected."
+          project_outside_scoped_organisations: "Projects must belong to one of the selected organisations."
+          organisation_links_with_all_organisations: "A token for all organisations cannot also select single organisations or projects."
+        document_version:
+          attributes:
+            document_version_file:
+              blank: "A file must be selected"
+        smart_folder_share:
+          attributes:
+            user_id:
+              taken: "This user already has access to the folder."
+              cannot_share_with_owner: "The owner already has full access to this Ticket Filter."
+        ai_credential:
+          attributes:
+            access_token:
+              invalid_anthropic_key: "must be a valid Anthropic API key (sk-ant-...)"
+              invalid_google_service_account: "must be a service account JSON containing private_key and client_email (not an API key — Vertex AI, EU endpoint)"
+            provider:
+              supported_provider: "must be one of the supported providers"
+              not_implemented: "is not implemented yet and cannot be selected"
+            purpose:
+              embeddings_not_supported: "includes embeddings, which this provider does not support"
+            company_domicile:
+              supported_domicile: "must be \"EU\" or \"outside the EU\""
+            active:
+              one_active_per_provider: "Only one default credential per provider is allowed"
+              provider_not_implemented: "can only be set for providers that are actually implemented"
+          cannot_delete_last_active: "Cannot be deleted: This is the default credential for %{provider}"
+          cannot_delete_referenced_by_package: "Cannot be deleted: Used by these AI packages — %{packages}"
+          cannot_disable_referenced_by_package: "Cannot be disabled: Used by these AI packages — %{packages}"
+          required_for_quota: "must be greater than 0 for quota-metered credentials"
+        ai_credential_contract:
+          attributes:
+            retention_days:
+              only_with_limited_retention: "is only allowed with limited retention — without a limit a day count states nothing"
+        ai_credential_document:
+          attributes:
+            file:
+              not_a_pdf: "must be a PDF file"
+              too_large: "is too large (max. %{limit} MB)"
+            url:
+              not_http_url: "must start with http:// or https://"
+        ai_package:
+          attributes:
+            embedding_credential:
+              disabled: "is disabled and cannot be used in any package"
+              wrong_purpose: "is not cleared for embeddings — the credential's purpose only allows chat"
+              not_embedding_capable: "points at a provider without embedding support (%{provider})"
+            embedding_dims:
+              supported_dimension: "must be a supported embedding dimension"
+            embedding_model:
+              vertex_model_unavailable: "%{model} is not available in region %{region}"
+            jurisdiction:
+              us_credential_conflict: "claims processing inside the EU — these credentials process outside it: %{credentials}"
+              unknown_region_conflict: "claims processing inside the EU but cannot substantiate it — no region is recorded for these credentials: %{credentials}"
+              eu_region_understated: "claims processing outside the EU — but all selected credentials process inside it: %{credentials}"
+              foreign_company_conflict: "claims an EU company seat — these credentials belong to a company outside the EU: %{credentials}"
+              eu_company_understated: "claims a company seat outside the EU — but all selected credentials belong to EU companies: %{credentials}"
+            tiers:
+              duplicate_key: "contain the same tier more than once (%{keys})"
+              incomplete_ladder: "are incomplete — the tiers %{keys} are missing; a published package needs the full ladder"
+            base:
+              not_unique_race: "was created concurrently — please check the name and save again"
+        ai_package_tier:
+          attributes:
+            chat_credential:
+              disabled: "is disabled and cannot be used in any package"
+              wrong_purpose: "is not cleared for chat — the credential's purpose only allows embeddings"
+            chat_model:
+              vertex_model_unavailable: "%{model} is not available in region %{region}"
+        notification_subscription:
+          attributes:
+            subscribable_type:
+              invalid: "is not a valid type"
+            subscribable_id:
+              does_not_exist: "does not exist"
+            user_id:
+              subscription_exists: "already has a subscription for this item"
+          no_ticket_access: "You do not have access to this ticket"
+          no_project_access: "You do not have access to this project"
+        smart_folder:
+          attributes:
+            display_columns:
+              not_a_hash: "must be a Hash"
+              invalid_keys: "contains invalid keys: %{keys}"
+              table_columns_not_array: "table_columns must be an Array"
+              pinned_columns_not_array: "pinned_columns must be an Array"
+              header_columns_not_array: "header_columns must be an Array"
+              list_columns_invalid: "list_columns must be a Hash with cells and metadata"
+          conversion_error: "Conversion error: %{error}"
+          too_many_rule_groups: "Too many conditions: a view may have at most %{count} rule groups. Choose fewer values."
+          too_many_rules: "Too many conditions: a rule group may have at most %{count} rules. Choose fewer values."
+        dashboard_configuration:
+          attributes:
+            user_id:
+              project_default_exists: "Project default already exists"
+            layout:
+              not_an_array: "must be an Array"
+              row_missing_widgets: "Row %{row}: must contain widgets"
+              row_units_exceeds: "Row %{row}: widgets use more than %{max} units"
+              widget_invalid_format: "Row %{row}: Widget must be a String or Hash with 'key'"
+              widget_units_invalid: "Row %{row}: widget '%{widget}' width must be between %{min} and %{max} units"
+              widget_limit_invalid: "Row %{row}: widget '%{widget}' has an invalid item count"
+              empty_not_allowed: "The dashboard needs at least one row (use Reset to restore the default)"
+        overview_configuration:
+          attributes:
+            user_id:
+              org_default_exists: "Organisation default already exists"
+            layout:
+              not_an_array: "must be an Array"
+              row_missing_widgets: "Row %{row}: must contain widgets"
+              row_units_exceeds: "Row %{row}: widgets use more than %{max} units"
+              widget_invalid_format: "Row %{row}: Widget must be a String or Hash with 'key'"
+              widget_units_invalid: "Row %{row}: widget '%{widget}' width must be between %{min} and %{max} units"
+              widget_limit_invalid: "Row %{row}: widget '%{widget}' has an invalid item count"
+              empty_not_allowed: "The overview needs at least one row (use Reset to restore the default)"
+        chat:
+          attributes:
+            prompt_persona:
+              unavailable: "is not available for this organisation"
+            scope_project:
+              cross_organisation: "must belong to the thread's organisation"
+            scope_references:
+              not_an_array: "must be a list"
+              malformed_entry: "contains an entry that is not a known reference"
+              duplicate_entry: "contains the same reference more than once"
+              too_many: "must not contain more than %{count} references"
+            user:
+              required_for_org_thread: "must be present on an org-wide thread"
+        prompt_persona:
+          system_persona_undeletable: "System personas cannot be deleted"
+          default_persona_must_stay_active: "The guaranteed default persona cannot be deactivated"
+        chatpost:
+          system_cannot_delete: "System messages cannot be deleted"
+          attributes:
+            content:
+              textile_syntax_error: "Textile syntax error: %{error}"
+        tagging:
+          attributes:
+            tag:
+              wrong_organisation: "must belong to the same organisation as the tagged object"
+        smart_folder_rule:
+          missing_reference_model_config: "Missing model configuration for reference validation"
+          invalid_reference_model: "Reference model '%{model}' not found"
+          cannot_validate_reference: "Cannot validate reference for model '%{model}'"
+          attributes:
+            field:
+              unsupported: "is not valid. Please select a supported field."
+            value:
+              invalid_options: "contains invalid options: %{values}"
+              must_be_one_of: "must be one of the following options: %{options}"
+              wrong_date_count_for_between: "must contain one or two dates, separated by comma"
+              invalid_date_format: "does not contain a valid date. Supported formats: DD.MM.YYYY or YYYY-MM-DD"
+              partial_invalid_date: "contains an invalid date. Please check both dates"
+              not_a_positive_integer: "must be a valid positive integer for the number of days"
+              wrong_number_count_for_between: "must contain two numbers, separated by comma"
+              invalid_number_pair: "must contain two valid numbers"
+              invalid_number_format: "must be a valid number"
+              min_greater_than_max: "The minimum value must be less than or equal to the maximum value"
+              invalid_boolean_format: "must be a boolean value (true/false or 1/0)"
+              missing_ids_for_multi_reference: "At least one ID must be provided"
+              reference_not_found: "Reference with ID '%{id}' not found"
+              references_not_found: "References not found: %{ids}"
+              invalid_uuid_format: "does not contain a valid UUID: %{id}"
+              invalid_integer_id_format: "does not contain a valid ID: %{id}"
+              blank_id: "ID must not be empty"
+        post:
+          attributes:
+            visible_to_user:
+              required_for_private: "must be set for private posts"
+              not_for_public: "should not be set for public posts"
+        ticket_attribute_definition:
+          invalid_date: "is not a valid date (format YYYY-MM-DD)"
+          attributes:
+            labels:
+              at_least_one_required: "at least one label (DE or EN) must be provided"
+            options:
+              invalid_system_function: "contains invalid system function '%{func_key}' for option '%{option}'"
+              lifecycle_function_conflict: "option '%{option}' cannot be both backlog and completed/closed"
+              level_out_of_range: "level must be an integer between 1 and the number of options"
+              level_incomplete: "when any option has a level, all options must have a level"
+              invalid_option_color: "option '%{option}' has an invalid colour (expected # and six hex digits)"
+            name:
+              lowercase_underscore: "must be lowercase with underscores"
+              immutable_when_in_use: "cannot be changed because tickets are already using this field"
+              reserved: "is reserved (ticket list filter)"
+          source_equals_target: "Source and target value must not be identical"
+          source_not_found: "Source value '%{value}' does not exist"
+          target_not_found: "Target value '%{value}' does not exist"
+        permission:
+          attributes:
+            action:
+              invalid_for_category: "is not valid for the category %{category}"
+            allowed:
+              forbidden_for_guest_role: "cannot be granted to a non-billable (guest) role for this category"
+        role:
+          attributes:
+            billable:
+              account_admin_cannot_be_non_billable: "The account_admin role must always remain billable"
+              forbidden_permission_present: "cannot be set to non-billable while it has an accounts or projects permission"
+        organisation:
+          attributes:
+            ai_provider:
+              supported_provider: "must be one of the supported providers"
+            embedding_dims:
+              supported_dimension: "must be a supported embedding dimension"
+            embedding_retention_limit:
+              supported_retention_limit: "must be between 1 and 5"
+            # Refusals raised by Actors::SelectAiPackage (AI packages P2). They
+            # live in the activerecord error tree because they ARE validations of
+            # organisations.ai_package, and the surface renders them as such.
+            ai_package:
+              package_not_found: "The selected AI package does not exist (any more)."
+              package_not_published: "The selected AI package is not published and cannot be chosen."
+              package_not_curated: "\"Own configuration\" is not chosen as a package — deselect the current package instead."
+              unknown_tier: "%{key} is not a valid performance tier."
+              tier_not_offered: "This package does not offer the %{key} tier."
+              # Not a data fault of the package but an operator action AFTER the
+              # fact: the tier credential can no longer serve chat (disabled,
+              # purpose changed or endpoint removed — usable_for?). The factory
+              # seam then refuses to route rather than quietly falling back to the
+              # provider default, so the choice must not be written in the first
+              # place. The text deliberately names none of the three causes: only
+              # the operator can fix them, not the customer.
+              tier_credential_unusable: "The %{key} tier is currently unavailable — its stored credentials cannot serve it."
+              # embedding_switch_blocked is gone with P4a: the actor no longer
+              # refuses a lane change, it starts one. What customers still see hangs
+              # on the card keys under
+              # views.organisations.ai_settings.packages.*.switch_notice (P4b).
+        notification_preference:
+          attributes:
+            event_type:
+              preference_exists: "preference already exists for this combination"
+  models:
+    document:
+      untitled: "Untitled"
+    view_configuration:
+      columns:
+        number: "No."
+        title: "Title"
+        name: "Name"
+        assignees: "Assigned to"
+        tags: "Tags"
+        created_at: "Created"
+        updated_at: "Updated"
+        description: "Description"
+        file_type: "Type"
+        file_size: "Size"
+        uploaded_at: "Uploaded"
+        time_spent: "Time tracked"
+        billing_status: "Billing status"
+        subtask_count: "Subs"
+        waiting: "Waiting"
+      # The head OVER the column, only where the name from "columns" does not
+      # fit the cell. Without an entry the name above applies - and that name
+      # stays what the column picker and the in-app help show. A column head is
+      # never cut off, it gets a shorter word.
+      column_headers:
+        time_spent: "Time"
+    user_activity:
+      descriptions:
+        login: "Login%{location_info}"
+        logout: "Logout"
+        login_failed: "Failed login%{location_info}"
+        registered: "Registration completed"
+        password_reset_requested: "Password reset requested"
+        password_reset_completed: "Password successfully reset"
+        profile_updated: "Profile updated"
+        permissions_changed: "Permissions changed"
+        account_locked: "Account locked%{lock_reason}"
+        account_unlocked: "Account unlocked"
+        email_changed: "Email address changed"
+        email_changed_detail: "Email changed from %{old_email} to %{new_email}"
+        role_changed: "Role '%{role_name}' %{action_text}"
+        role_changed_no_name: "Role %{action_text}"
+        role_action_assigned: "assigned"
+        role_action_removed: "removed"
+        project_access: "Access to project '%{project_name}' %{action_text}"
+        project_access_no_name: "Project access %{action_text}"
+        project_action_granted: "granted"
+        project_action_revoked: "revoked"
+        invitation: "Invitation to %{email} %{action_text}"
+        invitation_no_email: "Invitation %{action_text}"
+        invitation_action_sent: "sent"
+        invitation_action_accepted: "accepted"
+        invitation_action_declined: "declined"
+        location_info: " from IP %{ip}"
+        lock_reason: " (Reason: %{reason})"
+    time_session_permission:
+      labels:
+        create_own: "Create own"
+        view_own: "View own"
+        edit_own: "Edit own"
+        delete_own: "Delete own"
+        view_all: "View all"
+        edit_all: "Edit all"
+        delete_all: "Delete all"
+    admin_ai_credential:
+      status:
+        active_enabled: "Active & Enabled"
+        active_disabled: "Active but Disabled"
+        inactive: "Inactive"
+      display:
+        no_organization_id: "No Organization ID"
+        no_default_model: "No default model"
+        no_token: "No token"
+        no_extra_config: "No additional configuration"
+    system_setting:
+      registration_disabled_message: "New registrations are currently not possible."
+    codebase_import_file:
+      errors_label: "errors"
+    smart_folders:
+      filters:
+        date_filter:
+          invalid_range: "Could not parse a valid date range from: %{range}"
+        number_filter:
+          invalid_range: "Number range requires two numbers separated by comma"
+      validators:
+        value_validator:
+          invalid_date: "contains an invalid date. Please check both dates"
+          min_exceeds_max: "The minimum value must be less than or equal to the maximum value"
+          reference_not_found: "Reference model not found."
+          id_blank: "ID must not be empty."
+    chat:
+      no_messages: "No messages"
+    admin:
+      role:
+        type:
+          default: "Default Role"
+          custom: "Custom Role"
+        default_suffix: "Default"
+      membership:
+        no_role: "No role"
+        status:
+          active: "Active"
+          inactive: "Inactive"

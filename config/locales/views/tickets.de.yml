@@ -1,0 +1,847 @@
+de:
+  tickets:
+    has_unread_notifications: Ungelesene Benachrichtigungen
+  kanban:
+    unassigned: Nicht zugeordnet
+    mobile_hint: Kanban-Board ist auf mobilen Geräten nicht verfügbar.
+    switch_to_list: Zur Listenansicht wechseln
+    capped_hint: "%{shown} von %{total} Tickets angezeigt — verwende Filter zum Eingrenzen."
+    more_tickets: "+%{count} weitere"
+    empty_column_hint: Karten hierher ziehen
+    add_ticket: Ticket
+    add_ticket_title: Neues Ticket in dieser Spalte anlegen
+    view_mode_table: Liste
+    view_mode_label: Ansicht
+    view_mode_kanban: Kanban
+    scroll_left: Nach links scrollen
+    scroll_right: Nach rechts scrollen
+    # What the live line says while the keyboard moves over the board
+    # (doc/kanban_keyboard_plan.md, S8); the controller interpolates.
+    keys:
+      card: "#%{number}, %{title}, Spalte %{column}, %{position} von %{count}"
+      head: "Spalte %{column}, %{count} Tickets"
+      picked_up: aufgenommen
+      dropped: "in Spalte %{column} abgelegt, Position %{position} von %{count}"
+      put_back: zurückgelegt
+    toggle_filter_sidebar: Ticket Filter ein-/ausblenden
+  attribute_types:
+    select: Auswahl-Feld
+    multiselect: Mehrfachauswahl-Feld
+    checkbox: Checkbox-Feld
+    text: Text-Feld
+    date: Datum-Feld
+  views:
+    organisations:
+      tickets:
+        selection:
+          count:
+            one: 1 Ticket ausgewählt
+            other: "%{count} Tickets ausgewählt"
+          clear: Auswahl aufheben
+          box_label: "Ticket #%{number} auswählen"
+          head_box_label: Alle geladenen Tickets auswählen
+          cleared_note: Die Auswahl wurde aufgehoben, weil sich die Liste geändert hat.
+          count_all:
+            one: Das eine Ticket ausgewählt
+            other: "Alle %{count} Tickets ausgewählt"
+          select_all: "alle %{count} auswählen"
+          too_many: "höchstens %{max} auf einmal"
+        bulk:
+          title:
+            one: 1 Ticket bearbeiten
+            other: "%{count} Tickets bearbeiten"
+          close: Auswahl aufheben und schließen
+          execute:
+            one: Ticket ändern
+            other: "%{count} Tickets ändern"
+          cancel: Abbrechen
+          add_field: Feld ändern
+          search_field: Feld suchen …
+          no_more_fields: Kein weiteres Feld
+          remove_change: Diese Änderung verwerfen
+          choose_value: Wert wählen
+          "yes": ja
+          "no": nein
+          groups:
+            ticket: Ticket
+            people: Personen
+            custom: Eigene Felder
+          fields:
+            tags: Tags
+            assignees: Zugewiesen an
+            watchers: Beobachter
+          add_value:
+            tags: Tag
+            people: Person
+            value: Wert
+          search_value: Suchen …
+          search_or_new_value: Suchen oder neu anlegen …
+          new_value: "„%{name}“ als neues Tag hinzufügen"
+          new_value_invalid: "Ein neues Tag hat höchstens %{max} Zeichen und kein Komma."
+          no_values: Kein Wert
+          remove_value: Aus der Änderung nehmen
+          no_date: kein Datum
+          kinds:
+            single: ein Wert
+            multi: mehrere
+            date: Datum
+            boolean: ja / nein
+          stock:
+            pending: "bisher: wird gezählt …"
+            prefix: "bisher:"
+            without: "ohne %{count}"
+            overwrite:
+              one: wird bei diesem Ticket überschrieben
+              other: "wird bei allen %{count} überschrieben"
+            date_without:
+              one: "%{count} ohne Datum"
+              other: "%{count} ohne Datum"
+            date_distinct:
+              one: "%{count} Datum"
+              other: "%{count} verschieden"
+            date_all:
+              one: "dieses Ticket: %{date}"
+              other: "alle %{count}: %{date}"
+            "yes": "ja %{count}"
+            "no": "nein %{count}"
+            none: keiner
+            carry: "%{label}: %{count} von %{total} tragen es schon"
+            carry_one_yes: "%{label}: trägt es schon"
+            carry_one_no: "%{label}: trägt es nicht"
+            carry_none: "%{label}: bisher bei keinem der %{count}"
+          summary_empty: "Noch nichts gesetzt. Nur was oben steht, wird geändert."
+          summary_fields:
+            one: 1 Feld wird
+            other: "%{count} Felder werden"
+          summary_tickets:
+            one: bei diesem Ticket geändert.
+            other: "bei %{count} Tickets geändert."
+          describe:
+            set: "%{label} auf „%{value}“ gesetzt"
+            cleared: "%{label} entfernt"
+            add_remove: "%{label}: %{values}"
+            moved: "nach „%{project}“ verschoben"
+            deleted: gelöscht
+          result:
+            done:
+              one: "%{changes} · 1 Ticket geändert."
+              other: "%{changes} · %{count} Tickets geändert."
+            partial: "%{changes} · %{ok} von %{total} geändert · %{failed} nicht änderbar"
+            undone:
+              one: "Zurückgenommen: %{changes} · 1 Ticket zurückgesetzt."
+              other: "Zurückgenommen: %{changes} · %{count} Tickets zurückgesetzt."
+            show_failed: Welche?
+            undo: Rückgängig
+            reasons:
+              invalid: konnte nicht gespeichert werden
+              user_not_assignable: Person darf diesem Ticket nicht zugewiesen werden
+              changed_since: inzwischen geändert, nicht angefasst
+              has_hierarchy: hat Unteraufgaben oder ein übergeordnetes Ticket
+              conflict: Nummernkonflikt, bitte noch einmal
+              not_deletable: konnte nicht gelöscht werden
+            moved:
+              one: 1 Ticket nach „%{project}“ verschoben.
+              other: "%{count} Tickets nach „%{project}“ verschoben."
+            moved_partial: "%{ok} von %{total} nach „%{project}“ verschoben · %{failed} nicht verschiebbar"
+            deleted:
+              one: 1 Ticket gelöscht.
+              other: "%{count} Tickets gelöscht."
+            deleted_partial: "%{ok} von %{total} gelöscht · %{failed} nicht löschbar"
+            dismiss: Ausblenden
+          others:
+            caption: Andere Aktionen
+            move:
+              one: 1 Ticket in anderes Projekt verschieben …
+              other: "%{count} Tickets in anderes Projekt verschieben …"
+            delete:
+              one: 1 Ticket löschen …
+              other: "%{count} Tickets löschen …"
+          move:
+            title:
+              one: 1 Ticket verschieben
+              other: "%{count} Tickets verschieben"
+            confirm:
+              one: 1 Ticket verschieben
+              other: "%{count} Tickets verschieben"
+            target: Zielprojekt
+            choose: Projekt wählen
+            none: Es gibt kein anderes Projekt, in das verschoben werden kann.
+            pending: Auswirkungen werden geprüft …
+            failed: Die Auswirkungen konnten nicht geprüft werden.
+            lost_assignments:
+              one: 1 Zuweisung geht verloren, weil die Person im Zielprojekt keinen Zugang hat.
+              other: "%{count} Zuweisungen gehen verloren, weil die Personen im Zielprojekt keinen Zugang haben."
+            lost_subscriptions:
+              one: 1 Beobachter verliert das Ticket aus den Augen.
+              other: "%{count} Beobachter verlieren die Tickets aus den Augen."
+            time_sessions:
+              one: 1 Zeit wandert mit.
+              other: "%{count} Zeiten wandern mit."
+            hierarchy:
+              one: 1 Ticket mit Unter- oder Oberaufgabe bleibt hier.
+              other: "%{count} Tickets mit Unter- oder Oberaufgabe bleiben hier."
+            clean: Keine Zuweisung und kein Beobachter geht verloren.
+          delete:
+            title:
+              one: 1 Ticket löschen?
+              other: "%{count} Tickets löschen?"
+            confirm:
+              one: 1 Ticket löschen
+              other: "%{count} Tickets löschen"
+            pending: Wird gezählt …
+            failed: Die Zählung ist fehlgeschlagen.
+            posts:
+              one: 1 Kommentar geht mit.
+              other: "%{count} Kommentare gehen mit."
+            documents:
+              one: 1 Anhang geht mit.
+              other: "%{count} Anhänge gehen mit."
+            time_sessions:
+              one: 1 Zeit behält ihre Buchung, verliert aber den Bezug.
+              other: "%{count} Zeiten behalten ihre Buchung, verlieren aber den Bezug."
+            children:
+              one: 1 Unteraufgabe wird eigenständig.
+              other: "%{count} Unteraufgaben werden eigenständig."
+            clean: Sonst hängt nichts daran.
+            no_undo: Das kann nicht rückgängig gemacht werden.
+          errors:
+            empty: Nichts ausgewählt.
+            no_changes: Keine Änderung hinzugefügt.
+            unknown_field: Ein Feld gibt es in diesem Projekt nicht mehr.
+            field_twice: Ein Feld steht zweimal in der Änderung.
+            value_not_allowed: Ein Wert ist in diesem Projekt nicht erlaubt.
+            tag_name_invalid: "Ein neues Tag braucht einen Namen mit höchstens %{max_tag_name} Zeichen und ohne Komma."
+            target_project: Das Zielprojekt fehlt oder ist dieses Projekt.
+            target_no_access: Im Zielprojekt fehlt das Schreibrecht für Tickets.
+            date_invalid: Das Datum ist ungültig.
+            nothing_to_change: Eine Änderung nennt weder Plus noch Minus.
+            unknown_kind: Diese Feldart kann nicht geändert werden.
+            unknown_mode: Die Auswahl ist unbrauchbar.
+            no_list: Die Liste fehlt.
+            outside_scope: Ein Ticket der Auswahl gehört nicht zu dieser Liste.
+            list_changed: Die Liste hat sich inzwischen geändert. Bitte prüfen.
+            too_many: "Höchstens %{max} Tickets auf einmal."
+            stock_changed: Der Bestand hat sich inzwischen geändert. Bitte prüfen.
+            not_undoable: Dieser Durchlauf kann nicht mehr zurückgenommen werden.
+            validation_failed: Ein Ticket konnte nicht gespeichert werden.
+            user_not_assignable: Eine Person hat inzwischen keinen Zugang mehr zu diesem Projekt. Nichts wurde geändert.
+            required: Pflichtfeld, der Wert kann nicht entfernt werden.
+            internal_error: Der Durchlauf ist fehlgeschlagen. Nichts wurde geändert.
+        shared:
+          subtasks:
+            heading: Unteraufgaben
+            progress: "%{done} von %{total} erledigt"
+            add_placeholder: Unteraufgabe hinzufügen …
+            part_of: 'Teil von #%{number}'
+          relations:
+            heading: Beziehungen
+            add: Verknüpfen
+            menu_link: Verknüpfen
+            remove: Beziehung entfernen
+            remove_confirm: "Beziehung zu %{ticket} entfernen?"
+            delay:
+              one: "%{days} Tag"
+              other: "%{days} Tage"
+            kinds:
+              blocks: blockiert
+              blocked_by: wird blockiert von
+              relates_to: verwandt mit
+              duplicates: ist Duplikat von
+              duplicated_by: hat als Duplikat
+              precedes: geht voraus
+              follows: folgt auf
+            groups:
+              waiting_on: Wartet auf
+              holding_up: Blockiert / geht voraus
+              related: Verwandt
+              duplicates: Duplikate
+            hint:
+              single_html: "Wartet auf %{ticket}"
+              several:
+                one: "Wartet auf %{count} Ticket"
+                other: "Wartet auf %{count} Tickets"
+              hidden:
+                one: "Wartet auf %{count} Ticket ohne Zugriff"
+                other: "Wartet auf %{count} Tickets ohne Zugriff"
+              mixed: "Wartet auf %{count} Tickets, %{hidden} davon ohne Zugriff"
+            # Title and label of the hourglass in the list, on the board and on the phone.
+            # Only the number, never which tickets (plan §4).
+            waiting_mark:
+              one: "Wartet auf %{count} offenes Ticket"
+              other: "Wartet auf %{count} offene Tickets"
+            modal:
+              title: Ticket verknüpfen
+              kind: Art der Beziehung
+              ticket: Ticket
+              ticket_placeholder: Nummer oder Titel …
+              delay_days: Abstand in Tagen
+              delay_hint: Wird nur angezeigt und verschiebt kein Datum.
+              submit: Verknüpfen
+              cancel: Abbrechen
+              close: Schließen
+              pick_ticket: Bitte ein Ticket wählen.
+              ticket_unavailable: Dieses Ticket gibt es nicht mehr oder du kannst es nicht sehen. Bitte ein anderes wählen.
+              failed: Die Beziehung konnte nicht gespeichert werden. Bitte später noch einmal versuchen.
+        index:
+          placeholder_title: Bitte wählen Sie einen Task aus der Liste
+          placeholder_body: Der Inhalt des ausgewählten Tasks wird hier angezeigt.
+          mobile_list_view: Listenansicht
+          title: Tickets
+          new_task_tooltip: Neues Ticket erstellen
+          settings_tooltip: Einstellungen
+          view_settings_label: Ansichtseinstellungen
+          detail_settings_label: Ticket-Ansicht
+          manage_ticket_fields_label: Ticket-Felder verwalten
+          chat_label: Chat
+          filter_button: Filter
+          filter_status: Status
+          filter_assignee: Zuständig
+          filter_tag: Tags
+          filter_creator: Ersteller
+          filter_created_at: Erstellt am
+          filter_updated_at: Aktualisiert am
+          date_preset_today: Heute
+          date_preset_yesterday: Gestern
+          date_preset_last_7_days: Letzte 7 Tage
+          date_preset_last_30_days: Letzte 30 Tage
+          date_preset_this_week: Diese Woche
+          date_preset_this_month: Diesen Monat
+          filter_waiting: Wartet
+          filter_blocking: Hält auf
+          # The chip of a yes/no category (waiting, blocking): the word for 'ist' and for 'ist nicht'.
+          filter_flag_yes: "ja"
+          filter_flag_no: "nein"
+          filter_due_date: Fälligkeit
+          due_preset_overdue: Überfällig
+          due_preset_due_today: Heute fällig
+          due_preset_due_this_week: Diese Woche fällig
+          due_preset_due_next_7_days: Nächste 7 Tage
+          active_filters: Aktive Filter
+          remove_filter: Filter entfernen
+          clear_all_filters: Alle entfernen
+          no_filter_options: Keine Optionen verfügbar
+          no_tag_options: In diesem Projekt hat noch kein Ticket einen Tag. Sobald du Tickets mit Tags versiehst, kannst du hier danach filtern.
+          filter_op_or: ist
+          filter_op_and: ist alle
+          filter_op_not: ist nicht
+          filter_op_logic_label: Logik
+          filter_connector_and: und
+          filter_connector_or: oder
+          save_as_smart_folder: Filter speichern
+          save_filter_title: Filter als Smart Folder speichern
+          save_filter_name_label: Name
+          save_filter_name_placeholder: z.B. Offene Bugs
+          save_filter_save_button: Speichern
+          save_filter_cancel_button: Abbrechen
+          save_filter_unsupported_hint: Einige Filter können nicht konvertiert werden und werden übersprungen.
+          filter_bar:
+            saved_filters: Gespeicherte Filter
+            more_filters: "+%{count} weitere"
+            search_placeholder: Tickets durchsuchen
+            add_filter: Filter
+            sentence_subject: Aufgaben
+            clear_all: Löschen
+            locked_chip_tooltip: Nur über Filter-Einstellungen änderbar
+            edit_smart_folder_link: Filter bearbeiten
+            search_depth_label: Suchtiefe
+            search_depth_title_only: Nur Titel
+            search_depth_title_content: Titel + Inhalt
+            search_depth_everything: Alles
+            search_depth_quick: Schnell
+            search_depth_standard: Standard
+            search_depth_deep: Tief
+            no_active_filters: Keine aktiven Filter
+            chip_row_label: 'Tickets mit der Bedingung:'
+            edit_smart_folder: Filter bearbeiten
+            close_filter: Filter schließen
+            filter_changed: Filter wurde geändert.
+            filter_save_changes: Änderung speichern?
+            filter_discard_changes: Verwerfen
+            filter_saved: Gespeichert
+            filter_save_error: Speichern fehlgeschlagen
+            expert_filter: Experten-Filter
+            expert_filter_description: Filter mit erweiterten Regeln
+            show_all_filters: Alle %{count} Filter anzeigen
+            collapse_filters: Einklappen
+            chip_tooltip_or: Eines dieser Kriterien muss zutreffen
+            chip_tooltip_and: Alle Kriterien müssen zutreffen
+            chip_tooltip_not: Diese Kriterien werden ausgeschlossen
+            chip_tooltip_saved_filter: 'Gespeicherter Filter: %{name}'
+        edit:
+          title_label: Titel
+          description_label: Beschreibung
+          title_placeholder: Titel des Tickets
+          description_placeholder: Beschreibung des Tickets
+          cancel: Abbrechen
+          save: Speichern
+        ticket_content_for_frame:
+          create_summary: Zusammenfassung erstellen
+          regenerate_summary: neu erzeugen
+          summary_unavailable: Zusammenfassung nicht verfügbar
+          summary_unavailable_detail: Die Zusammenfassungsfunktion ist momentan nicht verfügbar, da kein gültiger API-Schlüssel für die KI-Integration hinterlegt ist. Bitte wenden Sie sich an Ihren Administrator.
+          summary_info_title: Was ist die Zusammenfassung?
+          summary_info_detail: Die KI-gestützte Zusammenfassung analysiert automatisch alle Kommentare und Aktivitäten dieses Tickets und erstellt eine kompakte Übersicht der wichtigsten Punkte.
+          understood: Verstanden
+          summary_heading: Zusammenfassung
+          summary_show_full: Ganze Zusammenfassung anzeigen
+          summary_collapse: Zusammenfassung einklappen
+        writing_surface:
+          new_title: Neues Ticket
+          edit_title: Ticket bearbeiten
+          title_label: Titel
+          title_placeholder: Worum geht es?
+          description_label: Beschreibung
+          description_hint: Screenshots und Text im Wechsel, Bilder direkt einfügen oder hineinziehen.
+          assigned_users: Zugewiesene Benutzer
+          select_user_prompt: Benutzer auswählen
+          attachments_label: Anhänge
+          add_attachments: Dateien anhängen
+          remove_attachment: Entfernen
+          cancel: Abbrechen
+          save: Speichern
+          close_title: Schließen (Escape)
+          unsaved_changes: Es gibt ungespeicherte Änderungen. Wirklich schließen?
+          delete: Ticket löschen
+          errors_title: 'Folgende Fehler sind aufgetreten:'
+        timeline:
+          comments: Kommentare
+          changes: Änderungen
+          time_entries: Zeiteinträge
+          time_entry_label: Zeiteintrag
+          show_details: Details anzeigen
+          change_before: vorher
+          change_after: nachher
+          filter_label: Verlauf filtern
+          heading: Verlauf
+          created_line: Ticket angelegt · %{name}
+          edited: bearbeitet
+          private: Privat
+          reactions:
+            you: Du
+            choose: Reaktion hinzufügen
+            quick_acknowledge: Mit Daumen hoch bestätigen und als gelesen markieren
+            add: "Mit %{emoji} reagieren"
+            remove: "Eigene Reaktion %{emoji} entfernen"
+            details: "%{emoji}, %{count} Reaktionen von %{names}"
+          no_value: ohne
+          title_label: Titel
+          project_label: Projekt
+          fields_changed_line: "%{fields} geändert"
+          description_changed_line: Beschreibung geändert
+          assigned_line: "Zugewiesen: %{name}"
+          unassigned_line: "Zuweisung entfernt: %{name}"
+          subscriber_added_line: "Benachrichtigt: %{name}"
+          subscriber_removed_line: "Benachrichtigung entfernt: %{name}"
+          subscribers_changed: "Benachrichtigte geändert: %{names}"
+          assignees_changed: "Zuweisung geändert: %{names}"
+          created_object: "%{kind} erstellt"
+          deleted_object: "%{kind} gelöscht"
+          comment_written: Kommentar geschrieben
+          ticket_created: Ticket erstellt
+          ticket_moved_in: Ticket ins Projekt verschoben
+          ticket_moved_out: Ticket aus dem Projekt verschoben
+          document_created: Dokument erstellt
+          note_created: Notiz erstellt
+          chat_created: Chat erstellt
+          meeting_created: Meeting erstellt
+          meeting_deleted: Meeting gelöscht
+          smart_folder_created: Smart Folder erstellt
+          codebase_imported: Codebase importiert
+          member_added: "Mitglied hinzugefügt: %{name}"
+          member_removed: "Mitglied entfernt: %{name}"
+          permission_changed: "Berechtigung geändert: %{name}"
+          started: Zeiterfassung gestartet
+          stopped: Zeiterfassung beendet
+          paused: Zeiterfassung pausiert
+          resumed: Zeiterfassung fortgesetzt
+          bulk:
+            changed:
+              one: "%{count} Ticket geändert"
+              other: "%{count} Tickets geändert"
+            undone:
+              one: "Sammeländerung an %{count} Ticket zurückgenommen"
+              other: "Sammeländerung an %{count} Tickets zurückgenommen"
+            moved:
+              one: "%{count} Ticket nach „%{target}“ verschoben"
+              other: "%{count} Tickets nach „%{target}“ verschoben"
+            moved_in:
+              one: "%{count} Ticket aus „%{source}“ erhalten"
+              other: "%{count} Tickets aus „%{source}“ erhalten"
+            deleted:
+              one: "%{count} Ticket gelöscht"
+              other: "%{count} Tickets gelöscht"
+            with_detail: "%{line}: %{detail}"
+            numbers_more:
+              one: "%{numbers} und %{count} weiteres"
+              other: "%{numbers} und %{count} weitere"
+            changes_label: Änderungen
+            numbers_label: Tickets
+          fields:
+            title: Titel
+            description: Beschreibung
+            status: Status
+            priority: Priorität
+            assignee_ids: Zuweisung
+            subscribers: Benachrichtigte
+          objects:
+            project: Projekt
+            ticket: Ticket
+            document: Dokument
+            note: Notiz
+            chat: Chat
+            meeting: Meeting
+            smart_folder: Smart Folder
+            time_session: Zeiteintrag
+          steps:
+            one: "%{count} Einzelschritt"
+            other: "%{count} Einzelschritte"
+        ticket_header_show:
+          loading: Wird geladen...
+          back_to_list: Alle Tickets
+          more_actions: Weitere Aktionen
+          menu_settings: Einstellungen …
+          menu_move: Ticket verschieben …
+          menu_delete: Ticket löschen
+          attach_file: Datei anhängen
+          all_files:
+            one: Datei anzeigen
+            other: alle %{count} Dateien
+          close_detail: Detailansicht schließen
+          description_changed: Beschreibung geändert
+          description_collapse_link: Einklappen
+          description_infobox_accept: So übernehmen
+          description_infobox_always_full: Immer die ganze Beschreibung anzeigen
+          description_infobox_text: Bei Tickets, die du schon kennst, zeigen wir die Beschreibung nur noch gekürzt. Du kannst sie jederzeit wieder vollständig anzeigen.
+          description_show_full: Vollständig anzeigen
+          attachments_count:
+            one: "%{count} Anhang"
+            other: "%{count} Anhänge"
+          detail_settings: Ansicht anpassen
+          assigned_to: Zugewiesen an
+          assign: Zuweisung ändern
+          assign_done: Fertig
+          no_assignment: ohne Zuweisung
+          status: Status
+          no_status: Kein Status
+          no_selection: "– Keine –"
+          priority: Priorität
+          tags: Tags
+          created_at: Erstellt am
+          updated_at: Zuletzt aktualisiert
+          edit_ticket: Ticket bearbeiten
+          move_ticket: Ticket verschieben
+          ask_assistant: Assistenten zu dieser Aufgabe fragen
+        detail_settings_modal:
+          title: Detail-Ansicht anpassen
+          saved: Gespeichert ✓
+          assignee_display:
+            label: Zuweisung
+            'off': Aus
+            full_name: Mit Name
+            initials: Nur Avatar
+            icon_only: Nur Icon
+          time_display:
+            label: Zeiterfassung
+            'off': Aus
+            compact: Kompakt
+            verbose: Ausführlich
+          subscriber_display:
+            label: Abonnenten
+            'off': Aus
+            compact: Kompakt
+            full_inline: Vollständig
+          action_bar:
+            label: Aktionsleiste
+            show_all: Alle anzeigen
+            collapsed: Eingeklappt
+          subtasks_display:
+            label: Unteraufgaben
+            full: Vollständig
+            compact: Eingeklappt
+          preview_title: Vorschau
+          color_hint: Die Farben bei „Farbig" werden automatisch aus den Systemfunktionen der Feldwerte abgeleitet. Eigene Farben können in den Feld-Einstellungen definiert werden.
+          fields:
+            label: Felder
+            always_displayed: "(immer)"
+            'off': Aus
+            'on': An
+          date_fields:
+            label: Datumsfelder
+            'off': Aus
+            'on': An
+          custom_fields:
+            label: Benutzerdefinierte Felder
+            'off': Aus
+            text: Text
+            colored: Farbig
+          display_options:
+            label: Darstellung
+          heading_date:
+            label: Erstelldatum (über Überschrift)
+            'off': Aus
+            'on': An
+        attachment:
+          zoom: Vergrößerte Ansicht
+          download: Herunterladen
+        tickets_results:
+          number: Nr.
+          title: Titel
+          time_spent_title: Erfasste Zeiten dieses Tickets anzeigen
+          subtask_count_cell: "%{done}/%{total}"
+          subtask_count_meta: "Subs %{done}/%{total}"
+          waiting_meta: "Wartet auf %{count}"
+          empty_first_time_title: Noch keine Tickets
+          empty_first_time_description: Erstelle dein erstes Ticket, um loszulegen.
+          empty_first_time_cta: Ticket erstellen
+          empty_no_results_title: Keine Aufgaben gefunden
+          empty_no_results_description: Deine Filter haben keine Treffer ergeben. Passe die Kriterien an oder entferne Filter.
+          explainer:
+            title: Was ist ein Ticket?
+            point_task: Ein Ticket ist einfach eine Aufgabe — etwas, das in diesem Projekt erledigt werden soll.
+            point_status: Jedes Ticket hat einen Status, z. B. Neu, In Bearbeitung oder Erledigt. So sieht jeder auf einen Blick, wo etwas steht.
+            point_people: Du kannst Tickets Personen zuweisen — dann ist klar, wer sich kümmert.
+            point_time: Wenn die Zeiterfassung aktiviert ist und du die Rechte dafür hast, kannst du Arbeitszeiten direkt am Ticket erfassen.
+            not_title: Warum „Ticket“?
+            not_body: „Ticket“ ist das übliche Wort dafür in Projekt-Werkzeugen — gemeint ist nichts anderes als eine Aufgabe.
+      ticket_attribute_definitions:
+        index:
+          title: Ticket-Felder
+          add_field: Neues Feld
+          back_to_project: Zurück zum Projekt
+          info_title: Was sind Ticket-Felder?
+          info_text: Ticket-Felder erweitern Ihre Tickets um eigene Attribute wie Status, Priorität oder Kundentyp. Sie erscheinen auf jedem Ticket und können zum Filtern und Sortieren genutzt werden.
+          info_types_title: Verfügbare Feldtypen
+          active_fields: Aktive Felder
+          inactive_fields: Inaktive Felder
+          inactive_hint: Inaktive Felder werden auf Tickets nicht angezeigt. Die gespeicherten Daten bleiben erhalten.
+          no_fields: Noch keine Ticket-Felder definiert.
+          no_fields_hint: Definieren Sie Felder, um Tickets mit zusätzlichen Informationen zu versehen.
+          activate: Aktivieren
+          deactivate: Deaktivieren
+          system_badge: System
+          inactive_badge: Inaktiv
+          required_badge: Pflichtfeld
+          values_label: Werte
+          move_up: Nach oben
+          move_down: Nach unten
+          edit: Bearbeiten
+          delete: Löschen
+          min_length: Min. Länge
+          max_length: Max. Länge
+        new:
+          title: Neues Attribut
+          cancel: Abbrechen
+          project: Projekt
+        edit:
+          title: Attribut bearbeiten
+          cancel: Abbrechen
+          project: Projekt
+          field_type: Feldtyp
+        merge_option:
+          title: Option zusammenführen
+          cancel: Abbrechen
+          submit: Zusammenführen
+          project: Projekt
+          attribute: Attribut
+          field_type: Feldtyp
+          source_option: Quell-Option (wird entfernt)
+          will_be_removed: wird entfernt
+          target_option: Ziel-Option (Werte werden hierhin verschoben)
+          target_prompt: Ziel-Option wählen...
+          affected: betroffen
+          auto_update_hint: Diese Tickets werden automatisch auf die Ziel-Option aktualisiert.
+          no_tickets_hint: Keine Tickets verwenden diesen Wert aktuell.
+          smart_folder_hint_title: Hinweis zu Ticket Filtern
+          smart_folder_hint_text: Falls Ticket Filter existieren, die nach der Quell-Option filtern, müssen diese manuell angepasst werden.
+          merge_button: Zusammenführen
+        form:
+          errors:
+            one: "%{count} Fehler verhindert das Speichern:"
+            other: "%{count} Fehler verhindern das Speichern:"
+          key_placeholder: z.B. customer_type, priority_level
+          key_help_text: Interner Name (nur Kleinbuchstaben, Ziffern und Unterstriche). Kann nachträglich nicht geändert werden.
+          field_type_label: Feldtyp
+          field_type_prompt: Feldtyp wählen...
+          label_de: Bezeichnung (Deutsch)
+          label_en: Bezeichnung (Englisch)
+          options_heading: Optionen
+          name_hint: Interner Name (nur Kleinbuchstaben, Ziffern und Unterstriche)
+          name_locked_hint: Der Name kann nicht mehr geändert werden, da bereits Tickets dieses Feld verwenden.
+          choose_color: Farbe wählen
+          add_option: Option hinzufügen
+          merge: Zusammenführen
+          deadline_label: Als Fälligkeit markieren (treibt Überfällig-Anzeige und Sortierung)
+          validations_heading: Validierungen
+          required_field: Pflichtfeld
+          min_length: Min. Länge
+          max_length: Max. Länge
+          min_value: Min. Wert
+          max_value: Max. Wert
+          more_settings: Weitere Einstellungen
+          section_label: Sektion
+          field_width: Feldbreite
+          full_width: Volle Breite
+          half_width: Halbe Breite
+          third_width: Ein Drittel
+          active: Aktiv
+          cancel: Abbrechen
+          create: Attribut erstellen
+          update: Änderungen speichern
+      assistant_artefacts:
+        shell:
+          close: Panel schließen
+        unavailable:
+          title: Nicht verfügbar
+          body: Zu diesem Panel gibt es für dich nichts zu sehen. Entweder es gehört nicht zu dieser Organisation, oder du darfst die zugehörigen Daten nicht sehen.
+        report:
+          title: 'Zeiten: %{project}'
+          own_only: Nur deine eigenen Buchungen.
+          total: Gesamt
+          empty: Für diese Auswahl gibt es keine Buchungen.
+          truncated: Es werden %{shown} von %{total} Buchungen gezeigt. Die Summen oben umfassen alle.
+          open_in_list: In der Zeitenliste öffnen
+          filters:
+            all_time: Gesamter Zeitraum
+            period: '%{from} bis %{to}'
+            period_from: 'Ab %{from}'
+            period_until: 'Bis %{to}'
+            own_bookings: Nur deine Buchungen
+            one_person: Auf eine Person eingegrenzt
+            one_ticket: Auf eine Aufgabe eingegrenzt
+      chats:
+        shared:
+          title: Chat
+          new_chat_tooltip: Neuen Chat erstellen
+          repo_hint_can_manage_html: Für Antworten mit Code-Kontext %{link}.
+          repo_hint_link: Repository in den Einstellungen verbinden
+          repo_hint_no_permission: Für Antworten mit Code-Kontext kann ein Repository verbunden werden — wende dich an die Projekt-Verwaltung.
+          persona_label: Fokus für diesen Chat
+          persona_hint: Bestimmt, worauf die Antworten ausgerichtet sind — als Startpunkt für diesen Chat.
+        index:
+          no_chats: Es sind noch keine Chats vorhanden.
+          create_new_chat_hint: Erstellen Sie einen neuen Chat
+          select_chat_hint: Wählen Sie einen Chat aus der Liste oder erstellen Sie einen neuen Chat.
+          create_new_chat: Neuen Chat erstellen
+        new:
+          back: Zurück
+          title: Neuer Chat
+          errors_title: 'Fehler beim Erstellen des Chats:'
+        chat_show:
+          read_only: Sie haben nur Leserechte in diesem Chat.
+          ai_transparency: Antworten werden mit %{provider} generiert. Eingaben und Projektkontext werden dorthin übertragen.
+          # Variante mit KI-Paket (P5): dieselbe Aussage plus die Rechtsraum-
+          # Einordnung des Pakets. Das %{jurisdiction}-Label kommt aus
+          # views.organisations.ai_settings.packages.jurisdictions.* — Notiz und
+          # Paketkarte tragen damit wörtlich dieselbe Einordnung.
+          ai_transparency_package: Antworten werden mit %{provider} generiert (%{jurisdiction}). Eingaben und Projektkontext werden dorthin übertragen.
+          ai_transparency_package_region: "Verarbeitungsort: %{region}."
+          ai_transparency_embeddings: Für die semantische Suche werden Eingaben zusätzlich an %{provider} übertragen.
+          ai_transparency_privacy_link: Datenschutzerklärung
+          ai_transparency_summary: KI-generiert mit %{provider}.
+          ai_transparency_details: Details
+          ai_transparency_heading: Wohin deine Eingaben gehen
+        style_level:
+          dimensions:
+            technicality: Stil
+            length: Länge
+          technicality:
+            '1': einfach
+            '2': mittel
+            '3': technisch
+          length:
+            '1': knapp
+            '2': mittel
+            '3': ausführlich
+        message:
+          delete: Nachricht löschen
+          copy: Nachricht kopieren
+          copied: Kopiert
+          time_ago: vor %{time}
+          redacted: Diese Antwort stützt sich auf Projektinhalte, für die dir die Leseberechtigung fehlt.
+          regenerate: neu erzeugen
+          regenerating: wird neu erzeugt…
+          coverage_notice: 'Durchsucht: %{searched} von %{total} Projekten'
+          coverage_notice_chosen: 'Durchsucht: nur %{project}'
+          # Dritter Grund, warum eine Antwort nicht einfach "alles" ist (E3): der
+          # Faden zeigt auf ein Objekt außerhalb des Durchsuchten, und seit dem
+          # Reichweiten-Fix darf der Assistent es lesen. Angehängt statt eigener
+          # Satz, damit es sich mit beiden Formen darüber verträgt.
+          coverage_notice_outside: 'Der Bezug liegt außerhalb und wurde zusätzlich gelesen.'
+          # Und dieselbe Aussage für den Fall, dass sie ALLEIN steht: nichts hat die
+          # Suche verengt, das Modell hat den Aufruf selbst gefiltert und dabei einen
+          # Bezug von außerhalb gelesen. Der angehängte Satz sagt "außerhalb" und
+          # lehnt sich an die Hälfte davor an; ohne sie fehlt der Bezugspunkt.
+          coverage_notice_outside_only: 'Der Bezug liegt außerhalb des Suchbereichs und wurde zusätzlich gelesen.'
+        citations:
+          header: Quellen
+          vision: Projekt-Vision
+          capability: 'Capability: %{name}'
+          symbol: "%{qualified_name}"
+          symbol_location: "%{file_path}:%{start_line}"
+          unknown: Quelle
+          ticket: 'Aufgabe #%{number}: %{title}'
+          note: 'Notiz: %{title}'
+          document: 'Dokument: %{title}'
+          post: 'Kommentar zu Aufgabe #%{number}'
+          documentation: 'Dokumentation: %{title}'
+          meeting: 'Meeting: %{title}'
+          meeting_analysis: 'Analyse: %{title}'
+          time_report: 'Zeiten: %{title}'
+          help_page: 'Hilfe: %{title}'
+          hits: "%{count} Fundstellen"
+          gone: nicht mehr vorhanden
+        composer:
+          placeholder: Nachricht eingeben...
+          message_label: Nachricht
+          send: Senden
+          delete_chat: Chat löschen
+        session_list:
+          header: Chats
+          created_at: Erstellt am %{date}
+          open_chat: 'Chat öffnen: %{title}'
+      chatposts:
+        form:
+          message_placeholder: Nachricht eingeben...
+          delete: Löschen
+          send: Senden
+      tags:
+        index:
+          title: Tags
+          search_placeholder: Tags durchsuchen...
+          search: Suchen
+          new_tag: New Tag
+          usage_count: Usage Count
+          created_at: Created At
+          updated_at: Updated At
+          actions: Actions
+          edit: Edit
+          delete: Delete
+          no_tags: No tags found.
+        show:
+          title_prefix: 'Tag:'
+          back: Back to Tags
+          edit: Edit Tag
+          created_at: 'Created at:'
+          updated_at: 'Updated at:'
+          organisation: 'Organisation:'
+          usage_count: 'Usage count:'
+          tagged_items: Tagged Items
+          no_items: No items are tagged with this tag.
+        new:
+          title: New Tag
+          back: Back to Tags
+        edit:
+          title: Edit Tag
+          view_tag: View Tag
+          back: Back to Tags
+        form:
+          errors:
+            one: "%{count} error prohibited this tag from being saved:"
+            other: "%{count} errors prohibited this tag from being saved:"
+          name_placeholder: Enter tag name
+          cancel: Cancel
+          create: Create Tag
+          update: Update Tag
+        tag_list:
+          title: Tags
+          no_tags: No tags yet

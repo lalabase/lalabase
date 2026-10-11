@@ -1,0 +1,97 @@
+---
+en:
+  activities:
+    deleted_user: "Deleted user"
+    messages:
+      ticket:
+        assigned: "%{assignee} assigned (%{actor}) – %{role} – %{display_name}"
+        created: Ticket created (%{actor}) – %{display_name}
+        custom_attributes_changed: Attributes changed (%{actor})
+        deleted: Deleted (%{actor})
+        post_added: Comment added (%{actor})
+        priority_changed: Priority changed from '%{from_priority}' to '%{to_priority}' (%{actor})
+        status_changed: Status changed from '%{from_status}' to '%{to_status}' (%{actor})
+        tag_added: Tag '%{tag_name}' added (%{actor})
+        tag_removed: Tag '%{tag_name}' removed (%{actor})
+        title_changed: Title changed (%{actor})
+        unassigned: Assignment removed from %{assignee} (%{actor}) – %{display_name}
+        updated: Updated (%{actor})
+        moved: "Ticket moved from '%{from_project_name}' to '%{to_project_name}' (%{actor})"
+        subscriber_added: "%{actor} added %{subscriber} to notifications – %{display_name}"
+        subscriber_removed: "%{actor} removed %{subscriber} from notifications – %{display_name}"
+      # Project-scoped activities (trackable = Project). Fallback for generic render
+      # paths that call Activity#message; the timeline component formats these itself.
+      project:
+        tickets_bulk_changed: "%{actor} changed %{count} tickets: %{changes}"
+        tickets_bulk_undone: "%{actor} took a bulk change back (%{count} tickets): %{changes}"
+        tickets_bulk_moved: "%{actor} moved %{count} tickets to \"%{target}\""
+        tickets_bulk_moved_in: "%{actor} moved %{count} tickets here from \"%{source}\""
+        tickets_bulk_deleted: "%{actor} deleted %{count} tickets: %{numbers}"
+        meeting_created: "Meeting \"%{meeting_title}\" created (%{actor})"
+        meeting_deleted: "Meeting \"%{meeting_title}\" deleted (%{actor})"
+      # AI package choice (trackable = Organisation, KI-Pakete P4e / E4). Two verbs
+      # for the two axes of §2: only the package switch carries a jurisdiction
+      # decision, the tier switch does not. A log naming both the same would be
+      # worse than none. Values come from Actors::SelectAiPackage — from_package and
+      # to_package are already labels there and never blank.
+      organisation:
+        # AI opt-in (S0, doc/ki_bereich_navigation_plan.md). Own verbs next to the
+        # package choice: the switch is the customer's legal-basis decision, a package
+        # choice is a decision about sub-processors.
+        ai_activated: "AI features activated (%{actor})"
+        ai_deactivated: "AI features deactivated (%{actor})"
+        ai_configuration_changed: "Own AI access changed (%{actor})"
+        ai_package_selected: "AI package switched from \"%{from_package}\" to \"%{to_package}\" (%{actor})"
+        ai_tier_selected: "Service tier switched from \"%{from_tier_key}\" to \"%{to_tier_key}\" (%{actor})"
+    # Short form for Activity#action_text (activities.<key>); the long form is above
+    # under messages.organisation.
+    organisation:
+      ai_activated: AI activated
+      ai_deactivated: AI deactivated
+      ai_configuration_changed: AI access changed
+      ai_package_selected: AI package switched
+      ai_tier_selected: Service tier switched
+    subscriber_added:
+      message: "%{actor} added %{subscriber_name} to notifications"
+      label: "Subscriber added"
+    subscriber_removed:
+      message: "%{actor} removed %{subscriber_name} from notifications"
+      label: "Subscriber removed"
+    project:
+      tickets_bulk_changed: Several tickets changed
+      tickets_bulk_undone: Bulk change taken back
+      tickets_bulk_moved: Several tickets moved
+      tickets_bulk_moved_in: Several tickets received
+      tickets_bulk_deleted: Several tickets deleted
+
+    ticket:
+      assigned: User assigned
+      created: Ticket created
+      custom_attributes_changed: Attributes changed
+      deleted: Ticket deleted
+      post_added: Comment added
+      priority_changed: Priority changed
+      status_changed: Status changed
+      tag_added: Tag added
+      tag_removed: Tag removed
+      title_changed: Title changed
+      unassigned: Assignment removed
+      updated: Ticket updated
+      moved: Ticket moved
+    time:
+      days_ago:
+        one: Yesterday
+        other: "%{count} days ago"
+      hours_ago:
+        one: 1 hour ago
+        other: "%{count} hours ago"
+      just_now: Just now
+      minutes_ago:
+        one: 1 minute ago
+        other: "%{count} minutes ago"
+      months_ago:
+        one: 1 month ago
+        other: "%{count} months ago"
+      weeks_ago:
+        one: 1 week ago
+        other: "%{count} weeks ago"

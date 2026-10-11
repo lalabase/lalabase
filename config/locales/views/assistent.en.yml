@@ -1,0 +1,73 @@
+# The assistant (Bezugs-Sammlung S1, doc/assistent_bezug_sammlung_plan.md §8.2).
+# Own file: the keys used to live under views/tickets.*.yml, and from S3 on the
+# assistant also references meetings, from S4 knowledge objects. The duplicate
+# guard wants exactly ONE owner per key, so the block moves rather than doubling.
+en:
+  views:
+    organisations:
+      assistant_panels:
+        history:
+          title: Earlier conversations
+          back: Back to the conversation
+          empty: You have no earlier conversations yet. Once you start a new chat, the old one shows up here.
+          open: Earlier conversations
+        offer:
+          set: 'Set reference:'
+          # From S2 (limit of 10) the offer ADDS instead of replacing. Until then
+          # the key was `switch` and the sentence "Switch reference to:", because
+          # a second reference displaced the first.
+          add: 'Add reference:'
+          take: Take
+          dismiss: Hide suggestion
+        reference:
+          label: Reference
+          remove: 'Remove reference: %{title}'
+          # Per-type group label in the collapsed summary: "2 tasks", and from
+          # S3 on "1 task, 3 meetings". Keyed by the registry's citation_type,
+          # the vocabulary Citations::TYPES and the source list already speak.
+          #
+          # ⚠️ Both plural forms, although `one` is unreachable while a single
+          # type is registered: without it I18n RAISES in S3 the first time a
+          # mixed collection holds a group of one.
+          types:
+            meeting:
+              one: "%{count} meeting"
+              other: "%{count} meetings"
+            ticket:
+              one: "%{count} task"
+              other: "%{count} tasks"
+            note:
+              one: "%{count} note"
+              other: "%{count} notes"
+            document:
+              one: "%{count} file"
+              other: "%{count} files"
+        scope:
+          label: Looking in
+          all_projects: All your projects
+          aria_label: Assistant scope
+        settings:
+          open: Settings
+          title: Settings
+          back: Back to the conversation
+          # "Focus" is the word the project chat (projekt_chat_abbau) used for the same thing
+          # (views.organisations.chats.shared.persona_label). Two words for one
+          # setting would read as two settings.
+          persona_label: Focus
+          persona_hint: Shapes what the answers focus on. Applies to all your conversations with the assistant.
+          persona_default: Organisation default
+          no_personas: No focus has been set up for this organisation yet.
+          manage_personas: Manage focus templates
+        show:
+          empty_title: Ask your assistant
+          empty_hint: It sees the projects you are allowed to see, and it answers only you.
+        shell:
+          title: Assistant
+          new_chat: New chat
+          close: Close assistant
+          loading: Loading …
+          resize: Change width
+          expand: Full view
+          collapse: As panel
+          capsule_placeholder: Ask the assistant … (⌘J)
+          capsule_label: Ask the assistant

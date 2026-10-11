@@ -1,0 +1,44 @@
+{
+  "format_version": 1,
+  "locale": "de",
+  "generated_at": "2026-09-21T13:59:46Z",
+  "source_version": "cdcc13ca379d576cedc0b8c1b0bac897b403394b",
+  "groups": [
+    {
+      "section": "basics",
+      "title": "Grundlagen",
+      "items": [
+        {
+          "slug": "guides/basics/erste-seite",
+          "title": "Erste Beispielseite"
+        },
+        {
+          "slug": "guides/basics/zweite-seite",
+          "title": "Zweite Beispielseite"
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "slug": "guides/basics/erste-seite",
+      "title": "Erste Beispielseite",
+      "section": "basics",
+      "section_title": "Grundlagen",
+      "description": "Eine Seite ohne Inhalt, die alles zeigt, was das Format kann.",
+      "html": "<h1 id=\"erste-beispielseite\">Erste Beispielseite</h1>\n\n<p>Dies ist Platzhaltertext. Er steht hier, damit der Kern seine Leseschicht prüfen\nkann, ohne dass das Handbuch in seinem Repo liegt.</p>\n\n<h2 id=\"ein-abschnitt-mit-anker\">Ein Abschnitt mit Anker</h2>\n\n<p>Der Anker dieser Überschrift entsteht aus ihrem Text, wie bei jeder echten Seite.</p>\n\n<p>Ein Verweis auf die <a href=\"/docs/de/guides/basics/zweite-seite\">zweite Seite</a> zeigt, wie ein interner Link\naufgelöst wird.</p>\n<div class=\"docs-codeblock\">\n  <button type=\"button\" class=\"docs-codeblock__copy\" aria-label=\"Kopieren\"></button>\n  <pre class=\"highlight\"><code><span class=\"nb\">echo</span> <span class=\"s2\">\"ein Codeblock, damit die Auszeichnung im Katalog auftaucht\"</span>\n</code></pre>\n</div>\n\n<div class=\"docs-callout docs-callout--info\">\n  <div class=\"docs-callout__title\">Ein Hinweis</div>\n  <p>Ein Kasten aus rohem HTML, wie die echten Seiten ihn nutzen.</p>\n</div>\n\n<table><thead>\n<tr>\n<th>Spalte A</th>\n<th>Spalte B</th>\n</tr>\n</thead><tbody>\n<tr>\n<td>eins</td>\n<td>zwei</td>\n</tr>\n</tbody></table>\n",
+      "markdown": "# Erste Beispielseite\n\nDies ist Platzhaltertext. Er steht hier, damit der Kern seine Leseschicht prüfen\nkann, ohne dass das Handbuch in seinem Repo liegt.\n\n## Ein Abschnitt mit Anker\n\nDer Anker dieser Überschrift entsteht aus ihrem Text, wie bei jeder echten Seite.\n\nEin Verweis auf die [zweite Seite](zweite-seite) zeigt, wie ein interner Link\naufgelöst wird.\n\n```bash\necho \"ein Codeblock, damit die Auszeichnung im Katalog auftaucht\"\n```\n\n<div class=\"docs-callout docs-callout--info\">\n  <div class=\"docs-callout__title\">Ein Hinweis</div>\n  <p>Ein Kasten aus rohem HTML, wie die echten Seiten ihn nutzen.</p>\n</div>\n\n| Spalte A | Spalte B |\n|---|---|\n| eins | zwei |\n",
+      "text": "Erste Beispielseite Dies ist Platzhaltertext. Er steht hier, damit der Kern seine Leseschicht prüfen kann, ohne dass das Handbuch in seinem Repo liegt. Ein Abschnitt mit Anker Der Anker dieser Überschrift entsteht aus ihrem Text, wie bei jeder echten Seite. Ein Verweis auf die zweite Seite zeigt, wie ein interner Link aufgelöst wird. echo \"ein Codeblock, damit die Auszeichnung im Katalog auftaucht\" Ein Hinweis Ein Kasten aus rohem HTML, wie die echten Seiten ihn nutzen. Spalte A Spalte B eins zwei"
+    },
+    {
+      "slug": "guides/basics/zweite-seite",
+      "title": "Zweite Beispielseite",
+      "section": "basics",
+      "section_title": "Grundlagen",
+      "description": "Das Ziel des Verweises von der ersten Seite.",
+      "html": "<h1 id=\"zweite-beispielseite\">Zweite Beispielseite</h1>\n\n<p>Platzhaltertext. Diese Seite ist das Ziel des internen Verweises und zeigt,\ndass die Navigation mehr als einen Eintrag je Abschnitt tragen kann.</p>\n",
+      "markdown": "# Zweite Beispielseite\n\nPlatzhaltertext. Diese Seite ist das Ziel des internen Verweises und zeigt,\ndass die Navigation mehr als einen Eintrag je Abschnitt tragen kann.\n",
+      "text": "Zweite Beispielseite Platzhaltertext. Diese Seite ist das Ziel des internen Verweises und zeigt, dass die Navigation mehr als einen Eintrag je Abschnitt tragen kann."
+    }
+  ]
+}

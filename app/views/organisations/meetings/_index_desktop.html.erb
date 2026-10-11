@@ -1,0 +1,33 @@
+<%# Desktop two-column master-detail (list + detail frame), mirroring Knowledge.
+    The list partial brings its own <turbo-frame id="meetings_results"> — do NOT
+    re-wrap it here. %>
+<%= render NeoTwoColumnGridComponent.new(
+  selected_item: @selected_meeting || @new_meeting,
+  context_type: :meetings,
+  css_classes: "#{@selected_meeting || @new_meeting ? 'show-content' : 'hide-content'} hide-panel",
+  additional_targets: { "index-page-target" => "layout", "column-picker-target" => "grid" },
+  chrome_height: NeoTwoColumnGridComponent::LANE_CHROME_HEIGHT_PX,
+  lane: true
+) do |grid| %>
+  <% grid.with_list do %>
+    <%= render 'organisations/meetings/list_head' %>
+    <%= render 'organisations/meetings/meetings_results', meetings: @meetings, selected_meeting: @selected_meeting %>
+  <% end %>
+
+  <% grid.with_side_panel do %>
+    <%= render 'organisations/meetings/column_picker' %>
+  <% end %>
+
+  <% grid.with_main_content do %>
+    <%# No data-turbo-action="advance": list-row owns the canonical
+        …/meetings?meeting_id=… page address. %>
+    <turbo-frame id="meeting_display_frame">
+      <% if @new_meeting %>
+        <%= render (@new_meeting.persisted? ? 'organisations/meetings/meeting_edit' : 'organisations/meetings/meeting_new_for_frame'), meeting: @new_meeting, detail_frame_id: 'meeting_display_frame' %>
+      <% else %>
+        <%= render 'organisations/meetings/display_meeting', selected_meeting: @selected_meeting %>
+      <% end %>
+    </turbo-frame>
+  <% end %>
+
+<% end %>

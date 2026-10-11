@@ -1,0 +1,198 @@
+# AI area: hub and area header (doc/ki_bereich_navigation_plan.md S2).
+# Own file rather than scattering into views.en.yml — the area still grows by
+# "Verbrauch" (S6) and "Protokoll" (S5), and those belong here too.
+# Lives under config/locales/views/, where CLAUDE.md puts per-area files
+# (tickets, meetings, organisation and the rest sit next to it).
+---
+en:
+  views:
+    organisations:
+      ai_overview:
+        # Page names in the area header. Deliberately not the old tab labels:
+        # "AI Sync Status" is implementation language — what the admin wants to
+        # know is whether their content is searchable, not whether a sync ran.
+        pages:
+          access: "Access"
+          index: "Indexing"
+          personas: "Chat personas"
+          switch: "Confirm switch"
+        # ONE string set for the "AI is off" box, not one per page. It stood twice
+        # word-for-word (overview, usage), and S7's setup screen would have been the
+        # third occurrence. The former page-specific sentences ("the cards below stay
+        # visible", "nothing is consumed") are deliberately gone: as a `body:` local
+        # they would be two copies again.
+        disabled_notice:
+          title: "AI features are not activated"
+          body: >-
+            While AI is off, no content is transferred to any provider. You can still set
+            the area up: whatever you configure here applies from the moment AI is
+            switched on.
+          action: "Go to the overview"
+        # The consent copy of the AI switch (doc/ki_zugang_umbau_plan.md D1/D2), rendered
+        # by organisations/shared/_opt_in_explanation on the overview while AI is off.
+        # Taken over unchanged: it is the legal basis of every AI transfer. The status
+        # sentence and the switch's actions live under status: and actions:
+        # (doc/ki_uebersicht_zeilenliste_plan.md).
+        activation:
+          explanation: Upon activation, content of your organisation — tickets, notes, comments, documents, meetings (e.g. for AI summaries, AI analyses with selectable prompts, participant detection from transcripts, deriving ticket suggestions and — when released — search and chat) and connected repositories — is transferred to the selected AI provider (OpenAI or Anthropic, USA) for processing.
+          privacy_link: Details in the privacy policy.
+          usage_note: To make the monthly AI quota transparent, each AI action records who triggered it, when, and how many credits it cost. This usage overview is visible to administrators of your organisation.
+        # "Eigene Konfiguration" (S7, E6-A). Own block like `usage:` and `protocol:`
+        # beside it, for the same reason: everything about one sub-page in one place.
+        configuration:
+          title: "Own configuration"
+          intro: >-
+            This is where you store the credentials of your own AI provider. They apply as
+            long as no AI package is selected. Which fields a provider needs differs: what
+            the form does not show for the selected provider does not apply to it and is
+            cleared on save.
+          current: "Stored: %{provider} · %{token}"
+          check_never: "This access has never been checked."
+          check_ok: "Last checked on %{date}, the connection worked."
+          check_failed: "Last checked on %{date}, the connection could not be established."
+          none_title: "No own access stored yet"
+          none_body: >-
+            Without your own credentials, AI runs through the selected package or through
+            the operator's access.
+          provider_label: "Provider"
+          provider_hint: "Decides which fields below apply."
+          key_label: "Key"
+          key_hint: >-
+            Stored encrypted and never shown in clear. Leave empty to keep the existing
+            key.
+          service_account_label: "Service account JSON"
+          service_account_hint: >-
+            Vertex works with a service account only. A plain API key would silently use
+            the global endpoint and void processing within the EU.
+          organization_id_label: "Organisation ID (optional)"
+          organization_id_hint: "Only needed if your OpenAI account holds several organisations."
+          api_base_label: "Endpoint URL"
+          api_base_hint: >-
+            Required for your own endpoint, together with the model name. https only, and
+            a publicly reachable address only.
+          model_label: "Model name"
+          model_hint: "The name your endpoint uses for the chat model."
+          save: "Save only"
+          save_and_check: "Save and check"
+          remove_title: "Remove access"
+          remove_body: >-
+            Deletes this organisation's key, endpoint and model name. The selected
+            provider stays: the operator's access applies again afterwards, as far as one
+            is stored for that provider.
+          remove_button: "Remove access"
+        # Own block rather than another entry in `pages:` above: S4 and S5 are writing
+        # their page names into those very lines at the time, which is what the anchors
+        # are for. `usage.title` is the name shown in the area header.
+        usage:
+          title: "Usage"
+          # L8 in one sentence: credits are what the customer is measured against —
+          # tokens are our purchasing unit and therefore sit at the bottom, not the top.
+          intro: >-
+            What counts is consumption in credits against the monthly quota. The history
+            below is kept as a record, even though the quota refills at the start of
+            each month.
+          tokens_heading: "Tokens over the last 30 days"
+          # Why the number is still here: it answers "where does the consumption come
+          # from", not "what do I owe". The sentence says so, so nobody mistakes the
+          # token count for the billing unit.
+          tokens_hint: >-
+            Tokens are the unit the providers bill in. Only the credits above count
+            towards the quota.
+          tokens_value: "%{formatted} tokens"
+        # Everything about the protocol sits together here, including the page name and
+        # the hub card, rather than up in `pages:` and down in `cards:`. The anchor was
+        # the reason: S4 and S6 work in this file at the same time, and two slices
+        # inserting a line into `pages:` collide there.
+        # ⚠️ The ENTRY texts are NOT here but in config/locales/activities.{de,en}.yml
+        # under activities.organisation.* and activities.messages.organisation.*,
+        # written by P4e and S0. Do not duplicate them: Activity#message and
+        # #action_text read nowhere else.
+        protocol:
+          title: "Protocol"
+          intro: >-
+            Who changed this organisation's AI settings, when, and from which state to
+            which. The newest change comes first.
+          jurisdiction_change: "Processing: %{from} → %{to}"
+          reindex_triggered: "Search was rebuilt as a result."
+          empty_title: "No changes recorded yet"
+          empty_body: >-
+            As soon as somebody switches AI on or off, or changes the package or the
+            service tier, the change appears here. Changes made before the protocol was
+            introduced are not included.
+        # The status sentence above the list (doc/ki_uebersicht_zeilenliste_plan.md D4, D6).
+        # No date and no name any more: the "Protocol" row says since when there are
+        # entries, and the page behind it names every switch with timestamp and person.
+        # `on_without_access` keys on ai_available?, not on the setup state: an
+        # organisation that chose nothing may run on the operator's access.
+        status:
+          active: "Active for every project of this organisation."
+          active_without_access: "Switched on for every project of this organisation, but without a usable access yet. Until one is set up, no AI feature works."
+          inactive: "Switched off for this organisation. Usage, indexing and chat personas open after switching on."
+          privacy_link: "What is processed"
+        # The page's one main action (first open step: access, then switch) and the
+        # switch's text actions. The confirm dialogs stay under
+        # views.confirm.ai_activate / ai_deactivate.
+        actions:
+          set_up_access: "Set up access"
+          switch_on: "Switch AI on"
+          switch_off: "Switch off"
+        # The five rows. Values with figures end in _html because the figure is set in
+        # mono (AiOverviewHelper#ai_overview_figure); the words around it stay body text.
+        # `state_*` are the dots' titles: only where something is missing or broken.
+        rows:
+          access:
+            title: "Access"
+            value_none: "not set up"
+            value_custom: "own credentials"
+            description_none: "Pick a system package or store your own credentials"
+            description_custom: "Own credentials, no package"
+            description_package: "Processing: %{jurisdiction} · Tier: %{tier}"
+            no_tier: "Default"
+            description_switching: "The switch is running. Search is rebuilding in the background."
+            description_check_failed: "Connection check on %{date} failed"
+            state_missing: "needs to be set up"
+            state_failed: "connection failed"
+          usage:
+            title: "Usage"
+            value_html: "%{used} of %{budget}"
+            description: "Monthly quota in credits, history and limits"
+            state_exhausted: "quota used up"
+            state_nearly: "quota nearly used up"
+          index:
+            title: "Indexing"
+            value_failed_html: "%{failed} failed"
+            value_pending_html: "%{pending} outstanding"
+            value_clear: "nothing outstanding"
+            description_clear: "All content is searchable"
+            description_pending: "Processing continues in the background"
+            description_failed: "Some content could not be processed"
+            description_failed_pending: "%{pending} outstanding · some content could not be processed"
+            description_paused: "With AI off, nothing is embedded"
+            state_failed: "processing errors"
+          personas:
+            title: "Chat personas"
+            value_html:
+              zero: "none of your own"
+              one: "%{number} of your own"
+              other: "%{number} of your own"
+            description: "Tone and role of the AI in chat"
+          protocol:
+            title: "Protocol"
+            value_since_html: "since %{date}"
+            value_empty: "still empty"
+            description: "Every change with timestamp and person"
+        # Only the two keys this branch adds. The rest of index_summary is DE-only drift
+        # that predates it (config/initializers/i18n.rb sets fallbacks = [:de], so the
+        # English page silently renders German here). Translating the other eighteen is a
+        # cleanup of its own, not a rider on a bug fix, and it is listed as such in the PR.
+        index_summary:
+          heading_stalled: "Nobody is working on this right now"
+          heading_paused: "AI is switched off"
+          body_paused: >-
+            While AI is off, nothing is embedded. The figure below says how many items
+            would get an AI index if you switched it on. They are findable through
+            ordinary text search either way.
+          paused_hint: "The way out of this state is the switch on the overview, not this page."
+          stalled: >-
+            Background processing is not running. The outstanding content stays where it is
+            until it runs again. Another catch-up run will not change that.

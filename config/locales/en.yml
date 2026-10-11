@@ -1,0 +1,2867 @@
+---
+en:
+  account_deletion:
+    before_proceeding: 'Before you proceed, please note:'
+    confirm_message: Are you sure you want to delete your account? This action cannot be undone!
+    consequence_data_deleted: All your data will be irreversibly deleted
+    consequence_irreversible: This action cannot be undone
+    consequence_posts_anonymized: All your posts and comments will be anonymized
+    consequence_removed_from_orgs: You will be removed from all organizations
+    max_characters: Maximum 500 characters
+    password_label: Current password
+    password_help: To confirm it is you.
+    reason_label: Reason for deletion (optional)
+    reason_placeholder: Tell us why you want to delete your account...
+    submit_button: Delete account permanently
+    title: Delete Account
+    warning_message: This action cannot be undone. Your account and all associated data will be permanently deleted.
+    warning_title: Warning
+  activerecord:
+    attributes:
+      account:
+        billing_addressee: Attention line
+        billing_city: City
+        billing_country: Country
+        billing_email: Billing email
+        billing_email_cc: Second billing email
+        billing_interval: Billing interval
+        billing_name: Company name
+        billing_postal_code: Postcode
+        billing_reference: Invoice reference
+        billing_region: Region
+        billing_starts_on: Billed from
+        billing_street: Street and number
+        billing_street_2: Address line 2
+        payment_terms_days: Payment terms
+        vat_id: VAT ID
+      activity:
+        created_at: Created at
+        key: Action
+        owner: Owner
+        parameters: Details
+        trackable: Item
+      document:
+        created_at: Created at
+        creator: Creator
+        description: Description
+        file: File
+        name: Name
+        project: Project
+        updated_at: Updated at
+      membership:
+        active: Active
+        organisation: Organisation
+        role: Role
+        user: User
+      note:
+        content: Content
+        created_at: Created at
+        creator: Creator
+        description: Description
+        project: Project
+        title: Title
+        updated_at: Updated at
+      notification:
+        action: Action
+        actor: Actor
+        created_at: Created at
+        notifiable: Item
+        read_at: Read at
+        recipient: Recipient
+      organisation:
+        created_at: Created at
+        domain: Domain
+        email_subject_prefix: Email prefix
+        name: Name
+        notification_sender_email: Notification email
+        subdomain: Subdomain
+        updated_at: Updated at
+      project:
+        created_at: Created at
+        description: Description
+        name: Name
+        organisation: Organisation
+        repository: Repository
+        updated_at: Updated at
+      role:
+        description: Description
+        is_default: Default role
+        permissions: Permissions
+        title: Title
+      smart_folder:
+        description: Description
+        name: Name
+        project: Project
+        updated_at: Updated at
+      tag:
+        color: Color
+        name: Name
+        organisation: Organisation
+      ticket:
+        assignees: Assignees
+        content: Content
+        created_at: Created at
+        creator: Creator
+        number: Number
+        project: Project
+        summary: Summary
+        tags: Tags
+        ticket_status: Status
+        ticket_type: Type
+        title: Title
+        updated_at: Updated at
+      time_session:
+        billed: Invoiced
+        created_at: Created at
+        creator: Created by
+        description: Description
+        duration: Duration
+        duration_string: Duration
+        invoice_number: Invoice number
+        occurred_on: Date
+        project: Project
+        ticket: Ticket
+        updated_at: Updated at
+      user:
+        active: Active
+        avatar: Profile picture
+        created_at: Created at
+        current_password: Current password
+        display_name: Display name
+        email: Email
+        first_name: First name
+        is_ai: AI User
+        items_per_page_preference: Items per page
+        language_preference: Language preference
+        last_name: Last name
+        password: Password
+        password_confirmation: Password confirmation
+        updated_at: Updated at
+    enums:
+      email_log:
+        status:
+          bounced: Bounced
+          clicked: Clicked
+          complaint: Complaint
+          deferred: Deferred
+          delivered: Delivered
+          failed: Failed
+          opened: Opened
+          queued: Queued
+          sent: Sent
+          unsubscribed: Unsubscribed
+      notification:
+        channel:
+          email: Email
+          in_app: In-App
+          webhook: Webhook
+        event_type:
+          document_added: Document Added
+          mention: Mention
+          project_announcement: Project Announcement
+          system_message: System Message
+          ticket_assigned: Ticket Assigned
+          ticket_blocker: Priority Changed
+          ticket_commented: Comment Added
+          ticket_status_changed: Status Changed
+          ticket_unassigned: Assignment Removed
+          tickets_bulk_changed: Bulk change
+          tickets_bulk_moved: Bulk move
+          tickets_bulk_deleted: Bulk delete
+        priority:
+          critical: Critical
+          high: High
+          low: Low
+          normal: Normal
+        state:
+          archived: Archived
+          delivered: Delivered
+          queued: Queued
+          read: Read
+          sent: Sent
+      notification_preference:
+        channel:
+          email: Email
+          in_app: In-App
+          webhook: Webhook
+        frequency:
+          daily: Daily
+          immediate: Immediate
+          never: Never
+          weekly: Weekly
+      notification_subscription:
+        mode:
+          follow: Follow
+          immediate: Immediate
+          mute: Mute
+      project_permission:
+        chats_access:
+          no_access: No Access
+          read_only: Read Only
+          read_write: Read & Write
+        documents_access:
+          no_access: No Access
+          read_only: Read Only
+          read_write: Read & Write
+        members_access:
+          no_access: No Access
+          read_only: Read Only
+          read_write: Read & Write
+        notes_access:
+          no_access: No Access
+          read_only: Read Only
+          read_write: Read & Write
+        tickets_access:
+          no_access: No Access
+          read_only: Read Only
+          read_write: Read & Write
+    errors:
+      messages:
+        blank: can't be blank
+        confirmation: doesn't match
+        ends_before_starts_on: must not be before the start date
+        embed_not_an_image: "contains a file that is not an image (%{filename}). Insert images as PNG, JPEG, GIF or WebP; upload other files as attachments."
+        embed_too_large: "contains an image above %{max} MB (%{filename}). Shrink it or upload it as an attachment."
+        embed_file_missing: "contains an image whose upload did not complete (%{filename}). Please insert it again."
+        embed_foreign_organisation: "contains an image from another organisation (%{filename}). Download it there and insert it here again."
+        embed_missing: "contains an image that no longer exists. Please remove it or insert it again."
+        invalid: is invalid
+        invalid_format: has an invalid format
+        inclusion: is not a valid value
+        overlapping_period: overlaps an existing period
+        record_invalid: 'Validation failed: %{errors}'
+        taken: has already been taken
+        too_short: is too short (minimum is %{count} characters)
+        # Rails ships too_long only in its own en.yml, and this block shadows it.
+        # Without the key here the fallback (config/initializers/i18n.rb) serves
+        # the GERMAN text on the English UI.
+        too_long: is too long (maximum is %{count} characters)
+      models:
+        user:
+          attributes:
+            avatar:
+              invalid_content_type: must be a PNG, JPEG or WebP image
+              too_large: must be at most %{max_megabytes} MB
+            current_password:
+              blank: can't be blank
+            password:
+              too_short: is too short (minimum is %{count} characters)
+            password_confirmation:
+              confirmation: doesn't match Password
+    models:
+      activity: Activity
+      chat: Chat
+      document: Document
+      membership: Membership
+      note: Note
+      notification: Notification
+      organisation: Organisation
+      project: Project
+      role: Role
+      tag: Tag
+      ticket: Ticket
+      time_session: Time Entry
+      user: User
+  admin:
+    ai_credentials:
+      index:
+        subtitle: Manage all AI provider access credentials and configurations
+        title: AI Credentials
+    deletion_registers:
+      show:
+        title: Deletion register
+        description: Proof of deleted file attachments under § 12(7) of the data processing agreement. Metadata only, never the content of a file.
+        started_at: The register has been kept since %{date}. Attachments deleted before that date are not recorded.
+        register_empty: The register does not contain an entry yet.
+        scope_hint: Files without a link in the database are not recorded either. They are not deleted as an attachment of a record but as a file, and they carry no organisation to attribute them to.
+        retention_hint: Entries are removed automatically %{years} years after the deletion in production.
+        organisation_label: Organisation
+        all_organisations: All organisations
+        apply: Show
+        reset: Reset filter
+        stat_total: Entries
+        stat_pending: Without confirmation
+        stat_pending_hint: The backup expiry has not been confirmed for these entries.
+        stat_without_organisation: Without organisation
+        stat_without_organisation_hint: User export archives and carriers whose organisation could not be resolved.
+        no_entries: No entry for this selection.
+        organisation_unknown: Organisation unknown
+        pending_confirmation: Confirmation pending
+        expires_at: Copies expired %{date}
+        table:
+          organisation: Organisation
+          filename: File
+          carrier: Carrier
+          size: Size
+          deleted_at: Deleted at
+          backup: Backup
+        pagination_label: Pagination
+        previous: Previous
+        next: Next
+        page_of: Page %{page} of %{total}
+    beusers:
+      index:
+        active_admins: Active Admins
+        add_new_admin: Add New Admin
+        administrator_users: Administrator Users
+        subtitle: Manage all administrator users of the system
+        title: Admin Users
+        total_admins: Total Admins
+    billing_interval:
+      monthly: Monthly payment
+      yearly: Yearly payment
+    # Seat peak (M2). Its own section rather than under admin.accounts.show,
+    # because the seat_peaks:* rake task prints the same texts: two copies of the
+    # same four reasons would be two places to maintain, and they would drift.
+    seat_peak:
+      heading: Seat peak
+      hint: The highest number of seats held at the same time in this measurement month. The same person in several organisations counts once.
+      previous_month: Previous month
+      next_month: Next month
+      peak_label: Peak
+      reached_at_label: Reached at
+      organisations_label: Organisations involved
+      seats:
+        one: 1 seat
+        other: "%{count} seats"
+      shared_seats_note: "The per-organisation figures add up to %{overlap} more than the peak. The reason: the same person sits in several organisations and still counts only once."
+      provisional: This month is still running. The figure can rise until the month ends and does not belong on an invoice yet.
+      provisional_short: running month
+      section_span: "%{from} to %{to}"
+      share_label: Share of the month
+      share_value: "%{days} of %{month_days} days"
+      # No plural branch: the sentence only appears from two sections on, so the
+      # one branch was dead. And no claim about the sum any more: a billing
+      # start on the 10th plus a move on the 20th covers 22 of 31 days, not the
+      # whole month.
+      split_note: "This month is split into %{sections} sections: an organisation moved. Each section has its own peak and its own share of the days."
+      reason:
+        month_not_started: This month has not begun yet.
+        snapshot_missing: No snapshot has been written for the start of this month yet.
+        snapshot_failed: The snapshot for the start of this month failed.
+        not_reconstructible: The period lies before the seat stream was opened and cannot be reconstructed.
+        not_billable: This month lies before the account's billing start. There is nothing to charge for here.
+    common:
+      navigation:
+        ai_credentials: AI Credentials
+        change_password: Change Password
+        dashboard: Dashboard
+        dashboard_individual: Dashboard (individual)
+        deletion_register: Deletion register
+        logged_in_as: Logged in as
+        management: Management
+        my_profile: My Profile
+        organisations: Organisations
+        system_settings: System Settings
+        user_menu_right: User Menu (right)
+        users: Users
+    dashboard:
+      title: Admin Dashboard
+      subtitle: Overview and management of all system components
+      group_management: Management
+      group_monitoring: Monitoring
+      group_settings: Settings
+      organisations: Organisations
+      users: Users
+      admins: Admins
+      job_queue: Job Queue
+      job_queue_desc: Background jobs & queues
+      email_dashboard: Email dashboard
+      email_dashboard_desc: Delivery status & failures
+      system_monitoring: System monitoring
+      system_monitoring_desc: Deployment & runtime data
+      system_settings: System settings
+      system_settings_desc: Registration & deletion rules
+      ai_credentials: AI credentials
+      ai_credentials_desc: Providers & credentials
+      prompt_personas: Chat personas
+      prompt_personas_desc: Manage prompt personas
+    organisations:
+      ai_routing:
+        source_package: Package
+        source_byok: Own credentials
+        source_system: System credentials
+        source_none: No credential
+        broken_hint: This credential cannot serve chat (disabled, wrong purpose or no endpoint) — every call fails.
+        model_default: Provider default model
+      index:
+        ago: "%{time} ago"
+        description: Management of all organisations in the system
+        no_organisations: No organisations available
+        data_import_off: "Off"
+        data_import_on: "On"
+        toggle_data_import: Toggle
+        toggle_data_import_confirm: "Toggle data import for %{name}?"
+        code_indexing_off: "Off"
+        code_indexing_on: "On"
+        toggle_code_indexing: Toggle
+        toggle_code_indexing_confirm: "Toggle code indexing for %{name}?"
+        assistant_off: "Off"
+        assistant_on: "On"
+        toggle_assistant: Toggle
+        toggle_assistant_confirm: "Toggle assistant for %{name}?"
+        stats:
+          costs_30d: Costs (30d)
+          own_credentials: Own Credentials
+          routing_split: "Package: %{package} · System: %{system}"
+          tokens_30d: Tokens (30d)
+          total: Total
+        table:
+          ai_routing: AI in use
+          created: Created
+          members: Members
+          data_import: Data import
+          assistant: Assistant
+          organisation: Organisation
+          code_indexing: Code index
+        table_title: All Organisations
+        title: Organisations
+        details: Quota
+      show:
+        breadcrumb_organisations: Organisations
+        ai_status: AI status
+        ai_on: active
+        ai_off: disabled
+        ai_routing_section: AI in use
+        ai_routing_chat: Chat
+        ai_routing_search: Search (embeddings)
+        quota_section: AI quota (override)
+        budget_label: "Monthly budget (credits) — empty = default"
+        buffer_label: "Grace buffer (credits) — empty = default"
+        override_hint: "Leave empty for the system default (budget %{budget}, buffer %{buffer} credits). 0 = hard cap."
+        save: Save
+        consumption_section: Usage (this month)
+        history_section: Usage history
+    system_settings:
+      index:
+        deletion_settings_section: Account Deletion Settings
+        registration_settings_section: Registration Settings
+        subtitle: Manage global application settings
+        title: System Settings
+        ai_quota_section: AI quota (default)
+        ai_quota_hint: "System-wide default for the monthly included AI quota and grace buffer (in credits). Overridable per organisation on its detail page."
+        ai_quota_monthly_label: Monthly quota (credits)
+        ai_quota_buffer_label: Grace buffer (credits)
+        ai_quota_save: Save quota
+        legal_identity_section: Operator and legal pages
+        legal_identity_hint: Lalabase shows these details in the footer of the sign-in page and the pages without sign-in, in the consent when someone accepts an invitation, when AI is switched on and in the data export. Without an operator it shows "powered by Lalabase"; an empty address field shows no link.
+        legal_identity_missing: 'No address for: %{pages}. No link appears for it, including in the consent when someone accepts an invitation.'
+        legal_identity_errors_title: 'Not saved:'
+        legal_identity_operator_placeholder: leave blank for "powered by Lalabase"
+        legal_identity_url_placeholder: https://
+        legal_identity_save: Save details
+  application:
+    title: Project Management
+  attributes:
+    active: Active
+    created_at: Created at
+    deleted_at: Deleted at
+    description: Description
+    email: Email
+    id: ID
+    name: Name
+    status: Status
+    title: Title
+    type: Type
+    updated_at: Updated at
+  business_logic:
+    access_denied: Access denied
+    already_exists: Already exists
+    cannot_delete: Cannot delete this item
+    cannot_modify: Cannot modify this item
+    invalid_operation: Invalid operation
+    maximum_reached: Maximum limit reached
+    minimum_required: Minimum requirement not met
+    not_found: Resource not found
+    operation_failed: Operation failed
+    permission_required: Permission required
+  buttons:
+    back: Back
+    back_to_list: Back to list
+    cancel: Cancel
+    create: Create
+    delete: Delete
+    edit: Edit
+    export: Export
+    filter: Filter
+    import: Import
+    login: Login
+    logout: Logout
+    new: New
+    next: Next
+    previous: Previous
+    register: Register
+    reset_to_defaults: Reset to defaults
+    save: Save
+    save_changes: Save changes
+    search: Search
+    to_homepage: To homepage
+    update: Update
+  cancel_account_deletion:
+    account_preserved: Your account remains fully preserved
+    can_reapply: You can reapply for deletion at any time
+    confirm_message: Do you really want to cancel the scheduled account deletion?
+    data_unchanged: All your data remains unchanged
+    if_cancelled: 'If you cancel the deletion:'
+    info_title: Information
+    normal_usage: You can continue using the application normally
+    reason_label: Reason for cancellation (optional)
+    reason_placeholder: Tell us why you want to cancel the deletion...
+    scheduled_info: Your account deletion is scheduled for %{date}.
+    submit_button: Cancel deletion
+    time_remaining: You have %{days} %{days_text} left to cancel the deletion.
+    title: Cancel Account Deletion
+  common:
+    all: All
+    back: Back
+    cancel: Cancel
+    close: Close
+    edit: Edit
+    save: Save
+    help:
+      show_help: Show help
+      default_subtitle: Here you can find explanations for all available actions
+      footer_hint: "Tip: Hover over buttons for quick help"
+    max_characters:
+      one: Maximum %{count} character
+      other: Maximum %{count} characters
+    undo: Undo
+  dashboard:
+    briefing:
+      greeting:
+        morning: Good morning
+        afternoon: Hi
+        evening: Good evening
+      global_overview_title: Overview
+      unread_notifications_summary:
+        one: 1 unread notification
+        other: "%{count} unread notifications"
+      no_unread_notifications: No unread notifications.
+      since: since %{time}
+      someone: Someone
+      system: System
+      update_singular: update
+      update_plural: updates
+      empty_summary: Nothing new since your last cutoff — enjoy your coffee.
+      attention_only: A few things need your attention.
+      summary:
+        one: 1 update since the last cutoff.
+        other: "%{count} updates since the last cutoff."
+      attention:
+        title: Needs your attention
+        mentions:
+          one: 1 mention
+          other: "%{count} mentions"
+        stale:
+          one: 1 ticket untouched for a while
+          other: "%{count} tickets untouched for a while"
+      new_section:
+        title: New since cutoff
+      empty:
+        title: All quiet.
+        body: Nothing has happened since the last cutoff. Focus time.
+      week:
+        title: This week
+        tracked_label: h tracked
+        unbilled_label: h open
+      period:
+        week_number: CW %{n}
+        quarter: Q%{q} %{year}
+        drilldown_title: Show all time entries in this period
+        peak: Peak %{hours} h
+        today: today
+        title:
+          this_week: This week
+          this_month: This month
+          this_quarter: This quarter
+          last_10_days: Last 10 days
+        tab:
+          this_week: Week
+          this_month: Month
+          this_quarter: Quarter
+          last_10_days: 10 days
+      empty_overview:
+        title: Nothing here for you yet
+        body: As soon as something happens in your projects, it shows up here.
+      footer:
+        all_projects: All projects
+        all_notifications: All notifications
+      actions:
+        time_tracking: Track time
+        created: created
+        assigned: assigned
+        commented: commented
+        status_changed: status updated
+        edited: edited
+        more_changes:
+          one: "+ 1 more change"
+          other: "+ %{count} more changes"
+      sections:
+        lane:
+          show_more:
+            one: Show 1 more
+            other: Show %{count} more
+          show_less: Show less
+        notifications:
+          title: Notifications
+          empty: No unread notifications.
+          view_all: View all
+          count:
+            one: 1 unread
+            other: "%{count} unread"
+        activity:
+          title: Around your work
+          empty: All quiet around your work.
+          view_all: All activity
+        projects:
+          title: Projects
+          empty: You currently have no project access.
+          empty_selected: No projects selected. Choose projects in the widget settings.
+          empty_pinned: No pinned projects. Pin projects in the navigation to show them here.
+          empty_with_entries: No projects with open entries.
+          unread_badge:
+            one: 1 unread
+            other: "%{count} unread"
+          table:
+            project: Project
+            notifications: Unread
+            last_activity: Last activity
+            total: Total
+    widgets:
+      stats_cards: Statistics Cards
+      recent_tickets: Recent Tickets
+      recent_notes: Recent Notes
+      team_members: Team Members
+      notifications: Notifications
+      time_tracking: Time Tracking
+      smart_folder_tickets: Ticket Filter
+      project_info: Project Info
+    placeholder:
+      unavailable: This area is currently unavailable
+    stat_cards:
+      tickets:
+        label: Tickets
+        completed: completed
+      notes:
+        label: Notes
+        this_week: this week
+      documents:
+        label: Documents
+        last_month: last month
+      open_hours:
+        label: Open Hours
+        open_tickets: open tickets
+      open_tickets:
+        label: Open Tickets
+        high_priority: high priority
+      my_tickets:
+        label: My Tickets
+        open: open
+      notifications:
+        label: Notifications
+        unread: unread
+      activities:
+        label: Activities
+        this_week: this week
+      my_hours:
+        label: My Hours
+        this_week: this week
+      billed_time:
+        label: Invoiced Time
+        sessions: sessions
+      periods:
+        all_time: All time
+        today: Today
+        this_week: This week
+        this_month: This month
+        last_30_days: Last 30 days
+        this_quarter: This quarter
+      scopes:
+        all: All
+        mine: Mine
+    recent_tickets:
+      title: Current Tickets
+      view_all: View All
+      all: All
+      new_task: New Ticket
+      updated: Updated
+      no_tasks: No tickets yet
+      search_placeholder: Search tickets…
+      no_search_results: 'No matches for “%{query}”'
+      view_all_results: View all %{count} results
+    recent_notes:
+      title: Current Notes
+      view_all: View All
+      all: All
+      no_notes: No notes yet
+    team_members:
+      title: Team
+      manage: Manage Members
+      no_members: No team members assigned yet
+      source_admin: Admin
+      source_role: 'via role “%{role}”'
+    notifications:
+      title: Notifications
+      view_all: View All
+      all: All
+      notification: Notification
+      ago: ago
+      no_notifications: No unread notifications
+    smart_folder_tickets:
+      view_all: View All
+      all: All
+      updated: Updated
+      no_tickets: No tickets in this folder
+      unavailable: Ticket Filter
+      unavailable_message: This Ticket Filter is no longer available
+    time_tracking:
+      title: Time Tracking
+      view_all: View All
+      all: All
+      unbilled: Not invoiced
+      sessions: Sessions
+      open_tickets: Open Tickets
+      no_ticket: No ticket
+      no_sessions: No time sessions yet
+    configuration:
+      title: Customize Dashboard
+      save: Save
+      cancel: Cancel
+      saved: Dashboard configuration saved
+      saved_as_default: Saved as project default
+      reset: Dashboard reset to default
+      reset_label: Reset to default
+      reset_confirm: Do you want to reset your dashboard configuration?
+      move_up: Move up
+      move_down: Move down
+      move_left: Move left
+      move_right: Move right
+      remove_row: Remove row
+      select_widget: Select widget
+      select_folder: Select Ticket Filter
+      select_cards: Select cards
+      add_row: Add row
+      row_full: Row is full — make a widget narrower to free up space.
+      undo: Undo
+      redo: Redo
+      view_full: Full preview
+      view_compact: Compact view
+      save_scope_label: Save for …
+      scope_personal_this: Only me · this project
+      scope_personal_this_hint: Your personal layout for this project
+      scope_personal_all: Only me · all my projects
+      scope_personal_all_hint: Sets this layout as your personal layout across all your projects
+      scope_default_this: Default for everyone · this project
+      scope_default_this_hint: Used as the default layout for all members of this project; also replaces your own personal customization
+      scope_default_all: Default for everyone · all projects
+      scope_default_all_hint: Sets this layout as the project default for all projects in the organisation; also replaces your own personal customizations
+      saved_as_default_all: Saved as project default for %{count} projects
+      saved_personal_all: Saved as your personal layout for %{count} projects
+      confirm_apply_all: This layout will be applied to ALL projects, overwriting the existing layouts there. Continue?
+      smart_folder_warning: This layout contains Ticket Filter widgets. These are project-specific and will appear empty in other projects.
+      display_mode: Display
+      item_count: Number of entries
+      display_cards: Cards
+      display_list: List
+      display_grouped_status: Grouped by Status
+      display_grouped_priority: Grouped by Priority
+      period: Period
+      edit_mode_done: Done
+      unsaved_changes: Unsaved changes — click “Save” to apply them.
+      add_widget: Add widget
+      no_access: No access
+      actions_menu: Actions
+      close_settings: Close settings
+      drag_handle: Drag to move
+      arrange: Arrange
+      remove_widget: Remove widget
+      resize_width: Drag to change width
+      widen_width: Wider
+      narrow_width: Narrower
+      unsaved_confirm: Unsaved changes will be lost. Continue anyway?
+      empty_rows_error: The dashboard needs at least one row. Use Reset to restore the default.
+      empty_cards_error: A stats widget needs at least one card. Select a card or remove the widget.
+  overview:
+    widgets:
+      org_activity_feed: Activity
+      projects_table: Projects
+      my_week_stats: My week
+      my_week_chart: Week chart
+      unread_summary: Unread
+      unread_summary_label: unread
+      org_stats_cards: Key figures
+      my_open_tickets: My open tickets
+      my_mentions: Mentions
+      billing_overview: Billing
+      recent_notifications: Notifications
+    configuration:
+      title: Customize overview
+      configure: Customize overview
+      saved: Overview saved
+      saved_as_default: Saved as organisation default
+      reset: Overview reset to default
+      confirm_org_default: This layout becomes the default for every member of the organisation and also replaces your personal customization. Continue?
+      scope_personal: Only me
+      scope_personal_hint: Your personal overview in this organisation
+      scope_default: Default for everyone
+      scope_default_hint: Used as the organisation's default overview for all members; also replaces your own personal customization
+      projects_table:
+        mode_label: Which projects to show
+        mode_all: All projects
+        mode_selected: Specific projects
+        mode_pinned: All pinned projects
+        mode_with_entries: Projects with entries (notifications or open hours)
+        select_projects: Select projects
+        no_projects: No projects available.
+    cards:
+      active_projects: Active projects
+      open_tickets: Open tickets
+      overdue_tickets: Overdue tickets
+      new_activities: New activity
+      unbilled_hours: Outstanding
+      hours_unit: h
+    tickets:
+      empty: No open tickets
+      view_all: View all
+    my_open_tickets:
+      picker_label: Which groups to show
+      deduplicate_label: Show each ticket only once
+      display_mode_label: Layout
+      mode_sections: Sections (stacked)
+      mode_tabs: Tabs (pills)
+      group_empty: None
+      group_all_open: All open
+      group_overdue: Overdue
+      group_due_today: Due today
+      group_due_this_week: Due this week
+      group_due_next_7_days: Next 7 days
+    mentions:
+      empty: No new mentions
+    notifications:
+      empty: No notifications
+      time_ago: "%{time} ago"
+    billing:
+      hours_unit: h
+      empty: No time tracked yet
+    drilldown:
+      view_aria: 'Show time entries: %{label}'
+  date:
+    abbr_day_names:
+    - Sun
+    - Mon
+    - Tue
+    - Wed
+    - Thu
+    - Fri
+    - Sat
+    abbr_month_names:
+    -
+    - Jan
+    - Feb
+    - Mar
+    - Apr
+    - May
+    - Jun
+    - Jul
+    - Aug
+    - Sep
+    - Oct
+    - Nov
+    - Dec
+    day_names:
+    - Sunday
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday
+    - Friday
+    - Saturday
+    formats:
+      default: "%Y-%m-%d"
+      long: "%B %d, %Y"
+      short: "%b %d"
+      # The two bounds of a period pill (time list, S7). Their own formats,
+      # because the pill carries the year only ONCE, at the end:
+      # "01 Jun - 31 Aug 2026". short would have given the start and default
+      # the end, but default is ISO here and the mix is unreadable.
+      range_start: "%d %b"
+      range_bound: "%d %b %Y"
+      # Month and year without a day, for period headings (measurement month,
+      # M2). Its own format rather than short: short carries NO year, and a
+      # billing period without one is ambiguous the moment January comes round.
+      month_year: "%B %Y"
+    month_names:
+    -
+    - January
+    - February
+    - March
+    - April
+    - May
+    - June
+    - July
+    - August
+    - September
+    - October
+    - November
+    - December
+    order:
+    - :year
+    - :month
+    - :day
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: about 1 hour
+        other: about %{count} hours
+      about_x_months:
+        one: about 1 month
+        other: about %{count} months
+      about_x_years:
+        one: about 1 year
+        other: about %{count} years
+      almost_x_years:
+        one: almost 1 year
+        other: almost %{count} years
+      half_a_minute: half a minute
+      less_than_x_minutes:
+        one: less than a minute
+        other: less than %{count} minutes
+      less_than_x_seconds:
+        one: less than 1 second
+        other: less than %{count} seconds
+      over_x_years:
+        one: over 1 year
+        other: over %{count} years
+      x_days:
+        one: 1 day
+        other: "%{count} days"
+      x_minutes:
+        one: 1 minute
+        other: "%{count} minutes"
+      x_months:
+        one: 1 month
+        other: "%{count} months"
+      x_seconds:
+        one: 1 second
+        other: "%{count} seconds"
+    duration_invalid: Invalid duration format
+    duration_too_long: Duration is too long
+    duration_too_short: Duration is too short
+    future_date_required: Date must be in the future
+    invalid_format: Invalid date/time format
+    past_date_required: Date must be in the past
+  devise:
+    confirmations:
+      confirmed: Your email address has been confirmed successfully.
+      new:
+        cross: Already confirmed?
+        email_label: Email
+        eyebrow: Confirmation missing
+        # The deadlines come from Devise.allow_unconfirmed_access_for and
+        # Devise.confirm_within, not from this text.
+        grace_period:
+          one: You can work without limits for one day.
+          other: You can work without limits for %{count} days.
+        link_validity:
+          one: After that you need the confirmation. The link is valid for one day.
+          other: After that you need the confirmation. The link is valid for %{count}
+            days.
+        no_mail_line: No email arrived?
+        no_mail_text: Check the spam folder. If nothing arrives at all, this instance
+          may not be sending mail; your administrator can help.
+        panel_label: The deadlines
+        panel_title: How much time you have.
+        submit: Send the link again
+        submitting: Sending …
+        subtitle: Enter your email address and we send you the confirmation link again.
+        title: Send the confirmation link again
+      send_instructions: You will receive an email with a link to confirm your email address in a few minutes.
+      send_paranoid_instructions: If your email address exists in our database, you will receive an email with a link to confirm your email address in a few minutes.
+    failure:
+      already_authenticated: You are already signed in.
+      inactive: Your account is not activated.
+      invalid: Invalid email or password.
+      last_attempt: You have one more attempt before your account is locked.
+      locked: Your account is locked.
+      not_found_in_database: Invalid email or password.
+      timeout: Your session has expired. Please sign in again.
+      unauthenticated: You need to sign in or register before continuing.
+      unconfirmed: You need to confirm your email address before continuing.
+    index:
+      active: Active
+      create_organisation_hint: Create a new organisation to get started
+      details: Details
+      domain: Domain
+      members_count:
+        one: "%{count} Member"
+        other: "%{count} Members"
+      new_organisation: New Organisation
+      no_organisations: No organisations yet
+      subdomain: Subdomain
+      title: Organisation Management
+    invitations:
+      new:
+        back: Back
+        cancel: Cancel
+        email_label: Email address
+        email_placeholder: name@example.com
+        errors_prevent_save:
+          one: "%{count} error prevents saving:"
+          other: "%{count} errors prevent saving:"
+        form_title: Send new invitation
+        send_invitation: Send invitation
+        title: Invite Member
+    mailer:
+      confirmation_instructions:
+        confirm_link: Confirm email address
+        grace_hint:
+          one: Without confirmation your access ends after %{count} day.
+          other: Without confirmation your access ends after %{count} days.
+        greeting: Hello %{email}!
+        ignore_if_not_requested: If this wasn't you, please just ignore this email.
+        instruction: 'Please confirm with one click that this address is yours:'
+        reconfirmation_hint: Until then %{old_email} stays your active address —
+          your access continues as normal.
+        subject: Confirm your email address
+      email_changed:
+        subject: Email address changed
+      password_change:
+        subject: Password changed
+      reset_password_instructions:
+        change_password_link: Change my password
+        greeting: Hello %{email}!
+        ignore_if_not_requested: If you didn't request this, please ignore this email.
+        password_change_request: Someone has requested a link to change your password. You can do this through the link below.
+        password_wont_change: Your password won't change until you access the link above and create a new one.
+    memberships:
+      index:
+        confirm_delete_invitation: Are you sure?
+        confirm_delete_member: Are you sure?
+        delete: Delete
+        delete_member: Delete
+        edit_member: Edit
+        invitations_table:
+          actions: Actions
+          email: Email
+          invitation_link: Invitation link
+          invitation_sent: Invitation sent
+        invite_member: Invite member
+        pending_invitations: Pending invitations
+        show_activity_history: Show activity history
+        table_headers:
+          actions: Actions
+          active: Active
+          email: Email
+          member_since: Member since
+          name: Name
+          role: Role
+        status:
+          active: Active
+          inactive: Inactive
+        role_labels:
+          account_admin: Account admin
+          member: Member
+        title: Members
+    omniauth_callbacks:
+      failure: 'Could not authenticate with %{kind}. Reason: "%{reason}".'
+      success: Successfully authenticated with %{kind}.
+    passwords:
+      edit:
+        confirm_password_label: Repeat password
+        cross: No new password after all?
+        eyebrow: Link from the email
+        minimum_length:
+          one: At least one character.
+          other: At least %{count} characters.
+        new_password_label: New password
+        panel_label: Good to know
+        panel_title: Set it once and you are in.
+        signed_in_after: Once you save, you are signed in straight away and do not
+          have to log in again.
+        submit: Save password
+        submitting: Saving …
+        subtitle: Choose a new password. You are signed in straight afterwards.
+        title: Set a new password
+      no_token: You can only access this page through the link from the password reset email. If you came through such a link, make sure you are using the full URL.
+      send_instructions: You will receive an email with a link to reset your password in a few minutes.
+      send_paranoid_instructions: If your email address exists in our database, you will receive an email with a link to reset your password in a few minutes.
+      updated: Your password has been changed successfully. You are now signed in.
+      updated_not_active: Your password has been changed successfully.
+      new:
+        cross: Remembered it?
+        email_label: Email
+        eyebrow: Get back in
+        link_expired_hint: If it has expired, just request a new one here.
+        # The number of hours comes from Devise.reset_password_within, not from
+        # this text: a changed deadline must not survive in the page.
+        link_validity:
+          one: The link is valid for one hour.
+          other: The link is valid for %{count} hours.
+        panel_label: What happens next
+        panel_title: How you get back in.
+        step_link: Open the link inside it.
+        step_mail: You get an email at this address.
+        step_new_password: Set your new password.
+        submit: Request link
+        submitting: Sending …
+        subtitle: Enter your email address. We send you a link to set a new password.
+        title: Forgot your password
+    registrations:
+      destroyed: Goodbye! Your account has been deleted. We hope to see you again soon.
+      signed_up: Welcome! You have registered successfully.
+      signed_up_but_inactive: You have registered successfully. However, we could not sign you in because your account is not yet activated.
+      signed_up_but_locked: You have registered successfully. However, we could not sign you in because your account is locked.
+      signed_up_but_unconfirmed: An email with a confirmation link has been sent to your email address. Please click on the link to activate your account.
+      update_needs_confirmation: Your account has been updated, but we need to confirm your new email address. Please check your email and click the confirmation link.
+      updated: Your account has been updated successfully.
+      updated_but_not_signed_in: Your account has been updated successfully, but since your password was changed, you need to sign in again.
+      new:
+        already_registered: Already registered?
+        email_label: E-mail
+        eyebrow: New account
+        first_name_label: First name
+        invited_email_hint: The invitation is for this address. For a different address, ask the person who invited you for a new invitation.
+        last_name_label: Last name
+        meta_title: Create account | Lalabase
+        optional: optional
+        organisation_name_hint: Your own space in Lalabase. Leave it blank and we name it after you; renaming works anytime.
+        organisation_name_label: Your organisation's name
+        organisation_name_placeholder: e.g. Boyke Solutions
+        panel_label: Ready in 5 minutes
+        panel_title_l1: Your new
+        panel_title_l2: workspace is waiting.
+        password_label: Password
+        # "Billed by invoice" and "Cancel monthly" are OUR terms, not the
+        # operator's. What stays is about the software.
+        reassurance:
+          - Export anytime
+        register_button: Create account
+        registering: Creating …
+        step_account: Create your account
+        step_account_time: 1 min
+        step_invite: Invite team & clients
+        step_invite_time: 2 min
+        step_project: Create your first project
+        step_project_time: 2 min
+        subtitle: Five fields and you are in. Everything else you set up calmly inside the product.
+        title: Create your account.
+    roles:
+      index:
+        confirm_delete: Are you sure?
+        default_role: Default role
+        delete: Delete
+        edit: Edit
+        list_view: List view
+        matrix:
+          admin_badge: Admin
+          automatic_permission_tooltip: Automatic permission (Admin role)
+          default_badge: Default
+          edit_role: Edit role
+          legend:
+            automatic_permission: Automatic permission (Admin)
+            no_permission: No permission
+            permission_granted: Permission granted
+            title: 'Legend:'
+          no_permission_tooltip: No permission
+          permission_granted_tooltip: Permission granted
+          permissions_roles_header: Permissions / Roles
+        matrix_view: Matrix view
+        new_role: New Role
+        role_labels:
+          account_admin: Account admin
+          member: Member
+        set_as_default: Set as default
+        system_role: System role
+        table_headers:
+          actions: Actions
+          default: Default
+          description: Description
+          title: Title
+        title: Roles & Permissions
+        view_label: View
+    sessions:
+      already_signed_out: Signed out successfully.
+      signed_in: Signed in successfully.
+      signed_out: Signed out successfully.
+      new:
+        email_label: E-mail
+        eyebrow: Welcome back
+        forgot_password: Forgot password?
+        forgot_password_short: Forgot?
+        # Example inbox data of the context panel (handoff 3a) - deliberately
+        # generic, the visitor is not signed in.
+        inbox_comment_html: 'Maria commented on <b>#142</b>'
+        inbox_minutes: 2 min
+        inbox_now: now
+        inbox_tickets_html: 3 new tickets in <b>Client portal v2</b>
+        inbox_timer_html: 'Time tracking running on <b>#140</b>'
+        # The only way into the confirmation and unlock pages.
+        locked: Account locked?
+        resend_confirmation: Resend the link
+        unconfirmed: Account not confirmed?
+        unlock_account: Unlock it
+        meta_title: Sign in | Lalabase
+        no_account: No account yet?
+        panel_label: While you were away
+        panel_title: Your inbox is waiting.
+        password_label: Password
+        register: Register
+        remember_me: Stay signed in
+        sign_in: Sign in
+        signing_in: Signing in …
+        title: Sign in.
+    shared:
+      links:
+        log_in: Log in
+    time_session_groups:
+      index:
+        billed_at: 'Invoiced: %{date}'
+        billed_groups: Invoiced
+        billed_status: Invoiced
+        confirm_delete: Are you sure you want to delete this billing?
+        confirm_delete_with_sessions: Are you sure you want to delete this billing? The time sessions will not be deleted, only the billing assignment will be removed.
+        created_at: 'Created: %{date}'
+        delete: Delete
+        edit: Edit
+        new: New
+        new_group: New billing
+        no_billed_groups: Nothing invoiced yet.
+        no_groups_available: No billings available.
+        no_unbilled_groups: All invoiced.
+        sessions_count:
+          one: "%{count} session"
+          other: "%{count} sessions"
+        stats:
+          billed: Invoiced
+          groups_count:
+            one: "%{count} billing"
+            other: "%{count} billings"
+          total: Total
+          total_time: "%{time} total"
+          unbilled: Not invoiced
+        status_open: Open
+        table:
+          actions: Actions
+          created_at: Created at
+          description: Description
+          invoice_number: Invoice no.
+          name: Name
+          sessions: Sessions
+          status: Status
+          total_time: Total time
+        title: Billing
+        unbilled_groups: Open
+        view: View
+    unlocks:
+      new:
+        cross: Account free again?
+        email_label: Email
+        eyebrow: Account locked
+        panel_label: Why this happens
+        panel_title: A lock protects your account.
+        submit: Request unlock link
+        submitting: Sending …
+        subtitle: Enter your email address. We send you a link that unlocks your account
+          again.
+        title: Unlock your account
+        # Numbers from Devise.unlock_in and Devise.maximum_attempts.
+        unlocks_itself:
+          one: It unlocks itself after one hour.
+          other: It unlocks itself after %{count} hours.
+        why_locked:
+          one: An account locks after one failed attempt.
+          other: An account locks after %{count} failed attempts.
+      send_instructions: You will receive an email with instructions on how to unlock your account in a few minutes.
+      send_paranoid_instructions: If your account exists, you will receive an email with instructions on how to unlock it in a few minutes.
+      unlocked: Your account has been unlocked successfully. Please sign in to continue.
+    view_configurations:
+      form:
+        table_columns_title: Columns
+        table_columns_description: "A tick means show, the order is the importance: what is on top stays visible first when space runs out."
+        cancel: Cancel
+        required_field: Required field
+        save: Save
+  errors:
+    attributes:
+      password:
+        too_short: is too short (minimum %{count} characters required)
+    messages:
+      blank: can't be blank
+      greater_than: must be greater than %{count}
+      greater_than_or_equal_to: must be greater than or equal to %{count}
+      not_a_number: is not a number
+      not_an_integer: must be an integer
+      inclusion: is not included in the list
+      invalid: is invalid
+      less_than_or_equal_to: must be less than or equal to %{count}
+      record_invalid: 'Validation failed: %{errors}'
+      taken: has already been taken
+      too_short: is too short (minimum is %{count} characters)
+      already_confirmed: was already confirmed, please try signing in
+      confirmation_period_expired: must be confirmed within %{period}, please request a new one
+      expired: has expired, please request a new one
+      not_found: not found
+      not_locked: was not locked
+      not_saved:
+        one: '1 error prevented %{resource} from being saved:'
+        other: "%{count} errors prevented %{resource} from being saved:"
+    models:
+      chatpost:
+        attributes:
+          content:
+            textile_syntax_error: 'Textile syntax error: %{message}'
+      document_version:
+        attributes:
+          document_version_file:
+            file_required: A file must be selected
+      smart_folder:
+        attributes:
+          base:
+            conversion_error: 'Conversion error: %{message}'
+      smart_folder_rule:
+        attributes:
+          field:
+            invalid_field: is not valid. Please select a supported field
+      smart_folder_share:
+        attributes:
+          user_id:
+            already_has_access: This user already has access to the folder
+            cannot_share_with_owner: The owner already has full access to this Ticket Filter
+  generic:
+    'no': 'No'
+    'yes': 'Yes'
+    actions: Actions
+    back_to_details: Back to folder
+    back_to_list: Back to overview
+    cancel: Cancel
+    create: Create
+    days: Days
+    delete: Delete
+    edit: Edit
+    'false': 'No'
+    save: Save
+    'true': 'Yes'
+    update: Update
+  hello: Hello world
+  move_ticket:
+    success: "Ticket was successfully moved to '%{project_name}'."
+    error: "Ticket could not be moved: %{error}"
+    no_write_access: You do not have write access to the target project.
+  # English sentence joining for Array#to_sentence. Rails ships these defaults
+  # itself; spelled out to keep the pair with `de.support` symmetric, like number.*.
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " and "
+      last_word_connector: ", and "
+
+  # English number formats. Rails ships these defaults itself, so they are spelled
+  # out here only to keep the pair with `de.number` symmetric -- an English tree
+  # that exists implicitly and a German one that exists in the file is exactly the
+  # asymmetry that let the German UI render "€14.50" unnoticed until 2026-08.
+  # The currency unit is EUR in both locales: the product is priced in euros, the
+  # locale only decides where the sign sits.
+  number:
+    format:
+      separator: "."
+      delimiter: ","
+      precision: 2
+      significant: false
+      strip_insignificant_zeros: false
+    currency:
+      format:
+        format: "%u%n"
+        unit: "€"
+        separator: "."
+        delimiter: ","
+        precision: 2
+    percentage:
+      format:
+        format: "%n%"
+        separator: "."
+        delimiter: ","
+  navigation:
+    all_meetings: All Meetings
+    all_organisations: All organisations
+    all_projects: All Projects
+    times: Times
+    times_tabs:
+      label: Times and billings
+      times: Times
+      billings: Billings
+    current_project: Current project
+    dashboard: Dashboard
+    documents: Documents
+    files: Files
+    global_search: Global Search...
+    logout: Logout
+    no_more_projects: No more projects available
+    theme:
+      label: View
+      light: Light
+      dark: Dark
+      pop: Pop
+    notizblock:
+      title: Notepad
+      open: Open notepad
+      close: Close notepad
+      loading: Loading …
+      add_label: New note
+      add_placeholder: Add a note …
+      add_submit: Add
+      open_heading: Open
+      done_heading: Done
+      empty_title: No notes yet
+      empty_subtitle: Just for you. Jot it down, then check it off.
+      complete: Mark as done
+      reopen: Reopen
+      cycle_priority: Change priority
+      delete: Delete
+    menu: Menu
+    search: Search
+    assistant: Assistant
+    search_in_organisation: Search in %{organisation}
+    search_close: Close search
+    search_placeholder: Search...
+    create_new: Create New
+    knowledge: Knowledge
+    documentation: Documentation
+    notes: Notes
+    notifications: Inbox
+    notifications_label:
+      zero: Inbox
+      one: Inbox
+      other: Inbox
+    org_attention_count:
+      one: "%{count} unread notification"
+      other: "%{count} unread notifications"
+    organisation: Organisation
+    other_orgs_signal: Unread notifications in other organisations
+    profile: Profile
+    project: Project
+    projects: Projects
+    search_project: Search project...
+    select_organisation_prompt: Please select an organisation
+    settings: Settings
+    settings_general: General
+    settings_display: Name display
+    settings_tickets: Tickets
+    settings_meetings: Meetings
+    settings_datetime: Date/Time
+    settings_language: Language
+    settings_session: Session duration
+    settings_api_tokens: API Tokens
+    management: Management
+    preferences: Preferences
+    show_all_projects: Show all projects
+    org_dashboard: Dashboard
+    activities: Activities
+    smart_folders: Ticket Filters
+    invite_member: Invite member
+    account_section: My Account
+    billing_accounts: Billing accounts
+    back_to_organisation: Back to organisation
+    delete_account: Delete account
+    tasks: Tickets
+    team: Team
+    tickets: Tickets
+    meetings: Meetings
+    changelog: "What's New"
+    expand_project_links: Expand/collapse project quick links
+    more: more …
+    less: less
+    more_projects:
+      one: "%{count} more project"
+      other: "%{count} more projects"
+    fewer_projects: less
+    pin_project: Pin project
+    unpin_project: Unpin project
+    pin_section: Pin menu item
+    unpin_section: Unpin menu item
+    pin_search: Pin search
+    unpin_search: Unpin search
+    new_project: New project
+    projects_label: Projects
+    no_projects_yet: No projects yet.
+    help: Help
+    show_more_projects: More projects
+    show_less_projects: Fewer projects
+  neo_navigation_component:
+    dashboard: Dashboard
+  neo_open_hours_component:
+    open_hours: Open Hours
+  tickets:
+    new: New Ticket
+    sections:
+      crm: CRM
+      custom: Custom
+      support: Support
+    index:
+      new_task: New Ticket
+      search_modes:
+        deep: Deep
+        everything: Everything incl. files
+        quick: Quick
+        standard: Standard
+        title_content: Title + Content
+        title_only: Title only
+      search_placeholder: Search tickets
+      select_task_description: The content of the selected ticket will be displayed here.
+      select_task_title: Please select a ticket from the list
+  documents:
+    new: New Document
+    index:
+      chat: Chat
+      chat_description: In the future, a chat for the current document could be displayed here.
+      chat_in_development: Chat feature in development
+      chat_title: Chat
+      new_file: File
+      search_placeholder: Search files
+      select_file_description: The content of the selected file will be displayed here.
+      select_file_title: Please select a file from the list
+      title: Files
+  notes:
+    new: New Note
+  notifications:
+    activities:
+      index:
+        title: Activities
+    bulk:
+      all_marked: All notifications marked as read
+      done: Done!
+      error: Error
+      processing: Processing...
+    chatposts:
+      chatpost:
+        delete: Delete
+        time_ago: "%{time} ago"
+    dropdown:
+      bulk_error: Failed to mark as read
+      bulk_success: All marked as read
+      empty_sub: We'll notify you when something happens
+      empty_title: No notifications yet
+      mark_all_read: Mark all read
+      menu_aria: Notifications menu
+      open_aria: Open notifications
+      open_menu_aria: Open notifications menu
+      preferences: Notification preferences
+      shortcut_hint: to open notifications
+      view_all: View all notifications
+    index:
+      all_notifications_loaded: All notifications loaded
+      archive_all: Archive
+      archive_all_confirm: Archive all read notifications?
+      errors:
+        archive_error: Error archiving.
+        loading_error: Error loading notifications. Please try again.
+        mark_read_error: Error marking as read.
+      loading_more: Loading more...
+      mark_all_read: Mark all read
+      mark_all_read_confirm: "Mark %{count} notifications as read?"
+      no_notifications_found: No notifications found
+      notifications_count:
+        one: "%{count} notification"
+        other: "%{count} notifications"
+      settings: Settings
+      showing_notifications: "%{shown} of %{total} shown"
+      title: All Notifications
+      go_to_ticket: "Go to Ticket"
+      go_to_project: "Go to Project"
+      mark_group_read: "Mark group read"
+      archive_group: "Archive group"
+      try_different_filters: Try different filters or reset them.
+      unread_notifications:
+        one: "%{count} unread notification"
+        other: "%{count} unread notifications"
+      up_to_date: You are up to date! New notifications will appear here.
+    item:
+      archive: Archive
+      archived: Notification archived
+      in_project: in %{project}
+      mark_as_read: Mark as read
+      mark_this_as_read: Mark this notification as read
+      time_ago: "%{time} ago"
+      updates:
+        one: "%{count} update"
+        other: "%{count} updates"
+      view: View %{title}
+    memberships:
+      index:
+        activate: Activate
+        active_members: Active Members
+        confirm_activate: Are you sure you want to activate this member?
+        confirm_deactivate: Are you sure you want to deactivate this member?
+        confirm_delete: Are you sure you want to delete this member? This action cannot be undone.
+        deactivate: Deactivate
+        delete: Delete
+        edit_role: Edit role
+        inactive_members: Inactive Members
+        invite_members: Invite Members
+        last_activity: Last activity
+        member_since: Member since
+        no_activity: No activity
+        pending_invitations: Pending invitations
+        role: Role
+        title: Member Management
+        view_activities: View activities
+      new:
+        cancel: Cancel
+        email_label: Email address
+        email_placeholder: member@example.com
+        message_label: Personal message (optional)
+        message_placeholder: Enter a personal message for the invitation...
+        role_help: Select the role for the new member
+        role_label: Role
+        send_invitation: Send invitation
+        subtitle: Invite new members to your organisation
+        title: Invite Members
+    messages:
+      document_added: "%{actor} added a document to %{notifiable}"
+      document_added_grouped: "%{actor} added %{count} documents"
+      mention: "%{actor} mentioned you in %{notifiable}"
+      mention_grouped: "%{actor} mentioned you %{count} times"
+      project_announcement: New announcement in %{notifiable}
+      project_announcement_grouped: "%{count} new announcements"
+      system_message: "%{actor} performed an action on %{notifiable}"
+      system_message_grouped: "%{count} system messages"
+      index_completed: "Code index for %{full_name} is ready"
+      index_failed: "Code index for %{full_name} failed"
+      ticket_assigned: "%{actor} assigned %{notifiable} to you"
+      ticket_assigned_grouped: "%{count} tickets were assigned to you"
+      ticket_blocker: "%{actor} changed the priority of %{notifiable}"
+      ticket_blocker_grouped: "%{actor} changed priority of %{count} tickets"
+      ticket_commented: "%{actor} added a comment to %{notifiable}"
+      ticket_commented_grouped: "%{actor} and %{count} others added comments to %{notifiable}"
+      ticket_status_changed: "%{actor} changed the status of %{notifiable}"
+      ticket_status_changed_grouped: "%{actor} changed %{count} ticket statuses"
+      ticket_unassigned: "%{actor} removed your assignment from %{notifiable}"
+      ticket_unassigned_grouped: "%{count} ticket assignments were removed"
+      tickets_bulk_changed: "%{actor} changed several tickets in %{notifiable} at once"
+      tickets_bulk_changed_grouped: "%{actor} made %{count} bulk changes in %{notifiable}"
+      tickets_bulk_moved: "%{actor} moved several tickets from %{notifiable} to another project"
+      tickets_bulk_moved_grouped: "%{actor} moved several tickets from %{notifiable} %{count} times"
+      tickets_bulk_deleted: "%{actor} deleted several tickets in %{notifiable}"
+      tickets_bulk_deleted_grouped: "%{actor} deleted several tickets in %{notifiable} %{count} times"
+    posts:
+      index:
+        chat_description: In the future, a chat for the current post could be displayed here.
+        chat_in_development: Chat feature in development
+        chat_title: Chat
+        new_post: New Post
+        search_placeholder: Search posts
+        select_post_description: The content of the selected post will be displayed here.
+        select_post_title: Please select a post from the list
+        title: Posts
+    projects:
+      form:
+        cancel: Cancel
+        create_default_attributes: "Create default attributes (Status, Priority)"
+        create_default_attributes_hint: "Creates preconfigured fields for Status and Priority with colors and system functions."
+        description: Description
+        description_placeholder: Describe your project...
+        errors_prevent_save:
+          one: "%{count} error prevents saving this project:"
+          other: "%{count} errors prevent saving this project:"
+        name_placeholder: Enter a project name
+        project_name: Project Name
+        save: Save
+      show:
+        custom_fields: Custom Fields
+        custom_fields_count:
+          one: "%{count} custom field defined"
+          other: "%{count} custom fields defined"
+        no_custom_fields: No custom fields defined
+        completed: completed
+        current_notes: Current Notes
+        current_tasks: Current Tickets
+        dashboard_title: Dashboard
+        description: Description
+        documents_card_title: Documents
+        edit: Edit
+        last_month: last month
+        no_description: No description available
+        no_tasks: No tickets yet
+        notes_card_title: Notes
+        tasks_card_title: Tickets
+        this_week: this week
+        manage_members: Manage Members
+        no_team_members_assigned: No team members assigned yet
+        team: Team
+        updated: Updated
+        view_all: View All
+        all: All
+    roles:
+      new:
+        back: Back
+        cancel: Cancel
+        create_role: Create Role
+        description_label: Description
+        errors_prevent_save:
+          one: "%{count} error prevents saving this role:"
+          other: "%{count} errors prevent saving this role:"
+        permissions_info: After creating the role, you can configure permissions in detail.
+        title: New Role
+        title_label: Title
+    time_sessions:
+      form_organization_wide:
+        cancel: Cancel
+        create_new_group: Create new billing
+        date_label: Date
+        description_label: Description
+        description_placeholder: Briefly describe your activity...
+        duration_label: Duration
+        duration_placeholder: e.g. 2h 30m or 2:30
+        group_label: Billing (optional)
+        no_group: No billing
+        project_label: Project
+        project_prompt: Please select project
+        save: Save
+        select_project_first: Please select a project first
+        tags_help_text: Comma-separated tags
+        tags_label: Tags
+        tags_placeholder: Tag1, Tag2, Tag3
+        ticket_label: Ticket (optional)
+        title: New organisation-wide time session
+        validation_errors:
+          one: 'One error prevents saving this time session:'
+          other: "%{count} errors prevent saving this time session:"
+    titles:
+      document_added: Document Added
+      mention: Mention
+      project_announcement: Project Announcement
+      system_message: System Message
+      index_completed: Code index ready
+      index_failed: Code index failed
+      ticket_assigned: Ticket Assigned
+      ticket_blocker: Priority Changed
+      ticket_commented: Comment Added
+      ticket_status_changed: Status Changed
+      ticket_unassigned: Assignment Removed
+    user_activities:
+      index:
+        active_member: Active member
+        back_to_members: Back to member management
+        filter:
+          activity: Activities
+          all: All
+          apply: Apply
+          category: Category
+          custom_range: Custom range
+          date_range: Date range
+          failed_login: Failed logins
+          from: From
+          last_30_days: Last 30 days
+          last_7_days: Last 7 days
+          reset: Reset
+          security: Security events
+          session: Login/Logout
+          status: Status
+          to: To
+        inactive_member: Inactive member
+        member_since: 'Member since: %{date}'
+        no_activities: No activities found.
+        no_role: No role
+        role: 'Role: %{role}'
+        stats:
+          activities: Activities
+          failed_24h: Failed (24h)
+          last_login: Last login
+          logins: Logins
+          never: Never
+          security_events: Security events
+        title: Activity History
+        try_different_filter: Try different filters or reset them.
+  organisations:
+    appearances:
+      show:
+        title: Appearance
+        org_color: Organisation colour
+        org_color_description: Tints the logo, the sidebar edge and the organisation picker so you recognise this organisation at a glance. Shown once you belong to at least two organisations.
+        color_auto: Automatic
+        color_off: Off
+        color_sand: Sand
+        color_mint: Mint
+        color_sky: Sky
+        color_lavender: Lavender
+        color_rose: Rose
+        color_peach: Peach
+        color_cyan: Cyan
+        color_lime: Lime
+        save: Save
+        cancel: Cancel
+      update:
+        saved: Appearance saved.
+    chatposts:
+      chatpost:
+        delete: Delete
+        time_ago: '%{time} ago'
+    documents:
+      index:
+        chat: Chat
+        chat_description: In the future, a chat for the current document could be displayed here
+        chat_in_development: Chat feature in development
+        chat_title: Chat
+        new_file: New File
+        search_placeholder: Search files
+        select_file_description: The content of the selected file will be displayed here
+        select_file_title: Please select a file from the list
+        title: Files
+    index:
+      active: Active
+      create_organisation_hint: Create a new organisation to get started
+      details: Details
+      domain: Domain
+      members_count:
+        one: '%{count} member'
+        other: '%{count} members'
+      new_organisation: New Organisation
+      no_organisations: No organisations yet
+      subdomain: Subdomain
+      title: Organisation Management
+    invitations:
+      new:
+        back: Back
+        cancel: Cancel
+        email_label: Email address
+        email_placeholder: member@example.com
+        errors_prevent_save:
+          one: '%{count} error prevents saving'
+          other: '%{count} errors prevent saving'
+        form_title: Send new invitation
+        send_invitation: Send invitation
+        title: Invite Member
+    memberships:
+      index:
+        cannot_delete_self: You cannot remove yourself from the organisation
+        confirm_delete_member: Are you sure?
+        delete: Delete
+        delete_member: Delete member
+        edit_member: Edit member
+        invitations_table:
+          invitation_link: Invitation link
+          invitation_sent: Invitation sent
+        invite_member: Invite member
+        member_count:
+          one: '%{count} member'
+          other: '%{count} members'
+        pending_invitations: Pending invitations
+        presence:
+          online: Online
+        show_activity_history: Show activity history
+        table_headers:
+          actions: Actions
+          active: Active
+          email: Email
+          member_since: Member since
+          name: Name
+          role: Role
+        title: Member Management
+    notifications:
+      index:
+        all_notifications_loaded: All notifications loaded
+        all_loaded_short: All loaded
+        archive_all: Archive all
+        archive_all_confirm: Archive all read notifications?
+        loading_more: Loading more...
+        loading_short: Loading...
+        mark_all_read: Mark all as read
+        mark_all_read_confirm: 'Mark %{count} notifications as read?'
+        no_notifications_found: No notifications found
+        notifications_count:
+          one: '%{count} notification'
+          other: '%{count} notifications'
+        select_all: Select all
+        settings: Settings
+        showing_notifications: '%{shown} of %{total} shown'
+        title: Inbox
+        title_mobile: Inbox
+        go_to_ticket: "Ticket"
+        go_to_project: "Project"
+        mark_group_read: "Mark group read"
+        archive_group: "Archive group"
+        try_different_filters: Try different filters or reset them
+        unread_notifications:
+          one: '%{count} unread notification'
+          other: '%{count} unread notifications'
+        up_to_date: You are up to date!
+    organisation_settings:
+      show:
+        title: Domain & Organisation
+        section_title: Name & Domain
+        errors_title:
+          one: '%{count} error prevented saving'
+          other: '%{count} errors prevented saving'
+        name_label: Name
+        name_placeholder: Organisation name
+        name_hint: The full name of your organisation
+        subdomain_label: Subdomain
+        subdomain_placeholder: subdomain
+        subdomain_hint: Subdomain for accessing your organisation (e.g. subdomain.example.com)
+        domain_label: Domain
+        domain_placeholder: example.com
+        domain_hint: Your organisation's domain (optional)
+        save_button: Save
+    posts:
+      post:
+        confirm_delete: Are you sure you want to delete this post?
+        delete: Delete
+        edit: Edit
+        time_ago: '%{time} ago'
+    projects:
+      activities:
+        index:
+          title: Activities
+          placeholder_title: Select an entry from the list
+          placeholder_body: The related content will appear here.
+      form:
+        add_description: Add a description
+        cancel: Cancel
+        create_default_attributes: "Create default attributes (Status, Priority)"
+        create_default_attributes_hint: "Creates preconfigured fields for Status and Priority with colors and system functions."
+        description: Description
+        description_placeholder: Describe your project...
+        errors_prevent_save:
+          one: '%{count} error prevents saving'
+          other: '%{count} errors prevent saving'
+        name_placeholder: Enter a project name
+        project_name: Project Name
+        save: Save
+      index:
+        actions: Actions
+        active: Active
+        active_ago: "Active %{time}"
+        assigned_to_me: "assigned to me"
+        confirm_delete: Are you sure you want to delete this project?
+        contact_admin: Contact administrator
+        create_first_project: Create first project
+        current_tasks: Current Tickets
+        tasks_title: Tickets
+        my_tasks: My Tickets
+        all_tasks: All Tickets
+        all_caught_up: All caught up
+        of_total_open: "of %{count} open tickets"
+        no_assigned_tickets: No open tickets assigned
+        delete: Delete
+        edit: Edit
+        last_30_days: 30 days
+        last_90_days: 90 days
+        last_week: 7 days
+        new_project: New Project
+        my_open_hours: My Open Hours
+        no_activity: No activity
+        no_description: No description
+        no_open_tickets: No open tickets in this period
+        no_permission: No permission
+        no_projects: No projects yet
+        no_title: No title
+        number_col: "#"
+        open_hours: Open Hours
+        open_tickets: Open Tickets
+        priority_col: Priority
+        project_col: Project
+        action_document: "updated a document"
+        action_note: "updated a note"
+        action_time_session: "tracked time"
+        recent_activities: Recent Activities
+        unknown_user: "Unknown"
+        status_col: Status
+        tickets_mine: "mine"
+        tickets_open: "open"
+        tickets_total: "tickets"
+        title: Projects
+        title_col: Title
+        type_col: Type
+        type_document: Document
+        type_note: Note
+        type_time_session: Time Entry
+        unread_notifications: Unread
+        unread_notifications_label: Unread Notifications
+        updated_col: Updated
+        more_projects: "%{count} more projects"
+        more_tasks: more
+        show_all_tasks: "Show all %{count} tickets"
+        show_all_activities: "Show all %{count} activities"
+        help_title: Ticket List Explanation
+        help_my_tasks_desc: "Shows tickets with unread notifications (including closed ones) and open tickets assigned to you. Tickets with notifications always appear first, sorted by priority."
+        help_all_tasks_desc: "Shows all recently updated open tickets from all projects in the last 90 days."
+        help_highlights_title: Highlights
+        help_highlight_priority: "Red left border + red background = high priority ticket (Urgent, Critical, High). Closed or completed tickets are not highlighted."
+        help_highlight_badge: "Red badge with number = number of unread notifications for this ticket"
+        appearance_settings: Customize appearance
+      show:
+        completed: completed
+        custom_fields: Custom Fields
+        custom_fields_count:
+          one: "%{count} custom field"
+          other: "%{count} custom fields"
+        no_custom_fields: No custom fields
+        add_field: Add field
+        current_notes: Current Notes
+        current_tasks: Current Tickets
+        dashboard_title: Dashboard
+        description: Description
+        documents_card_title: Documents
+        edit: Edit
+        last_month: last month
+        manage_members: Manage Members
+        no_description: No description available
+        no_tasks: No tickets yet
+        notes_card_title: Notes
+        tasks_card_title: Tickets
+        this_week: this week
+        updated: Updated
+        view_all: View All
+        all: All
+      edit:
+        default_attributes_available: "Default attributes available"
+        default_status: "Status (New, In Progress, Resolved, Closed)"
+        default_priority: "Priority (Low, Normal, High, Urgent)"
+        create_defaults_button: "Create"
+    roles:
+      index:
+        confirm_delete: Are you sure?
+        default_role: Default role
+        delete: Delete
+        edit: Edit
+        list_view: List view
+        matrix:
+          admin_badge: Admin
+          automatic_permission_tooltip: Automatic via Admin role
+          default_badge: Default
+          edit_role: Edit role
+          legend:
+            automatic_permission: Automatic permission
+            no_permission: No permission
+            permission_granted: Permission granted
+            title: Legend
+          no_permission_tooltip: No permission
+          permission_granted_tooltip: Permission granted
+          permissions_roles_header: Permissions / Roles
+        new_role: New Role
+        role_labels:
+          account_admin: Account admin
+          member: Member
+        set_as_default: Set as default
+        system_role: System role
+        table_headers:
+          actions: Actions
+          default: Default
+          description: Description
+          title: Title
+        title: Roles & Permissions
+        view_label: View
+      new:
+        back: Back
+        cancel: Cancel
+        create_role: Create Role
+        description_label: Description
+        errors_prevent_save:
+          one: '%{count} error prevents saving'
+          other: '%{count} errors prevent saving'
+        permissions_info: After creating, you can configure permissions
+        title: New Role
+        title_label: Title
+    smart_folders:
+      create:
+        success: Ticket Filter created successfully
+      destroy:
+        success: Ticket Filter deleted successfully
+      share:
+        add_new_share: Add new share
+        can_edit: Edit
+        can_edit_hint: User can edit rules and settings
+        can_share: Share
+        can_share_hint: User can share the folder with others
+        confirm_remove_share: Are you sure?
+        no_shares: This folder has not been shared yet
+        permissions: Permissions
+        remove_share: Remove share
+        select_users: Select users
+        share_button: Save sharing
+        shared_with: Shared with
+        title: Share Ticket Filter
+        users_hint: Hold Ctrl/Cmd for multiple selection
+      update:
+        success: Ticket Filter updated successfully
+    tickets:
+      index:
+        chat_description: In the future, a chat could be displayed here
+        chat_in_development: Chat feature in development
+        chat_title: Chat
+        new_task: New Ticket
+        search_modes:
+          deep: Deep
+          everything: Everything incl. files
+          quick: Quick
+          standard: Standard
+          title_content: Title + Content
+          title_only: Title only
+        search_placeholder: Search tickets
+        select_task_description: The content will be displayed here
+        select_task_title: Please select a ticket
+      move_ticket_modal:
+        title: Move Ticket
+        select_project: Select target project
+        select_project_placeholder: "-- Select project --"
+        cancel: Cancel
+        confirm: Move
+        no_target_projects: No other projects available.
+      move_ticket_impact:
+        new_number: "New ticket number: #%{number}"
+        lost_assignments_warning: "The following assignments will be removed (no access to target project):"
+        lost_subscriptions_warning: "The following notification subscriptions will be removed:"
+        time_sessions_info: "%{count} time session(s) will be moved."
+        no_impact: No impact – all assignments and subscriptions will be preserved.
+    time_session_groups:
+      form:
+        billing_date_help: Date of invoice
+        billing_date_label: Invoice date
+        billing_help: Mark this billing as invoiced
+        billing_status: Billing status
+        billing_warning_html: '<strong>Already invoiced:</strong> This billing has been sent to invoice. Changes can affect your accounting.'
+        cancel: Cancel
+        create: Create
+        description_label: Description
+        description_placeholder: Describe this billing...
+        invoice_number_help: You create the invoice in your invoicing software — here you only record its number.
+        invoice_number_label: Invoice number
+        invoice_number_placeholder: e.g. INV-2024-001
+        mark_as_billed: Enter invoice number
+        name_help: A descriptive name for this billing
+        name_label: Name
+        name_placeholder: e.g. Sprint 1, January 2024
+        save: Save
+        validation_errors:
+          one: '%{count} error found'
+          other: '%{count} errors found'
+      index:
+        billed_at: 'Invoiced: %{date}'
+        billed_groups: Invoiced
+        billed_status: Invoiced
+        confirm_delete: Are you sure?
+        confirm_delete_with_sessions: Time sessions will not be deleted
+        created_at: 'Created: %{date}'
+        delete: Delete
+        edit: Edit
+        new: New
+        new_group: New billing
+        no_billed_groups: Nothing invoiced yet.
+        no_groups_available: No billings available
+        no_unbilled_groups: No open billings
+        sessions_count:
+          one: '%{count} session'
+          other: '%{count} sessions'
+        stats:
+          billed: Invoiced
+          groups_count:
+            one: '%{count} billing'
+            other: '%{count} billings'
+          total: Total
+          total_time: Total time
+          unbilled: Open
+        status_open: Open
+        table:
+          actions: Actions
+          created_at: Created at
+          description: Description
+          invoice_number: Invoice no.
+          name: Name
+          sessions: Sessions
+          status: Status
+          total_time: Total time
+        title: Billing
+        unbilled_groups: Open
+        view: View
+    time_sessions:
+      form:
+        no_ticket_assignment: No ticket
+        ticket_label: Ticket
+        ticket_search_placeholder: Search ticket...
+      form_fields:
+        cancel: Cancel
+        create_new_group: Create new billing
+        date_label: Date
+        description_label: Description
+        description_placeholder: Briefly describe your activity...
+        duration_label: Duration (HH:MM)
+        duration_placeholder: '1:30'
+        group_label: Billing (optional)
+        no_group: No billing
+        save: Save
+        tags_help_text: Comma-separated tags
+        tags_label: Tags
+        tags_placeholder: Tag1, Tag2, Tag3
+        validation_errors:
+          one: '%{count} error found'
+          other: '%{count} errors found'
+      form_organization_wide:
+        project_label: Project
+        project_prompt: Select project
+        select_project_first: Please select a project first
+        ticket_label: Ticket (optional)
+    user_activities:
+      index:
+        active_member: Active member
+        activities_list:
+          title: Activity List
+        back_to_members: Back to members
+        category_breakdown:
+          title: Category Overview
+        filter:
+          all: All
+          authentication: Authentication
+          category: Category
+          failed: Failed
+          from: From
+          invitations: Invitations
+          pending: Pending
+          permissions: Permissions
+          profile: Profile
+          reset: Reset
+          security: Security
+          status: Status
+          submit: Apply
+          successful: Successful
+          to: To
+        inactive_member: Inactive member
+        member_since: Member since
+        no_activities:
+          description: No activities have been recorded yet
+          title: No Activities
+        no_role: No role
+        role: Role
+        stats:
+          activities: Activities
+          failed_24h: Failed (24h)
+          last_login: Last login
+          logins: Logins
+          never: Never
+          security_events: Security events
+        status:
+          failed: Failed
+          successful: Successful
+        title: Activity History
+    view_configurations:
+      form:
+        table_columns_title: Columns
+        table_columns_description: "A tick means show, the order is the importance: what is on top stays visible first when space runs out."
+        cancel: Cancel
+        required_field: Required field
+        save: Save
+  projects:
+    not_found: Project not found
+  roles:
+    admin: Administrator
+    user: User
+  services:
+    extract_plain_text:
+      errors:
+        file_read_error: 'Error reading %{file_type} file: %{message}'
+    notifications:
+      preferences:
+        help:
+          ticket_assigned: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • When a ticket is assigned to you
+            • When you're added as a co-assignee
+            • When assignment to you is changed
+            
+            ⚙️ FINE-TUNING PER TICKET:
+            You can override this setting for individual tickets:
+            → In the ticket header with the Watch button (4 modes available)
+            → Watch = Default notifications (these settings)
+            → Following = Follow important updates
+            → Live Updates = ALL updates immediately
+            → Muted = Completely silent (even for assignments!)
+            
+            💡 TIP: Use "Immediate" for critical projects where you need to react quickly. For less important projects, "Daily digest" is often sufficient.
+          ticket_unassigned: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • When your assignment is removed from a ticket
+            • When you're removed as a co-assignee
+            • When a ticket becomes completely unassigned
+            
+            ⚙️ FINE-TUNING PER TICKET:
+            Override with the Watch button in ticket header:
+            → Muted = No notification, even for unassignment
+            → Live Updates = Immediate notification for every change
+            
+            💡 TIP: Enable this notification to ensure no tickets get "lost" when assignments are removed.
+          ticket_blocker: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • When a ticket is marked as blocker
+            • When priority changes to critical/blocking
+            • When a critical issue prevents work
+            
+            ⚙️ FINE-TUNING PER TICKET:
+            Use the Watch button to treat individual tickets differently:
+            → Live Updates = Get informed about blockers immediately
+            → Muted = Even critical blockers are ignored (Caution!)
+            
+            ⚠️ IMPORTANT: Blockers often affect multiple team members. Think carefully before disabling these notifications. A missed blocker can hold up the entire team!
+          ticket_commented: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • When someone adds a comment to a ticket
+            • When discussions happen in tickets
+            • For questions or answers on tickets
+            
+            ⚙️ FINE-TUNING PER TICKET:
+            Individual control via Watch button:
+            → Following = Only important comments
+            → Live Updates = See every comment immediately
+            → Muted = No comment notifications
+            
+            💡 TIP: "Daily digest" is ideal for normal projects. For active discussions, you can temporarily switch to "Live Updates" for the specific ticket.
+          document_added: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • When new documents are added to a project
+            • When files are uploaded or linked
+            • For important document updates
+            
+            ⚙️ FINE-TUNING PER TICKET:
+            For ticket-related documents, controllable via Watch button:
+            → Following = Only important documents
+            → Muted = No document notifications
+            
+            💡 TIP: Useful for projects with frequent document updates. Weekly digest is often enough unless you're actively working with the documents.
+          ticket_status_changed: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • When a ticket's status changes
+            • For progress from "Open" to "In Progress" to "Done"
+            • For regressions or reopenings
+            
+            ⚙️ FINE-TUNING PER TICKET:
+            Control individual tickets with Watch button:
+            → Live Updates = Every status change immediately
+            → Following = Only important status changes
+            → Muted = No status updates
+            
+            💡 TIP: Often set to "Immediate" for project managers. Developers usually prefer "Daily digest" to avoid constant interruptions.
+          mention: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • When you're mentioned with @YourName
+            • In comments, descriptions, or discussions
+            • Direct addressing that requires your attention
+            
+            ⚙️ FINE-TUNING PER TICKET:
+            WARNING: Muted tickets block @-mentions too!
+            → Watch/Following/Live = @-mentions come through
+            → Muted = BLOCKS direct @-mentions too
+            
+            ⚠️ IMPORTANT: This setting should almost always be on "Immediate"! @-mentions are direct communication and usually expect a timely response.
+          system_message: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • Important system announcements
+            • Maintenance and downtime notices
+            • Security updates and critical information
+            
+            ⚙️ FINE-TUNING:
+            System messages are global and cannot be controlled per ticket.
+            
+            ⚠️ IMPORTANT: We recommend keeping these notifications enabled. You'll only receive important system-wide information, no spam messages.
+          project_announcement: |
+            🔔 WHEN YOU'LL BE NOTIFIED:
+            • Announcements from the project manager
+            • Important project updates and milestones
+            • Team-wide information and deadlines
+            
+            ⚙️ FINE-TUNING:
+            Applies to all tickets in a project. Individual tickets can be handled differently via Watch button.
+            
+            💡 TIP: "Weekly digest" is often sufficient for general announcements. For time-critical projects, choose "Immediate" or "Daily".
+      fanout:
+        errors:
+          processing_failed: 'Notification processing failed: %{message}'
+      update_preferences:
+        errors:
+          organisation_required: Organisation required
+          update_failed: 'Failed to update preferences: %{message}'
+          user_required: User required
+    preferences:
+      help:
+        ticket_assigned: "🔔 WHEN YOU'LL BE NOTIFIED:\n• When a ticket is assigned to you\n• When you're added to an existing ticket\n• When an automated workflow assigns you\n• When a ticket is delegated to your team\n\n⚙️ FINE-TUNING PER TICKET:\nYou can customize notifications for each individual ticket:\n• Use the Watch button in the ticket header\n• 4 modes: Watch → Following → Live Updates → Muted\n• 'Muted' overrides ALL global settings\n\n💡 TIP: These notifications are critical for your work and should normally stay active."
+        ticket_unassigned: "🔔 WHEN YOU'LL BE NOTIFIED:\n• When you're removed from a ticket\n• When assignment is changed\n• When a ticket is reassigned\n\n⚙️ FINE-TUNING PER TICKET:\nVia the Watch button in the ticket you can:\n• Continue following anyway (Following)\n• Completely mute (Muted)\n\n💡 TIP: Helpful during team handovers and to keep track of which tickets are no longer your responsibility."
+        ticket_blocker: "⚠️ CRITICAL - AFFECTS ALL TICKETS!\n\n🔔 WHEN YOU'LL BE NOTIFIED:\n• When ANY ticket is marked as blocker\n• When priority is set to 'Critical'\n• Applies to ALL projects you have access to - not just your tickets!\n\n⚙️ FINE-TUNING PER TICKET:\n• Only deactivatable via 'Muted' in ticket header\n• Muted overrides even these critical alerts\n\n⚠️ WARNING: This setting potentially generates MANY notifications as it applies to all tickets in all your projects!"
+        ticket_status_changed: "🔔 WHEN YOU'LL BE NOTIFIED:\n• Status changes of your assigned tickets\n• Status changes of tickets you follow\n• Examples: 'Open' → 'In Progress' → 'Review' → 'Done'\n\n⚙️ FINE-TUNING PER TICKET:\n• Watch button: Following for normal updates\n• Watch button: Live Updates for immediate notification\n• Watch button: Muted to silence\n\n💡 TIP: For many tickets, 'Daily Digest' is recommended over 'Immediate' to avoid being overwhelmed."
+        ticket_commented: "🔔 WHEN YOU'LL BE NOTIFIED:\n• New comments in tickets you created\n• New comments in tickets assigned to you\n• New comments in tickets you actively follow\n• Replies to your own comments\n\n⚙️ FINE-TUNING PER TICKET:\n• Watch button on 'Muted' = no comment notifications\n• Watch button on 'Live Updates' = immediately for every comment\n\n💡 RECOMMENDATION: For high ticket volume choose 'Daily Digest'. You'll receive a daily summary of all comments."
+        document_added: "🔔 WHEN YOU'LL BE NOTIFIED:\n• New documents in your projects\n• New versions of existing documents\n• Important attachments and files\n\n⚙️ FINE-TUNING:\n• Currently only globally controllable\n• Project-specific settings coming later\n\n💡 TIP: Important to not miss specifications, designs, or documentation."
+        mention: "🚧 FEATURE IN DEVELOPMENT\n\nThis feature will notify you when:\n• You're @mentioned in comments\n• Someone addresses you directly\n• You're included in a discussion\n\n⏳ STATUS: @mention detection is currently being implemented and will be available soon."
+        project_announcement: "🔔 WHEN YOU'LL BE NOTIFIED:\n• Important project announcements\n• Release information\n• Deadline changes\n• Team meeting invitations\n\n⚙️ IMPORTANT:\n• Usually time-critical information\n• Affects all project members\n\n💡 TIP: You shouldn't deactivate these as they often contain important organizational information."
+        system_message: "🔔 WHEN YOU'LL BE NOTIFIED:\n• Scheduled maintenance\n• New features and updates\n• Important system changes\n• Security updates\n\n⚙️ FREQUENCY:\n• Very rare (1-2x per month)\n• Only really important information\n\n💡 TIP: Should stay active as these messages can affect your work."
+    power_search:
+      match_types:
+        fulltext: Full-text Match
+        semantic: Semantic Match
+        unknown: Unknown Match
+      object_types:
+        document: Document
+        document_deleted: Document (deleted)
+        note: Note
+        note_deleted: Note (deleted)
+        post: Post
+        ticket: Ticket
+        unknown: Unknown
+  settings:
+    # Tab-Label des KI-Bereichs (S2). Die Seitennamen des Bereichs stehen unter
+    # views.organisations.ai_overview.pages.*; ai_provider/ai_sync_status haben
+    # seit S2 keinen Aufrufer mehr und stehen nur noch hier.
+    ai: AI
+    ai_provider: AI Provider
+    ai_sync_status: AI Sync Status
+    archive: Archive
+    custom_fields: Custom Fields
+    import_data: Import Data
+    members: Members
+    organisation_settings: General
+    organisations: Organisations
+    roles_permissions: Roles and permissions
+    appearance: Appearance
+    billing: Billing
+  shared:
+    # Canonical AI opt-in copy (GDPR gate). ONE source per audience — referenced
+    # from controllers, jobs, services and views alike; do not fork per context.
+    ai:
+      disabled_member_hint: "AI features are disabled for this organisation. An administrator can activate them in the AI settings."
+      disabled_admin_hint: "AI features are disabled for this organisation. Please activate them in the AI settings first."
+      quota_exhausted_member_hint: "This organisation's included AI quota is used up for this month. An administrator can add an own API key in the AI settings or wait for the monthly reset."
+      quota_exhausted_admin_hint: "The included AI quota is used up for this month. Add an own API key in the AI settings or wait for the monthly reset."
+      # Feature registry (doc/ai_feature_registry_plan.md E4): WHY an AI feature is not
+      # offered — one reason per state that actually exists.
+      # One reason is missing here ON PURPOSE: :ai_disabled keeps using the canonical
+      # disabled_member_hint/_admin_hint above (reuse, do not fork), and quota is not
+      # an availability reason at all — it has its own UI (quota.* below), otherwise
+      # the button would vanish instead of showing the banner.
+      unavailable:
+        no_credential: "No usable access is configured for %{provider}. An administrator can add it in the AI settings."
+        provider_incapable: "%{provider} cannot serve this feature — semantic search and indexing need a provider that supports embeddings."
+        pinned_elsewhere: "This feature is technically bound to %{provider} and is therefore unavailable — this organisation uses %{current} as its AI provider."
+        unsupported_provider: "The configured provider %{provider} is no longer supported. Please pick a current provider in the AI settings."
+      # Feature names per registry entry (pattern: actions below). A guard spec
+      # enforces DE AND EN for every entry — Lalabase::Llm::FeatureRegistry.
+      features:
+        chat: Chat
+        document_summary: Document summary
+        ticket_summary: Task summary
+        ask_ai_post: AI reply
+        customer_description: Customer description
+        meeting_participant_detection: Participant detection
+        meeting_summary: Meeting summary
+        meeting_analysis: Meeting analysis
+        meeting_ticket_suggestions: Ticket suggestions
+        content_indexing: Content indexing
+        semantic_search: Semantic search
+        repository_indexing: Repository indexing
+      # Quota action labels (ai_usages.action). A guard spec enforces DE AND EN for
+      # every registry action — Lalabase::Llm::ActionRegistry.
+      actions:
+        chat_message: Chat message
+        semantic_search: Semantic search
+        document_indexing: Indexing
+        summary: Summary
+        post_ai: AI reply
+        customer_description: Customer description
+        participant_detection: Participant detection
+        meeting_analysis: Meeting analysis
+        ticket_suggestions: Ticket suggestions
+      # Quota UI (consumption bar, banners, history) — shared shared/ai/* partials,
+      # used by BOTH the org AI settings and the admin backend.
+      quota:
+        heading: "AI quota (this month)"
+        used_of: "%{used} of %{budget} credits used (%{percent}%)"
+        warn_80: "More than 80% of the monthly quota used."
+        grace_banner: "Included quota used up — AI keeps running on the grace buffer. Please add an own API key or wait for the monthly reset."
+        exhausted_title: "AI quota used up"
+        exhausted_options_intro: "How to continue:"
+        exhausted_byok: "Add an own API key in the AI settings"
+        exhausted_reset: "Wait for the monthly reset — the quota then refills"
+        history_heading: "Usage history (last 6 months)"
+        history_month: "Month"
+        history_used: "Used"
+        history_limit: "Limit (budget + grace)"
+        history_empty: "No AI usage recorded yet."
+        # Collapsible per-action breakdown under each month row. action_unknown
+        # covers legacy rows without ai_usages.action (nullable-first rollout) —
+        # without that bucket the detail rows would not add up to the total.
+        history_detail_toggle: "Details"
+        history_detail_credits:
+          one: "%{formatted} credit"
+          other: "%{formatted} credits"
+        history_detail_calls:
+          one: "%{formatted} call"
+          other: "%{formatted} calls"
+        action_unknown: "Unattributed"
+        settings_link: "Go to AI settings"
+        search_degraded: >-
+          AI ranking is unavailable right now. Anything containing your search words is
+          still found. The only results missing are those that share none of your words
+          and are merely related in meaning.
+    empty_content:
+      default_description: There are no entries to display yet
+      default_title: No data available
+    errors:
+      not_authorized: You are not authorized to perform this action.
+      rate_limit: Too many requests. Please try again later.
+    guest_ceiling:
+      exceeded_hint: "%{user} exceeds this account's configured guest limits. This is not blocked, but is visible in the Lalabase admin backend."
+    account:
+      default_name: Unnamed Account
+    form_errors:
+      errors_found:
+        one: "%{count} error found:"
+        other: "%{count} errors found:"
+  ticket_header_help:
+    title: Ticket Actions Explained
+    subtitle: These actions are available in the ticket header
+    groups:
+      viewing: View & Information
+      notifications: Notifications (Button cycles through 4 modes)
+      editing: Editing
+    buttons:
+      activity_timeline:
+        icon: activity
+        title: Activity Timeline
+        description: The "Changes" chip above the history shows or hides all status changes and other actions on this ticket. The number on the chip tells how many entries there are.
+        shortcut: ""
+      time_tracking:
+        icon: clock
+        title: Time Tracking
+        description: The "Time entries" chip above the history shows or hides the recorded work times for this ticket. The number on the chip shows the count.
+        shortcut: ""
+      watch:
+        icon: eye-fill
+        title: 'Watch = Default notifications'
+        description: "No active subscription. You still get notifications when:\n\n✅ You are assigned\n✅ You are @mentioned\n✅ You are the creator"
+      unwatch:
+        icon: bookmark-fill
+        title: '2. Following (Normal follow)'
+        description: You are following this ticket and will receive important updates according to your general settings.
+      immediate_mode:
+        icon: bell-fill
+        title: '3. Live Updates (Immediate mode)'
+        description: Receive ALL updates for this ticket immediately, regardless of your settings. For critical tickets.
+      mute_mode:
+        icon: power
+        title: '4. Muted = Completely silent'
+        description: "Active subscription in mute mode. BLOCKS ALL notifications:\n\n❌ None when assigned\n❌ None when @mentioned\n❌ None as creator"
+      notifications_toggle:
+        icon: bell
+        title: Toggle notifications
+        description: "Turn notifications for this ticket on or off.\n\n🔔 Active: You will receive notifications for changes to this ticket.\n🔕 Off: No notifications for this ticket."
+      edit:
+        icon: pencil
+        title: Edit Ticket
+        description: Change title, description, status, priority, and other properties of the ticket. Only available with write permissions.
+        shortcut: ""
+      move_ticket:
+        icon: arrow-right-square
+        title: Move Ticket
+        description: Moves the ticket to a different project. Assignments and subscriptions will be checked and adjusted if necessary.
+        shortcut: ""
+  stimulus:
+    admin_user_form:
+      select_organisation_first: Please select an organisation first.
+    attribute_form:
+      choose_color: Choose color
+      move_down: Move down
+      move_up: Move up
+      option_placeholder: Enter option
+    contextual_help_drawer:
+      closed: Help closed
+      load_error: The help could not be loaded. Please try again or open the full page.
+      opened: Help opened
+    document:
+      confirm_delete: Do you really want to delete this document?
+      upload_failed: Upload failed
+      upload_successful: Upload successful
+    form:
+      required_field: This field is required
+      unsaved_changes: You have unsaved changes. Do you really want to leave this page?
+    frame_error:
+      content_not_found: The requested content could not be found.
+      invalid_url: Invalid URL. Please reload the page.
+      page_not_found: The requested page was not found.
+      reload_page: Reload page
+    general:
+      input_field_error: Error in input field
+      loading_content_error: Error loading content
+      loading_data_error: Error loading data
+      loading_form_error: Error loading form
+      loading_operators_error: Error loading operators
+      loading_options_error: Error loading options
+      modal_found: Modal found
+      sort_update_error: Error updating sort order
+      sort_updated: Sort order updated
+      ticket_loading_error: Error loading ticket
+    help_modal:
+      closed: Help dialog closed
+      opened: Help dialog opened
+    modal:
+      confirm_close: Do you really want to close this modal?
+      edit_time_session: Edit Time Session
+      form_load_error: 'Error loading form: %{error}'
+      new_ticket: New Ticket
+    navigation:
+      confirm_leave: Do you really want to leave this page?
+    notification_bulk:
+      confirm_archive_all: Archive all read notifications?
+      confirm_mark_all_read: Mark all unread notifications as read?
+    personal_access_token:
+      all_projects: "%{org} — all projects"
+      all_organisations: Every organisation you are active in, including future ones, each with all projects
+      no_projects: "%{org} — no projects selected"
+      projects_count: "%{org} — %{count} project(s): %{names}"
+    registration_toggle:
+      disabled: New registrations are disabled. Only invitations work.
+      enabled: New users can register themselves.
+    search:
+      no_results: No results found
+      searching: Searching...
+    slim_select:
+      select_user_placeholder: Select user
+    smart_folder:
+      confirm_delete: Do you really want to delete this ticket filter?
+      folder_created: Ticket filter created
+      folder_updated: Ticket filter updated
+      field_load_error: Error loading the input field
+      no_options: No options available
+      please_select: Please select...
+      tag_input_hint: Separate multiple tags with commas, use the arrow keys ↑↓ and Enter to select
+      tags_placeholder: Enter tags (at least 2 characters for suggestions)
+      value_placeholder: Enter value
+    tag_input:
+      add_tag_placeholder: Add tag...
+    ticket:
+      assignment_failed: Assignment failed
+      confirm_delete: Do you really want to delete this ticket?
+      ticket_updated: Ticket updated
+    time_session:
+      being_saved: Being saved...
+      bulk_assignment_url_not_found: Bulk assignment URL not found
+      bulk_update_failed: Bulk update failed
+      bulk_update_successful: Bulk update successful
+      confirm_bulk_delete: Do you really want to delete the selected time sessions?
+      confirm_delete: Do you really want to delete this time session?
+      delete_error: Error deleting
+      error_occurred: An error occurred
+      loading_form_error: Error loading form
+      network_delete_error: Network error while deleting
+      select_at_least_one: Please select at least one time session
+      session_updated: Time session updated
+      selection_intro:
+        one: "This time will be taken over"
+        other: "These %{count} times will be taken over"
+      deselect: "Remove from selection"
+      billing_after: "Total after taking over"
+      selection_already:
+        one: "This time is already there and will not be taken over"
+        other: "These %{count} times are already there and will not be taken over"
+    time_session_actions:
+      cancel_button: Cancel
+      confirm_delete: Do you really want to delete this time session?
+      delete_error: Error deleting time session
+      deleting: Deleting...
+      edit_title: Edit Time Session
+      form_load_error: Error loading form
+      loading_form: Loading form...
+      network_error: Network error while deleting time session
+      save_button: Save
+      saving: Saving...
+      try_again_later: Please try again later
+    post_composer:
+      files_selected:
+        one: "%{count} file selected"
+        other: "%{count} files selected"
+    time_session_form:
+      select_project_first: Please select a project first
+    timeline_filter:
+      hide_activities: Hide activity history
+      hide_comments: Hide comments
+      hide_subtasks: Hide sub-tasks
+      hide_time_tracking: Hide time tracking
+      show_activities: Show activity history
+      show_comments: Show comments
+      show_subtasks: Show sub-tasks
+      show_time_tracking: Show time tracking
+      state_all: all
+      state_filtered: filtered
+      state_only_changes: changes only
+      state_only_comments: comments only
+      state_only_time_entries: time entries only
+    turbo_cache:
+      select_element: Select an item from the list
+      select_entry: Please select an entry from the list
+      select_ticket: Please select a task from the list
+      select_time_session: Please select a time session from the list
+      ticket_content_hint: The content of the selected task is shown here.
+    undefined_url_guard:
+      load_error: Error loading the content. Please try again.
+    upload:
+      bytes: Bytes
+      drag_drop_files: Drop files here or click to select
+      error: 'Error: %{error}'
+      file_too_large: File is too large
+      gb: GB
+      import_button: Import
+      invalid_file_type: Invalid file type
+      kb: KB
+      mb: MB
+      please_wait: Please wait...
+      progress: "%{loaded} of %{total} (%{percent}%)"
+      upload_completed: Upload completed!
+      upload_progress: Upload in progress...
+      uploading_file: Uploading %{filename} (%{size})...
+    user_import:
+      import_failed: Import failed
+      import_successful: Import successful
+      invalid_format: Invalid file format
+      processing_file: Processing file...
+    user_preferences:
+      confirm_reset: Do you really want to reset?
+      confirm_reset_defaults: Do you really want to reset all settings to default values?
+      few_seconds_ago: a few seconds ago
+      format_code_unsupported: Format code not supported
+      format_invalid_chars: Format contains invalid characters
+      invalid_format: Invalid format
+      unknown_format_codes: Unknown format codes used
+  time:
+    am: am
+    days:
+      one: day
+      other: days
+    formats:
+      default: "%a, %d %b %Y %H:%M:%S %z"
+      long: "%B %d, %Y %H:%M"
+      short: "%d %b %H:%M"
+    pm: pm
+  cockpit_settings:
+    updated: Cockpit settings saved.
+  user_preferences:
+    datetime:
+      areas:
+        activity_logs: Activity Logs
+        posts: Posts
+        ticket_header: Ticket Header
+        ticket_list_compact: Ticket List Compact
+        ticket_list_large: Ticket List Large
+      custom_format: Custom Format (%{custom})
+      example: Example
+      format: Format
+      german_example: German (23.08.2025 14:30)
+      global_format: Global Format
+      individual_areas: Individual Areas
+      inherit_global: As global
+      international_example: International (2025-08-23 14:30)
+      relative_example: Relative (2 days ago)
+    edit:
+      actions:
+        reset_defaults: Reset to Defaults
+        save: Save
+      datetime:
+        custom_format_label: "Custom Format"
+        format_codes_hint: "Format codes: %d = day, %m = month, %Y = year, %H = hour, %M = minute"
+        area_formats:
+          inherit: As global
+        formats:
+          custom: Custom Format
+          german: German (23.08.2025 14:30)
+          international: International (2025-08-23 14:30)
+          relative: Relative (2 days ago)
+        global_format:
+          label: Default Format
+          title: Global Format
+        individual_areas:
+          title: Individual Areas
+        title: Date and Time Display
+        use_global:
+          description: Enable this option to use the global format everywhere
+          label: Use global format for all areas
+      display:
+        intro: "The profile picture is always shown next to comments, lists and assignments. Here you additionally choose how names are spelled for you. Both only affect your own view."
+        avatar:
+          label: Profile picture
+          hint: PNG, JPEG or WebP, up to %{max_megabytes} MB. Always shown next to your name, e.g. on comments and in lists; without a picture your initials appear there.
+          remove: Remove profile picture
+          crop_hint: "Frame the picture: drag to move, the slider zooms. The visible framing is what gets saved."
+          zoom_label: Zoom
+        name_display:
+          label: Name spelling
+          full: Full name
+          first_last_initial: First name and abbreviated last name
+          initial_last: Abbreviated first name and last name
+          description: "The preview next to each option shows your own name in that spelling."
+        title: Name display
+      general:
+        future_settings: Additional general settings will be available here in the future.
+        items_per_page:
+          description: Number of items displayed in lists (tickets, notes, documents)
+          label: Items per Page
+          options:
+            '10': 10 Items
+            '100': 100 Items
+            '20': 20 Items
+            '50': 50 Items
+        title: General Settings
+      meetings:
+        intro: "This setting controls how participants are detected when you paste a meeting transcript. It applies across all organisations and projects."
+        detection_mode:
+          label: "Detection mode for transcripts"
+          offline: "Offline (default) — detection stays in the browser"
+          ai: "AI mode — the transcript is transferred to the AI provider for detection"
+          description: "In offline mode the transcript never leaves the browser for participant detection; AI detection can be triggered per meeting via a button. In AI mode a pasted transcript is automatically transferred to the AI provider for detection. AI mode only takes effect in organisations with activated AI features — the organisation setting always takes precedence."
+          ai_unavailable_hint: "AI mode is currently not selectable: none of your organisations has AI features activated and configured."
+      tickets:
+        intro: "These preferences apply to your ticket view across all projects. Per-project columns and fields are configured directly on a ticket via “Customize detail view”."
+        description_collapse:
+          always_full: Always show the full description
+          auto: Collapse on already-known tickets
+          description: "On tickets you have already commented on, the description is shown collapsed. Applies to all projects."
+          label: Description on known tickets
+        timeline_order:
+          chronological: Chronological (oldest first)
+          description: Order of comments, times and activities in ticket details
+          label: Timeline Order
+          reverse: Reverse (newest first)
+      navigation:
+        appearance: Appearance
+        coming_soon: Coming Soon
+        datetime: Date/Time
+        general: General
+        notifications: Notifications
+      title: Settings
+    general:
+      chronological_oldest_first: Chronological (oldest first)
+      entries: entries
+      entries_count: Number of Entries
+      entries_description: Determines how many entries are displayed per page in lists.
+      entries_per_page: Entries per page
+      order: Order
+      reverse_newest_first: Reverse (newest first)
+      timeline_description: Order of comments, time entries and activities in ticket details.
+      timeline_order: Timeline Order
+    language:
+      coming_soon: Coming Soon
+      current_language: Current Language
+      interface_description: Determines the language of the user interface, menus and messages.
+      interface_language: Interface Language
+      note: Language changes take effect immediately. Some areas may update only after navigating to a different page.
+      regional_description: Timezone, number format, currency and other regional settings.
+      regional_settings: Regional Settings
+      title: Language Settings
+    language_update_failed: Language could not be changed
+    language_updated: Language was successfully changed
+    posts:
+      post:
+        confirm_delete: Are you sure you want to delete this post?
+        delete: Delete
+        edit: Edit
+        time_ago: "%{time} ago"
+    sections:
+      appearance: Appearance
+      coming_soon: Coming soon
+      datetime: Date/Time
+      datetime_display: Date and Time Display
+      general: General
+      general_settings: General Settings
+      notifications: Notifications
+    settings_update_failed: Error saving settings
+    settings_updated: Settings were successfully saved

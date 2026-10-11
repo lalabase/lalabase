@@ -1,0 +1,811 @@
+# Guard net: runs the curated guard/architecture specs on every PR.
+#
+# What it does NOT run on, because the minutes are billed (private repository,
+# about 21 job minutes per run, 28.09.2026; about 22 since the `lala` job of
+# 03.10.2026, every job bills at least one minute):
+# * a push to main: a merge re-checked the code its PR had just checked green.
+#   workflow_dispatch runs it by hand, on main or any branch.
+# * a PR that only touches Markdown in the repository root (README, CLAUDE.md,
+#   CONTRIBUTING, ...): no guard reads those. Only the root: the guards DO scan
+#   Markdown under app/ (the CLAUDE.md maps, app/changelog), hence '*.md' and not
+#   '**.md'. ⚠️ Once this check is required by branch protection, a skipped run
+#   stays pending forever and blocks such a PR; drop the filter then.
+# * a superseded commit: a new push to the same PR cancels the run in progress.
+#
+# Deliberately NOT the full suite (it carries known pre-existing drift failures —
+# separate cleanup track). RuboCop DOES run here now (own job below), gated against a
+# frozen .rubocop_todo.yml baseline: the current tree is green, so a red rubocop run
+# means a NEW offense was introduced. Every guard spec listed here is likewise green
+# by construction. The guards job also runs mobile browser regressions; a failure
+# there can indicate a behavior regression or browser/test infrastructure failure.
+#
+# No repository credentials or master key are needed. Rails generates a local
+# test secret; the encryption initializer derives test keys from it.
+name: Guards
+
+on:
+  pull_request:
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+concurrency:
+  group: guards-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # pgvector image: schema needs the "vector" extension (plus pgcrypto/uuid-ossp).
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lalabase_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lalabase_test
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Set up Node for browser assets
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install browser assets
+        run: npm ci --ignore-scripts && npm run copy:fonts
+
+      # BEFORE the schema load, and deliberately as its own step: a duplicate
+      # migration version makes every Rails boot raise, so this check has to run
+      # while nothing has booted yet. Otherwise the cause is invisible and the
+      # remaining steps all fail with the same opaque load error.
+      - name: Guard against duplicate migration versions
+        run: bundle exec rspec spec/config/migration_versions_spec.rb
+
+      - name: Load database schema
+        run: bin/rails db:schema:load
+
+      # Needed since spec/requests/admin/organisations_spec.rb joined the list below:
+      # it renders full pages, and the layout asks for the COMPILED tailwind.css.
+      # Without this step every example in that file dies on stylesheet_link_tag, which
+      # looks like seven unrelated failures rather than one missing asset.
+      - name: Build Tailwind (the curated list contains view-rendering specs)
+        run: bin/rails tailwindcss:build
+
+      # spec/requests/active_storage/embed_link_expiry_spec.rb follows a rendered image
+      # link through the variant processor; Rails 8 defaults to vips, which the runner
+      # image does not ship. Production runs libvips 8.16.1, built from source because
+      # Ubuntu 22.04 stops at 8.12.1 and Rails 8.0.5.1 refuses to boot below 8.13
+      # (CVE-2026-66066, checked 2026-08-27).
+      # ImageMagick is named explicitly rather than relied upon: the BMP conversion spec
+      # shells out to it through mini_magick, and a runner image may drop it.
+      # The runner image carries Google's Chrome apt source, and its index fails
+      # now and then with "Hash Sum mismatch", which makes apt-get update exit
+      # 100 before a single spec has run (three runs in a row on 09.09.2026).
+      # Browser specs use Chrome already installed on the runner. No package is
+      # installed from that source, so it goes before the update; libvips and
+      # ImageMagick come from Ubuntu's own repositories.
+      - name: Install libvips and ImageMagick (variant processing, BMP conversion)
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.*
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libvips-dev imagemagick
+
+      - name: Run guard specs (curated list)
+        run: >-
+          bundle exec rspec
+          spec/architecture/
+          spec/requests/csv_exports_spec.rb
+          spec/services/codebase_import/progress_serialization_spec.rb
+          spec/services/docs/catalogue_spec.rb
+          spec/services/docs/docs_catalogue_format_spec.rb
+          spec/requests/help_without_catalogue_spec.rb
+          spec/services/lalabase/tools/help_tools_without_catalogue_spec.rb
+          spec/requests/help_spec.rb
+          spec/services/docs/contextual_help_spec.rb
+          spec/components/neo/chat/chat_container_component_spec.rb
+          spec/components/neo/chat/citation_list_component_spec.rb
+          spec/components/neo/chat/composer_component_spec.rb
+          spec/components/neo/chat/coverage_notice_spec.rb
+          spec/components/neo/chat/history_list_component_spec.rb
+          spec/components/neo/chat/message_component_spec.rb
+          spec/components/neo/chat/persona_control_component_spec.rb
+          spec/components/neo/chat/reference_chip_component_spec.rb
+          spec/components/neo/chat/scope_chip_component_spec.rb
+          spec/components/neo/chat/scope_row_component_spec.rb
+          spec/components/neo/chat/style_control_component_spec.rb
+          spec/components/neo/chat/transparency_notice_component_spec.rb
+          spec/components/dashboard/team_members_component_spec.rb
+          spec/components/neo/markdown_preview_component_spec.rb
+          spec/components/neo/column_picker_component_spec.rb
+          spec/components/neo/buttons/button_component_spec.rb
+          spec/components/neo_info_tag_component_spec.rb
+          spec/components/neo/users/avatar_component_spec.rb
+          spec/components/neo/users/name_component_spec.rb
+          spec/components/neo_activity_timeline_component_spec.rb
+          spec/components/neo_activity_component_spec.rb
+          spec/helpers/timeline_helper_spec.rb
+          spec/services/lalabase/safe_markdown_spec.rb
+          spec/components/neo_notification_card_component_spec.rb
+          spec/components/neo_notification_component_spec.rb
+          spec/components/neo_time_share_bar_component_spec.rb
+          spec/components/overview/recent_notifications_component_spec.rb
+          spec/components/organisations/team/member_row_component_spec.rb
+          spec/components/subject_time_summary_component_spec.rb
+          spec/components/time_session_billing_status_component_spec.rb
+          spec/components/neo_view_switch_component_spec.rb
+          spec/components/neo_sidebar_project_item_component_spec.rb
+          spec/components/neo_filter_bar_component_spec.rb
+          spec/config/active_storage_variable_content_types_spec.rb
+          spec/config/provisioning_configuration_spec.rb
+          spec/config/active_record_encryption_guard_spec.rb
+          spec/config/active_record_encryption_keys_spec.rb
+          spec/config/active_record_encryption_rotation_spec.rb
+          spec/config/puma_bind_guard_spec.rb
+          spec/config/operator_console_spec.rb
+          spec/config/instance_settings_spec.rb
+          spec/config/recurring_schedule_spec.rb
+          spec/models/legal_identity_spec.rb
+          spec/models/system_setting_founder_signup_console_url_spec.rb
+          spec/db/seeds/prompt_personas_spec.rb
+          spec/db/seeds_spec.rb
+          spec/services/setup/create_first_admin_spec.rb
+          spec/lib/tasks/lalabase_setup_spec.rb
+          spec/jobs/mail_delivery_job_spec.rb
+          spec/jobs/chat_response_job_spec.rb
+          spec/jobs/chat_response_job_surface_profile_spec.rb
+          spec/jobs/chat_response_job_meeting_analysis_spec.rb
+          spec/jobs/meetings/assistant_ticket_suggestion_job_spec.rb
+          spec/jobs/meetings/ticket_suggestion_job_spec.rb
+          spec/jobs/email_delivery_job_access_gate_spec.rb
+          spec/jobs/tenant_propagation_spec.rb
+          spec/jobs/embedding_processing_job_spec.rb
+          spec/locales/
+          spec/lib/lalabase/admin_extensions_spec.rb
+          spec/lib/lalabase/release_spec.rb
+          spec/lib/lalabase/release_script_spec.rb
+          spec/lib/lalabase/leak_guard_spec.rb
+          spec/lib/lalabase/leak_guard_script_spec.rb
+          spec/lib/tasks/bmp_attachments_convert_spec.rb
+          spec/lib/tasks/chats_backfill_scope_references_spec.rb
+          spec/lib/tasks/organisations_backfill_code_indexing_spec.rb
+          spec/lib/tasks/chats_purge_legacy_threads_spec.rb
+          spec/lib/tasks/chats_scope_project_cleanup_spec.rb
+          spec/lib/tasks/data_backfills_spec.rb
+          spec/mailers/
+          spec/middleware/active_storage_tenant_bypass_spec.rb
+          spec/migrations/remove_ticket_id_from_chats_spec.rb
+          spec/jobs/rich_text_embed_variant_job_spec.rb
+          spec/models/action_text/rich_text_embed_guard_inclusion_spec.rb
+          spec/models/action_text/rich_text_embed_lifecycle_spec.rb
+          spec/models/action_text/rich_text_embed_missing_spec.rb
+          spec/models/action_text/rich_text_embed_plain_text_spec.rb
+          spec/models/action_text/rich_text_embed_validation_spec.rb
+          spec/models/admin/user_spec.rb
+          spec/models/admin_twin_concern_parity_guard_spec.rb
+          spec/models/assistant_panel_state_spec.rb
+          spec/models/chat_spec.rb
+          spec/models/chat_style_preference_spec.rb
+          spec/models/chatpost_spec.rb
+          spec/models/billing_interval_default_guard_spec.rb
+          spec/models/content_embedding_ann_index_guard_spec.rb
+          spec/models/fragment_sidecar_embedding_scope_spec.rb
+          spec/models/meeting_analysis_spec.rb
+          spec/models/meeting_ticket_suggestion_spec.rb
+          spec/models/meeting_ticket_suggestion_run_migration_spec.rb
+          spec/models/no_inline_embedding_columns_guard_spec.rb
+          spec/models/personal_access_token/all_organisations_spec.rb
+          spec/models/personal_access_token/reach_spec.rb
+          spec/models/prompt_persona_spec.rb
+          spec/models/smart_folders/operator_literal_guard_spec.rb
+          spec/models/smart_folders/date_presets_spec.rb
+          spec/models/smart_folders/filters/date_filter_spec.rb
+          spec/models/product_knowledge_entry_spec.rb
+          spec/models/project_spec.rb
+          spec/models/ticket_spec.rb
+          spec/models/ticket_relation_tenant_boundary_spec.rb
+          spec/models/view_configuration_pinned_columns_spec.rb
+          spec/models/time_session_spec.rb
+          spec/models/time_sessions/list_period_spec.rb
+          spec/models/time_sessions/list_filters_spec.rb
+          spec/models/membership_spec.rb
+          spec/models/user/avatar_spec.rb
+          spec/models/user/name_display_spec.rb
+          spec/models/user/preference_store_spec.rb
+          spec/models/user/preferences_form_spec.rb
+          spec/models/user/sidebar_pins_spec.rb
+          spec/models/token_reencryptable_guard_spec.rb
+          spec/models/user/authenticatable_spec.rb
+          spec/models/user_erasure_path_parity_spec.rb
+          spec/models/view_configuration_time_columns_spec.rb
+          spec/models/view_configuration_spec.rb
+          spec/models/smart_folder_spec.rb
+          spec/requests/active_storage/direct_uploads_guard_spec.rb
+          spec/requests/active_storage/embed_link_expiry_spec.rb
+          spec/requests/active_storage/tenant_bypass_in_controller_spec.rb
+          spec/requests/admin/admin_only_gate_spec.rb
+          spec/requests/admin/dashboard_spec.rb
+          spec/requests/admin/organisations_spec.rb
+          spec/requests/admin/prompt_personas_spec.rb
+          spec/requests/admin/users_show_spec.rb
+          spec/requests/admin/without_operator_extensions_spec.rb
+          spec/requests/api/mcp_spec.rb
+          spec/requests/api/mcp_project_reach_spec.rb
+          spec/requests/api/mcp_result_codes_spec.rb
+          spec/requests/api/mcp_ticket_existence_spec.rb
+          spec/requests/api/mcp_update_ticket_spec.rb
+          spec/requests/api/mcp_plain_comment_spec.rb
+          spec/services/posts/plain_text_body_spec.rb
+          spec/services/lalabase/tools/post_comment_spec.rb
+          spec/requests/api/inbox_organisation_filter_spec.rb
+          spec/services/lalabase/tools/get_ticket_paging_spec.rb
+          spec/services/lalabase/tools/get_ticket_assistant_limits_spec.rb
+          spec/contracts/mcp_contract_spec.rb
+          spec/lib/tasks/mcp_contract_spec.rb
+          spec/lib/tasks/notifications_align_ticket_projects_spec.rb
+          spec/lib/tasks/notifications_purge_project_leftovers_spec.rb
+          spec/jobs/project_deletion_job_spec.rb
+          spec/requests/api/provisioning/body_limit_spec.rb
+          spec/requests/api/provisioning/throttle_spec.rb
+          spec/requests/api/provisioning/v1/signups_spec.rb
+          spec/requests/users/signup_handoff_spec.rb
+          spec/requests/api/public/v1/price_list_spec.rb
+          spec/requests/api/v1/notifications_spec.rb
+          spec/requests/api/v1/pundit_tripwire_spec.rb
+          spec/requests/api/v1/read_endpoints_spec.rb
+          spec/requests/api/v1/token_organisation_scopes_spec.rb
+          spec/requests/api/v1/ticket_existence_spec.rb
+          spec/requests/api/v1/time_sessions_open_access_spec.rb
+          spec/requests/api/v1/write_endpoints_spec.rb
+          spec/models/codebase_import_mapping_spec.rb
+          spec/services/codebase_import/time_session_importer_spec.rb
+          spec/services/codebase_import/duplicate_prevention_spec.rb
+          spec/services/codebase_import/mapping_organisation_backfill_spec.rb
+          spec/services/codebase_import/upload_assignment_service_spec.rb
+          spec/requests/inbox_nav_count_stream_spec.rb
+          spec/requests/org_switcher_signal_spec.rb
+          spec/requests/notifications_avatar_preload_spec.rb
+          spec/requests/organisations/archives_spec.rb
+          spec/requests/organisations/projects_index_spec.rb
+          spec/requests/organisations/memberships_index_scoping_spec.rb
+          spec/requests/organisations/project_permissions_revoke_spec.rb
+          spec/requests/organisations/tickets_timeline_row_spec.rb
+          spec/requests/organisations/project_permissions_spec.rb
+          spec/requests/organisations/time_report_citation_drilldown_spec.rb
+          spec/requests/organisations/ai_settings_activation_spec.rb
+          spec/requests/organisations/ai_sync_statuses_spec.rb
+          spec/requests/organisations/ai_overview_query_budget_spec.rb
+          spec/requests/organisations/assistant_chats_spec.rb
+          spec/requests/organisations/assistant_panel_spec.rb
+          spec/requests/organisations/assistant_artefact_spec.rb
+          spec/requests/organisations/assistant_analyses_spec.rb
+          spec/requests/organisations/assistant_chat_references_spec.rb
+          spec/requests/organisations/assistant_chat_scope_spec.rb
+          spec/requests/organisations/assistant_draft_context_spec.rb
+          spec/requests/organisations/assistant_preferences_spec.rb
+          spec/requests/organisations/meeting_analyses_spec.rb
+          spec/requests/organisations/meeting_assistant_draft_context_spec.rb
+          spec/requests/organisations/meeting_assistant_seams_spec.rb
+          spec/requests/organisations/meetings_overview_create_spec.rb
+          spec/requests/organisations/note_editor_embed_spec.rb
+          spec/requests/organisations/onboarding_banner_spec.rb
+          spec/requests/organisations/panel_lane_markup_guard_spec.rb
+          spec/requests/organisations/posts_create_composer_reset_spec.rb
+          spec/requests/organisations/project_activities_spec.rb
+          spec/requests/organisations/projects_create_feedback_spec.rb
+          spec/requests/organisations/prompt_personas_spec.rb
+          spec/requests/organisations/rich_text_editor_forms_spec.rb
+          spec/requests/organisations/ticket_assistant_seams_spec.rb
+          spec/requests/organisations/ticket_writing_surface_spec.rb
+          spec/requests/organisations/mobile_navigation_spec.rb
+          spec/requests/organisations/tickets_destroy_spec.rb
+          spec/requests/organisations/tickets_header_actions_spec.rb
+          spec/requests/organisations/tickets_kanban_spec.rb
+          spec/requests/organisations/tickets_kanban_lane_spec.rb
+          spec/requests/organisations/tickets_head_assignees_spec.rb
+          spec/requests/organisations/tickets_name_display_spec.rb
+          spec/requests/organisations/tickets_selected_page_redirect_spec.rb
+          spec/requests/organisations/tickets_timeline_spec.rb
+          spec/requests/ticket_list_view_columns_spec.rb
+          spec/requests/ticket_column_pins_spec.rb
+          spec/models/activity_spec.rb
+          spec/models/notification_scopes_spec.rb
+          spec/models/notification_bulk_transition_guard_spec.rb
+          spec/models/notification_bulk_transition_spec.rb
+          spec/models/notification_unread_signals_spec.rb
+          spec/jobs/notifications/unread_signals_job_spec.rb
+          spec/models/user_activity_spec.rb
+          spec/models/concerns/ticket_update_tracking_spec.rb
+          spec/services/ticket_timeline_service_spec.rb
+          spec/services/filter_sentence_service_spec.rb
+          spec/services/kanban_board_presenter_spec.rb
+          spec/components/neo/subscriber_list_component_spec.rb
+          spec/requests/organisations/time_sessions_rows_spec.rb
+          spec/requests/organisations/time_sessions_subject_grouping_regression_spec.rb
+          spec/requests/organisations/time_session_group_entries_spec.rb
+          spec/requests/organisations/time_sessions_index_table_spec.rb
+          spec/requests/organisations/time_sessions_empty_reason_spec.rb
+          spec/requests/organisations/time_sessions_billing_choice_spec.rb
+          spec/requests/organisations/time_sessions_status_counts_spec.rb
+          spec/requests/organisations/time_sessions_list_period_spec.rb
+          spec/requests/organisations/time_sessions_overview_drilldown_spec.rb
+          spec/requests/organisations/time_sessions_query_count_spec.rb
+          spec/requests/organisations/time_sessions_person_filter_spec.rb
+          spec/requests/organisations/time_sessions_tag_filter_spec.rb
+          spec/requests/organisations/time_sessions_ticket_phase_filter_spec.rb
+          spec/requests/organisations/time_sessions_ticket_status_filter_spec.rb
+          spec/requests/organisations/time_sessions_table_spec.rb
+          spec/requests/organisations/time_sessions_visibility_spec.rb
+          spec/requests/organisations/time_session_groups_filter_line_spec.rb
+          spec/requests/organisations/time_session_groups_table_spec.rb
+          spec/requests/organisations/time_session_groups_index_filters_spec.rb
+          spec/requests/organisations/time_session_groups_query_count_spec.rb
+          spec/requests/organisations/time_session_groups_spec.rb
+          spec/requests/organisations/times_subnav_spec.rb
+          spec/requests/organisations/time_sessions_overview_view_spec.rb
+          spec/requests/organisations/time_sessions_project_redirect_spec.rb
+          spec/requests/organisations/time_sessions_ticket_drilldown_spec.rb
+          spec/requests/organisations/time_sessions_booking_rights_spec.rb
+          spec/requests/organisations/time_sessions_title_spec.rb
+          spec/requests/organisations/first_use_reduced_chrome_spec.rb
+          spec/requests/organisations/tickets_edited_view_spec.rb
+          spec/requests/organisations/tickets_selection_spec.rb
+          spec/requests/organisations/tickets_filtered_objects_spec.rb
+          spec/requests/organisations/tickets_search_counts_spec.rb
+          spec/services/tickets/bulk_selection_spec.rb
+          spec/requests/organisations/tickets_bulk_edit_spec.rb
+          spec/services/tickets/bulk_fields_spec.rb
+          spec/services/tickets/bulk_summary_spec.rb
+          spec/services/tickets/changes_spec.rb
+          spec/services/actors/apply_ticket_changes_spec.rb
+          spec/services/actors/undo_ticket_bulk_run_spec.rb
+          spec/services/notifications/fanout_service_bulk_run_spec.rb
+          spec/models/ticket_bulk_run_spec.rb
+          spec/mailers/notification_mailer_spec.rb
+          spec/models/concerns/trackable_activity_context_spec.rb
+          spec/models/activity_feed_scope_spec.rb
+          spec/requests/organisations/tickets_bulk_update_spec.rb
+          spec/services/tickets/bulk_impact_spec.rb
+          spec/services/actors/move_tickets_spec.rb
+          spec/services/actors/destroy_tickets_spec.rb
+          spec/requests/organisations/tickets_bulk_actions_spec.rb
+          spec/requests/organisations/knowledge_edited_view_spec.rb
+          spec/requests/organisations/smart_folders_update_from_filters_spec.rb
+          spec/requests/organisations/smart_folders_rename_spec.rb
+          spec/requests/organisations/smart_folders_create_from_filters_spec.rb
+          spec/requests/organisations/smart_folders_columns_spec.rb
+          spec/requests/organisations/smart_folders_field_operators_spec.rb
+          spec/requests/organisations/smart_folders_tenant_boundary_spec.rb
+          spec/services/tickets/subtask_counts_cache_spec.rb
+          spec/requests/organisations/smart_folders_visibility_spec.rb
+          spec/requests/organisations/view_configurations_apply_columns_spec.rb
+          spec/requests/organisations/knowledge_spec.rb
+          spec/requests/organisations/knowledge_lane_spec.rb
+          spec/requests/organisations/knowledge_filters_spec.rb
+          spec/requests/organisations/knowledge_create_via_turbo_submit_spec.rb
+          spec/requests/organisations/documents_preview_spec.rb
+          spec/requests/organisations/knowledge_assistant_seams_spec.rb
+          spec/components/neo_tag_component_spec.rb
+          spec/helpers/filter_bar_helper_spec.rb
+          spec/helpers/smart_folder_reference_scoping_spec.rb
+          spec/system/smart_folder_reference_security_spec.rb
+          spec/helpers/ticket_columns_helper_spec.rb
+          spec/helpers/application_helper_spec.rb
+          spec/helpers/ticket_deadline_flag_spec.rb
+          spec/helpers/display_date_spec.rb
+          spec/requests/organisations/time_sessions_update_spec.rb
+          spec/requests/organisations/time_sessions_meeting_subject_spec.rb
+          spec/requests/organisations/time_sessions_meeting_drilldown_spec.rb
+          spec/requests/organisations/time_sessions_filter_line_spec.rb
+          spec/requests/organisations/time_sessions_subject_popover_spec.rb
+          spec/requests/organisations/time_sessions_subject_popover_create_spec.rb
+          spec/requests/organisations/time_sessions_subject_popover_edit_spec.rb
+          spec/requests/ticket_time_columns_spec.rb
+          spec/requests/auth_throttle_spec.rb
+          spec/requests/legal_identity_spec.rb
+          spec/requests/admin/system_settings_legal_identity_spec.rb
+          spec/requests/organisations/accept_invitations_consent_spec.rb
+          spec/requests/locale_per_request_spec.rb
+          spec/requests/user_preferences_spec.rb
+          spec/requests/user_preferences_avatar_spec.rb
+          spec/requests/help_inside_organisation_spec.rb
+          spec/requests/acquisition_capture_spec.rb
+          spec/requests/users/bot_trap_spec.rb
+          spec/requests/users/email_confirmation_spec.rb
+          spec/requests/users/registration_invited_email_spec.rb
+          spec/requests/users/registrations_avatar_spec.rb
+          spec/requests/users/registrations_consent_spec.rb
+          spec/requests/users/registrations_disposable_email_spec.rb
+          spec/requests/users/registrations_onboarding_spec.rb
+          spec/requests/users/registrations_param_shape_spec.rb
+          spec/requests/users/session_timeout_redirect_spec.rb
+          spec/requests/users/sign_in_failure_message_spec.rb
+          spec/controllers/concerns/bot_trap_protected_spec.rb
+          spec/services/actors/create_signup_spec.rb
+          spec/services/actors/create_organisation_spec.rb
+          spec/services/actors/seed_onboarding_spec.rb
+          spec/services/bmp_attachment_conversion_spec.rb
+          spec/services/actors/actor_contract_guard_spec.rb
+          spec/services/access_check/project_member_access_resolver_spec.rb
+          spec/services/actors/revoke_project_member_spec.rb
+          spec/services/actors/create_chatpost_spec.rb
+          spec/services/actors/save_chat_spec.rb
+          spec/services/actors/save_meeting_analysis_spec.rb
+          spec/services/actors/accept_ticket_suggestion_spec.rb
+          spec/services/actors/ticket_suggestion_concurrency_spec.rb
+          spec/services/meetings/ticket_suggestion_service_spec.rb
+          spec/requests/organisations/assistant_ticket_suggestions_spec.rb
+          spec/requests/organisations/meeting_ticket_suggestions_spec.rb
+          spec/services/assistant/analysis_context_spec.rb
+          spec/services/assistant/analysis_sources_spec.rb
+          spec/services/assistant/analysis_revision_spec.rb
+          spec/jobs/solid_queue_concurrency_spec.rb
+          spec/system/assistant_meeting_analyses_spec.rb
+          spec/system/assistant_ticket_suggestions_spec.rb
+          spec/services/meetings/overview_list_spec.rb
+          spec/services/activities/area_registry_spec.rb
+          spec/services/activities/visible_to_spec.rb
+          spec/services/assistant/panel_registry_spec.rb
+          spec/services/assistant/panels/time_report_spec.rb
+          spec/services/chats/legacy_thread_purge_spec.rb
+          spec/services/chats/reference_normalizer_spec.rb
+          spec/services/chats/scope_project_cleanup_spec.rb
+          spec/services/combined_search_service_privacy_spec.rb
+          spec/services/combined_search_service_spec.rb
+          spec/services/post_readers_follow_readable_by_spec.rb
+          spec/models/post_readable_by_spec.rb
+          spec/requests/organisations/ticket_timeline_private_posts_spec.rb
+          spec/queries/ticket_search_query_private_posts_spec.rb
+          spec/services/private_comment_notifications_spec.rb
+          spec/services/private_comments_in_ai_prompts_spec.rb
+          spec/lib/tasks/posts_redact_private_excerpts_spec.rb
+          spec/requests/organisations/time_sessions_after_revoke_spec.rb
+          spec/requests/organisations/archived_project_access_spec.rb
+          spec/services/embedding_processing_service_spec.rb
+          spec/services/embedding_provider_hardcode_guard_spec.rb
+          spec/services/search_survives_ai_outage_spec.rb
+          spec/services/embeddings/activation_backfill_spec.rb
+          spec/services/embeddings/indexing_pipeline_spec.rb
+          spec/services/embeddings/index_health_pending_parity_spec.rb
+          spec/services/embeddings/index_health_spec.rb
+          spec/services/embeddings/nearest_neighbors_explain_guard_spec.rb
+          spec/services/embeddings/pending_counter_reaches_zero_spec.rb
+          spec/services/embeddings/nearest_neighbors_halfvec_spec.rb
+          spec/services/embeddings/nearest_neighbors_spec.rb
+          spec/services/embeddings/pending_embeddings_spec.rb
+          spec/services/embeddings/content_types_spec.rb
+          spec/services/ai_sync_status_service_spec.rb
+          spec/services/lalabase/citation_inline_links_spec.rb
+          spec/services/lalabase/route_context_boot_spec.rb
+          spec/services/lalabase/route_context_spec.rb
+          spec/services/lalabase/citation_link_spec.rb
+          spec/services/lalabase/citation_targets_spec.rb
+          spec/services/lalabase/citations_spec.rb
+          spec/services/lalabase/fence_guard_spec.rb
+          spec/services/lalabase/iso_timestamp_spec.rb
+          spec/services/lalabase/llm/action_registry_guard_spec.rb
+          spec/services/lalabase/llm/direct_client_guard_spec.rb
+          spec/services/lalabase/llm/feature_registry_guard_spec.rb
+          spec/services/lalabase/llm/provider_pin_guard_spec.rb
+          spec/services/actors/save_post_privacy_embedding_spec.rb
+          spec/jobs/post_document_processing_job_spec.rb
+          spec/services/lalabase/project_rag/content_area_registry_spec.rb
+          spec/services/lalabase/project_rag/prompt_builder_spec.rb
+          spec/services/lalabase/project_rag/retriever_content_spec.rb
+          spec/services/lalabase/tools/base_spec.rb
+          spec/services/lalabase/tools/code_project_reach_spec.rb
+          spec/services/lalabase/tools/get_capability_details_spec.rb
+          spec/services/lalabase/tools/get_project_vision_spec.rb
+          spec/services/lalabase/tools/get_symbol_details_spec.rb
+          spec/services/lalabase/tools/list_capabilities_spec.rb
+          spec/services/lalabase/tools/search_code_symbols_spec.rb
+          spec/services/lalabase/tools/context_spec.rb
+          spec/services/lalabase/tools/create_time_session_spec.rb
+          spec/services/lalabase/tools/get_ticket_spec.rb
+          spec/services/lalabase/tools/get_note_spec.rb
+          spec/services/lalabase/tools/get_document_spec.rb
+          spec/services/lalabase/tools/get_meeting_spec.rb
+          spec/services/lalabase/tools/list_notifications_spec.rb
+          spec/services/lalabase/tools/mark_notification_read_spec.rb
+          spec/services/lalabase/tools/recent_activity_spec.rb
+          spec/services/lalabase/tools/registry_spec.rb
+          spec/services/lalabase/tools/runner_spec.rb
+          spec/services/lalabase/tools/project_filter_spec.rb
+          spec/services/lalabase/tools/scope_factory_guard_spec.rb
+          spec/services/lalabase/tools/scope_selection_spec.rb
+          spec/services/lalabase/tools/scope_spec.rb
+          spec/services/lalabase/tools/summarize_time_sessions_spec.rb
+          spec/services/notifications/broadcast_service_spec.rb
+          spec/services/notifications/unread_signals_spec.rb
+          spec/services/notifications/fanout_service_access_gate_spec.rb
+          spec/services/notifications/fanout_service_assignee_comment_spec.rb
+          spec/services/notifications/inbox_query_spec.rb
+          spec/services/notifications/serializer_spec.rb
+          spec/services/notifications/unread_count_parity_spec.rb
+          spec/services/notifications/area_rights_spec.rb
+          spec/services/notifications/fanout_service_area_gate_spec.rb
+          spec/services/notifications/project_event_area_spec.rb
+          spec/requests/api/project_event_notifications_spec.rb
+          spec/services/tickets/serializer_spec.rb
+          spec/services/tickets/resolve_columns_spec.rb
+          spec/services/time_sessions/bucket_totals_spec.rb
+          spec/services/time_sessions/date_bound_spec.rb
+          spec/services/time_sessions/empty_reason_spec.rb
+          spec/services/time_session_filter_service_spec.rb
+          spec/services/time_session_statistics_service_spec.rb
+          spec/services/time_sessions/list_rows_spec.rb
+          spec/services/subject_time_summary_service_spec.rb
+          spec/services/time_sessions/subject_billing_status_spec.rb
+          spec/services/time_sessions/subject_totals_cache_spec.rb
+          spec/services/time_sessions/subject_totals_spec.rb
+          spec/services/time_sessions/viewing_scope_spec.rb
+          spec/services/time_session_navigation_service_spec.rb
+          spec/services/rich_text_embed_url_sweep_spec.rb
+          spec/services/power_search_service_spec.rb
+          spec/services/docs/plain_text_spec.rb
+          spec/services/product_knowledge/ensure_fresh_spec.rb
+          spec/services/product_knowledge/search_spec.rb
+          spec/services/product_knowledge/sources_spec.rb
+          spec/services/product_knowledge/sync_spec.rb
+          spec/services/product_knowledge/question_catalogue_spec.rb
+          spec/lib/tasks/product_knowledge_sync_spec.rb
+          spec/lib/tasks/docs_catalogue_fixture_spec.rb
+          spec/services/docs/page_links_spec.rb
+          spec/services/lalabase/tools/search_help_spec.rb
+          spec/services/lalabase/tools/get_help_page_spec.rb
+          spec/services/lalabase/tools/help_contents_spec.rb
+          spec/services/docs/help_link_rewriter_spec.rb
+          spec/services/lalabase/llm/google_vertex_provider_spec.rb
+          spec/services/signups/handoff_spec.rb
+          spec/services/subscriptions/public_price_list_payload_spec.rb
+          spec/services/service_convention_guard_spec.rb
+          spec/requests/organisations/meeting_list_views_spec.rb
+          spec/requests/organisations/meetings_lane_spec.rb
+          spec/requests/organisations/meetings_overview_spec.rb
+          spec/services/actors/save_smart_folder_from_filters_spec.rb
+          spec/services/actors/save_smart_folder_concurrency_spec.rb
+          spec/services/actors/create_ticket_relation_concurrency_spec.rb
+          spec/services/actors/ticket_relation_actors_tenant_boundary_spec.rb
+          spec/services/tickets/waiting_spec.rb
+          spec/services/tickets/cycle_check_spec.rb
+          spec/models/ticket_relation_spec.rb
+          spec/services/actors/create_ticket_relation_spec.rb
+          spec/services/actors/destroy_ticket_relation_spec.rb
+          spec/models/ticket_relation_visibility_spec.rb
+          spec/requests/organisations/ticket_lookups_spec.rb
+          spec/requests/organisations/tickets/relations_spec.rb
+          spec/requests/organisations/ticket_relations_section_spec.rb
+          spec/services/tickets/move_keeps_relations_spec.rb
+          spec/services/tickets/waiting_counts_cache_spec.rb
+          spec/requests/ticket_waiting_column_spec.rb
+          spec/requests/ticket_waiting_visibility_spec.rb
+          spec/requests/ticket_waiting_filters_visibility_spec.rb
+          spec/requests/response_absence_spec.rb
+          spec/services/ad_hoc_filter_service_waiting_spec.rb
+          spec/models/smart_folders/filters/waiting_state_filter_spec.rb
+          spec/services/tickets/lazy_page_preload_spec.rb
+          spec/requests/ticket_counted_columns_queries_spec.rb
+          spec/requests/ticket_subtask_count_column_spec.rb
+          spec/helpers/time_list_helper_spec.rb
+          spec/requests/organisations/ticket_move_targets_spec.rb
+          spec/services/smart_folder_service_spec.rb
+          spec/components/dashboard/smart_folder_tickets_component_spec.rb
+          spec/models/smart_folder_rule_spec.rb
+          spec/services/meetings/list_query_spec.rb
+          spec/services/ad_hoc_filter_service_spec.rb
+          spec/models/smart_folders/filters/action_text_filter_spec.rb
+          spec/queries/knowledge_search_query_spec.rb
+          spec/queries/ticket_search_query_spec.rb
+          spec/system/meeting_filters_columns_spec.rb
+          spec/system/ticket_list_unread_dot_spec.rb
+          spec/system/ticket_relations_spec.rb
+          spec/system/ticket_waiting_list_spec.rb
+          spec/system/ticket_waiting_filters_spec.rb
+          spec/services/smart_folder_query_builder_spec.rb
+          spec/services/smart_folder_round_trip_spec.rb
+          spec/services/smart_folder_dissolver_spec.rb
+          spec/services/ad_hoc_to_smart_folder_service_spec.rb
+          spec/services/user_avatars/crop_upload_spec.rb
+          spec/services/user_data_exports/builder_spec.rb
+          spec/services/user_data_exports/registry_guards_spec.rb
+          spec/helpers/assistant_artefacts_helper_spec.rb
+          spec/helpers/assistant_context_helper_spec.rb
+          spec/helpers/pagy_url_for_spec.rb
+          spec/helpers/time_sessions_helper_spec.rb
+          spec/helpers/navigation_helper_spec.rb
+          spec/helpers/mobile_navigation_helper_spec.rb
+          spec/helpers/ai_sync_status_helper_spec.rb
+          spec/views/neo/chat/_ticket_suggestion_run.html.erb_spec.rb
+          spec/views/name_display_register_guard_spec.rb
+          spec/views/no_rails_ujs_options_guard_spec.rb
+          spec/views/one_page_edge_guard_spec.rb
+          spec/views/kanban_lane_css_guard_spec.rb
+          spec/views/no_style_blocks_guard_spec.rb
+          spec/views/time_list_columns_align_guard_spec.rb
+          spec/views/no_trix_guard_spec.rb
+          spec/views/single_ticket_form_guard_spec.rb
+          spec/views/shared/ruled_rows_spec.rb
+          spec/policies/
+          spec/requests/auth_pages_skeleton_spec.rb
+          spec/requests/organisations/accept_invitation_account_takeover_spec.rb
+          spec/services/actors/accept_invitation_spec.rb
+          spec/models/invitation_spec.rb
+          spec/requests/organisations/attribute_option_color_xss_spec.rb
+          spec/helpers/tickets_helper_spec.rb
+          spec/models/ticket_attribute_definition_spec.rb
+          spec/requests/organisations/file_downloads_spec.rb
+          spec/requests/organisations/file_downloads_post_ticket_spec.rb
+          spec/requests/organisations/documents_version_authorization_spec.rb
+          spec/requests/organisations/documents_write_actions_spec.rb
+          spec/requests/webhooks/repositories_spec.rb
+          spec/requests/webhooks/email_controller_spec.rb
+          spec/requests/api/v1/me_spec.rb
+          spec/controllers/concerns/api/token_authenticatable_spec.rb
+          spec/requests/users/personal_access_tokens_spec.rb
+          spec/requests/organisations/memberships_management_spec.rb
+          spec/requests/organisations/tickets/notification_reads_spec.rb
+          spec/models/action_text/rich_text_embed_validation_spec.rb
+          spec/models/action_text/rich_text_embed_missing_spec.rb
+
+      - name: Run mobile browser regressions
+        run: >-
+          bundle exec rspec
+          spec/system/browser_database_cleanup_spec.rb
+          spec/system/mobile_ticket_navigation_spec.rb
+          spec/system/mobile_assistant_layout_spec.rb
+          spec/system/mobile_shell_regressions_spec.rb
+
+      - name: Save browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mobile-browser-failures
+          path: |
+            tmp/capybara/
+            tmp/screenshots/
+            tmp/lalabase-mobile-*.png
+          if-no-files-found: ignore
+
+  # Static analysis only — no DB, schema or RAILS_MASTER_KEY needed (rubocop does not boot Rails).
+  # The JavaScript unit specs (node:test, no browser). They did not run here at
+  # all until 29.08.2026, which made every one of them a guard that guards
+  # nothing -- `npm test` was green on a laptop and never once in CI.
+  #
+  # The reason it was worth noticing: spec/javascript/lib/hover_reveal.test.js is
+  # the ONLY place the "at most one row shows its actions" rule is pinned. That
+  # rule used to live in nine CSS class strings where nothing could test it, and
+  # moving it into code is pointless if the test never runs.
+  #
+  # ⚠️ The npm script globs *.test.js. Two older files under
+  # spec/javascript/controllers are named *.spec.js and are NOT picked up by it --
+  # they do not run here either. Renaming them is a separate cleanup; this job
+  # deliberately runs the script rather than a second glob of its own, so there is
+  # one answer to "which JS specs run".
+  javascript:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # ⚠️ Node 22, not 20. The npm script passes a GLOB to `node --test`, and
+      # glob patterns only became a thing --test understands in Node 21. On 20 the
+      # job dies with "Could not find spec/javascript/**/*.test.js" -- which is at
+      # least loud, but it cost this job its first run (29.08.2026). 22 is what the
+      # suite is developed against.
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run JavaScript unit specs
+        run: npm test
+
+  # bin/lala, the terminal client (Python, standard library only). Its test
+  # starts an in-process fake of the MCP endpoint and reaches no instance. Added
+  # with `bin/lala inbox` (#961): the inbox prints text other members wrote into a
+  # terminal and into a model's context, and the review of that PR found a forged
+  # fzf row, an escape-sequence pass-through and a whole run lost to one
+  # unreadable ticket, all of which a test would have caught. That this job
+  # exists and finds tests is held by spec/architecture/python_tests_job_guard_spec.rb:
+  # ci_guard_list_spec.rb reads only the rspec step.
+  lala:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run the bin/lala tests
+        run: python3 -m unittest discover -s spec/python -p '*_test.py' -v
+
+  rubocop:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Run RuboCop (gated against .rubocop_todo.yml baseline)
+        run: bundle exec rubocop --format github
+
+  # Our own code, gated against the frozen config/brakeman.ignore baseline, exactly the
+  # deal rubocop gets above. The tree is green by construction, so a red run means a NEW
+  # warning was introduced. The baseline entries are NOT reviewed and NOT approved; they
+  # carry a dated note and belong to the open cleanup track. Shrinking that file IS the
+  # cleanup, and it can only ever shrink.
+  #
+  # Deliberately NOT bin/brakeman: that shim forces --ensure-latest and exits 5 the day
+  # a newer brakeman is released upstream, which turns someone else's release into our
+  # red build. bundle exec pins it to the locked version.
+  #
+  # Static analysis only, no DB, schema or RAILS_MASTER_KEY needed.
+  brakeman:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Scan own code (gated against config/brakeman.ignore)
+        run: bundle exec brakeman --no-pager --quiet --exit-on-warn
+
+  # Vulnerable gems, checked WITHOUT an ignore list. A vulnerable gem is not drift, it is
+  # a version number, and the answer is an update rather than a note. Red here means: go
+  # update.
+  #
+  # Its OWN job on purpose, not a second step next to brakeman. GitHub reports one status
+  # per job, not per step. This scan is red today (puma 6.6.0 carries two High CVEs, and
+  # the dependency track that clears them needs major bumps that have not landed), so
+  # sharing a job would make brakeman's red and this red the same red. Brakeman's entire
+  # value is that its red means a NEW finding; co-located, it could no longer say that.
+  #
+  # No bundler-cache: bundle-audit reads Gemfile.lock and nothing else, so installing the
+  # bundle here would buy nothing.
+  dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+
+      # Not in the Gemfile on purpose: this tool checks the lockfile, so it must not be
+      # pinned by it. The advisory database has to be the current one on every run, not
+      # the one that was current when the lock was written; --update fetches it first.
+      - name: Install bundler-audit
+        run: gem install bundler-audit -v '~> 0.9' --no-document
+
+      - name: Scan dependencies (no ignore list)
+        run: bundle-audit check --update

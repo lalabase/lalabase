@@ -273,7 +273,8 @@ module Api
         # has_many_attached NOTHING in the app writes, so the list answered "none" for
         # every comment that had a file while #show reported a real count — one API,
         # two answers to the same question. Preloaded, because one read per
-        # readable comment was an N+1; sorted by id as find_each used to order them.
+        # readable comment was an N+1. Comments come in id order (find_each), the
+        # files of one comment in id order as before; neither is creation order.
         ticket.posts.readable_by(current_user, ticket.organisation)
               .includes(post_documents: { post_document_file_attachment: :blob }).find_each do |post|
           post.post_documents.sort_by(&:id).each do |pd|

@@ -468,6 +468,9 @@ module McpContract
     # signed segment becomes a placeholder; a URL of any other form stops the
     # recording instead of being written down in a form the server does not send.
     # The real URL's form is pinned in spec/requests/api/v1/read_endpoints_spec.rb.
+    # Scheme and host follow the request (ActiveStorage::SetCurrent): `http` and
+    # www.example.com here, https and the instance's host behind an SSL proxy.
+    # The last segment is the file name escaped for a path; `filename` holds it.
     def signed_urls_replaced(answer)
       form = %r{\A(?<before>http://#{Regexp.escape(session.host)}/rails/active_storage/disk/)[^/?#]+(?<after>/[^/?#]+)\z}
       answer.dig('response', 'body', 'data').each do |file|

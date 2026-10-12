@@ -274,6 +274,7 @@ jobs:
           spec/requests/api/v1/pundit_tripwire_spec.rb
           spec/requests/api/v1/read_endpoints_spec.rb
           spec/requests/api/v1/token_organisation_scopes_spec.rb
+          spec/requests/api/v1/ticket_attachments_privacy_spec.rb
           spec/requests/api/v1/ticket_existence_spec.rb
           spec/requests/api/v1/time_sessions_open_access_spec.rb
           spec/requests/api/v1/write_endpoints_spec.rb

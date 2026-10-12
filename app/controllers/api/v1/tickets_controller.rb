@@ -272,9 +272,11 @@ module Api
         # counts as attachments_count. This used to read post.attachments, the
         # has_many_attached NOTHING in the app writes, so the list answered "none" for
         # every comment that had a file while #show reported a real count — one API,
-        # two answers to the same question.
-        ticket.posts.readable_by(current_user, ticket.organisation).each do |post|
-          post.post_documents.includes(post_document_file_attachment: :blob).find_each do |pd|
+        # two answers to the same question. Preloaded, because one read per
+        # readable comment was an N+1; sorted by id as find_each used to order them.
+        ticket.posts.readable_by(current_user, ticket.organisation)
+              .includes(post_documents: { post_document_file_attachment: :blob }).find_each do |post|
+          post.post_documents.sort_by(&:id).each do |pd|
             blob = pd.post_document_file&.blob
             next unless blob
 

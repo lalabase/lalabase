@@ -420,8 +420,64 @@ module McpContract
           'ok_one_organisation' => rest_get(:read, "/api/v1/projects?organisation_id=#{id(:organisation)}"),
           'empty' => rest_get(:read, "/api/v1/projects?organisation_id=#{id(:other_organisation)}"),
           'unauthorized' => rest_get(nil, '/api/v1/projects')
-        }
+        },
+        # Terminal client S5, appended last: its files are made right before it,
+        # so every answer above stays as it was.
+        'GET /api/v1/tickets/:id/attachments' => attachment_calls
       }
+    end
+
+    # One file on the login ticket, one on Ben's public comment there, both from
+    # fixed fixture files so name, type and size are the same on every run.
+    # Without `record`: no tick, no clock moved for anything recorded later.
+    ATTACHMENT_FIXTURES = {
+      ticket: ['test_document.pdf', 'application/pdf'],
+      post: ['test_file.txt', 'text/plain']
+    }.freeze
+
+    def attachment_calls
+      in_org do
+        attach_fixture(TicketDocument.new(ticket: @login, organisation: @organisation, create_embeddings: false),
+                       :ticket_document_file, :ticket)
+        attach_fixture(PostDocument.new(post: Post.find(id(:first_post)), organisation: @organisation, create_embeddings: false),
+                       :post_document_file, :post)
+      end
+      path = ->(ticket) { "/api/v1/tickets/#{id(ticket)}/attachments" }
+      {
+        'ok' => signed_urls_replaced(rest_get(:write, path.call(:login_ticket))),
+        # A read-only token reads files like any other reader.
+        'ok_read_only' => signed_urls_replaced(rest_get(:read, path.call(:login_ticket))),
+        'empty' => rest_get(:read, path.call(:export_ticket)),
+        'not_found' => rest_get(:read, path.call(:missing)),
+        # No read access to the ticket: answered like a missing one.
+        'hidden' => rest_get(:read, path.call(:hidden_ticket))
+      }
+    end
+
+    def attach_fixture(document, attachment, kind)
+      filename, content_type = ATTACHMENT_FIXTURES.fetch(kind)
+      document.public_send(attachment).attach(io: Rails.root.join('spec/fixtures/files', filename).open('rb'),
+                                              filename: filename, content_type: content_type, identify: false)
+      document.save!
+    end
+
+    SIGNED_PART = '<signed-key>'
+
+    # The URL is signed for five minutes and differs on every run: the request's
+    # host, Active Storage's Disk route, a signed segment, the file name. Only the
+    # signed segment becomes a placeholder; a URL of any other form stops the
+    # recording instead of being written down in a form the server does not send.
+    # The real URL's form is pinned in spec/requests/api/v1/read_endpoints_spec.rb.
+    # Scheme and host follow the request (ActiveStorage::SetCurrent): `http` and
+    # www.example.com here, https and the instance's host behind an SSL proxy.
+    # The last segment is the file name escaped for a path; `filename` holds it.
+    def signed_urls_replaced(answer)
+      form = %r{\A(?<before>http://#{Regexp.escape(session.host)}/rails/active_storage/disk/)[^/?#]+(?<after>/[^/?#]+)\z}
+      answer.dig('response', 'body', 'data').each do |file|
+        match = form.match(file['url']) or raise "attachment URL of an unexpected form: #{file['url'].inspect}"
+        file['url'] = "#{match[:before]}#{SIGNED_PART}#{match[:after]}"
+      end
+      answer
     end
 
     def rest_get(token_name, path)

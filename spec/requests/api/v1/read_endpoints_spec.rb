@@ -471,5 +471,43 @@ RSpec.describe 'API V1 Read Endpoints', type: :request do
       expect(listed.first).to include('parent_id' => post_record.id, 'filename' => 'test_document.pdf')
       expect(listed.first['url']).to be_present
     end
+
+    # The URL is all a client needs to fetch the file: signed, no session. The
+    # contract file records it with the signed segment replaced by a placeholder
+    # (spec/contracts/mcp_contract_recorder.rb), so the real form is held here:
+    # this instance's own host, Active Storage's Disk route (production runs the
+    # Disk service), the file name last, nothing else.
+    describe 'the signed URL' do
+      include ActiveSupport::Testing::TimeHelpers
+
+      let(:url) do
+        ActsAsTenant.with_tenant(organisation) do
+          create(:ticket_document, :with_pdf, ticket: ticket, organisation: organisation)
+        end
+        get "/api/v1/tickets/#{ticket.id}/attachments", headers: auth_headers
+        URI.parse(JSON.parse(response.body)['data'].first['url'])
+      end
+
+      it 'points at the requesting host under the Disk route, the file name last' do
+        expect([url.scheme, url.host, url.port, url.userinfo, url.query, url.fragment])
+          .to eq(['http', 'www.example.com', 80, nil, nil, nil])
+        expect(url.path).to match(%r{\A/rails/active_storage/disk/[^/]+/test_document\.pdf\z})
+      end
+
+      it 'serves the file to a request without any credential' do
+        get url.path
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to eq('%PDF-1.4 fake pdf content')
+      end
+
+      it 'stops serving it after five minutes' do
+        path = url.path
+
+        travel(5.minutes + 1.second) { get path }
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
   end
 end

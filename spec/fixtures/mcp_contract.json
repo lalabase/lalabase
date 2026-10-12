@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "d4d6322615bd67d285773b26ae356562147881b3",
+    "core_commit": "38c4d2ad6e9f191073d532fda754d5be3ddbec01",
     "core_dirty": true,
-    "contract_sha256": "617ccb4d3671ee6fb82dfd0cc4857c0001450b2886b3eb6db6b8354c9961abc8"
+    "contract_sha256": "0d74f7549e9cf134b87e79ee66e48495a1698088d5828795030b98255036fd79"
   },
   "contract": {
     "mcp": {
@@ -2954,6 +2954,110 @@
             "status": 401,
             "body": {
               "error": "unauthorized"
+            }
+          }
+        }
+      },
+      "GET /api/v1/tickets/:id/attachments": {
+        "ok": {
+          "token": "write",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/attachments"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": [
+                {
+                  "id": "<generated-id-5>",
+                  "filename": "test_document.pdf",
+                  "content_type": "application/pdf",
+                  "byte_size": 452,
+                  "attached_to": "ticket",
+                  "parent_id": null,
+                  "url": "http://www.example.com/rails/active_storage/disk/<signed-key>/test_document.pdf",
+                  "created_at": "2026-01-05T09:36:00Z"
+                },
+                {
+                  "id": "<generated-id-6>",
+                  "filename": "test_file.txt",
+                  "content_type": "text/plain",
+                  "byte_size": 500,
+                  "attached_to": "post",
+                  "parent_id": "00000000-0000-4000-8000-000000000051",
+                  "url": "http://www.example.com/rails/active_storage/disk/<signed-key>/test_file.txt",
+                  "created_at": "2026-01-05T09:36:00Z"
+                }
+              ]
+            }
+          }
+        },
+        "ok_read_only": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/attachments"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": [
+                {
+                  "id": "<generated-id-5>",
+                  "filename": "test_document.pdf",
+                  "content_type": "application/pdf",
+                  "byte_size": 452,
+                  "attached_to": "ticket",
+                  "parent_id": null,
+                  "url": "http://www.example.com/rails/active_storage/disk/<signed-key>/test_document.pdf",
+                  "created_at": "2026-01-05T09:36:00Z"
+                },
+                {
+                  "id": "<generated-id-6>",
+                  "filename": "test_file.txt",
+                  "content_type": "text/plain",
+                  "byte_size": 500,
+                  "attached_to": "post",
+                  "parent_id": "00000000-0000-4000-8000-000000000051",
+                  "url": "http://www.example.com/rails/active_storage/disk/<signed-key>/test_file.txt",
+                  "created_at": "2026-01-05T09:36:00Z"
+                }
+              ]
+            }
+          }
+        },
+        "empty": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000042/attachments"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": []
+            }
+          }
+        },
+        "not_found": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000999/attachments"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found"
+            }
+          }
+        },
+        "hidden": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000043/attachments"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found"
             }
           }
         }

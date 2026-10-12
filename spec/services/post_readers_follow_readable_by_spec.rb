@@ -5,7 +5,9 @@ require 'rails_helper'
 # What: the readers that already filtered private comments (API ticket show and
 #   attachments, MCP get_ticket through Tickets::Serializer, the assistant search
 #   through CombinedSearchService) follow the same rule as the timeline:
-#   Post.readable_by.
+#   Post.readable_by. The attachments list applies the rule in its controller,
+#   so its examples are request specs:
+#   spec/requests/api/v1/ticket_attachments_privacy_spec.rb.
 # Why: they used Post.visible_to, which knows only the addressee. An author who
 #   addressed a comment to someone else through the API lost it, and an account
 #   admin saw private comments in the timeline but not in the API. One rule, one

@@ -278,7 +278,7 @@ class AdHocToSmartFolderService
                              .map { |r| r[:value] }.compact.uniq
     return nil if user_ids.empty?
 
-    users_by_id = User.where(id: user_ids).index_by { |u| u.id.to_s }
+    users_by_id = project.organisation.users.where(id: user_ids).index_by { |u| u.id.to_s }
     { 'User' => users_by_id }
   end
 

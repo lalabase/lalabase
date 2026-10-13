@@ -322,6 +322,7 @@ en:
             visible_to_user:
               required_for_private: "must be set for private posts"
               not_for_public: "should not be set for public posts"
+              not_a_member: "must be a member of the organisation"
         ticket_attribute_definition:
           invalid_date: "is not a valid date (format YYYY-MM-DD)"
           attributes:

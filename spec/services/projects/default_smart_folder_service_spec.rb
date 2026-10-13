@@ -246,6 +246,9 @@ RSpec.describe Projects::DefaultSmartFolderService do
         before do
           project.project_permissions.destroy_all
           organisation.users.destroy_all
+          # "Meine Aufgaben" belongs to the calling member, and with no members left a
+          # rule for that user is refused before the public folders ask for one.
+          allow(service).to receive(:create_my_tasks)
         end
 
         it 'raises NoSystemUserError with a descriptive message' do

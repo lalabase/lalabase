@@ -28,7 +28,7 @@
 #
 require 'rails_helper'
 
-RSpec.describe SmartFolderRule, type: :model do
+RSpec.describe SmartFolderRule, :ci_guard, type: :model do
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }
   let(:project) { create(:project, organisation: organisation) }
@@ -42,6 +42,30 @@ RSpec.describe SmartFolderRule, type: :model do
 
   after do
     ActsAsTenant.current_tenant = nil
+  end
+
+  # User carries no tenant. Before, any account of the instance passed as creator or
+  # assignee, the rule stored that person's name, and the error told an existing id from
+  # a missing one.
+  describe 'user reference of another organisation' do
+    def rule_for(field, value, operator: 'equals')
+      build(:smart_folder_rule, smart_folder_rule_group: smart_folder_rule_group,
+                                field: field, operator: operator, value: value)
+    end
+
+    it 'accepts a member of the organisation' do
+      expect(rule_for('assignee', user.id)).to be_valid
+    end
+
+    %w[assignee creator].each do |field|
+      it "rejects an account of another organisation as #{field}, like an id that does not exist" do
+        foreign_user = create(:user, organisation: create(:organisation))
+
+        rule = rule_for(field, foreign_user.id)
+        expect(rule).not_to be_valid
+        expect(rule.errors.details[:value]).to include(a_hash_including(error: :reference_not_found))
+      end
+    end
   end
 
   describe 'field_config' do

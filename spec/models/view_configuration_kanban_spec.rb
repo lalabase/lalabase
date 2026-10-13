@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe ViewConfiguration, 'kanban support' do
+RSpec.describe ViewConfiguration, 'kanban support', :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }
   let(:project) { create(:project, organisation: organisation) }
@@ -104,6 +104,36 @@ RSpec.describe ViewConfiguration, 'kanban support' do
     it 'allows nil view_mode' do
       view_config.view_mode = nil
       expect(view_config).to be_valid
+    end
+
+    # TicketAttributeDefinition carries no tenant, so nothing else stops an id from the
+    # request: the board then showed the values and labels of a foreign project's field.
+    describe 'kanban_attribute_definition' do
+      it "accepts a definition of the view's own project" do
+        own = create(:ticket_attribute_definition, :select, project: project, name: 'category')
+        view_config.kanban_attribute_definition_id = own.id
+        expect(view_config).to be_valid
+      end
+
+      it 'rejects a definition of another organisation' do
+        other_organisation = create(:organisation)
+        foreign = ActsAsTenant.with_tenant(other_organisation) do
+          create(:ticket_attribute_definition, :select,
+                 project: create(:project, organisation: other_organisation), name: 'status')
+        end
+
+        view_config.kanban_attribute_definition_id = foreign.id
+        expect(view_config).not_to be_valid
+        expect(view_config.errors.details[:kanban_attribute_definition]).to include(error: :invalid)
+      end
+
+      it 'rejects a definition of another project in the same organisation' do
+        other_project = create(:project, organisation: organisation)
+        sibling = create(:ticket_attribute_definition, :select, project: other_project, name: 'status')
+
+        view_config.kanban_attribute_definition_id = sibling.id
+        expect(view_config).not_to be_valid
+      end
     end
   end
 end

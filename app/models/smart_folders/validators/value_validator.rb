@@ -301,7 +301,7 @@ module SmartFolders
 
         record = (rule.preloaded_references.dig(model_class.name, value_str) if rule.respond_to?(:preloaded_references) && rule.preloaded_references)
 
-        record ||= model_class.find_by(id: value_str)
+        record ||= reference_scope(rule, model_class).find_by(id: value_str)
 
         unless record
           rule.errors.add(:value, :reference_not_found, id: value_str, model: model_class.model_name.human)
@@ -332,14 +332,30 @@ module SmartFolders
         return false unless all_formats_valid
 
         # SLOW operation: check the existence of all IDs.
-        found_count = model_class.where(id: ids).count
+        scope = reference_scope(rule, model_class)
+        found_count = scope.where(id: ids).count
         if found_count != ids.length
-          missing_ids = ids - model_class.where(id: ids).pluck(:id).map(&:to_s)
+          missing_ids = ids - scope.where(id: ids).pluck(:id).map(&:to_s)
           rule.errors.add(:value, :references_not_found, ids: missing_ids.join(', '), model: model_class.model_name.human)
           return false
         end
 
         true
+      end
+
+      # User carries no tenant: any account of the instance passed as creator or assignee,
+      # and the rule stored that person's name. Tenant-scoped models are bound by their
+      # default scope already. Preloaded records come bound from their only source,
+      # AdHocToSmartFolderService#preload_references.
+      def reference_scope(rule, model_class)
+        return model_class unless tenantless?(model_class)
+
+        organisation = rule.try(:smart_folder_rule_group)&.smart_folder&.organisation || ActsAsTenant.current_tenant
+        organisation ? organisation.users : model_class.none
+      end
+
+      def tenantless?(model_class)
+        model_class <= User
       end
 
       # Checks the format of an ID (UUID or Integer)

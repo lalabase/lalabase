@@ -330,6 +330,7 @@ de:
             visible_to_user:
               required_for_private: "muss für private Beiträge gesetzt sein"
               not_for_public: "darf für öffentliche Beiträge nicht gesetzt sein"
+              not_a_member: "muss Mitglied der Organisation sein"
         ticket_attribute_definition:
           invalid_date: "ist kein gültiges Datum (Format JJJJ-MM-TT)"
           attributes:

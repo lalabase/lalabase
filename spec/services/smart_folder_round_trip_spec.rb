@@ -14,7 +14,7 @@ RSpec.describe 'Smart folder round trip: saved from the bar, read back into the 
   let(:organisation) { create(:organisation) }
   let(:admin_role) { create(:admin_role, organisation: organisation) }
   let(:user) { create(:user) }
-  let(:other) { create(:user) }
+  let(:other) { create(:user, organisation: organisation) }
   let(:project) { create(:project, organisation: organisation) }
 
   before do

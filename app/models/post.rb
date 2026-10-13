@@ -79,6 +79,7 @@ class Post < ApplicationRecord
   # Callbacks - set visible_to_user before validation
   before_validation :set_visible_to_user_on_private
   validate :private_post_visibility_consistency
+  validate :addressee_in_organisation
 
   before_save :extract_plain_text_content
   after_create_commit :auto_subscribe_author
@@ -123,7 +124,9 @@ class Post < ApplicationRecord
   end
 
   def set_visible_to_user_on_private
-    if is_private? && visible_to_user.nil?
+    # The id, not the association: an id that resolves to nobody stays and fails the
+    # check below, instead of quietly becoming the author.
+    if is_private? && visible_to_user_id.nil?
       self.visible_to_user = user
     elsif !is_private?
       self.visible_to_user = nil
@@ -136,6 +139,18 @@ class Post < ApplicationRecord
     return unless !is_private? && visible_to_user.present?
 
     errors.add(:visible_to_user, :not_for_public)
+  end
+
+  # The addressee can come from the request (API). User carries no tenant, so without
+  # this any account of the instance was taken, and the answer told an existing id from
+  # a missing one. The author is always allowed: a note to oneself is the form's default.
+  def addressee_in_organisation
+    return unless is_private? && visible_to_user_id.present?
+    return unless will_save_change_to_visible_to_user_id?
+    return if visible_to_user_id == user_id
+    return if organisation&.memberships&.exists?(user_id: visible_to_user_id)
+
+    errors.add(:visible_to_user, :not_a_member)
   end
 
   def auto_subscribe_author

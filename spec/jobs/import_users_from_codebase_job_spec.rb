@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe ImportUsersFromCodebaseJob, type: :job do
+RSpec.describe ImportUsersFromCodebaseJob, :ci_guard, type: :job do
   let(:organisation) { create(:organisation) }
   let(:importing_user) { create(:user, organisation: organisation) }
   let(:default_role) { create(:role, organisation: organisation, is_default: true) }
@@ -166,7 +166,7 @@ RSpec.describe ImportUsersFromCodebaseJob, type: :job do
     end
 
     context 'with map action' do
-      let(:existing_user) { create(:user) }
+      let(:existing_user) { create(:user, organisation: organisation) }
 
       it 'creates a mapping to the existing user' do
         file_id = import_file.id
@@ -194,6 +194,21 @@ RSpec.describe ImportUsersFromCodebaseJob, type: :job do
 
         import_file.reload
         results = import_file.metadata['import_results']
+        expect(results['failed']).to eq(1)
+        expect(results['mapped']).to eq(0)
+      end
+
+      # The select only offers members, but the id comes from the request. Mapping onto
+      # an account of another organisation put that person's name and avatar on imported
+      # tickets, posts and time entries here.
+      it 'refuses a target user who is not a member of the organisation' do
+        foreign_user = create(:user, organisation: create(:organisation))
+
+        expect do
+          perform_job(import_file.id, { '101' => "map:#{foreign_user.id}" }, {}, importing_user.id)
+        end.not_to change(CodebaseImportMapping, :count)
+
+        results = import_file.reload.metadata['import_results']
         expect(results['failed']).to eq(1)
         expect(results['mapped']).to eq(0)
       end
@@ -240,7 +255,7 @@ RSpec.describe ImportUsersFromCodebaseJob, type: :job do
     end
 
     context 'with mixed actions' do
-      let(:existing_user) { create(:user) }
+      let(:existing_user) { create(:user, organisation: organisation) }
 
       let(:multi_users_xml) do
         build_users_xml([

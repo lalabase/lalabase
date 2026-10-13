@@ -32,7 +32,7 @@ class ImportUsersFromCodebaseJob < ApplicationJob
 
         when /\Amap:(.+)\z/
           existing_user_id = Regexp.last_match(1)
-          result = map_to_existing_user(user_data, existing_user_id)
+          result = map_to_existing_user(user_data, existing_user_id, organisation)
           results[result[:status]] += 1
 
         when 'skip'
@@ -109,8 +109,11 @@ class ImportUsersFromCodebaseJob < ApplicationJob
     { status: :failed, error: e.message }
   end
 
-  def map_to_existing_user(user_data, existing_user_id)
-    existing_user = User.find(existing_user_id)
+  # The id comes from the request; the preview only offers members. User carries no
+  # tenant, so without the organisation here any account of the instance could become
+  # the author of imported tickets, posts and time entries.
+  def map_to_existing_user(user_data, existing_user_id, organisation)
+    existing_user = organisation.users.find(existing_user_id)
 
     CodebaseImportMapping.create!(
       codebase_id: user_data[:id],

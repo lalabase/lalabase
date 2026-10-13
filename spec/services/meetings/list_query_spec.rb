@@ -137,7 +137,7 @@ RSpec.describe Meetings::ListQuery do
   it 'does not dissolve a creator equality combined with an exclusion into a different condition' do
     record = meeting('Mine')
     folder = save_view('creator' => [user.id])
-    folder.smart_folder_rule_groups.first.smart_folder_rules.create!(field: 'creator', operator: 'not_equals', value: create(:user).id, position: 2)
+    folder.smart_folder_rule_groups.first.smart_folder_rules.create!(field: 'creator', operator: 'not_equals', value: create(:user, organisation: organisation).id, position: 2)
     expect(SmartFolderDissolver.new(folder).call).not_to be_dissolvable
     expect(query(smart_folder: folder).pluck(:id)).to eq([record.id])
   end

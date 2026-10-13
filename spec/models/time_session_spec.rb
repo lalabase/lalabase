@@ -54,7 +54,7 @@ require 'rails_helper'
 # Covers the decision points: required fields + DB NOT NULL, numericality > 0
 # (boundary 0!), billed default, soft-delete default_scope, duration_string parsing
 # (all branches), billed edit guard, formatting helpers, scopes, tenant isolation.
-RSpec.describe TimeSession, type: :model do
+RSpec.describe TimeSession, :ci_guard, type: :model do
   let(:organisation) { create(:organisation) }
   let(:project)      { create(:project, organisation: organisation) }
   let(:creator)      { create(:user, organisation: organisation) }
@@ -75,6 +75,38 @@ RSpec.describe TimeSession, type: :model do
     it { is_expected.to belong_to(:ticket).optional }
     it { is_expected.to belong_to(:meeting).optional }
     it { is_expected.to belong_to(:time_session_group).optional }
+
+    # acts_as_tenant checks foreign ids only for associations declared before its call.
+    # Every write path resolves the subject itself today; this keeps the model from
+    # taking one of another organisation when a new path forgets to.
+    describe 'subject of another organisation' do
+      let(:other_organisation) { create(:organisation) }
+      let(:other_project) do
+        ActsAsTenant.with_tenant(other_organisation) { create(:project, organisation: other_organisation) }
+      end
+
+      it 'rejects a ticket of another organisation' do
+        foreign_ticket = ActsAsTenant.with_tenant(other_organisation) do
+          create(:ticket, project: other_project, organisation: other_organisation,
+                          creator: create(:user, organisation: other_organisation))
+        end
+
+        session = build_session(ticket_id: foreign_ticket.id)
+        expect(session).not_to be_valid
+        expect(session.errors[:ticket_id]).to be_present
+      end
+
+      it 'rejects a meeting of another organisation' do
+        foreign_meeting = ActsAsTenant.with_tenant(other_organisation) do
+          create(:meeting, project: other_project, organisation: other_organisation,
+                           creator: create(:user, organisation: other_organisation))
+        end
+
+        session = build_session(meeting_id: foreign_meeting.id)
+        expect(session).not_to be_valid
+        expect(session.errors[:meeting_id]).to be_present
+      end
+    end
   end
 
   # Gespräche Slice 2: a session's subject is a Ticket OR a Meeting, never both.

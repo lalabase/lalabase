@@ -58,7 +58,7 @@ RSpec.describe Actors::SaveSmartFolderFromFilters do
     end
 
     it 'persists one group per assignee for a multi-OR assignee filter' do
-      other = create(:user)
+      other = create(:user, organisation: organisation)
       folder = create_from(filter_params: { 'assignee' => [user.id.to_s, other.id.to_s] }).resource
       expect(folder.smart_folder_rule_groups.count).to eq(2)
     end

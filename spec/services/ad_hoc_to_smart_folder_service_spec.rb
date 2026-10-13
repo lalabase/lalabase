@@ -67,6 +67,15 @@ RSpec.describe AdHocToSmartFolderService do
         expect(conversion.preloaded_references['User']).to have_key(user.id.to_s)
       end
 
+      # The validator trusts this preload, so it holds members of the organisation only;
+      # an account of another one is then looked up again and refused.
+      it 'preloads no account of another organisation' do
+        foreign_user = create(:user, organisation: create(:organisation))
+        conversion = convert(filter_params: { 'creator' => [user.id.to_s, foreign_user.id.to_s] })
+
+        expect(conversion.preloaded_references['User'].keys).to contain_exactly(user.id.to_s)
+      end
+
       it 'leaves preloaded_references nil when there are no reference rules' do
         expect(convert(filter_params: { 'tag' => ['bug'] }).preloaded_references).to be_nil
       end

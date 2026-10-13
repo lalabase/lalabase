@@ -98,7 +98,7 @@ RSpec.describe 'Organisations::TicketLookups', :ci_guard, type: :request do
   it 'searches the title only, not the text of comments' do
     ActsAsTenant.with_tenant(organisation) do
       create(:post, ticket: readable_match, user: user, organisation: organisation,
-                    content: 'Kuendigungsfrist', is_private: true, visible_to_user_id: create(:user).id)
+                    content: 'Kuendigungsfrist', is_private: true, visible_to_user_id: create(:user, organisation: organisation).id)
     end
 
     expect(lookup(q: 'Kuendigungsfrist')).to be_empty

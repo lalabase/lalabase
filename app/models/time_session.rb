@@ -49,6 +49,15 @@
 #  fk_rails_...  (time_session_group_id => time_session_groups.id)
 #
 class TimeSession < ApplicationRecord
+  # A session's subject is a Ticket OR a Meeting (Gespräche Slice 2), never both —
+  # the XOR is enforced by the DB check constraint time_sessions_single_subject and
+  # the #at_most_one_subject validation below. touch: keeps the subject's updated_at
+  # fresh when its booked time changes (same contract as :ticket).
+  # Declared BEFORE acts_as_tenant: the gem checks a foreign id only for associations
+  # it already knows, so declared after it, a ticket of another organisation passed.
+  belongs_to :ticket, optional: true, touch: true
+  belongs_to :meeting, optional: true, touch: true
+
   acts_as_tenant(:organisation)
 
   # The three mutually exclusive billing buckets: not in any billing group, in a
@@ -149,12 +158,6 @@ class TimeSession < ApplicationRecord
 
   # Relationships
   belongs_to :project
-  # A session's subject is a Ticket OR a Meeting (Gespräche Slice 2), never both —
-  # the XOR is enforced by the DB check constraint time_sessions_single_subject and
-  # the #at_most_one_subject validation below. touch: keeps the subject's updated_at
-  # fresh when its booked time changes (same contract as :ticket).
-  belongs_to :ticket, optional: true, touch: true
-  belongs_to :meeting, optional: true, touch: true
   belongs_to :creator, class_name: 'User'
   belongs_to :organisation
   belongs_to :time_session_group, optional: true

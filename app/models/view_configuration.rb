@@ -134,6 +134,7 @@ class ViewConfiguration < ApplicationRecord
   validates :view_type, presence: true, inclusion: { in: %w[tickets notes documents meetings] }
   validates :user_id, uniqueness: { scope: %i[project_id view_type] }
   validates :view_mode, inclusion: { in: VIEW_MODES }, allow_nil: true
+  validate :kanban_attribute_definition_of_own_project
 
   # Ensure required columns are always included
   before_save :ensure_required_columns
@@ -353,6 +354,17 @@ class ViewConfiguration < ApplicationRecord
   # Cascade: 1) attribute with status System Functions → 2) first select attribute
   def auto_detect_kanban_attribute
     self.class.status_attribute_for(project) || kanban_eligible_attributes.first
+  end
+
+  # TicketAttributeDefinition carries no tenant (it is scoped through its project), so
+  # nothing else checks the id from the request: a foreign one put the values and
+  # labels of another project's field on this board.
+  def kanban_attribute_definition_of_own_project
+    return if kanban_attribute_definition_id.blank?
+    return unless will_save_change_to_kanban_attribute_definition_id?
+    return if project&.ticket_attribute_definitions&.exists?(kanban_attribute_definition_id)
+
+    errors.add(:kanban_attribute_definition, :invalid)
   end
 
   # Appends custom attribute columns to base when view_type == 'tickets'

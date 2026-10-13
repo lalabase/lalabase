@@ -179,6 +179,7 @@ jobs:
           spec/jobs/meetings/ticket_suggestion_job_spec.rb
           spec/jobs/email_delivery_job_access_gate_spec.rb
           spec/jobs/tenant_propagation_spec.rb
+          spec/jobs/import_users_from_codebase_job_spec.rb
           spec/jobs/embedding_processing_job_spec.rb
           spec/locales/
           spec/lib/lalabase/admin_extensions_spec.rb
@@ -225,6 +226,7 @@ jobs:
           spec/models/ticket_spec.rb
           spec/models/ticket_relation_tenant_boundary_spec.rb
           spec/models/view_configuration_pinned_columns_spec.rb
+          spec/models/view_configuration_kanban_spec.rb
           spec/models/time_session_spec.rb
           spec/models/time_sessions/list_period_spec.rb
           spec/models/time_sessions/list_filters_spec.rb

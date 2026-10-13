@@ -88,6 +88,24 @@ RSpec.describe 'API V1 Write Endpoints', :ci_guard, type: :request do
       expect(body.dig('data', 'visible_to_user_id')).to eq(other_user.id)
     end
 
+    # The addressee comes from the request. Without a rule it took any account of the
+    # instance, and the answer told an existing id (201) from a missing one (422).
+    { 'from another organisation' => -> { create(:user, organisation: create(:organisation)).id },
+      'that does not exist' => -> { SecureRandom.uuid } }.each do |label, addressee|
+      it "refuses an addressee #{label}, with the same answer" do
+        addressee_id = instance_exec(&addressee)
+
+        expect do
+          post "/api/v1/tickets/#{ticket.id}/posts",
+               params: { post: { body: 'Geheim', is_private: true, visible_to_user_id: addressee_id } },
+               headers: auth_headers
+        end.not_to(change { ActsAsTenant.with_tenant(organisation) { Post.count } })
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(JSON.parse(response.body)['error']).to eq('validation_failed')
+      end
+    end
+
     it 'returns 422 when body is missing' do
       post "/api/v1/tickets/#{ticket.id}/posts",
            params: { post: { body: '' } },

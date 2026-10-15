@@ -167,6 +167,28 @@ RSpec.describe 'BillingAccounts list', type: :request do
     end
   end
 
+  # AccountSummaries resolves one level per plan, not one for the whole list: an
+  # account booked on the AI plan must not be listed at the price without AI.
+  it 'lists each account at the price of its own plan' do
+    owner = create(:user)
+    plans = { 'Konto ohne KI' => Subscriptions::Constants::PLAN_CLOUD,
+              'Konto mit KI' => Subscriptions::Constants::PLAN_CLOUD_AI }
+    plans.each do |name, plan|
+      account = create(:account, owner: owner, name: name, plan_key: plan, billing_starts_on: Date.current)
+      make_account_admin(owner, create(:organisation, account: account))
+    end
+    [[Subscriptions::Constants::PLAN_CLOUD, 1000], [Subscriptions::Constants::PLAN_CLOUD_AI, 1300]].each do |plan, cents|
+      list = create(:price_list, plan_key: plan)
+      create(:price_tier, price_list: list, min_seats: 1, max_seats: nil,
+                          base_amount_cents: 0, per_seat_amount_cents: cents)
+    end
+    sign_in owner
+
+    get billing_accounts_path
+
+    expect(response.body).to include(formatted_price(1000), formatted_price(1300))
+  end
+
   describe 'cost shape' do
     it 'grows by exactly one query per additional organisation in the account' do
       siblings = 5

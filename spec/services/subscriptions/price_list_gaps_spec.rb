@@ -57,6 +57,18 @@ RSpec.describe Subscriptions::PriceListGaps do
     end
   end
 
+  describe '.upcoming_by_plan' do
+    it 'answers what .upcoming answers, for every plan, and an open gap for a plan without levels' do
+      create(:price_list, plan_key: Subscriptions::Constants::PLAN_CLOUD, starts_on: today - 10, ends_on: today + 4)
+      create(:price_list, plan_key: Subscriptions::Constants::PLAN_CLOUD, starts_on: today + 10, ends_on: nil)
+
+      expect(described_class.upcoming_by_plan(from: today)).to eq(
+        Subscriptions::Constants::PLAN_CLOUD => [{ from: today + 5, to: today + 9 }],
+        Subscriptions::Constants::PLAN_CLOUD_AI => [{ from: today, to: nil }]
+      )
+    end
+  end
+
   describe 'levels that already expired' do
     it 'ignores them instead of letting them pull the cursor backwards' do
       create(:price_list, starts_on: today - 90.days, ends_on: today - 60.days)

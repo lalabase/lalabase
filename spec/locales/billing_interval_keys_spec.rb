@@ -3,7 +3,9 @@
 require 'rails_helper'
 
 # Guard: every billing interval in the registry has a label and a billing note,
-# in BOTH locales.
+# in BOTH locales. Since 2026-10-15 the same for every plan in
+# `Subscriptions::Constants::PLAN_KEYS`: the billing-account view names the
+# booked plan through a key built the same way.
 #
 # Why this exists (the drift it prevents):
 # `Subscriptions::Constants::BILLING_INTERVALS` is a REGISTRY (D10). Two places
@@ -36,12 +38,14 @@ require 'rails_helper'
 # configured, `I18n.exists?(key, :en)` answers true for a key that exists only in
 # German, which is exactly the drift this guard is meant to catch.
 RSpec.describe 'Billing interval locale keys' do
-  # Every I18n scope that builds per-interval keys from the registry, with the
-  # groups it builds underneath. Adding a consumer means adding a line here, not
-  # writing a second guard.
+  # Every I18n scope that builds keys from a registry, with the group it builds
+  # underneath and the registry it reads. Adding a consumer means adding a line
+  # here, not writing a second guard.
   key_sources = [
-    { scope: %i[views billing_accounts show], groups: %i[billing_interval] },
-    { scope: %i[admin], groups: %i[billing_interval] }
+    { scope: %i[views billing_accounts show], groups: %i[billing_interval],
+      registry: Subscriptions::Constants::BILLING_INTERVAL_KEYS },
+    { scope: %i[admin], groups: %i[billing_interval], registry: Subscriptions::Constants::BILLING_INTERVAL_KEYS },
+    { scope: %i[views billing_accounts show], groups: %i[plan], registry: Subscriptions::Constants::PLAN_KEYS }
   ].freeze
   locales = %i[de en].freeze
 
@@ -58,24 +62,23 @@ RSpec.describe 'Billing interval locale keys' do
 
     locales.each do |locale|
       source[:groups].each do |group|
-        Subscriptions::Constants::BILLING_INTERVAL_KEYS.each do |interval|
-          it "has #{locale}.#{scope_label}.#{group}.#{interval}" do
-            value = stored(locale, *scope, group, interval.to_sym)
+        source[:registry].each do |entry|
+          it "has #{locale}.#{scope_label}.#{group}.#{entry}" do
+            value = stored(locale, *scope, group, entry.to_sym)
 
             expect(value).to be_present,
-                             "missing #{locale}.#{scope_label}.#{group}.#{interval} — " \
-                             'this key is built from ' \
-                             'Subscriptions::Constants::BILLING_INTERVAL_KEYS'
+                             "missing #{locale}.#{scope_label}.#{group}.#{entry}: this key is built from " \
+                             'a registry in Subscriptions::Constants'
           end
         end
 
-        # The other half of the contract: a stale label for an interval that left
+        # The other half of the contract: a stale label for an entry that left
         # the registry is dead weight, and the next reader cannot tell it from a
         # live one.
         it "has no #{locale}.#{scope_label}.#{group} entry outside the registry" do
           stored_keys = (stored(locale, *scope, group) || {}).keys.map(&:to_s)
 
-          expect(stored_keys).to match_array(Subscriptions::Constants::BILLING_INTERVAL_KEYS)
+          expect(stored_keys).to match_array(source[:registry])
         end
       end
     end

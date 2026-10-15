@@ -44,6 +44,30 @@ RSpec.describe Subscriptions::PriceLookup do
     end
   end
 
+  describe '.current_by_plan' do
+    def publish(plan_key, starts_on, ends_on = nil)
+      create(:price_list, plan_key: plan_key, starts_on: starts_on, ends_on: ends_on)
+    end
+
+    it 'finds the level in force for every plan at once, past and announced ones left out' do
+      publish(Subscriptions::Constants::PLAN_CLOUD, today - 30, today - 1)
+      cloud = publish(Subscriptions::Constants::PLAN_CLOUD, today)
+      cloud_ai = publish(Subscriptions::Constants::PLAN_CLOUD_AI, today - 1, today)
+      publish(Subscriptions::Constants::PLAN_CLOUD_AI, today + 1)
+
+      by_plan = described_class.current_by_plan(on: today)
+
+      expect(by_plan).to eq(Subscriptions::Constants::PLAN_CLOUD => cloud,
+                            Subscriptions::Constants::PLAN_CLOUD_AI => cloud_ai)
+    end
+
+    it 'leaves out a plan without a level in force' do
+      publish(Subscriptions::Constants::PLAN_CLOUD, today)
+
+      expect(described_class.current_by_plan(on: today).keys).to eq([Subscriptions::Constants::PLAN_CLOUD])
+    end
+  end
+
   describe '.tier_for -- the V4 ladder at every boundary' do
     before { create(:price_list, :with_v4_monthly_ladder, starts_on: today - 1.day, ends_on: nil) }
 

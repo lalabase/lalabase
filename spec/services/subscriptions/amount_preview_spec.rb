@@ -309,6 +309,36 @@ RSpec.describe Subscriptions::AmountPreview do
     end
   end
 
+  # Two prices for the same product (§13 of doc/billing_preisliste_rabatt_plan.md):
+  # the account's booked plan decides which level applies, so a caller that only
+  # passes the account cannot price it on the wrong plan.
+  describe 'the plan' do
+    def publish(plan_key, per_seat_cents)
+      list = create(:price_list, plan_key: plan_key, starts_on: today - 1.day, ends_on: nil)
+      create(:price_tier, price_list: list, min_seats: 1, max_seats: nil,
+                          base_amount_cents: 0, per_seat_amount_cents: per_seat_cents)
+    end
+
+    before do
+      publish(Subscriptions::Constants::PLAN_CLOUD, 1000)
+      publish(Subscriptions::Constants::PLAN_CLOUD_AI, 1300)
+    end
+
+    it 'prices a new account on the plan without AI' do
+      expect(preview.total_cents).to eq(5000)
+    end
+
+    it 'prices an account booked on the AI plan on that plan' do
+      account.update!(plan_key: Subscriptions::Constants::PLAN_CLOUD_AI)
+
+      expect(preview.total_cents).to eq(6500)
+    end
+
+    it 'prices the other plan when a caller asks for it' do
+      expect(preview(plan_key: Subscriptions::Constants::PLAN_CLOUD_AI).total_cents).to eq(6500)
+    end
+  end
+
   describe 'failure propagation' do
     # SeatCounter raises loudly on a broken organisation (D7 of the billing
     # plan). Swallowing that here would turn a countable error into a silently

@@ -5,11 +5,11 @@
 # account index. Turns a list of accounts into what those pages render, so the
 # two of them cannot disagree about seats or amount.
 #
-# The price level is resolved ONCE for the whole list and handed to every
-# AmountPreview via `price_list:`. Without that each row would resolve the
-# ladder again, which is the N+1 that argument exists to prevent. `tier_in`
-# then filters the already loaded tiers in memory, so the ladder costs one
-# query no matter how many rows there are.
+# The price levels of all plans are resolved ONCE for the whole list and each
+# row gets the one of its account's plan via `price_list:`. Without that each
+# row would resolve the ladder again, which is the N+1 that argument exists to
+# prevent. `tier_in` then filters the already loaded tiers in memory, so the
+# ladders cost the same few queries no matter how many rows there are.
 #
 # Seats are the one cost that DOES scale, and it scales with the size of the
 # account rather than with the number of rows: SeatCounter walks each
@@ -76,13 +76,13 @@ module Subscriptions
     end
 
     def call
-      price_list = PriceLookup.current
+      price_lists = PriceLookup.current_by_plan
 
       displayable(@accounts).map do |account|
         Row.new(
           account: account,
           organisations: account.organisations.sort_by(&:name),
-          amount: amount_for(account, price_list)
+          amount: amount_for(account, price_lists[account.plan_key])
         )
       end
     end

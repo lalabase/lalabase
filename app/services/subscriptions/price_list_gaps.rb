@@ -23,10 +23,25 @@ module Subscriptions
       # seamless. `to: nil` means the gap never closes -- no open-ended level
       # follows.
       def upcoming(plan_key: Constants::PLAN_CLOUD, from: Date.current)
+        gaps_in(relevant_lists(plan_key, from), from)
+      end
+
+      # The same answer for every plan, as { plan_key => gaps }, from one query.
+      # A plan that never had a level has one open gap from `from` on: a plan
+      # nobody can be priced on is exactly what the warning is for.
+      def upcoming_by_plan(from: Date.current)
+        by_plan = relevant_lists(Constants::PLAN_KEYS, from).group_by(&:plan_key)
+        Constants::PLAN_KEYS.index_with { |plan_key| gaps_in(by_plan.fetch(plan_key, []), from) }
+      end
+
+      private
+
+      # `price_lists` ordered by start, all of one plan.
+      def gaps_in(price_lists, from)
         gaps = []
         cursor = from
 
-        relevant_lists(plan_key, from).each do |price_list|
+        price_lists.each do |price_list|
           gaps << { from: cursor, to: price_list.starts_on - 1.day } if price_list.starts_on > cursor
           # An open-ended level covers everything after it -- nothing left to check.
           return gaps if price_list.ends_on.nil?
@@ -38,10 +53,9 @@ module Subscriptions
         gaps
       end
 
-      private
-
       # Levels that already ended are irrelevant: they cannot cover a future
-      # date and would only shift the cursor backwards.
+      # date and would only shift the cursor backwards. `plan_key` may be one
+      # key or several.
       def relevant_lists(plan_key, from)
         PriceList.for_plan(plan_key)
                  .where(ends_on: from..).or(PriceList.for_plan(plan_key).where(ends_on: nil))

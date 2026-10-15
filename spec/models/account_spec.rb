@@ -5,6 +5,7 @@
 # Table name: accounts
 #
 #  id                                  :uuid             not null, primary key
+#  acquisition                         :jsonb
 #  billing_addressee                   :string
 #  billing_city                        :string
 #  billing_country                     :string(2)
@@ -24,6 +25,7 @@
 #  guest_max_projects_per_organisation :integer          default(1), not null
 #  name                                :string           not null
 #  payment_terms_days                  :integer          default(14), not null
+#  plan_key                            :string           default("cloud"), not null
 #  vat_id_checked_at                   :datetime
 #  vat_id_checked_name                 :string
 #  vat_id_status                       :string           default("unchecked"), not null
@@ -107,6 +109,39 @@ RSpec.describe Account, type: :model do
       account = build(:account, billing_interval: 'weekly')
 
       expect(account).not_to be_valid
+    end
+
+    # §13 of doc/billing_preisliste_rabatt_plan.md: new customers start without
+    # the AI surcharge, and every existing account stayed there by the default.
+    # The DATABASE default, not the factory's: every account that existed before
+    # the column, and every one the signup creates, lands here without anyone
+    # setting it.
+    it 'starts on the plan without AI by the column default' do
+      account = described_class.create!(name: 'Konto ohne Angabe')
+
+      expect(account.reload.plan_key).to eq(Subscriptions::Constants::PLAN_CLOUD)
+    end
+
+    Subscriptions::Constants::PLAN_KEYS.each do |key|
+      it "accepts the plan #{key}" do
+        expect(build(:account, plan_key: key)).to be_valid
+      end
+    end
+
+    ['enterprise', 'Cloud', ' cloud', 'cloud_ai ', ''].each do |bad|
+      it "rejects the plan #{bad.inspect}" do
+        account = build(:account, plan_key: bad)
+
+        expect(account).not_to be_valid
+        expect(account.errors[:plan_key]).to be_present
+      end
+    end
+
+    # Defense in depth: the validation can be skipped, the column cannot be emptied.
+    it 'refuses NULL in the database when the validation is bypassed' do
+      account = create(:account)
+
+      expect { account.update_column(:plan_key, nil) }.to raise_error(ActiveRecord::NotNullViolation)
     end
 
     it 'rejects a non-positive payment_terms_days' do

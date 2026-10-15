@@ -185,6 +185,27 @@ RSpec.describe 'BillingAccounts', type: :request do
         expect(response.body).to include(I18n.t('views.billing_accounts.show.preview_disclaimer'))
       end
 
+      # §13 of doc/billing_preisliste_rabatt_plan.md: the page prices the plan the account
+      # is booked on and names it, so 13 EUR is never read as the price without AI.
+      it 'prices and names the booked plan' do
+        [[Subscriptions::Constants::PLAN_CLOUD, 1000], [Subscriptions::Constants::PLAN_CLOUD_AI, 1300]].each do |plan, cents|
+          list = create(:price_list, plan_key: plan)
+          create(:price_tier, price_list: list, min_seats: 1, max_seats: nil,
+                              base_amount_cents: 0, per_seat_amount_cents: cents)
+        end
+        account.update!(plan_key: Subscriptions::Constants::PLAN_CLOUD_AI)
+        sign_in_owner
+
+        get billing_account_path(account)
+
+        # One billable seat (the owner).
+        expect(response.body).to include(formatted_price(1300))
+        expect(response.body).not_to include(formatted_price(1000))
+        expect(response.body).to include(
+          ERB::Util.html_escape(I18n.t('views.billing_accounts.show.plan.cloud_ai'))
+        )
+      end
+
       # A missing price rung is our gap, not the customer's. Wording it as an error would
       # produce a support request nobody on the customer side can act on.
       it 'says the price is still being sorted out when no rung applies' do

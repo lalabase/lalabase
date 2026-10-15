@@ -27,6 +27,20 @@ module Subscriptions
                  .first
       end
 
+      # The level in force on `on` for every plan that has one, as
+      # { plan_key => PriceList }, in one query. For the callers that need
+      # several plans at once (the account list, the public price lists); one
+      # `.current` per plan would be an N+1 over the plan registry.
+      def current_by_plan(on: Date.current)
+        PriceList.where(plan_key: Constants::PLAN_KEYS)
+                 .effective_on(on)
+                 .includes(:tiers)
+                 # Same tie-break as .current: the most recent start wins.
+                 .order(starts_on: :desc)
+                 .group_by(&:plan_key)
+                 .transform_values(&:first)
+      end
+
       # The rung for `seats`, or nil when no price level applies or no rung
       # covers that seat count.
       def tier_for(seats:, billing_interval: Constants::INTERVAL_MONTHLY,

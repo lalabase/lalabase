@@ -871,6 +871,7 @@ Rails.application.routes.draw do
     namespace :public do
       namespace :v1 do
         resource :price_list, only: :show, format: false
+        resources :price_lists, only: :index, format: false
       end
     end
 

@@ -21,8 +21,16 @@ module Subscriptions
   # amounts (V4); a hardcoded factor would be the second price source that this
   # whole plan removes.
   module Constants
+    # Two prices for the same product (doc/billing_preisliste_rabatt_plan.md §13).
+    # PLAN_CLOUD is every account without AI on the operator's own credentials:
+    # no AI at all, or the organisation's own key. PLAN_CLOUD_AI is the price
+    # with the operator's curated AI. The plan is BOOKED, not enforced: nothing
+    # in the AI code reads it, an account on PLAN_CLOUD may still pick an AI
+    # package, and the invoice settles it. Each plan has its own price levels;
+    # PriceList, PriceLookup and PriceListGaps already work per plan.
     PLAN_CLOUD = 'cloud'
-    PLAN_KEYS = [PLAN_CLOUD].freeze
+    PLAN_CLOUD_AI = 'cloud_ai'
+    PLAN_KEYS = [PLAN_CLOUD, PLAN_CLOUD_AI].freeze
 
     # What a price level is denominated in unless it says otherwise. Named here
     # rather than repeated as a literal, so the day a second currency appears

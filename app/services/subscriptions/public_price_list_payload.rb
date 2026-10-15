@@ -3,10 +3,17 @@
 # Serializes one published price list into the stable public API contract used
 # by the website. Internal identifiers, audit fields and validity dates stay out.
 # Contract and field semantics: docs/api/public_v1.md.
+#
+# `call` wraps one list (GET /price_list), `collection` several, one per plan
+# (GET /price_lists). Both serialize a list the same way.
 module Subscriptions
   class PublicPriceListPayload
     def self.call(**kwargs)
       new(**kwargs).call
+    end
+
+    def self.collection(price_lists:)
+      { data: { price_lists: price_lists.map { |price_list| new(price_list: price_list).serialized_price_list } } }
     end
 
     def initialize(price_list:)
@@ -16,8 +23,6 @@ module Subscriptions
     def call
       { data: { price_list: serialized_price_list } }
     end
-
-    private
 
     def serialized_price_list
       return nil if @price_list.nil?
@@ -32,6 +37,8 @@ module Subscriptions
         tiers: serialized_tiers(tiers)
       }
     end
+
+    private
 
     def billing_intervals(tiers)
       published = tiers.map(&:billing_interval).uniq

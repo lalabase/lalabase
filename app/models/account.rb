@@ -5,6 +5,7 @@
 # Table name: accounts
 #
 #  id                                  :uuid             not null, primary key
+#  acquisition                         :jsonb
 #  billing_addressee                   :string
 #  billing_city                        :string
 #  billing_country                     :string(2)
@@ -24,6 +25,7 @@
 #  guest_max_projects_per_organisation :integer          default(1), not null
 #  name                                :string           not null
 #  payment_terms_days                  :integer          default(14), not null
+#  plan_key                            :string           default("cloud"), not null
 #  vat_id_checked_at                   :datetime
 #  vat_id_checked_name                 :string
 #  vat_id_status                       :string           default("unchecked"), not null
@@ -130,6 +132,9 @@ class Account < ApplicationRecord
   # permit them: a customer setting their own billing start date would be
   # writing their own invoice.
   validates :billing_interval, inclusion: { in: Subscriptions::Constants::BILLING_INTERVAL_KEYS }
+  # The booked plan (§13 of doc/billing_preisliste_rabatt_plan.md), an operator
+  # field like the interval. Booked, not enforced: the AI code never reads it.
+  validates :plan_key, inclusion: { in: Subscriptions::Constants::PLAN_KEYS }
   validates :payment_terms_days,
             presence: true, numericality: { only_integer: true, greater_than: 0 }
   validate :billing_starts_on_must_be_parsable

@@ -104,12 +104,17 @@
         </tbody>
       </table>
 
-      <%# The amounts follow the account's own billing interval, so naming it is what keeps
-          a yearly figure from being read as a monthly one. spec/locales/billing_interval_keys_spec.rb
-          covers every registry interval in both locales. %>
+      <%# The amounts follow the account's own billing interval and plan, so naming both is
+          what keeps a yearly figure from being read as a monthly one, and the price with AI
+          from being read as the price without. spec/locales/billing_interval_keys_spec.rb
+          covers every registry interval and plan in both locales. %>
       <p class="text-sm text-cream-600 mt-3">
         <%= t('views.billing_accounts.show.interval_note',
               interval: t("views.billing_accounts.show.billing_interval.#{@account.billing_interval}")) %>
+      </p>
+      <p class="text-sm text-cream-600 mt-1">
+        <%= t('views.billing_accounts.show.plan_note',
+              plan: t("views.billing_accounts.show.plan.#{@account.plan_key}")) %>
       </p>
 
       <% if @active_discount %>

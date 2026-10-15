@@ -67,6 +67,10 @@ de:
           monthly: Monatlich
           yearly: Jährlich
         interval_note: 'Abrechnungszeitraum: %{interval}'
+        plan:
+          cloud: Ohne KI oder mit eigenem KI-Schlüssel
+          cloud_ai: Mit der KI-Auswahl des Betreibers
+        plan_note: 'Gebuchte Variante: %{plan}'
         discount_note: Enthalten ist dein Rabatt von %{percent} %, gültig bis %{until}.
         discount_open_end: auf Weiteres
         preview_disclaimer: 'Die Vorschau zeigt, was die heutige Zahl an Personen kostet.

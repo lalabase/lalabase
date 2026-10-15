@@ -5,6 +5,7 @@
 # Table name: accounts
 #
 #  id                                  :uuid             not null, primary key
+#  acquisition                         :jsonb
 #  billing_addressee                   :string
 #  billing_city                        :string
 #  billing_country                     :string(2)
@@ -24,6 +25,7 @@
 #  guest_max_projects_per_organisation :integer          default(1), not null
 #  name                                :string           not null
 #  payment_terms_days                  :integer          default(14), not null
+#  plan_key                            :string           default("cloud"), not null
 #  vat_id_checked_at                   :datetime
 #  vat_id_checked_name                 :string
 #  vat_id_status                       :string           default("unchecked"), not null

@@ -67,6 +67,8 @@ module Subscriptions
     # already resolved the level. Without it every iteration of a loop -- the
     # public pricing page, an account list -- would resolve it again and turn
     # into an N+1.
+    # plan_key: defaults to the plan the account is booked on. Passing one is for
+    # the question "what would this account cost on the other plan".
     # Distinguishes "no price_list argument" from "price_list: nil". A plain
     # truthiness check conflated the two, and the difference is exactly the N+1
     # the argument exists to prevent: a caller that already resolved the level
@@ -75,11 +77,11 @@ module Subscriptions
     private_constant :NO_PRICE_LIST_GIVEN
 
     def initialize(account:, billing_interval: Constants::INTERVAL_MONTHLY,
-                   plan_key: Constants::PLAN_CLOUD, on: Date.current,
+                   plan_key: nil, on: Date.current,
                    seats: nil, price_list: NO_PRICE_LIST_GIVEN)
       @account = account
       @billing_interval = billing_interval
-      @plan_key = plan_key
+      @plan_key = plan_key || account.plan_key
       @on = on
       @seats = seats
       @price_list_given = !price_list.equal?(NO_PRICE_LIST_GIVEN)

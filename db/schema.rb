@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_07_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -68,6 +68,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_120000) do
     t.uuid "business_confirmed_by_id"
     t.string "business_confirmation_version"
     t.jsonb "acquisition"
+    t.string "plan_key", default: "cloud", null: false
     t.index ["billing_starts_on"], name: "index_accounts_on_billing_starts_on"
     t.index ["business_confirmed_by_id"], name: "index_accounts_on_business_confirmed_by_id"
     t.index ["owner_id"], name: "index_accounts_on_owner_id"

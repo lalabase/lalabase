@@ -55,6 +55,10 @@ en:
           monthly: Monthly
           yearly: Yearly
         interval_note: 'Billing period: %{interval}'
+        plan:
+          cloud: Without AI or with your own AI key
+          cloud_ai: With the operator's AI selection
+        plan_note: 'Booked plan: %{plan}'
         discount_note: This includes your %{percent} % discount, valid until %{until}.
         discount_open_end: further notice
         preview_disclaimer: 'The preview shows what today''s number of people costs. It

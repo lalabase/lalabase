@@ -9,8 +9,8 @@ import { trapTabKey } from "dialog_a11y"
  * project, so the modal asks for one first and then loads the real form for it.
  *
  * Every <option> carries its own new-URL from ERB; this controller only copies that
- * value onto the frame's src, after merging in whatever the filter row says RIGHT
- * NOW (lib/meeting_modal.js). Nothing here knows how a meetings route is spelled, so
+ * value onto the frame's src, after adding the state the list shows RIGHT NOW
+ * (lib/meeting_modal.js). Nothing here knows how a meetings route is spelled, so
  * a route change cannot silently break the modal.
  *
  * Shape and lifecycle follow docs/dokumentation/modal_pattern.md, which names this
@@ -19,10 +19,10 @@ import { trapTabKey } from "dialog_a11y"
  */
 export default class extends Controller {
   static targets = ["modal", "frame", "projectSelect", "card"]
-  // filterForm: the id of the overview's filter form. It lives OUTSIDE this
+  // listFrame: the id of the overview's list frame. It lives OUTSIDE this
   // controller's element (the title box), so it cannot be a Stimulus target; the
   // id travels from ERB rather than being hard-coded here.
-  static values = { filterForm: String }
+  static values = { listFrame: String }
 
   connect() {
     this.modalTarget.classList.add("hidden")
@@ -82,7 +82,7 @@ export default class extends Controller {
   /** Load the form for the chosen project; back to the zero state when cleared. */
   projectChanged() {
     const option = this.projectSelectTarget.selectedOptions[0]
-    const url = newFormUrl(option && option.dataset.newUrl, this.currentFilters())
+    const url = newFormUrl(option && option.dataset.newUrl, this.currentListQuery())
 
     if (!url) {
       this.resetFrame()
@@ -93,20 +93,14 @@ export default class extends Controller {
   }
 
   /**
-   * What the filter row says at this moment, NOT what it said when ERB rendered the
-   * options. The form is a frame-scoped GET without history advance, so the page
-   * (and with it this modal) is never re-rendered when a filter changes.
+   * The state the list shows at this moment, NOT the one when ERB rendered the
+   * options: the list frame writes it at every load, the page is never re-rendered
+   * when a filter, a sort or a page changes.
    */
-  currentFilters() {
-    const form = this.hasFilterFormValue ? document.getElementById(this.filterFormValue) : null
-    if (!form) return {}
-
-    const data = new FormData(form)
-    return {
-      search: data.get("search"),
-      participant: data.get("participant"),
-      projectId: data.get("project_id")
-    }
+  currentListQuery() {
+    const frame = this.hasListFrameValue ? document.getElementById(this.listFrameValue) : null
+    const state = frame && frame.querySelector("[data-list-filter-query]")
+    return state ? state.dataset.listFilterQuery : ""
   }
 
   close() {

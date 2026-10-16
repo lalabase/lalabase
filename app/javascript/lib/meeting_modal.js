@@ -3,45 +3,34 @@
 // Why:  both were review findings on PR #716, and neither is visible from the
 //   server side.
 //
-//   1. newFormUrl merges the LIVE filter values into the option's URL. The
-//      modal sits in the title box, OUTSIDE the meetings_overview_results
-//      frame, and the filter row is a frame-scoped GET with no
-//      data-turbo-action="advance". So the page never re-renders and the
-//      filter values ERB baked into every data-new-url are the ones from the
-//      first page load. Without this merge the list after a save shows
-//      something other than what the filter controls say.
+//   1. newFormUrl adds the list's LIVE state to the option's URL. The modal sits
+//      in the title box, OUTSIDE the meetings_overview_results frame, and the
+//      filter bar reloads only that frame. So the page never re-renders, and a
+//      state ERB baked into every data-new-url would be the one from the first
+//      page load. The list frame writes its state into data-list-filter-query
+//      at every load; without it, the list after a save would show something
+//      other than what the bar says.
 //   2. submissionClosesModal decides whether a finished submit really saved.
 //      Turbo's detail.success is response.ok AFTER fetch followed redirects,
 //      so the area gate's redirect_to reads as a success. A modal that closes
 //      on that throws away a pasted transcript and shows no reason.
 
-// The page's own filter field names, mapped to the names the nested meetings
-// route expects. project_id is the nested route's OWN parameter, so the
-// overview's project filter has to travel under a different name -- this map is
-// the only place that rename is written down on the client.
-export const FILTER_PARAMS = Object.freeze({
-  search: 'search',
-  participant: 'participant',
-  projectId: 'overview_project_id'
-})
-
 // Base URL comes from ERB (each <option data-new-url>), so no route is
-// assembled here; only values are set or removed. A blank value REMOVES its
-// parameter, so clearing a filter and saving does not resurrect it.
-export function newFormUrl(baseUrl, filters = {}) {
+// assembled here; the list query is added as it stands. The server wrote it
+// from its own whitelist (Meetings::ListState), so it names nothing of the
+// route. A name the base already carries (frame) is the base's: the list
+// state never overrides it.
+export function newFormUrl(baseUrl, listQuery = '') {
   if (!baseUrl) return null
 
   // A dummy origin lets URL parse a path-only value; we return path + search,
   // so the result stays relative and the origin never leaks into the DOM.
   const url = new URL(baseUrl, 'http://meeting-modal.invalid')
+  const own = new Set(url.searchParams.keys())
 
-  for (const [key, param] of Object.entries(FILTER_PARAMS)) {
-    const value = filters[key]
-    if (value === undefined || value === null || String(value).trim() === '') {
-      url.searchParams.delete(param)
-    } else {
-      url.searchParams.set(param, String(value))
-    }
+  for (const [key, value] of new URLSearchParams(listQuery || '')) {
+    if (own.has(key)) continue
+    url.searchParams.append(key, value)
   }
 
   return `${url.pathname}${url.search}`

@@ -198,23 +198,13 @@ en:
           modal_project_label: Project
           modal_project_prompt: Choose a project …
           modal_select_project_first: Choose a project first.
-          search_placeholder: Search title & content …
-          filter_participant_label: Participant
-          filter_participant_all: All participants
-          filter_project_label: Project
-          filter_project_all: All projects
-          col_title: Title
-          col_project: Project
-          col_date: Date
-          col_participants: Participants
-          empty_no_results: No meetings found
-          empty_reset: Reset filters
           empty_first_time_title: No meetings yet
           empty_first_time_description: As soon as meetings are recorded in your projects, you'll find them here across project boundaries — for example every meeting with a particular person.
   models:
     view_configuration:
       meeting_columns:
         title: Title
+        project: Project
         occurred_at: Meeting date
         duration_minutes: Duration
         participants: Participants
@@ -224,6 +214,7 @@ en:
   smart_folders:
     all_meetings: All meetings
     fields:
+      project: Project
       creator: Created by
       participant: Participants
       occurred_at: Meeting date

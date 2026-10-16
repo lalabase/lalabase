@@ -14,7 +14,9 @@
   proj = local_assigns[:project] || @project
   sf_id = local_assigns[:smart_folder_id]
   sp = local_assigns[:sort_params] || {}
-  url_opts = { organisation: org, project: proj, sort_params: sp, smart_folder_id: sf_id }
+  # base_path: a list whose address the controller name does not tell
+  # (meetings_overview/_results, also rendered from MeetingsController).
+  url_opts = { organisation: org, project: proj, sort_params: sp, smart_folder_id: sf_id, base_path: local_assigns[:base_path] }
 
   link_class = "flex items-center justify-center px-3 h-8 leading-tight [&.active]:bg-lime-300 hover:bg-lime-300 bg-surface-raised border border-stroke"
   disabled_class = "flex items-center justify-center px-3 h-8 leading-tight bg-surface-raised border border-stroke opacity-50 cursor-not-allowed"

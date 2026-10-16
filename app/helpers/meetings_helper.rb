@@ -11,11 +11,20 @@ module MeetingsHelper
     safe_join(URI.decode_www_form(meeting_list_state.to_query).map { |key, value| hidden_field_tag(key, value) })
   end
 
-  def meeting_filter_categories_json(project, organisation)
-    scope = policy_scope(project.meetings)
-    categories = [{ key: 'participant', label: t('smart_folders.fields.participant'), icon: 'bi-people',
+  # The categories of the meetings filter bar, every option from `scope`, the
+  # meetings this reader may read in this list. projects: the options of the
+  # category "Projekt", given only on the list of the whole organisation ("Alle
+  # Meetings"); a project page has its project already.
+  def meeting_filter_categories_json(scope:, organisation:, projects: nil)
+    categories = []
+    if projects
+      categories << { key: 'project', label: t('smart_folders.fields.project'), icon: 'bi-folder',
+                      type: 'special', allowed_operators: %w[or not],
+                      options: projects.map { |project| { value: project.id, label: project.name } } }
+    end
+    categories << { key: 'participant', label: t('smart_folders.fields.participant'), icon: 'bi-people',
                     type: 'special', allowed_operators: %w[or and not],
-                    options: MeetingParticipant.distinct_names_for_meetings(scope).map { |label, value| { value: value, label: label } } }]
+                    options: MeetingParticipant.distinct_names_for_meetings(scope).map { |label, value| { value: value, label: label } } }
     creators = organisation.users.where(id: scope.select(:creator_id)).map { |user| { value: user.id, label: user.display_name } }
     categories << { key: 'creator', label: t('smart_folders.fields.creator'), icon: 'bi-person-badge',
                     type: 'special', allowed_operators: %w[or not], options: creators.sort_by { |option| option[:label].downcase } }
@@ -35,18 +44,33 @@ module MeetingsHelper
     when 'duration_minutes'
       t('views.organisations.meetings.shared.duration_minutes', count: meeting.duration_minutes) if meeting.duration_minutes
     when 'participants' then meeting.meeting_participants.map(&:display_name).join(', ')
+    when 'project' then meeting.project.name
     when 'creator' then viewer_display_name(meeting.creator)
     end
   end
 
-  def meeting_sort_link(column, project:, organisation:)
+  # The share of the width each fixed column of "Alle Meetings" takes
+  # (MeetingList::OVERVIEW_COLUMN_KEYS). Here and not in the concern: Tailwind
+  # scans helpers for class names, controllers it does not.
+  MEETING_OVERVIEW_COLUMN_WIDTHS = {
+    'title' => 'w-[30%]', 'project' => 'w-[18%]', 'occurred_at' => 'w-[18%]',
+    'duration_minutes' => 'w-[10%]', 'participants' => 'w-[24%]'
+  }.freeze
+
+  def meeting_overview_column_width_class(column)
+    MEETING_OVERVIEW_COLUMN_WIDTHS.fetch(column[:key].to_s)
+  end
+
+  # A column head that sorts its list: base_path is the list's address (the
+  # project page or "Alle Meetings"), frame_id the frame the list lives in. The
+  # link keeps the list state and the open meeting, and starts again at page 1.
+  def meeting_sort_link(column, base_path:, frame_id:)
     return column[:label] unless Meetings::ListQuery::SORT_COLUMNS.include?(column[:key])
 
     sort = params[:sort].respond_to?(:[]) && params[:sort].respond_to?(:permit) ? params[:sort] : {}
     direction = sort['column'] == column[:key] && sort['direction'] == 'asc' ? 'desc' : 'asc'
-    link_to column[:label], organisation_project_meetings_path(organisation, project,
-                                                               meeting_list_state.except('page').merge(params.permit(:meeting_id, :new).to_h).merge(sort: { column: column[:key], direction: direction })),
-            data: { turbo_frame: 'meetings_results' }
+    query = meeting_list_state.except('page').merge(params.permit(:meeting_id, :new).to_h).merge('sort' => { column: column[:key], direction: direction })
+    link_to column[:label], "#{base_path}?#{query.to_query}", data: { turbo_frame: frame_id }
   end
 
   # DOM id of the "Verknüpfte Tickets" turbo-frame on the meeting detail

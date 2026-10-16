@@ -13,11 +13,14 @@ module Actors
     # columns: the ordered column list a NEW folder starts with (doc/spaltenwahl_plan.md,
     # D6); nil leaves it following the reader's base view. Ignored on update, the
     # save row has its own endpoint for a folder's columns.
+    # project: nil for a view of a list of the whole organisation ("Alle Meetings");
+    # the folder then belongs to no project, and organisation names its owner.
     def initialize(project:, current_user:, filter_params:, operator_params:, name:,
-                   smart_folder: nil, sort_column: nil, sort_direction: nil,
-                   target_object_type: 'Ticket', columns: nil, pinned_columns: nil)
+                   organisation: project&.organisation, smart_folder: nil, sort_column: nil,
+                   sort_direction: nil, target_object_type: 'Ticket', columns: nil, pinned_columns: nil)
       super()
       @project = project
+      @organisation = organisation
       @current_user = current_user
       @filter_params = filter_params
       @operator_params = operator_params
@@ -60,6 +63,7 @@ module Actors
     def convert_filters
       AdHocToSmartFolderService.call(
         project: @project,
+        organisation: @organisation,
         filter_params: @filter_params,
         operator_params: @operator_params,
         target_object_type: @smart_folder&.target_object_type || @target_object_type
@@ -88,10 +92,11 @@ module Actors
     end
 
     def create_folder
-      folder = @project.smart_folders.new(
+      folder = SmartFolder.new(
+        project: @project,
         name: @name,
         user: @current_user,
-        organisation: @project.organisation,
+        organisation: @organisation,
         target_object_type: @target_object_type,
         sort_column: @sort_column,
         sort_direction: @sort_direction

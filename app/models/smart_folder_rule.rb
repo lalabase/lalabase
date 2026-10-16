@@ -80,6 +80,22 @@ class SmartFolderRule < ApplicationRecord
         description: 'Teilnehmer',
         icon: 'people'
       },
+      # The organisation-wide meetings list ("Alle Meetings") narrows by project.
+      # without_project_only: a view of one project has its project already, so
+      # the expert filter offers the field only on a view without one. One rule
+      # per project, like creator: several values in OR are one group each.
+      'project' => {
+        applicable_types: %w[Meeting],
+        operators: [EQUALS, NOT_EQUALS],
+        filter_class: 'AssociationFilter',
+        field_map: { 'Meeting' => 'project_id' },
+        value_type: :reference,
+        value_required: true,
+        reference_model: 'Project',
+        without_project_only: true,
+        description: 'Projekt',
+        icon: 'folder'
+      },
       'occurred_at' => {
         applicable_types: %w[Meeting],
         operators: [EQUALS, NOT_EQUALS, BEFORE, AFTER, BETWEEN, WITHIN_DAYS, IN_THE_LAST_DAYS, *SmartFolders::DatePresets::KEYS],

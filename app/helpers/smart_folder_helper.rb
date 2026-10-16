@@ -36,6 +36,7 @@ module SmartFolderHelper
     field_config.each do |field, config|
       # Check whether the field is applicable to the object type
       next if (config[:applicable_types] & target_types).empty?
+      next if config[:without_project_only] && project
 
       option = {
         value: field,

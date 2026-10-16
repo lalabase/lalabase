@@ -51,7 +51,7 @@ RSpec.describe AdHocFilterService do
   let(:base_query) { project.tickets }
 
   describe '#apply' do
-    %w[participant occurred_at].each do |name|
+    %w[participant occurred_at project].each do |name|
       it "preserves ticket custom #{name} filters through saving and reloading" do
         create(:ticket_attribute_definition, project: project, name: name, field_type: 'select',
                                              options: { 'allowed_values' => [{ 'value' => 'today', 'labels' => { 'de' => 'Heute' } }] })

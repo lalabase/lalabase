@@ -90,10 +90,10 @@ class AdHocFilterService
   # creator needs a creator_id column).
   def field_supported?(key, klass)
     case key
-    when 'participant', 'occurred_at'
+    # On a meeting list a meeting field; on any other list a custom attribute of
+    # the same name (a ticket field may be called "project").
+    when *MEETING_FIELDS
       klass == Meeting || klass.column_names.include?('custom_attributes')
-    when 'project'
-      klass == Meeting
     when 'assignee', *Tickets::WaitingStateFilter::STATES
       klass == Ticket
     when 'tag'

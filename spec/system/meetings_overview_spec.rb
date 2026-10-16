@@ -85,6 +85,28 @@ RSpec.describe 'Meetings overview', type: :system do
     expect(page).to have_current_path(/filter%5Bproject%5D/)
   end
 
+  it 'keeps a sort chosen at a column head through a new condition and a reload' do
+    page.driver.browser.manage.window.resize_to(1440, 1000)
+    ActsAsTenant.with_tenant(organisation) do
+      create(:meeting, project: alpha, organisation: organisation, creator: user, title: 'Aaa Alpha', occurred_at: 5.days.ago)
+    end
+    visit organisation_meetings_path(organisation)
+    expect_titles('Beta Retro', 'Alpha Kickoff', 'Aaa Alpha')
+
+    find('#meetings_overview_results th[data-column="title"] a').click
+    expect(page).to have_current_path(/sort%5Bcolumn%5D=title/, wait: 5)
+
+    find('[data-filter-bar-target="filterButton"]').click
+    find('[role="menuitem"][data-category="project"]').click
+    within('[data-filter-bar-target="valueMenu"]') { find("input[type='checkbox'][data-filter-value='#{alpha.id}']").click }
+    expect_titles('Aaa Alpha', 'Alpha Kickoff')
+    expect(page.all('#meetings_overview_results tr[data-meeting-id] h5').map { |title| title.text.strip }).to eq(['Aaa Alpha', 'Alpha Kickoff'])
+    expect(page).to have_current_path(/sort%5Bcolumn%5D=title/)
+
+    page.refresh
+    expect(page.all('#meetings_overview_results tr[data-meeting-id] h5', wait: 5).map { |title| title.text.strip }).to eq(['Aaa Alpha', 'Alpha Kickoff'])
+  end
+
   it 'fits a phone of 390 px without scrolling sideways' do
     page.driver.browser.manage.window.resize_to(390, 844)
     visit organisation_meetings_path(organisation)

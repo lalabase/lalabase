@@ -100,6 +100,25 @@ RSpec.describe 'Organisations::MeetingsOverview access', :ci_guard, type: :reque
     end
   end
 
+  describe 'the expert filter of a view with a project condition' do
+    it 'offers only readable projects in the server-rendered value list' do
+      view = ActsAsTenant.with_tenant(organisation) do
+        create(:smart_folder, name: 'Nur Alpha', user: reader_a, organisation: organisation, project: nil,
+                              target_object_type: 'Meeting').tap do |folder|
+          folder.smart_folder_rule_groups.create!(position: 1)
+                .smart_folder_rules.create!(field: 'project', operator: 'equals', value: project_a.id, position: 1)
+        end
+      end
+      sign_in reader_a
+      get edit_organisation_smart_folder_path(organisation, view, modal: true, return_to: 'meetings')
+
+      expect(response).to have_http_status(:ok)
+      value_select = Capybara.string(response.body).find("select[data-field='project']")
+      expect(value_select.all('option').map(&:text)).to include('Projekt Alpha')
+      expect(response.body).not_to include('Projekt Beta', project_b.id)
+    end
+  end
+
   describe 'saved views of somebody else' do
     it 'does not open a private overview view of another user' do
       foreign = ActsAsTenant.with_tenant(organisation) do

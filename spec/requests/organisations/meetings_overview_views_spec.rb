@@ -137,7 +137,7 @@ RSpec.describe 'Organisations::MeetingsOverview saved views', :ci_guard, type: :
   end
 
   describe 'changing, renaming, duplicating, sharing and deleting' do
-    # The bar stands only once there is a meeting to filter.
+    # A meeting on the list, so the view has something to show.
     before { record('Alpha Kickoff', project: project_a) }
 
     let!(:saved) do

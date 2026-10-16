@@ -19,10 +19,12 @@ pin 'meetings/name_normalizer', to: 'lib/meetings/name_normalizer.js'
 # Meetings Slice 5: pure LLM-detection merge rule, same inject-normalize pattern.
 pin 'meetings/participant_merge', to: 'lib/meetings/participant_merge.js'
 pin 'time_session_modal', to: 'lib/time_session_modal.js'
-# Overview meeting modal: the filter merge and the "did this really save?"
+# Overview meeting modal: the list state merge and the "did this really save?"
 # predicate, pure so spec/javascript can test them independently of the mobile
 # browser regressions that also run in CI.
 pin 'meeting_modal', to: 'lib/meeting_modal.js'
+# The address of a list page without a lane after its frame loaded ("Alle Meetings").
+pin 'list_address', to: 'lib/list_address.js'
 # NeoAutosuggest's server search (the ticket picker of the "Link" modal): confirmed
 # choice, request sequence, debounce and abort, pure so spec/javascript can test them.
 pin 'autosuggest_search', to: 'lib/autosuggest_search.js'
@@ -173,6 +175,7 @@ else
   pin 'controllers/lane_link_controller', to: 'controllers/lane_link_controller.js'
   pin 'controllers/lane_split_controller', to: 'controllers/lane_split_controller.js'
   pin 'controllers/layout_toggle_controller', to: 'controllers/layout_toggle_controller.js'
+  pin 'controllers/list_address_controller', to: 'controllers/list_address_controller.js'
   pin 'controllers/list_row_controller', to: 'controllers/list_row_controller.js'
   pin 'controllers/meeting_analysis_composer_controller', to: 'controllers/meeting_analysis_composer_controller.js'
   pin 'controllers/meeting_modal_controller', to: 'controllers/meeting_modal_controller.js'

@@ -224,6 +224,15 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
       expect(titles(list(items: 2, page: 2, filter: { project: [project_a.id] }))).to eq(['Seite 2'])
     end
 
+    it 'lets the address follow the list frame, so the bar reads sort and page from it' do
+      create_meeting(project: project_a, title: 'Alpha Kickoff')
+      page = list
+
+      wrapper = page.find('[data-controller~="list-address"]')
+      expect(wrapper['data-list-address-frame-value']).to eq('meetings_overview_results')
+      expect(wrapper['data-list-address-path-value']).to eq(overview_path)
+    end
+
     it 'answers the list frame alone' do
       create_meeting(project: project_a, title: 'Alpha Kickoff')
       get overview_path, headers: { 'Turbo-Frame' => 'meetings_overview_results' }
@@ -276,9 +285,12 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
   describe 'empty states' do
     before { sign_in reader }
 
-    it 'shows the first-time empty state when there are no meetings at all' do
-      list
+    it 'shows the first-time empty state when there are no meetings at all, below the filter bar' do
+      page = list
       expect(response.body).to include(I18n.t('views.organisations.meetings_overview.index.empty_first_time_title'))
+      # The bar stands from the start: the "+" modal replaces only the list
+      # frame, and a bar missing until a full reload is a page without its tools.
+      expect(page).to have_css('[data-controller="filter-bar"]')
     end
 
     it 'shows the no-results empty state when a filter matches nothing' do

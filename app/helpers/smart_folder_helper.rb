@@ -158,6 +158,12 @@ module SmartFolderHelper
       base_scope = model_class.all
       base_scope = base_scope.where(organisation_id: organisation.id) if model_class.column_names.include?('organisation_id')
 
+      # A project reference without a given reach is the reader's reach in the
+      # area, never the whole organisation: the server-rendered expert form
+      # (smart_folder_rules/_rule_fields) passes no list, and the project names
+      # and ids of a project the reader cannot read are not theirs to see.
+      accessible_project_ids = AccessCheck::ProjectAccessService.accessible_project_ids(current_user, organisation, action: :read, area: area) if model_class == Project && accessible_project_ids.nil?
+
       # Restrict references to accessible projects. Scope user references (e.g.
       # assignee) to the people visible to the current user — otherwise the
       # reference list leaks names/emails of users from other projects (even other orgs).

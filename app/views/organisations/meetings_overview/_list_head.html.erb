@@ -27,32 +27,33 @@
 <%# Claim hint (Nachtrag): outside the results frame so a filter never wipes it. %>
 <%= render 'organisations/meetings/claim_suggestions', matches: meeting_claim_matches %>
 
-<% unless meetings_overview_first_use? %>
-  <%# The words of the bar are the project page's (i18n_scope): the same list,
-      the same sentence. Only the category "Projekt" is this page's own. %>
-  <%= render NeoFilterBarComponent.new(
-    current_user_id: current_user.id,
-    smart_folders: @meeting_smart_folders,
-    url: organisation_meetings_path(@current_organisation),
-    frame_id: Organisations::MeetingsOverviewController::LIST_FRAME_ID,
-    i18n_scope: 'views.organisations.meetings.index',
-    all_items_label: t('smart_folders.all_meetings'),
-    smart_folder_context_type: 'Meeting',
-    smart_folder_return_to: 'meetings',
-    save_target_object_type: 'Meeting',
-    return_params: meeting_list_state,
-    return_keys: Meetings::ListState::KEYS,
-    active_smart_folder: @active_smart_folder,
-    active_view_permissions: filter_bar_view_permissions(@active_smart_folder),
-    dissolver_result: @dissolver_result,
-    ad_hoc_filters: ad_hoc_filter_params,
-    ad_hoc_operators: ad_hoc_filter_op_params,
-    dropped_categories: dropped_filter_categories,
-    filter_categories_json: meeting_filter_categories_json(scope: policy_scope(Meeting), organisation: @current_organisation,
-                                                           projects: meeting_filter_projects),
-    search_value: params[:search],
-    search_mode: @current_search_mode,
-    search_modes: %w[title_only content],
-    organisation: @current_organisation
-  ) %>
-<% end %>
+<%# The words of the bar are the project page's (i18n_scope): the same list,
+    the same sentence. Only the category "Projekt" is this page's own.
+    Unlike the project page, the bar stands before the first meeting too: the
+    "+" modal replaces only the list frame, never this head, so a bar left out
+    here would stay missing until a full reload. %>
+<%= render NeoFilterBarComponent.new(
+  current_user_id: current_user.id,
+  smart_folders: @meeting_smart_folders,
+  url: organisation_meetings_path(@current_organisation),
+  frame_id: Organisations::MeetingsOverviewController::LIST_FRAME_ID,
+  i18n_scope: 'views.organisations.meetings.index',
+  all_items_label: t('smart_folders.all_meetings'),
+  smart_folder_context_type: 'Meeting',
+  smart_folder_return_to: 'meetings',
+  save_target_object_type: 'Meeting',
+  return_params: meeting_list_state,
+  return_keys: Meetings::ListState::KEYS,
+  active_smart_folder: @active_smart_folder,
+  active_view_permissions: filter_bar_view_permissions(@active_smart_folder),
+  dissolver_result: @dissolver_result,
+  ad_hoc_filters: ad_hoc_filter_params,
+  ad_hoc_operators: ad_hoc_filter_op_params,
+  dropped_categories: dropped_filter_categories,
+  filter_categories_json: meeting_filter_categories_json(scope: policy_scope(Meeting), organisation: @current_organisation,
+                                                         projects: meeting_filter_projects),
+  search_value: params[:search],
+  search_mode: @current_search_mode,
+  search_modes: %w[title_only content],
+  organisation: @current_organisation
+) %>

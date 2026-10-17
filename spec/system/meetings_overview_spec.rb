@@ -182,6 +182,34 @@ RSpec.describe 'Meetings overview', type: :system do
       expect_titles('Alpha Kickoff')
     end
 
+    # The list reload of the search remembers its list part with new=meeting in
+    # it, and Escape reloads no list. Back pops new=meeting over that very list
+    # part, which the restorer took for the closed lane (lib/lane/history).
+    it 'opens the form again on Back after a search beside it and Escape' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      # A search value keeps the field open, as in the keyboard example below.
+      visit organisation_meetings_path(organisation, search: 'a', search_mode: 'title_only')
+      expect_titles('Alpha Kickoff', 'Beta Retro')
+
+      open_new_meeting
+      find('input[name="search"]').fill_in(with: 'Alpha')
+      expect_titles('Alpha Kickoff')
+      expect(page).to have_current_path(/search=Alpha/, wait: 5)
+      expect(page).to have_current_path(/new=meeting/)
+      expect(page).to have_css('#meeting_display_frame #meeting-new-project')
+
+      find('#meeting_display_frame h2').click
+      page.send_keys(:escape)
+      expect(page).to have_no_css('#meeting-new-project', wait: 5)
+      expect(page).to have_no_current_path(/new=meeting/, wait: 5)
+
+      page.go_back
+      expect(page).to have_current_path(/new=meeting/, wait: 5)
+      expect(page).to have_css('#meeting_display_frame #meeting-new-project', wait: 5)
+      expect(page).to have_css('.labor-layout-view.show-content')
+      expect_titles('Alpha Kickoff')
+    end
+
     it 'opens the select on a full visit with ?new=meeting' do
       page.driver.browser.manage.window.resize_to(1440, 1000)
       visit organisation_meetings_path(organisation, new: 'meeting', search: 'Alpha')

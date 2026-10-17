@@ -75,3 +75,21 @@ test("this page's own entries restore as before, Turbo's included", () => {
   assert.equal(restoration({ shownPath: "/org/o1/projects/p1/knowledge", shownListQuery: list, address: own, groups, turboEntry: true }).kind, "frame")
   assert.equal(restoration({ shownListQuery: list, address: own, groups }).kind, "frame")
 })
+
+// "+" on "Alle Meetings" (new=meeting), then a search while the form is open: the list reload
+// remembers its list part WITH the form state. Escape closes the lane and takes new out of the
+// address, and nothing reloads the list. Back then pops new=meeting with that very list part,
+// and the restorer took it for the closed lane: the address said "form", the lane stayed shut.
+test("a form state over the list the page shows restores the page, so the form opens again", () => {
+  const meetings = parseLaneParams(JSON.stringify({ selection: ["meeting_id"], form: ["new"], ignore: ["viewport"] }))
+  const overview = (query) => new URL(`http://x.test/org/o1/meetings${query}`)
+  const reloadedWithForm = listPart("?search=Alpha&new=meeting", meetings)
+
+  assert.deepEqual(restoration({ shownListQuery: reloadedWithForm, address: overview("?search=Alpha&new=meeting"), groups: meetings }),
+    { kind: "page" })
+  assert.deepEqual(restoration({ shownListQuery: listPart("?search=Alpha", meetings), address: overview("?search=Alpha&new=meeting"), groups: meetings }),
+    { kind: "page" })
+  // No form in the address, the same list: the closed lane, as before.
+  assert.deepEqual(restoration({ shownListQuery: listPart("?search=Alpha", meetings), address: overview("?search=Alpha"), groups: meetings }),
+    { kind: "close" })
+})

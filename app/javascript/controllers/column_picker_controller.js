@@ -186,6 +186,11 @@ export default class extends Controller {
     document.removeEventListener("pointerdown", this.onPointerDown, true)
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.open
+  }
+
   // Escape closes the panel and nothing else: the detail behind it has an
   // Escape of its own on window, which runs after this document listener.
   onKeydown(event) {

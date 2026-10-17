@@ -46,6 +46,8 @@ pin 'list_row/address', to: 'lib/list_row/address.js'
 # The lane's parameter groups and what Back restores (doc/dateivorschau_plan.md, D9 and D2).
 pin 'lane/params', to: 'lib/lane/params.js'
 pin 'lane/history', to: 'lib/lane/history.js'
+# Who takes an Escape: the topmost menu, modal or drawer, before the lane.
+pin 'escape_owner', to: 'lib/escape_owner.js'
 # The document forms' drop zone: the title a file suggests (S4 of doc/dokumentansicht_plan.md).
 pin 'upload_zone/title', to: 'lib/upload_zone/title.js'
 # The folder target a type condition becomes (pure, node:test).

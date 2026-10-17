@@ -135,6 +135,12 @@ export default class extends Controller {
     this.setSelectedIndex(-1)
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape listens on its own field, so only a key pressed there counts.
+  ownsEscape() {
+    return this.selectedIndex >= 0 && this.element.contains(document.activeElement)
+  }
+
   onKeydown(event) {
     if (!this.keyboardEnabled) return
     const count = this.resultTargets.length

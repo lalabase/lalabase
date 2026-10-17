@@ -254,6 +254,12 @@ export default class extends Controller {
 
   // === The keys (S3, S4, S6) ===
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // A carried card: Escape puts it back.
+  ownsEscape() {
+    return Boolean(this.carried)
+  }
+
   key(event) {
     const stop = event.target.closest(STOP_SELECTOR)
     if (!stop || !this.element.contains(stop)) return

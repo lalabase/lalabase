@@ -67,6 +67,13 @@ export default class extends Controller {
     event.target.form.requestSubmit()
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape is bound inside the workspace: an open menu, else the open panel.
+  ownsEscape() {
+    return this.element.contains(document.activeElement) &&
+      (this.hasCloseTarget || Boolean(this.element.querySelector("details[open]")))
+  }
+
   closeMenu(event) {
     event.stopPropagation()
     event.currentTarget.open = false

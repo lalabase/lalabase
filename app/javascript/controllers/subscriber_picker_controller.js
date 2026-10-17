@@ -78,6 +78,11 @@ export default class extends Controller {
     }
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.hasDropdownTarget && !this.dropdownTarget.classList.contains("hidden")
+  }
+
   _onKeydown(event) {
     if (event.key === "Escape") {
       this._close()

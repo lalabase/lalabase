@@ -32,6 +32,12 @@ export default class extends Controller {
     window.addEventListener('resize', this.boundHide)
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape listens on its own field, so only a key pressed there counts.
+  ownsEscape() {
+    return Boolean(this.tooltip) && this.element.contains(document.activeElement)
+  }
+
   hide(event) {
     if (event?.key === 'Escape' && this.tooltip) {
       event.preventDefault()

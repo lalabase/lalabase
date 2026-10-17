@@ -47,6 +47,12 @@ export default class extends Controller {
     }
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // The same two conditions as its Escape listener in connect().
+  ownsEscape() {
+    return this.element.open && this.element.contains(document.activeElement)
+  }
+
   disconnect() {
     this.stopListening()
   }

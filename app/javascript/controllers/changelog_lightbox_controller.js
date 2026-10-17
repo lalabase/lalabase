@@ -20,6 +20,11 @@ export default class extends Controller {
     document.body.classList.remove("overflow-hidden")
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.hasOverlayTarget && !this.overlayTarget.classList.contains("hidden")
+  }
+
   // Close on Escape key
   keydown(event) {
     if (event.key === "Escape") this.close()

@@ -143,6 +143,11 @@ export default class extends Controller {
     }
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.element.open && this.element.contains(document.activeElement)
+  }
+
   closeOnEscape(event) {
     if (event.key !== "Escape" || !this.element.open) return
     // Only act while focus is still inside the open menu. A native <details> does not close

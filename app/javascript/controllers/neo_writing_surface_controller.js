@@ -15,6 +15,12 @@ export default class extends Controller {
     if (this.hasTitleTarget && !this.titleTarget.value) this.titleTarget.focus()
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // The surface stands in the page only while it is open: closing removes it.
+  ownsEscape() {
+    return true
+  }
+
   escape(event) {
     // Lexxy and the tag picker use Escape themselves; only react when nothing else did.
     if (event.defaultPrevented) return

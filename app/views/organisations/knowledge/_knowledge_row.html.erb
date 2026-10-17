@@ -55,8 +55,8 @@
   </td>
   <td class="p-3 whitespace-nowrap w-[20%]" data-fb-col-date>
     <div class="text-sm">
-      <span class="date-full"><%= item.created_at.strftime("%d %b %Y %H:%M") %></span>
-      <span class="date-compact hidden"><%= item.created_at.strftime("%d.%m.%y") %></span>
+      <span class="date-full"><%= l(item.created_at, format: :long) %></span>
+      <span class="date-compact hidden"><%= l(item.created_at.to_date) %></span>
     </div>
   </td>
   <td class="p-3 w-[25%]">

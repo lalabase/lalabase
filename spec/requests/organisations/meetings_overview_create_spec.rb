@@ -214,7 +214,7 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
 
     it 'falls back to the full page for an unknown frame value instead of half a page' do
       sign_in writer_a
-      get new_organisation_project_meeting_path(organisation, project_a, frame: 'modal'),
+      get new_organisation_project_meeting_path(organisation, project_a, frame: 'bogus'),
           headers: { 'Turbo-Frame' => 'meeting_new_form' }
 
       expect(response).to have_http_status(:ok)

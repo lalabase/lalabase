@@ -356,8 +356,8 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
     it 'shows the first-time empty state when there are no meetings at all, below the filter bar' do
       page = list
       expect(response.body).to include(I18n.t('views.organisations.meetings_overview.index.empty_first_time_title'))
-      # The bar stands from the start: the "+" modal replaces only the list
-      # frame, and a bar missing until a full reload is a page without its tools.
+      # The bar stands from the start: a save from the "+" replaces only the
+      # list frame, and a bar missing until a full reload is a page without its tools.
       expect(page).to have_css('[data-controller="filter-bar"]')
     end
 

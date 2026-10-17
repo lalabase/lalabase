@@ -10,11 +10,11 @@
 #   "Alle Meetings"        Organisations::MeetingsOverviewController, and
 #                          MeetingsController for a request with
 #                          list_context=organisation (Meetings::ListState):
-#                          a save in the lane or the modal of that page   nil
+#                          a save in the lane of that page                nil
 #
 # #meeting_organisation_list? is the ONE question "which list?" for every
 # stream, redirect and link that leads back to a list. Until 17.10.2026 the
-# modal asked a question of its own (context=overview_modal).
+# "+" of "Alle Meetings" asked a question of its own (context=overview_modal).
 #
 # A list shows the meeting views of its own project: a view without a project
 # belongs to "Alle Meetings" and shows only there (decision 3 of the plan).

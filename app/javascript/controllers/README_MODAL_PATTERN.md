@@ -4,7 +4,7 @@
 
 Diese Dokumentation beschreibt das Modal-Pattern, das für TimeSession entwickelt wurde und als Vorlage für andere Modals in der Anwendung dienen soll.
 
-Referenz-Implementierung ist `meeting_modal_controller.js` („Neues Meeting“ in der Meetings-Übersicht der Organisation). Bis zum 16.09.2026 war es `time_session_modal_controller.js`; er wurde zusammen mit dem Zeit-Knopf im Meetings-Kopf gelöscht, seiner letzten Einbindung.
+Referenz-Implementierung ist `ticket_relation_modal_controller.js` (das Modal „Verknüpfen“ eines Tickets): Fokusfalle über `dialog_a11y`, Schließen über Hintergrund und Escape, Rückgabe des Fokus an den Auslöser. Bis zum 17.10.2026 war es `meeting_modal_controller.js`; er wurde gelöscht, weil „Neues Meeting“ auf „Alle Meetings“ seitdem in der Bahn öffnet. Bis zum 16.09.2026 war es `time_session_modal_controller.js`; er wurde zusammen mit dem Zeit-Knopf im Meetings-Kopf gelöscht, seiner letzten Einbindung.
 
 ## Design-Philosophie
 
@@ -17,7 +17,7 @@ Referenz-Implementierung ist `meeting_modal_controller.js` („Neues Meeting“ 
 
 ### Schritt 1: Controller erstellen
 
-Kopieren Sie `meeting_modal_controller.js` und passen Sie an:
+Kopieren Sie `ticket_relation_modal_controller.js` und passen Sie an:
 
 ```javascript
 // beispiel_modal_controller.js
@@ -116,7 +116,7 @@ Verwenden Sie spezifische Klassen für Fehler-Container:
 
 ### 3. Stimulus Controller Naming
 Folgen Sie der Konvention: `[resource]-modal`:
-- `meeting-modal`
+- `ticket-relation-modal`
 - `ticket-modal`
 - `note-modal`
 

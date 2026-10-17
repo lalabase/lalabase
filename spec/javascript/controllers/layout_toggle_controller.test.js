@@ -39,10 +39,7 @@ test('an open dialog or menu owns Escape before the detail lane', () => {
     '[data-ticket-bulk-panel-target="pickerMenu"]:not([hidden])',
     // The "Link" modal of a ticket page is the content of its frame, so it
     // exists only while open. Without it Escape closed the lane BEHIND it.
-    '[data-controller~="ticket-relation-modal"]',
-    // The "+" modal of "Alle Meetings": Escape closed it AND the lane behind
-    // it, with an unsaved edit in that lane.
-    '[data-meeting-modal-target="modal"]:not(.hidden)'
+    '[data-controller~="ticket-relation-modal"]'
   ]
 
   for (const overlay of overlays) {

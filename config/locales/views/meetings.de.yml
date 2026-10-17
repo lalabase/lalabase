@@ -194,11 +194,6 @@ de:
         index:
           title: Alle Meetings
           new_meeting: Neues Meeting
-          modal_title: Neues Meeting
-          modal_close: Schließen
-          modal_project_label: Projekt
-          modal_project_prompt: Projekt wählen …
-          modal_select_project_first: Wähle zuerst ein Projekt.
           empty_first_time_title: Noch keine Meetings
           empty_first_time_description: Sobald in deinen Projekten Meetings erfasst werden, findest du sie hier projektübergreifend — zum Beispiel alle Meetings mit einer bestimmten Person.
         new_meeting:

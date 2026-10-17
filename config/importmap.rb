@@ -19,10 +19,6 @@ pin 'meetings/name_normalizer', to: 'lib/meetings/name_normalizer.js'
 # Meetings Slice 5: pure LLM-detection merge rule, same inject-normalize pattern.
 pin 'meetings/participant_merge', to: 'lib/meetings/participant_merge.js'
 pin 'time_session_modal', to: 'lib/time_session_modal.js'
-# Overview meeting modal: the list state merge and the "did this really save?"
-# predicate, pure so spec/javascript can test them independently of the mobile
-# browser regressions that also run in CI.
-pin 'meeting_modal', to: 'lib/meeting_modal.js'
 # The project select of "Neues Meeting" on "Alle Meetings": which form its frame
 # shows, pure so spec/javascript can test it.
 pin 'meeting_project_select', to: 'lib/meeting_project_select.js'
@@ -180,7 +176,6 @@ else
   pin 'controllers/layout_toggle_controller', to: 'controllers/layout_toggle_controller.js'
   pin 'controllers/list_row_controller', to: 'controllers/list_row_controller.js'
   pin 'controllers/meeting_analysis_composer_controller', to: 'controllers/meeting_analysis_composer_controller.js'
-  pin 'controllers/meeting_modal_controller', to: 'controllers/meeting_modal_controller.js'
   pin 'controllers/meeting_participants_controller', to: 'controllers/meeting_participants_controller.js'
   pin 'controllers/meeting_project_select_controller', to: 'controllers/meeting_project_select_controller.js'
   pin 'controllers/meeting_section_sync_controller', to: 'controllers/meeting_section_sync_controller.js'

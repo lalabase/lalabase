@@ -15,8 +15,9 @@ import { trapTabKey } from "dialog_a11y"
  * is left in the frame, the focus returns to the trigger, found again by its id when a
  * stream replaced it; a menu entry hands over to its menu button.
  *
- * Shape after docs/dokumentation/modal_pattern.md (reference: meeting_modal_controller.js);
- * the focus trap is the shared lib/dialog_a11y.js.
+ * The reference implementation of the modal pattern (README_MODAL_PATTERN.md) since
+ * 17.10.2026: focus trap through the shared lib/dialog_a11y.js, closing on the backdrop and
+ * on Escape, and the focus back to the trigger.
  */
 export default class extends Controller {
   static targets = ["card", "kind", "delay", "delayField"]

@@ -74,4 +74,34 @@ RSpec.describe 'Organisations::ViewConfigurations#apply_columns_to_all', type: :
 
     expect(flash[:notice]).to eq('Spalten für eine Ansicht übernommen.')
   end
+
+  # A meeting view without a project belongs to "Alle Meetings" and shows only
+  # there (meetings_uebersicht_vereinheitlichen_plan.md, decision 3). Until PR 2
+  # the project page's "für alle Ansichten übernehmen" still wrote into it, so a
+  # click on a project page changed the columns of a list it does not show.
+  # Ticket views without a project keep showing in every project list and keep
+  # taking the list (first example).
+  describe 'meeting views' do
+    def meeting_folder(name:, owner:, project:)
+      ActsAsTenant.with_tenant(organisation) do
+        create(:smart_folder, name: name, organisation: organisation, project: project, user: owner,
+                              target_object_type: 'Meeting', display_columns: { 'table_columns' => %w[title occurred_at] })
+      end
+    end
+
+    it 'writes the own meeting views of this project and none of the overview' do
+      own_project_view = meeting_folder(name: 'Projekt', owner: user, project: project)
+      own_overview_view = meeting_folder(name: 'Übersicht', owner: user, project: nil)
+      own_elsewhere = meeting_folder(name: 'Anderswo', owner: user, project: other_project)
+
+      patch apply_columns_to_all_organisation_project_view_configuration_path(organisation, project, view_type: 'meetings'),
+            params: { view_configuration: { table_columns: %w[creator] } }
+
+      expect(response).to redirect_to(organisation_project_meetings_path(organisation, project))
+      expect(flash[:notice]).to eq('Spalten für 2 Ansichten übernommen.')
+      expect(columns_of(own_project_view)).to eq(%w[title creator])
+      expect(columns_of(own_overview_view)).to eq(%w[title occurred_at])
+      expect(columns_of(own_elsewhere)).to eq(%w[title occurred_at])
+    end
+  end
 end

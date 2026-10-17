@@ -1,10 +1,21 @@
 # frozen_string_literal: true
 
+# The base view's settings of a list: columns, pins, view mode. Two routes lead
+# here. The project route (resource :view_configuration under a project) serves
+# tickets and the meetings of a project. The organisation route (resource
+# :meetings_view_configuration) serves the base view of "Alle Meetings", which
+# has no project (meetings_uebersicht_vereinheitlichen_plan.md, PR 2): only
+# columns and apply_columns_to_all, view_type pinned to meetings by the route.
+# One controller, so both lists refuse and store keys and pins the same way.
 class Organisations::ViewConfigurationsController < Organisations::BaseController
   include ProjectController
 
+  # Whether the route names a project is read from the path, never from the
+  # query: a project_id in the address of the organisation route stays a
+  # query param and changes nothing.
+  skip_before_action :set_project, unless: :project_route?
   skip_before_action :authorize_project_access!
-  before_action :authorize_project_show
+  before_action :authorize_list_access
   before_action :set_view_configuration
 
   def update
@@ -60,7 +71,8 @@ class Organisations::ViewConfigurationsController < Organisations::BaseControlle
   def apply_columns_to_all
     keys = ViewConfiguration.normalize_columns(params.dig(:view_configuration, :table_columns), column_view_type)
     known = @view_configuration.available_columns.map { |column| column[:key] }
-    actor = Actors::ApplyColumnsToViews.new(project: @project, current_user: current_user, columns: keys & known, view_type: column_view_type)
+    actor = Actors::ApplyColumnsToViews.new(project: @project, organisation: @current_organisation, current_user: current_user,
+                                            columns: keys & known, view_type: column_view_type)
     result = actor.call
 
     if result.success?
@@ -86,6 +98,20 @@ class Organisations::ViewConfigurationsController < Organisations::BaseControlle
 
   private
 
+  def project_route?
+    request.path_parameters.key?(:project_id)
+  end
+
+  def authorize_list_access
+    return authorize_project_show if @project
+
+    # "Alle Meetings": the page's own gate (MeetingsOverviewController#require_meetings_access),
+    # read access to meetings in at least one project of this organisation.
+    head :forbidden unless AccessCheck::ProjectAccessService.accessible_project_ids(
+      current_user, @current_organisation, action: :read, area: :meetings
+    ).any?
+  end
+
   def authorize_project_show
     authorize @project, :show?
     head :forbidden unless policy(@project).area_access?(column_view_type.to_sym, :read)
@@ -96,12 +122,18 @@ class Organisations::ViewConfigurationsController < Organisations::BaseControlle
   end
 
   def column_list_path
+    return organisation_meetings_path(@current_organisation) unless @project
+
     column_view_type == 'meetings' ? organisation_project_meetings_path(@current_organisation, @project) : organisation_project_tickets_path(@current_organisation, @project)
   end
 
+  # Always the reader's own row in this organisation (ViewConfigurationPolicy:
+  # owner only, no admin bypass).
   def set_view_configuration
-    @view_configuration = ViewConfiguration.for_user_project(current_user, @project, column_view_type)
+    @view_configuration = ViewConfiguration.for_list(user: current_user, organisation: @current_organisation,
+                                                     project: @project, view_type: column_view_type)
     @view_configuration.organisation = @current_organisation
+    authorize @view_configuration, :update?
   end
 
   def view_configuration_params

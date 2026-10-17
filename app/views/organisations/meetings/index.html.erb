@@ -13,18 +13,7 @@
 
 <div class="labor-layout-view <%= 'show-content' if @selected_meeting || @new_meeting %> hide-panel"
      data-controller="layout-toggle hover-arrows index-page keyboard-navigation viewport column-picker"
-     data-column-picker-frame-value="meetings_results"
-     data-column-picker-required-value='<%= ["title"].to_json %>'
-     data-column-picker-fixed-width-value="<%= ViewConfiguration::COLUMN_MIN_WIDTH_PX['title'] %>"
-     data-column-picker-save-url-value="<%= @active_smart_folder ? columns_organisation_smart_folder_path(@current_organisation, @active_smart_folder) : columns_organisation_project_view_configuration_path(@current_organisation, @project, view_type: 'meetings') %>"
-     data-column-picker-project-id-value="<%= @project.id %>"
-     data-column-picker-editable-value="<%= @active_smart_folder.nil? || policy(@active_smart_folder).update? %>"
-     data-column-picker-error-label-value="<%= t('components.column_picker.save_failed') %>"
-     data-column-picker-moved-template-value="<%= t('components.column_picker.moved', name: '%{name}', position: '%{position}') %>"
-     data-column-picker-pin-label-on-value="<%= t('components.column_picker.pin_label_on', name: '%{name}') %>"
-     data-column-picker-pin-label-off-value="<%= t('components.column_picker.pin_label_off', name: '%{name}') %>"
-     data-column-picker-pin-title-on-value="<%= t('components.column_picker.pinned') %>"
-     data-column-picker-pin-title-off-value="<%= t('components.column_picker.pin') %>"
+     <%= tag.attributes(data: meeting_column_picker_data(project: @project, frame_id: 'meetings_results')) %>
      data-hover-arrows-layout-toggle-outlet=".labor-layout-view"
      data-layout-toggle-list-frame-ids-value="<%= ['meetings_results'].to_json %>"
      data-layout-toggle-detail-frame-id-value="meeting_display_frame"

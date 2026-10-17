@@ -22,11 +22,6 @@
 module MeetingList
   extend ActiveSupport::Concern
 
-  # The columns of "Alle Meetings" until it gets the column picker (PR 2 of the
-  # plan). Labels and types come from the meetings column list; project is the
-  # one column only this list has.
-  OVERVIEW_COLUMN_KEYS = %w[title project occurred_at duration_minutes participants].freeze
-
   private
 
   # Sets what the list head and the rows read (@meeting_smart_folders,
@@ -66,23 +61,13 @@ module MeetingList
     project ? policy_scope(project.meetings) : policy_scope(Meeting)
   end
 
+  # The base view of this list: the reader's row of the project, or on "Alle
+  # Meetings" the row without a project, which offers the column "Projekt" too.
+  # A saved view brings its own list (Lists::ResolveColumns).
   def meeting_list_columns
-    project = meeting_list_project
-    return overview_columns unless project
-
-    @view_configuration = ViewConfiguration.for_user_project(current_user, project, 'meetings')
+    @view_configuration = ViewConfiguration.for_list(user: current_user, organisation: @current_organisation,
+                                                     project: meeting_list_project, view_type: 'meetings')
     Lists::ResolveColumns.call(view_configuration: @view_configuration, smart_folder: @active_smart_folder)
-  end
-
-  # The same column hashes the project list renders from (Lists::ResolveColumns),
-  # in a fixed order.
-  def overview_columns
-    by_key = ViewConfiguration.meeting_base_columns.index_by { |column| column[:key] }
-    by_key['project'] = { key: 'project', type: 'text', label: t('models.view_configuration.meeting_columns.project') }
-    OVERVIEW_COLUMN_KEYS.each_with_index.map do |key, index|
-      column = by_key.fetch(key)
-      column.merge(rank: (index unless column[:required]), min_width: ViewConfiguration.column_min_width(column), pinned: false)
-    end
   end
 
   # A search term is one string; any other shape is no search.

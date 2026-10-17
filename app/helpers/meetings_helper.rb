@@ -49,16 +49,42 @@ module MeetingsHelper
     end
   end
 
-  # The share of the width each fixed column of "Alle Meetings" takes
-  # (MeetingList::OVERVIEW_COLUMN_KEYS). Here and not in the concern: Tailwind
-  # scans helpers for class names, controllers it does not.
-  MEETING_OVERVIEW_COLUMN_WIDTHS = {
-    'title' => 'w-[30%]', 'project' => 'w-[18%]', 'occurred_at' => 'w-[18%]',
-    'duration_minutes' => 'w-[10%]', 'participants' => 'w-[24%]'
-  }.freeze
+  # The column picker's wiring on a meetings list page, the element that
+  # carries data-controller="column-picker": where a change is saved, which
+  # frame it reloads, and its words. project nil is "Alle Meetings". A change
+  # goes into the open saved view, else into the base view of this list.
+  def meeting_column_picker_data(project:, frame_id:)
+    {
+      column_picker_frame_value: frame_id,
+      column_picker_required_value: ViewConfiguration.required_columns_for('meetings').to_json,
+      column_picker_fixed_width_value: ViewConfiguration::COLUMN_MIN_WIDTH_PX['title'],
+      column_picker_save_url_value: meeting_columns_save_url(project),
+      # Only an org-wide TICKET view needs to name a project; a meeting view
+      # belongs to its list, so none is sent from "Alle Meetings".
+      column_picker_project_id_value: project&.id,
+      column_picker_editable_value: (@active_smart_folder.nil? || policy(@active_smart_folder).update?).to_s,
+      column_picker_error_label_value: t('components.column_picker.save_failed'),
+      column_picker_moved_template_value: t('components.column_picker.moved', name: '%{name}', position: '%{position}'),
+      column_picker_pin_label_on_value: t('components.column_picker.pin_label_on', name: '%{name}'),
+      column_picker_pin_label_off_value: t('components.column_picker.pin_label_off', name: '%{name}'),
+      column_picker_pin_title_on_value: t('components.column_picker.pinned'),
+      column_picker_pin_title_off_value: t('components.column_picker.pin')
+    }
+  end
 
-  def meeting_overview_column_width_class(column)
-    MEETING_OVERVIEW_COLUMN_WIDTHS.fetch(column[:key].to_s)
+  def meeting_columns_save_url(project)
+    return columns_organisation_smart_folder_path(@current_organisation, @active_smart_folder) if @active_smart_folder
+    return columns_organisation_meetings_view_configuration_path(@current_organisation) unless project
+
+    columns_organisation_project_view_configuration_path(@current_organisation, project, view_type: 'meetings')
+  end
+
+  # "für alle Ansichten übernehmen": the base view of this list and the
+  # reader's own views of it (Actors::ApplyColumnsToViews).
+  def meeting_columns_apply_all_url(project)
+    return apply_columns_to_all_organisation_meetings_view_configuration_path(@current_organisation) unless project
+
+    apply_columns_to_all_organisation_project_view_configuration_path(@current_organisation, project, view_type: 'meetings')
   end
 
   # A column head that sorts its list: base_path is the list's address (the

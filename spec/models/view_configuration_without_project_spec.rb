@@ -84,14 +84,14 @@ RSpec.describe ViewConfiguration, 'without a project' do
   end
 
   describe '.for_user_organisation' do
-    it 'starts with the columns "Alle Meetings" always showed, participants pinned' do
+    it 'starts with the columns "Alle Meetings" always showed, project and participants pinned' do
       config = described_class.for_user_organisation(user, organisation, 'meetings')
 
       expect(config).not_to be_persisted
       expect(config.project).to be_nil
       expect(config.organisation).to eq(organisation)
       expect(config.ordered_columns).to eq(%w[title project occurred_at duration_minutes participants])
-      expect(config.pinned_column_keys).to eq(%w[participants])
+      expect(config.pinned_column_keys).to eq(%w[project participants])
     end
 
     it 'returns the stored row' do

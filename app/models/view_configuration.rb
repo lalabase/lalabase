@@ -291,11 +291,21 @@ class ViewConfiguration < ApplicationRecord
   def self.find_or_initialize_with_defaults(**attributes)
     find_or_initialize_by(**attributes) do |config|
       config.table_columns = default_columns_for(attributes[:project], attributes[:view_type])
-      config.pinned_columns = %w[participants] if attributes[:view_type] == 'meetings'
+      config.pinned_columns = default_pins_for(attributes[:project], attributes[:view_type])
       config.header_columns = DEFAULT_HEADER_COLUMNS
     end
   end
   private_class_method :find_or_initialize_with_defaults
+
+  # The values a base view keeps readable under the title when its column does
+  # not fit. On a meetings list the participants; on "Alle Meetings" the
+  # project as well, because a row that cannot name its project there (a phone,
+  # a narrow list) says less than the page did before it had a picker.
+  def self.default_pins_for(project, view_type)
+    return [] unless view_type == 'meetings'
+
+    project ? %w[participants] : %w[project participants]
+  end
 
   # Get all available columns for configuration (instance method)
   #

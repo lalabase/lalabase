@@ -72,15 +72,7 @@
   organisation: @current_organisation
 ) do |bar| %>
   <% bar.with_view_tool do %>
-    <button type="button"
-            class="column-picker-trigger grid place-items-center h-7 w-7 rounded-md text-muted hover:text-heading hover:bg-cream-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-            data-column-picker-trigger
-            data-action="click->column-picker#toggle"
-            aria-expanded="false"
-            aria-controls="<%= Neo::ColumnPickerComponent::ELEMENT_ID %>"
-            title="<%= t('components.column_picker.trigger_title') %>">
-      <i class="bi bi-sliders2 text-sm" aria-hidden="true"></i>
-    </button>
+    <%= render 'organisations/meetings/column_picker_trigger' %>
   <% end %>
 <% end %>
 

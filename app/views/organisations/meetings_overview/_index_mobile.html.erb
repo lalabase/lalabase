@@ -1,0 +1,17 @@
+<%# locals: () %>
+<%# Phone: the project page's list (meetings/_index_mobile) with its picker,
+    which floats over the list (views.css, .meeting-mobile-grid). No detail
+    yet: a row opens the meeting on its project's page. %>
+<div class="meeting-mobile-grid list" data-column-picker-target="grid">
+  <%= render NeoMobileTicketViewComponent.new(
+    back_url: organisation_meetings_path(@current_organisation),
+    back_label: t('views.organisations.meetings.index.mobile_list_view')
+  ) do |mobile| %>
+    <% mobile.with_list do %>
+      <%= render 'organisations/meetings_overview/list_head' %>
+      <%= render 'organisations/meetings_overview/results', meetings: @meetings, first_use: meetings_overview_first_use? %>
+    <% end %>
+  <% end %>
+
+  <%= render 'organisations/meetings/column_picker' %>
+</div>

@@ -34,6 +34,12 @@ export default class extends Controller {
     }
   }
   
+  // Pflicht für jedes Escape (lib/escape_owner.js): wahr, solange das Modal
+  // offen ist. Sonst schließt Escape auch die Detail-Bahn dahinter.
+  ownsEscape() {
+    return this.hasModalTarget && !this.modalTarget.classList.contains("hidden")
+  }
+
   // Rest bleibt gleich...
 }
 ```
@@ -189,6 +195,10 @@ Die Controller haben bereits Debug-Ausgaben:
 3. **ESC funktioniert nicht**:
    - Prüfen Sie data-action am Container
    - Stellen Sie sicher, dass keine anderen Handler interferieren
+
+4. **ESC schließt auch die Detail-Bahn dahinter**:
+   - `ownsEscape()` fehlt oder antwortet falsch (`spec/architecture/escape_owner_guard_spec.rb`
+     meldet das Fehlen)
 
 ## Wartung
 

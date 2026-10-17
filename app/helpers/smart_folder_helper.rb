@@ -185,7 +185,10 @@ module SmartFolderHelper
 
       # Filter by search term, if one is present
       records = records.where('name ILIKE ?', "%#{search_term}%") if search_term.present? && model_class.column_names.include?('name')
-      records = records.limit(50) # Limit for performance
+      # Limit for performance. Not for projects: the reader's projects are few, the
+      # filter bar offers all of them, and the expert form has no search, so a
+      # view on a project past the cut would open with a blank value.
+      records = records.limit(50) unless model_class == Project
 
       # Format options
       records.map do |record|

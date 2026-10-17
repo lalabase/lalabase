@@ -245,6 +245,30 @@ RSpec.describe 'Organisations::MeetingsOverview saved views', :ci_guard, type: :
       expect(response.parsed_body.fetch('options').map { |option| option['label'] }).to eq(['Projekt Alpha', 'Projekt Beta'])
     end
 
+    # The bar offers every readable project, and a view saved there names any of
+    # them. The expert form has no search, so a cut-off list would show such a
+    # view's project as blank and refuse to save it unchanged.
+    it 'offers every readable project and keeps the stored one selected beyond the first 50' do
+      50.times do |index|
+        create(:project_permission, project: create(:project, organisation: organisation, name: format('Projekt %02d', index)),
+                                    user: user, meetings_access: 'read_only')
+      end
+      zeta = create(:project, organisation: organisation, name: 'Projekt Zeta')
+      create(:project_permission, project: zeta, user: user, meetings_access: 'read_only')
+      view = folder('Nur Zeta').tap do |saved|
+        saved.smart_folder_rule_groups.create!(position: 1)
+             .smart_folder_rules.create!(field: 'project', operator: 'equals', value: zeta.id, position: 1)
+      end
+
+      get organisation_reference_options_path(organisation, field: 'project'), params: { context_type: 'Meeting' }
+      expect(response.parsed_body.fetch('options').size).to eq(53)
+
+      form = page_at(edit_organisation_smart_folder_path(organisation, view, modal: true, return_to: 'meetings'))
+      value_select = form.find("select[data-field='project']")
+      expect(value_select.all('option').size).to eq(54) # the prompt and 53 projects
+      expect(value_select.find('option[selected]').text).to eq('Projekt Zeta')
+    end
+
     it 'does not offer the project field on a view of one project' do
       get new_organisation_smart_folder_path(organisation, context_type: 'Meeting', project_id: project_a.id, modal: true, return_to: 'meetings')
 

@@ -22,7 +22,7 @@
 <div class="labor-layout-view <%= 'show-content' if @selected_meeting %> hide-panel"
      <%= tag.attributes(data: meeting_list_page_data(index_url: organisation_meetings_path(@current_organisation),
                                                      list_frame_id: Organisations::MeetingsOverviewController::LIST_FRAME_ID,
-                                                     viewport_mode: @viewport_mode)
+                                                     viewport_mode: @viewport_mode, selected: @selected_meeting)
                                 .merge(meeting_column_picker_data(organisation: @current_organisation, project: nil, active_view: @active_smart_folder,
                                                                   frame_id: Organisations::MeetingsOverviewController::LIST_FRAME_ID))) %>>
   <% list = capture do %>

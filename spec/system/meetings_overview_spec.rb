@@ -180,6 +180,16 @@ RSpec.describe 'Meetings overview', type: :system do
 
     def lane_title = find('#meeting_display_frame h2', wait: 5)
 
+    # The lane decides on connect: a check before that sees only the server's markup.
+    def wait_for_layout_toggle
+      page.document.synchronize do
+        connected = page.evaluate_script(<<~JS)
+          Boolean(window.Stimulus?.getControllerForElementAndIdentifier(document.querySelector('.labor-layout-view'), 'layout-toggle'))
+        JS
+        raise Capybara::ExpectationNotMet, 'layout-toggle is not connected yet' unless connected
+      end
+    end
+
     before do
       ActsAsTenant.with_tenant(organisation) do
         ['Alpha Kickoff', 'Beta Retro'].each do |title|
@@ -211,6 +221,26 @@ RSpec.describe 'Meetings overview', type: :system do
       expect(page).to have_css("#{overview_rows}.selected-row", text: 'Beta Retro neu')
       expect(page).to have_current_path(/filter%5Bparticipant%5D/)
       expect(page).to have_current_path(/meeting_id=/)
+    end
+
+    it 'keeps the list full width for a meeting_id it could not open, here and on the project page' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      gone = SecureRandom.uuid
+
+      visit organisation_meetings_path(organisation, meeting_id: gone, search: 'Alpha')
+      expect(page).to have_css(overview_rows, count: 2, wait: 10)
+      wait_for_layout_toggle
+      expect(page).to have_no_css('.labor-layout-view.show-content')
+      expect(page).to have_no_css('#meeting_display_frame h2')
+      expect(page).to have_no_current_path(/meeting_id=/, wait: 5)
+      expect(page).to have_current_path(/search=Alpha/)
+
+      # Another project's meeting is not this project's page's to open.
+      visit organisation_project_meetings_path(organisation, alpha, meeting_id: meeting('Beta Retro').id)
+      expect(page).to have_css('#meetings_results tr[data-meeting-id]', count: 2, wait: 10)
+      wait_for_layout_toggle
+      expect(page).to have_no_css('.labor-layout-view.show-content')
+      expect(page).to have_no_current_path(/meeting_id=/, wait: 5)
     end
 
     it 'keeps the overview context through a link rendered without it' do

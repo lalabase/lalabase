@@ -70,8 +70,9 @@ module MeetingsHelper
   # (syncUrlFromFrame, the list state in list_filter_params); the row opener
   # and the ✕ write the lane part. The column picker's wiring is merged in by
   # the page (meeting_column_picker_data).
-  def meeting_list_page_data(index_url:, list_frame_id:, viewport_mode:, lane_forms: [])
+  def meeting_list_page_data(index_url:, list_frame_id:, viewport_mode:, selected:, lane_forms: [], new_form_open: false)
     detail_frame_id = Organisations::MeetingsController::DETAIL_FRAME_ID
+    unresolved = meeting_unresolved_lane_params(selected: selected, lane_forms: lane_forms, new_form_open: new_form_open)
     # Which list the lane belongs to, added by layout-toggle to every request of
     # the lane at click and submit: also to a link rendered without it (a
     # broadcast, a section refresh). None on the project page.
@@ -88,6 +89,7 @@ module MeetingsHelper
       layout_toggle_storage_key_value: 'layoutState:meetings',
       layout_toggle_clear_detail_on_close_value: 'true',
       layout_toggle_lane_context_value: (lane_context.to_json if lane_context.any?),
+      layout_toggle_unresolved_selection_value: (unresolved.to_json if unresolved.any?),
       viewport_breakpoint_value: LANE_FULL_PAGE_BELOW_PX,
       index_page_param_name_value: 'meeting_id',
       index_page_frame_id_value: detail_frame_id,
@@ -102,6 +104,20 @@ module MeetingsHelper
       index_url: index_url,
       lane_params: lane_params_json(selection: %w[meeting_id], form: lane_forms)
     }.compact
+  end
+
+  # The lane parameters of this visit the server did not open: a meeting_id it
+  # could not resolve (deleted, unknown, unreadable, another project's) and a
+  # new form it did not render. layout-toggle takes them out of the address
+  # before anything reads it, so the page stays the list instead of opening an
+  # empty lane. Name and value, so it never drops a selection made since.
+  def meeting_unresolved_lane_params(selected:, lane_forms:, new_form_open:)
+    unresolved = {}
+    meeting_id = params[:meeting_id]
+    unresolved['meeting_id'] = meeting_id if meeting_id.is_a?(String) && meeting_id.present? && selected.nil?
+    new_form = params[:new]
+    unresolved['new'] = new_form if lane_forms.include?('new') && new_form.is_a?(String) && new_form.present? && !new_form_open
+    unresolved
   end
 
   # The placeholders column_picker_controller fills in itself, passed through

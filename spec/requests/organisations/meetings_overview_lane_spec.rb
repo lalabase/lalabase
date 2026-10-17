@@ -135,6 +135,41 @@ RSpec.describe 'Organisations::MeetingsOverview lane', type: :request do
       expect(edit).to include('list_context' => 'organisation', 'search' => 'Kick', 'search_mode' => 'title_only')
     end
 
+    # The address must only name what the server opened: a selection it could
+    # not resolve would make layout-toggle and index-page open an empty lane.
+    it 'names a meeting_id it could not resolve, so the page takes it out of the address' do
+      deleted_id = SecureRandom.uuid
+      get overview_path, params: { meeting_id: deleted_id, search: 'a' }
+
+      expect(response).to have_http_status(:ok)
+      wrapper = page_body.find('.labor-layout-view')
+      expect(wrapper[:class].split).not_to include('show-content')
+      expect(JSON.parse(wrapper['data-layout-toggle-unresolved-selection-value'])).to eq('meeting_id' => deleted_id)
+
+      get overview_path, params: { meeting_id: alpha.id }
+
+      wrapper = page_body.find('.labor-layout-view.show-content')
+      expect(wrapper['data-layout-toggle-unresolved-selection-value']).to be_nil
+    end
+
+    it 'does the same on the project page, for a meeting_id and for a new form it did not open' do
+      get organisation_project_meetings_path(organisation, project_a), params: { meeting_id: beta.id }
+
+      wrapper = page_body.find('.labor-layout-view')
+      expect(wrapper[:class].split).not_to include('show-content')
+      expect(JSON.parse(wrapper['data-layout-toggle-unresolved-selection-value'])).to eq('meeting_id' => beta.id)
+
+      get organisation_project_meetings_path(organisation, project_a), params: { meeting_id: alpha.id, new: 'meeting' }
+
+      wrapper = page_body.find('.labor-layout-view.show-content')
+      expect(JSON.parse(wrapper['data-layout-toggle-unresolved-selection-value'])).to eq('new' => 'meeting')
+
+      get organisation_project_meetings_path(organisation, project_a), params: { new: 'meeting' }
+
+      wrapper = page_body.find('.labor-layout-view.show-content')
+      expect(wrapper['data-layout-toggle-unresolved-selection-value']).to be_nil
+    end
+
     it 'recovers a stuck ticket suggestion run as the project page does' do
       allow(MeetingTicketSuggestionRun).to receive(:recover_for_meeting!).and_call_original
 

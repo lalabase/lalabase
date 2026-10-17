@@ -21,6 +21,7 @@ function controllerWith(document, { window = {}, groups = null, element = null }
   const controller = new Controller()
   controller.listFilterParamsValue = []
   controller.laneContextValue = {}
+  controller.unresolvedSelectionValue = {}
   controller.element = element || { dataset: {}, dispatchEvent: () => {} }
   return controller
 }
@@ -361,6 +362,35 @@ test('every request of a lane of another list carries the lane context, also fro
   projectPage.laneContextValue = {}
   projectPage.syncFilterContext(new URL('http://lalabase.test/org/o/projects/p/meetings'))
   assert.equal(new URL(own.href).searchParams.has('list_context'), false)
+})
+
+test('a selection the server did not open leaves the address before anything reads it', () => {
+  const current = new URL('http://lalabase.test/org/o/meetings?search=x&meeting_id=GONE&new=meeting')
+  const calls = []
+  const window = {
+    location: current,
+    history: {
+      state: { lane: true },
+      replaceState: (state, _t, url) => { calls.push(state); current.href = url }
+    }
+  }
+  const controller = controllerWith({}, { window })
+  controller.unresolvedSelectionValue = { meeting_id: 'GONE', new: 'meeting' }
+
+  controller.dropUnresolvedSelection()
+
+  assert.equal(current.searchParams.has('meeting_id'), false)
+  assert.equal(current.searchParams.has('new'), false)
+  assert.equal(current.searchParams.get('search'), 'x')
+  // The same history entry, its state kept.
+  assert.equal(JSON.stringify(calls), JSON.stringify([{ lane: true }]))
+
+  // A selection made since (another value) stays; nothing to drop writes nothing.
+  current.href = 'http://lalabase.test/org/o/meetings?meeting_id=OPEN'
+  controller.unresolvedSelectionValue = { meeting_id: 'GONE' }
+  controller.dropUnresolvedSelection()
+  assert.equal(current.searchParams.get('meeting_id'), 'OPEN')
+  assert.equal(calls.length, 1)
 })
 
 test('closing a lane whose object is gone takes it out of the address in the same entry', () => {

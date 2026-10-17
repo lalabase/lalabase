@@ -47,10 +47,17 @@ export default class extends Controller {
     // click and submit (syncFilterContext): "Alle Meetings" says
     // list_context=organisation, so a save in its lane redraws that list, also
     // from a link a broadcast or a section refresh rendered without it.
-    laneContext: { type: Object, default: {} }
+    laneContext: { type: Object, default: {} },
+    // Lane parameters of this visit the server did not open ({ name: value }):
+    // a meeting_id it could not resolve, a new form it did not render.
+    unresolvedSelection: { type: Object, default: {} }
   }
 
   connect() {
+    // The address names only what the server opened; hasSelection() below and
+    // index-page trust it.
+    this.dropUnresolvedSelection()
+
     // Check server-side state first
     const layoutElement = this.hasLayoutTarget ? this.layoutTarget : document.querySelector('.layout')
     const serverSaysHideContent = layoutElement && layoutElement.classList.contains('hide-content')
@@ -560,6 +567,19 @@ export default class extends Controller {
   // Public API — also used by the hover_arrows outlet
   hasSelectedItem() {
     return this.layoutState.content || this.hasSelection()
+  }
+
+  // A rejected selection (deleted, unknown, unreadable) would open an empty
+  // lane. It leaves the address in the same history entry, only while the
+  // address still names the value the server rejected.
+  dropUnresolvedSelection() {
+    const address = new URL(window.location.href)
+    const rejected = Object.entries(this.unresolvedSelectionValue)
+      .filter(([name, value]) => address.searchParams.get(name) === value)
+    if (rejected.length === 0) return
+
+    rejected.forEach(([name]) => address.searchParams.delete(name))
+    window.history.replaceState(window.history.state, '', address.toString())
   }
 
   // === Selection/content (Values-based) ===

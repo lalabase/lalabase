@@ -395,6 +395,11 @@ die Sidebar-Zeile liegt in der Navigation. Damit sind sie NICHT im selben Stimul
   Broadcasts und Abschnitts-Aktualisierungen, die ohne Kontext gerendert wurden. Sonst lädt ein
   Klick auf „aktualisieren“ die Bahn im Projektmodus, und das nächste Speichern zeichnet die
   Liste der Übersicht nicht neu.
+  Die Adresse nennt nur, was der Server geöffnet hat: eine `meeting_id`, die er nicht auflösen
+  konnte, oder ein `new`, das er nicht gerendert hat, steht in `unresolvedSelection` (Name und
+  Wert, `meeting_list_page_data`). `layout_toggle#dropUnresolvedSelection` nimmt sie beim
+  Verbinden aus der Adresse, bevor `hasSelection()` und `index-page` sie lesen. Sonst öffnet
+  ein gelöschtes oder fremdes Meeting eine leere Bahn.
 
 ## Mobile Anwendung (PR #807)
 

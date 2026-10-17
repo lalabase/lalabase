@@ -158,6 +158,21 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
       ActsAsTenant.with_tenant(organisation) { alpha.update!(notes: 'Retro im Text') }
       expect(titles(list(search: 'Retro', search_mode: 'title_only'))).to eq(['Beta Retro'])
     end
+
+    it 'offers "Projekt" with "or" and "not", the two the list applies' do
+      categories = JSON.parse(list.find('[data-controller="filter-bar"]')['data-filter-bar-categories-value'])
+      expect(categories.find { |category| category['key'] == 'project' }['allowed_operators']).to eq(%w[or not])
+    end
+
+    it 'reads an empty or malformed project value as no condition' do
+      all = ['Beta Retro', 'Alpha Kickoff', 'Gamma Sync']
+      expect(titles(list(filter: { project: [''] }))).to eq(all)
+      expect(titles(list(filter: { project: [{ 'a' => project_a.id }] }))).to eq(all)
+    end
+
+    it 'reads a search of the wrong shape as no search' do
+      expect(titles(list(search: { 'a' => 'Retro' }))).to eq(['Beta Retro', 'Alpha Kickoff', 'Gamma Sync'])
+    end
   end
 
   describe 'old addresses' do
@@ -178,6 +193,11 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
     it 'drops an old filter that is not a single value instead of failing' do
       get overview_path, params: { project_id: { 'a' => '1' } }
       expect(response).to redirect_to(overview_path)
+    end
+
+    it 'lets a condition the address already carries win over the old parameter' do
+      get overview_path, params: { project_id: project_a.id, filter: { project: [project_b.id] } }
+      expect(response).to redirect_to(organisation_meetings_path(organisation, filter: { project: [project_b.id] }))
     end
   end
 
@@ -224,6 +244,18 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
       expect(titles(list(items: 2, page: 2, filter: { project: [project_a.id] }))).to eq(['Seite 2'])
     end
 
+    it 'carries only the list state into the page links, not every word of the address' do
+      Prosopite.pause do
+        3.times { |index| create_meeting(project: project_a, title: "Seite #{index}", occurred_at: index.days.ago) }
+      end
+
+      page = list(items: 2, utm_source: 'newsletter')
+      next_link = page.find("#meetings_overview_results a[title='#{I18n.t('views.shared.pagination_compact.next_page')}']")
+      query = Rack::Utils.parse_nested_query(URI.parse(next_link[:href]).query)
+      expect(query).to include('page' => '2', 'items' => '2')
+      expect(query).not_to have_key('utm_source')
+    end
+
     it 'lets the address follow the list frame, so the bar reads sort and page from it' do
       create_meeting(project: project_a, title: 'Alpha Kickoff')
       page = list
@@ -240,6 +272,30 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('<turbo-frame id="meetings_overview_results"', 'Alpha Kickoff')
       expect(response.body).not_to include('data-controller="filter-bar"')
+    end
+
+    # The bar reloads its chip sentence through a frame of its own after every
+    # change; a full page in its place would put a second list into the head.
+    it 'answers the sentence frame of the bar alone' do
+      create_meeting(project: project_a, title: 'Alpha Kickoff')
+      get overview_path, params: { filter: { project: [project_a.id] } },
+                         headers: { 'Turbo-Frame' => 'meetings_overview_results_sentence' }
+
+      expect(response).to have_http_status(:ok)
+      expect(page_body).to have_css('turbo-frame#meetings_overview_results_sentence', text: 'Projekt Alpha')
+      expect(response.body).not_to include('<turbo-frame id="meetings_overview_results"')
+    end
+  end
+
+  describe 'the project page next to it' do
+    it 'lists only the meetings of its own project, also for a reader of both' do
+      alpha = create_meeting(project: project_a, title: 'Alpha Kickoff')
+      create_meeting(project: project_b, title: 'Beta Retro')
+      sign_in reader
+      get organisation_project_meetings_path(organisation, project_a)
+
+      expect(response).to have_http_status(:ok)
+      expect(page_body.all('#meetings_results tr[data-meeting-id]').map { |row| row['data-meeting-id'] }).to eq([alpha.id])
     end
   end
 

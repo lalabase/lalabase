@@ -63,6 +63,19 @@ RSpec.describe Actors::SaveSmartFolderFromFilters do
       expect(folder.smart_folder_rule_groups.count).to eq(2)
     end
 
+    # A view of "Alle Meetings" has no project to take its organisation from; the
+    # one named here owns it, also where no tenant is set (a job, the console).
+    it 'gives a folder without a project the organisation it was handed' do
+      result = ActsAsTenant.without_tenant do
+        described_class.call(project: nil, organisation: organisation, current_user: user,
+                             filter_params: { 'creator' => [user.id] }, operator_params: {},
+                             name: 'Von mir', target_object_type: 'Meeting')
+      end
+
+      expect(result).to be_success
+      expect(result.resource).to have_attributes(project: nil, organisation: organisation, target_object_type: 'Meeting')
+    end
+
     it 'fails without persisting when the folder is invalid (blank name)' do
       expect do
         result = described_class.call(

@@ -326,6 +326,22 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
     end
   end
 
+  describe 'pages of the refreshed list' do
+    it 'point to the overview, not to the project the meeting went into' do
+      2.times { |index| create_meeting(project: project_a, title: "Alt #{index}", creator: writer_a) }
+      sign_in writer_a
+
+      post organisation_project_meetings_path(organisation, project_a),
+           params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current }, items: 2 },
+           as: :turbo_stream
+
+      next_link = Nokogiri::HTML(response.body).at_css("a[title='#{I18n.t('views.shared.pagination_compact.next_page')}']")
+      expect(next_link).to be_present
+      expect(URI.parse(next_link['href']).path).to eq(overview_path)
+      expect(Rack::Utils.parse_nested_query(URI.parse(next_link['href']).query)).to include('page' => '2', 'items' => '2')
+    end
+  end
+
   describe 'POST create from the modal without turbo (no JavaScript)' do
     it 'sends a successful save back to the overview it started from' do
       sign_in writer_a
@@ -334,6 +350,18 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
            params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current } }
 
       expect(response).to redirect_to(organisation_meetings_path(organisation))
+    end
+
+    it 'keeps the list state on the way back' do
+      sign_in writer_a
+
+      post organisation_project_meetings_path(organisation, project_a),
+           params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current },
+                     filter: { project: [project_a.id] }, sort: { column: 'title', direction: 'asc' } }
+
+      expect(URI.parse(response.location).path).to eq(overview_path)
+      expect(Rack::Utils.parse_nested_query(URI.parse(response.location).query))
+        .to include('filter' => { 'project' => [project_a.id] }, 'sort' => { 'column' => 'title', 'direction' => 'asc' })
     end
 
     it 'renders the modal frame again on an invalid save' do

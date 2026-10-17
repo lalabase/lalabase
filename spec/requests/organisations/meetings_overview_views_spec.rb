@@ -103,6 +103,16 @@ RSpec.describe 'Organisations::MeetingsOverview saved views', :ci_guard, type: :
       expect(overview_titles(page_at(overview_path, smart_folder_id: both.id))).to contain_exactly('Alpha Kickoff', 'Beta Retro')
     end
 
+    # The people of a creator condition are looked up in the organisation; a
+    # view without a project has no project to ask for it.
+    it 'stores a creator condition without a project' do
+      save_from_filters(smart_folder_name: 'Von mir', filter: { creator: [user.id] })
+
+      mine = SmartFolder.find_by!(name: 'Von mir')
+      expect(mine.project_id).to be_nil
+      expect(SmartFolderDissolver.new(mine, user).call.ad_hoc_filters).to eq('creator' => [user.id])
+    end
+
     it 'refuses a project the reader cannot read, without a folder' do
       expect { save_from_filters(smart_folder_name: 'Geheim', filter: { project: [project_hidden.id] }) }
         .not_to change(SmartFolder, :count)
@@ -134,6 +144,14 @@ RSpec.describe 'Organisations::MeetingsOverview saved views', :ci_guard, type: :
       on_project = page_at(organisation_project_meetings_path(organisation, project_a), smart_folder_id: overview_view.id)
       expect(on_project.find('[data-controller="filter-bar"]')['data-filter-bar-smart-folder-id-value']).to be_blank
     end
+
+    it 'opens no view from an id of the wrong shape' do
+      record('Alpha Kickoff', project: project_a)
+
+      page = page_at(overview_path, smart_folder_id: [overview_view.id])
+      expect(overview_titles(page)).to eq(['Alpha Kickoff'])
+      expect(page.find('[data-controller="filter-bar"]')['data-filter-bar-smart-folder-id-value']).to be_blank
+    end
   end
 
   describe 'changing, renaming, duplicating, sharing and deleting' do
@@ -154,6 +172,16 @@ RSpec.describe 'Organisations::MeetingsOverview saved views', :ci_guard, type: :
       expect(response).to have_http_status(:ok)
       expect(SmartFolderDissolver.new(saved.reload, user).call.ad_hoc_filters).to eq('project' => [project_b.id])
       expect(saved.project_id).to be_nil
+    end
+
+    # The view's own project (none) decides its list, not a project_id the
+    # request brings along.
+    it 'keeps a view without a project on the overview, whatever project the request names' do
+      patch update_from_filters_organisation_smart_folder_path(organisation, saved),
+            params: { filter: { project: [project_b.id] }, project_id: project_a.id, return_to: 'meetings' }
+
+      expect(URI.parse(response.location).path).to eq(overview_path)
+      expect(saved.reload.project_id).to be_nil
     end
 
     it 'refuses a change to a project the reader cannot read' do

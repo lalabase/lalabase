@@ -104,8 +104,8 @@ module Organisations
     end
     helper_method :meeting_filter_projects
 
-    # No readable meeting anywhere yet: the page shows its first-time state and
-    # no filter bar, like the project page before its first meeting.
+    # No readable meeting anywhere yet: the list shows its first-time state. The
+    # filter bar stands anyway (_list_head explains why).
     def meetings_overview_first_use?
       return @meetings_overview_first_use if defined?(@meetings_overview_first_use)
 

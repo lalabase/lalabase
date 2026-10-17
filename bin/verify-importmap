@@ -35,7 +35,10 @@ unless has_controllers_index
   fail!("controllers/index nicht verfügbar (brauche direkten Pin oder 'controllers' Alias)")
 end
 
-missing = controllers.reject { |m| content.include?("pin '#{m}'") || content.include?("pin_all_from 'app/javascript/controllers'") }
+# Only an explicit pin counts. pin_all_from stands in the development branch of
+# the same file and pins nothing in production; counting it made this check
+# pass for every controller, pinned or not.
+missing = controllers.reject { |m| content.include?("pin '#{m}'") }
 if missing.any?
   warn "⚠️  Fehlende Pins:"
   missing.each { |m| warn "   pin '#{m}', to: '#{m}.js'" }

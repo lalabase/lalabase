@@ -91,9 +91,13 @@ export default class extends Controller {
       this.toggle(event)
     }
 
-    if (event.key === "Escape" && this.hasOverlayTarget &&
-        !this.overlayTarget.classList.contains("hidden")) {
+    if (event.key === "Escape" && this.ownsEscape()) {
       this.close()
     }
+  }
+
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.hasOverlayTarget && !this.overlayTarget.classList.contains("hidden")
   }
 }

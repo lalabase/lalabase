@@ -134,6 +134,11 @@ export default class extends Controller {
   }
 
   // Keyboard navigation
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return Boolean(this.isOpen)
+  }
+
   handleGlobalKeydown(event) {
     if (!this.isOpen) return
 

@@ -81,8 +81,13 @@ export default class extends Controller {
     }
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.hasPanelTarget && !this.panelTarget.classList.contains("hidden")
+  }
+
   closeOnEscape(event) {
-    if (event.key === "Escape" && !this.panelTarget.classList.contains("hidden")) {
+    if (event.key === "Escape" && this.ownsEscape()) {
       this.close()
     }
   }

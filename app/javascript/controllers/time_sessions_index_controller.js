@@ -168,6 +168,13 @@ export default class extends Controller {
     }
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape is bound to the modal, so only a key pressed inside it counts.
+  ownsEscape() {
+    return this.hasModalTarget && !this.modalTarget.classList.contains("hidden") &&
+      this.modalTarget.contains(document.activeElement)
+  }
+
   closeModal(event) {
     if (event) event.preventDefault()
 

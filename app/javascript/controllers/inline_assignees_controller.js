@@ -86,6 +86,11 @@ export default class extends Controller {
     if (!this.element.contains(event.target)) this.close()
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.isOpen
+  }
+
   closeOnEscape(event) {
     if (event.key !== "Escape") return
     // The menu takes the Escape; the lane behind it stays open (see open()).

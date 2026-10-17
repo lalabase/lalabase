@@ -98,6 +98,13 @@ export default class extends Controller {
     this.element.removeEventListener("keydown", this.boundKeydown)
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape listens on the dashboard, so only a key pressed inside it counts.
+  ownsEscape() {
+    return this.element.contains(document.activeElement) &&
+      Boolean(this.element.querySelector("[data-slot].is-flipped, [data-add-picker-host]:not(.hidden)"))
+  }
+
   onKeydown(event) {
     if (event.key === "Escape") { this.closeMenus(); return }
     const meta = event.metaKey || event.ctrlKey

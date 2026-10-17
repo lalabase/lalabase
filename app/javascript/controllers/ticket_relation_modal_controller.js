@@ -114,6 +114,12 @@ export default class extends Controller {
     if (event.target === event.currentTarget) this.close()
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // The modal is the content of its frame: it stands in the page only while open.
+  ownsEscape() {
+    return true
+  }
+
   // An Escape the ticket picker already used (to close its list) closes nothing else.
   closeOnEscape(event) {
     if (event.key === "Escape" && !event.defaultPrevented) this.close()

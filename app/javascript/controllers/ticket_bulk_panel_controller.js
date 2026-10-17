@@ -343,6 +343,11 @@ export default class extends Controller {
     if (this.hasPickerSearchTarget) this.pickerSearchTarget.value = ""
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return Boolean(this.openedLayer) || (this.hasPickerMenuTarget && !this.pickerMenuTarget.hidden)
+  }
+
   // Escape closes what is open: a layer (values or options) first, then the picker.
   closePickerOnEscape(event) {
     if (event.key !== "Escape") return

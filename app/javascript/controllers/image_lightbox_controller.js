@@ -62,6 +62,12 @@ export default class extends Controller {
     document.body.style.overflow = 'hidden'
   }
   
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // The lightbox stands exactly while its Escape listener is attached.
+  ownsEscape() {
+    return Boolean(this.boundEscHandler)
+  }
+
   closeLightbox(modal) {
     if (modal) {
       modal.remove()

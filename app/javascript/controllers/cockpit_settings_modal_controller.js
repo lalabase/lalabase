@@ -31,8 +31,13 @@ export default class extends Controller {
     if (event.target === event.currentTarget) this.close()
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.hasModalTarget && !this.modalTarget.classList.contains("hidden")
+  }
+
   closeOnEscape(event) {
-    if (event.key === "Escape" && !this.modalTarget.classList.contains("hidden")) this.close()
+    if (event.key === "Escape" && this.ownsEscape()) this.close()
   }
 
   // Grey out + disable the importance radios while "show actions" is unchecked.

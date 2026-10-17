@@ -331,8 +331,8 @@ de:
       share_error: "Freigabe konnte nicht gespeichert werden."
       share_select_users: "Bitte wählen Sie mindestens einen Benutzer zum Teilen aus."
       unshared: "Freigabe entfernt."
-      created_from_filters: "Smart Folder erfolgreich erstellt."
-      create_from_filters_error: "Smart Folder konnte nicht erstellt werden."
+      created_from_filters: "Ansicht gespeichert."
+      create_from_filters_error: "Ansicht konnte nicht gespeichert werden."
       updated_from_filters: "Filter wurde gespeichert."
       update_from_filters_error: "Fehler beim Speichern des Filters."
       destroy:

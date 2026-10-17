@@ -58,7 +58,7 @@ export function buildNamingRowHtml({ saveUrl, projectId, filters, operators, sug
 
   return `<form class="${ROW}" method="post" action="${escapeAttr(saveUrl)}" data-turbo="false" data-fb-naming>
       <input type="hidden" name="authenticity_token" value="${escapeAttr(getCSRFToken())}">
-      <input type="hidden" name="project_id" value="${escapeAttr(projectId)}">
+      ${projectId ? `<input type="hidden" name="project_id" value="${escapeAttr(projectId)}">` : ''}
       ${buildFilterHiddenFields(filters, operators)}
       ${buildSortHiddenFields()}
       ${hidden}

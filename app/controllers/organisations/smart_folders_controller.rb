@@ -187,21 +187,27 @@ class Organisations::SmartFoldersController < Organisations::BaseController
 
   # Quick-updates an existing SmartFolder's rules from ad-hoc filter params.
   # Called via PATCH from the filter bar "save changes" action. An org-wide
-  # folder has no project of its own; the list the bar sits on sends its
-  # project_id, which supplies the attribute definitions for the conversion.
+  # ticket or knowledge folder has no project of its own; the list the bar sits
+  # on sends its project_id, which supplies the attribute definitions for the
+  # conversion. A meeting folder needs none: its conditions are no custom
+  # attributes, and its own project (or none, "Alle Meetings") is its list.
   # Only Meeting folders support an empty set as an unfiltered view. Other
   # targets keep the existing guard because their empty rule tree matches nothing.
   def update_from_filters
     authorize @smart_folder, :update?
 
-    project = @smart_folder.project || selectable_projects.find_by(id: params[:project_id])
-    filter_params = project ? sanitized_filter_params(project) : {}
+    project = if meeting_folder_context?
+                @smart_folder.project
+              else
+                @smart_folder.project || selectable_projects.find_by(id: params[:project_id])
+              end
+    filter_params = project || meeting_folder_context? ? sanitized_filter_params(project) : {}
     # A type condition (S7) names the folder's target, which is immutable: it
     # cannot become a rule of this folder. Refused loudly rather than sliced
     # away by the sanitizer, or the bar would record the condition as saved.
     # The bar offers "Als neue Ansicht" for that case, where the type becomes
     # the new folder's target.
-    if project.nil? || invalid_filter_update?(filter_params) || filter_carries_type_condition?
+    if (project.nil? && !meeting_folder_context?) || invalid_filter_update?(filter_params) || filter_carries_type_condition?
       error = t('flash.smart_folders.update_from_filters_error', default: 'Fehler beim Speichern des Filters.')
       return respond_to do |format|
         format.json { render json: { success: false, error: error }, status: :unprocessable_content }
@@ -212,6 +218,7 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     result = Actors::SaveSmartFolderFromFilters.call(
       smart_folder: @smart_folder,
       project: project,
+      organisation: @current_organisation,
       current_user: current_user,
       filter_params: filter_params,
       operator_params: sanitized_operator_params,
@@ -222,7 +229,7 @@ class Organisations::SmartFoldersController < Organisations::BaseController
       respond_to do |format|
         format.json { render json: { success: true }, status: :ok }
         format.html do
-          redirect_to filter_save_return_path(project.id, smart_folder_id: @smart_folder.id), notice: t('flash.smart_folders.updated_from_filters', default: 'Filter wurde gespeichert.')
+          redirect_to filter_save_return_path(project&.id, smart_folder_id: @smart_folder.id), notice: t('flash.smart_folders.updated_from_filters', default: 'Filter wurde gespeichert.')
         end
       end
     else
@@ -276,33 +283,38 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     render json: { success: true, columns: @smart_folder.ordered_columns }, status: :ok
   end
 
-  # Converts ad-hoc list filters (tickets or knowledge) into a persisted SmartFolder.
-  # The saved folder follows the source list's active type filter via
+  # Converts ad-hoc list filters (tickets, knowledge or meetings) into a persisted
+  # SmartFolder. The saved folder follows the source list's active type filter via
   # params[:target_object_type] (PE-B); params[:return_to] picks the redirect target.
+  # A meeting list without a project ("Alle Meetings") sends no project_id: its
+  # view belongs to no project and shows only there.
   def create_from_filters
     @smart_folder = SmartFolder.new(organisation: @current_organisation)
     authorize @smart_folder, :create?
 
     @smart_folder.target_object_type = filter_save_target_object_type
-    project = selectable_projects(area: meeting_folder_context? ? :meetings : nil).find(params[:project_id])
+    project = filter_save_project
     filter_params = sanitized_filter_params(project)
 
     # A folder without rules matches nothing, for good (SmartFolderQueryBuilder
     # answers [] on empty rule groups). A type condition alone (S7) arrives as
     # an empty set, because the bar turns it into the target, not a rule.
     if filter_params.values.all?(&:blank?) || (meeting_folder_context? && rejected_filter_params?(filter_params))
-      redirect_to filter_save_return_path(project.id), alert: t('flash.smart_folders.create_from_filters_error')
+      redirect_to filter_save_return_path(project&.id), alert: t('flash.smart_folders.create_from_filters_error')
       return
     end
 
     # A new ticket view starts with the reader's base view columns of the project
     # ("Alle Tickets" is the template, plan D6) and stands alone from then on.
+    # A view without a project has no base view to start from (columns come with
+    # PR 2 of doc/meetings_uebersicht_vereinheitlichen_plan.md).
     target = filter_save_target_object_type
     view_type = target == 'Meeting' ? 'meetings' : 'tickets'
-    base_columns = ViewConfiguration.for_user_project(current_user, project, view_type)
-    inherited = base_columns.ordered_columns if target.in?(%w[Ticket All Meeting])
+    base_columns = ViewConfiguration.for_user_project(current_user, project, view_type) if project
+    inherited = base_columns.ordered_columns if base_columns && target.in?(%w[Ticket All Meeting])
     result = Actors::SaveSmartFolderFromFilters.call(
       project: project,
+      organisation: @current_organisation,
       current_user: current_user,
       filter_params: filter_params,
       operator_params: sanitized_operator_params,
@@ -315,12 +327,12 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     )
 
     if result.success?
-      redirect_to filter_save_return_path(project.id, smart_folder_id: result.resource.id),
+      redirect_to filter_save_return_path(project&.id, smart_folder_id: result.resource.id),
                   notice: t('flash.smart_folders.created_from_filters')
     else
       # Too many conditions is the one refusal the reader can fix, so it says so.
       alert = result.code == :rule_tree_too_large ? result.errors.to_sentence : t('flash.smart_folders.create_from_filters_error')
-      redirect_to filter_save_return_path(project.id), alert: alert
+      redirect_to filter_save_return_path(project&.id), alert: alert
     end
   end
 
@@ -585,7 +597,8 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     Meetings::ListState.extract(context).merge(context.permit(:meeting_id, :new).to_h)
   end
 
-  # Redirect target after saving the filter: back to the source page.
+  # Redirect target after saving the filter: back to the source page. A meeting
+  # view without a project belongs to "Alle Meetings" and goes back there.
   def filter_save_return_path(project_id, smart_folder_id: nil)
     shared = {
       organisation_id: @current_organisation.id,
@@ -594,7 +607,8 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     }.compact
 
     if params[:return_to] == 'meetings' || @smart_folder&.target_object_type == 'Meeting' && params[:return_to] != 'knowledge'
-      organisation_project_meetings_path(**meeting_return_context.except('smart_folder_id', 'filter', 'filter_op', 'filter_drop', 'participant').symbolize_keys.merge(shared))
+      context = meeting_return_context.except('smart_folder_id', 'filter', 'filter_op', 'filter_drop', 'participant').symbolize_keys
+      project_id ? organisation_project_meetings_path(**context.merge(shared)) : organisation_meetings_path(**context.merge(shared))
     elsif params[:return_to] == 'knowledge'
       organisation_project_knowledge_index_path(**shared)
     else
@@ -610,16 +624,18 @@ class Organisations::SmartFoldersController < Organisations::BaseController
   # definition for create and update, the HTML redirect AND the Turbo Stream
   # (@modal_redirect_url in the stream templates), so the four cannot drift.
   def save_success_redirect_path
+    # A meeting view goes back to the list it belongs to, and its own project
+    # decides which one: that project's page, or "Alle Meetings" without one.
+    return filter_save_return_path(@smart_folder.project_id, smart_folder_id: @smart_folder.id) if @smart_folder.target_object_type == 'Meeting' && params[:return_to] == 'meetings'
+
     project_id = @smart_folder.project&.id || params[:project_id]
-    unless project_id.present? && %w[notes tickets knowledge meetings].include?(params[:return_to])
+    unless project_id.present? && %w[notes tickets knowledge].include?(params[:return_to])
       return organisation_smart_folder_path(@current_organisation, @smart_folder) if @smart_folder.target_object_type == 'Meeting'
 
       return organisation_smart_folders_path(organisation_id: @current_organisation.id)
     end
 
     case params[:return_to]
-    when 'meetings'
-      filter_save_return_path(project_id, smart_folder_id: @smart_folder.id)
     when 'notes'
       organisation_project_notes_path(organisation_id: @current_organisation.id, project_id: project_id)
     when 'knowledge'
@@ -647,7 +663,11 @@ class Organisations::SmartFoldersController < Organisations::BaseController
 
   def available_field_options
     target_type = @smart_folder&.target_object_type || params[:context_type] || 'All'
-    project = @smart_folder&.project || filter_builder_projects.find_by(id: params[:project_id])
+    # A meeting view's project is one the reader may read meetings in; a reader
+    # without ticket access there still has the project (and with it no field
+    # "Projekt", SmartFolderRule::field_config without_project_only).
+    projects = meeting_folder_context? ? selectable_projects(area: :meetings) : filter_builder_projects
+    project = @smart_folder&.project || projects.find_by(id: params[:project_id])
     helpers.available_field_options(
       target_type, @current_organisation, project: project, accessible_project_ids: filter_builder_projects.ids
     )
@@ -700,12 +720,27 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     empty && params[:clear_filters] != '1'
   end
 
+  # Refused as a whole: a key the list does not know, or a project the reader
+  # cannot read. A rule on such a project would match nothing for the reader, but
+  # it would store the project's name (SmartFolderRule#display_value) and name the
+  # project in the view to everybody it is shared with.
   def rejected_filter_params?(filters)
     raw = params[:filter]
     return false if raw.nil?
     return true unless raw.is_a?(ActionController::Parameters)
+    return true if raw.keys.any? { |key| !filters.key?(key) }
 
-    raw.keys.any? { |key| !filters.key?(key) }
+    (Array(filters['project']) - selectable_projects(area: :meetings).ids.map(&:to_s)).any?
+  end
+
+  # The project a view saved from the filter bar belongs to: the list's own. A
+  # meeting list without a project ("Alle Meetings") sends none, and its view
+  # belongs to the organisation. Every other list names its project, and an
+  # unknown or unreadable one is a 404 as before.
+  def filter_save_project
+    return nil if meeting_folder_context? && params[:project_id].blank?
+
+    selectable_projects(area: meeting_folder_context? ? :meetings : nil).find(params[:project_id])
   end
 
   def sanitized_filter_params(project)
@@ -713,7 +748,7 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     return {} unless raw.respond_to?(:to_unsafe_h)
 
     allowed_keys = if meeting_folder_context?
-                     %w[participant creator occurred_at created_at updated_at]
+                     %w[participant creator project occurred_at created_at updated_at]
                    else
                      AdHocToSmartFolderService::SPECIAL_FIELDS + project.ticket_attribute_definitions.active.pluck(:name)
                    end

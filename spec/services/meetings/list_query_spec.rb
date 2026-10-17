@@ -31,6 +31,19 @@ RSpec.describe Meetings::ListQuery do
     result.resource.reload
   end
 
+  # occurred_at comes from a form field of minutes, so two meetings entered back
+  # to back share it. The one entered last comes first, also against the order
+  # of their random ids: the "+" modal on "Alle Meetings" promises the new
+  # meeting at the top.
+  it 'breaks a tie of the sort column by the time a meeting was entered' do
+    at = Time.zone.parse('2026-10-01 10:00')
+    older = meeting('Older', id: 'ffffffff-ffff-4fff-bfff-ffffffffffff', occurred_at: at, created_at: 2.minutes.ago)
+    newer = meeting('Newer', id: '00000000-0000-4000-8000-000000000000', occurred_at: at, created_at: 1.minute.ago)
+
+    expect(query.map(&:id)).to eq([newer.id, older.id])
+    expect(query(sort: { 'column' => 'occurred_at', 'direction' => 'asc' }).map(&:id)).to eq([older.id, newer.id])
+  end
+
   it 'searches titles separately and retains notes, transcript and summaries without requiring release' do
     title = meeting('Needle')
     notes = meeting('Notes', notes: 'Needle')

@@ -10,6 +10,10 @@ module PaginationHelper
     'smart_folders' => 'smart-folders-list'
   }.freeze
 
+  # The meetings lists, project page and "Alle Meetings": their links carry the
+  # whitelisted list state (Meetings::ListState), never the raw address.
+  MEETING_LIST_CONTROLLERS = %w[meetings meetings_overview].freeze
+
   ITEMS_OPTIONS_COMPACT = [10, 20, 50].freeze
   ITEMS_OPTIONS_FULL    = [5, 10, 20, 50].freeze
 
@@ -47,10 +51,10 @@ module PaginationHelper
   end
 
   # Builds the URL for a pagination page (prev/next).
-  def pagination_page_url(_pagy, page, organisation: nil, project: nil, sort_params: {}, smart_folder_id: nil)
+  def pagination_page_url(_pagy, page, organisation: nil, project: nil, sort_params: {}, smart_folder_id: nil, base_path: nil)
     return '#' unless page
 
-    base = pagination_base_path(organisation: organisation, project: project)
+    base = base_path || pagination_base_path(organisation: organisation, project: project)
     query = pagination_query_params(sort_params: sort_params, smart_folder_id: smart_folder_id)
     query[:page] = page
 
@@ -61,8 +65,8 @@ module PaginationHelper
   end
 
   # Builds the URL for an items-per-page option.
-  def pagination_items_url(items_count, organisation: nil, project: nil, sort_params: {}, smart_folder_id: nil)
-    base = pagination_base_path(organisation: organisation, project: project)
+  def pagination_items_url(items_count, organisation: nil, project: nil, sort_params: {}, smart_folder_id: nil, base_path: nil)
+    base = base_path || pagination_base_path(organisation: organisation, project: project)
     query = pagination_query_params(sort_params: sort_params, smart_folder_id: smart_folder_id)
     query[:items] = items_count
     query.delete(:page)
@@ -126,7 +130,7 @@ module PaginationHelper
   # Passes through ALL current query parameters (preserves filter state on page/items change),
   # only removes the 'page' param (pagination is set by the caller).
   def pagination_query_params(sort_params: {}, smart_folder_id: nil)
-    url_params = (controller_name == 'meetings' ? meeting_list_state.merge(params.permit(:meeting_id, :new).to_h) : request.query_parameters.deep_dup).with_indifferent_access
+    url_params = (MEETING_LIST_CONTROLLERS.include?(controller_name) ? meeting_list_state.merge(params.permit(:meeting_id, :new).to_h) : request.query_parameters.deep_dup).with_indifferent_access
     url_params.delete(:page)
 
     url_params[:smart_folder_id] = smart_folder_id if smart_folder_id.present?

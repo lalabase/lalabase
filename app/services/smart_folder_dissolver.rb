@@ -4,7 +4,7 @@
 # into ad-hoc filter chips for the unified filter bar.
 #
 # "Dissolvable" means all rules use fields/operators that have ad-hoc filter equivalents:
-#   - assignee/creator (equals/not_equals)
+#   - assignee/creator/project (equals/not_equals)
 #   - custom_* select/multiselect (equals/in_list/not_in_list/not_equals)
 #   - tag (has/not_has/has_any_of/has_all_of)
 #   - created_at/updated_at with a date preset operator (SmartFolders::DatePresets),
@@ -31,7 +31,7 @@ class SmartFolderDissolver
   end
 
   # Fields that can be dissolved into ad-hoc filters
-  DISSOLVABLE_FIELDS = %w[assignee creator tag created_at updated_at occurred_at participant waiting blocking].freeze
+  DISSOLVABLE_FIELDS = %w[assignee creator project tag created_at updated_at occurred_at participant waiting blocking].freeze
 
   # Operators supported for dissolution per field
   DISSOLVABLE_OPERATORS = {
@@ -39,6 +39,7 @@ class SmartFolderDissolver
     'occurred_at' => [IN_THE_LAST_DAYS, *SmartFolders::DatePresets::KEYS],
     'assignee' => [EQUALS, NOT_EQUALS],
     'creator' => [EQUALS, NOT_EQUALS],
+    'project' => [EQUALS, NOT_EQUALS],
     'tag' => [HAS, NOT_HAS, HAS_ANY_OF, HAS_ALL_OF],
     'created_at' => [IN_THE_LAST_DAYS, *SmartFolders::DatePresets::KEYS],
     'updated_at' => [IN_THE_LAST_DAYS, *SmartFolders::DatePresets::KEYS],
@@ -46,9 +47,9 @@ class SmartFolderDissolver
     'blocking' => [IS, IS_NOT]
   }.freeze
 
-  # User-reference fields whose multi-group OR pattern (one equals rule per
+  # Reference fields whose multi-group OR pattern (one equals rule per
   # group, possibly as a cross product of multiple fields) is dissolvable
-  OR_MULTI_FIELDS = %w[assignee creator].freeze
+  OR_MULTI_FIELDS = %w[assignee creator project].freeze
 
   # The built-in date fields; their presets are the operators (SmartFolders::DatePresets)
   DATE_FIELDS = %w[created_at updated_at occurred_at].freeze
@@ -283,8 +284,8 @@ class SmartFolderDissolver
     return nil unless allowed_ops&.include?(rule.operator)
 
     case rule.field
-    when 'assignee', 'creator'
-      convert_user_reference_rule(rule)
+    when *OR_MULTI_FIELDS
+      convert_reference_rule(rule)
     when 'participant'
       op = { NOT_EQUALS => 'not', NOT_HAS => 'not', HAS_ALL_OF => 'and' }[rule.operator]
       { key: 'participant', values: Meetings::ParticipantFilter.rule_values(rule.value), operator: op }
@@ -304,7 +305,7 @@ class SmartFolderDissolver
     { key: rule.field, values: [Tickets::WaitingStateFilter::FLAG_VALUE], operator: present ? nil : 'not' }
   end
 
-  def convert_user_reference_rule(rule)
+  def convert_reference_rule(rule)
     case rule.operator
     when EQUALS
       { key: rule.field, values: [rule.value], operator: nil }
@@ -340,7 +341,7 @@ class SmartFolderDissolver
 
   def convert_multi_value_field(field, operator, values)
     case field
-    when 'assignee', 'creator'
+    when *OR_MULTI_FIELDS
       case operator
       when EQUALS
         { key: field, values: values, operator: nil }

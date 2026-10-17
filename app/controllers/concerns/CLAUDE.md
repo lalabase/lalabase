@@ -1,4 +1,4 @@
-# Karte: app/controllers/concerns (Stand: 2026-09-30)
+# Karte: app/controllers/concerns (Stand: 2026-10-17)
 
 > Für die Ticket-**Domäne** (Attributsystem, Kanban, Actors, Fallen) gilt zusätzlich
 > `docs/architektur/tickets_lesepfad.md`. Diese Karte hier beschreibt nur den **Stack**.
@@ -65,7 +65,12 @@ Fundamente — Tickets = dieser Stack, Knowledge = `Pageable`+`AdHocFilterable`+
 `ViewportSwitchable`+`ProjectController` mit `KnowledgeSearchQuery` (UNION über
 `Knowledge::TypeRegistry`, kein `ObjectListController`), TimeSessions = `Sortable`+`Pageable`
 direkt, Notifications = bespoke + `MasterListPresenter`, Meetings =
-`ProjectController`+`ViewportSwitchable`.
+`ProjectController`+`ViewportSwitchable`+`meeting_list.rb`.
+`meeting_list.rb` (17.10.2026) ist der EINE Besitzer der Meeting-Liste: Projektseite
+(`meeting_list_project` = `@project`) und „Alle Meetings“ (`nil`, auch der Refresh nach dem
+Modal in `MeetingsController#create`). Eine Meeting-Ansicht gehört der Liste ihres Projekts,
+ohne Projekt der Übersicht. Die Filterleiste und das Speichern von Ansichten nehmen
+`project: nil` als „organisationsweit“; Tickets und Wissen geben weiter ein Projekt mit.
 Der Entscheid für EINE kanonische Listen-Architektur steht aus; bis dahin gilt für neue
 Listen-Features: am ähnlichsten Bestands-Feature orientieren und die Wahl im PR begründen.
 Seit 10.09.2026 teilen Tickets und Knowledge immerhin die OBERFLÄCHE der Liste-mit-Bahn

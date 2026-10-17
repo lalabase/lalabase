@@ -39,8 +39,8 @@ class NeoFilterBarComponent < ViewComponent::Base
     all_items_label:,
     smart_folder_context_type:,
     smart_folder_return_to:,
-    project:,
     organisation:,
+    project: nil,
     active_smart_folder: nil,
     active_view_permissions: {},
     dissolver_result: nil,
@@ -79,6 +79,9 @@ class NeoFilterBarComponent < ViewComponent::Base
     @current_user_id = current_user_id
     @search_value = search_value
     @search_mode = search_mode || 'content'
+    # The list's project; nil on a list of the whole organisation ("Alle
+    # Meetings"). Then no URL of the bar names a project, and a view saved from
+    # it belongs to the organisation-wide list.
     @project = project
     @organisation = organisation
     @builtin_views = Array(builtin_views)
@@ -386,7 +389,7 @@ class NeoFilterBarComponent < ViewComponent::Base
   def new_smart_folder_url
     helpers.new_organisation_smart_folder_path(
       organisation,
-      project_id: project.id,
+      project_id: project&.id,
       context_type: smart_folder_context_type,
       modal: true,
       return_to: smart_folder_return_to,
@@ -413,7 +416,7 @@ class NeoFilterBarComponent < ViewComponent::Base
         # The way that does not overwrite a view somebody else uses (20a, § 4).
         # Anyone who may see a folder may copy it; the copy belongs to them.
         duplicate_url: helpers.clone_organisation_smart_folder_path(organisation, active_smart_folder),
-        expert_url: helpers.edit_organisation_smart_folder_path(organisation, active_smart_folder, modal: true, return_to: smart_folder_return_to, project_id: project.id, list_context: return_params.presence),
+        expert_url: helpers.edit_organisation_smart_folder_path(organisation, active_smart_folder, modal: true, return_to: smart_folder_return_to, project_id: project&.id, list_context: return_params.presence),
         delete_url: (helpers.organisation_smart_folder_path(organisation, active_smart_folder) if active_view_permissions[:delete])
       }
     else

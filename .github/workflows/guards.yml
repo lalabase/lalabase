@@ -465,7 +465,6 @@ jobs:
           spec/jobs/solid_queue_concurrency_spec.rb
           spec/system/assistant_meeting_analyses_spec.rb
           spec/system/assistant_ticket_suggestions_spec.rb
-          spec/services/meetings/overview_list_spec.rb
           spec/services/activities/area_registry_spec.rb
           spec/services/activities/visible_to_spec.rb
           spec/services/assistant/panel_registry_spec.rb
@@ -585,6 +584,8 @@ jobs:
           spec/requests/organisations/meeting_list_views_spec.rb
           spec/requests/organisations/meetings_lane_spec.rb
           spec/requests/organisations/meetings_overview_spec.rb
+          spec/requests/organisations/meetings_overview_access_spec.rb
+          spec/requests/organisations/meetings_overview_views_spec.rb
           spec/services/actors/save_smart_folder_from_filters_spec.rb
           spec/services/actors/save_smart_folder_concurrency_spec.rb
           spec/services/actors/create_ticket_relation_concurrency_spec.rb

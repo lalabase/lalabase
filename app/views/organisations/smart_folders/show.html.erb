@@ -146,7 +146,7 @@
 
 <div class="mt-6">
   <% back_path = if @smart_folder.target_object_type == 'Meeting'
-                   @smart_folder.project ? organisation_project_meetings_path(@current_organisation, @smart_folder.project) : organisation_meetings_path(@current_organisation)
+                   @smart_folder.project ? organisation_project_meetings_path(@current_organisation, @smart_folder.project) : organisation_meetings_path(@current_organisation, smart_folder_id: @smart_folder.id)
                  else
                    organisation_smart_folders_path(@current_organisation)
                  end %>

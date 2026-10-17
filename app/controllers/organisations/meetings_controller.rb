@@ -11,6 +11,7 @@ module Organisations
     include ViewportSwitchable
     include AdHocFilterable
     include Pageable
+    include MeetingList
 
     # edit/update included so the detail-frame re-render after a save keeps the right
     # viewport: the edit link + form carry viewport so the round-trip preserves it.
@@ -27,6 +28,7 @@ module Organisations
     # controller's own `new` form in a frame of its own. Both ids are declared by the
     # partial that carries the frame — meetings_overview/_new_meeting_modal.html.erb
     # and _results.html.erb — the same "keep them in sync" rule as the two above.
+    # The filter bar of that page targets OVERVIEW_LIST_FRAME_ID too.
     # OVERVIEW_LIST_FRAME_ID is REPLACED on a save, so its partial has to bring the
     # <turbo-frame> itself; a frameless partial would delete the frame and every
     # later stream to it would vanish without a word.
@@ -153,7 +155,7 @@ module Organisations
             # on "Alle Meetings" belongs back there, not in the project's own
             # master-detail — the same rule the turbo_stream branch follows.
             if overview_modal?
-              redirect_to organisation_meetings_path(@current_organisation), notice: t('flash.meetings.created')
+              redirect_to organisation_meetings_path(@current_organisation, meeting_index_query), notice: t('flash.meetings.created')
             else
               redirect_to organisation_project_meetings_path(
                 @current_organisation,
@@ -438,28 +440,10 @@ module Organisations
       @meeting = @project.meetings.find(params[:id])
     end
 
-    def filtered_meetings
-      @meeting_smart_folders = policy_scope(SmartFolder).where(target_object_type: 'Meeting')
-                                                        .where('project_id IS NULL OR project_id = ?', @project.id).order(:name)
-      @active_smart_folder = active_folder_record
-      @dissolver_result = dissolved_active_view if @active_smart_folder
-      @current_search_mode = params[:search_mode] == 'title_only' ? 'title_only' : 'content'
-      @view_configuration = ViewConfiguration.for_user_project(current_user, @project, 'meetings')
-      @columns = Lists::ResolveColumns.call(view_configuration: @view_configuration, smart_folder: @active_smart_folder)
-      query = Meetings::ListQuery.call(
-        scope: policy_scope(@project.meetings), search: params[:search], search_mode: @current_search_mode,
-        filters: list_filter_params, operators: list_filter_op_params,
-        smart_folder: @active_smart_folder, apply_folder_rules: !edited_saved_view?, sort: nested_param(:sort)
-      )
-      @pagy, meetings = paginate(query, overflow: :last_page)
-      meetings
-    end
-
-    def active_folder_record
-      return @active_folder_record if defined?(@active_folder_record)
-
-      @active_folder_record = policy_scope(SmartFolder).where(target_object_type: 'Meeting')
-                                                       .where('project_id IS NULL OR project_id = ?', @project.id).find_by(id: params[:smart_folder_id])
+    # The list this request shows (MeetingList): the project's own, or "Alle
+    # Meetings" after a save from that page's modal.
+    def meeting_list_project
+      overview_modal? ? nil : @project
     end
 
     def ad_hoc_filter_params
@@ -501,19 +485,19 @@ module Organisations
       Meetings::ListState.extract(params)
     end
 
-    # The refreshed list keeps the filters the page is showing, so a meeting saved
-    # for another project (or without the searched word) is legitimately not in it.
-    # Then the frame renders the "filter matched nothing" empty state, which reads
-    # like a failed save — so the flash says which of the two happened.
+    # The refreshed list keeps the state the page is showing (the form carries it
+    # as hidden fields), so a meeting saved for another project (or without the
+    # searched word) is legitimately not in it. Then the list looks as if the save
+    # failed, so the flash says which of the two happened. The list is the one
+    # MeetingsOverviewController renders (MeetingList, project nil).
     def overview_created_streams(meeting)
-      results = overview_list.fetch_results
-      hidden = results.none? { |row| row.id == meeting.id }
+      results = filtered_meetings
+      hidden = !@meeting_list_query.exists?(id: meeting.id)
 
       [
         turbo_stream.replace(OVERVIEW_LIST_FRAME_ID,
                              partial: 'organisations/meetings_overview/results',
-                             locals: { meetings: results,
-                                       filters_active: overview_list.filters_active? }),
+                             locals: { meetings: results }),
         flash_stream(hidden ? 'flash.meetings.created_hidden_by_filter' : 'flash.meetings.created')
       ]
     end
@@ -642,25 +626,12 @@ module Organisations
         meeting: meeting,
         detail_frame_id: MODAL_FRAME_ID,
         context: OVERVIEW_MODAL_CONTEXT,
-        cancel_action: MODAL_CANCEL_ACTION,
-        overview_project_id: params[:overview_project_id]
+        cancel_action: MODAL_CANCEL_ACTION
       }
     end
 
     def overview_modal?
       params[:context] == OVERVIEW_MODAL_CONTEXT
-    end
-
-    # The org-wide list, through its one owner — the same object the overview page
-    # itself renders with, so the list after a save cannot drift from the list
-    # before it. The project filter arrives as overview_project_id: project_id is
-    # this route's own parameter.
-    def overview_list
-      @overview_list ||= Meetings::OverviewList.from_params(
-        scope: policy_scope(Meeting),
-        params: params,
-        project_id_key: Meetings::OverviewList::NESTED_PROJECT_ID_KEY
-      )
     end
 
     def meeting_params

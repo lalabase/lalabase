@@ -199,23 +199,13 @@ de:
           modal_project_label: Projekt
           modal_project_prompt: Projekt wählen …
           modal_select_project_first: Wähle zuerst ein Projekt.
-          search_placeholder: Titel & Inhalt durchsuchen …
-          filter_participant_label: Teilnehmer
-          filter_participant_all: Alle Teilnehmer
-          filter_project_label: Projekt
-          filter_project_all: Alle Projekte
-          col_title: Titel
-          col_project: Projekt
-          col_date: Datum
-          col_participants: Teilnehmer
-          empty_no_results: Keine Meetings gefunden
-          empty_reset: Filter zurücksetzen
           empty_first_time_title: Noch keine Meetings
           empty_first_time_description: Sobald in deinen Projekten Meetings erfasst werden, findest du sie hier projektübergreifend — zum Beispiel alle Meetings mit einer bestimmten Person.
   models:
     view_configuration:
       meeting_columns:
         title: Titel
+        project: Projekt
         occurred_at: Meetingdatum
         duration_minutes: Dauer
         participants: Teilnehmer
@@ -225,6 +215,7 @@ de:
   smart_folders:
     all_meetings: Alle Meetings
     fields:
+      project: Projekt
       creator: Erstellt von
       participant: Teilnehmer
       occurred_at: Meetingdatum

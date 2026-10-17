@@ -63,7 +63,7 @@
   ad_hoc_filters: ad_hoc_filter_params,
   ad_hoc_operators: ad_hoc_filter_op_params,
   dropped_categories: dropped_filter_categories,
-  filter_categories_json: meeting_filter_categories_json(@project, @current_organisation),
+  filter_categories_json: meeting_filter_categories_json(scope: policy_scope(@project.meetings), organisation: @current_organisation),
   search_value: params[:search],
   search_mode: @current_search_mode,
   search_modes: %w[title_only content],

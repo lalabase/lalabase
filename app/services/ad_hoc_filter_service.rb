@@ -20,7 +20,9 @@ class AdHocFilterService
   # The bar's categories that are not custom attributes. AdHocToSmartFolderService reads this list,
   # and through it SmartFoldersController#sanitized_filter_params: a new category is added here only.
   SPECIAL_FIELDS = %w[assignee tag creator created_at updated_at due_date waiting blocking].freeze
-  MEETING_FIELDS = %w[participant occurred_at].freeze
+  # project: the organisation-wide meetings list only ("Alle Meetings"). It narrows
+  # an already policy-scoped relation, so an id the reader cannot read matches nothing.
+  MEETING_FIELDS = %w[participant occurred_at project].freeze
   VALID_OPERATORS = %w[or and not].freeze
   DEFAULT_OPERATOR = 'or'
 
@@ -88,7 +90,9 @@ class AdHocFilterService
   # creator needs a creator_id column).
   def field_supported?(key, klass)
     case key
-    when 'participant', 'occurred_at'
+    # On a meeting list a meeting field; on any other list a custom attribute of
+    # the same name (a ticket field may be called "project").
+    when *MEETING_FIELDS
       klass == Meeting || klass.column_names.include?('custom_attributes')
     when 'assignee', *Tickets::WaitingStateFilter::STATES
       klass == Ticket
@@ -219,6 +223,17 @@ class AdHocFilterService
 
   def apply_participant_filter(query)
     Meetings::ParticipantFilter.call(query, filter_params['participant'], operator: operator_for('participant'))
+  end
+
+  def apply_project_filter(query)
+    project_ids = Array(filter_params['project']).grep(String).reject(&:blank?)
+    return query if project_ids.empty?
+
+    if operator_for('project') == 'not'
+      query.where.not(project_id: project_ids)
+    else
+      query.where(project_id: project_ids)
+    end
   end
 
   def apply_occurred_at_filter(query)

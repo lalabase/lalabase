@@ -1,91 +1,106 @@
-<%# locals: (meetings:, filters_active:) %>
-<%# The meetings_overview_results frame, brought by this partial ITSELF -- the same
-    rule as the project list's _meetings_results.html.erb, and for the same reason:
-    MeetingsController#create replaces this frame wholesale after a save from the
-    overview modal. A partial without the frame would leave a plain <div> behind, and
-    from then on the filter row would target a frame that no longer exists and every
-    later save would be dropped by Turbo without a word.
-    filters_active is a local, not a helper call -- the create path runs in a
-    controller that has no such helper. %>
-<turbo-frame id="meetings_overview_results">
-  <%# One query, not two: .empty? on an unloaded relation asks the database, then the
-      loop asks it again. %>
+<%# locals: (meetings:, first_use: false) %>
+<%# The meetings_overview_results frame, brought by this partial ITSELF: the
+    filter bar, the column heads and the pages reload it, and
+    MeetingsController#create REPLACES it after a save from the overview modal. A
+    partial without the frame would leave a plain <div> behind, and from then on
+    every reload would target a frame that no longer exists.
+    Rendered from two controllers, so it reads no helper only one of them has:
+    first_use is a local (false after a save, there is a meeting then).
+
+    data-list-filter-query is the list state as the server applied it; the
+    modal's "+" reads it when a project is chosen (meeting_modal_controller), so
+    the list after a save keeps its conditions, view, search and sort. %>
+<% frame_id = Organisations::MeetingsController::OVERVIEW_LIST_FRAME_ID %>
+<% base_path = organisation_meetings_path(@current_organisation) %>
+<turbo-frame id="<%= frame_id %>">
+  <%# One query, not two: .empty? on an unloaded relation asks the database, then
+      the loop asks it again. %>
   <% rows = meetings.to_a %>
-  <div class="text-base min-h-[60vh]">
+  <div data-fb-hits-total="<%= @pagy.count %>" class="text-base min-h-[60vh]" data-list-filter-query="<%= meeting_list_state(pagy: @pagy).to_query %>">
     <% if rows.empty? %>
       <div class="flex items-center justify-center min-h-[40vh]">
-        <% if filters_active %>
-          <%# Existing meetings, but the current filter/search matched none. %>
-          <% reset_cta = capture do %>
-            <%= link_to t('views.organisations.meetings_overview.index.empty_reset'),
-                        organisation_meetings_path(@current_organisation),
-                        data: { turbo_frame: '_top' },
-                        class: 'inline-flex items-center gap-1 text-sm font-medium text-cream-800 underline hover:text-ink' %>
-          <% end %>
-          <%= render 'shared/empty_content',
-              variant: :no_results,
-              icon_class: 'bi bi-search',
-              title: t('views.organisations.meetings_overview.index.empty_no_results'),
-              actions: reset_cta %>
-        <% else %>
-          <%# First time: no readable meetings exist yet in any project. %>
+        <% if first_use %>
+          <%# No readable meetings exist yet in any project. %>
           <%= render 'shared/empty_content',
               variant: :first_time,
               icon_class: 'bi bi-chat-quote',
               title: t('views.organisations.meetings_overview.index.empty_first_time_title'),
               description: t('views.organisations.meetings_overview.index.empty_first_time_description') %>
+        <% else %>
+          <%# Meetings exist, but the view, a condition or the search matched none. %>
+          <%= render 'shared/empty_content',
+              variant: :no_results,
+              icon_class: 'bi bi-search',
+              title: t('views.organisations.meetings.index.empty_no_results') %>
         <% end %>
       </div>
+    <% elsif @viewport_mode == 'mobile' %>
+      <%# Phone: one block per meeting, the title on its own line and the project,
+          date and participants below it. No table, so nothing scrolls sideways. %>
+      <ul class="divide-y divide-cream-200">
+        <% rows.each do |meeting| %>
+          <% row_url = organisation_project_meetings_path(@current_organisation, meeting.project, meeting_id: meeting.id) %>
+          <li data-meeting-id="<%= meeting.id %>"
+              data-controller="clickable-row"
+              data-clickable-row-url-value="<%= row_url %>"
+              data-action="click->clickable-row#click"
+              class="px-3 py-3 cursor-pointer hover:bg-cream-100">
+            <h5 class="text-sm font-medium truncate">
+              <%= link_to meeting.title, row_url, data: { turbo_frame: '_top' }, class: 'text-cream-900 hover:text-ink hover:underline' %>
+            </h5>
+            <p class="text-[11px] text-muted truncate">
+              <%= safe_join([meeting.project.name,
+                             display_time(meeting.occurred_at, user: current_user),
+                             meeting_column_value(meeting, { key: 'participants' }).presence].compact, ' · ') %>
+            </p>
+          </li>
+        <% end %>
+      </ul>
     <% else %>
-      <div class="relative w-full overflow-y-auto bg-cream-50 rounded-lg">
-        <table class="min-w-full border-collapse">
+      <div class="relative w-full">
+        <table class="w-full table-fixed meeting-table">
           <thead>
             <tr>
-              <th scope="col" class="p-3 text-start text-[11px] font-mono font-medium text-cream-600 uppercase tracking-wider border-b border-ink w-[32%]">
-                <%= t('views.organisations.meetings_overview.index.col_title') %>
-              </th>
-              <th scope="col" class="p-3 text-start text-[11px] font-mono font-medium text-cream-600 uppercase tracking-wider border-b border-ink w-[22%]">
-                <%= t('views.organisations.meetings_overview.index.col_project') %>
-              </th>
-              <th scope="col" class="p-3 text-start text-[11px] font-mono font-medium text-cream-600 uppercase tracking-wider border-b border-ink w-[20%]">
-                <%= t('views.organisations.meetings_overview.index.col_date') %>
-              </th>
-              <th scope="col" class="p-3 text-start text-[11px] font-mono font-medium text-cream-600 uppercase tracking-wider border-b border-ink w-[26%]">
-                <%= t('views.organisations.meetings_overview.index.col_participants') %>
-              </th>
+              <% @columns.each do |column| %>
+                <th scope="col" data-column="<%= column[:key] %>"
+                    class="py-3 px-3 text-start text-[11px] font-mono font-medium uppercase tracking-wider text-muted <%= meeting_overview_column_width_class(column) %>">
+                  <%= meeting_sort_link(column, base_path: base_path, frame_id: frame_id) %>
+                </th>
+              <% end %>
             </tr>
           </thead>
-          <tbody class="divide-y divide-cream-200">
+          <tbody>
             <% rows.each do |meeting| %>
               <% row_url = organisation_project_meetings_path(@current_organisation, meeting.project, meeting_id: meeting.id) %>
-              <%# clickable-row's default branch (no data-*-id attr) navigates the
-                  whole window to row_url — breaking out of this frame into the
-                  project master-detail. The title stays a real link for keyboard
-                  access; the controller ignores clicks on it. %>
-              <tr data-controller="clickable-row"
+              <%# A row opens the meeting on its project's page (clickable-row's
+                  default branch navigates the window). The title stays a real
+                  link for keyboard access; the controller ignores clicks on it. %>
+              <tr data-meeting-id="<%= meeting.id %>"
+                  data-controller="clickable-row"
                   data-clickable-row-url-value="<%= row_url %>"
                   data-action="click->clickable-row#click"
                   class="transition-colors duration-100 ease-in-out cursor-pointer hover:bg-cream-100">
-                <td class="p-3 w-[32%]">
-                  <%= link_to meeting.title, row_url, data: { turbo_frame: '_top' },
-                              class: 'text-sm font-medium text-cream-900 hover:text-ink hover:underline' %>
-                </td>
-                <td class="p-3 w-[22%] text-sm text-cream-700 truncate"><%= meeting.project.name %></td>
-                <td class="p-3 whitespace-nowrap w-[20%] text-sm">
-                  <%= display_time(meeting.occurred_at, user: current_user) %>
-                </td>
-                <td class="p-3 w-[26%] text-sm text-cream-600">
-                  <% if meeting.meeting_participants.any? %>
-                    <span class="truncate"><i class="bi bi-people text-[10px]"></i> <%= meeting.meeting_participants.map(&:display_name).join(', ') %></span>
-                  <% else %>
-                    <span class="text-cream-400">–</span>
-                  <% end %>
-                </td>
+                <% @columns.each do |column| %>
+                  <td data-column="<%= column[:key] %>" class="p-3 text-sm">
+                    <% if column[:key] == 'title' %>
+                      <h5 class="text-sm font-medium truncate">
+                        <%= link_to meeting.title, row_url, data: { turbo_frame: '_top' }, class: 'text-cream-900 hover:text-ink hover:underline' %>
+                      </h5>
+                    <% else %>
+                      <% value = meeting_column_value(meeting, column) %>
+                      <%= tag.div value, class: 'truncate', title: strip_tags(value.to_s) %>
+                    <% end %>
+                  </td>
+                <% end %>
               </tr>
             <% end %>
           </tbody>
         </table>
       </div>
+    <% end %>
+    <% if @pagy.count.positive? %>
+      <%= render 'shared/pagination_nav_compact', pagy: @pagy, frame_id: frame_id, items_per_page: @pagy.limit,
+                 smart_folder_id: @active_smart_folder&.id, current_organisation: @current_organisation, base_path: base_path %>
     <% end %>
   </div>
 </turbo-frame>

@@ -32,7 +32,7 @@ class AdHocToSmartFolderService
   # a copy: two copies meant every new category had to be added twice, and one
   # forgotten copy dropped the condition silently on save (plan §9, option A).
   SPECIAL_FIELDS = AdHocFilterService::SPECIAL_FIELDS
-  MEETING_FIELDS = %w[participant occurred_at].freeze
+  MEETING_FIELDS = AdHocFilterService::MEETING_FIELDS
 
   # The conditions would exceed SmartFolder::MAX_RULE_GROUPS or
   # MAX_RULES_PER_GROUP. Raised before the cross product is built; the message
@@ -41,14 +41,18 @@ class AdHocToSmartFolderService
 
   Conversion = Struct.new(:rules_by_group, :field_config_map, :preloaded_references, :warnings, keyword_init: true)
 
-  def self.call(project:, filter_params:, operator_params: {}, target_object_type: 'Ticket')
-    new(project: project, filter_params: filter_params, operator_params: operator_params, target_object_type: target_object_type).convert
+  # project: nil on a list of the whole organisation (a meetings view of
+  # "Alle Meetings"); the organisation then has to be named.
+  def self.call(project:, filter_params:, operator_params: {}, target_object_type: 'Ticket', organisation: project&.organisation)
+    new(project: project, filter_params: filter_params, operator_params: operator_params,
+        target_object_type: target_object_type, organisation: organisation).convert
   end
 
-  attr_reader :project, :filter_params, :operator_params, :warnings
+  attr_reader :project, :organisation, :filter_params, :operator_params, :warnings
 
-  def initialize(project:, filter_params:, operator_params: {}, target_object_type: 'Ticket')
+  def initialize(project:, filter_params:, operator_params: {}, target_object_type: 'Ticket', organisation: project&.organisation)
     @project = project
+    @organisation = organisation
     @filter_params = filter_params.presence || {}
     @operator_params = operator_params.presence || {}
     @target_object_type = target_object_type
@@ -60,7 +64,7 @@ class AdHocToSmartFolderService
     rules_by_group = build_rules_for_groups
     Conversion.new(
       rules_by_group: rules_by_group,
-      field_config_map: SmartFolderRule.field_config_with_custom_attributes(project.organisation, project),
+      field_config_map: SmartFolderRule.field_config_with_custom_attributes(organisation, project),
       preloaded_references: preload_references(rules_by_group),
       warnings: warnings
     )
@@ -136,6 +140,7 @@ class AdHocToSmartFolderService
     when 'assignee' then convert_assignee(values)
     when 'tag'      then convert_tag(values)
     when 'creator'  then convert_creator(values)
+    when 'project'  then convert_reference('project', values)
     when 'participant' then [{ field: key, operator: { 'and' => HAS_ALL_OF, 'not' => NOT_HAS }.fetch(operator_for(key), HAS_ANY_OF), value: values.to_json }]
     when 'created_at', 'updated_at', 'occurred_at' then convert_date(key, values)
     when 'due_date' then convert_due_date(values)
@@ -145,22 +150,22 @@ class AdHocToSmartFolderService
   end
 
   def convert_assignee(values)
-    convert_user_reference('assignee', values)
+    convert_reference('assignee', values)
   end
 
   def convert_creator(values)
-    convert_user_reference('creator', values)
+    convert_reference('creator', values)
   end
 
-  # Shared conversion for user reference fields (assignee, creator):
+  # Shared conversion for reference fields (assignee, creator, project):
   # NOT -> not_equals rules in one group; OR with multiple values ->
-  # one group per user (alternatives).
-  def convert_user_reference(field, values)
+  # one group per record (alternatives).
+  def convert_reference(field, values)
     case operator_for(field)
     when 'not'
-      values.map { |uid| { field: field, operator: NOT_EQUALS, value: uid } }
+      values.map { |id| { field: field, operator: NOT_EQUALS, value: id } }
     else # 'or'
-      alternatives(values.map { |uid| { field: field, operator: EQUALS, value: uid } })
+      alternatives(values.map { |id| { field: field, operator: EQUALS, value: id } })
     end
   end
 
@@ -278,7 +283,7 @@ class AdHocToSmartFolderService
                              .map { |r| r[:value] }.compact.uniq
     return nil if user_ids.empty?
 
-    users_by_id = project.organisation.users.where(id: user_ids).index_by { |u| u.id.to_s }
+    users_by_id = organisation.users.where(id: user_ids).index_by { |u| u.id.to_s }
     { 'User' => users_by_id }
   end
 

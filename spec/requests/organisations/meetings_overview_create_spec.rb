@@ -17,10 +17,12 @@ require 'rails_helper'
 #      Turbo drops a stream whose target is missing WITHOUT a word. A `replace` whose
 #      partial does not bring the <turbo-frame> deletes the frame, and from then on
 #      the filter row and every LATER save hit exactly that silent drop.
-#   3. The three filters must survive the whole round trip: page -> option URL ->
-#      hidden field -> refreshed list. Each link is asserted here; the middle one is
-#      where the overview's `project_id` becomes `overview_project_id`, because that
-#      name is taken by the nested route.
+#   3. The list state must survive the whole round trip: list frame -> option URL ->
+#      hidden field -> refreshed list. The list frame writes its state into
+#      data-list-filter-query; meeting_modal_controller merges it into the option's
+#      URL when a project is chosen. The overview's project filter travels as
+#      filter[project][], which does not collide with the nested route's own
+#      project_id.
 RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
   let(:organisation) { create(:organisation) }
   let(:project_a) { ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation, name: 'Projekt Alpha') } }
@@ -100,33 +102,23 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       expect(response.body).not_to include(new_form_path_for(project_b))
     end
 
-    it 'writes the active filters into every option URL, project_id renamed' do
-      # First link of the round trip. Only this assertion can catch the rename:
-      # the page's `project_id` has to leave as `overview_project_id`, or it would
-      # retarget the nested route instead of filtering the list.
+    it 'leaves the list state out of the option URL: the modal reads it from the list' do
       sign_in writer_a
-      get overview_path, params: { search: 'Kickoff', participant: anna, project_id: project_a.id }
-
-      query = new_url_query_for(project_a)
-      expect(query).to include('frame' => 'modal', 'search' => 'Kickoff', 'participant' => anna,
-                               'overview_project_id' => project_a.id)
-      expect(query).not_to have_key('project_id')
-    end
-
-    it 'survives a non-scalar project_id in the address instead of 500ing' do
-      create_meeting(project: project_a, title: 'Alpha Kickoff', creator: writer_a)
-      sign_in writer_a
-
-      get overview_path, params: { project_id: { 'a' => '1' } }
-
-      expect(response).to have_http_status(:ok)
-    end
-
-    it 'leaves the filter parameters out of the option URL when nothing is filtered' do
-      sign_in writer_a
-      get overview_path
+      get overview_path, params: { search: 'Kickoff', filter: { project: [project_a.id] } }
 
       expect(new_url_query_for(project_a)).to eq('frame' => 'modal')
+      modal = Nokogiri::HTML(response.body).at_css('[data-controller="meeting-modal"]')
+      expect(modal['data-meeting-modal-list-frame-value']).to eq('meetings_overview_results')
+    end
+
+    it 'writes the list state into the list frame, where the modal reads it' do
+      create_meeting(project: project_a, title: 'Alpha Kickoff', creator: writer_a)
+      sign_in writer_a
+      get overview_path, params: { search: 'Kickoff', filter: { project: [project_a.id] }, filter_op: { project: 'or' } }
+
+      state = Nokogiri::HTML(response.body).at_css('#meetings_overview_results [data-list-filter-query]')
+      expect(Rack::Utils.parse_nested_query(state['data-list-filter-query']))
+        .to eq('search' => 'Kickoff', 'filter' => { 'project' => [project_a.id] }, 'filter_op' => { 'project' => 'or' })
     end
   end
 
@@ -152,18 +144,17 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       expect(response.body).not_to include('meeting-form-card')
     end
 
-    it 'carries the active list filters into the form as hidden fields, by value' do
-      # Second link. Asserting the field NAMES only would pass even if the three
-      # were cross-wired or arrived empty — the regression this example is for.
+    it 'carries the list state into the form as hidden fields, by value' do
+      # Second link. Asserting the field NAMES only would pass even if the values
+      # were cross-wired or arrived empty, the regression this example is for.
       sign_in writer_a
-      get new_organisation_project_meeting_path(organisation, project_a, frame: 'modal',
-                                                                         search: 'Kickoff', participant: anna,
-                                                                         overview_project_id: project_b.id),
+      get new_organisation_project_meeting_path(organisation, project_a, frame: 'modal', search: 'Kickoff',
+                                                                         filter: { participant: [anna], project: [project_b.id] }),
           headers: { 'Turbo-Frame' => 'meeting_modal_form' }
 
       expect(hidden_field_value('search')).to eq('Kickoff')
-      expect(hidden_field_value('participant')).to eq(anna)
-      expect(hidden_field_value('overview_project_id')).to eq(project_b.id)
+      expect(hidden_field_value('filter[participant][]')).to eq(anna)
+      expect(hidden_field_value('filter[project][]')).to eq(project_b.id)
       expect(hidden_field_value('context')).to eq('overview_modal')
     end
 
@@ -230,38 +221,54 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       sign_in writer_a
 
       post organisation_project_meetings_path(organisation, project_a),
-           params: valid_params.merge(participant: anna), as: :turbo_stream
+           params: valid_params.merge(filter: { participant: [anna] }), as: :turbo_stream
 
       expect(response.body).to include('meetings_overview_results')
       expect(response.body).to include('Alpha Kickoff')
       expect(response.body).not_to include('Beta Sync')
     end
 
-    it 'keeps an active project filter, which travels as overview_project_id' do
-      # Third link, and the only place the rename is observable end to end. The save
-      # deliberately goes into a DIFFERENT project than the filter names: reading
-      # params[:project_id] instead would silently pick up the nested route's own
-      # parameter (the project being saved into) and look right anyway.
+    it 'keeps an active project filter, which travels as filter[project][]' do
+      # Third link. The save deliberately goes into a DIFFERENT project than the
+      # filter names: reading params[:project_id] instead would silently pick up the
+      # nested route's own parameter (the project being saved into) and look right.
       create_meeting(project: project_a, title: 'Alpha Kickoff', creator: writer_both)
       create_meeting(project: project_b, title: 'Beta Retro', creator: writer_both)
       sign_in writer_both
 
       post organisation_project_meetings_path(organisation, project_a),
-           params: valid_params.merge(overview_project_id: project_b.id), as: :turbo_stream
+           params: valid_params.merge(filter: { project: [project_b.id] }), as: :turbo_stream
 
       expect(response.body).to include('Beta Retro')
       expect(response.body).not_to include('Alpha Kickoff')
       # The saved meeting lives in project_a, which the filter excludes.
       expect(response.body).not_to include('Kickoff Alpha')
+      expect(response.body).to include(I18n.t('flash.meetings.created_hidden_by_filter'))
     end
 
-    it 'answers a non-scalar overview_project_id with a filtered list, not a 500' do
-      # search and participant both coerce; this one reached `where` untouched, where
-      # a nested parameter is read as a condition on a table called project_id.
+    it 'keeps an active saved view of the overview in the refreshed list' do
+      create_meeting(project: project_b, title: 'Beta Retro', creator: writer_both)
+      view = ActsAsTenant.with_tenant(organisation) do
+        create(:smart_folder, name: 'Nur Beta', user: writer_both, organisation: organisation, project: nil,
+                              target_object_type: 'Meeting').tap do |folder|
+          folder.smart_folder_rule_groups.create!(position: 1)
+                .smart_folder_rules.create!(field: 'project', operator: 'equals', value: project_b.id, position: 1)
+        end
+      end
+      sign_in writer_both
+
+      post organisation_project_meetings_path(organisation, project_b),
+           params: valid_params.merge(smart_folder_id: view.id), as: :turbo_stream
+
+      expect(response.body).to include('Beta Retro', 'Kickoff Alpha')
+      expect(response.body).to include(I18n.t('flash.meetings.created'))
+    end
+
+    it 'answers a filter of the wrong shape with a list, not a 500' do
       sign_in writer_a
 
       post organisation_project_meetings_path(organisation, project_a),
-           params: valid_params.merge(overview_project_id: { 'a' => '1' }), as: :turbo_stream
+           params: valid_params.merge(filter: 'oops', sort: 'oops'), as: :turbo_stream
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('meetings_overview_results')
@@ -286,12 +293,12 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       sign_in writer_a
 
       post organisation_project_meetings_path(organisation, project_a),
-           params: valid_params.merge(participant: MeetingParticipant.normalize_name('Bert Berg')),
+           params: valid_params.merge(filter: { participant: [MeetingParticipant.normalize_name('Bert Berg')] }),
            as: :turbo_stream
 
       expect(response.body).to include(I18n.t('flash.meetings.created_hidden_by_filter'))
       expect(response.body).not_to include(I18n.t('flash.meetings.created'))
-      expect(response.body).to include(I18n.t('views.organisations.meetings_overview.index.empty_no_results'))
+      expect(response.body).to include(I18n.t('views.organisations.meetings.index.empty_no_results'))
     end
 
     it 'answers 422 back into the modal frame on an invalid submit and creates nothing' do
@@ -319,6 +326,22 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
     end
   end
 
+  describe 'pages of the refreshed list' do
+    it 'point to the overview, not to the project the meeting went into' do
+      2.times { |index| create_meeting(project: project_a, title: "Alt #{index}", creator: writer_a) }
+      sign_in writer_a
+
+      post organisation_project_meetings_path(organisation, project_a),
+           params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current }, items: 2 },
+           as: :turbo_stream
+
+      next_link = Nokogiri::HTML(response.body).at_css("a[title='#{I18n.t('views.shared.pagination_compact.next_page')}']")
+      expect(next_link).to be_present
+      expect(URI.parse(next_link['href']).path).to eq(overview_path)
+      expect(Rack::Utils.parse_nested_query(URI.parse(next_link['href']).query)).to include('page' => '2', 'items' => '2')
+    end
+  end
+
   describe 'POST create from the modal without turbo (no JavaScript)' do
     it 'sends a successful save back to the overview it started from' do
       sign_in writer_a
@@ -327,6 +350,18 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
            params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current } }
 
       expect(response).to redirect_to(organisation_meetings_path(organisation))
+    end
+
+    it 'keeps the list state on the way back' do
+      sign_in writer_a
+
+      post organisation_project_meetings_path(organisation, project_a),
+           params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current },
+                     filter: { project: [project_a.id] }, sort: { column: 'title', direction: 'asc' } }
+
+      expect(URI.parse(response.location).path).to eq(overview_path)
+      expect(Rack::Utils.parse_nested_query(URI.parse(response.location).query))
+        .to include('filter' => { 'project' => [project_a.id] }, 'sort' => { 'column' => 'title', 'direction' => 'asc' })
     end
 
     it 'renders the modal frame again on an invalid save' do

@@ -22,8 +22,17 @@ Konventionen:
   Frames neben dem Abschnitt, beide Auslöser sind Links mit `data-turbo-frame`, Verbinden heißt
   Öffnen, Schließen leert den Frame. Jede Öffnung trägt eine eigene ID (Token): Ablehnung und
   Speichern treffen nur sie, eine späte Antwort an ein geschlossenes Modal findet nichts. Das
-  Fokus-Rücksprungziel liegt am Frame, nicht an der Instanz. ⚠️ Ein neues Overlay muss in
-  `layout_toggle#escapeBelongsToOverlay` stehen, sonst schließt Escape die Bahn DAHINTER.
+  Fokus-Rücksprungziel liegt am Frame, nicht an der Instanz.
+* **Escape gehört dem Obersten** (`lib/escape_owner.js`, seit 17.10.2026): Jeder Controller, der
+  auf Escape reagiert, beantwortet `ownsEscape()` (wahr, solange sein nächstes Escape etwas
+  Eigenes schließt). Ein Overlay, das ein Skript außerhalb eines Controllers baut, trägt
+  `data-owns-escape`. Die Bahn (`layout-toggle`) fragt das in der Capture-Phase auf `window`,
+  bevor irgendein Listener lief, und schließt nur, wenn niemand antwortet. Bis dahin stand
+  eine Selektor-Liste in `layout-toggle`, und jedes vergessene Overlay schloss die Bahn
+  DAHINTER. Wächter: `spec/architecture/escape_owner_guard_spec.rb` (auch `keydown.esc->` in
+  Templates; geschlossene Liste `NOT_OWNERS` mit Grund). ⚠️ Ein `ownsEscape()`, das wahr
+  bleibt, obwohl nichts offen ist, hält die Bahn für immer offen: an den Zustand binden, den
+  der eigene Escape-Handler prüft.
 * `neo_autosuggest` hat zwei Modi: ohne `url` filtert er vorgeladene Optionen im Browser, mit `url`
   fragt er den Server; bestätigte Auswahl, Anfragenummer, Entprellen und Abbruch liegen in
   `lib/autosuggest_search.js` (Pin `autosuggest_search`, node-Tests).

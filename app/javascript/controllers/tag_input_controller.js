@@ -287,6 +287,14 @@ export default class extends Controller {
     });
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape listens on its own field, so only a key pressed there counts.
+  ownsEscape() {
+    const suggestions = this._suggestionsContainer
+    return Boolean(suggestions) && !suggestions.classList.contains('hidden') &&
+      Boolean(suggestions.parentElement?.contains(document.activeElement))
+  }
+
   getExistingTagNames(container) {
     return Array.from(container.querySelectorAll('.ss-value-text')).map(tag => tag.textContent.toLowerCase());
   }

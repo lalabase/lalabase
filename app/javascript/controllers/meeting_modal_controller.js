@@ -127,8 +127,13 @@ export default class extends Controller {
     }
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  ownsEscape() {
+    return this.isOpen
+  }
+
   closeOnEscape(event) {
-    if (event.key === "Escape" && this.isOpen) {
+    if (event.key === "Escape" && this.ownsEscape()) {
       this.close()
     }
   }

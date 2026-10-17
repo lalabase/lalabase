@@ -319,6 +319,12 @@ export default class extends Controller {
     else if (this.hasCapsuleInputTarget) this.capsuleInputTarget.focus()
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape is bound to the panel, so only a key pressed inside it counts.
+  ownsEscape() {
+    return this.openValue && this.hasPanelTarget && this.panelTarget.contains(document.activeElement)
+  }
+
   // Escape closes, like every other layer here. Bound to the panel, not to the
   // document: a modal opened on top of the page must keep its own Escape.
   closeOnEscape(event) {

@@ -36,6 +36,8 @@ function createOverlay(timeSessionId, onClose) {
   if (!overlay) {
     overlay = document.createElement('div')
     overlay.id = overlayId
+    // Owns Escape while it stands (lib/escape_owner.js): the lane behind stays open.
+    overlay.setAttribute('data-owns-escape', '')
     overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px)'
 
     overlay.addEventListener('click', (e) => {

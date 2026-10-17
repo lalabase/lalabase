@@ -214,6 +214,12 @@ export default class extends Controller {
     }
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape listens on its own field, so only a key pressed there counts.
+  ownsEscape() {
+    return this.isOpen && this.element.contains(document.activeElement)
+  }
+
   handleKeydown(event) {
     if (!this.isOpen) {
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {

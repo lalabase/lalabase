@@ -953,6 +953,13 @@ export default class extends Controller {
   }
   
   // Advanced keyboard commands in the tag input
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // Its Escape listens on its own field, so only a key pressed there counts.
+  ownsEscape() {
+    return this.element.contains(document.activeElement) &&
+      Boolean(this.element.querySelector('[data-smart-folder-form-target="tagSuggestions"]:not(.hidden)'))
+  }
+
   handleSimpleTagInputKey(event) {
     const tagInput = event.target;
     const rule = tagInput.closest('.smart-folder-rule');

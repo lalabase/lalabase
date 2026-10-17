@@ -1385,12 +1385,22 @@ export default class extends Controller {
       if (!this.element.isConnected) return
       document.addEventListener('click', this._boundCloseMenus)
       document.addEventListener('keydown', this._boundEscape)
+      this._escapeArmed = true
     })
   }
 
   _disarmOutsideClose() {
     document.removeEventListener('click', this._boundCloseMenus)
     document.removeEventListener('keydown', this._boundEscape)
+    this._escapeArmed = false
+  }
+
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // True exactly while the Escape listener of an open layer is armed. The
+  // search field's own Escape (closeSearch) folds the field and owns nothing:
+  // the lane closes with it, as it did before.
+  ownsEscape() {
+    return Boolean(this._escapeArmed)
   }
 
   _layers() {

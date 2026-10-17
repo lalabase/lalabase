@@ -24,6 +24,12 @@ export default class extends Controller {
     this.element.remove();
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // The modal stands in the page only while it is open: Escape removes it.
+  ownsEscape() {
+    return true
+  }
+
   closeOnEsc(event) {
     if (event.key === "Escape") {
       this.element.remove();

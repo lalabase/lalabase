@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import { laneParamNames } from '../../../app/javascript/lib/lane/params.js'
 import { controlIndexPath, indexPaths } from '../../../app/javascript/lib/lane/filter_context.js'
+import { escapeOwned } from '../../../app/javascript/lib/escape_owner.js'
 
 const source = readFileSync(new URL('../../../app/javascript/controllers/layout_toggle_controller.js', import.meta.url), 'utf8')
   .replace(/^import .*\n/gm, '')
@@ -16,7 +17,7 @@ function controllerWith(document, { window = {}, groups = null, element = null }
     CustomEvent: class {
       constructor(type, options) { this.type = type; Object.assign(this, options) }
     },
-    readLaneParams: () => groups, laneParamNames, controlIndexPath, indexPaths
+    readLaneParams: () => groups, laneParamNames, controlIndexPath, indexPaths, escapeOwned
   })
   const controller = new Controller()
   controller.listFilterParamsValue = []
@@ -26,40 +27,53 @@ function controllerWith(document, { window = {}, groups = null, element = null }
   return controller
 }
 
-test('an open dialog or menu owns Escape before the detail lane', () => {
-  const overlays = [
-    'dialog[open]',
-    '[data-neo-inline-popover-target="panel"]:not(.hidden)',
-    '[data-dropdown-target="menu"]:not(.hidden)',
-    '[data-neo-dropdown-target="menu"]:not(.hidden)',
-    // The bulk panel's own layers (tags, people, a select) and its field
-    // picker hide with the attribute, not the class.
-    '[data-values-layer]:not([hidden])',
-    '[data-select-layer]:not([hidden])',
-    '[data-ticket-bulk-panel-target="pickerMenu"]:not([hidden])',
-    // The "Link" modal of a ticket page is the content of its frame, so it
-    // exists only while open. Without it Escape closed the lane BEHIND it.
-    '[data-controller~="ticket-relation-modal"]',
-    // The "+" modal of "Alle Meetings": Escape closed it AND the lane behind
-    // it, with an unsaved edit in that lane.
-    '[data-meeting-modal-target="modal"]:not(.hidden)'
-  ]
-
-  for (const overlay of overlays) {
-    let closed = 0
-    let prevented = 0
-    const document = { querySelector: (selector) => selector.includes(overlay) ? { overlay } : null }
-    const controller = controllerWith(document)
-    controller.layoutState = { content: true }
-    controller.closeContent = () => { closed += 1 }
-    controller.closeOnEscape({ key: 'Escape', defaultPrevented: false, preventDefault: () => { prevented += 1 } })
-    assert.equal(closed, 0)
-    assert.equal(prevented, 0)
-  }
-
+test('a controller that owns Escape keeps the lane open', () => {
+  let owns = true
+  let closed = 0
+  let prevented = 0
   const controller = controllerWith({ querySelector: () => null })
-  assert.equal(controller.escapeBelongsToOverlay({ defaultPrevented: false }), false)
-  assert.equal(controller.escapeBelongsToOverlay({ defaultPrevented: true }), true)
+  controller.application = { controllers: [{ ownsEscape: () => owns }, controller] }
+  controller.layoutState = { content: true }
+  controller.closeContent = () => { closed += 1 }
+  const escape = () => ({ key: 'Escape', defaultPrevented: false, preventDefault: () => { prevented += 1 } })
+
+  controller.closeOnEscape(escape())
+  assert.equal(closed, 0)
+  assert.equal(prevented, 0)
+
+  owns = false
+  controller.closeOnEscape(escape())
+  assert.equal(closed, 1)
+})
+
+test('the owner is asked at keydown, before it can close itself', () => {
+  let owns = true
+  let closed = 0
+  const controller = controllerWith({ querySelector: () => null })
+  controller.application = { controllers: [{ ownsEscape: () => owns }] }
+  controller.layoutState = { content: true }
+  controller.closeContent = () => { closed += 1 }
+  const event = { key: 'Escape', defaultPrevented: false, preventDefault: () => {} }
+
+  controller.noteEscapeOwner(event)
+  // The owner's own listener runs and closes it before the lane's listener.
+  owns = false
+  controller.closeOnEscape(event)
+
+  assert.equal(closed, 0)
+})
+
+test('an open native dialog, a marked layer or a prevented Escape keep the lane open', () => {
+  const page = { querySelector: (selector) => selector.includes('dialog[open]') ? {} : null }
+  const controller = controllerWith(page)
+  controller.application = { controllers: [] }
+
+  assert.equal(controller.escapeBelongsToOverlay({ defaultPrevented: false }), true)
+
+  const empty = controllerWith({ querySelector: () => null })
+  empty.application = { controllers: [] }
+  assert.equal(empty.escapeBelongsToOverlay({ defaultPrevented: false }), false)
+  assert.equal(empty.escapeBelongsToOverlay({ defaultPrevented: true }), true)
 })
 
 test('clearing a meeting lane publishes the frame cleanup contract', () => {

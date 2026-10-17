@@ -36,6 +36,14 @@ export default class extends Controller {
     requestAnimationFrame(() => this.searchInputTarget.focus())
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // The same conditions as closeSearch, bound to the search field.
+  ownsEscape() {
+    return this.hasSearchTarget && this.hasSearchInputTarget &&
+      this.searchTarget.hasAttribute("data-fb-search-open") && !this.searchInputTarget.value &&
+      this.searchTarget.contains(document.activeElement)
+  }
+
   closeSearch(event) {
     if (this.searchInputTarget.value) return
 

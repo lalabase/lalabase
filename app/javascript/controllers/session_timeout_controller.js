@@ -126,6 +126,12 @@ export default class extends Controller {
     this.checkSession()
   }
 
+  // Escape owner (lib/escape_owner.js): the lane behind stays open while this is true.
+  // The warning holds Escape while it shows (guardEscape).
+  ownsEscape() {
+    return Boolean(this.warningVisible)
+  }
+
   guardEscape(event) {
     if (!this.warningVisible || event.key !== "Escape") return
     event.preventDefault()

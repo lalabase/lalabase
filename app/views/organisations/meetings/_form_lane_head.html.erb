@@ -1,11 +1,7 @@
 <%# locals: (new_form:) %>
 <% icon_button = 'inline-flex h-8 w-8 items-center justify-center rounded-md text-cream-500 transition-colors hover:bg-cream-200 hover:text-cream-900 focus-visible:bg-cream-200 focus-visible:text-cream-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2' %>
-<% close_url = organisation_project_meetings_path(
-                 @current_organisation,
-                 @project,
-                 meeting_list_state
-               ) %>
-<div class="flex items-center gap-4 mb-2" data-lane-head>
+<% close_url = meeting_list_index_path(meeting_list_state) %>
+<div class="flex items-center gap-4 mb-2" data-lane-head data-lane-index-url="<%= organisation_project_meetings_path(@current_organisation, @project) %>">
   <span class="hidden lg:inline font-mono text-[13px] tracking-wide text-cream-500">
     <%= t('views.organisations.meetings.show.type_label') %>
   </span>

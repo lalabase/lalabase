@@ -391,6 +391,24 @@ die Sidebar-Zeile liegt in der Navigation. Damit sind sie NICHT im selben Stimul
   ⚠️ Die Doppel-Sperre in `application.js` schlüsselt seitdem auf Methode + Ziel-Frame,
   nicht nur auf die Adresse: der Reload-GET des Boards nach „+ Ticket" wäre sonst im
   500-ms-Fenster verschluckt worden.
+- **Bahn einer fremden Liste** (17.10.2026, „Alle Meetings“, PR 3): die Übersicht zeigt das
+  Meeting eines Projekts in ihrer Bahn. `layout_toggle#syncFilterContext` gibt den Listenzustand
+  nur Links und Formularen unter dem Index der Seite (`data-index-url`) UND unter dem Index, den
+  der Kopf der Bahn nennt (`data-lane-index-url`, Regel in `lib/lane/filter_context.js`,
+  node:test). Ohne den zweiten behielten Bearbeiten und Speichern den Filter vom Öffnen. Ein
+  Löschen in der Bahn schickt `closeLane` (application.js): `layout_toggle#closeLane` schließt
+  und nimmt `meeting_id` im SELBEN Eintrag aus der Adresse. `list_address` ist gelöscht, die
+  Übersicht hat wie die Projektseite EINEN Adress-Schreiber (`layout_toggle#syncUrlFromFrame`).
+  Dazu hängt `syncFilterContext` den Wert `laneContext` (bei der Übersicht
+  `{"list_context":"organisation"}`) an jede Anfrage der fremden Bahn, auch an Links aus
+  Broadcasts und Abschnitts-Aktualisierungen, die ohne Kontext gerendert wurden. Sonst lädt ein
+  Klick auf „aktualisieren“ die Bahn im Projektmodus, und das nächste Speichern zeichnet die
+  Liste der Übersicht nicht neu.
+  Die Adresse nennt nur, was der Server geöffnet hat: eine `meeting_id`, die er nicht auflösen
+  konnte, oder ein `new`, das er nicht gerendert hat, steht in `unresolvedSelection` (Name und
+  Wert, `meeting_list_page_data`). `layout_toggle#dropUnresolvedSelection` nimmt sie beim
+  Verbinden aus der Adresse, bevor `hasSelection()` und `index-page` sie lesen. Sonst öffnet
+  ein gelöschtes oder fremdes Meeting eine leere Bahn.
 
 ## Mobile Anwendung (PR #807)
 

@@ -10,8 +10,11 @@
 # (doc/meetings_uebersicht_vereinheitlichen_plan.md, PR 1): the shared filter
 # bar with saved views, conditions and the search depth, sort by column head,
 # pagination, all through MeetingList with no project. Two things exist only
-# here: the condition "Projekt" and the column "Projekt". A row still opens the
-# meeting on its project's page; the detail in a lane of its own comes with PR 3.
+# here: the condition "Projekt" and the column "Projekt". Since PR 3 a row opens
+# the meeting in the lane beside the list, and ?meeting_id= opens it on a full
+# visit. The detail and every write in it stay project-nested
+# (MeetingsController, list_context=organisation); this controller only renders
+# the selected meeting on a full visit.
 #
 # The title box carries a "+" that opens a modal with a project select, and the
 # modal's turbo-frame loads the real form from the project-nested
@@ -44,19 +47,43 @@ module Organisations
 
     def index
       @meetings = filtered_meetings
-      return unless turbo_frame_request?
+      if turbo_frame_request?
+        render_list_frame
+        return
+      end
 
+      @selected_meeting = find_selected_meeting
+      MeetingTicketSuggestionRun.recover_for_meeting!(@selected_meeting)
+      # The claim hint (Nachtrag) is rendered lazily via the meeting_claim_matches
+      # helper (shared with the project index), nothing to set up here.
+    end
+
+    private
+
+    # The bar's two frames: the list, and the sentence of its chips.
+    def render_list_frame
       case request.headers['Turbo-Frame']
       when LIST_FRAME_ID
         render partial: 'organisations/meetings_overview/results', locals: { meetings: @meetings }
       when "#{LIST_FRAME_ID}_sentence"
         render partial: 'organisations/meetings_overview/list_head'
       end
-      # The claim hint (Nachtrag) is rendered lazily via the meeting_claim_matches
-      # helper (shared with the project index), nothing to set up here.
     end
 
-    private
+    # The meeting a full visit opens in the lane: through policy_scope(Meeting)
+    # only, so an id of an unreadable project or another organisation is no
+    # meeting at all, and nothing of it is rendered, not even its title. The
+    # full row, not the list's narrow select (the detail renders notes and
+    # transcript). @project stays unset: the lane names meeting.project itself,
+    # and the list here belongs to no project (MeetingList).
+    def find_selected_meeting
+      meeting_id = params[:meeting_id]
+      return unless meeting_id.is_a?(String) && meeting_id.present?
+
+      meeting = policy_scope(Meeting).find_by(id: meeting_id)
+      authorize(meeting, :show?) if meeting
+      meeting
+    end
 
     # MeetingList: this list belongs to no project.
     def meeting_list_project
@@ -103,15 +130,6 @@ module Organisations
       Project.where(id: accessible_meeting_project_ids).order(:name)
     end
     helper_method :meeting_filter_projects
-
-    # No readable meeting anywhere yet: the list shows its first-time state. The
-    # filter bar stands anyway (_list_head explains why).
-    def meetings_overview_first_use?
-      return @meetings_overview_first_use if defined?(@meetings_overview_first_use)
-
-      @meetings_overview_first_use = !policy_scope(Meeting).exists?
-    end
-    helper_method :meetings_overview_first_use?
 
     # The projects the "+" may offer: where this person may WRITE meetings. Read
     # access is not enough: the modal's form would be refused by the area gate in

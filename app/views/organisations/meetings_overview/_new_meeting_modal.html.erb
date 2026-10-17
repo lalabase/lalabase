@@ -12,7 +12,8 @@
     sort or a page reload only that frame, never this modal). No route is assembled
     in JavaScript, only the list's own query is added. Its conditions travel as
     filter[...], so the overview's filter[project][] does not collide with the
-    nested route's own project_id. %>
+    nested route's own project_id. list_context=organisation says which list a
+    save redraws (MeetingList, the same parameter the lane carries). %>
 <div data-controller="meeting-modal"
      data-meeting-modal-list-frame-value="<%= Organisations::MeetingsController::OVERVIEW_LIST_FRAME_ID %>"
      data-action="keydown@window->meeting-modal#closeOnEscape keydown@window->meeting-modal#trapFocus">
@@ -66,7 +67,8 @@
               <option value=""><%= t('views.organisations.meetings_overview.index.modal_project_prompt') %></option>
               <% projects.each do |project| %>
                 <option value="<%= project.id %>"
-                        data-new-url="<%= new_organisation_project_meeting_path(@current_organisation, project, frame: 'modal') %>"><%= project.name %></option>
+                        data-new-url="<%= new_organisation_project_meeting_path(@current_organisation, project, frame: 'modal',
+                                                                            **Meetings::ListState.context_query(organisation: true)) %>"><%= project.name %></option>
               <% end %>
             </select>
           </div>

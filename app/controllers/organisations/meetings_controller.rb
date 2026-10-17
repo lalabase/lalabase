@@ -18,6 +18,7 @@ module Organisations
     # Since #817 _meeting_show has no viewport branch of its own any more.
     before_action :set_viewport_mode, only: %i[index show new create edit update]
     before_action :set_meeting, only: %i[show edit update destroy create_summary toggle_search]
+    before_action :redirect_organisation_list_page, only: %i[index show new]
 
     # The same literal ids live in the meetings views and the shared list-row
     # configuration — keep them in sync when renaming.
@@ -41,12 +42,6 @@ module Organisations
     # controller means renaming it here too — nothing fails loudly otherwise, the
     # button just stops working.
     MODAL_CANCEL_ACTION = 'click->meeting-modal#close'
-
-    # Marks a save that came from that modal. The overview page has neither
-    # LIST_FRAME_ID nor DETAIL_FRAME_ID, and Turbo drops a stream whose target is
-    # missing WITHOUT a word, so the usual success response would look like nothing
-    # happened. Same mechanism as the Zeiten form's `context` field.
-    OVERVIEW_MODAL_CONTEXT = 'overview_modal'
 
     # The list renders only these columns (_meeting_row: title, date, duration).
     # Selecting full rows would de-TOAST notes/transcript/plain_text_version (up to
@@ -154,19 +149,11 @@ module Organisations
             # Without JavaScript the modal is a plain form post. A save that started
             # on "Alle Meetings" belongs back there, not in the project's own
             # master-detail — the same rule the turbo_stream branch follows.
-            if overview_modal?
-              redirect_to organisation_meetings_path(@current_organisation, meeting_index_query), notice: t('flash.meetings.created')
-            else
-              redirect_to organisation_project_meetings_path(
-                @current_organisation,
-                @project,
-                meeting_index_query.merge(meeting_id: @meeting.id)
-              ),
-                          notice: t('flash.meetings.created')
-            end
+            query = meeting_organisation_list? ? meeting_index_query : meeting_index_query.merge(meeting_id: @meeting.id)
+            redirect_to meeting_list_index_path(query), notice: t('flash.meetings.created')
           end
         end
-      elsif overview_modal?
+      elsif meeting_organisation_list?
         render_modal_frame_with_errors(@meeting)
       else
         render_form_with_errors('organisations/meetings/meeting_new_for_frame')
@@ -183,7 +170,7 @@ module Organisations
                                                    locals: { meeting: @meeting, detail_frame_id: detail_frame_id })
         end
         format.html do
-          redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query.merge(meeting_id: @meeting.id))
+          redirect_to meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id))
         end
       end
     end
@@ -199,16 +186,14 @@ module Organisations
         respond_to do |format|
           format.turbo_stream { render turbo_stream: saved_streams(@meeting, 'flash.meetings.updated') }
           format.html do
-            redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query.merge(meeting_id: @meeting.id)),
-                        notice: t('flash.meetings.updated')
+            redirect_to meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)), notice: t('flash.meetings.updated')
           end
         end
       elsif @meeting.nil?
         # Race: the meeting was deleted between set_meeting and the actor's own
         # lookup. Rendering the form with a nil meeting would 500; send the user
         # back to the (refreshed) list instead.
-        redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query),
-                    alert: t('flash.meetings.not_found')
+        redirect_to meeting_list_index_path(meeting_index_query), alert: t('flash.meetings.not_found')
       else
         render_form_with_errors('organisations/meetings/meeting_edit')
       end
@@ -220,24 +205,25 @@ module Organisations
       if @meeting.destroy
         respond_to do |format|
           format.turbo_stream do
+            # closeLane (application.js): the meeting is gone, so is its lane and
+            # its meeting_id in the address, as if its ✕ had been clicked.
             render turbo_stream: [
               list_stream(selected: nil),
               turbo_stream.update(detail_frame_id, partial: 'organisations/meetings/meeting_placeholder'),
+              turbo_stream.action(:closeLane, detail_frame_id),
               flash_stream('flash.meetings.deleted')
             ]
           end
-          format.html { redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query), notice: t('flash.meetings.deleted') }
+          format.html { redirect_to meeting_list_index_path(meeting_index_query), notice: t('flash.meetings.deleted') }
         end
       else
-        redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query.merge(meeting_id: @meeting.id)),
-                    alert: t('flash.meetings.delete_error')
+        redirect_to meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)), alert: t('flash.meetings.delete_error')
       end
     rescue StandardError => e
       # Full details go to the log only — exception messages can carry internals
       # (constraint names, model state) that must not reach the user's flash.
       Rails.logger.error "Error deleting meeting #{@meeting&.id}: #{e.class}: #{e.message}"
-      redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query),
-                  alert: t('flash.meetings.delete_error')
+      redirect_to meeting_list_index_path(meeting_index_query), alert: t('flash.meetings.delete_error')
     end
 
     # POST /projects/:project_id/meetings/:id/create_summary
@@ -269,8 +255,7 @@ module Organisations
       respond_to do |format|
         format.turbo_stream { render turbo_stream: summary_section_stream(@meeting) }
         format.html do
-          redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query.merge(meeting_id: @meeting.id)),
-                      notice: t('flash.meetings.summary_started')
+          redirect_to meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)), notice: t('flash.meetings.summary_started')
         end
       end
     end
@@ -297,8 +282,7 @@ module Organisations
         respond_to do |format|
           format.turbo_stream { render turbo_stream: search_status_stream(@meeting, flash_key) }
           format.html do
-            redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query.merge(meeting_id: @meeting.id)),
-                        notice: t(flash_key)
+            redirect_to meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)), notice: t(flash_key)
           end
         end
       else
@@ -440,10 +424,24 @@ module Organisations
       @meeting = @project.meetings.find(params[:id])
     end
 
-    # The list this request shows (MeetingList): the project's own, or "Alle
-    # Meetings" after a save from that page's modal.
+    # The list this request shows or redraws (MeetingList): the project's own, or
+    # "Alle Meetings" for a write from that page, its lane or its modal
+    # (list_context=organisation, Meetings::ListState). Only the list: set_meeting
+    # and the project's area gate decide what may be read and written, with or
+    # without the context.
     def meeting_list_project
-      overview_modal? ? nil : @project
+      Meetings::ListState.organisation?(params) ? nil : @project
+    end
+
+    # A full page of this controller is the project page. With the context of
+    # "Alle Meetings" (the address of a lane request opened on its own, a form
+    # without JavaScript) it belongs to that page: its list, the meeting in its
+    # lane. Otherwise the project page would show the list of the organisation.
+    def redirect_organisation_list_page
+      return if turbo_frame_request? || !meeting_organisation_list?
+
+      meeting_id = @meeting&.id || (params[:meeting_id] if params[:meeting_id].is_a?(String))
+      redirect_to meeting_list_index_path(meeting_index_query.merge({ meeting_id: meeting_id }.compact))
     end
 
     def ad_hoc_filter_params
@@ -461,21 +459,17 @@ module Organisations
     end
 
     # A new meeting can be saved from two pages, and they share no frame. The
-    # project page refreshes its list and opens the detail; the org-wide list has
-    # neither of those frames, so it refreshes its own table instead and lets
+    # project page refreshes its list and opens the detail; the org-wide list
+    # creates in its modal, so it refreshes its own table instead and lets
     # meeting_modal_controller close the modal on the successful submit.
     def created_streams(meeting)
-      return overview_created_streams(meeting) if overview_modal?
+      return overview_created_streams(meeting) if meeting_organisation_list?
 
       [created_address_stream(meeting)] + saved_streams(meeting, 'flash.meetings.created')
     end
 
     def created_address_stream(meeting)
-      url = organisation_project_meetings_path(
-        @current_organisation,
-        @project,
-        meeting_index_query.merge(meeting_id: meeting.id)
-      )
+      url = meeting_list_index_path(meeting_index_query.merge(meeting_id: meeting.id))
       view_context.turbo_stream_action_tag(:replaceAddress, target: DETAIL_FRAME_ID, url: url)
     end
 
@@ -491,15 +485,10 @@ module Organisations
     # failed, so the flash says which of the two happened. The list is the one
     # MeetingsOverviewController renders (MeetingList, project nil).
     def overview_created_streams(meeting)
-      results = filtered_meetings
+      list = list_stream(selected: nil)
       hidden = !@meeting_list_query.exists?(id: meeting.id)
 
-      [
-        turbo_stream.replace(OVERVIEW_LIST_FRAME_ID,
-                             partial: 'organisations/meetings_overview/results',
-                             locals: { meetings: results }),
-        flash_stream(hidden ? 'flash.meetings.created_hidden_by_filter' : 'flash.meetings.created')
-      ]
+      [list, flash_stream(hidden ? 'flash.meetings.created_hidden_by_filter' : 'flash.meetings.created')]
     end
 
     # Success response for create/update: refresh the list frame (new/edited row,
@@ -513,10 +502,19 @@ module Organisations
       ]
     end
 
+    # The list the request came from (MeetingList#meeting_organisation_list?),
+    # with the state its form or link carried. "Alle Meetings" brings its own
+    # frame in the partial, as the project list does.
     def list_stream(selected:)
       meetings = filtered_meetings
-      turbo_stream.replace(LIST_FRAME_ID, partial: 'organisations/meetings/meetings_results',
-                                          locals: { meetings: meetings, selected_meeting: selected })
+      if meeting_organisation_list?
+        turbo_stream.replace(OVERVIEW_LIST_FRAME_ID, partial: 'organisations/meetings_overview/results',
+                                                     locals: { meetings: meetings, selected_meeting: selected,
+                                                               first_use: meetings_overview_first_use? })
+      else
+        turbo_stream.replace(LIST_FRAME_ID, partial: 'organisations/meetings/meetings_results',
+                                            locals: { meetings: meetings, selected_meeting: selected })
+      end
     end
 
     def flash_stream(flash_key, type: :notice)
@@ -530,8 +528,7 @@ module Organisations
       respond_to do |format|
         format.turbo_stream { render turbo_stream: flash_stream(flash_key, type: :alert), status: :unprocessable_content }
         format.html do
-          redirect_to organisation_project_meetings_path(@current_organisation, @project, meeting_index_query.merge(meeting_id: @meeting.id)),
-                      alert: t(flash_key)
+          redirect_to meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)), alert: t(flash_key)
         end
       end
     end
@@ -547,7 +544,7 @@ module Organisations
       [
         turbo_stream.replace("#{helpers.dom_id(meeting)}_summary_section",
                              partial: 'organisations/meetings/summary_section',
-                             locals: { meeting: meeting, can_write: true }),
+                             locals: { meeting: meeting, can_write: true, lane_state: helpers.meeting_lane_state }),
         flash_stream('flash.meetings.summary_started')
       ]
     end
@@ -621,17 +618,16 @@ module Organisations
       end
     end
 
+    # The save context is not here: the modal's frame is loaded with
+    # list_context=organisation (_new_meeting_modal), and the form carries it on
+    # with the list state (meeting_list_hidden_fields).
     def modal_form_locals(meeting)
       {
         meeting: meeting,
         detail_frame_id: MODAL_FRAME_ID,
-        context: OVERVIEW_MODAL_CONTEXT,
+        modal: true,
         cancel_action: MODAL_CANCEL_ACTION
       }
-    end
-
-    def overview_modal?
-      params[:context] == OVERVIEW_MODAL_CONTEXT
     end
 
     def meeting_params

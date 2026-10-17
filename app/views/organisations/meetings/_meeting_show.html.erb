@@ -60,7 +60,7 @@
   <div class="border-b border-cream-300 mt-5 mb-6"></div>
 
   <div class="width-text">
-    <%= render 'organisations/meetings/summary_section', meeting: meeting, can_write: can_write %>
+    <%= render 'organisations/meetings/summary_section', meeting: meeting, can_write: can_write, lane_state: meeting_lane_state %>
 
     <% if meeting.notes.blank? && meeting.transcript.blank? %>
       <div class="text-sm text-cream-600 italic py-2">
@@ -73,7 +73,7 @@
                 meeting,
                 format: :turbo_stream,
                 frame_id: current_frame_id,
-                **meeting_list_state.symbolize_keys,
+                **meeting_lane_state.symbolize_keys,
                 viewport: @viewport_mode
               ),
               data: { turbo_frame: current_frame_id },
@@ -116,7 +116,7 @@
              meeting: meeting,
              analyses: visible_analyses,
              can_write: can_write %>
-  <%= render 'organisations/meetings/ticket_suggestions_section', meeting: meeting %>
+  <%= render 'organisations/meetings/ticket_suggestions_section', meeting: meeting, lane_state: meeting_lane_state %>
 </div>
 
 <%= render 'organisations/meetings/ticket_links_section', meeting: meeting %>

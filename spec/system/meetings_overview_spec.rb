@@ -3,11 +3,13 @@
 require 'rails_helper'
 
 # "Alle Meetings" in the browser (doc/meetings_uebersicht_vereinheitlichen_plan.md,
-# PR 1 and 2): the shared filter bar with the condition "Projekt", a view saved
+# PR 1 to 3): the shared filter bar with the condition "Projekt", a view saved
 # on this page and opened again, the "+" modal, whose save must leave the list
-# with the conditions it had, and the column picker. The request specs cannot
-# see these: the modal reads the list state from the list frame in JavaScript,
-# and the picker saves and reloads the frame from the browser.
+# with the conditions it had, the column picker, and the meeting in the lane,
+# whose saves redraw this list. The request specs cannot see these: the modal
+# reads the list state from the list frame in JavaScript, the picker saves and
+# reloads the frame from the browser, and the lane is opened, closed and
+# restored by the row opener, the ✕ and Back.
 RSpec.describe 'Meetings overview', type: :system do
   before { Prosopite.pause }
   after do
@@ -167,5 +169,252 @@ RSpec.describe 'Meetings overview', type: :system do
       "(function(){ var box = document.querySelector('#meetings_overview_results table').parentElement; return box.scrollWidth - box.clientWidth })()"
     )
     expect(list_overflow).to be <= 0
+  end
+
+  describe 'the lane' do
+    let(:overview_rows) { '#meetings_overview_results tr[data-meeting-id]' }
+
+    def meeting(title) = Meeting.unscoped.find_by!(title: title)
+
+    def row_of(title) = find(overview_rows, text: title)
+
+    def lane_title = find('#meeting_display_frame h2', wait: 5)
+
+    # The lane decides on connect: a check before that sees only the server's markup.
+    def wait_for_layout_toggle
+      page.document.synchronize do
+        connected = page.evaluate_script(<<~JS)
+          Boolean(window.Stimulus?.getControllerForElementAndIdentifier(document.querySelector('.labor-layout-view'), 'layout-toggle'))
+        JS
+        raise Capybara::ExpectationNotMet, 'layout-toggle is not connected yet' unless connected
+      end
+    end
+
+    before do
+      ActsAsTenant.with_tenant(organisation) do
+        ['Alpha Kickoff', 'Beta Retro'].each do |title|
+          create(:meeting_participant, meeting: Meeting.find_by!(title: title), display_name: 'Anna')
+        end
+        create(:meeting, project: alpha, organisation: organisation, creator: user, title: 'Alpha Ohne Anna', occurred_at: 3.days.ago)
+      end
+    end
+
+    it 'opens a row beside the list, saves in it and keeps the list with its condition' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, filter: { participant: ['Anna'] })
+      expect_titles('Alpha Kickoff', 'Beta Retro')
+
+      row_of('Beta Retro').click
+      expect(lane_title).to have_text('Beta Retro')
+      expect(page).to have_css("#{overview_rows}.selected-row", text: 'Beta Retro')
+      expect(page).to have_current_path(/meeting_id=#{meeting('Beta Retro').id}/)
+      expect(page).to have_current_path(/filter%5Bparticipant%5D/)
+
+      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
+      within('#meeting_display_frame') do
+        fill_in 'meeting[title]', with: 'Beta Retro neu'
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Beta Retro neu', wait: 5)
+      expect_titles('Alpha Kickoff', 'Beta Retro neu')
+      expect(page).to have_css("#{overview_rows}.selected-row", text: 'Beta Retro neu')
+      expect(page).to have_current_path(/filter%5Bparticipant%5D/)
+      expect(page).to have_current_path(/meeting_id=/)
+    end
+
+    it 'keeps the list full width for a meeting_id it could not open, here and on the project page' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      gone = SecureRandom.uuid
+
+      visit organisation_meetings_path(organisation, meeting_id: gone, search: 'Alpha')
+      expect(page).to have_css(overview_rows, count: 2, wait: 10)
+      wait_for_layout_toggle
+      expect(page).to have_no_css('.labor-layout-view.show-content')
+      expect(page).to have_no_css('#meeting_display_frame h2')
+      expect(page).to have_no_current_path(/meeting_id=/, wait: 5)
+      expect(page).to have_current_path(/search=Alpha/)
+
+      # Another project's meeting is not this project's page's to open.
+      visit organisation_project_meetings_path(organisation, alpha, meeting_id: meeting('Beta Retro').id)
+      expect(page).to have_css('#meetings_results tr[data-meeting-id]', count: 2, wait: 10)
+      wait_for_layout_toggle
+      expect(page).to have_no_css('.labor-layout-view.show-content')
+      expect(page).to have_no_current_path(/meeting_id=/, wait: 5)
+    end
+
+    it 'keeps the overview context through a link rendered without it' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      expect_titles('Alpha Kickoff', 'Beta Retro', 'Alpha Ohne Anna')
+      row_of('Beta Retro').click
+      expect(lane_title).to have_text('Beta Retro')
+
+      # What a section refresh or a broadcast renders: the detail address
+      # without list_context, since neither knows which list is open.
+      beta = meeting('Beta Retro')
+      href = organisation_project_meeting_path(organisation, beta.project_id, beta, frame: 'content')
+      page.execute_script(<<~JS, href)
+        const link = document.createElement('a')
+        link.id = 'contextless-refresh'
+        link.href = arguments[0]
+        link.dataset.turboFrame = 'meeting_display_frame'
+        link.textContent = 'aktualisieren'
+        document.getElementById('meeting_display_frame').append(link)
+      JS
+      find('#contextless-refresh').click
+      expect(page).to have_no_css('#contextless-refresh', wait: 5)
+      expect(lane_title).to have_text('Beta Retro')
+
+      edit = "a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']"
+      within('#meeting_display_frame') { find(edit, match: :first).click }
+      within('#meeting_display_frame') do
+        fill_in 'meeting[title]', with: 'Beta Retro neu'
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Beta Retro neu', wait: 5)
+      expect_titles('Alpha Kickoff', 'Beta Retro neu', 'Alpha Ohne Anna')
+    end
+
+    it 'keeps the open meeting when the list is saved as a view' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, filter: { participant: ['Anna'] })
+      expect_titles('Alpha Kickoff', 'Beta Retro')
+      row_of('Beta Retro').click
+      expect(lane_title).to have_text('Beta Retro')
+
+      click_button 'Als Ansicht sichern'
+      fill_in 'smart_folder_name', with: 'Mit Anna'
+      click_button 'Sichern'
+
+      expect(page).to have_css('[role="tab"][aria-selected="true"]', text: 'Mit Anna', wait: 5)
+      expect(lane_title).to have_text('Beta Retro')
+      expect(page).to have_current_path(/meeting_id=#{meeting('Beta Retro').id}/)
+    end
+
+    it 'keeps a condition set beside the open lane through a save in it' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      expect_titles('Alpha Kickoff', 'Beta Retro', 'Alpha Ohne Anna')
+      row_of('Alpha Kickoff').click
+      expect(lane_title).to have_text('Alpha Kickoff')
+
+      find('[data-filter-bar-target="filterButton"]').click
+      find('[role="menuitem"][data-category="project"]').click
+      within('[data-filter-bar-target="valueMenu"]') { find("input[type='checkbox'][data-filter-value='#{alpha.id}']").click }
+      expect_titles('Alpha Kickoff', 'Alpha Ohne Anna')
+      # A click beside the menu closes it. Escape would close the lane too while
+      # the value menu is open, on the project page as well (not this PR's).
+      find('#meeting_display_frame h2').click
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff')
+
+      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
+      within('#meeting_display_frame') do
+        fill_in 'meeting[title]', with: 'Alpha Kickoff neu'
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff neu', wait: 5)
+      expect_titles('Alpha Kickoff neu', 'Alpha Ohne Anna')
+    end
+
+    it 'closes with the ✕, and Back and Forward open and close the lane' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, search: 'Alpha')
+      expect_titles('Alpha Kickoff', 'Alpha Ohne Anna')
+
+      row_of('Alpha Kickoff').click
+      expect(lane_title).to have_text('Alpha Kickoff')
+      find('#meeting_display_frame [data-lane-close]').click
+      expect(page).to have_no_css('#meeting_display_frame h2', wait: 5)
+      expect(page).to have_no_current_path(/meeting_id=/, wait: 5)
+      expect(page).to have_current_path(/search=Alpha/)
+
+      page.go_back
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff', wait: 5)
+      expect(page).to have_current_path(/meeting_id=#{meeting('Alpha Kickoff').id}/)
+      page.go_back
+      expect(page).to have_no_css('#meeting_display_frame h2', wait: 5)
+      expect(page).to have_no_current_path(/meeting_id=/)
+      page.go_forward
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff', wait: 5)
+      expect_titles('Alpha Kickoff', 'Alpha Ohne Anna')
+    end
+
+    it 'deletes from the lane: the lane closes and the meeting leaves the list' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, meeting_id: meeting('Beta Retro').id)
+      expect(lane_title).to have_text('Beta Retro')
+
+      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
+      accept_confirm { within('#meeting_display_frame') { click_button I18n.t('views.organisations.meetings.form.delete') } }
+
+      expect_titles('Alpha Kickoff', 'Alpha Ohne Anna')
+      expect(page).to have_no_css('#meeting_display_frame h2', wait: 5)
+      expect(page).to have_no_current_path(/meeting_id=/, wait: 5)
+      expect(page).to have_no_css('.labor-layout-view.show-content')
+    end
+
+    it 'enters the rows from the search field and opens a meeting with the keyboard' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      # A search value keeps the field open, as in the project page's spec.
+      visit organisation_meetings_path(organisation, search: 'a', search_mode: 'title_only')
+      expect(page).to have_css(overview_rows, count: 3, wait: 10)
+
+      # No click first: the rows hold no link of their own (tabindex -1), so
+      # the search field is the one way in, as on the project page.
+      # The scripts load after the rows show: an arrow pressed before the
+      # keyboard controller listens does nothing, so it is pressed again.
+      search = find('input[name="search"]')
+      page.document.synchronize(5) do
+        search.send_keys(:arrow_down)
+        raise Capybara::ElementNotFound, 'no row has focus yet' unless page.has_css?("#{overview_rows}:focus", wait: 0.2)
+      end
+      row = find("#{overview_rows}:focus")
+      expect(row).to eq(first(overview_rows))
+      row.send_keys(:arrow_down)
+      row = find("#{overview_rows}:focus")
+      expect(row).to have_text('Alpha Kickoff')
+      row.send_keys(:enter)
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff', wait: 5)
+      expect(page).to have_css("#{overview_rows}.selected-row", text: 'Alpha Kickoff')
+    end
+
+    it 'leaves the open lane and its unsaved edit alone when Escape closes the "+" modal' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      expect_titles('Alpha Kickoff', 'Beta Retro', 'Alpha Ohne Anna')
+      row_of('Beta Retro').click
+      expect(lane_title).to have_text('Beta Retro')
+      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
+      within('#meeting_display_frame') { fill_in 'meeting[title]', with: 'Ungespeichert' }
+
+      find("button[title='#{I18n.t('views.organisations.meetings_overview.index.new_meeting')}']").click
+      expect(page).to have_css('[data-meeting-modal-target="modal"]:not(.hidden)', wait: 5)
+      page.send_keys(:escape)
+
+      expect(page).to have_no_css('[data-meeting-modal-target="modal"]:not(.hidden)', wait: 5)
+      expect(page).to have_css('.labor-layout-view.show-content')
+      expect(find('#meeting_display_frame').find_field('meeting[title]').value).to eq('Ungespeichert')
+      expect(page).to have_current_path(/meeting_id=#{meeting('Beta Retro').id}/)
+    end
+
+    it 'opens the meeting full width on a phone and leads back to the list with its search' do
+      page.driver.browser.manage.window.resize_to(390, 844)
+      visit organisation_meetings_path(organisation, search: 'Alpha')
+      expect(page).to have_css(overview_rows, count: 2, wait: 10)
+
+      row_of('Alpha Kickoff').click
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff', wait: 10)
+      expect(page).to have_no_css(overview_rows)
+      overflow = page.evaluate_script('document.documentElement.scrollWidth - document.documentElement.clientWidth')
+      expect(overflow).to be <= 0
+
+      find('.mobile-ticket-view a', text: I18n.t('views.organisations.meetings.index.mobile_list_view'), match: :first).click
+      expect(page).to have_css(overview_rows, count: 2, wait: 10)
+      expect(page).to have_current_path(/search=Alpha/)
+      expect(page).to have_no_current_path(/meeting_id=/)
+    end
   end
 end

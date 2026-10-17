@@ -93,3 +93,23 @@ test("a form state over the list the page shows restores the page, so the form o
   assert.deepEqual(restoration({ shownListQuery: listPart("?search=Alpha", meetings), address: overview("?search=Alpha"), groups: meetings }),
     { kind: "close" })
 })
+
+// The server opens the meeting when the address names one and a form state as well
+// (MeetingsOverviewController#index: @new_meeting_lane only without @selected_meeting).
+test("a selection beside a form state restores the frame, as the server would render it", () => {
+  const meetings = parseLaneParams(JSON.stringify({ selection: ["meeting_id"], form: ["new"] }))
+  const address = new URL("http://x.test/org/o1/meetings?search=Alpha&new=meeting&meeting_id=M")
+
+  assert.deepEqual(restoration({ shownListQuery: listPart(address.search, meetings), address, groups: meetings }),
+    { kind: "frame", selection: { param: "meeting_id", id: "M" }, preview: null })
+})
+
+// The ticket page names no form group, and a hand-built group may leave it out.
+test("a page without a form group closes the lane over its own list", () => {
+  const tickets = parseLaneParams(JSON.stringify({ selection: ["ticket_id"] }))
+  const address = new URL("http://x.test/org/o1/projects/p1/tickets?status=open")
+  const shownTickets = listPart(address.search, tickets)
+
+  assert.deepEqual(restoration({ shownListQuery: shownTickets, address, groups: tickets }), { kind: "close" })
+  assert.deepEqual(restoration({ shownListQuery: shownTickets, address, groups: { selection: ["ticket_id"], preview: [] } }), { kind: "close" })
+})

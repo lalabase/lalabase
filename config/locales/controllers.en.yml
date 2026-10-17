@@ -327,8 +327,8 @@ en:
       share_error: "Sharing could not be saved."
       share_select_users: "Please select at least one user to share with."
       unshared: "Sharing removed."
-      created_from_filters: "Smart Folder created successfully."
-      create_from_filters_error: "Smart Folder could not be created."
+      created_from_filters: "View saved."
+      create_from_filters_error: "View could not be saved."
       updated_from_filters: "Filter has been saved."
       update_from_filters_error: "Error saving filter."
       destroy:

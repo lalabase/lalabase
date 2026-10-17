@@ -390,6 +390,11 @@ die Sidebar-Zeile liegt in der Navigation. Damit sind sie NICHT im selben Stimul
   Löschen in der Bahn schickt `closeLane` (application.js): `layout_toggle#closeLane` schließt
   und nimmt `meeting_id` im SELBEN Eintrag aus der Adresse. `list_address` ist gelöscht, die
   Übersicht hat wie die Projektseite EINEN Adress-Schreiber (`layout_toggle#syncUrlFromFrame`).
+  Dazu hängt `syncFilterContext` den Wert `laneContext` (bei der Übersicht
+  `{"list_context":"organisation"}`) an jede Anfrage der fremden Bahn, auch an Links aus
+  Broadcasts und Abschnitts-Aktualisierungen, die ohne Kontext gerendert wurden. Sonst lädt ein
+  Klick auf „aktualisieren“ die Bahn im Projektmodus, und das nächste Speichern zeichnet die
+  Liste der Übersicht nicht neu.
 
 ## Mobile Anwendung (PR #807)
 

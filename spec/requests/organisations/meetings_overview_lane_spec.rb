@@ -79,6 +79,22 @@ RSpec.describe 'Organisations::MeetingsOverview lane', type: :request do
       expect(page_body).to have_css("turbo-frame#meetings_overview_results[data-keyboard-navigation-target='listContainer']")
     end
 
+    # A link the server renders without the request's context (a broadcast, a
+    # section refresh) must still carry it: layout-toggle adds the lane context
+    # to every request of the lane at click and submit.
+    it 'gives the lane its context as data, and the project page none' do
+      get overview_path
+
+      wrapper = page_body.find('.labor-layout-view')
+      expect(JSON.parse(wrapper['data-layout-toggle-lane-context-value'])).to eq('list_context' => 'organisation')
+
+      get organisation_project_meetings_path(organisation, project_a)
+
+      wrapper = page_body.find('.labor-layout-view')
+      expect(wrapper['data-layout-toggle-list-frame-ids-value']).to be_present
+      expect(wrapper['data-layout-toggle-lane-context-value']).to be_nil
+    end
+
     it 'opens a row in the lane: list-row with the project-nested detail address and the context' do
       get overview_path
 
@@ -255,6 +271,24 @@ RSpec.describe 'Organisations::MeetingsOverview lane', type: :request do
            params: { list_context: 'organisation', search: 'Alpha' }
 
       expect(response).to redirect_to(organisation_meetings_path(organisation, search: 'Alpha', meeting_id: alpha.id))
+    end
+  end
+
+  describe 'saving a view with a meeting open in the lane' do
+    it 'lets the filter bar carry the open meeting, and the save return with it open' do
+      get overview_path, params: { meeting_id: alpha.id, search: 'Alpha' }
+
+      bar = page_body.find('[data-controller~="filter-bar"]')
+      expect(JSON.parse(bar['data-filter-bar-return-keys-value'])).to include('meeting_id', *Meetings::ListState::KEYS)
+
+      post create_from_filters_organisation_smart_folders_path(organisation), params: {
+        return_to: 'meetings', target_object_type: 'Meeting', smart_folder_name: 'Mit Anna',
+        filter: { participant: ['Anna'] }, list_context: { search: 'Alpha', meeting_id: alpha.id }
+      }
+
+      expect(query_of(response.location)).to include('meeting_id' => alpha.id, 'search' => 'Alpha')
+      follow_redirect!
+      expect(page_body).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff')
     end
   end
 

@@ -72,6 +72,10 @@ module MeetingsHelper
   # the page (meeting_column_picker_data).
   def meeting_list_page_data(index_url:, list_frame_id:, viewport_mode:, lane_forms: [])
     detail_frame_id = Organisations::MeetingsController::DETAIL_FRAME_ID
+    # Which list the lane belongs to, added by layout-toggle to every request of
+    # the lane at click and submit: also to a link rendered without it (a
+    # broadcast, a section refresh). None on the project page.
+    lane_context = Meetings::ListState.context_query(organisation: meeting_organisation_list?)
     {
       controller: 'layout-toggle hover-arrows index-page keyboard-navigation viewport column-picker',
       hover_arrows_layout_toggle_outlet: '.labor-layout-view',
@@ -83,6 +87,7 @@ module MeetingsHelper
       layout_toggle_list_filter_params_value: Meetings::ListState::KEYS.to_json,
       layout_toggle_storage_key_value: 'layoutState:meetings',
       layout_toggle_clear_detail_on_close_value: 'true',
+      layout_toggle_lane_context_value: (lane_context.to_json if lane_context.any?),
       viewport_breakpoint_value: LANE_FULL_PAGE_BELOW_PX,
       index_page_param_name_value: 'meeting_id',
       index_page_frame_id_value: detail_frame_id,
@@ -96,7 +101,7 @@ module MeetingsHelper
       viewport_current_mode_value: viewport_mode,
       index_url: index_url,
       lane_params: lane_params_json(selection: %w[meeting_id], form: lane_forms)
-    }
+    }.compact
   end
 
   # The placeholders column_picker_controller fills in itself, passed through

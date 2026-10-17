@@ -70,7 +70,11 @@ direkt, Notifications = bespoke + `MasterListPresenter`, Meetings =
 (`meeting_list_project` = `@project`) und „Alle Meetings“ (`nil`). Seit PR 3 öffnet auch die
 Übersicht das Meeting in der Bahn; Detail und Schreibwege bleiben projektverschachtelt
 (`MeetingsController`), und die Bahn trägt `list_context=organisation`
-(`Meetings::ListState`, ein erlaubter Wert, nur verglichen). `meeting_organisation_list?`
+(`Meetings::ListState`, ein erlaubter Wert, nur verglichen). Getragen wird er zweimal: der
+Server schreibt ihn in die Links und Formulare, die er für eine Anfrage MIT Kontext rendert
+(`meeting_lane_state`), und `layout-toggle` hängt ihn bei Klick und Absenden an jede Anfrage
+der Bahn (`laneContext`, aus `meeting_list_page_data`). Das Zweite fängt, was ohne Kontext
+gerendert wurde: Broadcasts, Abschnitts-Aktualisierungen, Controller-Ersetzungen. `meeting_organisation_list?`
 ist die EINE Frage „welche Liste?“ für Stream, Weiterleitung und Rückweg (Bahn und Modal;
 das frühere `context=overview_modal` ist darin aufgegangen). Der Kontext wählt nur die
 Liste, die Rechte bleiben die des Projekts (`set_meeting`, Bereichs-Tor). Eine

@@ -20,6 +20,7 @@ function controllerWith(document, { window = {}, groups = null, element = null }
   })
   const controller = new Controller()
   controller.listFilterParamsValue = []
+  controller.laneContextValue = {}
   controller.element = element || { dataset: {}, dispatchEvent: () => {} }
   return controller
 }
@@ -310,6 +311,56 @@ test('a lane of another list takes the list state on the index its head names', 
   controller.element = { dataset: { indexUrl: '/org/o/meetings' }, querySelectorAll: selector => selector === '[data-lane-index-url]' ? [] : [stale] }
   controller.syncFilterContext(current)
   assert.equal(stale.href, '/org/o/projects/p/meetings/M/edit.turbo_stream?search=Alt')
+})
+
+test('every request of a lane of another list carries the lane context, also from a link rendered without it', () => {
+  const current = new URL('http://lalabase.test/org/o/meetings?search=Neu')
+  const inputs = []
+  const document = {
+    createElement: () => ({ remove() { inputs.splice(inputs.indexOf(this), 1) } })
+  }
+  const control = (tagName, href) => ({
+    tagName, href, method: 'post',
+    getAttribute() { return this.href },
+    setAttribute(_name, value) { this.href = value },
+    matches() { return false },
+    querySelectorAll: () => tagName === 'FORM' ? [...inputs] : [],
+    append(input) { inputs.push(input) }
+  })
+  // Rendered by a broadcast or a section refresh, which know no context.
+  const refresh = control('A', '/org/o/projects/p/meetings/M/ticket_suggestions')
+  const save = control('FORM', '/org/o/projects/p/meetings/M')
+  const nextPage = control('A', '/org/o/meetings?page=2')
+  const ticket = control('A', '/org/o/projects/p/tickets/T')
+  const head = { dataset: { laneIndexUrl: '/org/o/projects/p/meetings' } }
+  const element = {
+    dataset: { indexUrl: '/org/o/meetings' },
+    querySelectorAll: selector => selector === '[data-lane-index-url]' ? [head] : [refresh, save, nextPage, ticket]
+  }
+  const controller = controllerWith(document, { element })
+  controller.listFilterParamsValue = ['search']
+  controller.laneContextValue = { list_context: 'organisation' }
+
+  controller.syncFilterContext(current)
+  controller.syncFilterContext(current)
+
+  assert.equal(new URL(refresh.href).searchParams.get('list_context'), 'organisation')
+  assert.equal(new URL(save.href).searchParams.get('list_context'), 'organisation')
+  const contextInputs = inputs.filter(input => input.name === 'list_context')
+  assert.equal(contextInputs.length, 1)
+  assert.equal(contextInputs[0].value, 'organisation')
+  assert.equal(nextPage.href, '/org/o/meetings?page=2')
+  assert.equal(ticket.href, '/org/o/projects/p/tickets/T')
+
+  // The project page has no lane context: its lane's links stay as they are.
+  const own = control('A', '/org/o/projects/p/meetings/M/ticket_suggestions')
+  const projectPage = controllerWith(document, {
+    element: { dataset: { indexUrl: '/org/o/projects/p/meetings' }, querySelectorAll: selector => selector === '[data-lane-index-url]' ? [] : [own] }
+  })
+  projectPage.listFilterParamsValue = ['search']
+  projectPage.laneContextValue = {}
+  projectPage.syncFilterContext(new URL('http://lalabase.test/org/o/projects/p/meetings'))
+  assert.equal(new URL(own.href).searchParams.has('list_context'), false)
 })
 
 test('closing a lane whose object is gone takes it out of the address in the same entry', () => {

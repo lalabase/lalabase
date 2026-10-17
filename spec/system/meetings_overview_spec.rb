@@ -213,6 +213,56 @@ RSpec.describe 'Meetings overview', type: :system do
       expect(page).to have_current_path(/meeting_id=/)
     end
 
+    it 'keeps the overview context through a link rendered without it' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      expect_titles('Alpha Kickoff', 'Beta Retro', 'Alpha Ohne Anna')
+      row_of('Beta Retro').click
+      expect(lane_title).to have_text('Beta Retro')
+
+      # What a section refresh or a broadcast renders: the detail address
+      # without list_context, since neither knows which list is open.
+      beta = meeting('Beta Retro')
+      href = organisation_project_meeting_path(organisation, beta.project_id, beta, frame: 'content')
+      page.execute_script(<<~JS, href)
+        const link = document.createElement('a')
+        link.id = 'contextless-refresh'
+        link.href = arguments[0]
+        link.dataset.turboFrame = 'meeting_display_frame'
+        link.textContent = 'aktualisieren'
+        document.getElementById('meeting_display_frame').append(link)
+      JS
+      find('#contextless-refresh').click
+      expect(page).to have_no_css('#contextless-refresh', wait: 5)
+      expect(lane_title).to have_text('Beta Retro')
+
+      edit = "a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']"
+      within('#meeting_display_frame') { find(edit, match: :first).click }
+      within('#meeting_display_frame') do
+        fill_in 'meeting[title]', with: 'Beta Retro neu'
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Beta Retro neu', wait: 5)
+      expect_titles('Alpha Kickoff', 'Beta Retro neu', 'Alpha Ohne Anna')
+    end
+
+    it 'keeps the open meeting when the list is saved as a view' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, filter: { participant: ['Anna'] })
+      expect_titles('Alpha Kickoff', 'Beta Retro')
+      row_of('Beta Retro').click
+      expect(lane_title).to have_text('Beta Retro')
+
+      click_button 'Als Ansicht sichern'
+      fill_in 'smart_folder_name', with: 'Mit Anna'
+      click_button 'Sichern'
+
+      expect(page).to have_css('[role="tab"][aria-selected="true"]', text: 'Mit Anna', wait: 5)
+      expect(lane_title).to have_text('Beta Retro')
+      expect(page).to have_current_path(/meeting_id=#{meeting('Beta Retro').id}/)
+    end
+
     it 'keeps a condition set beside the open lane through a save in it' do
       page.driver.browser.manage.window.resize_to(1440, 1000)
       visit organisation_meetings_path(organisation)

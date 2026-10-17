@@ -42,7 +42,12 @@ export default class extends Controller {
     // Tickets/Knowledge keep the shared default; Meetings mounts its own key. A grid
     // WITHOUT a panel column never
     // opens one, whatever the stored state says: see hasPanelColumn().
-    storageKey: { type: String, default: "layoutState" }
+    storageKey: { type: String, default: "layoutState" },
+    // Parameters every request of a lane of another list carries, added at
+    // click and submit (syncFilterContext): "Alle Meetings" says
+    // list_context=organisation, so a save in its lane redraws that list, also
+    // from a link a broadcast or a section refresh rendered without it.
+    laneContext: { type: Object, default: {} }
   }
 
   connect() {
@@ -274,6 +279,7 @@ export default class extends Controller {
 
     const laneIndexUrls = [...this.element.querySelectorAll('[data-lane-index-url]')].map(head => head.dataset.laneIndexUrl)
     const indexes = indexPaths(this.element.dataset.indexUrl, laneIndexUrls, current.origin)
+    const ownIndex = new URL(this.element.dataset.indexUrl, current.origin).pathname
     for (const control of this.element.querySelectorAll('a[href], form[action], button[formaction]')) {
       const isForm = control.tagName === 'FORM'
       if (isForm && control.method.toLowerCase() === 'get') continue
@@ -303,7 +309,22 @@ export default class extends Controller {
           }
         }
       }
+      if (index !== ownIndex) this.applyLaneContext(control, address, isForm)
       control.setAttribute(attribute, address.toString())
+    }
+  }
+
+  applyLaneContext(control, address, isForm) {
+    for (const [name, value] of Object.entries(this.laneContextValue)) {
+      address.searchParams.set(name, value)
+      if (!isForm) continue
+
+      control.querySelectorAll('input[type="hidden"]').forEach(input => { if (input.name === name) input.remove() })
+      const input = document.createElement('input')
+      input.type = 'hidden'
+      input.name = name
+      input.value = value
+      control.append(input)
     }
   }
 

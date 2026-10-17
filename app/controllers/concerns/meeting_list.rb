@@ -8,7 +8,13 @@
 #
 #   the project page       Organisations::MeetingsController   @project
 #   "Alle Meetings"        Organisations::MeetingsOverviewController, and
-#                          MeetingsController after a save from its modal   nil
+#                          MeetingsController for a request with
+#                          list_context=organisation (Meetings::ListState):
+#                          a save in the lane or the modal of that page   nil
+#
+# #meeting_organisation_list? is the ONE question "which list?" for every
+# stream, redirect and link that leads back to a list. Until 17.10.2026 the
+# modal asked a question of its own (context=overview_modal).
 #
 # A list shows the meeting views of its own project: a view without a project
 # belongs to "Alle Meetings" and shows only there (decision 3 of the plan).
@@ -22,7 +28,30 @@
 module MeetingList
   extend ActiveSupport::Concern
 
+  included do
+    helper_method :meeting_organisation_list?, :meeting_list_index_path, :meetings_overview_first_use?
+  end
+
   private
+
+  def meeting_organisation_list?
+    meeting_list_project.nil?
+  end
+
+  # The address of this list, with the query given (its state, a meeting_id):
+  # where a redirect, the lane's way back and its close lead.
+  def meeting_list_index_path(query = {})
+    project = meeting_list_project
+    project ? organisation_project_meetings_path(@current_organisation, project, query) : organisation_meetings_path(@current_organisation, query)
+  end
+
+  # No readable meeting anywhere yet: "Alle Meetings" shows its first-time
+  # state. Asked by both includers, the overview's list is rendered from both.
+  def meetings_overview_first_use?
+    return @meetings_overview_first_use if defined?(@meetings_overview_first_use)
+
+    @meetings_overview_first_use = !policy_scope(Meeting).exists?
+  end
 
   # Sets what the list head and the rows read (@meeting_smart_folders,
   # @active_smart_folder, @dissolver_result, @current_search_mode, @columns,

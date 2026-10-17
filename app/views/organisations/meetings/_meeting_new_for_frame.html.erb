@@ -1,14 +1,16 @@
-<%# locals: (meeting:, detail_frame_id: nil, context: nil, cancel_action: nil) %>
+<%# locals: (meeting:, detail_frame_id: nil, modal: false, cancel_action: nil) %>
 <%# The ONE "new meeting" form, rendered into whichever frame asked for it: the
     detail pane of the project master-detail, or the modal on the org-wide list.
     Submits as turbo_stream — MeetingsController#create decides what to refresh from
-    the `context` field below, because the two pages have different frames.
+    the list context in the hidden fields (list_context, Meetings::ListState),
+    because the two pages have different frames.
 
-    context / cancel_action are the modal's two additions: where the save came from
-    and how "Abbrechen" closes (a link back to the list makes no sense inside a
-    modal). The org-wide list's state, its project condition included, travels in
-    the same hidden fields as the project list's (meeting_list_hidden_fields). %>
-<% modal_context = context.present? %>
+    modal / cancel_action are the modal's two additions: its frame without the
+    lane head, and how "Abbrechen" closes (a link back to the list makes no sense
+    inside a modal). Where the save came from and the org-wide list's state, its
+    project condition included, travel in the same hidden fields as the project
+    list's (meeting_list_hidden_fields). %>
+<% modal_context = modal %>
 <div id="meeting-form-card" class="<%= modal_context ? 'bg-cream-50 py-6 px-8 rounded-lg border border-cream-300 relative' : 'meeting-content min-w-0 relative' %>">
   <% current_frame_id = detail_frame_id || 'meeting_display_frame' %>
   <% unless modal_context %>
@@ -20,7 +22,6 @@
   <%= form_with(model: [@current_organisation, @project, meeting], format: :turbo_stream,
                 data: { turbo_frame: current_frame_id }) do |form| %>
     <%= hidden_field_tag :frame_id, current_frame_id %>
-    <%= hidden_field_tag :context, context if context.present? %>
     <%# Carry the active list filter through the write flow — the success
         turbo_stream re-renders the list the form was opened from; without this the
         filtered list silently snaps back to "all". %>
@@ -35,11 +36,7 @@
       <% cancel_options = if cancel_action.present?
                             { type: 'button', data: { action: cancel_action } }
                           else
-                            { url: organisation_project_meetings_path(
-                                     @current_organisation,
-                                     @project,
-                                     meeting_list_state
-                                   ),
+                            { url: meeting_list_index_path(meeting_list_state),
                               data: { turbo_frame: '_top', lane_back: true } }
                           end %>
       <%= render Neo::Buttons::ButtonComponent.new(variant: :edit, **cancel_options) do %>

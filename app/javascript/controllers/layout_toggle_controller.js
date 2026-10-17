@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { readLaneParams, laneParamNames } from "lane/params"
+import { controlIndexPath, indexPaths } from "lane/filter_context"
 
 // The fixed-height list/detail grids (Tickets table, Knowledge, Meetings) fill the
 // viewport instead of carrying a hardcoded `calc(100vh - <magic>)` height. The bottom
@@ -41,10 +42,22 @@ export default class extends Controller {
     // Tickets/Knowledge keep the shared default; Meetings mounts its own key. A grid
     // WITHOUT a panel column never
     // opens one, whatever the stored state says: see hasPanelColumn().
-    storageKey: { type: String, default: "layoutState" }
+    storageKey: { type: String, default: "layoutState" },
+    // Parameters every request of a lane of another list carries, added at
+    // click and submit (syncFilterContext): "Alle Meetings" says
+    // list_context=organisation, so a save in its lane redraws that list, also
+    // from a link a broadcast or a section refresh rendered without it.
+    laneContext: { type: Object, default: {} },
+    // Lane parameters of this visit the server did not open ({ name: value }):
+    // a meeting_id it could not resolve, a new form it did not render.
+    unresolvedSelection: { type: Object, default: {} }
   }
 
   connect() {
+    // The address names only what the server opened; hasSelection() below and
+    // index-page trust it.
+    this.dropUnresolvedSelection()
+
     // Check server-side state first
     const layoutElement = this.hasLayoutTarget ? this.layoutTarget : document.querySelector('.layout')
     const serverSaysHideContent = layoutElement && layoutElement.classList.contains('hide-content')
@@ -117,6 +130,11 @@ export default class extends Controller {
     this.element.addEventListener('click', this.boundSyncFilterContext, true)
     this.element.addEventListener('submit', this.boundSyncFilterContext, true)
 
+    // A write that ends the lane's object (a deleted meeting) closes the lane
+    // through the closeLane stream action (application.js).
+    this.boundCloseLane = this.closeLane.bind(this)
+    document.addEventListener('lane:close', this.boundCloseLane)
+
     // ESC key closes content panel
     this.boundCloseOnEscape = this.closeOnEscape.bind(this)
     document.addEventListener('keydown', this.boundCloseOnEscape)
@@ -132,6 +150,7 @@ export default class extends Controller {
     document.removeEventListener('turbo:before-stream-render', this.boundHandleListStream)
     this.element.removeEventListener('click', this.boundSyncFilterContext, true)
     this.element.removeEventListener('submit', this.boundSyncFilterContext, true)
+    document.removeEventListener('lane:close', this.boundCloseLane)
     document.removeEventListener('keydown', this.boundCloseOnEscape)
     window.removeEventListener('resize', this.boundScheduleGridHeight)
     if (this._gridHeightRaf) cancelAnimationFrame(this._gridHeightRaf)
@@ -160,7 +179,10 @@ export default class extends Controller {
       '[data-select-layer]:not([hidden])',
       '[data-ticket-bulk-panel-target="pickerMenu"]:not([hidden])',
       // The "Link" modal is the content of its frame: present only while open.
-      '[data-controller~="ticket-relation-modal"]'
+      '[data-controller~="ticket-relation-modal"]',
+      // The "+" modal of "Alle Meetings" hides with the class and listens on
+      // window, after this document listener.
+      '[data-meeting-modal-target="modal"]:not(.hidden)'
     ].join(', ')))
   }
 
@@ -256,22 +278,27 @@ export default class extends Controller {
 
   // A frame refresh leaves the page head and an open form in place. Refresh
   // their URLs and hidden filters; repeat before clicks/submits for controls
-  // subsequently inserted by Turbo streams. Only this index's routes opt in.
+  // subsequently inserted by Turbo streams. Only this index's routes opt in,
+  // and those of the index a lane head names (data-lane-index-url): the lane
+  // of "Alle Meetings" shows a project's meeting (lib/lane/filter_context).
   syncFilterContext(current) {
     if (!this.listFilterParamsValue.length || !this.element.dataset.indexUrl) return
 
-    const index = new URL(this.element.dataset.indexUrl, current.origin)
+    const laneIndexUrls = [...this.element.querySelectorAll('[data-lane-index-url]')].map(head => head.dataset.laneIndexUrl)
+    const indexes = indexPaths(this.element.dataset.indexUrl, laneIndexUrls, current.origin)
+    const ownIndex = new URL(this.element.dataset.indexUrl, current.origin).pathname
     for (const control of this.element.querySelectorAll('a[href], form[action], button[formaction]')) {
       const isForm = control.tagName === 'FORM'
       if (isForm && control.method.toLowerCase() === 'get') continue
       const attribute = isForm ? 'action' : control.tagName === 'BUTTON' ? 'formaction' : 'href'
       const address = new URL(control.getAttribute(attribute), current.origin)
       const path = address.pathname.replace(/\.turbo_stream$/, '')
-      if (address.origin !== index.origin || !(path === index.pathname || path.startsWith(`${index.pathname}/`))) continue
+      const index = controlIndexPath(path, indexes)
+      if (address.origin !== current.origin || !index) continue
 
       // List links intentionally change page, sort or view. Only explicit lane
       // return links inherit the current list state at the index route.
-      if (control.tagName === 'A' && path === index.pathname && !control.matches('[data-lane-back], [data-form-lane-back], [data-lane-close]')) continue
+      if (control.tagName === 'A' && path === index && !control.matches('[data-lane-back], [data-form-lane-back], [data-lane-close]')) continue
 
       const previousInputs = new URLSearchParams()
       if (isForm) control.querySelectorAll('input[type="hidden"]').forEach(input => previousInputs.append(input.name, input.value))
@@ -289,7 +316,22 @@ export default class extends Controller {
           }
         }
       }
+      if (index !== ownIndex) this.applyLaneContext(control, address, isForm)
       control.setAttribute(attribute, address.toString())
+    }
+  }
+
+  applyLaneContext(control, address, isForm) {
+    for (const [name, value] of Object.entries(this.laneContextValue)) {
+      address.searchParams.set(name, value)
+      if (!isForm) continue
+
+      control.querySelectorAll('input[type="hidden"]').forEach(input => { if (input.name === name) input.remove() })
+      const input = document.createElement('input')
+      input.type = 'hidden'
+      input.name = name
+      input.value = value
+      control.append(input)
     }
   }
 
@@ -386,6 +428,18 @@ export default class extends Controller {
     }
 
     this.updateLayout()
+  }
+
+  // The lane's object is gone: close as the ✕ does, and take its names out of
+  // the address in the SAME entry. A new entry would let Back reopen it.
+  closeLane() {
+    const currentUrl = new URL(window.location.href)
+    const names = this.laneStateNames
+    if (names.some(param => currentUrl.searchParams.has(param))) {
+      names.forEach(param => currentUrl.searchParams.delete(param))
+      window.history.replaceState(window.history.state || { lane: true }, '', currentUrl.toString())
+    }
+    this.closeContent({ history: false })
   }
 
   closeContent({ history = true } = {}) {
@@ -513,6 +567,19 @@ export default class extends Controller {
   // Public API — also used by the hover_arrows outlet
   hasSelectedItem() {
     return this.layoutState.content || this.hasSelection()
+  }
+
+  // A rejected selection (deleted, unknown, unreadable) would open an empty
+  // lane. It leaves the address in the same history entry, only while the
+  // address still names the value the server rejected.
+  dropUnresolvedSelection() {
+    const address = new URL(window.location.href)
+    const rejected = Object.entries(this.unresolvedSelectionValue)
+      .filter(([name, value]) => address.searchParams.get(name) === value)
+    if (rejected.length === 0) return
+
+    rejected.forEach(([name]) => address.searchParams.delete(name))
+    window.history.replaceState(window.history.state, '', address.toString())
   }
 
   // === Selection/content (Values-based) ===

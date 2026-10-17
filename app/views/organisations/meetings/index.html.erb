@@ -1,7 +1,8 @@
 <%# Meetings (Gespräche) master-detail — Slice 1a. List left, detail in a Turbo
     frame right; layout-toggle + viewport drive the list/detail switch (desktop
     collapse + mobile). Search reloads only the list frame so the detail pane
-    survives. %>
+    survives. The wrapper and the grid are shared with "Alle Meetings"
+    (meeting_list_page_data, _index_desktop, _index_mobile). %>
 <% content_for :head do %>
   <meta name="turbo-cache-control" content="no-cache">
   <%# Keep Turbo visits alive: a full reload discards the permanent assistant's
@@ -12,34 +13,20 @@
 <turbo-frame id="modal"></turbo-frame>
 
 <div class="labor-layout-view <%= 'show-content' if @selected_meeting || @new_meeting %> hide-panel"
-     data-controller="layout-toggle hover-arrows index-page keyboard-navigation viewport column-picker"
-     <%= tag.attributes(data: meeting_column_picker_data(organisation: @current_organisation, project: @project, active_view: @active_smart_folder, frame_id: 'meetings_results')) %>
-     data-hover-arrows-layout-toggle-outlet=".labor-layout-view"
-     data-layout-toggle-list-frame-ids-value="<%= ['meetings_results'].to_json %>"
-     data-layout-toggle-detail-frame-id-value="meeting_display_frame"
-     data-layout-toggle-content-selector-value=".meeting-content"
-     data-layout-toggle-selected-row-selector-value=".selected-row[data-meeting-id]"
-     data-layout-toggle-selection-params-value="<%= %w[meeting_id].to_json %>"
-     data-layout-toggle-list-filter-params-value="<%= Meetings::ListState::KEYS.to_json %>"
-     data-layout-toggle-storage-key-value="layoutState:meetings"
-     data-layout-toggle-clear-detail-on-close-value="true"
-     data-viewport-breakpoint-value="1024"
-     data-index-page-param-name-value="meeting_id"
-     data-index-page-frame-id-value="meeting_display_frame"
-     data-index-page-content-selector-value=".meeting-content"
-     data-index-page-placeholder-id-value="meeting-display-placeholder"
-     data-index-page-placeholder-class-value="ticket-placeholder px-4"
-     data-index-page-placeholder-title-value="<%= t('views.organisations.meetings.index.placeholder_title') %>"
-     data-index-page-placeholder-body-value="<%= t('views.organisations.meetings.index.placeholder_body') %>"
-     data-index-page-selected-row-selector-value=".selected-row[data-meeting-id]"
-     data-index-page-skip-if-content-visible-value="true"
-     data-viewport-current-mode-value="<%= @viewport_mode %>"
-     data-index-url="<%= organisation_project_meetings_path(@current_organisation, @project) %>"
-     data-lane-params="<%= lane_params_json(selection: %w[meeting_id], form: %w[new]) %>">
+     <%= tag.attributes(data: meeting_list_page_data(index_url: organisation_project_meetings_path(@current_organisation, @project),
+                                                     list_frame_id: Organisations::MeetingsController::LIST_FRAME_ID,
+                                                     viewport_mode: @viewport_mode, selected: @selected_meeting,
+                                                     lane_forms: %w[new], new_form_open: @new_meeting.present?)
+                                .merge(meeting_column_picker_data(organisation: @current_organisation, project: @project, active_view: @active_smart_folder,
+                                                                  frame_id: Organisations::MeetingsController::LIST_FRAME_ID))) %>>
+  <% list = capture do %>
+    <%= render 'organisations/meetings/list_head' %>
+    <%= render 'organisations/meetings/meetings_results', meetings: @meetings, selected_meeting: @selected_meeting %>
+  <% end %>
 
   <% if @viewport_mode == 'mobile' %>
-    <%= render 'organisations/meetings/index_mobile' %>
+    <%= render 'organisations/meetings/index_mobile', list: list %>
   <% else %>
-    <%= render 'organisations/meetings/index_desktop' %>
+    <%= render 'organisations/meetings/index_desktop', list: list %>
   <% end %>
 </div>

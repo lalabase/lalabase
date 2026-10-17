@@ -116,6 +116,13 @@ Turbo.StreamActions.replaceAddress = function () {
   document.dispatchEvent(new CustomEvent("lane:restored"));
 };
 
+// The object of the open lane is gone (a meeting deleted in it): the page's
+// layout-toggle closes the lane and takes it out of the address
+// (layout_toggle#closeLane). The target names the lane's frame.
+Turbo.StreamActions.closeLane = function () {
+  document.dispatchEvent(new CustomEvent("lane:close", { detail: { frameId: this.target } }));
+};
+
 // Stores the most recent Turbo requests in order to detect duplicates
 const recentTurboRequests = new Map();
 

@@ -23,8 +23,6 @@ pin 'time_session_modal', to: 'lib/time_session_modal.js'
 # predicate, pure so spec/javascript can test them independently of the mobile
 # browser regressions that also run in CI.
 pin 'meeting_modal', to: 'lib/meeting_modal.js'
-# The address of a list page without a lane after its frame loaded ("Alle Meetings").
-pin 'list_address', to: 'lib/list_address.js'
 # NeoAutosuggest's server search (the ticket picker of the "Link" modal): confirmed
 # choice, request sequence, debounce and abort, pure so spec/javascript can test them.
 pin 'autosuggest_search', to: 'lib/autosuggest_search.js'
@@ -43,9 +41,11 @@ pin 'column_picker/order', to: 'lib/column_picker/order.js'
 pin 'assignee_menu/diff', to: 'lib/assignee_menu/diff.js'
 pin 'kanban/keyboard', to: 'lib/kanban/keyboard.js'
 pin 'list_row/address', to: 'lib/list_row/address.js'
-# The lane's parameter groups and what Back restores (doc/dateivorschau_plan.md, D9 and D2).
+# The lane's parameter groups and what Back restores (doc/dateivorschau_plan.md, D9 and D2),
+# and which controls take the list state beside an open lane (filter_context).
 pin 'lane/params', to: 'lib/lane/params.js'
 pin 'lane/history', to: 'lib/lane/history.js'
+pin 'lane/filter_context', to: 'lib/lane/filter_context.js'
 # The document forms' drop zone: the title a file suggests (S4 of doc/dokumentansicht_plan.md).
 pin 'upload_zone/title', to: 'lib/upload_zone/title.js'
 # The folder target a type condition becomes (pure, node:test).
@@ -175,7 +175,6 @@ else
   pin 'controllers/lane_link_controller', to: 'controllers/lane_link_controller.js'
   pin 'controllers/lane_split_controller', to: 'controllers/lane_split_controller.js'
   pin 'controllers/layout_toggle_controller', to: 'controllers/layout_toggle_controller.js'
-  pin 'controllers/list_address_controller', to: 'controllers/list_address_controller.js'
   pin 'controllers/list_row_controller', to: 'controllers/list_row_controller.js'
   pin 'controllers/meeting_analysis_composer_controller', to: 'controllers/meeting_analysis_composer_controller.js'
   pin 'controllers/meeting_modal_controller', to: 'controllers/meeting_modal_controller.js'

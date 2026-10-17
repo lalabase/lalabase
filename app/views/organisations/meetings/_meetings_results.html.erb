@@ -50,7 +50,7 @@
         <% end %>
     <% else %>
       <%= render 'organisations/meetings/meetings_table', meetings: meetings, selected_meeting: selected_meeting,
-                 base_path: organisation_project_meetings_path(@current_organisation, @project), frame_id: 'meetings_results', opens_in_lane: true %>
+                 base_path: organisation_project_meetings_path(@current_organisation, @project), frame_id: 'meetings_results' %>
     <% end %>
     <% if @pagy.count.positive? %>
       <%= render 'shared/pagination_nav_compact', pagy: @pagy, frame_id: 'meetings_results', items_per_page: @pagy.limit,

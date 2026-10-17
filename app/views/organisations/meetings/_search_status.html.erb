@@ -22,7 +22,7 @@
 <% ai_available = org&.ai_available_for?(:content_indexing)&.available? %>
 <% status = meeting_search_status(meeting, ai_available: ai_available) %>
 <% style = meeting_search_status_style(status) %>
-<% filter_params = meeting_list_state %>
+<% filter_params = meeting_lane_state %>
 
 <div id="<%= dom_id(meeting) %>_search_status" class="flex flex-wrap items-center gap-2 mt-2">
   <%= render NeoInfoTagComponent.new(

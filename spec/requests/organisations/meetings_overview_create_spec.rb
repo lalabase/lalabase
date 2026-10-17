@@ -106,7 +106,8 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       sign_in writer_a
       get overview_path, params: { search: 'Kickoff', filter: { project: [project_a.id] } }
 
-      expect(new_url_query_for(project_a)).to eq('frame' => 'modal')
+      # list_context says which list a save redraws; the list state is not in it.
+      expect(new_url_query_for(project_a)).to eq('frame' => 'modal', 'list_context' => 'organisation')
       modal = Nokogiri::HTML(response.body).at_css('[data-controller="meeting-modal"]')
       expect(modal['data-meeting-modal-list-frame-value']).to eq('meetings_overview_results')
     end
@@ -125,14 +126,14 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
   describe 'GET new (frame: modal)' do
     it 'renders the form inside the modal frame for a writer' do
       sign_in writer_a
-      get new_organisation_project_meeting_path(organisation, project_a, frame: 'modal'),
+      get new_organisation_project_meeting_path(organisation, project_a, frame: 'modal', list_context: 'organisation'),
           headers: { 'Turbo-Frame' => 'meeting_modal_form' }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('meeting_modal_form', 'meeting-form-card')
       # The save must be marked as coming from the overview, or it would answer into
       # frames this page does not have.
-      expect(response.body).to include('overview_modal')
+      expect(hidden_field_value('list_context')).to eq('organisation')
     end
 
     it 'refuses the form to a reader (the area gate), creating no way in' do
@@ -148,14 +149,14 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       # Second link. Asserting the field NAMES only would pass even if the values
       # were cross-wired or arrived empty, the regression this example is for.
       sign_in writer_a
-      get new_organisation_project_meeting_path(organisation, project_a, frame: 'modal', search: 'Kickoff',
+      get new_organisation_project_meeting_path(organisation, project_a, frame: 'modal', list_context: 'organisation', search: 'Kickoff',
                                                                          filter: { participant: [anna], project: [project_b.id] }),
           headers: { 'Turbo-Frame' => 'meeting_modal_form' }
 
       expect(hidden_field_value('search')).to eq('Kickoff')
       expect(hidden_field_value('filter[participant][]')).to eq(anna)
       expect(hidden_field_value('filter[project][]')).to eq(project_b.id)
-      expect(hidden_field_value('context')).to eq('overview_modal')
+      expect(hidden_field_value('list_context')).to eq('organisation')
     end
 
     it 'falls back to the full page for an unknown frame value instead of half a page' do
@@ -172,7 +173,7 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
 
   describe 'POST create from the modal' do
     let(:valid_params) do
-      { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current } }
+      { list_context: 'organisation', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current } }
     end
 
     it 'creates the meeting and refreshes the org-wide list' do
@@ -207,11 +208,14 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       expect(response.body).to include('Kickoff 0', 'Kickoff 1')
     end
 
-    it 'does not answer into the project page frames, which do not exist here' do
+    it 'does not answer into the project page list, which does not exist here, nor into the lane' do
       sign_in writer_a
       post organisation_project_meetings_path(organisation, project_a), params: valid_params, as: :turbo_stream
 
-      expect(response.body).not_to include('meeting_display_frame')
+      # The rows name the lane they open in (list-row), so the stream targets
+      # are asked, not the body: a save from the modal leaves the lane alone.
+      expect(response.body).to include('target="meetings_overview_results"')
+      expect(response.body).not_to include('target="meeting_display_frame"')
       expect(response.body).not_to include('target="meetings_results"')
     end
 
@@ -306,7 +310,7 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
 
       expect do
         post organisation_project_meetings_path(organisation, project_a),
-             params: { context: 'overview_modal', meeting: { title: '', occurred_at: Time.current } },
+             params: { list_context: 'organisation', meeting: { title: '', occurred_at: Time.current } },
              as: :turbo_stream
       end.not_to(change { ActsAsTenant.with_tenant(organisation) { Meeting.count } })
 
@@ -332,7 +336,7 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       sign_in writer_a
 
       post organisation_project_meetings_path(organisation, project_a),
-           params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current }, items: 2 },
+           params: { list_context: 'organisation', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current }, items: 2 },
            as: :turbo_stream
 
       next_link = Nokogiri::HTML(response.body).at_css("a[title='#{I18n.t('views.shared.pagination_compact.next_page')}']")
@@ -347,7 +351,7 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       sign_in writer_a
 
       post organisation_project_meetings_path(organisation, project_a),
-           params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current } }
+           params: { list_context: 'organisation', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current } }
 
       expect(response).to redirect_to(organisation_meetings_path(organisation))
     end
@@ -356,7 +360,7 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       sign_in writer_a
 
       post organisation_project_meetings_path(organisation, project_a),
-           params: { context: 'overview_modal', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current },
+           params: { list_context: 'organisation', meeting: { title: 'Kickoff Alpha', occurred_at: Time.current },
                      filter: { project: [project_a.id] }, sort: { column: 'title', direction: 'asc' } }
 
       expect(URI.parse(response.location).path).to eq(overview_path)
@@ -368,7 +372,7 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
       sign_in writer_a
 
       post organisation_project_meetings_path(organisation, project_a),
-           params: { context: 'overview_modal', meeting: { title: '', occurred_at: Time.current } }
+           params: { list_context: 'organisation', meeting: { title: '', occurred_at: Time.current } }
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include('meeting_modal_form', 'meeting-form-card')

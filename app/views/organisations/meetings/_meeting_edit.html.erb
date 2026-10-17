@@ -22,7 +22,7 @@
             confirm: t('views.confirm.are_you_sure'),
             form: {
               action: organisation_project_meeting_path(@current_organisation, @project, meeting,
-                                                        **meeting_list_state.symbolize_keys,
+                                                        **meeting_lane_state.symbolize_keys,
                                                         viewport: @viewport_mode),
               method: :delete
             }
@@ -37,7 +37,7 @@
           variant: :edit,
           url: organisation_project_meeting_path(@current_organisation, @project, meeting,
                                                  frame: 'content', frame_id: current_frame_id,
-                                                 **meeting_list_state.symbolize_keys,
+                                                 **meeting_lane_state.symbolize_keys,
                                                  viewport: @viewport_mode),
           data: { turbo_frame: current_frame_id }
         ) do %>

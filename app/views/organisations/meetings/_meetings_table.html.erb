@@ -1,4 +1,4 @@
-<%# locals: (meetings:, selected_meeting:, base_path:, frame_id:, opens_in_lane:) %>
+<%# locals: (meetings:, selected_meeting:, base_path:, frame_id:) %>
 <%# The table of a meetings list, shared by the project page
     (meetings/_meetings_results) and "Alle Meetings" (meetings_overview/_results).
     Heads and cells come from @columns (Lists::ResolveColumns) with rank,
@@ -7,8 +7,7 @@
     column_picker_controller's). On a phone no ranked column stands in the head
     (data-fit 0), so the table never scrolls sideways.
     base_path and frame_id are the list's own: a sort link reloads that frame.
-    opens_in_lane: a row opens the meeting in the lane beside the list (project
-    page), or on its project's page ("Alle Meetings", until its lane). %>
+    A row opens the meeting in the lane beside the list, on both pages. %>
 <div class="relative w-full overflow-x-auto">
   <table class="w-full meeting-table" data-fit="<%= @viewport_mode == 'mobile' ? 0 : initial_column_fit(@columns.reject { |column| column[:required] }, content_open: selected_meeting.present? || params[:meeting_id].present? || params[:new] == 'meeting') %>" data-column-count="<%= @columns.size %>">
     <thead>
@@ -24,7 +23,7 @@
     </thead>
     <tbody>
       <% meetings.each do |meeting| %>
-        <%= render 'organisations/meetings/meeting_row', meeting: meeting, selected_meeting: selected_meeting, opens_in_lane: opens_in_lane %>
+        <%= render 'organisations/meetings/meeting_row', meeting: meeting, selected_meeting: selected_meeting %>
       <% end %>
       <%= render 'shared/ruled_rows', missing: @pagy.limit - meetings.size, colspan: @columns.size unless @viewport_mode == 'mobile' %>
     </tbody>

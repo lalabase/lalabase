@@ -256,13 +256,18 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
       expect(query).not_to have_key('utm_source')
     end
 
+    # One writer of the address, the project page's (PR 3): layout-toggle
+    # copies the list state the frame rendered into the address after every
+    # reload and stream. list-address, the writer of PR 1, is gone.
     it 'lets the address follow the list frame, so the bar reads sort and page from it' do
       create_meeting(project: project_a, title: 'Alpha Kickoff')
       page = list
 
-      wrapper = page.find('[data-controller~="list-address"]')
-      expect(wrapper['data-list-address-frame-value']).to eq('meetings_overview_results')
-      expect(wrapper['data-list-address-path-value']).to eq(overview_path)
+      wrapper = page.find('[data-controller~="layout-toggle"]')
+      expect(JSON.parse(wrapper['data-layout-toggle-list-frame-ids-value'])).to eq(['meetings_overview_results'])
+      expect(JSON.parse(wrapper['data-layout-toggle-list-filter-params-value'])).to eq(Meetings::ListState::KEYS)
+      expect(wrapper['data-index-url']).to eq(overview_path)
+      expect(page).to have_no_css('[data-controller~="list-address"]')
     end
 
     it 'answers the list frame alone' do
@@ -300,13 +305,16 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
   end
 
   describe 'row navigation' do
-    it 'opens a row in the project master-detail with the meeting selected' do
+    # Since PR 3 the row opens the meeting in the lane of this page
+    # (meetings_overview_lane_spec.rb), no longer on its project's page.
+    it 'opens a row in the lane of this page, through the detail of its project' do
       meeting = create_meeting(project: project_a, title: 'Alpha Kickoff')
       sign_in reader
       page = list
 
       row = page.find("#meetings_overview_results tr[data-meeting-id='#{meeting.id}']")
-      expect(row['data-clickable-row-url-value']).to eq(organisation_project_meetings_path(organisation, project_a, meeting_id: meeting.id))
+      expect(row['data-list-row-url-value']).to eq(organisation_project_meeting_path(organisation, project_a, meeting, list_context: 'organisation'))
+      expect(row['data-list-row-frame-value']).to eq('meeting_display_frame')
     end
   end
 

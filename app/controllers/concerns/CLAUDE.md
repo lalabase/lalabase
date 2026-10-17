@@ -67,9 +67,14 @@ Fundamente — Tickets = dieser Stack, Knowledge = `Pageable`+`AdHocFilterable`+
 direkt, Notifications = bespoke + `MasterListPresenter`, Meetings =
 `ProjectController`+`ViewportSwitchable`+`meeting_list.rb`.
 `meeting_list.rb` (17.10.2026) ist der EINE Besitzer der Meeting-Liste: Projektseite
-(`meeting_list_project` = `@project`) und „Alle Meetings“ (`nil`, auch der Refresh nach dem
-Modal in `MeetingsController#create`). Eine Meeting-Ansicht gehört der Liste ihres Projekts,
-ohne Projekt der Übersicht. Die Filterleiste, das Speichern von Ansichten und die Spaltenwahl
+(`meeting_list_project` = `@project`) und „Alle Meetings“ (`nil`). Seit PR 3 öffnet auch die
+Übersicht das Meeting in der Bahn; Detail und Schreibwege bleiben projektverschachtelt
+(`MeetingsController`), und die Bahn trägt `list_context=organisation`
+(`Meetings::ListState`, ein erlaubter Wert, nur verglichen). `meeting_organisation_list?`
+ist die EINE Frage „welche Liste?“ für Stream, Weiterleitung und Rückweg (Bahn und Modal;
+das frühere `context=overview_modal` ist darin aufgegangen). Der Kontext wählt nur die
+Liste, die Rechte bleiben die des Projekts (`set_meeting`, Bereichs-Tor). Eine
+Meeting-Ansicht gehört der Liste ihres Projekts, ohne Projekt der Übersicht. Die Filterleiste, das Speichern von Ansichten und die Spaltenwahl
 nehmen `project: nil` als „organisationsweit“; Tickets und Wissen geben weiter ein Projekt mit.
 Die Grundansicht der Spalten wählt `ViewConfiguration.for_list` (ohne Projekt nur `meetings`,
 Route `meetings_view_configuration`, derselbe Controller wie die Projekt-Route).

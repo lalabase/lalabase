@@ -1,18 +1,18 @@
-<%# locals: (meetings:, first_use: false) %>
+<%# locals: (meetings:, selected_meeting: nil, first_use: false) %>
 <%# The meetings_overview_results frame, brought by this partial ITSELF: the
-    filter bar, the column heads and the pages reload it, and
-    MeetingsController#create REPLACES it after a save from the overview modal. A
-    partial without the frame would leave a plain <div> behind, and from then on
-    every reload would target a frame that no longer exists.
+    filter bar, the column heads and the pages reload it, and MeetingsController
+    REPLACES it after a save from the overview modal or from the lane
+    (list_stream). A partial without the frame would leave a plain <div> behind,
+    and from then on every reload would target a frame that no longer exists.
     Rendered from two controllers, so it reads no helper only one of them has:
-    first_use is a local (false after a save, there is a meeting then).
+    first_use and selected_meeting (the row the lane shows) are locals.
 
     data-list-filter-query is the list state as the server applied it; the
     modal's "+" reads it when a project is chosen (meeting_modal_controller), so
     the list after a save keeps its conditions, view, search and sort. %>
 <% frame_id = Organisations::MeetingsController::OVERVIEW_LIST_FRAME_ID %>
 <% base_path = organisation_meetings_path(@current_organisation) %>
-<turbo-frame id="<%= frame_id %>">
+<turbo-frame id="<%= frame_id %>" data-keyboard-navigation-target="listContainer">
   <%# One query, not two: .empty? on an unloaded relation asks the database, then
       the loop asks it again. %>
   <% rows = meetings.to_a %>
@@ -37,10 +37,10 @@
     <% else %>
       <%# The project page's table (meetings/_meetings_table): the columns of the
           picker, folded by rank, pinned values under the title; on a phone
-          all of them stand under the title. A row opens the meeting on its
-          project's page until this list has a lane of its own. %>
-      <%= render 'organisations/meetings/meetings_table', meetings: rows, selected_meeting: nil,
-                 base_path: base_path, frame_id: frame_id, opens_in_lane: false %>
+          all of them stand under the title. A row opens the meeting in the
+          lane beside the list. %>
+      <%= render 'organisations/meetings/meetings_table', meetings: rows, selected_meeting: selected_meeting,
+                 base_path: base_path, frame_id: frame_id %>
     <% end %>
     <% if @pagy.count.positive? %>
       <%= render 'shared/pagination_nav_compact', pagy: @pagy, frame_id: frame_id, items_per_page: @pagy.limit,

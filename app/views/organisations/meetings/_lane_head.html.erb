@@ -1,17 +1,20 @@
 <%# locals: (meeting:, current_frame_id:) %>
 <%# Meeting-specific twin of the ticket/knowledge lane head. Routes and the
-    always-available mobile assistant entry deliberately remain meeting-owned. %>
+    always-available mobile assistant entry deliberately remain meeting-owned.
+    The way back leads to the list the lane was opened from (MeetingList:
+    the project page or "Alle Meetings"), and data-lane-index-url names the
+    index the lane's own routes belong to, so layout_toggle hands its controls
+    the list state when the list changes beside an open lane. %>
 <% icon_button = 'inline-flex h-11 w-11 lg:h-8 lg:w-8 items-center justify-center rounded-md text-cream-500 transition-colors hover:bg-cream-200 hover:text-cream-900 focus-visible:bg-cream-200 focus-visible:text-cream-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2' %>
 <% can_write = policy(meeting.project).area_access?(:meetings, :write) %>
 <% assistant = assistant_trigger_attributes(meeting) %>
-<% back_query = request.query_parameters.except('meeting_id', 'new', 'frame', 'frame_id', 'format') %>
-<div class="flex items-center gap-4 mb-2" data-lane-head>
+<div class="flex items-center gap-4 mb-2" data-lane-head data-lane-index-url="<%= organisation_project_meetings_path(@current_organisation, meeting.project) %>">
   <span class="hidden lg:inline font-mono text-[13px] tracking-wide text-cream-500">
     <%= t('views.organisations.meetings.show.type_label') %>
   </span>
 
   <% unless @viewport_mode == 'mobile' %>
-    <a href="<%= organisation_project_meetings_path(@current_organisation, meeting.project, back_query) %>"
+    <a href="<%= meeting_list_index_path(meeting_list_state) %>"
        data-lane-back
        data-turbo-frame="_top"
        class="inline-flex lg:hidden h-8 items-center gap-1 rounded-lg px-2 -ml-2 text-[13px] font-normal text-cream-600 transition-colors hover:bg-cream-100 hover:text-cream-900 focus-visible:bg-cream-100 focus-visible:text-cream-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink">
@@ -28,7 +31,7 @@
                        meeting,
                        format: :turbo_stream,
                        frame_id: current_frame_id,
-                       **meeting_list_state.symbolize_keys,
+                       **meeting_lane_state.symbolize_keys,
                        viewport: @viewport_mode
                      ) %>"
          class="<%= icon_button %>"

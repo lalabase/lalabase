@@ -1,9 +1,12 @@
-<%# locals: (meeting:, announce: false, announce_links: false) %>
+<%# locals: (meeting:, announce: false, announce_links: false, lane_state: {}) %>
 <%# "Ticket-Vorschläge" on the meeting detail (Gespräche
     Slice 8, E22). Rendered ONLY in request context (from _meeting_show AND the
     controller's turbo_stream replace — NO broadcast, E21), so policy/current_user
     are safe here. Wrapped in its own turbo-frame so run/accept/dismiss refresh just
     this block. Permissions are computed here so it renders identically either way.
+    lane_state: the list state and context of the lane (meeting_lane_state), given
+    by _meeting_show only, so the refresh link reloads the detail for the list it
+    was opened from; the controller's replace has none and reloads for the project.
     NB: do NOT start this comment with "locals:" — Rails reads it as the strict
     locals signature and chokes on the prose. %>
 <% project = meeting.project %>
@@ -71,7 +74,7 @@
           <i class="bi bi-arrow-repeat inline-block animate-spin" aria-hidden="true"></i>
           <%= t('views.organisations.meetings.ticket_suggestions.in_progress') %>
           <%= link_to t('views.organisations.meetings.ticket_suggestions.refresh'),
-                organisation_project_meeting_path(org, project, meeting, frame: 'content'),
+                organisation_project_meeting_path(org, project, meeting, frame: 'content', **lane_state.symbolize_keys),
                 data: { turbo_frame: 'meeting_display_frame' },
                 class: 'not-italic underline hover:text-ink' %>
         </p>

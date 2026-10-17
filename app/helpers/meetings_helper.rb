@@ -1,14 +1,27 @@
 # frozen_string_literal: true
 
 module MeetingsHelper
+  # Below this width a meetings list shows either the list or the meeting, on
+  # the phone layout. The row opener's number (FULL_PAGE_BELOW_PX in
+  # lib/list_row/address.js): narrower, a lane would cover the list.
+  LANE_FULL_PAGE_BELOW_PX = 1024
+
   def meeting_list_state(pagy: nil)
     state = Meetings::ListState.extract(params)
     state['page'] = pagy.page.to_s if pagy && state.key?('page')
     state
   end
 
+  # What the lane's forms and links carry: the state of the list it was opened
+  # from, and which list that is (list_context, Meetings::ListState). A save
+  # redraws that list with that state. Rendered only by the two controllers of
+  # MeetingList, whose helper answers the question.
+  def meeting_lane_state
+    meeting_list_state.merge(Meetings::ListState.context_query(organisation: meeting_organisation_list?))
+  end
+
   def meeting_list_hidden_fields
-    safe_join(URI.decode_www_form(meeting_list_state.to_query).map { |key, value| hidden_field_tag(key, value) })
+    safe_join(URI.decode_www_form(meeting_lane_state.to_query).map { |key, value| hidden_field_tag(key, value) })
   end
 
   # The categories of the meetings filter bar, every option from `scope`, the
@@ -47,6 +60,43 @@ module MeetingsHelper
     when 'project' then meeting.project.name
     when 'creator' then viewer_display_name(meeting.creator)
     end
+  end
+
+  # The wrapper of a meetings list page with its lane, the element that carries
+  # the page's controllers: the project page and "Alle Meetings" share it
+  # (doc/meetings_uebersicht_vereinheitlichen_plan.md, PR 3) and differ in their
+  # address, their list frame and whether the lane knows a form state (the
+  # project page's "+"). layout-toggle is the page's one writer of the address
+  # (syncUrlFromFrame, the list state in list_filter_params); the row opener
+  # and the ✕ write the lane part. The column picker's wiring is merged in by
+  # the page (meeting_column_picker_data).
+  def meeting_list_page_data(index_url:, list_frame_id:, viewport_mode:, lane_forms: [])
+    detail_frame_id = Organisations::MeetingsController::DETAIL_FRAME_ID
+    {
+      controller: 'layout-toggle hover-arrows index-page keyboard-navigation viewport column-picker',
+      hover_arrows_layout_toggle_outlet: '.labor-layout-view',
+      layout_toggle_list_frame_ids_value: [list_frame_id].to_json,
+      layout_toggle_detail_frame_id_value: detail_frame_id,
+      layout_toggle_content_selector_value: '.meeting-content',
+      layout_toggle_selected_row_selector_value: '.selected-row[data-meeting-id]',
+      layout_toggle_selection_params_value: %w[meeting_id].to_json,
+      layout_toggle_list_filter_params_value: Meetings::ListState::KEYS.to_json,
+      layout_toggle_storage_key_value: 'layoutState:meetings',
+      layout_toggle_clear_detail_on_close_value: 'true',
+      viewport_breakpoint_value: LANE_FULL_PAGE_BELOW_PX,
+      index_page_param_name_value: 'meeting_id',
+      index_page_frame_id_value: detail_frame_id,
+      index_page_content_selector_value: '.meeting-content',
+      index_page_placeholder_id_value: 'meeting-display-placeholder',
+      index_page_placeholder_class_value: 'ticket-placeholder px-4',
+      index_page_placeholder_title_value: t('views.organisations.meetings.index.placeholder_title'),
+      index_page_placeholder_body_value: t('views.organisations.meetings.index.placeholder_body'),
+      index_page_selected_row_selector_value: '.selected-row[data-meeting-id]',
+      index_page_skip_if_content_visible_value: 'true',
+      viewport_current_mode_value: viewport_mode,
+      index_url: index_url,
+      lane_params: lane_params_json(selection: %w[meeting_id], form: lane_forms)
+    }
   end
 
   # The placeholders column_picker_controller fills in itself, passed through

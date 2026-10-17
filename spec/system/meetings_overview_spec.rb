@@ -276,20 +276,48 @@ RSpec.describe 'Meetings overview', type: :system do
       expect(page).to have_no_css('.labor-layout-view.show-content')
     end
 
-    it 'opens a row from the keyboard' do
+    it 'enters the rows from the search field and opens a meeting with the keyboard' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      # A search value keeps the field open, as in the project page's spec.
+      visit organisation_meetings_path(organisation, search: 'a', search_mode: 'title_only')
+      expect(page).to have_css(overview_rows, count: 3, wait: 10)
+
+      # No click first: the rows hold no link of their own (tabindex -1), so
+      # the search field is the one way in, as on the project page.
+      # The scripts load after the rows show: an arrow pressed before the
+      # keyboard controller listens does nothing, so it is pressed again.
+      search = find('input[name="search"]')
+      page.document.synchronize(5) do
+        search.send_keys(:arrow_down)
+        raise Capybara::ElementNotFound, 'no row has focus yet' unless page.has_css?("#{overview_rows}:focus", wait: 0.2)
+      end
+      row = find("#{overview_rows}:focus")
+      expect(row).to eq(first(overview_rows))
+      row.send_keys(:arrow_down)
+      row = find("#{overview_rows}:focus")
+      expect(row).to have_text('Alpha Kickoff')
+      row.send_keys(:enter)
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff', wait: 5)
+      expect(page).to have_css("#{overview_rows}.selected-row", text: 'Alpha Kickoff')
+    end
+
+    it 'leaves the open lane and its unsaved edit alone when Escape closes the "+" modal' do
       page.driver.browser.manage.window.resize_to(1440, 1000)
       visit organisation_meetings_path(organisation)
       expect_titles('Alpha Kickoff', 'Beta Retro', 'Alpha Ohne Anna')
-
-      # A click opens and focuses the first row. The first arrow lands on the
-      # first row (as on the project page), the second on the next; Enter opens.
       row_of('Beta Retro').click
-      expect(page).to have_css('#meeting_display_frame h2', text: 'Beta Retro', wait: 5)
-      page.send_keys(:arrow_down)
-      page.send_keys(:arrow_down)
-      page.send_keys(:enter)
-      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff', wait: 5)
-      expect(page).to have_css("#{overview_rows}.selected-row", text: 'Alpha Kickoff')
+      expect(lane_title).to have_text('Beta Retro')
+      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
+      within('#meeting_display_frame') { fill_in 'meeting[title]', with: 'Ungespeichert' }
+
+      find("button[title='#{I18n.t('views.organisations.meetings_overview.index.new_meeting')}']").click
+      expect(page).to have_css('[data-meeting-modal-target="modal"]:not(.hidden)', wait: 5)
+      page.send_keys(:escape)
+
+      expect(page).to have_no_css('[data-meeting-modal-target="modal"]:not(.hidden)', wait: 5)
+      expect(page).to have_css('.labor-layout-view.show-content')
+      expect(find('#meeting_display_frame').find_field('meeting[title]').value).to eq('Ungespeichert')
+      expect(page).to have_current_path(/meeting_id=#{meeting('Beta Retro').id}/)
     end
 
     it 'opens the meeting full width on a phone and leads back to the list with its search' do

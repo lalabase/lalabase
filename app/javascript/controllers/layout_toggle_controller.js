@@ -167,7 +167,10 @@ export default class extends Controller {
       '[data-select-layer]:not([hidden])',
       '[data-ticket-bulk-panel-target="pickerMenu"]:not([hidden])',
       // The "Link" modal is the content of its frame: present only while open.
-      '[data-controller~="ticket-relation-modal"]'
+      '[data-controller~="ticket-relation-modal"]',
+      // The "+" modal of "Alle Meetings" hides with the class and listens on
+      // window, after this document listener.
+      '[data-meeting-modal-target="modal"]:not(.hidden)'
     ].join(', ')))
   }
 

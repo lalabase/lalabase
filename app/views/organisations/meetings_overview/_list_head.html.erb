@@ -31,7 +31,9 @@
     the same sentence. Only the category "Projekt" is this page's own.
     Unlike the project page, the bar stands before the first meeting too: the
     "+" modal replaces only the list frame, never this head, so a bar left out
-    here would stay missing until a full reload. %>
+    here would stay missing until a full reload.
+    keyboard_navigation: the rows hold no link of their own (they open in the
+    lane), so arrow down from the search field is the keyboard's way in. %>
 <%= render NeoFilterBarComponent.new(
   current_user_id: current_user.id,
   smart_folders: @meeting_smart_folders,
@@ -55,6 +57,7 @@
   search_value: params[:search],
   search_mode: @current_search_mode,
   search_modes: %w[title_only content],
+  keyboard_navigation: true,
   organisation: @current_organisation
 ) do |bar| %>
   <%# The column picker, at the place the project page has it. %>

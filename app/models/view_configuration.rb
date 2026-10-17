@@ -90,7 +90,7 @@ class ViewConfiguration < ApplicationRecord
     'number' => 48, 'title' => 320, 'assignees' => 120, 'tags' => 140,
     'created_at' => 110, 'updated_at' => 110, 'time_spent' => 90, 'billing_status' => 140, 'subtask_count' => 70,
     'waiting' => 70, 'custom_status' => 138, 'participants' => 220, 'occurred_at' => 170, 'duration_minutes' => 90,
-    'project' => 140
+    'project' => 180
   }.freeze
   COLUMN_MIN_WIDTH_BY_TYPE_PX = {
     'select' => 110, 'multiselect' => 140, 'text' => 140, 'textarea' => 160, 'checkbox' => 70,

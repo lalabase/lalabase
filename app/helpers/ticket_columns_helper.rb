@@ -30,8 +30,11 @@ module TicketColumnsHelper
   # alone. custom_status is the project's status column: at a tenth of the
   # table "In Bearbeitung" was cut to 78px while the title had room, and 106px
   # is what the word needs (designer, 09.09.2026), so 14%; the title gives.
+  # project is the column of "Alle Meetings" (no project page has it): a
+  # project's name at a tenth of the table was cut after a dozen letters.
   COLUMN_SHARE = {
-    'assignees' => '12%', 'time_spent' => '8%', 'subtask_count' => '6%', 'waiting' => '6%', 'custom_status' => '14%'
+    'assignees' => '12%', 'time_spent' => '8%', 'subtask_count' => '6%', 'waiting' => '6%', 'custom_status' => '14%',
+    'project' => '16%'
   }.freeze
   DEFAULT_COLUMN_SHARE = '10%'
 

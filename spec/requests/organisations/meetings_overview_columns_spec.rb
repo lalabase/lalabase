@@ -115,7 +115,7 @@ RSpec.describe 'Organisations::MeetingsOverview columns', :ci_guard, type: :requ
 
       expect(head_keys).to eq(%w[title participants project])
       ranked = page_body.all('#meetings_overview_results thead th[data-rank]').map { |head| [head['data-column'], head['data-rank'], head['data-col-min']] }
-      expect(ranked).to eq([%w[participants 1 220], %w[project 2 140]])
+      expect(ranked).to eq([%w[participants 1 220], %w[project 2 180]])
       meta = page_body.all('#meetings_overview_results tbody tr[data-meeting-id] .ticket-meta__item', visible: :all)
       shown_under_title = meta.to_h { |item| [item.text.strip, item[:hidden].nil?] }
       expect(shown_under_title).to eq('Anna Müller' => false, 'Projekt Alpha' => true)

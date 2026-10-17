@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { readLaneParams, laneParamNames } from "lane/params"
+import { escapeOwned } from "escape_owner"
 
 // The fixed-height list/detail grids (Tickets table, Knowledge, Meetings) fill the
 // viewport instead of carrying a hardcoded `calc(100vh - <magic>)` height. The bottom
@@ -117,7 +118,11 @@ export default class extends Controller {
     this.element.addEventListener('click', this.boundSyncFilterContext, true)
     this.element.addEventListener('submit', this.boundSyncFilterContext, true)
 
-    // ESC key closes content panel
+    // ESC key closes content panel, unless something on top owns it. Who owns
+    // it is asked in the capture phase on window, before any listener has run:
+    // an owner that closes itself on its own element looks closed afterwards.
+    this.boundNoteEscapeOwner = this.noteEscapeOwner.bind(this)
+    window.addEventListener('keydown', this.boundNoteEscapeOwner, true)
     this.boundCloseOnEscape = this.closeOnEscape.bind(this)
     document.addEventListener('keydown', this.boundCloseOnEscape)
 
@@ -132,6 +137,7 @@ export default class extends Controller {
     document.removeEventListener('turbo:before-stream-render', this.boundHandleListStream)
     this.element.removeEventListener('click', this.boundSyncFilterContext, true)
     this.element.removeEventListener('submit', this.boundSyncFilterContext, true)
+    window.removeEventListener('keydown', this.boundNoteEscapeOwner, true)
     document.removeEventListener('keydown', this.boundCloseOnEscape)
     window.removeEventListener('resize', this.boundScheduleGridHeight)
     if (this._gridHeightRaf) cancelAnimationFrame(this._gridHeightRaf)
@@ -144,24 +150,23 @@ export default class extends Controller {
     }
   }
 
-  // Menus and dialogs own the first Escape. Since their document/window
-  // listeners may run after this controller's listener, visible DOM state is
-  // the reliable signal; event.defaultPrevented alone depends on connect order.
+  noteEscapeOwner(event) {
+    if (event.key !== 'Escape') return
+    this.escapeOwnerAtKeydown = { event, owned: this.escapeOwnedNow() }
+  }
+
+  // Menus, modals and drawers own the first Escape (lib/escape_owner.js). The
+  // answer noted at keydown counts; an event that came without that note (a
+  // dispatched one) is asked now.
   escapeBelongsToOverlay(event) {
     if (event.defaultPrevented) return true
 
-    return Boolean(document.querySelector([
-      'dialog[open]',
-      '[data-neo-inline-popover-target="panel"]:not(.hidden)',
-      '[data-dropdown-target="menu"]:not(.hidden)',
-      '[data-neo-dropdown-target="menu"]:not(.hidden)',
-      // The bulk panel's layers and field picker hide with the attribute.
-      '[data-values-layer]:not([hidden])',
-      '[data-select-layer]:not([hidden])',
-      '[data-ticket-bulk-panel-target="pickerMenu"]:not([hidden])',
-      // The "Link" modal is the content of its frame: present only while open.
-      '[data-controller~="ticket-relation-modal"]'
-    ].join(', ')))
+    const noted = this.escapeOwnerAtKeydown
+    return noted?.event === event ? noted.owned : this.escapeOwnedNow()
+  }
+
+  escapeOwnedNow() {
+    return escapeOwned(this.application?.controllers || [], document)
   }
 
   handleFrameLoad(event) {

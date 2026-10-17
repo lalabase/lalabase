@@ -159,6 +159,39 @@ RSpec.describe 'Meeting filters and columns', type: :system do
     expect(page).to have_current_path(/participant/)
   end
 
+  # lib/escape_owner.js: the topmost thing takes Escape, the lane only when
+  # nothing above it owns the key. The value menu of the filter bar was on no
+  # list until 2026-10-17 and closed the lane with its first Escape.
+  it 'closes the filter menu step by step before the lane behind it' do
+    page.driver.browser.manage.window.resize_to(1440, 1000)
+    visit path
+    # The rows show before their scripts listen: a click before that opens nothing.
+    page.document.synchronize do
+      connected = page.evaluate_script(<<~JS)
+        Boolean(window.Stimulus?.getControllerForElementAndIdentifier(document.querySelector('tr[data-meeting-id]'), 'list-row'))
+      JS
+      raise Capybara::ExpectationNotMet, 'the row controller is not connected yet' unless connected
+    end
+    find("tr[data-meeting-id='#{meetings.first.id}']").click
+    expect(page).to have_css('#meeting-header', text: 'Alpha')
+
+    find('[data-filter-bar-target="filterButton"]').click
+    find('[role="menuitem"][data-category="participant"]').click
+    expect(page).to have_css('[data-filter-bar-target="valueMenu"]:not(.hidden)', wait: 3)
+
+    page.send_keys(:escape)
+    expect(page).to have_css('[data-filter-bar-target="valueMenu"].hidden', visible: :all)
+    expect(page).to have_css('[data-filter-bar-target="filterMenu"]:not(.hidden)')
+    expect(page).to have_css('.labor-layout-view.show-content #meeting-header', text: 'Alpha')
+
+    page.send_keys(:escape)
+    expect(page).to have_css('[data-filter-bar-target="filterMenu"].hidden', visible: :all)
+    expect(page).to have_css('.labor-layout-view.show-content #meeting-header', text: 'Alpha')
+
+    page.send_keys(:escape)
+    expect(page).to have_no_css('.labor-layout-view.show-content')
+  end
+
   it 'enters the rows from the search field and opens a meeting with the keyboard' do
     page.driver.browser.manage.window.resize_to(1440, 1000)
     visit path(search: 'a', search_mode: 'title_only')

@@ -103,6 +103,9 @@ class Organisation < ApplicationRecord
   has_many :projects, dependent: :destroy
   has_many :tickets, through: :projects
   has_many :smart_folders, dependent: :destroy
+  # Project#view_configurations takes the rows of a project; this one takes the
+  # rows without a project (the base view of "Alle Meetings"). The FK is NO ACTION.
+  has_many :view_configurations, dependent: :destroy
   has_many :ai_usages, dependent: :destroy
   has_many :codebase_import_files, dependent: :destroy
   has_many :tags, dependent: :destroy

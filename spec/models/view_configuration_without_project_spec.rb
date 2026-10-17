@@ -145,6 +145,26 @@ RSpec.describe ViewConfiguration, 'without a project' do
     end
   end
 
+  # Organisation deletion is Rails-driven and the organisation FK is NO ACTION.
+  # Project#view_configurations only reaches rows with a project; without
+  # Organisation#view_configurations the overview row would block the delete
+  # with InvalidForeignKey.
+  describe 'when the organisation is destroyed' do
+    it 'removes the row without a project and keeps the row of another organisation' do
+      overview_row = build_overview_config.tap(&:save!)
+      other_row = ActsAsTenant.with_tenant(other_organisation) do
+        build_overview_config(in_organisation: other_organisation).tap(&:save!)
+      end
+
+      organisation.destroy!
+
+      ActsAsTenant.without_tenant do
+        expect(described_class.exists?(overview_row.id)).to be(false)
+        expect(described_class.exists?(other_row.id)).to be(true)
+      end
+    end
+  end
+
   describe '.for_list' do
     it 'picks the row of the project when there is one, the organisation row otherwise' do
       with_project = described_class.for_list(user: user, organisation: organisation, project: project, view_type: 'meetings')

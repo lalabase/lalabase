@@ -9,5 +9,5 @@
   view_name: @active_smart_folder&.name || t('smart_folders.all_meetings'),
   fit: initial_column_fit(@columns.reject { |column| column[:required] }, content_open: @selected_meeting.present? || @new_meeting.present?),
   pinned_keys: @active_smart_folder&.pinned_column_keys || @view_configuration.pinned_column_keys,
-  apply_all_url: meeting_columns_apply_all_url(@project)
+  apply_all_url: meeting_columns_apply_all_url(organisation: @current_organisation, project: @project)
 ) %>

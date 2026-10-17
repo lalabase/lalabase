@@ -13,7 +13,7 @@
 
 <div class="labor-layout-view <%= 'show-content' if @selected_meeting || @new_meeting %> hide-panel"
      data-controller="layout-toggle hover-arrows index-page keyboard-navigation viewport column-picker"
-     <%= tag.attributes(data: meeting_column_picker_data(project: @project, frame_id: 'meetings_results')) %>
+     <%= tag.attributes(data: meeting_column_picker_data(organisation: @current_organisation, project: @project, active_view: @active_smart_folder, frame_id: 'meetings_results')) %>
      data-hover-arrows-layout-toggle-outlet=".labor-layout-view"
      data-layout-toggle-list-frame-ids-value="<%= ['meetings_results'].to_json %>"
      data-layout-toggle-detail-frame-id-value="meeting_display_frame"

@@ -130,21 +130,22 @@ RSpec.describe 'Meetings overview', type: :system do
     expect(page).to have_css('#column-picker li[data-key="project"]')
 
     find('#column-picker li[data-key="creator"] label').click
-    expect(page).to have_css('#meetings_overview_results th[data-column="creator"]', wait: 5)
-    find('#column-picker li[data-key="duration_minutes"] label').click
-    expect(page).to have_no_css('#meetings_overview_results th[data-column="duration_minutes"]', wait: 5)
+    expect(page).to have_css('#meetings_overview_results th[data-column="creator"][data-rank="5"]', wait: 5)
 
+    # Two places up, above participants and duration.
     row = find('#column-picker li[data-key="creator"]')
     row.find('.column-picker__grip').click
     row.send_keys(%i[alt up])
-    expect(page).to have_css('#meetings_overview_results th[data-column="creator"][data-rank="3"]', wait: 5)
     row.send_keys(%i[alt up])
-    expect(page).to have_css('#meetings_overview_results th[data-column="creator"][data-rank="2"]', wait: 5)
-    expect(overview_columns).to eq(%w[title project creator occurred_at participants])
+    expect(page).to have_css('#meetings_overview_results th[data-column="creator"][data-rank="3"]', wait: 5)
+
+    find('#column-picker li[data-key="duration_minutes"] label').click
+    expect(page).to have_no_css('#meetings_overview_results th[data-column="duration_minutes"]', wait: 5)
+    expect(overview_columns).to eq(%w[title project occurred_at creator participants])
 
     page.refresh
     expect(page).to have_css('#meetings_overview_results th[data-column="creator"]', wait: 5)
-    expect(head_keys).to eq(%w[title project creator occurred_at participants])
+    expect(head_keys).to eq(%w[title project occurred_at creator participants])
 
     visit organisation_project_meetings_path(organisation, alpha)
     find('[data-column-picker-trigger]').click

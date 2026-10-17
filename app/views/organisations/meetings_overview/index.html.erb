@@ -23,7 +23,8 @@
 
 <div class="w-full"
      data-controller="index-page viewport list-address column-picker"
-     <%= tag.attributes(data: meeting_column_picker_data(project: nil, frame_id: Organisations::MeetingsOverviewController::LIST_FRAME_ID)) %>
+     <%= tag.attributes(data: meeting_column_picker_data(organisation: @current_organisation, project: nil, active_view: @active_smart_folder,
+                                                   frame_id: Organisations::MeetingsOverviewController::LIST_FRAME_ID)) %>
      data-list-address-frame-value="<%= Organisations::MeetingsOverviewController::LIST_FRAME_ID %>"
      data-list-address-path-value="<%= organisation_meetings_path(@current_organisation) %>"
      data-index-page-param-name-value="meeting_id"

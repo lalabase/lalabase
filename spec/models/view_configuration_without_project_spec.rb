@@ -24,11 +24,18 @@ RSpec.describe ViewConfiguration, 'without a project' do
   end
 
   describe 'validations' do
-    it 'accepts a meetings view without a project' do
-      expect(build_overview_config).to be_valid
+    described_class::ORGANISATION_WIDE_VIEW_TYPES.each do |view_type|
+      it "accepts a #{view_type} view without a project" do
+        expect(build_overview_config(view_type: view_type)).to be_valid
+      end
     end
 
-    %w[tickets notes documents].each do |view_type|
+    # Every other list type the model knows, read from its own inclusion list:
+    # a list type added later is refused without a project until it is added
+    # to ORGANISATION_WIDE_VIEW_TYPES on purpose.
+    known_view_types = described_class.validators_on(:view_type).grep(ActiveModel::Validations::InclusionValidator)
+                                      .flat_map { |validator| Array(validator.options[:in]) }
+    (known_view_types - described_class::ORGANISATION_WIDE_VIEW_TYPES).each do |view_type|
       it "refuses a #{view_type} view without a project" do
         config = build_overview_config(view_type: view_type)
 
@@ -43,6 +50,14 @@ RSpec.describe ViewConfiguration, 'without a project' do
       duplicate = build_overview_config
       expect(duplicate).not_to be_valid
       expect(duplicate.errors[:user_id]).to be_present
+    end
+
+    it 'allows a row without a project for each user of one organisation, in the validation and the index' do
+      build_overview_config.save!
+
+      colleague_row = described_class.new(user: create(:user), organisation: organisation, project: nil, view_type: 'meetings')
+      expect(colleague_row).to be_valid
+      expect { colleague_row.save!(validate: false) }.not_to raise_error
     end
 
     it 'allows the row without a project next to the row of a project' do
@@ -116,6 +131,20 @@ RSpec.describe ViewConfiguration, 'without a project' do
     end
   end
 
+  # Project#view_configurations is dependent: :destroy. Since project_id may be
+  # NULL, a :nullify there would turn a project's rows into rows of "Alle
+  # Meetings" without a word; the overview row itself must survive the project.
+  describe 'when a project is destroyed' do
+    it 'removes the rows of the project and keeps the row without a project' do
+      described_class.create!(user: user, organisation: organisation, project: project, view_type: 'meetings',
+                              table_columns: %w[title creator])
+      overview_row = build_overview_config.tap(&:save!)
+
+      expect { project.destroy! }.to change(described_class, :count).by(-1)
+      expect(described_class.where(project_id: nil).pluck(:id)).to eq([overview_row.id])
+    end
+  end
+
   describe '.for_list' do
     it 'picks the row of the project when there is one, the organisation row otherwise' do
       with_project = described_class.for_list(user: user, organisation: organisation, project: project, view_type: 'meetings')
@@ -124,6 +153,17 @@ RSpec.describe ViewConfiguration, 'without a project' do
       expect(with_project.project).to eq(project)
       expect(without.project).to be_nil
       expect(without.organisation).to eq(organisation)
+    end
+
+    # A caller outside a request (a job, the console) has no current tenant: the
+    # row without a project must still name its organisation.
+    it 'names the organisation of the row without a project even without a current tenant' do
+      ActsAsTenant.without_tenant do
+        config = described_class.for_list(user: user, organisation: organisation, project: nil, view_type: 'meetings')
+
+        expect(config.organisation).to eq(organisation)
+        expect(config.ordered_columns).to include('project')
+      end
     end
   end
 

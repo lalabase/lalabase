@@ -102,6 +102,28 @@ RSpec.describe 'Organisations::MeetingsOverview columns', :ci_guard, type: :requ
       expect(picker_keys).to include('project')
     end
 
+    it 'points "für alle Ansichten übernehmen" at the overview, and the project page at its project' do
+      get overview_path
+      expect(page_body).to have_css('#column-picker form.column-picker__apply', visible: :all)
+      expect(page_body.find('#column-picker form.column-picker__apply', visible: :all)['action'])
+        .to eq(apply_columns_to_all_organisation_meetings_view_configuration_path(organisation))
+
+      get organisation_project_meetings_path(organisation, project)
+      expect(page_body.find('#column-picker form.column-picker__apply', visible: :all)['action'])
+        .to eq(apply_columns_to_all_organisation_project_view_configuration_path(organisation, project, view_type: 'meetings'))
+    end
+
+    it 'saves into the open view, not into the base view' do
+      view = meeting_view(name: 'Meine', owner: reader)
+
+      get overview_path, params: { smart_folder_id: view.id }
+
+      expect(response).to have_http_status(:ok)
+      picker = page_body.find('[data-controller~="column-picker"]')
+      expect(picker['data-column-picker-save-url-value']).to eq(columns_organisation_smart_folder_path(organisation, view))
+      expect(picker['data-column-picker-editable-value']).to eq('true')
+    end
+
     it 'renders the stored list with ranks and minimum widths, and the pinned values under the title' do
       ActsAsTenant.with_tenant(organisation) do
         ViewConfiguration.for_user_organisation(reader, organisation, 'meetings').tap do |config|
@@ -156,6 +178,17 @@ RSpec.describe 'Organisations::MeetingsOverview columns', :ci_guard, type: :requ
             params: { cols: %w[title project] }, headers: json
       expect(response).to have_http_status(:unprocessable_content)
       expect(project_config(reader).ordered_columns).to eq(%w[title occurred_at])
+    end
+
+    # Whether the route names a project is read from the path: a project_id in
+    # the query of the organisation route is no project route.
+    it 'stays the overview row with a project_id in the query' do
+      sign_in reader
+      patch base_columns_path, params: { cols: %w[title project], project_id: project.id }, headers: json
+
+      expect(response).to have_http_status(:ok)
+      expect(overview_config(reader).ordered_columns).to eq(%w[title project])
+      expect(project_config(reader)).to be_nil
     end
 
     it 'cannot be turned into a ticket view without a project' do
@@ -251,6 +284,7 @@ RSpec.describe 'Organisations::MeetingsOverview columns', :ci_guard, type: :requ
       get overview_path, params: { smart_folder_id: own_view.id }
       expect(response).to have_http_status(:ok)
       expect(head_keys).to eq(%w[title occurred_at])
+      expect(page_body.find('[data-controller~="column-picker"]')['data-column-picker-editable-value']).to eq('false')
 
       patch columns_organisation_smart_folder_path(organisation, own_view), params: { cols: %w[title project] }, headers: json
       expect(response).to have_http_status(:found)

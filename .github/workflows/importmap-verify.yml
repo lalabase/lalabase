@@ -5,6 +5,9 @@ name: Importmap Verification
 # but did not trigger the job in doing so and went to main
 # unchecked. The list is deliberately written out twice instead of as a
 # YAML anchor, because GitHub Actions does not resolve anchors reliably.
+# bin/verify-importmap is in the list for the same reason: its pin check
+# stayed green for every controller until it was fixed, and a fix to it alone
+# would not have run.
 on:
   # Allows a manual run, even without a matching file change.
   workflow_dispatch:
@@ -13,12 +16,14 @@ on:
       - 'config/importmap.rb'
       - 'app/javascript/controllers/**'
       - 'lib/tasks/importmap_*.rake'
+      - 'bin/verify-importmap'
       - '.github/workflows/importmap-verify.yml'
   pull_request:
     paths:
       - 'config/importmap.rb'
       - 'app/javascript/controllers/**'
       - 'lib/tasks/importmap_*.rake'
+      - 'bin/verify-importmap'
       - '.github/workflows/importmap-verify.yml'
 
 jobs:

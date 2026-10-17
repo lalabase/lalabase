@@ -1,6 +1,6 @@
 <%# locals: () %>
 <%# The head of "Alle Meetings": the title box, the claim hint and the shared
-    filter bar. All of it stays outside #meetings_overview_results, so a filter,
+    filter bar with the column picker's trigger. All of it stays outside #meetings_overview_results, so a filter,
     a sort or a page reloads only the rows and never the controls that asked for
     it (the same rule as meetings/_list_head). The sentence frame of the bar is
     answered from this partial too (MeetingsOverviewController#index). %>
@@ -56,4 +56,9 @@
   search_mode: @current_search_mode,
   search_modes: %w[title_only content],
   organisation: @current_organisation
-) %>
+) do |bar| %>
+  <%# The column picker, at the place the project page has it. %>
+  <% bar.with_view_tool do %>
+    <%= render 'organisations/meetings/column_picker_trigger' %>
+  <% end %>
+<% end %>

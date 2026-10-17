@@ -264,21 +264,25 @@ class Organisations::SmartFoldersController < Organisations::BaseController
   # S3): cols[] as the picker wrote it into the address. One trivial write, so it
   # stays here (seam rule). A key the reader may not see in this project is
   # refused as a whole (422), not sliced away: the bar would otherwise record a
-  # list as saved that the server never stored. An org-wide folder has no project
-  # of its own; the list sends its project_id along, as update_from_filters does.
+  # list as saved that the server never stored. An org-wide ticket folder has no
+  # project of its own; the list sends its project_id along, as
+  # update_from_filters does. A meeting folder without a project is different:
+  # it belongs to "Alle Meetings", whose columns it takes (the column "Projekt"
+  # among them), and a project_id from the request does not change that.
   def columns
     authorize @smart_folder, :update?
 
-    project = @smart_folder.project || selectable_projects.find_by(id: params[:project_id])
+    overview_view = overview_meeting_folder?
+    project = @smart_folder.project || (selectable_projects.find_by(id: params[:project_id]) unless overview_view)
     keys, unknown = resolved_column_keys(project)
-    refused = project.nil? || keys.nil? || unknown.any?
+    refused = (project.nil? && !overview_view) || keys.nil? || unknown.any?
     return render json: { success: false, error: t('components.column_picker.columns_unknown') }, status: :unprocessable_content if refused
 
     # The pins belong to the same view, so they go in the same write (see
     # ViewConfigurationsController#columns). Order matters here: the folder
     # keeps both lists in ONE hash, and the pin writer reads the table list.
     @smart_folder.ordered_columns = keys
-    @smart_folder.pinned_column_keys = Array(params[:pins]).map(&:to_s).uniq & ViewConfiguration.available_columns_for(project, @smart_folder.column_view_type, user: current_user).pluck(:key) if params.key?(:pins)
+    @smart_folder.pinned_column_keys = Array(params[:pins]).map(&:to_s).uniq & known_column_keys(project) if params.key?(:pins)
     @smart_folder.save!
     render json: { success: true, columns: @smart_folder.ordered_columns }, status: :ok
   end
@@ -304,13 +308,16 @@ class Organisations::SmartFoldersController < Organisations::BaseController
       return
     end
 
-    # A new ticket view starts with the reader's base view columns of the project
-    # ("Alle Tickets" is the template, plan D6) and stands alone from then on.
-    # A view without a project has no base view to start from (columns come with
-    # PR 2 of doc/meetings_uebersicht_vereinheitlichen_plan.md).
+    # A new view starts with the reader's base view columns of its list ("Alle
+    # Tickets" is the template, plan D6) and stands alone from then on. A meeting
+    # view without a project starts from the base view of "Alle Meetings"; a
+    # ticket view without a project has no base view to start from.
     target = filter_save_target_object_type
     view_type = target == 'Meeting' ? 'meetings' : 'tickets'
-    base_columns = ViewConfiguration.for_user_project(current_user, project, view_type) if project
+    if project || view_type.in?(ViewConfiguration::ORGANISATION_WIDE_VIEW_TYPES)
+      base_columns = ViewConfiguration.for_list(user: current_user, organisation: @current_organisation,
+                                                project: project, view_type: view_type)
+    end
     inherited = base_columns.ordered_columns if base_columns && target.in?(%w[Ticket All Meeting])
     result = Actors::SaveSmartFolderFromFilters.call(
       project: project,
@@ -561,14 +568,24 @@ class Organisations::SmartFoldersController < Organisations::BaseController
   end
 
   # cols[] from the address, normalised, against what this reader may see in
-  # the project (ViewConfiguration.available_columns_for). Answers [keys, unknown],
-  # or nil when the request carries no list at all.
+  # the folder's list (ViewConfiguration.available_columns_for; project nil is
+  # "Alle Meetings"). Answers [keys, unknown], or nil when the request carries
+  # no list at all.
   def resolved_column_keys(project)
-    return nil if params[:cols].blank? || project.nil?
+    return nil if params[:cols].blank?
 
     keys = ViewConfiguration.normalize_columns(params[:cols], @smart_folder.column_view_type)
-    known = ViewConfiguration.available_columns_for(project, @smart_folder.column_view_type, user: current_user).map { |column| column[:key] }
-    [keys, keys - known]
+    [keys, keys - known_column_keys(project)]
+  end
+
+  def known_column_keys(project)
+    ViewConfiguration.available_columns_for(project, @smart_folder.column_view_type, user: current_user).pluck(:key)
+  end
+
+  # A meeting view without a project shows only on "Alle Meetings"
+  # (meetings_uebersicht_vereinheitlichen_plan.md, decision 3).
+  def overview_meeting_folder?
+    @smart_folder.project_id.nil? && @smart_folder.column_view_type.in?(ViewConfiguration::ORGANISATION_WIDE_VIEW_TYPES)
   end
 
   # PE-B: "Save as Smart Folder" adopts the type of the source page

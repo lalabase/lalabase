@@ -34,69 +34,13 @@
               title: t('views.organisations.meetings.index.empty_no_results') %>
         <% end %>
       </div>
-    <% elsif @viewport_mode == 'mobile' %>
-      <%# Phone: one block per meeting, the title on its own line and the project,
-          date and participants below it. No table, so nothing scrolls sideways. %>
-      <ul class="divide-y divide-cream-200">
-        <% rows.each do |meeting| %>
-          <% row_url = organisation_project_meetings_path(@current_organisation, meeting.project, meeting_id: meeting.id) %>
-          <li data-meeting-id="<%= meeting.id %>"
-              data-controller="clickable-row"
-              data-clickable-row-url-value="<%= row_url %>"
-              data-action="click->clickable-row#click"
-              class="px-3 py-3 cursor-pointer hover:bg-cream-100">
-            <h5 class="text-sm font-medium truncate">
-              <%= link_to meeting.title, row_url, data: { turbo_frame: '_top' }, class: 'text-cream-900 hover:text-ink hover:underline' %>
-            </h5>
-            <p class="text-[11px] text-muted truncate">
-              <%= safe_join([meeting.project.name,
-                             display_time(meeting.occurred_at, user: current_user),
-                             meeting_column_value(meeting, { key: 'participants' }).presence].compact, ' · ') %>
-            </p>
-          </li>
-        <% end %>
-      </ul>
     <% else %>
-      <div class="relative w-full">
-        <table class="w-full table-fixed meeting-table">
-          <thead>
-            <tr>
-              <% @columns.each do |column| %>
-                <th scope="col" data-column="<%= column[:key] %>"
-                    class="py-3 px-3 text-start text-[11px] font-mono font-medium uppercase tracking-wider text-muted <%= meeting_overview_column_width_class(column) %>">
-                  <%= meeting_sort_link(column, base_path: base_path, frame_id: frame_id) %>
-                </th>
-              <% end %>
-            </tr>
-          </thead>
-          <tbody>
-            <% rows.each do |meeting| %>
-              <% row_url = organisation_project_meetings_path(@current_organisation, meeting.project, meeting_id: meeting.id) %>
-              <%# A row opens the meeting on its project's page (clickable-row's
-                  default branch navigates the window). The title stays a real
-                  link for keyboard access; the controller ignores clicks on it. %>
-              <tr data-meeting-id="<%= meeting.id %>"
-                  data-controller="clickable-row"
-                  data-clickable-row-url-value="<%= row_url %>"
-                  data-action="click->clickable-row#click"
-                  class="transition-colors duration-100 ease-in-out cursor-pointer hover:bg-cream-100">
-                <% @columns.each do |column| %>
-                  <td data-column="<%= column[:key] %>" class="p-3 text-sm">
-                    <% if column[:key] == 'title' %>
-                      <h5 class="text-sm font-medium truncate">
-                        <%= link_to meeting.title, row_url, data: { turbo_frame: '_top' }, class: 'text-cream-900 hover:text-ink hover:underline' %>
-                      </h5>
-                    <% else %>
-                      <% value = meeting_column_value(meeting, column) %>
-                      <%= tag.div value, class: 'truncate', title: strip_tags(value.to_s) %>
-                    <% end %>
-                  </td>
-                <% end %>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
+      <%# The project page's table (meetings/_meetings_table): the columns of the
+          picker, folded by rank, pinned values under the title; on a phone
+          all of them stand under the title. A row opens the meeting on its
+          project's page until this list has a lane of its own. %>
+      <%= render 'organisations/meetings/meetings_table', meetings: rows, selected_meeting: nil,
+                 base_path: base_path, frame_id: frame_id, opens_in_lane: false %>
     <% end %>
     <% if @pagy.count.positive? %>
       <%= render 'shared/pagination_nav_compact', pagy: @pagy, frame_id: frame_id, items_per_page: @pagy.limit,

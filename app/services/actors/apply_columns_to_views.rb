@@ -4,12 +4,22 @@
 #
 # Tier-1 actor behind the column picker's "für alle Ansichten übernehmen"
 # (doc/spaltenwahl_plan.md, D5 and S5): ONE ordered column list into the
-# reader's base view of the project (ViewConfiguration) and into every matching
-# view of the reader's OWN that shows in this project (project-bound and
-# org-wide folders the reader owns). Views other people own or share stay
-# untouched: this is the reader's exception, not a broadcast. Several records,
-# one transaction, hence an actor and not a controller write. applied_count
-# says how many views took the list, for the flash.
+# reader's base view of the list (ViewConfiguration) and into every matching
+# view of the reader's OWN that shows in that list. Views other people own or
+# share stay untouched: this is the reader's exception, not a broadcast. Several
+# records, one transaction, hence an actor and not a controller write.
+# applied_count says how many views took the list, for the flash.
+#
+# Which views show in a list depends on the list type:
+#
+#   tickets             project_id = the project OR IS NULL (a project list
+#                       shows the org-wide folders too)
+#   meetings, project   project_id = the project
+#   meetings, no project ("Alle Meetings")   project_id IS NULL
+#
+# A meeting view without a project belongs to "Alle Meetings" and shows only
+# there (meetings_uebersicht_vereinheitlichen_plan.md, decision 3). Until PR 2
+# of that plan a project page still wrote into it here.
 module Actors
   class ApplyColumnsToViews < BaseActor
     attr_reader :applied_count
@@ -28,9 +38,12 @@ module Actors
       updated_at = :now
     SQL
 
-    def initialize(project:, current_user:, columns:, view_type: 'tickets')
+    # project: nil is the list of the whole organisation, which only meetings
+    # have; it names its organisation, a project brings its own.
+    def initialize(project:, current_user:, columns:, view_type: 'tickets', organisation: project&.organisation)
       super()
       @project = project
+      @organisation = organisation
       @current_user = current_user
       @columns = columns
       @view_type = view_type
@@ -42,8 +55,9 @@ module Actors
     end
 
     def perform
-      @view_configuration = ViewConfiguration.for_user_project(@current_user, @project, @view_type)
-      @view_configuration.organisation ||= @project.organisation
+      @view_configuration = ViewConfiguration.for_list(user: @current_user, organisation: @organisation,
+                                                       project: @project, view_type: @view_type)
+      @view_configuration.organisation ||= @organisation
       @view_configuration.ordered_columns = @columns
       @view_configuration.save!
       @applied_count = 1
@@ -60,10 +74,15 @@ module Actors
 
     private
 
-    # Own folders of the requested list type visible in this project.
+    # Own folders of the requested list type that show in this list (see the
+    # table in the header).
     def own_views
-      SmartFolder.where(user: @current_user, organisation: @project.organisation, target_object_type: (@view_type == 'meetings' ? %w[Meeting] : %w[Ticket All]))
-                 .where('project_id IS NULL OR project_id = ?', @project.id)
+      if @view_type == 'meetings'
+        SmartFolder.where(user: @current_user, organisation: @organisation, target_object_type: 'Meeting', project_id: @project&.id)
+      else
+        SmartFolder.where(user: @current_user, organisation: @organisation, target_object_type: %w[Ticket All])
+                   .where('project_id IS NULL OR project_id = ?', @project.id)
+      end
     end
   end
 end

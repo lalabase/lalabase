@@ -326,6 +326,15 @@ Rails.application.routes.draw do
     # project-nested MeetingsController (which is bound to @project).
     get 'meetings', to: 'meetings_overview#index', as: :meetings
 
+    # The column picker of "Alle Meetings" saves the overview's base view here:
+    # the controller of the project route (view_configuration under a project),
+    # without a project. The path default pins the list type; a view_type in the
+    # query cannot override it.
+    resource :meetings_view_configuration, controller: 'view_configurations', only: [], defaults: { view_type: 'meetings' } do
+      patch :columns
+      patch :apply_columns_to_all
+    end
+
     # Teilnehmer-Claim (Nachtrag): org-level link/reject of external participations to
     # an org member. NOT project-nested — a claim spans every project the acting user
     # may write meetings in. Both are writes → POST; link goes through an actor,

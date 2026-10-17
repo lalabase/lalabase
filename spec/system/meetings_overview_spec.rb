@@ -3,10 +3,11 @@
 require 'rails_helper'
 
 # "Alle Meetings" in the browser (doc/meetings_uebersicht_vereinheitlichen_plan.md,
-# PR 1): the shared filter bar with the condition "Projekt", a view saved on
-# this page and opened again, and the "+" modal, whose save must leave the list
-# with the conditions it had. The request specs cannot see the last one: the
-# modal reads the list state from the list frame in JavaScript.
+# PR 1 and 2): the shared filter bar with the condition "Projekt", a view saved
+# on this page and opened again, the "+" modal, whose save must leave the list
+# with the conditions it had, and the column picker. The request specs cannot
+# see these: the modal reads the list state from the list frame in JavaScript,
+# and the picker saves and reloads the frame from the browser.
 RSpec.describe 'Meetings overview', type: :system do
   before { Prosopite.pause }
   after do
@@ -107,13 +108,64 @@ RSpec.describe 'Meetings overview', type: :system do
     expect(page.all('#meetings_overview_results tr[data-meeting-id] h5', wait: 5).map { |title| title.text.strip }).to eq(['Aaa Alpha', 'Alpha Kickoff'])
   end
 
-  it 'fits a phone of 390 px without scrolling sideways' do
+  def head_keys
+    page.all('#meetings_overview_results thead th').map { |head| head['data-column'] }
+  end
+
+  def overview_columns
+    ActsAsTenant.with_tenant(organisation) do
+      ViewConfiguration.find_by(user: user, organisation: organisation, project: nil, view_type: 'meetings')&.ordered_columns
+    end
+  end
+
+  # PR 2: the project page's column picker, with the column "Projekt" only here.
+  it 'ticks, unticks and moves a column, saves at once and keeps the order through a reload' do
+    page.driver.browser.manage.window.resize_to(1920, 1080)
+    visit organisation_meetings_path(organisation)
+    expect_titles('Alpha Kickoff', 'Beta Retro')
+    expect(head_keys).to eq(%w[title project occurred_at duration_minutes participants])
+
+    find('[data-column-picker-trigger]').click
+    expect(page).to have_css('#column-picker', visible: :visible, wait: 5)
+    expect(page).to have_css('#column-picker li[data-key="project"]')
+
+    find('#column-picker li[data-key="creator"] label').click
+    expect(page).to have_css('#meetings_overview_results th[data-column="creator"][data-rank="5"]', wait: 5)
+
+    # Two places up, above participants and duration.
+    row = find('#column-picker li[data-key="creator"]')
+    row.find('.column-picker__grip').click
+    row.send_keys(%i[alt up])
+    row.send_keys(%i[alt up])
+    expect(page).to have_css('#meetings_overview_results th[data-column="creator"][data-rank="3"]', wait: 5)
+
+    find('#column-picker li[data-key="duration_minutes"] label').click
+    expect(page).to have_no_css('#meetings_overview_results th[data-column="duration_minutes"]', wait: 5)
+    expect(overview_columns).to eq(%w[title project occurred_at creator participants])
+
+    page.refresh
+    expect(page).to have_css('#meetings_overview_results th[data-column="creator"]', wait: 5)
+    expect(head_keys).to eq(%w[title project occurred_at creator participants])
+
+    visit organisation_project_meetings_path(organisation, alpha)
+    find('[data-column-picker-trigger]').click
+    expect(page).to have_css('#column-picker li[data-key="creator"]', visible: :visible, wait: 5)
+    expect(page).to have_no_css('#column-picker li[data-key="project"]')
+    expect(page).to have_no_css('table th[data-column="creator"]')
+  end
+
+  it 'fits a phone of 390 px without scrolling sideways, the project under each title' do
     page.driver.browser.manage.window.resize_to(390, 844)
     visit organisation_meetings_path(organisation)
 
-    expect(page).to have_css('#meetings_overview_results li[data-meeting-id]', count: 2, wait: 10)
-    expect(page).to have_css('[data-controller="filter-bar"]')
+    expect(page).to have_css('#meetings_overview_results tr[data-meeting-id]', count: 2, wait: 10)
+    expect(page).to have_css('[data-controller="filter-bar"] [data-column-picker-trigger]')
+    expect(page).to have_css('#meetings_overview_results tr[data-meeting-id] .ticket-meta__item', text: 'Projekt Alpha')
     overflow = page.evaluate_script('document.documentElement.scrollWidth - document.documentElement.clientWidth')
     expect(overflow).to be <= 0
+    list_overflow = page.evaluate_script(
+      "(function(){ var box = document.querySelector('#meetings_overview_results table').parentElement; return box.scrollWidth - box.clientWidth })()"
+    )
+    expect(list_overflow).to be <= 0
   end
 end

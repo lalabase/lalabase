@@ -69,8 +69,10 @@ direkt, Notifications = bespoke + `MasterListPresenter`, Meetings =
 `meeting_list.rb` (17.10.2026) ist der EINE Besitzer der Meeting-Liste: Projektseite
 (`meeting_list_project` = `@project`) und „Alle Meetings“ (`nil`, auch der Refresh nach dem
 Modal in `MeetingsController#create`). Eine Meeting-Ansicht gehört der Liste ihres Projekts,
-ohne Projekt der Übersicht. Die Filterleiste und das Speichern von Ansichten nehmen
-`project: nil` als „organisationsweit“; Tickets und Wissen geben weiter ein Projekt mit.
+ohne Projekt der Übersicht. Die Filterleiste, das Speichern von Ansichten und die Spaltenwahl
+nehmen `project: nil` als „organisationsweit“; Tickets und Wissen geben weiter ein Projekt mit.
+Die Grundansicht der Spalten wählt `ViewConfiguration.for_list` (ohne Projekt nur `meetings`,
+Route `meetings_view_configuration`, derselbe Controller wie die Projekt-Route).
 Der Entscheid für EINE kanonische Listen-Architektur steht aus; bis dahin gilt für neue
 Listen-Features: am ähnlichsten Bestands-Feature orientieren und die Wahl im PR begründen.
 Seit 10.09.2026 teilen Tickets und Knowledge immerhin die OBERFLÄCHE der Liste-mit-Bahn

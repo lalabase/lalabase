@@ -10,7 +10,10 @@
     writes the list the frame rendered (sort, page, view) into the address after
     every frame load, which the bar reads from window.location. viewport reloads
     the page below the breakpoint with ?viewport=mobile, as on the project
-    page. %>
+    page. column-picker is the project page's picker (PR 2 of the plan): it
+    saves into the open view or into the base view of this list, and reloads
+    the list frame. The grid around the list is the project page's too, with
+    the picker in its side panel and an empty lane until PR 3 fills it. %>
 <% content_for :head do %>
   <meta name="turbo-cache-control" content="no-cache">
 <% end %>
@@ -19,13 +22,18 @@
 <turbo-frame id="modal"></turbo-frame>
 
 <div class="w-full"
-     data-controller="index-page viewport list-address"
+     data-controller="index-page viewport list-address column-picker"
+     <%= tag.attributes(data: meeting_column_picker_data(organisation: @current_organisation, project: nil, active_view: @active_smart_folder,
+                                                   frame_id: Organisations::MeetingsOverviewController::LIST_FRAME_ID)) %>
      data-list-address-frame-value="<%= Organisations::MeetingsOverviewController::LIST_FRAME_ID %>"
      data-list-address-path-value="<%= organisation_meetings_path(@current_organisation) %>"
      data-index-page-param-name-value="meeting_id"
      data-index-page-frame-id-value="meeting_display_frame"
      data-lane-params="<%= lane_params_json(selection: %w[meeting_id]) %>"
      data-viewport-current-mode-value="<%= @viewport_mode %>">
-  <%= render 'organisations/meetings_overview/list_head' %>
-  <%= render 'organisations/meetings_overview/results', meetings: @meetings, first_use: meetings_overview_first_use? %>
+  <% if @viewport_mode == 'mobile' %>
+    <%= render 'organisations/meetings_overview/index_mobile' %>
+  <% else %>
+    <%= render 'organisations/meetings_overview/index_desktop' %>
+  <% end %>
 </div>

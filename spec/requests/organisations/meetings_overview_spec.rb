@@ -311,15 +311,19 @@ RSpec.describe 'Organisations::MeetingsOverview', type: :request do
   end
 
   describe 'phone' do
-    it 'renders the list without the table and without its own filters' do
+    # The project page's phone list (PR 2): the table with no ranked column in
+    # its head, every pinned value under the title, and the picker beside it.
+    it 'folds every column under the title and keeps the project and participants readable there' do
       create_meeting(project: project_a, title: 'Alpha Kickoff', participants: ['Anna Mueller'])
       sign_in reader
       page = list(viewport: 'mobile')
 
-      expect(page).to have_css('[data-controller="filter-bar"]')
-      expect(page).not_to have_css('#meetings_overview_results table')
-      expect(page).to have_css('#meetings_overview_results [data-meeting-id]', text: 'Alpha Kickoff')
-      expect(page.find('#meetings_overview_results [data-meeting-id]')).to have_text('Projekt Alpha')
+      expect(page).to have_css('[data-controller="filter-bar"] [data-column-picker-trigger]')
+      expect(page).to have_css('.meeting-mobile-grid #column-picker', visible: :all)
+      expect(page).to have_css('#meetings_overview_results table[data-fit="0"]')
+      row = page.find('#meetings_overview_results tr[data-meeting-id]', text: 'Alpha Kickoff')
+      shown = row.all('.ticket-meta__item:not([hidden])').map { |item| item.text.strip }
+      expect(shown).to eq(['Projekt Alpha', 'Anna Mueller'])
     end
   end
 

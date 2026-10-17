@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-09-30)
+# Karte: app/javascript/controllers (Stand: 2026-10-17)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -382,6 +382,14 @@ die Sidebar-Zeile liegt in der Navigation. Damit sind sie NICHT im selben Stimul
   ⚠️ Die Doppel-Sperre in `application.js` schlüsselt seitdem auf Methode + Ziel-Frame,
   nicht nur auf die Adresse: der Reload-GET des Boards nach „+ Ticket" wäre sonst im
   500-ms-Fenster verschluckt worden.
+- **Bahn einer fremden Liste** (17.10.2026, „Alle Meetings“, PR 3): die Übersicht zeigt das
+  Meeting eines Projekts in ihrer Bahn. `layout_toggle#syncFilterContext` gibt den Listenzustand
+  nur Links und Formularen unter dem Index der Seite (`data-index-url`) UND unter dem Index, den
+  der Kopf der Bahn nennt (`data-lane-index-url`, Regel in `lib/lane/filter_context.js`,
+  node:test). Ohne den zweiten behielten Bearbeiten und Speichern den Filter vom Öffnen. Ein
+  Löschen in der Bahn schickt `closeLane` (application.js): `layout_toggle#closeLane` schließt
+  und nimmt `meeting_id` im SELBEN Eintrag aus der Adresse. `list_address` ist gelöscht, die
+  Übersicht hat wie die Projektseite EINEN Adress-Schreiber (`layout_toggle#syncUrlFromFrame`).
 
 ## Mobile Anwendung (PR #807)
 

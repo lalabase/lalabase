@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import { laneParamNames } from '../../../app/javascript/lib/lane/params.js'
+import { controlIndexPath, indexPaths } from '../../../app/javascript/lib/lane/filter_context.js'
 
 const source = readFileSync(new URL('../../../app/javascript/controllers/layout_toggle_controller.js', import.meta.url), 'utf8')
   .replace(/^import .*\n/gm, '')
@@ -15,7 +16,7 @@ function controllerWith(document, { window = {}, groups = null, element = null }
     CustomEvent: class {
       constructor(type, options) { this.type = type; Object.assign(this, options) }
     },
-    readLaneParams: () => groups, laneParamNames
+    readLaneParams: () => groups, laneParamNames, controlIndexPath, indexPaths
   })
   const controller = new Controller()
   controller.listFilterParamsValue = []
@@ -151,7 +152,7 @@ test('filter frame loads keep the open lane and synchronize links and an already
   const otherLink = control('A', '/tickets?search=keep')
   const element = {
     dataset: { indexUrl: '/meetings' },
-    querySelectorAll: () => [newLink, editLink, form, createForm, otherLink],
+    querySelectorAll: selector => selector === '[data-lane-index-url]' ? [] : [newLink, editLink, form, createForm, otherLink],
     dispatchEvent: event => events.push(event.type)
   }
   const window = {
@@ -253,7 +254,7 @@ test('list navigation retains its destination while lane return links inherit cu
   const detail = link('/meetings/M/edit')
   const element = {
     dataset: { indexUrl: '/meetings' },
-    querySelectorAll: () => [...navigation, back, detail]
+    querySelectorAll: selector => selector === '[data-lane-index-url]' ? [] : [...navigation, back, detail]
   }
   const controller = controllerWith({}, { element })
   controller.listFilterParamsValue = ['smart_folder_id', 'page', 'sort', 'items']
@@ -266,4 +267,64 @@ test('list navigation retains its destination while lane return links inherit cu
     assert.equal(address.searchParams.get('sort[direction]'), 'desc')
     assert.equal(address.searchParams.has('meeting_id'), false)
   }
+})
+
+// "Alle Meetings" shows a project's meeting in its lane (PR 3 of
+// doc/meetings_uebersicht_vereinheitlichen_plan.md): its controls live below the
+// project's meetings index, which the lane head names. They take the list state
+// of the overview; a ticket link in the lane does not.
+test('a lane of another list takes the list state on the index its head names', () => {
+  const current = new URL('http://lalabase.test/org/o/meetings?search=Neu&meeting_id=M')
+  const control = (tagName, href, matched = false) => ({
+    tagName, href, method: 'post',
+    getAttribute() { return this.href },
+    setAttribute(_name, value) { this.href = value },
+    matches() { return matched },
+    querySelectorAll: () => [],
+    append() {}
+  })
+  const back = control('A', '/org/o/meetings?search=Alt', true)
+  const edit = control('A', '/org/o/projects/p/meetings/M/edit.turbo_stream?list_context=organisation&search=Alt')
+  const toggle = control('FORM', '/org/o/projects/p/meetings/M/toggle_search?list_context=organisation&search=Alt')
+  const ticket = control('A', '/org/o/projects/p/tickets/T?search=Alt')
+  const head = { dataset: { laneIndexUrl: '/org/o/projects/p/meetings' } }
+  const element = {
+    dataset: { indexUrl: '/org/o/meetings' },
+    querySelectorAll: selector => selector === '[data-lane-index-url]' ? [head] : [back, edit, toggle, ticket]
+  }
+  const controller = controllerWith({ createElement: () => ({}) }, { element })
+  controller.listFilterParamsValue = ['search']
+  controller.syncFilterContext(current)
+
+  for (const target of [back, edit, toggle]) {
+    assert.equal(new URL(target.href).searchParams.get('search'), 'Neu')
+  }
+  assert.equal(new URL(edit.href).searchParams.get('list_context'), 'organisation')
+  assert.equal(ticket.href, '/org/o/projects/p/tickets/T?search=Alt')
+
+  // Without the head the lane's controls belong to no index of this page.
+  const stale = control('A', '/org/o/projects/p/meetings/M/edit.turbo_stream?search=Alt')
+  controller.element = { dataset: { indexUrl: '/org/o/meetings' }, querySelectorAll: selector => selector === '[data-lane-index-url]' ? [] : [stale] }
+  controller.syncFilterContext(current)
+  assert.equal(stale.href, '/org/o/projects/p/meetings/M/edit.turbo_stream?search=Alt')
+})
+
+test('closing a lane whose object is gone takes it out of the address in the same entry', () => {
+  const current = new URL('http://lalabase.test/org/o/meetings?search=x&meeting_id=M')
+  const calls = []
+  const window = {
+    location: current,
+    history: {
+      state: { lane: true },
+      replaceState: (_s, _t, url) => { calls.push('replace'); current.href = url },
+      pushState: () => calls.push('push')
+    }
+  }
+  const controller = controllerWith({}, { window, groups: { selection: ['meeting_id'], preview: [], form: [] } })
+  controller.closeContent = options => calls.push(['close', options])
+  controller.closeLane()
+  assert.equal(current.searchParams.has('meeting_id'), false)
+  assert.equal(current.searchParams.get('search'), 'x')
+  // The options come from the controller's own realm: compared as JSON.
+  assert.equal(JSON.stringify(calls), JSON.stringify(['replace', ['close', { history: false }]]))
 })

@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { readLaneParams, laneParamNames } from "lane/params"
+import { controlIndexPath, indexPaths } from "lane/filter_context"
 
 // The fixed-height list/detail grids (Tickets table, Knowledge, Meetings) fill the
 // viewport instead of carrying a hardcoded `calc(100vh - <magic>)` height. The bottom
@@ -117,6 +118,11 @@ export default class extends Controller {
     this.element.addEventListener('click', this.boundSyncFilterContext, true)
     this.element.addEventListener('submit', this.boundSyncFilterContext, true)
 
+    // A write that ends the lane's object (a deleted meeting) closes the lane
+    // through the closeLane stream action (application.js).
+    this.boundCloseLane = this.closeLane.bind(this)
+    document.addEventListener('lane:close', this.boundCloseLane)
+
     // ESC key closes content panel
     this.boundCloseOnEscape = this.closeOnEscape.bind(this)
     document.addEventListener('keydown', this.boundCloseOnEscape)
@@ -132,6 +138,7 @@ export default class extends Controller {
     document.removeEventListener('turbo:before-stream-render', this.boundHandleListStream)
     this.element.removeEventListener('click', this.boundSyncFilterContext, true)
     this.element.removeEventListener('submit', this.boundSyncFilterContext, true)
+    document.removeEventListener('lane:close', this.boundCloseLane)
     document.removeEventListener('keydown', this.boundCloseOnEscape)
     window.removeEventListener('resize', this.boundScheduleGridHeight)
     if (this._gridHeightRaf) cancelAnimationFrame(this._gridHeightRaf)
@@ -256,22 +263,26 @@ export default class extends Controller {
 
   // A frame refresh leaves the page head and an open form in place. Refresh
   // their URLs and hidden filters; repeat before clicks/submits for controls
-  // subsequently inserted by Turbo streams. Only this index's routes opt in.
+  // subsequently inserted by Turbo streams. Only this index's routes opt in,
+  // and those of the index a lane head names (data-lane-index-url): the lane
+  // of "Alle Meetings" shows a project's meeting (lib/lane/filter_context).
   syncFilterContext(current) {
     if (!this.listFilterParamsValue.length || !this.element.dataset.indexUrl) return
 
-    const index = new URL(this.element.dataset.indexUrl, current.origin)
+    const laneIndexUrls = [...this.element.querySelectorAll('[data-lane-index-url]')].map(head => head.dataset.laneIndexUrl)
+    const indexes = indexPaths(this.element.dataset.indexUrl, laneIndexUrls, current.origin)
     for (const control of this.element.querySelectorAll('a[href], form[action], button[formaction]')) {
       const isForm = control.tagName === 'FORM'
       if (isForm && control.method.toLowerCase() === 'get') continue
       const attribute = isForm ? 'action' : control.tagName === 'BUTTON' ? 'formaction' : 'href'
       const address = new URL(control.getAttribute(attribute), current.origin)
       const path = address.pathname.replace(/\.turbo_stream$/, '')
-      if (address.origin !== index.origin || !(path === index.pathname || path.startsWith(`${index.pathname}/`))) continue
+      const index = controlIndexPath(path, indexes)
+      if (address.origin !== current.origin || !index) continue
 
       // List links intentionally change page, sort or view. Only explicit lane
       // return links inherit the current list state at the index route.
-      if (control.tagName === 'A' && path === index.pathname && !control.matches('[data-lane-back], [data-form-lane-back], [data-lane-close]')) continue
+      if (control.tagName === 'A' && path === index && !control.matches('[data-lane-back], [data-form-lane-back], [data-lane-close]')) continue
 
       const previousInputs = new URLSearchParams()
       if (isForm) control.querySelectorAll('input[type="hidden"]').forEach(input => previousInputs.append(input.name, input.value))
@@ -386,6 +397,18 @@ export default class extends Controller {
     }
 
     this.updateLayout()
+  }
+
+  // The lane's object is gone: close as the ✕ does, and take its names out of
+  // the address in the SAME entry. A new entry would let Back reopen it.
+  closeLane() {
+    const currentUrl = new URL(window.location.href)
+    const names = this.laneStateNames
+    if (names.some(param => currentUrl.searchParams.has(param))) {
+      names.forEach(param => currentUrl.searchParams.delete(param))
+      window.history.replaceState(window.history.state || { lane: true }, '', currentUrl.toString())
+    }
+    this.closeContent({ history: false })
   }
 
   closeContent({ history = true } = {}) {

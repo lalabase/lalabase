@@ -1,19 +1,22 @@
-<%# locals: (meeting:, detail_frame_id: nil, modal: false, cancel_action: nil) %>
+<%# locals: (meeting:, detail_frame_id: nil) %>
 <%# The ONE "new meeting" form, rendered into whichever frame asked for it: the
-    detail pane of the project master-detail, or the modal on the org-wide list.
-    Submits as turbo_stream — MeetingsController#create decides what to refresh from
-    the list context in the hidden fields (list_context, Meetings::ListState),
-    because the two pages have different frames.
+    lane of the project page, or the frame below the project select in the lane
+    of "Alle Meetings" (meetings_overview/_new_meeting_lane). Submits as
+    turbo_stream; MeetingsController#create decides what to redraw from the list
+    context in the hidden fields (list_context, Meetings::ListState), because the
+    two pages have different lists.
 
-    modal / cancel_action are the modal's two additions: its frame without the
-    lane head, and how "Abbrechen" closes (a link back to the list makes no sense
-    inside a modal). Where the save came from and the org-wide list's state, its
-    project condition included, travel in the same hidden fields as the project
-    list's (meeting_list_hidden_fields). %>
-<% modal_context = modal %>
-<div id="meeting-form-card" class="<%= modal_context ? 'bg-cream-50 py-6 px-8 rounded-lg border border-cream-300 relative' : 'meeting-content min-w-0 relative' %>">
-  <% current_frame_id = detail_frame_id || 'meeting_display_frame' %>
-  <% unless modal_context %>
+    In the lane itself the form brings the lane head and the heading. Below the
+    select the lane has both already, and the card names its project's meetings
+    index instead (data-lane-index-url, as the lane head does): layout-toggle
+    sets the live list state into the hidden fields at submit for a form below
+    an index it knows (lib/lane/filter_context), and the list may have changed
+    since the select's options were rendered. %>
+<% current_frame_id = detail_frame_id || Organisations::MeetingsController::DETAIL_FRAME_ID %>
+<% own_lane = current_frame_id == Organisations::MeetingsController::DETAIL_FRAME_ID %>
+<%= tag.div id: 'meeting-form-card', class: [('meeting-content' if own_lane), 'min-w-0 relative'].compact,
+            data: ({ lane_index_url: organisation_project_meetings_path(@current_organisation, @project) } unless own_lane) do %>
+  <% if own_lane %>
     <%= render 'organisations/meetings/form_lane_head', new_form: true %>
     <h2 class="text-[22px] leading-snug font-bold text-cream-900 mb-6">
       <%= t('views.organisations.meetings.index.new_meeting') %>
@@ -29,17 +32,10 @@
     <%= render 'organisations/meetings/form_fields', form: form, meeting: meeting %>
 
     <div class="flex justify-end items-center gap-2 mt-6">
-      <%# One cancel button, two behaviours: inside the modal it closes the modal
-          (a link back to the list makes no sense there), otherwise it leaves the
-          detail frame. Rendered once so a future label or icon change lands in
-          both places. %>
-      <% cancel_options = if cancel_action.present?
-                            { type: 'button', data: { action: cancel_action } }
-                          else
-                            { url: meeting_list_index_path(meeting_list_state),
-                              data: { turbo_frame: '_top', lane_back: true } }
-                          end %>
-      <%= render Neo::Buttons::ButtonComponent.new(variant: :edit, **cancel_options) do %>
+      <%# Back to the list the form was opened from, which closes the lane and
+          takes new out of the address (MeetingList#meeting_list_index_path). %>
+      <%= render Neo::Buttons::ButtonComponent.new(variant: :edit, url: meeting_list_index_path(meeting_list_state),
+                                                   data: { turbo_frame: '_top', lane_back: true }) do %>
         <%= t('views.organisations.meetings.form.cancel') %>
       <% end %>
 
@@ -48,4 +44,4 @@
       <% end %>
     </div>
   <% end %>
-</div>
+<% end %>

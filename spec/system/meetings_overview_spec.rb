@@ -3,13 +3,13 @@
 require 'rails_helper'
 
 # "Alle Meetings" in the browser (doc/meetings_uebersicht_vereinheitlichen_plan.md,
-# PR 1 to 3): the shared filter bar with the condition "Projekt", a view saved
-# on this page and opened again, the "+" modal, whose save must leave the list
-# with the conditions it had, the column picker, and the meeting in the lane,
-# whose saves redraw this list. The request specs cannot see these: the modal
-# reads the list state from the list frame in JavaScript, the picker saves and
-# reloads the frame from the browser, and the lane is opened, closed and
-# restored by the row opener, the ✕ and Back.
+# PR 1 to 4): the shared filter bar with the condition "Projekt", a view saved
+# on this page and opened again, the "+" with its project select in the lane,
+# whose save must leave the list with the conditions it had, the column picker,
+# and the meeting in the lane, whose saves redraw this list. The request specs
+# cannot see these: the "+" and the select load their frames in JavaScript, the
+# picker saves and reloads the frame from the browser, and the lane is opened,
+# closed and restored by the row opener, the ✕ and Back.
 RSpec.describe 'Meetings overview', type: :system do
   before { Prosopite.pause }
   after do
@@ -71,21 +71,158 @@ RSpec.describe 'Meetings overview', type: :system do
     expect(page).to have_no_css('[role="tab"]', text: 'Nur Alpha')
   end
 
-  it 'keeps the conditions of the list after a save from the "+" modal' do
-    page.driver.browser.manage.window.resize_to(1440, 1000)
-    visit organisation_meetings_path(organisation, filter: { project: [alpha.id] })
-    expect_titles('Alpha Kickoff')
+  describe 'the "+" in the lane' do
+    let(:plus) { "a[title='#{I18n.t('views.organisations.meetings_overview.index.new_meeting')}']" }
+    let(:select_label) { I18n.t('views.organisations.meetings_overview.new_meeting.project_label') }
 
-    find("button[title='#{I18n.t('views.organisations.meetings_overview.index.new_meeting')}']").click
-    select 'Projekt Alpha', from: 'meeting-modal-project'
-    within('#meeting_modal_form') do
-      fill_in 'meeting[title]', with: 'Alpha Planung'
-      click_button I18n.t('views.organisations.meetings.form.save')
+    def open_new_meeting
+      find(plus).click
+      expect(page).to have_css('#meeting_display_frame #meeting-new-project', wait: 5)
     end
 
-    expect(page).to have_no_css('[data-meeting-modal-target="modal"]:not(.hidden)', wait: 5)
-    expect_titles('Alpha Planung', 'Alpha Kickoff')
-    expect(page).to have_current_path(/filter%5Bproject%5D/)
+    # The settled page: while a frame renders, the scroll bar can come and go
+    # for a moment, and the page is a scroll bar wider than its box.
+    def expect_no_sideways_scroll
+      page.document.synchronize(5) do
+        overflow = page.evaluate_script('document.documentElement.scrollWidth - document.documentElement.clientWidth')
+        raise Capybara::ExpectationNotMet, "the page scrolls #{overflow} px sideways" if overflow.positive?
+      end
+    end
+
+    it 'opens the select in the lane, saves into the chosen project and opens the new meeting in the list it kept' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, filter: { project: [alpha.id] })
+      expect_titles('Alpha Kickoff')
+
+      open_new_meeting
+      expect(page).to have_css('.labor-layout-view.show-content')
+      expect(page).to have_current_path(/new=meeting/)
+      expect(page).to have_current_path(/filter%5Bproject%5D/)
+      expect_titles('Alpha Kickoff')
+
+      select 'Projekt Alpha', from: select_label
+      within('#meeting_new_form') do
+        fill_in 'meeting[title]', with: 'Alpha Planung'
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Planung', wait: 5)
+      expect(page).to have_no_css('#meeting-new-project')
+      expect_titles('Alpha Planung', 'Alpha Kickoff')
+      expect(page).to have_css('#meetings_overview_results tr.selected-row', text: 'Alpha Planung')
+      saved = Meeting.unscoped.find_by!(title: 'Alpha Planung')
+      expect(saved.project).to eq(alpha)
+      expect(page).to have_current_path(/meeting_id=#{saved.id}/)
+      expect(page).to have_no_current_path(/new=meeting/)
+      expect(page).to have_current_path(/filter%5Bproject%5D/)
+    end
+
+    it 'says so when the new meeting is not in the filtered list, and keeps it open in the lane' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, filter: { project: [alpha.id] })
+      expect_titles('Alpha Kickoff')
+
+      open_new_meeting
+      select 'Projekt Beta', from: select_label
+      within('#meeting_new_form') do
+        fill_in 'meeting[title]', with: 'Beta Planung'
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Beta Planung', wait: 5)
+      expect(page).to have_text(I18n.t('flash.meetings.created_hidden_by_filter'))
+      expect_titles('Alpha Kickoff')
+    end
+
+    it 'loads the form of another project when the choice changes, and nothing when it is cleared' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      open_new_meeting
+      expect(page).to have_css('#meeting_new_form', text: I18n.t('views.organisations.meetings_overview.new_meeting.select_project_first'))
+
+      select 'Projekt Alpha', from: select_label
+      expect(page).to have_css("#meeting_new_form form[action$='/projects/#{alpha.id}/meetings.turbo_stream']", wait: 5)
+      select 'Projekt Beta', from: select_label
+      expect(page).to have_css("#meeting_new_form form[action$='/projects/#{beta.id}/meetings.turbo_stream']", wait: 5)
+
+      select I18n.t('views.organisations.meetings_overview.new_meeting.project_prompt'), from: select_label
+      expect(page).to have_no_css('#meeting_new_form form', wait: 5)
+      expect(page).to have_css('#meeting_new_form', text: I18n.t('views.organisations.meetings_overview.new_meeting.select_project_first'))
+    end
+
+    it 'shows the errors of a refused save in the form, the chosen project kept' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      open_new_meeting
+
+      select 'Projekt Beta', from: select_label
+      within('#meeting_new_form') do
+        fill_in 'meeting[title]', with: ''
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+
+      expect(page).to have_css('#meeting_new_form #meeting-form-card .bg-red-50', wait: 5)
+      expect(page).to have_select(select_label, selected: 'Projekt Beta')
+      expect(Meeting.unscoped.count).to eq(2)
+    end
+
+    it 'closes with Abbrechen: the lane shuts, new leaves the address, the list keeps its state' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, search: 'Alpha')
+      expect_titles('Alpha Kickoff')
+
+      open_new_meeting
+      select 'Projekt Alpha', from: select_label
+      within('#meeting_new_form') { click_link I18n.t('views.organisations.meetings.form.cancel') }
+
+      expect(page).to have_no_css('#meeting-new-project', wait: 5)
+      expect(page).to have_no_css('.labor-layout-view.show-content')
+      expect(page).to have_no_current_path(/new=meeting/)
+      expect(page).to have_current_path(/search=Alpha/)
+      expect_titles('Alpha Kickoff')
+    end
+
+    it 'opens the select on a full visit with ?new=meeting' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation, new: 'meeting', search: 'Alpha')
+
+      expect(page).to have_css('#meeting_display_frame #meeting-new-project', wait: 5)
+      expect(page).to have_css('.labor-layout-view.show-content')
+      expect_titles('Alpha Kickoff')
+    end
+
+    it 'opens full width on a phone of 390 px, and Abbrechen and Speichern lead back to the list with its search' do
+      page.driver.browser.manage.window.resize_to(390, 844)
+      # In the phone layout from the start: without it the viewport controller
+      # swaps the page for that layout a moment after the rows show.
+      visit organisation_meetings_path(organisation, search: 'Alpha', viewport: 'mobile')
+      expect(page).to have_css('#meetings_overview_results tr[data-meeting-id]', count: 1, wait: 10)
+
+      open_new_meeting
+      expect(page).to have_no_css('#meetings_overview_results tr[data-meeting-id]')
+      expect(page).to have_current_path(/new=meeting/)
+      select 'Projekt Alpha', from: select_label
+      expect(page).to have_css('#meeting_new_form form', wait: 5)
+      expect_no_sideways_scroll
+
+      within('#meeting_new_form') { click_link I18n.t('views.organisations.meetings.form.cancel') }
+      expect(page).to have_css('#meetings_overview_results tr[data-meeting-id]', count: 1, wait: 10)
+      expect(page).to have_current_path(/search=Alpha/)
+      expect(page).to have_no_current_path(/new=meeting/)
+
+      open_new_meeting
+      select 'Projekt Alpha', from: select_label
+      within('#meeting_new_form') do
+        fill_in 'meeting[title]', with: 'Alpha Handy'
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Handy', wait: 5)
+      expect_no_sideways_scroll
+
+      find('.mobile-ticket-view a', text: I18n.t('views.organisations.meetings.index.mobile_list_view'), match: :first).click
+      expect(page).to have_css('#meetings_overview_results tr[data-meeting-id]', text: 'Alpha Handy', wait: 10)
+      expect(page).to have_current_path(/search=Alpha/)
+    end
   end
 
   it 'keeps a sort chosen at a column head through a new condition and a reload' do
@@ -379,25 +516,6 @@ RSpec.describe 'Meetings overview', type: :system do
       row.send_keys(:enter)
       expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff', wait: 5)
       expect(page).to have_css("#{overview_rows}.selected-row", text: 'Alpha Kickoff')
-    end
-
-    it 'leaves the open lane and its unsaved edit alone when Escape closes the "+" modal' do
-      page.driver.browser.manage.window.resize_to(1440, 1000)
-      visit organisation_meetings_path(organisation)
-      expect_titles('Alpha Kickoff', 'Beta Retro', 'Alpha Ohne Anna')
-      row_of('Beta Retro').click
-      expect(lane_title).to have_text('Beta Retro')
-      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
-      within('#meeting_display_frame') { fill_in 'meeting[title]', with: 'Ungespeichert' }
-
-      find("button[title='#{I18n.t('views.organisations.meetings_overview.index.new_meeting')}']").click
-      expect(page).to have_css('[data-meeting-modal-target="modal"]:not(.hidden)', wait: 5)
-      page.send_keys(:escape)
-
-      expect(page).to have_no_css('[data-meeting-modal-target="modal"]:not(.hidden)', wait: 5)
-      expect(page).to have_css('.labor-layout-view.show-content')
-      expect(find('#meeting_display_frame').find_field('meeting[title]').value).to eq('Ungespeichert')
-      expect(page).to have_current_path(/meeting_id=#{meeting('Beta Retro').id}/)
     end
 
     it 'opens the meeting full width on a phone and leads back to the list with its search' do

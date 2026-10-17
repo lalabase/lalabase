@@ -23,6 +23,9 @@ pin 'time_session_modal', to: 'lib/time_session_modal.js'
 # predicate, pure so spec/javascript can test them independently of the mobile
 # browser regressions that also run in CI.
 pin 'meeting_modal', to: 'lib/meeting_modal.js'
+# The project select of "Neues Meeting" on "Alle Meetings": which form its frame
+# shows, pure so spec/javascript can test it.
+pin 'meeting_project_select', to: 'lib/meeting_project_select.js'
 # NeoAutosuggest's server search (the ticket picker of the "Link" modal): confirmed
 # choice, request sequence, debounce and abort, pure so spec/javascript can test them.
 pin 'autosuggest_search', to: 'lib/autosuggest_search.js'
@@ -179,6 +182,7 @@ else
   pin 'controllers/meeting_analysis_composer_controller', to: 'controllers/meeting_analysis_composer_controller.js'
   pin 'controllers/meeting_modal_controller', to: 'controllers/meeting_modal_controller.js'
   pin 'controllers/meeting_participants_controller', to: 'controllers/meeting_participants_controller.js'
+  pin 'controllers/meeting_project_select_controller', to: 'controllers/meeting_project_select_controller.js'
   pin 'controllers/meeting_section_sync_controller', to: 'controllers/meeting_section_sync_controller.js'
   pin 'controllers/member_picker_controller', to: 'controllers/member_picker_controller.js'
   pin 'controllers/membership_workspace_controller', to: 'controllers/membership_workspace_controller.js'

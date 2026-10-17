@@ -589,6 +589,7 @@ jobs:
           spec/requests/organisations/meetings_overview_columns_spec.rb
           spec/requests/organisations/meetings_overview_lane_spec.rb
           spec/requests/organisations/meetings_overview_lane_access_spec.rb
+          spec/requests/organisations/meetings_overview_new_access_spec.rb
           spec/services/actors/save_smart_folder_from_filters_spec.rb
           spec/services/actors/save_smart_folder_concurrency_spec.rb
           spec/services/actors/create_ticket_relation_concurrency_spec.rb

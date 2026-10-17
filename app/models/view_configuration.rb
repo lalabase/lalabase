@@ -3,6 +3,12 @@
 # Stores user-specific view configurations for tables and lists. The column
 # list of the base view lives here (doc/spaltenwahl_plan.md); a saved view
 # carries its own in SmartFolder#display_columns.
+#
+# A row belongs to one project, or to none: the base view of "Alle Meetings"
+# (meetings_uebersicht_vereinheitlichen_plan.md, PR 2) is the one list without a
+# project, so only view_type 'meetings' may go without one. project: nil means
+# "organisation-wide" everywhere in this class; tickets, notes and documents
+# always pass a project.
 # == Schema Information
 #
 # Table name: view_configurations
@@ -19,18 +25,19 @@
 #  updated_at                     :datetime         not null
 #  kanban_attribute_definition_id :uuid
 #  organisation_id                :uuid             not null
-#  project_id                     :uuid             not null
+#  project_id                     :uuid
 #  user_id                        :uuid             not null
 #
 # Indexes
 #
-#  index_view_configs_on_user_project_type       (user_id,project_id,view_type) UNIQUE
-#  index_view_configurations_on_header_columns   (header_columns) USING gin
-#  index_view_configurations_on_list_columns     (list_columns) USING gin
-#  index_view_configurations_on_organisation_id  (organisation_id)
-#  index_view_configurations_on_project_id       (project_id)
-#  index_view_configurations_on_table_columns    (table_columns) USING gin
-#  index_view_configurations_on_user_id          (user_id)
+#  index_view_configs_on_user_organisation_type_without_project  (user_id,organisation_id,view_type) UNIQUE WHERE (project_id IS NULL)
+#  index_view_configs_on_user_project_type                       (user_id,project_id,view_type) UNIQUE
+#  index_view_configurations_on_header_columns                   (header_columns) USING gin
+#  index_view_configurations_on_list_columns                     (list_columns) USING gin
+#  index_view_configurations_on_organisation_id                  (organisation_id)
+#  index_view_configurations_on_project_id                       (project_id)
+#  index_view_configurations_on_table_columns                    (table_columns) USING gin
+#  index_view_configurations_on_user_id                          (user_id)
 #
 # Foreign Keys
 #
@@ -43,7 +50,7 @@ class ViewConfiguration < ApplicationRecord
   acts_as_tenant :organisation
 
   belongs_to :user
-  belongs_to :project
+  belongs_to :project, optional: true
   belongs_to :kanban_attribute_definition, class_name: 'TicketAttributeDefinition', optional: true
 
   # View modes for ticket views
@@ -82,7 +89,8 @@ class ViewConfiguration < ApplicationRecord
   COLUMN_MIN_WIDTH_PX = {
     'number' => 48, 'title' => 320, 'assignees' => 120, 'tags' => 140,
     'created_at' => 110, 'updated_at' => 110, 'time_spent' => 90, 'billing_status' => 140, 'subtask_count' => 70,
-    'waiting' => 70, 'custom_status' => 138, 'participants' => 220, 'occurred_at' => 170, 'duration_minutes' => 90
+    'waiting' => 70, 'custom_status' => 138, 'participants' => 220, 'occurred_at' => 170, 'duration_minutes' => 90,
+    'project' => 140
   }.freeze
   COLUMN_MIN_WIDTH_BY_TYPE_PX = {
     'select' => 110, 'multiselect' => 140, 'text' => 140, 'textarea' => 160, 'checkbox' => 70,
@@ -132,7 +140,17 @@ class ViewConfiguration < ApplicationRecord
   }.freeze
 
   validates :view_type, presence: true, inclusion: { in: %w[tickets notes documents meetings] }
-  validates :user_id, uniqueness: { scope: %i[project_id view_type] }
+  # The list types that have a page without a project.
+  ORGANISATION_WIDE_VIEW_TYPES = %w[meetings].freeze
+
+  validates :user_id, uniqueness: { scope: %i[project_id view_type] }, if: :project_id?
+  # Without a project the organisation is the scope: the validator reads past
+  # the tenant scope, so (project_id, view_type) alone would let a user have
+  # one overview row across all their organisations. The database holds the
+  # same rule in a partial unique index (NULLs are distinct in the other one).
+  validates :user_id, uniqueness: { scope: %i[organisation_id view_type], conditions: -> { where(project_id: nil) } },
+                      unless: :project_id?
+  validates :project, presence: true, unless: -> { ORGANISATION_WIDE_VIEW_TYPES.include?(view_type) }
   validates :view_mode, inclusion: { in: VIEW_MODES }, allow_nil: true
   validate :kanban_attribute_definition_of_own_project
 
@@ -204,8 +222,14 @@ class ViewConfiguration < ApplicationRecord
   # status attribute when it has one, who works on it, when it was created.
   # Status is found the way the kanban board finds it, not by name: a
   # project's status column is `custom_<name>`, whatever the name.
+  #
+  # Meetings: the project page shows title, date, duration and participants;
+  # "Alle Meetings" (no project) names each row's project after the title, the
+  # list that page showed before it had a column picker.
   def self.default_columns_for(project, view_type = 'tickets')
-    return %w[title occurred_at duration_minutes participants] if view_type == 'meetings'
+    if view_type == 'meetings'
+      return project ? %w[title occurred_at duration_minutes participants] : %w[title project occurred_at duration_minutes participants]
+    end
 
     status = status_attribute_for(project)
     columns = DEFAULT_REQUIRED_COLUMNS.dup
@@ -248,16 +272,30 @@ class ViewConfiguration < ApplicationRecord
 
   # Get configuration for a user/project/view combination
   def self.for_user_project(user, project, view_type = 'tickets')
-    find_or_initialize_by(
-      user: user,
-      project: project,
-      view_type: view_type
-    ) do |config|
-      config.table_columns = default_columns_for(project, view_type)
-      config.pinned_columns = %w[participants] if view_type == 'meetings'
+    find_or_initialize_with_defaults(user: user, project: project, view_type: view_type)
+  end
+
+  # The row without a project: the base view of a list of the whole
+  # organisation ("Alle Meetings"). Only ORGANISATION_WIDE_VIEW_TYPES save.
+  def self.for_user_organisation(user, organisation, view_type)
+    find_or_initialize_with_defaults(user: user, organisation: organisation, project: nil, view_type: view_type)
+  end
+
+  # The base view of the list a caller stands on: its project's row, or the
+  # organisation's row when the list has no project. Every write path of the
+  # column picker asks this, so the choice is made once.
+  def self.for_list(user:, organisation:, project:, view_type:)
+    project ? for_user_project(user, project, view_type) : for_user_organisation(user, organisation, view_type)
+  end
+
+  def self.find_or_initialize_with_defaults(**attributes)
+    find_or_initialize_by(**attributes) do |config|
+      config.table_columns = default_columns_for(attributes[:project], attributes[:view_type])
+      config.pinned_columns = %w[participants] if attributes[:view_type] == 'meetings'
       config.header_columns = DEFAULT_HEADER_COLUMNS
     end
   end
+  private_class_method :find_or_initialize_with_defaults
 
   # Get all available columns for configuration (instance method)
   #
@@ -282,6 +320,9 @@ class ViewConfiguration < ApplicationRecord
            when 'meetings' then meeting_base_columns
            else []
            end
+
+    # Every row of a list without a project names its own (meetings only).
+    base += [meeting_project_column] if view_type == 'meetings' && project.nil?
 
     base += time_columns if view_type == 'tickets' && time_columns_visible_for?(project, user)
 
@@ -344,6 +385,8 @@ class ViewConfiguration < ApplicationRecord
 
   # All select attributes that are suitable as a Kanban column
   def kanban_eligible_attributes
+    return TicketAttributeDefinition.none if project.nil?
+
     project.ticket_attribute_definitions.active.ordered
            .where(field_type: %w[select])
   end
@@ -369,7 +412,7 @@ class ViewConfiguration < ApplicationRecord
 
   # Appends custom attribute columns to base when view_type == 'tickets'
   def self.append_custom_columns(base, project, view_type)
-    if view_type == 'tickets' && project.ticket_attribute_definitions.any?
+    if view_type == 'tickets' && project&.ticket_attribute_definitions&.any?
       custom = project.ticket_attribute_definitions.active.ordered.map do |attr|
         { key: "custom_#{attr.name}", label: attr.label_for, type: attr.field_type, custom: true }
       end
@@ -409,6 +452,11 @@ class ViewConfiguration < ApplicationRecord
       { key: 'created_at', type: 'datetime' },
       { key: 'updated_at', type: 'datetime' }
     ].map { |column| column.merge(label: I18n.t("models.view_configuration.meeting_columns.#{column[:key]}")) }
+  end
+
+  # Offered only on a meetings list without a project (available_columns_for).
+  def self.meeting_project_column
+    { key: 'project', label: I18n.t('models.view_configuration.meeting_columns.project'), type: 'project' }
   end
 
   def self.note_base_columns

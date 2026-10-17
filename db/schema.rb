@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_17_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1924,7 +1924,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
 
   create_table "view_configurations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "user_id", null: false
-    t.uuid "project_id", null: false
+    t.uuid "project_id"
     t.uuid "organisation_id", null: false
     t.string "view_type", default: "tickets"
     t.jsonb "table_columns", default: []
@@ -1941,6 +1941,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_120000) do
     t.index ["organisation_id"], name: "index_view_configurations_on_organisation_id"
     t.index ["project_id"], name: "index_view_configurations_on_project_id"
     t.index ["table_columns"], name: "index_view_configurations_on_table_columns", using: :gin
+    t.index ["user_id", "organisation_id", "view_type"], name: "index_view_configs_on_user_organisation_type_without_project", unique: true, where: "(project_id IS NULL)"
     t.index ["user_id", "project_id", "view_type"], name: "index_view_configs_on_user_project_type", unique: true
     t.index ["user_id"], name: "index_view_configurations_on_user_id"
   end

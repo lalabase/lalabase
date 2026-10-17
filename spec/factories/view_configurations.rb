@@ -16,18 +16,19 @@
 #  updated_at                     :datetime         not null
 #  kanban_attribute_definition_id :uuid
 #  organisation_id                :uuid             not null
-#  project_id                     :uuid             not null
+#  project_id                     :uuid
 #  user_id                        :uuid             not null
 #
 # Indexes
 #
-#  index_view_configs_on_user_project_type       (user_id,project_id,view_type) UNIQUE
-#  index_view_configurations_on_header_columns   (header_columns) USING gin
-#  index_view_configurations_on_list_columns     (list_columns) USING gin
-#  index_view_configurations_on_organisation_id  (organisation_id)
-#  index_view_configurations_on_project_id       (project_id)
-#  index_view_configurations_on_table_columns    (table_columns) USING gin
-#  index_view_configurations_on_user_id          (user_id)
+#  index_view_configs_on_user_organisation_type_without_project  (user_id,organisation_id,view_type) UNIQUE WHERE (project_id IS NULL)
+#  index_view_configs_on_user_project_type                       (user_id,project_id,view_type) UNIQUE
+#  index_view_configurations_on_header_columns                   (header_columns) USING gin
+#  index_view_configurations_on_list_columns                     (list_columns) USING gin
+#  index_view_configurations_on_organisation_id                  (organisation_id)
+#  index_view_configurations_on_project_id                       (project_id)
+#  index_view_configurations_on_table_columns                    (table_columns) USING gin
+#  index_view_configurations_on_user_id                          (user_id)
 #
 # Foreign Keys
 #

@@ -89,15 +89,22 @@ module Organisations
 
     # The project select alone, for the lane. It reads no meeting, so there is no
     # scope to apply: what it names comes from writable_meeting_projects, the
-    # write reach of AccessCheck::ProjectAccessService. Without that reach, or
-    # for any other request into the lane, the answer is the usual refusal.
+    # write reach of AccessCheck::ProjectAccessService.
+    #
+    # Without that reach, or for any other request into the lane, the refusal
+    # answers INSIDE the frame (as TimeSessionGroupsController#entries does). The
+    # shared one redirects back to this page, fetch keeps the Turbo-Frame header
+    # on the redirected request, and that request lands here again: a right
+    # taken away while the page stays open ended in "too many redirects".
     def render_new_meeting_frame
       skip_policy_scope
-      raise Pundit::NotAuthorizedError unless new_meeting_requested?
+      allowed = new_meeting_requested?
+      partial = allowed ? 'new_meeting_lane' : 'new_meeting_denied'
+      locals = allowed ? { projects: writable_meeting_projects } : {}
 
       render html: helpers.turbo_frame_tag(MeetingsController::DETAIL_FRAME_ID) {
-        helpers.render(partial: 'organisations/meetings_overview/new_meeting_lane', locals: { projects: writable_meeting_projects })
-      }, layout: false
+        helpers.render(partial: "organisations/meetings_overview/#{partial}", locals: locals)
+      }, layout: false, status: (allowed ? :ok : :forbidden)
     end
 
     # ?new=meeting, from someone who may write meetings somewhere. Otherwise the

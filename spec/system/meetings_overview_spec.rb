@@ -210,6 +210,28 @@ RSpec.describe 'Meetings overview', type: :system do
       expect_titles('Alpha Kickoff')
     end
 
+    # The refusal of the lane frame redirected back to this page with the frame
+    # header kept, and the browser followed it until it gave up.
+    it 'says so in the lane when the right to write went while the page stayed open' do
+      writer = create(:user)
+      permission = ActsAsTenant.with_tenant(organisation) do
+        role = create(:role, title: 'Schreiber', organisation: organisation)
+        create(:membership, user: writer, organisation: organisation, role: role, active: true)
+        create(:project_permission, user: writer, project: alpha, meetings_access: 'read_write')
+      end
+      sign_in writer
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      expect_titles('Alpha Kickoff')
+
+      ActsAsTenant.with_tenant(organisation) { permission.update!(meetings_access: 'read_only') }
+      find(plus).click
+
+      expect(page).to have_css('#meeting_display_frame', text: I18n.t('views.organisations.meetings_overview.new_meeting.denied'), wait: 5)
+      expect(page).to have_no_css('#meeting-new-project')
+      expect_titles('Alpha Kickoff')
+    end
+
     it 'opens the select on a full visit with ?new=meeting' do
       page.driver.browser.manage.window.resize_to(1440, 1000)
       visit organisation_meetings_path(organisation, new: 'meeting', search: 'Alpha')

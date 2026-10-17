@@ -199,6 +199,7 @@ en:
           project_label: Project
           project_prompt: Choose a project …
           select_project_first: Choose a project first.
+          denied: You may not create meetings in any project.
   models:
     view_configuration:
       meeting_columns:

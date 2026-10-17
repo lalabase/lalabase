@@ -111,6 +111,30 @@ RSpec.describe 'Organisations::MeetingsOverview new meeting access', :ci_guard, 
       expect(response.body).not_to include('meeting-new-project')
       expect(response.body).not_to include('Projekt Alpha')
     end
+
+    # A right taken away while the page stays open: the "+" still stands there.
+    # The shared refusal redirected back to the overview, fetch kept the
+    # Turbo-Frame header, and the redirected request was refused again, until
+    # the browser gave up on too many redirects. The refusal answers in the frame.
+    it 'refuses the lane frame inside the frame, with a message and no redirect' do
+      get overview_path, params: { new: 'meeting' }, headers: lane_frame.merge('Referer' => "http://www.example.com#{overview_path}")
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.location).to be_nil
+      expect(page_body).to have_css('turbo-frame#meeting_display_frame',
+                                    text: I18n.t('views.organisations.meetings_overview.new_meeting.denied'))
+      expect(page_body).to have_css('turbo-frame#meeting_display_frame [data-lane-close]')
+      expect(page_body).to have_no_css('#meeting-new-project')
+    end
+
+    it 'refuses a lane frame request without new=meeting the same way, the one the redirect sent' do
+      get overview_path, headers: lane_frame.merge('Referer' => "http://www.example.com#{overview_path}")
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.location).to be_nil
+      expect(page_body).to have_css('turbo-frame#meeting_display_frame',
+                                    text: I18n.t('views.organisations.meetings_overview.new_meeting.denied'))
+    end
   end
 
   describe 'the form behind the select (MeetingsController#new, frame: content)' do

@@ -200,6 +200,7 @@ de:
           project_label: Projekt
           project_prompt: Projekt wählen …
           select_project_first: Wähle zuerst ein Projekt.
+          denied: Du darfst in keinem Projekt Meetings anlegen.
   models:
     view_configuration:
       meeting_columns:

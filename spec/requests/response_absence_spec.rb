@@ -19,8 +19,17 @@ RSpec.describe 'ResponseAbsence helper', type: :request do
     expect(fails?(body, '4711')).to be(false)
   end
 
+  # A group of four between hyphens is still part of the UUID. The third group of a random
+  # UUID starts with its version digit 4, so a four-digit number from 4000 up turns up there
+  # about once in 4096 ids (CI of #11, a saved view with the id cc2db5e9-c131-4713-...).
+  it 'takes a whole group of a UUID for no number' do
+    body = 'href="/org/x/smart_folders/cc2db5e9-c131-4711-994e-88c1f3e7a35d/edit"'
+    expect(fails?(body, 4711)).to be(false)
+    expect(fails?(body, '4711')).to be(false)
+  end
+
   it 'finds the number where a reader would see it' do
-    ['#4711', 'Ticket 4711', '>4711<', '4711'].each do |body|
+    ['#4711', 'Ticket 4711', '>4711<', '4711', 'ABC-4711', '-4711-'].each do |body|
       expect(fails?(body, 4711)).to be(true), body
       expect(fails?(body, '4711')).to be(true), body
     end

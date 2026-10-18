@@ -165,11 +165,24 @@ module Organisations
     # shell. Mirrors the "Zeiten" menu visibility, but a single .any? check
     # does not warrant its own service (accessible_project_ids already covers
     # admin/global-role/per-project).
+    #
+    # A frame of this page (the lane, the list, the sentence of the bar) asks
+    # when the last right went while the page stayed open. The start page has
+    # none of these frames, and Turbo threw on it ("Content missing"). Instead
+    # it is told to visit the same address in full (turbo-visit-control
+    # reload), and that visit takes the redirect below. The hint goes out with
+    # 200: Turbo reloads only for a successful answer and renders any other one
+    # as the page itself, here an empty one.
     def require_meetings_access
       return if accessible_meeting_project_ids.any?
+      return render_full_visit if turbo_frame_request?
 
       redirect_to organisation_root_path(organisation_id: @current_organisation.id),
                   alert: t('shared.errors.not_authorized')
+    end
+
+    def render_full_visit
+      render html: helpers.tag.meta(name: 'turbo-visit-control', content: 'reload'), layout: false
     end
 
     # One redirect to the address the bar writes, so the chips show the old

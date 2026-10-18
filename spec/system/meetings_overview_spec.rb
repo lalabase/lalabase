@@ -176,6 +176,54 @@ RSpec.describe 'Meetings overview', type: :system do
       expect(page).to have_select(select_label, selected: 'Projekt Beta')
     end
 
+    # The last right to read meetings went while the page stayed open. The
+    # lane got the start page without its frame, and Turbo left "Content
+    # missing" in it; now the page goes where a full visit goes.
+    it 'leaves the page for the start page when the last right went meanwhile' do
+      writer = create(:user)
+      permission = ActsAsTenant.with_tenant(organisation) do
+        role = create(:role, title: 'Schreiber', organisation: organisation)
+        create(:membership, user: writer, organisation: organisation, role: role, active: true)
+        create(:project_permission, user: writer, project: alpha, meetings_access: 'read_write')
+      end
+      sign_in writer
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      expect_titles('Alpha Kickoff')
+
+      ActsAsTenant.with_tenant(organisation) { permission.update!(meetings_access: 'no_access') }
+      find(plus).click
+
+      expect(page).to have_text(I18n.t('shared.errors.not_authorized'), wait: 10)
+      expect(page).to have_no_current_path(organisation_meetings_path(organisation), ignore_query: true)
+      expect(page).to have_no_css('#meetings_overview_results')
+      expect(page).to have_no_text('Content missing')
+    end
+
+    # The "+" takes meeting_id out of the address: the meeting is no longer in
+    # the lane, so its row may not stay marked.
+    it 'takes the mark off the open row when the "+" opens the select' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      find('#meetings_overview_results tr[data-meeting-id]', text: 'Beta Retro').click
+      expect(page).to have_css('#meetings_overview_results tr.selected-row', text: 'Beta Retro', wait: 5)
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Beta Retro', wait: 5)
+
+      # The lane opens with a width transition (layout.css, --panel-width), and
+      # the "+" moves with the list column until it ends: a click during it
+      # landed beside the "+" (1 run in 10).
+      page.document.synchronize(5) do
+        left = -> { page.evaluate_script("document.querySelector(\"#{plus}\").getBoundingClientRect().left") }
+        before = left.call
+        sleep 0.15
+        raise Capybara::ExpectationNotMet, 'the "+" is still moving' unless left.call == before
+      end
+      open_new_meeting
+
+      expect(page).to have_no_css('#meetings_overview_results tr.selected-row')
+      expect(page).to have_no_current_path(/meeting_id=/, url: true)
+    end
+
     # The options carry the list state from when the lane opened; the live one
     # comes from the address at submit (layout-toggle, the form's
     # data-lane-index-url). A search typed beside the open form has to survive

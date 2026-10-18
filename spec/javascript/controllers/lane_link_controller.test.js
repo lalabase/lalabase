@@ -22,7 +22,8 @@ const ORIGIN = "http://lalabase.test"
 const INDEX = "/org/o1/projects/p1/knowledge"
 
 function fixture({ href, innerWidth = 1400, values }) {
-  const log = { history: [], frameSrc: null, location: null, listeners: [] }
+  const log = { history: [], frameSrc: null, location: null, listeners: [], unmarked: [] }
+  const markedRow = { classList: { remove: (...names) => log.unmarked.push(...names) } }
   const location = new URL(href, ORIGIN)
   const window = {
     innerWidth,
@@ -35,6 +36,7 @@ function fixture({ href, innerWidth = 1400, values }) {
   const frame = { setAttribute: (name, value) => { if (name === "src") log.frameSrc = value }, querySelector: () => null }
   const document = {
     getElementById: (id) => (id === values.frame ? frame : null),
+    querySelectorAll: (selector) => (selector === ".selected-row" ? [markedRow] : []),
     addEventListener: (name, fn) => log.listeners.push(name),
     removeEventListener: () => {}
   }
@@ -94,4 +96,21 @@ test("a modified click (a new tab, a new window) is the browser's: nothing is pr
     assert.equal(log.frameSrc, null)
     assert.equal(location.searchParams.has("preview"), false)
   }
+})
+
+// The "+" of "Alle Meetings" takes meeting_id out of the address and loads the
+// project select: no row is open any more, so none may stay marked (the full
+// visit of that address marks none either).
+test("a link that takes the selection out of the address clears the mark of the open row", () => {
+  const plus = { url: INDEX, frame: "knowledge_display_frame", set: { new: "note" }, remove: ["document_id"], focus: "" }
+  const { click, log, location } = fixture({ href: `${INDEX}?document_id=D`, values: plus })
+  click()
+  assert.equal(location.searchParams.get("document_id"), null)
+  assert.deepEqual(log.unmarked, ["selected-row"])
+})
+
+test("a link that keeps the selection keeps the mark of the open row", () => {
+  const { click, log } = fixture({ href: `${INDEX}?document_id=D&preview=V`, values: back })
+  click()
+  assert.deepEqual(log.unmarked, [])
 })

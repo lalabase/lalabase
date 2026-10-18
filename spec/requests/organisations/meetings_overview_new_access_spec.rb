@@ -138,6 +138,42 @@ RSpec.describe 'Organisations::MeetingsOverview new meeting access', :ci_guard, 
     end
   end
 
+  # The last right to read meetings went while the page stayed open. The page
+  # gate redirected every request, and the frames of the page (the lane after
+  # the "+", the list after a filter) got the start page without their frame:
+  # Turbo replaced the frame with "Content missing" and threw. A full visit goes
+  # to the start page with a message, so a frame asks Turbo for a full visit of
+  # the same address (turbo-visit-control reload), which then takes that way.
+  describe 'after the last right to read meetings went' do
+    let(:nobody) { member_with({}) }
+
+    before { sign_in nobody }
+
+    it 'sends a full visit to the start page with a message (the positive control)' do
+      get overview_path, params: { new: 'meeting' }
+
+      expect(response).to redirect_to(organisation_root_path(organisation_id: organisation.id))
+      expect(flash[:alert]).to eq(I18n.t('shared.errors.not_authorized'))
+    end
+
+    {
+      'the lane' => Organisations::MeetingsController::DETAIL_FRAME_ID,
+      'the list' => Organisations::MeetingsController::OVERVIEW_LIST_FRAME_ID,
+      'the sentence of the bar' => "#{Organisations::MeetingsController::OVERVIEW_LIST_FRAME_ID}_sentence"
+    }.each do |name, frame_id|
+      it "asks Turbo for a full visit from #{name}, without a redirect and without a meeting" do
+        get overview_path, params: { new: 'meeting' }, headers: { 'Turbo-Frame' => frame_id }
+
+        # 200, not 403: Turbo reloads only for a successful answer.
+        expect(response).to have_http_status(:ok)
+        expect(response.location).to be_nil
+        expect(page_body).to have_css('meta[name="turbo-visit-control"][content="reload"]', visible: :all)
+        expect(page_body).to have_no_css('turbo-frame')
+        expect(response.body).not_to include('Lesbar Kickoff')
+      end
+    end
+  end
+
   # A lane request to this address without new=meeting comes from a redirect:
   # a lane action MeetingsController refused (Pundit leads back to the Referer)
   # or could not finish (a meeting deleted meanwhile), and fetch keeps the

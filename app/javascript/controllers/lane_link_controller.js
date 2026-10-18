@@ -19,6 +19,11 @@ import { readLaneParams, laneParamNames, withLaneState } from "lane/params"
 //   remove  the lane state to take away (["preview"])
 //   focus   a selector to focus once the frame has loaded (the way back returns
 //           the focus to the file name that opened the preview, D10)
+//
+// A link that removes a selection parameter (the "+" of "Alle Meetings" takes
+// meeting_id away) leaves no row open, so it takes the mark off the row that
+// was (.selected-row, list_row_controller). The address is the truth, and a
+// full visit of the new address marks no row either.
 export default class extends Controller {
   static values = {
     url: String,
@@ -43,11 +48,16 @@ export default class extends Controller {
     }
 
     window.history.pushState({ lane: true }, "", address.toString())
+    if (this.removeValue.some(name => groups.selection.includes(name))) this.unmarkOpenRow()
 
     const frame = document.getElementById(this.frameValue)
     if (!frame) return
     if (this.focusValue) this.focusAfterLoad(frame, this.focusValue)
     frame.setAttribute("src", detailAddress({ url: this.urlValue, current: address, frame: this.frameValue, params: laneParamNames(groups) }))
+  }
+
+  unmarkOpenRow() {
+    document.querySelectorAll(".selected-row").forEach(row => row.classList.remove("selected-row"))
   }
 
   focusAfterLoad(frame, selector) {

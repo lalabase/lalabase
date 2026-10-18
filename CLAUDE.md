@@ -943,6 +943,12 @@ ends that, and a `bundle update` can bring one without anybody noticing.
   **und** `en.yml`. Ohne den DE-Zweig verbindet `to_sentence` auf deutschen Seiten mit
   „, and" („Status, Priorität, and Titel"), auch in jeder Flash-Meldung, die
   Validierungsfehler aneinanderreiht (Guard: `spec/helpers/timeline_helper_spec.rb`).
+* **Dates** (guard: `spec/architecture/locale_date_format_guard_spec.rb`): a date on a page
+  goes through `l()` with a named format from `date.formats` / `time.formats`, never through
+  `strftime` with a format of its own. strftime writes English month names on the German
+  page, and a typed `%d.%m.%Y` is German on the English one. A literal format stays only
+  where it reads the same in both languages (ISO dates, the clock, month or day names alone
+  through `l()`). The legacy list (51 formats in 29 files on 2026-10-18) only shrinks.
 
 ### Die Sprache einer Anfrage (seit 20.08.2026, Kern-Fassung seit D5)
 

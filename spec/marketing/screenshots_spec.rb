@@ -20,6 +20,9 @@ module MarketingScreenshots
   # Wide enough that the ticket list shows names and dates in full.
   WIDTH = 1600
   HEIGHT = 1000
+  # The window for pictures that end up in a tile: the list fills less width.
+  TILE_WIDTH = 1100
+  CLIP_MARGIN = 16
   # The assistant's collapsed state hovers over the bottom of every page. A picture
   # ends above it.
   CAPSULE = '#assistant_panel input[placeholder]'
@@ -74,9 +77,11 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
   end
 
   # Saves the window from the top down to `until_bottom_of` (plus a margin), or down
-  # to the assistant capsule when no element is named. The window is taken whole and
-  # cut with libvips, which the core already carries for Active Storage.
-  def capture(locale, motif, until_bottom_of: nil)
+  # to the assistant capsule when no element is named. `clip_to` narrows the picture to
+  # one element's left, right and top edge: a tile on the website is a third of the
+  # page wide, and the whole window shrunk to that is unreadable. The window is taken
+  # whole and cut with libvips, which the core already carries for Active Storage.
+  def capture(locale, motif, until_bottom_of: nil, clip_to: nil)
     dir = MarketingScreenshots::OUTPUT.join(locale.to_s)
     FileUtils.mkdir_p(dir)
     window = dir.join("#{motif}.window.png")
@@ -85,10 +90,21 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
 
     image = Vips::Image.new_from_file(window.to_s)
     scale = image.width.to_f / page.evaluate_script('window.innerWidth')
-    height = [(picture_bottom(until_bottom_of) * scale).round, image.height].min
-    image.crop(0, 0, image.width, height).write_to_file(dir.join("#{motif}.png").to_s)
+    left, top, right = clip_to ? clip_area(clip_to, image.width / scale) : [0, 0, image.width / scale]
+    bottom = [picture_bottom(until_bottom_of), image.height / scale].min
+    area = [left, top, right - left, bottom - top].map { |value| (value * scale).round }
+    image.crop(*area).write_to_file(dir.join("#{motif}.png").to_s)
     FileUtils.rm_f(window)
   end
+
+  # The element's edges plus a margin, so text does not end flush at the cut.
+  def clip_area(selector, window_width)
+    left, top, right = box(selector).values_at('left', 'top', 'right')
+    margin = MarketingScreenshots::CLIP_MARGIN
+    [[left - margin, 0].max, [top - margin, 0].max, [right + margin, window_width].min]
+  end
+
+  def box(selector) = page.evaluate_script("document.querySelector(#{selector.to_json}).getBoundingClientRect().toJSON()")
 
   # Waits until no transition or animation runs (the assistant expands with one), so a
   # second run takes the same picture.
@@ -101,7 +117,7 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
 
   def picture_bottom(selector)
     if selector
-      page.evaluate_script("document.querySelector(#{selector.to_json}).getBoundingClientRect().bottom") + 32
+      box(selector)['bottom'] + 32
     else
       capsule = page.evaluate_script(<<~JS)
         (() => { const el = document.querySelector(#{MarketingScreenshots::CAPSULE.to_json}); return el && el.closest('form, div').getBoundingClientRect().top })()
@@ -125,10 +141,13 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
         capture(locale, :tickets)
       end
 
+      # A narrower window and only the list, without the sidebar: the picture sits in
+      # a tile on the website.
       it 'takes the time list' do
+        page.driver.browser.manage.window.resize_to(MarketingScreenshots::TILE_WIDTH, MarketingScreenshots::HEIGHT)
         visit organisation_time_sessions_path(world.organisation, date_range: 'this_week')
         expect(page).to have_text(NordlichtFiction::TICKETS[3].fetch(locale))
-        capture(locale, :time)
+        capture(locale, :time, clip_to: '#timeSessions')
       end
 
       # The note the assistant cites, open next to the list.
@@ -138,7 +157,7 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
         last_line = Nokogiri::HTML.fragment(NordlichtFiction::NOTES.first[:content].fetch(locale)).css('p').last.text
         expect(page).to have_text(last_line)
         expect(page).to have_no_css('.layout.hide-content')
-        capture(locale, :knowledge)
+        capture(locale, :knowledge, clip_to: 'main.column.content', until_bottom_of: '#note-header')
       end
 
       # One ticket with its comments and the hours booked on it.
@@ -157,7 +176,9 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
                                      assistant_chat_id: world.chat.id, assistant: 'full')
         find('#assistant_panel [data-testid="citation-list"] summary').click
         expect(page).to have_css('#assistant_panel [data-testid="citation-row"]', count: 3)
-        capture(locale, :assistant, until_bottom_of: '#assistant_panel [data-testid="citation-list"]')
+        # The conversation only: the answer is what the row on the website is about.
+        capture(locale, :assistant, clip_to: '#assistant_panel_body',
+                                    until_bottom_of: '#assistant_panel [data-testid="citation-list"]')
       end
     end
   end

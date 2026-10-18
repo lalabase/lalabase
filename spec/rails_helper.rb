@@ -72,6 +72,8 @@ RSpec.configure do |config|
   # real provider API and NEVER run in CI/default rspec — only with an explicit
   # LLM_LIVE=1 opt-in (they additionally skip without an API key).
   config.filter_run_excluding llm_live: true unless ENV['LLM_LIVE']
+  # The product screenshots for the project website (spec/marketing/screenshots_spec.rb): a tool, not a test.
+  config.filter_run_excluding marketing_screenshots: true unless ENV['MARKETING_SCREENSHOTS']
 
   # Measurements that need the REAL handbook, not the two-page example fixture
   # this suite otherwise reads. The handbook lives in

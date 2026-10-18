@@ -11,23 +11,30 @@
   context_type: :meetings,
   margin_bottom: 'mb-3.5'
 ) do |header| %>
-  <% new_entry_frame = @viewport_mode == 'mobile' ? '_top' : 'meeting_display_frame' %>
+  <%# The "+" opens the form as a state of the lane (?new=meeting), as the "+"
+      of "Alle Meetings" opens its project select: a lane-link, so the address
+      says new instead of the meeting that was open, and that meeting's row
+      loses its mark. The address bar at click time gives the list state, and
+      below the lane width the page itself is visited. The href is the same
+      state for a new tab, a page without JavaScript and the phone layout,
+      which has no lane. %>
   <% if policy(@project).area_access?(:meetings, :write) %>
     <% header.with_title_action do %>
+      <% lane_data = {
+           controller: 'lane-link',
+           action: 'click->lane-link#click',
+           lane_link_url_value: new_organisation_project_meeting_path(@current_organisation, @project),
+           lane_link_frame_value: Organisations::MeetingsController::DETAIL_FRAME_ID,
+           lane_link_set_value: { new: 'meeting' }.to_json,
+           lane_link_remove_value: %w[meeting_id].to_json
+         } %>
       <%= render Neo::Buttons::IconButtonComponent.new(
         variant: :primary,
         icon: 'plus-lg',
         size: :medium,
         title: t('views.organisations.meetings.index.new_meeting'),
-        url: new_organisation_project_meeting_path(
-          @current_organisation,
-          @project,
-          frame: 'content',
-          frame_id: 'meeting_display_frame',
-          **meeting_list_state.symbolize_keys,
-          viewport: @viewport_mode
-        ),
-        data: { turbo_frame: new_entry_frame }
+        url: organisation_project_meetings_path(@current_organisation, @project, meeting_list_state.merge('new' => 'meeting')),
+        data: @viewport_mode == 'mobile' ? { turbo_frame: '_top' } : lane_data
       ) %>
     <% end %>
   <% end %>

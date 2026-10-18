@@ -113,6 +113,22 @@ RSpec.describe 'Meetings detail lane', type: :request do
     expect(page).to have_no_css('.mobile-list-view', visible: :all)
   end
 
+  # The phone layout has no lane: its "+" is the page with the form state,
+  # the list state kept, and that page shows the form as the mobile detail.
+  it 'leads the mobile "+" to the page with the form state' do
+    get meetings_path(search: 'alpha', viewport: 'mobile')
+
+    plus = page.find("a[title='#{I18n.t('views.organisations.meetings.index.new_meeting')}']")
+    expect(plus['data-turbo-frame']).to eq('_top')
+    expect(plus['data-controller']).to be_nil
+    uri = URI.parse(plus[:href])
+    expect(uri.path).to eq(meetings_path)
+    expect(Rack::Utils.parse_nested_query(uri.query)).to eq('search' => 'alpha', 'viewport' => 'mobile', 'new' => 'meeting')
+
+    get plus[:href]
+    expect(page).to have_css('.mobile-detail-view #meeting-form-card.meeting-content')
+  end
+
   it 'closes a desktop new form through a filter-preserving URL without form state' do
     get meetings_path(new: 'meeting', search: 'alpha', participant: 'anna', viewport: 'desktop')
 

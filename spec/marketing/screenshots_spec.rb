@@ -81,7 +81,7 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
   # one element's left, right and top edge: a tile on the website is a third of the
   # page wide, and the whole window shrunk to that is unreadable. The window is taken
   # whole and cut with libvips, which the core already carries for Active Storage.
-  def capture(locale, motif, until_bottom_of: nil, clip_to: nil)
+  def capture(locale, motif, until_bottom_of: nil, clip_to: nil, margin: MarketingScreenshots::CLIP_MARGIN)
     dir = MarketingScreenshots::OUTPUT.join(locale.to_s)
     FileUtils.mkdir_p(dir)
     window = dir.join("#{motif}.window.png")
@@ -90,7 +90,7 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
 
     image = Vips::Image.new_from_file(window.to_s)
     scale = image.width.to_f / page.evaluate_script('window.innerWidth')
-    left, top, right = clip_to ? clip_area(clip_to, image.width / scale) : [0, 0, image.width / scale]
+    left, top, right = clip_to ? clip_area(clip_to, image.width / scale, margin) : [0, 0, image.width / scale]
     bottom = [picture_bottom(until_bottom_of), image.height / scale].min
     area = [left, top, right - left, bottom - top].map { |value| (value * scale).round }
     image.crop(*area).write_to_file(dir.join("#{motif}.png").to_s)
@@ -98,9 +98,8 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
   end
 
   # The element's edges plus a margin, so text does not end flush at the cut.
-  def clip_area(selector, window_width)
+  def clip_area(selector, window_width, margin)
     left, top, right = box(selector).values_at('left', 'top', 'right')
-    margin = MarketingScreenshots::CLIP_MARGIN
     [[left - margin, 0].max, [top - margin, 0].max, [right + margin, window_width].min]
   end
 
@@ -177,7 +176,8 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
         find('#assistant_panel [data-testid="citation-list"] summary').click
         expect(page).to have_css('#assistant_panel [data-testid="citation-row"]', count: 3)
         # The conversation only: the answer is what the row on the website is about.
-        capture(locale, :assistant, clip_to: '#assistant_panel_body',
+        # No margin: around it are the borders of the neighbouring columns.
+        capture(locale, :assistant, clip_to: '#assistant_panel_body', margin: 0,
                                     until_bottom_of: '#assistant_panel [data-testid="citation-list"]')
       end
     end

@@ -25,23 +25,12 @@ module Organisations
     DETAIL_FRAME_ID = 'meeting_display_frame'
     LIST_FRAME_ID = 'meetings_results'
 
-    # The org-wide list ("Alle Meetings") creates through a modal that hosts this
-    # controller's own `new` form in a frame of its own. Both ids are declared by the
-    # partial that carries the frame — meetings_overview/_new_meeting_modal.html.erb
-    # and _results.html.erb — the same "keep them in sync" rule as the two above.
-    # The filter bar of that page targets OVERVIEW_LIST_FRAME_ID too.
-    # OVERVIEW_LIST_FRAME_ID is REPLACED on a save, so its partial has to bring the
-    # <turbo-frame> itself; a frameless partial would delete the frame and every
-    # later stream to it would vanish without a word.
-    MODAL_FRAME_ID = 'meeting_modal_form'
+    # The list frame of "Alle Meetings", declared by meetings_overview/_results —
+    # the same "keep them in sync" rule as the two above. The filter bar of that
+    # page targets it too. It is REPLACED on a save, so its partial has to bring
+    # the <turbo-frame> itself; a frameless partial would delete the frame and
+    # every later stream to it would vanish without a word.
     OVERVIEW_LIST_FRAME_ID = 'meetings_overview_results'
-
-    # Third place the Stimulus identifier "meeting-modal" appears (with the modal
-    # partial's data-controller and the importmap pin): the cancel button inside the
-    # form has to close the modal, and the form is rendered from here. Renaming the
-    # controller means renaming it here too — nothing fails loudly otherwise, the
-    # button just stops working.
-    MODAL_CANCEL_ACTION = 'click->meeting-modal#close'
 
     # The list renders only these columns (_meeting_row: title, date, duration).
     # Selecting full rows would de-TOAST notes/transcript/plain_text_version (up to
@@ -106,18 +95,12 @@ module Organisations
       @meeting = @project.meetings.build(occurred_at: Time.current)
       authorize @meeting, :create?
 
-      if turbo_frame_request?
-        # Two frames ask for this form: the detail pane of the project page, and the
-        # modal on the org-wide list. Same partial, different wrapper and different
-        # idea of what "cancel" and "saved" mean.
-        case params[:frame]
-        when 'content'
-          render_detail_frame('organisations/meetings/meeting_new_for_frame', @meeting)
-          return
-        when 'modal'
-          render_modal_frame(@meeting)
-          return
-        end
+      # Two frames ask for this form: the lane of the project page, and the frame
+      # below the project select in the lane of "Alle Meetings" (frame_id names
+      # which). Same partial; it knows which of the two it is in.
+      if turbo_frame_request? && params[:frame] == 'content'
+        render_detail_frame('organisations/meetings/meeting_new_for_frame', @meeting)
+        return
       end
 
       # The list header normally opens the form in the desktop detail frame. On a
@@ -146,15 +129,11 @@ module Organisations
         respond_to do |format|
           format.turbo_stream { render turbo_stream: created_streams(@meeting) }
           format.html do
-            # Without JavaScript the modal is a plain form post. A save that started
-            # on "Alle Meetings" belongs back there, not in the project's own
-            # master-detail — the same rule the turbo_stream branch follows.
-            query = meeting_organisation_list? ? meeting_index_query : meeting_index_query.merge(meeting_id: @meeting.id)
-            redirect_to meeting_list_index_path(query), notice: t('flash.meetings.created')
+            # Without JavaScript: back to the list the save started from, with the
+            # new meeting open in its lane — the rule the turbo_stream branch follows.
+            redirect_to meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)), notice: t('flash.meetings.created')
           end
         end
-      elsif meeting_organisation_list?
-        render_modal_frame_with_errors(@meeting)
       else
         render_form_with_errors('organisations/meetings/meeting_new_for_frame')
       end
@@ -425,7 +404,7 @@ module Organisations
     end
 
     # The list this request shows or redraws (MeetingList): the project's own, or
-    # "Alle Meetings" for a write from that page, its lane or its modal
+    # "Alle Meetings" for a write from that page or its lane
     # (list_context=organisation, Meetings::ListState). Only the list: set_meeting
     # and the project's area gate decide what may be read and written, with or
     # without the context.
@@ -458,14 +437,14 @@ module Organisations
       policy_scope(@project.meetings).find_by(id: meeting_id)
     end
 
-    # A new meeting can be saved from two pages, and they share no frame. The
-    # project page refreshes its list and opens the detail; the org-wide list
-    # creates in its modal, so it refreshes its own table instead and lets
-    # meeting_modal_controller close the modal on the successful submit.
+    # A new meeting can be saved from two pages, and both answer alike: the
+    # address names it, the list the form came from is redrawn with it selected,
+    # and it opens in the lane. In the LANE, not in the frame the form stood in:
+    # on "Alle Meetings" that is the frame below the project select, which goes
+    # with it.
     def created_streams(meeting)
-      return overview_created_streams(meeting) if meeting_organisation_list?
-
-      [created_address_stream(meeting)] + saved_streams(meeting, 'flash.meetings.created')
+      list = list_stream(selected: meeting)
+      [created_address_stream(meeting), list, lane_stream(meeting, frame_id: DETAIL_FRAME_ID), flash_stream(created_flash_key(meeting))]
     end
 
     def created_address_stream(meeting)
@@ -479,27 +458,27 @@ module Organisations
       Meetings::ListState.extract(params)
     end
 
-    # The refreshed list keeps the state the page is showing (the form carries it
-    # as hidden fields), so a meeting saved for another project (or without the
-    # searched word) is legitimately not in it. Then the list looks as if the save
-    # failed, so the flash says which of the two happened. The list is the one
-    # MeetingsOverviewController renders (MeetingList, project nil).
-    def overview_created_streams(meeting)
-      list = list_stream(selected: nil)
-      hidden = !@meeting_list_query.exists?(id: meeting.id)
-
-      [list, flash_stream(hidden ? 'flash.meetings.created_hidden_by_filter' : 'flash.meetings.created')]
+    # The redrawn list keeps the state the page is showing (the form carries it
+    # as hidden fields). On "Alle Meetings" a meeting saved into a project the
+    # list does not show (or without the searched word) is legitimately not in
+    # it, and the list would look as if the save failed while the lane shows the
+    # meeting; the flash says which of the two happened. The project page keeps
+    # its own message (PR 4 changed nothing there). Asks the list rendered by
+    # list_stream (@meeting_list_query).
+    def created_flash_key(meeting)
+      hidden = meeting_organisation_list? && !@meeting_list_query.exists?(id: meeting.id)
+      hidden ? 'flash.meetings.created_hidden_by_filter' : 'flash.meetings.created'
     end
 
-    # Success response for create/update: refresh the list frame (new/edited row,
+    # Success response for update: refresh the list frame (edited row,
     # re-sorted) with the meeting selected, show the detail, and flash.
     def saved_streams(meeting, flash_key)
-      [
-        list_stream(selected: meeting),
-        turbo_stream.update(detail_frame_id, partial: 'organisations/meetings/meeting_show',
-                                             locals: { meeting: meeting, detail_frame_id: detail_frame_id }),
-        flash_stream(flash_key)
-      ]
+      [list_stream(selected: meeting), lane_stream(meeting), flash_stream(flash_key)]
+    end
+
+    def lane_stream(meeting, frame_id: detail_frame_id)
+      turbo_stream.update(frame_id, partial: 'organisations/meetings/meeting_show',
+                                    locals: { meeting: meeting, detail_frame_id: frame_id })
     end
 
     # The list the request came from (MeetingList#meeting_organisation_list?),
@@ -576,58 +555,27 @@ module Organisations
                  status: :unprocessable_content
         end
         format.html do
-          @meetings = filtered_meetings
-          @new_meeting = @meeting
-          render :index, status: :unprocessable_content
+          # The form of "Alle Meetings" stands in the frame below its project
+          # select, which only that page draws: answer the frame, as Turbo would.
+          if meeting_organisation_list?
+            render_detail_frame(partial, @meeting, status: :unprocessable_content)
+          else
+            @meetings = filtered_meetings
+            @new_meeting = @meeting
+            render :index, status: :unprocessable_content
+          end
         end
       end
     end
 
-    def render_detail_frame(partial, meeting)
+    def render_detail_frame(partial, meeting, status: :ok)
       render html: helpers.turbo_frame_tag(detail_frame_id) {
         helpers.render(partial: partial, locals: { meeting: meeting, detail_frame_id: detail_frame_id })
-      }.html_safe, layout: false
+      }.html_safe, layout: false, status: status
     end
 
     def detail_frame_id
       params[:frame_id].presence || DETAIL_FRAME_ID
-    end
-
-    # The org-wide modal's frame. Same form partial as the detail pane — only the
-    # wrapper id, the cancel behaviour and the save context differ, so there is no
-    # second copy of the meeting form to keep in step.
-    def render_modal_frame(meeting, status: :ok)
-      render html: helpers.turbo_frame_tag(MODAL_FRAME_ID) {
-        helpers.render(partial: 'organisations/meetings/meeting_new_for_frame',
-                       locals: modal_form_locals(meeting))
-      }.html_safe, layout: false, status: status
-    end
-
-    # Validation errors from the modal go back INTO the modal: it stays open, the
-    # project select above the frame keeps its value, and the messages sit with the
-    # fields that caused them.
-    def render_modal_frame_with_errors(meeting)
-      respond_to do |format|
-        format.turbo_stream do
-          render turbo_stream: turbo_stream.update(MODAL_FRAME_ID,
-                                                   partial: 'organisations/meetings/meeting_new_for_frame',
-                                                   locals: modal_form_locals(meeting)),
-                 status: :unprocessable_content
-        end
-        format.html { render_modal_frame(meeting, status: :unprocessable_content) }
-      end
-    end
-
-    # The save context is not here: the modal's frame is loaded with
-    # list_context=organisation (_new_meeting_modal), and the form carries it on
-    # with the list state (meeting_list_hidden_fields).
-    def modal_form_locals(meeting)
-      {
-        meeting: meeting,
-        detail_frame_id: MODAL_FRAME_ID,
-        modal: true,
-        cancel_action: MODAL_CANCEL_ACTION
-      }
     end
 
     def meeting_params

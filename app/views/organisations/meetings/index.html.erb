@@ -24,9 +24,16 @@
     <%= render 'organisations/meetings/meetings_results', meetings: @meetings, selected_meeting: @selected_meeting %>
   <% end %>
 
+  <%# The form as a state of the lane (?new=meeting), or a refused edit
+      rendered as a page (MeetingsController#render_form_with_errors). %>
+  <% lane_form = if @new_meeting
+                   render (@new_meeting.persisted? ? 'organisations/meetings/meeting_edit' : 'organisations/meetings/meeting_new_for_frame'),
+                          meeting: @new_meeting, detail_frame_id: 'meeting_display_frame'
+                 end %>
+
   <% if @viewport_mode == 'mobile' %>
-    <%= render 'organisations/meetings/index_mobile', list: list %>
+    <%= render 'organisations/meetings/index_mobile', list: list, lane_form: lane_form %>
   <% else %>
-    <%= render 'organisations/meetings/index_desktop', list: list %>
+    <%= render 'organisations/meetings/index_desktop', list: list, lane_form: lane_form %>
   <% end %>
 </div>

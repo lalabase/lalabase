@@ -16,6 +16,14 @@
 // the whole page (list, filter bar and lane from the server, replacing the
 // entry, pushing nothing); a moved lane part alone means the frame, or the
 // closed lane when there is no selection.
+//
+// A form state (the form group, new=meeting) is part of the list part, so a
+// popped form state over a list the page did not render with it restores the
+// page, and the server renders the form. But the page can remember its list
+// part WITH a form state the lane no longer shows: a list reload while the
+// form was open (a search beside it) records it, and Escape or the cancel link
+// close the form without reloading the list. A form state in the popped
+// address therefore always restores the page, never the closed lane.
 import { listPart, lanePart } from "lane/params"
 
 // An entry of ANOTHER page (its path is not the one this page shows) is no state of this
@@ -29,8 +37,8 @@ export function restoration({ shownPath, shownListQuery, address, groups, turboE
   if (shownPath && address.pathname !== shownPath) return turboEntry ? { kind: "turbo" } : { kind: "page" }
   if (listPart(address.search, groups) !== (shownListQuery || "")) return { kind: "page" }
   const lane = lanePart(address.search, groups)
-  if (!lane.selection) return { kind: "close" }
-  return { kind: "frame", selection: lane.selection, preview: lane.preview }
+  if (lane.selection) return { kind: "frame", selection: lane.selection, preview: lane.preview }
+  return (groups.form || []).some((name) => address.searchParams.has(name)) ? { kind: "page" } : { kind: "close" }
 }
 
 // The frame address of a preview state. The page wrapper carries the preview

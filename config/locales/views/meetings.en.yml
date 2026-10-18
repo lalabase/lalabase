@@ -193,13 +193,13 @@ en:
         index:
           title: All Meetings
           new_meeting: New meeting
-          modal_title: New meeting
-          modal_close: Close
-          modal_project_label: Project
-          modal_project_prompt: Choose a project …
-          modal_select_project_first: Choose a project first.
           empty_first_time_title: No meetings yet
           empty_first_time_description: As soon as meetings are recorded in your projects, you'll find them here across project boundaries — for example every meeting with a particular person.
+        new_meeting:
+          project_label: Project
+          project_prompt: Choose a project …
+          select_project_first: Choose a project first.
+          denied: You may not create meetings in any project.
   models:
     view_configuration:
       meeting_columns:

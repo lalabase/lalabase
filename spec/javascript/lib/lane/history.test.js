@@ -75,3 +75,41 @@ test("this page's own entries restore as before, Turbo's included", () => {
   assert.equal(restoration({ shownPath: "/org/o1/projects/p1/knowledge", shownListQuery: list, address: own, groups, turboEntry: true }).kind, "frame")
   assert.equal(restoration({ shownListQuery: list, address: own, groups }).kind, "frame")
 })
+
+// "+" on "Alle Meetings" (new=meeting), then a search while the form is open: the list reload
+// remembers its list part WITH the form state. Escape closes the lane and takes new out of the
+// address, and nothing reloads the list. Back then pops new=meeting with that very list part,
+// and the restorer took it for the closed lane: the address said "form", the lane stayed shut.
+test("a form state over the list the page shows restores the page, so the form opens again", () => {
+  const meetings = parseLaneParams(JSON.stringify({ selection: ["meeting_id"], form: ["new"], ignore: ["viewport"] }))
+  const overview = (query) => new URL(`http://x.test/org/o1/meetings${query}`)
+  const reloadedWithForm = listPart("?search=Alpha&new=meeting", meetings)
+
+  assert.deepEqual(restoration({ shownListQuery: reloadedWithForm, address: overview("?search=Alpha&new=meeting"), groups: meetings }),
+    { kind: "page" })
+  assert.deepEqual(restoration({ shownListQuery: listPart("?search=Alpha", meetings), address: overview("?search=Alpha&new=meeting"), groups: meetings }),
+    { kind: "page" })
+  // No form in the address, the same list: the closed lane, as before.
+  assert.deepEqual(restoration({ shownListQuery: listPart("?search=Alpha", meetings), address: overview("?search=Alpha"), groups: meetings }),
+    { kind: "close" })
+})
+
+// The server opens the meeting when the address names one and a form state as well
+// (MeetingsOverviewController#index: @new_meeting_lane only without @selected_meeting).
+test("a selection beside a form state restores the frame, as the server would render it", () => {
+  const meetings = parseLaneParams(JSON.stringify({ selection: ["meeting_id"], form: ["new"] }))
+  const address = new URL("http://x.test/org/o1/meetings?search=Alpha&new=meeting&meeting_id=M")
+
+  assert.deepEqual(restoration({ shownListQuery: listPart(address.search, meetings), address, groups: meetings }),
+    { kind: "frame", selection: { param: "meeting_id", id: "M" }, preview: null })
+})
+
+// The ticket page names no form group, and a hand-built group may leave it out.
+test("a page without a form group closes the lane over its own list", () => {
+  const tickets = parseLaneParams(JSON.stringify({ selection: ["ticket_id"] }))
+  const address = new URL("http://x.test/org/o1/projects/p1/tickets?status=open")
+  const shownTickets = listPart(address.search, tickets)
+
+  assert.deepEqual(restoration({ shownListQuery: shownTickets, address, groups: tickets }), { kind: "close" })
+  assert.deepEqual(restoration({ shownListQuery: shownTickets, address, groups: { selection: ["ticket_id"], preview: [] } }), { kind: "close" })
+})

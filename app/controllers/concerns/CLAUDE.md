@@ -75,8 +75,11 @@ Server schreibt ihn in die Links und Formulare, die er für eine Anfrage MIT Kon
 (`meeting_lane_state`), und `layout-toggle` hängt ihn bei Klick und Absenden an jede Anfrage
 der Bahn (`laneContext`, aus `meeting_list_page_data`). Das Zweite fängt, was ohne Kontext
 gerendert wurde: Broadcasts, Abschnitts-Aktualisierungen, Controller-Ersetzungen. `meeting_organisation_list?`
-ist die EINE Frage „welche Liste?“ für Stream, Weiterleitung und Rückweg (Bahn und Modal;
-das frühere `context=overview_modal` ist darin aufgegangen). Der Kontext wählt nur die
+ist die EINE Frage „welche Liste?“ für Stream, Weiterleitung und Rückweg (das frühere
+`context=overview_modal` ist darin aufgegangen). Seit PR 4 öffnet auch das „+“ der Übersicht in
+der Bahn: `?new=meeting` auf ihrer eigenen Adresse liefert eine Projektauswahl
+(`meetings_overview/_new_meeting_lane`), darunter lädt ein eigener Frame das Formular des
+gewählten Projekts aus `MeetingsController#new`; eine Meeting-Route ohne Projekt gibt es nicht. Der Kontext wählt nur die
 Liste, die Rechte bleiben die des Projekts (`set_meeting`, Bereichs-Tor). Eine
 Meeting-Ansicht gehört der Liste ihres Projekts, ohne Projekt der Übersicht. Die Filterleiste, das Speichern von Ansichten und die Spaltenwahl
 nehmen `project: nil` als „organisationsweit“; Tickets und Wissen geben weiter ein Projekt mit.

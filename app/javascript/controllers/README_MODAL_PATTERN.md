@@ -2,227 +2,112 @@
 
 ## Überblick
 
-Diese Dokumentation beschreibt das Modal-Pattern, das für TimeSession entwickelt wurde und als Vorlage für andere Modals in der Anwendung dienen soll.
+Diese Dokumentation beschreibt das Modal-Pattern der Anwendung: ein Modal ist der **Inhalt eines Turbo-Frames**. Ein Link lädt das Formular in den Frame, das Verbinden des Controllers ist das Öffnen, das Leeren des Frames ist das Schließen.
 
-Referenz-Implementierung ist `meeting_modal_controller.js` („Neues Meeting“ in der Meetings-Übersicht der Organisation). Bis zum 16.09.2026 war es `time_session_modal_controller.js`; er wurde zusammen mit dem Zeit-Knopf im Meetings-Kopf gelöscht, seiner letzten Einbindung.
+Referenz-Implementierung ist `ticket_relation_modal_controller.js` (das Modal „Verknüpfen“ eines Tickets, Markup in `organisations/tickets/relations/_modal.html.erb`): Fokusfalle über `dialog_a11y`, Schließen über Hintergrund und Escape, Rückgabe des Fokus an den Auslöser. Bis zum 17.10.2026 war es `meeting_modal_controller.js`; er wurde gelöscht, weil „Neues Meeting“ auf „Alle Meetings“ seitdem in der Bahn öffnet. Bis zum 16.09.2026 war es `time_session_modal_controller.js`; er wurde zusammen mit dem Zeit-Knopf im Meetings-Kopf gelöscht, seiner letzten Einbindung. Beide blendeten ein Modal ein und aus, das fest in der Seite stand; diese Form gibt es nicht mehr.
 
 ## Design-Philosophie
 
-1. **Einfachheit über Komplexität**: Jeder Controller hat eine klare, einzelne Verantwortung
-2. **Keine versteckten Abhängigkeiten**: Alles ist explizit und nachvollziehbar
-3. **Event-basierte Kommunikation**: Nutzt Turbo Events für saubere Integration
-4. **Wiederverwendbarkeit**: Code ist als Template für andere Modals gedacht
+1. **Das Modal steht nur in der Seite, solange es offen ist**: kein verstecktes Markup, kein Zustand „offen/zu“ im Controller
+2. **Kein gemeinsamer Scope mit dem Auslöser**: Auslöser sind Links mit `data-turbo-frame`, sie dürfen irgendwo auf der Seite stehen (auch in einem Menü)
+3. **Jede Öffnung trägt eine eigene ID (Token)**: Ablehnung und Speichern treffen nur sie, eine späte Antwort an ein geschlossenes Modal findet nichts
+4. **Server entscheidet**: Fehler und Erfolg kommen als Turbo Streams, der Controller zählt keine Erfolge
 
 ## Implementierung eines neuen Modals
 
-### Schritt 1: Controller erstellen
-
-Kopieren Sie `meeting_modal_controller.js` und passen Sie an:
-
-```javascript
-// beispiel_modal_controller.js
-import { Controller } from "@hotwired/stimulus"
-
-export default class extends Controller {
-  static targets = ["modal", "form"]
-  
-  // Ändern Sie die Form-ID in handleTurboSuccess
-  handleTurboSuccess(event) {
-    const form = event.target
-    if (form && form.id === "beispiel_form" && event.detail.success) {
-      this.close()
-    }
-  }
-  
-  // Pflicht für jedes Escape (lib/escape_owner.js): wahr, solange das Modal
-  // offen ist. Sonst schließt Escape auch die Detail-Bahn dahinter.
-  ownsEscape() {
-    return this.hasModalTarget && !this.modalTarget.classList.contains("hidden")
-  }
-
-  // Rest bleibt gleich...
-}
-```
-
-### Schritt 2: HTML-Struktur
+### Schritt 1: Leerer Frame und Auslöser
 
 ```erb
-<div data-controller="beispiel-modal" 
-     data-action="keydown@window->beispiel-modal#closeOnEscape">
-  
-  <!-- Trigger Button -->
-  <button data-action="click->beispiel-modal#open" class="...">
-    Öffnen
-  </button>
-  
-  <!-- Modal -->
-  <div data-beispiel-modal-target="modal" 
-       data-action="click->beispiel-modal#closeOnBackdrop"
-       class="fixed z-modal inset-0 overflow-y-auto hidden">
-    
-    <!-- Backdrop -->
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-60"></div>
-    
-    <!-- Modal Content -->
-    <div class="flex items-center justify-center min-h-screen p-4">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full relative">
-        
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-4">
-          <h3>Modal Titel</h3>
-          <button data-action="click->beispiel-modal#close">×</button>
-        </div>
-        
-        <!-- Form Container -->
-        <div data-beispiel-modal-target="form">
-          <form id="beispiel_form">
-            <!-- Formular-Inhalt -->
-          </form>
-        </div>
-        
+<%# In der Seite, neben dem Abschnitt, zu dem das Modal gehört %>
+<%= turbo_frame_tag beispiel_modal_id(record) %>
+
+<%# Ein Auslöser, beliebig viele, überall auf der Seite %>
+<%= link_to t('...'), new_beispiel_path(record),
+            id: beispiel_trigger_id(record),
+            data: { turbo_frame: beispiel_modal_id(record) } %>
+```
+
+Die `new`-Action rendert den Frame (`layout: false`) mit dem Modal-Partial darin und erzeugt das Token der Öffnung.
+
+### Schritt 2: Modal-Partial
+
+```erb
+<div id="<%= beispiel_modal_instance_id(record, token) %>"
+     data-controller="beispiel-modal"
+     data-beispiel-modal-return-id-value="<%= beispiel_trigger_id(record) %>"
+     data-action="keydown@window->beispiel-modal#closeOnEscape keydown@window->beispiel-modal#trapFocus">
+  <div class="fixed inset-0 z-50 overflow-y-auto" data-action="click->beispiel-modal#closeOnBackdrop">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-60" aria-hidden="true"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4"
+         data-action="click->beispiel-modal#closeOnBackdrop">
+      <div role="dialog" aria-modal="true" aria-labelledby="beispiel-title"
+           data-beispiel-modal-target="card" class="...">
+        <h3 id="beispiel-title"><%= t('...') %></h3>
+        <button type="button" aria-label="<%= t('...') %>" data-action="click->beispiel-modal#close">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+        <%= form_with ..., format: :turbo_stream do |form| %>
+          <%= hidden_field_tag :modal_token, token %>
+          <%# Felder %>
+        <% end %>
       </div>
     </div>
   </div>
 </div>
 ```
 
-### Schritt 3: Turbo Stream Response
+### Schritt 3: Controller
+
+Kopieren Sie `ticket_relation_modal_controller.js` und passen Sie den Namen an. Was bleibt:
+
+* `connect()`: verwirft sich selbst, wenn der Frame nicht sichtbar ist (eine geschlossene Bahn), merkt sich am **Frame** die ID des Auslösers, sperrt das Scrollen der Seite, setzt den Fokus ins Modal.
+* `disconnect()`: gibt das Scrollen frei, entfernt `src` vom Frame (der nächste Auslöser lädt neu) und gibt den Fokus an den Auslöser zurück, sobald kein Modal mehr im Frame steht.
+* `close()`: entfernt `src` und leert den Frame.
+* `closeOnBackdrop(event)`: nur ein Klick auf den Hintergrund selbst.
+* `closeOnEscape(event)`: schließt nicht, wenn ein Kind das Escape schon benutzt hat (`event.defaultPrevented`).
+* `trapFocus(event)`: `trapTabKey` aus `lib/dialog_a11y.js`.
+* `ownsEscape()`: Pflicht für jedes Escape (`lib/escape_owner.js`). Das Modal steht nur in der Seite, solange es offen ist, also antwortet es `true`. Sonst schließt Escape auch die Detail-Bahn dahinter.
+
+Was wegfällt: alles Fachliche der Vorlage (Arten, Verzögerung, `kindChanged`).
+
+### Schritt 4: Turbo-Stream-Antworten
 
 ```erb
-<%# create.turbo_stream.erb %>
-<% if @beispiel.errors.any? %>
-  <%# Fehler anzeigen %>
-  <%= turbo_stream.remove_all ".beispiel-error-container" %>
-  <%= turbo_stream.prepend "beispiel_form" do %>
-    <div class="rounded-lg bg-red-50 p-4 beispiel-error-container mb-4">
-      <!-- Fehler-Inhalt -->
-    </div>
-  <% end %>
-<% else %>
-  <%# Erfolg %>
-  <%= turbo_stream.update "flash", partial: "shared/flash" %>
-  
-  <%# Weitere Updates... %>
+<%# Abgelehnt: genau diese Öffnung ersetzen, mit dem Gesendeten und der Meldung %>
+<%= turbo_stream.replace beispiel_modal_instance_id(@record, @modal_token) do %>
+  <%= render 'beispiel/modal', record: @record, token: @modal_token, errors: @errors %>
 <% end %>
+
+<%# Gespeichert: Abschnitt neu zeichnen, genau diese Öffnung entfernen (der Controller
+    räumt beim disconnect auf), Flash zeigen %>
+<%= turbo_stream.replace beispiel_section_id(@record), partial: '...' %>
+<%= turbo_stream.remove beispiel_modal_instance_id(@record, @modal_token) %>
+<%= turbo_stream.prepend 'flash', partial: 'layouts/flash', locals: { flash: @flash_message } %>
 ```
 
 ## Best Practices
 
-### 1. Form IDs eindeutig halten
-Jedes Modal sollte eine eindeutige Form-ID haben:
-- `time_session_form`
-- `ticket_form`
-- `note_form`
+### 1. IDs aus Helfern
+Frame, Öffnung und Auslöser bekommen ihre IDs aus je einem Helfer (Vorbild: `TicketRelationsHelper`), damit Partial, Stream und Controller dieselbe Zeichenkette benutzen.
 
-### 2. Error Container Klassen
-Verwenden Sie spezifische Klassen für Fehler-Container:
-- `.time-session-error-container`
-- `.ticket-error-container`
-- `.note-error-container`
+### 2. Stimulus Controller Naming
+Folgen Sie der Konvention: `[resource]-modal`, zum Beispiel `ticket-relation-modal`.
 
-### 3. Stimulus Controller Naming
-Folgen Sie der Konvention: `[resource]-modal`:
-- `meeting-modal`
-- `ticket-modal`
-- `note-modal`
-
-### 4. Z-Index Management
-Verwenden Sie konsistente z-index Werte:
-- Modal Backdrop: `z-modal`
-- Modal Content: relativ positioniert
+### 3. Z-Index Management
+- Modal und Hintergrund: `z-50` bzw. `z-modal`
 - Verschachtelte Modals vermeiden!
 
-## Häufige Anpassungen
+## Häufige Probleme
 
-### Modal mit Turbo Frame
+1. **Das Modal öffnet nicht**: Der Link nennt einen Frame, den die Seite nicht hat, oder die Antwort der `new`-Action trägt den Frame nicht.
+2. **Eine späte Antwort öffnet ein geschlossenes Modal wieder**: Die Streams treffen den Frame statt der Öffnung. Sie zielen immer auf die ID mit Token.
+3. **Escape schließt auch die Detail-Bahn dahinter**: `ownsEscape()` fehlt oder antwortet falsch (`spec/architecture/escape_owner_guard_spec.rb` meldet das Fehlen).
+4. **Der Fokus landet nach dem Schließen auf `<body>`**: Der Auslöser hat keine ID, oder ein Stream hat ihn ersetzt, ohne sie zu behalten.
 
-Wenn Ihr Modal Inhalte dynamisch lädt:
+## Tests
 
-```erb
-<turbo-frame id="modal_content_frame" src="<%= path %>">
-  <!-- Ladeindikator -->
-</turbo-frame>
-```
-
-### Modal mit mehreren Schritten
-
-Nutzen Sie data-Attribute für Schritte:
-
-```javascript
-// In Ihrem Controller
-static values = { currentStep: Number }
-
-nextStep() {
-  this.currentStepValue++
-  this.showStep(this.currentStepValue)
-}
-```
-
-### Integration mit anderen Controllern
-
-Beispiel: Automatische Feldauswahl
-
-```javascript
-open() {
-  super.open() // Basis-Funktionalität
-  
-  // Zusätzliche Logik
-  const selector = this.element.querySelector('[data-controller="field-selector"]')
-  if (selector) {
-    // Trigger andere Controller
-  }
-}
-```
-
-## Debugging
-
-### Console Logs
-Die Controller haben bereits Debug-Ausgaben:
-- "Modal Controller connected"
-- "Form submitted successfully"
-- Event-Details
-
-### Häufige Probleme
-
-1. **Modal schließt nicht**: 
-   - Prüfen Sie die Form-ID in `handleTurboSuccess`
-   - Stellen Sie sicher, dass `event.detail.success` true ist
-
-2. **Form wird nicht zurückgesetzt**:
-   - Prüfen Sie, ob form Target definiert ist
-   - Stellen Sie sicher, dass das form Element gefunden wird
-
-3. **ESC funktioniert nicht**:
-   - Prüfen Sie data-action am Container
-   - Stellen Sie sicher, dass keine anderen Handler interferieren
-
-4. **ESC schließt auch die Detail-Bahn dahinter**:
-   - `ownsEscape()` fehlt oder antwortet falsch (`spec/architecture/escape_owner_guard_spec.rb`
-     meldet das Fehlen)
-
-## Wartung
-
-### Updates
-Bei Änderungen am Base-Pattern:
-1. Dokumentieren Sie die Änderung hier
-2. Updaten Sie bestehende Modals schrittweise
-3. Testen Sie die Rückwärtskompatibilität
-
-### Tests
-Empfohlene Test-Szenarien:
-- Modal öffnen/schließen
-- Form Submit (Erfolg und Fehler)
-- Keyboard Navigation (ESC)
-- Backdrop Click
-- Form Reset nach Schließen
-
-## Zusammenfassung
-
-Dieses Modal-Pattern bietet eine solide Grundlage für konsistente, wartbare Modals in der gesamten Anwendung. Die Hauptvorteile sind:
-
-- **Einfachheit**: Wenig Code, klare Struktur
-- **Konsistenz**: Alle Modals verhalten sich gleich
-- **Wartbarkeit**: Änderungen sind lokal begrenzt
-- **Testbarkeit**: Klare Interfaces und Events
-
-Bei Fragen oder Verbesserungsvorschlägen, bitte ein Issue erstellen oder die Dokumentation erweitern.
+Empfohlene Szenarien (Vorbild: `spec/system/ticket_relations_spec.rb`):
+- Öffnen über jeden Auslöser, Schließen über ✕, Hintergrund und Escape
+- Escape schließt nur das Modal, nicht die Bahn dahinter
+- Speichern (Erfolg) und Ablehnung (das Modal bleibt mit dem Gesendeten und der Meldung)
+- Tab bleibt im Modal, der Fokus kehrt zum Auslöser zurück

@@ -16,9 +16,11 @@ Konventionen:
   siehe Root-`CLAUDE.md`, „Critical Bug Fixes".
 * Guard: `spec/architecture/stimulus_controller_wiring_spec.rb` (kein Mount ohne Controller-Datei).
 * Modals: IMMER zuerst `docs/dokumentation/modal_pattern.md` und `README_MODAL_PATTERN.md`
-  (hier im Ordner) lesen. Referenz-Implementierung ist `meeting_modal_controller.js`
-  (`time_session_modal_controller.js` ist seit 16.09.2026 gelöscht).
-  `ticket_relation_modal` ist die Variante OHNE gemeinsamen Scope: das Modal ist der Inhalt eines
+  (hier im Ordner) lesen. Referenz-Implementierung ist `ticket_relation_modal_controller.js`
+  (Fokusfalle über `dialog_a11y`, Schließen über Hintergrund und Escape, Fokus zurück an den
+  Auslöser). `meeting_modal_controller.js` ist seit 17.10.2026 gelöscht („Neues Meeting“ auf
+  „Alle Meetings“ öffnet in der Bahn), `time_session_modal_controller.js` seit 16.09.2026.
+  Seine Form hat KEINEN gemeinsamen Scope mit dem Auslöser: das Modal ist der Inhalt eines
   Frames neben dem Abschnitt, beide Auslöser sind Links mit `data-turbo-frame`, Verbinden heißt
   Öffnen, Schließen leert den Frame. Jede Öffnung trägt eine eigene ID (Token): Ablehnung und
   Speichern treffen nur sie, eine späte Antwort an ein geschlossenes Modal findet nichts. Das

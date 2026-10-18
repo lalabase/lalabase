@@ -372,6 +372,22 @@ RSpec.describe 'Organisations::Meetings', type: :request do
       expect(address_index).to be < list_index
     end
 
+    # The "hidden by the filter" message belongs to "Alle Meetings" (PR 4 of
+    # meetings_uebersicht_vereinheitlichen_plan.md). The project page keeps its
+    # own message, also for a meeting its search does not show.
+    it 'keeps the plain created message on the project page, also for a meeting its search hides' do
+      sign_in writer
+      post organisation_project_meetings_path(organisation, project),
+           params: valid_params.merge(search: 'Retro'), as: :turbo_stream
+
+      expect(response.media_type).to eq('text/vnd.turbo-stream.html')
+      flash = Nokogiri::HTML.fragment(response.body).at_css('turbo-stream[action="prepend"][target="flash"]')
+      expect(flash.text).to include(I18n.t('flash.meetings.created'))
+      expect(flash.text).not_to include(I18n.t('flash.meetings.created_hidden_by_filter'))
+      list = Nokogiri::HTML.fragment(response.body).at_css('turbo-stream[target="meetings_results"]')
+      expect(list.text).not_to include('Kickoff')
+    end
+
     it 'returns 422 and re-renders the inline form on an invalid submit' do
       sign_in writer
       post organisation_project_meetings_path(organisation, project),

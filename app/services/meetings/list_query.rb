@@ -22,7 +22,7 @@ module Meetings
       direction = sort['direction'].presence || smart_folder&.effective_sort_direction || 'desc'
       direction = 'desc' unless %w[asc desc].include?(direction)
       # Ties by the time a meeting was entered: occurred_at has minutes only, and
-      # the new meeting from the "+" modal belongs at the top, not wherever its
+      # a meeting just saved from the "+" belongs at the top, not wherever its
       # random id puts it. The id makes the order total.
       query.reorder(column => direction, created_at: direction, id: direction)
            .select(*LIST_COLUMNS).preload(:meeting_participants, :creator)

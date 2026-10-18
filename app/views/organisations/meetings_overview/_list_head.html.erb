@@ -13,10 +13,30 @@
 ) do |box| %>
   <%# Same square primary "+" as the project meetings page and the Zeiten list.
       Only where this person may write meetings somewhere: a button that leads
-      to an error message is a promise without cover. %>
+      to an error message is a promise without cover. It opens the project
+      select in the lane (?new=meeting, MeetingsOverviewController#index) as a
+      lane-link: the address bar at click time gives the list state, so a
+      condition set after this head was rendered is kept, and below the lane
+      width the page itself is visited, full width, as a row does. The href
+      is the same state for a new tab or a page without JavaScript. %>
   <% if can_create_meeting? %>
     <% box.with_title_action do %>
-      <%= render 'organisations/meetings_overview/new_meeting_modal', projects: writable_meeting_projects %>
+      <%= render Neo::Buttons::IconButtonComponent.new(
+        variant: :primary,
+        icon: 'plus-lg',
+        size: :medium,
+        title: t('views.organisations.meetings_overview.index.new_meeting'),
+        url: organisation_meetings_path(@current_organisation, meeting_list_state.merge('new' => 'meeting')),
+        data: {
+          controller: 'lane-link',
+          action: 'click->lane-link#click',
+          lane_link_url_value: organisation_meetings_path(@current_organisation),
+          lane_link_frame_value: Organisations::MeetingsController::DETAIL_FRAME_ID,
+          lane_link_set_value: { new: 'meeting' }.to_json,
+          lane_link_remove_value: %w[meeting_id].to_json,
+          lane_link_focus_value: '#meeting-new-project'
+        }
+      ) %>
     <% end %>
   <% end %>
   <% box.with_right_content do %>
@@ -29,13 +49,14 @@
 
 <%# The words of the bar are the project page's (i18n_scope): the same list,
     the same sentence. Only the category "Projekt" is this page's own.
-    Unlike the project page, the bar stands before the first meeting too: the
-    "+" modal replaces only the list frame, never this head, so a bar left out
-    here would stay missing until a full reload.
+    Unlike the project page, the bar stands before the first meeting too: a
+    save from the lane replaces only the list frame, never this head, so a bar
+    left out here would stay missing until a full reload.
     keyboard_navigation: the rows hold no link of their own (they open in the
     lane), so arrow down from the search field is the keyboard's way in.
-    meeting_id in the return context: saving a view or the expert filter comes
-    back with the open meeting still in the lane, as on the project page. %>
+    meeting_id and new in the return context: saving a view or the expert
+    filter comes back with the open meeting or the project select still in the
+    lane, as on the project page. %>
 <%= render NeoFilterBarComponent.new(
   current_user_id: current_user.id,
   smart_folders: @meeting_smart_folders,
@@ -46,8 +67,8 @@
   smart_folder_context_type: 'Meeting',
   smart_folder_return_to: 'meetings',
   save_target_object_type: 'Meeting',
-  return_params: meeting_list_state.merge(params.permit(:meeting_id).to_h),
-  return_keys: Meetings::ListState::KEYS + %w[meeting_id],
+  return_params: meeting_list_state.merge(params.permit(:meeting_id, :new).to_h),
+  return_keys: Meetings::ListState::KEYS + %w[meeting_id new],
   active_smart_folder: @active_smart_folder,
   active_view_permissions: filter_bar_view_permissions(@active_smart_folder),
   dissolver_result: @dissolver_result,

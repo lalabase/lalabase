@@ -69,7 +69,7 @@ RSpec.describe EscapeOwnerGuard do
   end
 
   it 'finds the scripts that react to Escape (the guard is not empty)' do
-    expect(escape_scripts).to include('app/javascript/controllers/meeting_modal_controller.js',
+    expect(escape_scripts).to include('app/javascript/controllers/ticket_relation_modal_controller.js',
                                       'app/javascript/controllers/filter_bar_controller.js',
                                       'app/javascript/lib/time_session_modal.js',
                                       # bound to the key only in its template

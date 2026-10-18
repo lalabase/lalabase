@@ -44,6 +44,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 * **JS-Tests** (reine Stimulus-Lib/Parser via Node `node:test`, kein Chrome nötig): `npm test`
 * **Python-Tests** (`bin/lala`, Attrappe des MCP-Endpunkts im selben Prozess, nur Standardbibliothek):
   `python3 -m unittest discover -s spec/python -p '*_test.py'`
+* **Product screenshots** for the project website: `MARKETING_SCREENSHOTS=1 bundle exec rspec spec/marketing/screenshots_spec.rb`,
+  output in `tmp/screenshots/marketing/<locale>/`, excluded from every normal run.
 * **System-/JS-Tests auf einer ARM-Maschine** (Parallels-VM): `selenium-webdriver` liefert für
   Linux nur eine x86-64-Binary von `selenium-manager`, für macOS dagegen eine Universal-Binary.
   Auf aarch64 lehnt der Kernel sie ab und `/bin/sh` meldet stattdessen

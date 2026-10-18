@@ -10,10 +10,13 @@ import { chosenFormUrl } from "meeting_project_select"
  * ERB, and this controller only copies it onto the frame (lib/meeting_project_select).
  *
  * A new choice is a new frame visit, and Turbo cancels the one in flight, so
- * the form of the project chosen before cannot arrive after it. Taking the
- * choice back starts no visit: an answer still in flight then renders into the
- * frame, and it is put back to the zero state, or the lane would show a form
- * for a project the select no longer names.
+ * the form of the project chosen before cannot arrive after it. The form that
+ * stands there goes at once: the new answer can be a redirect (the right went,
+ * the project was deleted), frame-error then only puts its message on top, and
+ * the old form would stay under the new name, saving into the old project.
+ * Taking the choice back starts no visit: an answer still in flight then
+ * renders into the frame, and it is put back to the zero state, or the lane
+ * would show a form for a project the select no longer names.
  */
 export default class extends Controller {
   static targets = ["select", "frame", "placeholder"]
@@ -30,6 +33,7 @@ export default class extends Controller {
   choose() {
     const url = chosenFormUrl(this.selectTarget)
     if (url) {
+      this.frameTarget.replaceChildren()
       this.frameTarget.setAttribute("src", url)
       return
     }

@@ -127,13 +127,62 @@ RSpec.describe 'Organisations::MeetingsOverview new meeting access', :ci_guard, 
       expect(page_body).to have_no_css('#meeting-new-project')
     end
 
-    it 'refuses a lane frame request without new=meeting the same way, the one the redirect sent' do
+    it 'answers a lane frame request without new=meeting with the empty lane, not the refusal of the select' do
       get overview_path, headers: lane_frame.merge('Referer' => "http://www.example.com#{overview_path}")
 
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:ok)
       expect(response.location).to be_nil
       expect(page_body).to have_css('turbo-frame#meeting_display_frame',
-                                    text: I18n.t('views.organisations.meetings_overview.new_meeting.denied'))
+                                    text: I18n.t('views.organisations.meetings.index.select_meeting_hint'))
+      expect(page_body).to have_no_text(I18n.t('views.organisations.meetings_overview.new_meeting.denied'))
+    end
+  end
+
+  # A lane request to this address without new=meeting comes from a redirect:
+  # a lane action MeetingsController refused (Pundit leads back to the Referer)
+  # or could not finish (a meeting deleted meanwhile), and fetch keeps the
+  # Turbo-Frame header. The lane then shows what a full visit of that address
+  # shows there. Until the review of PR 4 it said "you may create meetings in
+  # no project", with 403, to someone who writes in Alpha.
+  describe 'a lane request without new=meeting' do
+    let(:lesbar_meeting) { ActsAsTenant.with_tenant(organisation) { Meeting.find_by!(title: 'Lesbar Kickoff') } }
+    let(:denied) { I18n.t('views.organisations.meetings_overview.new_meeting.denied') }
+
+    before { sign_in mixed_user }
+
+    it 'shows the meeting a refused action in the lane leads back to' do
+      referer = "http://www.example.com#{organisation_meetings_path(organisation, meeting_id: lesbar_meeting.id)}"
+      post toggle_search_organisation_project_meeting_path(organisation, project_b, lesbar_meeting),
+           params: { create_embeddings: '0', list_context: 'organisation' },
+           headers: lane_frame.merge('Referer' => referer, 'Accept' => 'text/vnd.turbo-stream.html, text/html')
+      expect(response).to redirect_to(referer)
+
+      follow_redirect!(headers: lane_frame)
+
+      expect(response).to have_http_status(:ok)
+      expect(page_body).to have_css('turbo-frame#meeting_display_frame h2', text: 'Lesbar Kickoff')
+      expect(page_body).to have_no_text(denied)
+      expect(page_body).to have_no_css('#meeting-new-project')
+    end
+
+    it 'shows the empty lane for a meeting it cannot open, and nothing of it' do
+      hidden = ActsAsTenant.with_tenant(organisation) do
+        create(:meeting, project: project_c, organisation: organisation, title: 'Verborgen Kickoff')
+      end
+      get overview_path, params: { meeting_id: hidden.id }, headers: lane_frame
+
+      expect(response).to have_http_status(:ok)
+      expect(page_body).to have_css('turbo-frame#meeting_display_frame',
+                                    text: I18n.t('views.organisations.meetings.index.select_meeting_hint'))
+      expect(response.body).not_to include('Verborgen Kickoff', 'Projekt Verborgen')
+      expect(page_body).to have_no_text(denied)
+    end
+
+    it 'keeps the select for new=meeting, which is what the "+" asks for' do
+      get overview_path, params: { new: 'meeting' }, headers: lane_frame
+
+      expect(response).to have_http_status(:ok)
+      expect(page_body).to have_css('turbo-frame#meeting_display_frame #meeting-new-project')
     end
   end
 

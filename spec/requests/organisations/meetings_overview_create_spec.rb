@@ -375,14 +375,19 @@ RSpec.describe 'Organisations::MeetingsOverview create', type: :request do
                     'meeting_id' => saved.id)
     end
 
-    it 'renders the form again on an invalid save' do
+    # The frame below the select, as Turbo would get it, not the project page:
+    # that page carries the same form card, so a check for the card alone
+    # passed for either answer.
+    it 'renders the form again on an invalid save, into the frame of the select' do
       sign_in writer_a
 
       post organisation_project_meetings_path(organisation, project_a),
            params: { list_context: 'organisation', frame_id: 'meeting_new_form', meeting: { title: '', occurred_at: Time.current } }
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include('meeting-form-card')
+      expect(page_body).to have_css('turbo-frame#meeting_new_form #meeting-form-card form')
+      expect(page_body).to have_no_css('#meetings_results, #meetings_overview_results')
+      expect(page_body).to have_no_css('#meeting-form-card [data-lane-close]')
     end
   end
 end

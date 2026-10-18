@@ -150,6 +150,61 @@ RSpec.describe 'Meetings overview', type: :system do
       expect(page).to have_css('#meeting_new_form', text: I18n.t('views.organisations.meetings_overview.new_meeting.select_project_first'))
     end
 
+    # The right for Beta went while the select stayed open: its form answers with
+    # a redirect, and frame-error only put its message on top of the form of
+    # Alpha, which stood there under the name Beta and saved into Alpha.
+    it 'leaves no form of the project chosen before when the next one is refused' do
+      writer = create(:user)
+      beta_permission = ActsAsTenant.with_tenant(organisation) do
+        role = create(:role, title: 'Schreiber', organisation: organisation)
+        create(:membership, user: writer, organisation: organisation, role: role, active: true)
+        create(:project_permission, user: writer, project: alpha, meetings_access: 'read_write')
+        create(:project_permission, user: writer, project: beta, meetings_access: 'read_write')
+      end
+      sign_in writer
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      visit organisation_meetings_path(organisation)
+      open_new_meeting
+
+      select 'Projekt Alpha', from: select_label
+      expect(page).to have_css("#meeting_new_form form[action$='/projects/#{alpha.id}/meetings.turbo_stream']", wait: 5)
+      ActsAsTenant.with_tenant(organisation) { beta_permission.update!(meetings_access: 'read_only') }
+      select 'Projekt Beta', from: select_label
+
+      expect(page).to have_css('#meeting_new_form .frame-error-message', wait: 5)
+      expect(page).to have_no_css('#meeting_new_form form')
+      expect(page).to have_select(select_label, selected: 'Projekt Beta')
+    end
+
+    # The options carry the list state from when the lane opened; the live one
+    # comes from the address at submit (layout-toggle, the form's
+    # data-lane-index-url). A search typed beside the open form has to survive
+    # the save.
+    it 'keeps a search typed while the form is open through the save' do
+      page.driver.browser.manage.window.resize_to(1440, 1000)
+      # A search value keeps the field open, as in the keyboard example below.
+      visit organisation_meetings_path(organisation, search: 'a', search_mode: 'title_only')
+      expect_titles('Alpha Kickoff', 'Beta Retro')
+
+      open_new_meeting
+      select 'Projekt Alpha', from: select_label
+      expect(page).to have_css('#meeting_new_form form', wait: 5)
+      find('input[name="search"]').fill_in(with: 'Alpha')
+      # The address moves once the list has reloaded; a slow first load of the
+      # assets made five seconds too short once.
+      expect(page).to have_current_path(/search=Alpha/, wait: 10)
+      expect_titles('Alpha Kickoff')
+
+      within('#meeting_new_form') do
+        fill_in 'meeting[title]', with: 'Alpha Planung'
+        click_button I18n.t('views.organisations.meetings.form.save')
+      end
+
+      expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Planung', wait: 5)
+      expect_titles('Alpha Planung', 'Alpha Kickoff')
+      expect(page).to have_current_path(/search=Alpha/)
+    end
+
     it 'shows the errors of a refused save in the form, the chosen project kept' do
       page.driver.browser.manage.window.resize_to(1440, 1000)
       visit organisation_meetings_path(organisation)

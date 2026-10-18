@@ -54,7 +54,7 @@ module Organisations
     before_action :set_viewport_mode, only: :index
 
     def index
-      return render_new_meeting_frame if lane_frame_request?
+      return render_lane_frame if lane_frame_request?
 
       @meetings = filtered_meetings
       if turbo_frame_request?
@@ -81,30 +81,50 @@ module Organisations
       end
     end
 
-    # The lane asks this address for its content in one case only: the "+"
-    # (lane-link), for the project select.
+    # The lane asks this address for its content: the "+" (lane-link) for the
+    # project select, and a redirect for whatever it leads back to. A lane
+    # action MeetingsController refuses or cannot finish redirects to this page
+    # (Pundit to the Referer, a vanished meeting to the list), and fetch keeps
+    # the Turbo-Frame header on the redirected request.
     def lane_frame_request?
       turbo_frame_request? && request.headers['Turbo-Frame'] == MeetingsController::DETAIL_FRAME_ID
     end
 
-    # The project select alone, for the lane. It reads no meeting, so there is no
-    # scope to apply: what it names comes from writable_meeting_projects, the
-    # write reach of AccessCheck::ProjectAccessService.
+    # The lane alone, as a full visit of the same address shows it: the meeting
+    # of meeting_id, else the project select of ?new=meeting, else the empty
+    # lane. The scope is skipped only for a request that names no meeting, so
+    # verify_policy_scoped still bites where one is read.
     #
-    # Without that reach, or for any other request into the lane, the refusal
-    # answers INSIDE the frame (as TimeSessionGroupsController#entries does). The
-    # shared one redirects back to this page, fetch keeps the Turbo-Frame header
-    # on the redirected request, and that request lands here again: a right
-    # taken away while the page stays open ended in "too many redirects".
-    def render_new_meeting_frame
-      skip_policy_scope
-      allowed = new_meeting_requested?
-      partial = allowed ? 'new_meeting_lane' : 'new_meeting_denied'
-      locals = allowed ? { projects: writable_meeting_projects } : {}
+    # Every refusal answers INSIDE the frame (as TimeSessionGroupsController#entries
+    # does), never through the shared one: that redirects back to this page, the
+    # redirected request keeps the header and lands here again, and a right taken
+    # away while the page stays open ended in "too many redirects". For the same
+    # reason the meeting is asked with policy(...).show?, not authorize.
+    def render_lane_frame
+      partial, locals, status = lane_frame_content(lane_frame_meeting)
+      skip_policy_scope unless selected_meeting_id
 
       render html: helpers.turbo_frame_tag(MeetingsController::DETAIL_FRAME_ID) {
-        helpers.render(partial: "organisations/meetings_overview/#{partial}", locals: locals)
-      }, layout: false, status: (allowed ? :ok : :forbidden)
+        helpers.render(partial: partial, locals: locals)
+      }, layout: false, status: status
+    end
+
+    def lane_frame_content(meeting)
+      if meeting
+        MeetingTicketSuggestionRun.recover_for_meeting!(meeting)
+        ['organisations/meetings/display_meeting', { selected_meeting: meeting }, :ok]
+      elsif params[:new] != 'meeting'
+        ['organisations/meetings/display_meeting', { selected_meeting: nil }, :ok]
+      elsif new_meeting_requested?
+        ['organisations/meetings_overview/new_meeting_lane', { projects: writable_meeting_projects }, :ok]
+      else
+        ['organisations/meetings_overview/new_meeting_denied', {}, :forbidden]
+      end
+    end
+
+    def lane_frame_meeting
+      meeting = scoped_selected_meeting
+      meeting if meeting && policy(meeting).show?
     end
 
     # ?new=meeting, from someone who may write meetings somewhere. Otherwise the
@@ -121,12 +141,18 @@ module Organisations
     # transcript). @project stays unset: the lane names meeting.project itself,
     # and the list here belongs to no project (MeetingList).
     def find_selected_meeting
-      meeting_id = params[:meeting_id]
-      return unless meeting_id.is_a?(String) && meeting_id.present?
-
-      meeting = policy_scope(Meeting).find_by(id: meeting_id)
+      meeting = scoped_selected_meeting
       authorize(meeting, :show?) if meeting
       meeting
+    end
+
+    def scoped_selected_meeting
+      policy_scope(Meeting).find_by(id: selected_meeting_id) if selected_meeting_id
+    end
+
+    def selected_meeting_id
+      meeting_id = params[:meeting_id]
+      meeting_id if meeting_id.is_a?(String) && meeting_id.present?
     end
 
     # MeetingList: this list belongs to no project.

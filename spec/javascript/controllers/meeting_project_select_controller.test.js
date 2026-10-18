@@ -50,6 +50,20 @@ test("a choice loads the form of its project, a new choice the other one", () =>
   assert.equal(frame.attributes.src, URL_B)
 })
 
+// The answer for B can be a redirect (the right went, the project was deleted, the
+// session expired): frame-error then only puts its message on top, and the form of A
+// stayed under the name B, ready to save into A.
+test("a new choice takes the form of the project chosen before away at once", () => {
+  const { controller, frame, select } = fixture()
+  select.value = "A"
+  controller.choose()
+  frame.children = ["form of A"]
+  select.value = "B"
+  controller.choose()
+  assert.equal(frame.attributes.src, URL_B)
+  assert.deepEqual(frame.children, [])
+})
+
 test("taking the choice back shows the zero state and asks for nothing", () => {
   const { controller, frame, select } = fixture()
   select.value = "A"

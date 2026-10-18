@@ -43,6 +43,9 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
 
   before do
     driven_by :marketing_chrome
+    # The browser outlives the example: without this, the narrower window of the
+    # assistant picture stays for every picture after it.
+    page.driver.browser.manage.window.resize_to(MarketingScreenshots::WIDTH, MarketingScreenshots::HEIGHT)
     Prosopite.pause
     travel_to NordlichtFiction::NOW
     set_browser_clock

@@ -102,12 +102,19 @@ RSpec.describe Meetings::ListQuery do
     expect(query(smart_folder: folder)).to be_empty
   end
 
+  # A tie on occurred_at goes by the time a meeting was entered, then by its id. The created_at
+  # values are set, not left to the clock: with three random ids and three creation times the
+  # old expectation (ids only) held in one run of six.
   it 'never expands its caller scope and orders ties deterministically' do
-    records = 3.times.map { meeting('Same', occurred_at: Time.zone.local(2026, 9, 16)) }
+    occurred_at = Time.zone.local(2026, 9, 16)
+    entered = Time.zone.local(2026, 9, 16, 10)
+    records = 3.times.map { meeting('Same', occurred_at: occurred_at, created_at: entered) }
+    later = meeting('Same', occurred_at: occurred_at, created_at: entered + 1.minute)
     foreign_project = create(:project, organisation: organisation)
     create(:meeting, organisation: organisation, project: foreign_project, creator: user, title: 'Same')
-    expect(query.pluck(:id)).to eq(records.map(&:id).sort.reverse)
-    expect(query(sort: { 'column' => 'title; DROP TABLE meetings', 'direction' => 'invalid' }).pluck(:id)).to eq(records.map(&:id).sort.reverse)
+    expected = [later.id] + records.map(&:id).sort.reverse
+    expect(query.pluck(:id)).to eq(expected)
+    expect(query(sort: { 'column' => 'title; DROP TABLE meetings', 'direction' => 'invalid' }).pluck(:id)).to eq(expected)
     folder = save_view('creator' => [user.id])
     expect(described_class.call(scope: project.meetings.where(id: records.first.id), smart_folder: folder).pluck(:id)).to eq([records.first.id])
   end

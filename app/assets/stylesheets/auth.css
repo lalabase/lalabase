@@ -372,3 +372,16 @@
 
   .lp-auth-legal { justify-content: center; }
 }
+
+/* Demo mode: the published login on the sign-in page (devise/sessions/_demo_login) */
+.lp-demo-login {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 14px;
+  font-size: 14px;
+}
+
+.lp-demo-login dt { color: var(--lp-text-3); }
+.lp-demo-login dd { margin: 0; font-family: 'JetBrains Mono', monospace; overflow-wrap: anywhere; }
+.lp-auth-notice .lp-btn { align-self: flex-start; }

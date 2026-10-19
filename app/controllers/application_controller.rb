@@ -80,6 +80,8 @@ class ApplicationController < ActionController::Base
   # AFTER the callbacks above so it never runs ahead of the tenant/locale setup
   # for a signed-in request -- it skips those entirely anyway.
   include AcquisitionTracking
+  # After switch_locale, so the refusal speaks the visitor's language.
+  include DemoRestrictions
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 

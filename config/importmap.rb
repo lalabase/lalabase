@@ -152,6 +152,7 @@ else
   pin 'controllers/custom_period_controller', to: 'controllers/custom_period_controller.js'
   pin 'controllers/customer_description_edit_controller', to: 'controllers/customer_description_edit_controller.js'
   pin 'controllers/dashboard_inline_edit_controller', to: 'controllers/dashboard_inline_edit_controller.js'
+  pin 'controllers/demo_login_controller', to: 'controllers/demo_login_controller.js'
   pin 'controllers/detail_settings_modal_controller', to: 'controllers/detail_settings_modal_controller.js'
   pin 'controllers/details_autoclose_controller', to: 'controllers/details_autoclose_controller.js'
   pin 'controllers/dropdown_controller', to: 'controllers/dropdown_controller.js'

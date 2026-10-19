@@ -20,7 +20,9 @@ module Lalabase
     # `now` is the moment the world is seen from (frozen for the screenshots, the time
     # of the reset for the demo). `organisation` takes extra attributes for the
     # organisation, such as the AI switches. `embeddings` marks notes, comments and
-    # meetings for the assistant's search.
+    # meetings for the assistant's search. `password` is the signed-in person's
+    # (the demo publishes it); everybody else gets a random one of their own, so
+    # nobody signs in as the account admin with it.
     class World
       ORGANISATION_NAME = 'Nordlicht Software GmbH'
 
@@ -31,7 +33,7 @@ module Lalabase
         @now = now
         @organisation_attributes = organisation
         @embeddings = embeddings
-        @password = password || SecureRandom.base58(24)
+        @password = password || random_password
         @people = {}
         @projects = {}
         @tickets = []
@@ -81,8 +83,9 @@ module Lalabase
 
       # Confirmed right away: there is no inbox behind nordlicht.example.
       def add_user(key)
+        password = key == Fiction::SIGNED_IN ? @password : random_password
         User.create!(**Fiction::PEOPLE.fetch(key), email: Fiction.email(key),
-                                                   password: @password, password_confirmation: @password,
+                                                   password: password, password_confirmation: password,
                                                    language_preference: @locale.to_s, terms_accepted_at: @now,
                                                    &:skip_confirmation!)
       end
@@ -203,6 +206,8 @@ module Lalabase
                                 source_citations: citations.map(&:deep_stringify_keys))
         @chat.chatposts.update_all(created_at: @now - 20.minutes)
       end
+
+      def random_password = SecureRandom.base58(24)
 
       def dated(text) = Fiction.dated(text, @locale, @now)
 

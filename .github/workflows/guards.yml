@@ -425,6 +425,7 @@ jobs:
           spec/requests/organisations/time_sessions_subject_popover_edit_spec.rb
           spec/requests/ticket_time_columns_spec.rb
           spec/requests/auth_throttle_spec.rb
+          spec/requests/demo_mode_spec.rb
           spec/requests/legal_identity_spec.rb
           spec/requests/admin/system_settings_legal_identity_spec.rb
           spec/requests/organisations/accept_invitations_consent_spec.rb

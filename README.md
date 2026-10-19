@@ -9,6 +9,8 @@ cloud in Germany.
 [Documentation](https://lalabase.com/docs/en/self-hosting/getting-started/overview) ·
 [Cloud pricing](https://lalabase.com/en/pricing) · [Changelog](CHANGELOG.md)
 
+![The ticket list of a client project in Lalabase: tickets with status, assignee and age, saved views above, projects in the sidebar](.github/readme/ticket-list.png)
+
 ## What it does
 
 - **Clients and projects.** One organisation per client, any number of projects below it.

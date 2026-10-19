@@ -74,6 +74,11 @@ module Lalabase
 
       # uri_base is threaded through Provider#initialize; without it this
       # provider has no endpoint to talk to.
+      #
+      # An endpoint the operator did not configure goes through PublicEndpointAdapter:
+      # the address is judged for every connection and the socket goes to exactly that
+      # address. ruby-openai builds a fresh Faraday connection per request and hands it
+      # to this block, so the adapter covers every call, streaming included.
       def client
         @client ||= begin
           base = api_base.presence ||
@@ -82,7 +87,9 @@ module Lalabase
             access_token: api_key,
             uri_base: base,
             organization_id: organisation_id_param.presence
-          )
+          ) do |connection|
+            connection.adapter(PublicEndpointAdapter) unless operator_endpoint?
+          end
         end
       end
     end

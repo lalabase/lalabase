@@ -147,6 +147,8 @@ jobs:
           spec/helpers/timeline_helper_spec.rb
           spec/services/lalabase/safe_markdown_spec.rb
           spec/services/lalabase/indexer/git_cloner_spec.rb
+          spec/services/lalabase/public_address_spec.rb
+          spec/services/lalabase/llm/public_endpoint_adapter_spec.rb
           spec/components/neo_notification_card_component_spec.rb
           spec/components/neo_notification_component_spec.rb
           spec/components/neo_time_share_bar_component_spec.rb

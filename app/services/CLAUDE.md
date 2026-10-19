@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-10-08)
+# Karte: app/services (Stand: 2026-10-19)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -134,11 +134,13 @@ Verzeichnis-Übersicht (Auswahl):
   behält auch bei leer (E2-A, der Schlüssel wird nie zurückgespielt); ein Wechsel von
   **Anbieter oder Endpunkt** verlangt seine erneute Eingabe, weil ein behaltener Schlüssel plus
   ein beschreibbares `ai_api_base` sonst ein Lesezugriff auf ihn ist (Begründung:
-  `doc/ki_bereich_navigation_plan.md` §E2a); und der Endpunkt-Riegel `#public_host?` beurteilt
-  die **Zieladresse**, nie die Schreibweise — er ging zweimal an genau dieser Verwechslung
-  kaputt (IPv4-gemappte IPv6-Literale, dann numerische Notationen wie `127.1` oder
-  `0x7f.0.0.1`, die `IPAddr` ablehnt und der Resolver auflöst). Wer dort eine dritte Notation
-  in die Beispielliste einträgt, behandelt ein Symptom.
+  `doc/ki_bereich_navigation_plan.md` §E2a); und der Endpunkt-Riegel gehört `Lalabase::PublicAddress`: er löst den Namen
+  auf und beurteilt die **Zieladressen**, nie die Schreibweise. Er ging dreimal an genau dieser
+  Verwechslung kaputt (IPv4-gemappte IPv6-Literale, numerische Notationen wie `127.1`, dann
+  Namen: `localhost.`, `redis.`, öffentliche Namen mit Eintrag nach innen). Beim Speichern ist
+  er nur Komfort; der Schutz ist `Lalabase::Llm::PublicEndpointAdapter`, der bei jeder
+  Verbindung neu prüft und den Socket an die geprüfte Adresse bindet. Vertraut wird nur dem
+  Endpunkt, den eine `AiCredential` nennt (`Factory#operator_endpoint?`).
   Registrierung (Website-Schnitt W2, 15.09.2026): `create_signup` ist die EINE
   Selbst-Registrierung für das Formular und später den Provisioning-Endpunkt. Tier 2: Sprache
   und tenant-freier Rahmen umschließen den ganzen Lauf (die Bestätigungsmail rendert beim

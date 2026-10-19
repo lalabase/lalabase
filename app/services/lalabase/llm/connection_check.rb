@@ -25,8 +25,8 @@
 #     never the message. A provider error can carry the endpoint, a request id, and on a
 #     misconfigured openai_compatible endpoint whatever a stranger's server chose to
 #     write; storing it would put unreviewed third-party text into a column the hub card
-#     renders. The reason for a failure is a flash, which is read once by the person who
-#     asked for it.
+#     renders. The flash does not carry it either (AiConnectionCheckable): it would say
+#     which ports an endpoint the customer typed can reach. The reason is in the log.
 #   * A CHECK NEVER FAILS THE REQUEST. Every error becomes a result, because this is a
 #     diagnostic: an admin pressing "prüfen" on a broken access must get a red answer,
 #     not a 500.

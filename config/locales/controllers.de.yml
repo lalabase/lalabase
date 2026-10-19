@@ -396,7 +396,7 @@ de:
       connection_success: "Verbindung zu %{provider} erfolgreich getestet."
       connection_no_models: "Verbindungstest fehlgeschlagen: Keine Modelle gefunden."
       client_configured: "Client für %{provider} konfiguriert."
-      connection_error: "Verbindungstest fehlgeschlagen: %{error}"
+      connection_error: "Verbindungstest fehlgeschlagen. Der Anbieter war nicht erreichbar oder hat die Anfrage abgelehnt. Prüfe Endpunkt-URL, Schlüssel und Modell."
       activated: "KI-Features wurden für diese Organisation aktiviert."
       # Die Einwilligung ist erteilt, der Zugang fehlt trotzdem. Ohne diesen Satz meldete
       # die Seite schlicht Erfolg, und die erste Rueckmeldung war Tage spaeter eine Suche,

@@ -819,9 +819,21 @@ module Lalabase
         klass.new(api_key: descriptor.api_key, organisation_id_param: descriptor.organization_id,
                   organisation: organisation, uri_base: descriptor.api_base,
                   embedding_model: descriptor.model, additional_config: descriptor.additional_config,
-                  embedding_dims: descriptor.dims, billing_credential: descriptor.credential)
+                  embedding_dims: descriptor.dims, billing_credential: descriptor.credential,
+                  operator_endpoint: operator_endpoint?(descriptor.api_base, descriptor.credential))
       end
       private_class_method :build_provider
+
+      # Did an operator choose this endpoint? Only when it is exactly the one an
+      # AiCredential names. A BYOK endpoint comes with no credential, and a space row
+      # whose own api_base differs from its credential's is not the operator's choice
+      # either. Everything that is not provably the operator's is judged again for every
+      # request (PublicEndpointAdapter); a self-hosted model server next to the app
+      # belongs on a system credential for exactly that reason.
+      def operator_endpoint?(api_base, credential)
+        credential.present? && api_base.present? && api_base == credential.effective_api_base
+      end
+      private_class_method :operator_endpoint?
 
       # `utility:` selects the package rung the credentials come from (P3); it is
       # meaningless on the PINNED path, which by definition does not run on the
@@ -888,7 +900,8 @@ module Lalabase
                   organisation: organisation, uri_base: creds[:api_base],
                   chat_model: creds[:chat_model], provider_name: creds[:display_name],
                   additional_config: creds[:additional_config],
-                  billing_credential: creds[:credential])
+                  billing_credential: creds[:credential],
+                  operator_endpoint: operator_endpoint?(creds[:api_base], creds[:credential]))
       end
       private_class_method :instantiate_chat
 

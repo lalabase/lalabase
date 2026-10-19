@@ -53,11 +53,13 @@ RSpec.describe Lalabase::Demo::World do
         .to eq(:own)
     end
 
-    it 'lets every person sign in with the given password, confirmed' do
-      organisation.users.each do |user|
-        expect(user.valid_password?(password)).to be(true)
-        expect(user).to be_confirmed
-      end
+    # The demo publishes the password. With it on the owner, a visitor would sign
+    # in as the account admin.
+    it 'gives the password to the signed-in person only, and confirms everybody' do
+      expect(world.signed_in.valid_password?(password)).to be(true)
+      others = organisation.users.where.not(id: world.signed_in.id)
+      expect(others.map { _1.valid_password?(password) }).to all(be(false))
+      expect(organisation.users).to all(be_confirmed)
     end
 
     it 'adds one meeting with its summary and one waiting for it, with guests among the participants' do

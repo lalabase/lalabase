@@ -148,6 +148,14 @@ class User < ApplicationRecord
     session_timeout_minutes.minutes
   end
 
+  # The published login of the demo (Lalabase::Demo) is shared by every visitor,
+  # so counting failed attempts would let anybody lock it for everybody. Defined
+  # here for the same ancestor reason as timeout_in: `devise :lockable` lands
+  # above the concerns.
+  def lock_strategy_enabled?(strategy)
+    super && !Lalabase::Demo.published_login?(email)
+  end
+
   # confirmation_period_valid? lives here for the SAME ancestor reason as
   # timeout_in above: `devise :confirmable` mixes Devise::Models::Confirmable
   # into User from inside User::Authenticatable's `included do`, so it lands

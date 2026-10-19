@@ -1,0 +1,12 @@
+en:
+  views:
+    demo:
+      blocked: "Not available in the demo."
+      banner:
+        title: "Demo"
+        body: "Every visitor signs in to this account, so others see what you change. Everything is reset every night."
+      sign_in:
+        lead: "Try the demo: sign in as %{name}, project lead at an invented software company."
+        email: "Email"
+        password: "Password"
+        fill: "Fill in"

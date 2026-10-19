@@ -259,6 +259,7 @@
              confirmation deadline only ends access. %>
          <%= render 'layouts/deletion_warning' if user_signed_in? && current_user.deletion_scheduled? %>
          <%= render 'layouts/email_confirmation' if user_signed_in? && current_user.awaiting_confirmation? && !current_user.deletion_scheduled? %>
+         <%= render 'layouts/demo_banner' if user_signed_in? && Lalabase::Demo.enabled? %>
 
          <%# Mount notification dropdown in test env so system specs can interact with it %>
          <% if Rails.env.test? && user_signed_in? && @current_organisation.present? %>

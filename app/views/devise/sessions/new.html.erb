@@ -12,11 +12,14 @@
      is DELIBERATELY not implemented: it is marked there as an optional
      suggestion, not an existing feature; with it the OR divider goes away too. %>
 
-<% content_for :auth_cross do %>
-  <p class="lp-auth-cross">
-    <%= t('.no_account') %>
-    <%= link_to t('.register'), new_registration_path(resource_name), class: 'lp-auth-cross-link' %>
-  </p>
+<%# The demo has no sign-up: everybody uses the login shown in the form. %>
+<% unless Lalabase::Demo.enabled? %>
+  <% content_for :auth_cross do %>
+    <p class="lp-auth-cross">
+      <%= t('.no_account') %>
+      <%= link_to t('.register'), new_registration_path(resource_name), class: 'lp-auth-cross-link' %>
+    </p>
+  <% end %>
 <% end %>
 
 <div class="lp-eyebrow"><%= t('.eyebrow') %></div>
@@ -24,6 +27,8 @@
 
 <%= form_for(resource, as: resource_name, url: session_path(resource_name),
              html: { class: 'lp-auth-form', novalidate: true }) do |f| %>
+  <%= render 'devise/sessions/demo_login' if Lalabase::Demo.enabled? %>
+
   <div class="lp-field">
     <label for="user_email" class="lp-field-label"><%= t('.email_label') %></label>
     <%= f.email_field :email,

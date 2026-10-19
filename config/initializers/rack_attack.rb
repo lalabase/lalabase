@@ -86,8 +86,12 @@ class Rack::Attack
   end
 
   ### Throttle login attempts per email ###
+  # The published login of the demo (Lalabase::Demo) is exempt: every visitor
+  # signs in with that one address, and five of them a minute would lock out the
+  # sixth. logins/ip still counts each of them.
   throttle('logins/email', limit: 5, period: 60.seconds) do |req|
-    login_email(req) if post_to?(req, SIGN_IN_PATH)
+    email = login_email(req) if post_to?(req, SIGN_IN_PATH)
+    email unless Lalabase::Demo.published_login?(email)
   end
 
   ### Throttle the one-time signup link per IP ###

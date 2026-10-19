@@ -67,6 +67,12 @@ module Actors
     # column outside the audit is a change nobody can reconstruct afterwards.
     WRITABLE = AiConfigurationAudit::COLUMNS
 
+    # Seconds the endpoint's DNS lookup may take. It runs while #perform holds the
+    # organisation's row lock, so a stalled resolver must not hold that lock for the
+    # system resolver's own limits. A name that does not answer in time is refused
+    # like one that does not resolve.
+    API_BASE_LOOKUP_TIMEOUT = 3
+
     def initialize(organisation:, params:, current_user:)
       super()
       @organisation = organisation
@@ -201,7 +207,7 @@ module Actors
     end
 
     def public_host?(hostname)
-      Lalabase::PublicAddress.public?(hostname)
+      Lalabase::PublicAddress.public?(hostname, timeout: API_BASE_LOOKUP_TIMEOUT)
     end
 
     # The other half of the exfiltration guard. Keeping a stored key (E2-A) is safe only

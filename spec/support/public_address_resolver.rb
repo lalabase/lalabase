@@ -22,7 +22,7 @@ module PublicAddressResolverHelpers
   }.freeze
 
   def self.resolver_for(table)
-    lambda do |hostname|
+    lambda do |hostname, timeout: nil| # rubocop:disable Lint/UnusedBlockArgument
       numeric = numeric_addresses(hostname)
       next numeric if numeric
 

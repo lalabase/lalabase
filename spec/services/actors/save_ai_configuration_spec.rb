@@ -245,9 +245,22 @@ RSpec.describe Actors::SaveAiConfiguration do
     # Same answer as for an inward name: a different one would tell the caller which
     # internal names exist.
     it 'refuses a name that does not resolve, with the same answer' do
-      Lalabase::PublicAddress.resolver = ->(_hostname) { raise SocketError, 'no such name' }
+      Lalabase::PublicAddress.resolver = ->(_hostname, **) { raise SocketError, 'no such name' }
 
       expect(save_endpoint('https://nowhere.example/v1').code).to eq(:api_base_not_public)
+    end
+
+    # The lookup runs under the organisation's row lock; a stalled resolver must not
+    # hold it for the system's own limits.
+    it 'bounds the DNS lookup of the endpoint' do
+      timeouts = []
+      Lalabase::PublicAddress.resolver = lambda do |_hostname, timeout:|
+        timeouts << timeout
+        ['52.1.2.3']
+      end
+
+      expect(save_endpoint('https://api.provider.example/v1')).to be_success
+      expect(timeouts).to eq([described_class::API_BASE_LOOKUP_TIMEOUT])
     end
 
     it 'refuses something that is not a URL at all' do

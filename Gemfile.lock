@@ -310,8 +310,8 @@ GEM
     neighbor (0.5.2)
       activerecord (>= 7)
     nenv (0.3.0)
-    net-http (0.6.0)
-      uri
+    net-http (0.9.1)
+      uri (>= 0.11.1)
     net-imap (0.6.6)
       date
       net-protocol
@@ -702,6 +702,7 @@ DEPENDENCIES
   minitest (~> 5.26)
   mission_control-jobs
   neighbor
+  net-http (~> 0.9.1)
   ostruct
   pagy (~> 9.0)
   parser (~> 3.3)

@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe Lalabase::Indexer::GitCloner do
+RSpec.describe Lalabase::Indexer::GitCloner, :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:project)      { create(:project, organisation: organisation) }
   let(:repository) do

@@ -89,6 +89,23 @@ RSpec.describe Lalabase::Demo::World do
     end
   end
 
+  # The stored answer speaks of "4:30 hours this week". Built on a Monday at the hour
+  # of the nightly reset, a booking two days back would land in the week before, and
+  # the time list and the answer would contradict each other.
+  it 'keeps every booking in the week of the build, so the stored answer adds up on a Monday' do
+    monday = Time.zone.local(2026, 10, 19, 3, 0)
+    world = Prosopite.pause do
+      travel_to(monday) { described_class.new(locale: :en, now: monday, password: password).build }
+    end
+    ActsAsTenant.without_tenant do
+      sessions = TimeSession.where(organisation: world.organisation)
+      expect(sessions.pluck(:occurred_on)).to all(be_between(monday.beginning_of_week, monday))
+      ole_on_the_statement = sessions.where(creator: world.person(:ole), ticket: world.ticket(fiction::CHAT[:ticket]))
+      expect(ole_on_the_statement.sum(:duration)).to eq(270)
+      expect(world.chat.chatposts.find_by(role: 'assistant').content).to include('4:30 hours on it this week')
+    end
+  end
+
   it 'marks notes, comments and meetings for the search when asked' do
     world = build(embeddings: true)
     ActsAsTenant.without_tenant do

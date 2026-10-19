@@ -90,7 +90,8 @@ module Lalabase
           status: 'backlog', priority: 'normal', assignee: :svenja }
       ].freeze
 
-      # Minutes per person and day, on the ticket at that index.
+      # Minutes per person and day, on the ticket at that index. All of it falls in the
+      # week of the build (World#booked_on): CHAT[:answer] sums Ole's week.
       TIME = [
         { person: :malte, days_ago: 0, minutes: 150, ticket: 2,
           de: 'Upload der Fotos, Vorschau', en: 'Photo upload, preview' },

@@ -141,12 +141,16 @@ module Lalabase
           creator = person(entry[:person])
           session = TimeSession.new(organisation: @organisation, project: project(:deichblick),
                                     ticket: entry[:ticket] && ticket(entry[:ticket]), creator: creator,
-                                    duration: entry[:minutes], occurred_on: @now - entry[:days_ago].days,
+                                    duration: entry[:minutes], occurred_on: booked_on(entry[:days_ago]),
                                     description: entry.fetch(@locale))
           succeed!(Actors::SaveTimeSession.call(time_session: session, attributes: {},
                                                 group_change: { requested: false }, current_user: creator))
         end
       end
+
+      # Never before the start of the week: the stored answer speaks of the hours of
+      # "this week", and on a Monday two days back is the week before.
+      def booked_on(days_ago) = [@now - days_ago.days, @now.beginning_of_week].max
 
       def add_notes
         @notes = Fiction::NOTES.each_with_index.map do |entry, index|

@@ -65,6 +65,62 @@ RSpec.describe Lalabase::Llm::PublicEndpointAdapter, :ci_guard do
     end
   end
 
+  # With the name, Net::HTTP let TCPSocket try every address of it. Pinned to one
+  # address, a dual-stack endpoint with broken IPv6 would fail every request although
+  # its IPv4 address answers. So the TCP connect walks the checked addresses in order,
+  # and only the connect: nothing has been sent at that point, so trying the next
+  # address cannot send a request twice.
+  describe 'failover across the checked addresses' do
+    let(:server) { TCPServer.new('127.0.0.1', 0) }
+    let(:attempts) { [] }
+
+    after { server.close }
+
+    def connect_through(unreachable:)
+      allow(TCPSocket).to receive(:open).and_wrap_original do |original, address, _port, *rest, **options|
+        attempts << address
+        raise Errno::ENETUNREACH, address if unreachable.include?(address)
+
+        original.call('127.0.0.1', server.addr[1], *rest, **options)
+      end
+
+      http = connection_for("http://dual.provider.example:#{server.addr[1]}/v1")
+      http.start(&:started?)
+    end
+
+    it 'connects to the next checked address when the first is unreachable' do
+      resolve_names('dual.provider.example' => ['2001:db8::1', '203.0.113.20'])
+
+      expect(connect_through(unreachable: ['2001:db8::1'])).to be(true)
+      expect(attempts).to eq(['2001:db8::1', '203.0.113.20'])
+    end
+
+    it 'tries only the checked addresses and fails with the last error when none answers' do
+      resolve_names('dual.provider.example' => ['2001:db8::1', '203.0.113.20'])
+
+      expect { connect_through(unreachable: ['2001:db8::1', '203.0.113.20']) }
+        .to raise_error(Errno::ENETUNREACH)
+      expect(attempts).to eq(['2001:db8::1', '203.0.113.20'])
+    end
+
+    # Once connected, the request may have been written. A failure from there on must
+    # not go to the next address: a chat request would run, and be billed, twice.
+    it 'does not try the next address when the request fails after the connect' do
+      resolve_names('dual.provider.example' => ['203.0.113.20', '203.0.113.21'])
+      listener = Thread.new { loop { server.accept.close } }
+      allow(TCPSocket).to receive(:open).and_wrap_original do |original, address, _port, *rest, **options|
+        attempts << address
+        original.call('127.0.0.1', server.addr[1], *rest, **options)
+      end
+
+      http = connection_for("http://dual.provider.example:#{server.addr[1]}/v1")
+      expect { http.request(Net::HTTP::Post.new('/v1/chat/completions')) }.to raise_error(StandardError)
+      expect(attempts).to eq(['203.0.113.20'])
+    ensure
+      listener&.kill
+    end
+  end
+
   # End to end, with the real OpenAI client: a listener on loopback stands for a
   # service on the app server, and a public-looking name resolves to it.
   describe 'Lalabase::Llm::OpenAiCompatibleProvider at request time' do

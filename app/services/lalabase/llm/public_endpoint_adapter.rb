@@ -8,9 +8,9 @@ require 'faraday/net_http'
 # can point at the app server when the decrypted key is sent (DNS rebinding).
 #
 # So for every connection it resolves the host through Lalabase::PublicAddress, refuses
-# unless every address is public, and pins the socket to the first of them
-# (Net::HTTP#ipaddr=). Net::HTTP keeps the NAME for SNI and the certificate check, so
-# TLS still verifies the host the customer named.
+# unless every address is public, and connects only to those addresses, in the order
+# the resolver gave them (PinnedAddresses). Net::HTTP keeps the NAME for SNI and the
+# certificate check, so TLS still verifies the host the customer named.
 #
 # Through a proxy the proxy resolves the name and the pinned address means nothing, so
 # a proxied request is refused. An operator who needs one configures the endpoint on a
@@ -24,11 +24,49 @@ module Lalabase
       # retry_on in the jobs, ConnectionCheck), with no port or reason in its text.
       class EndpointNotPublicError < Faraday::ConnectionFailed; end
 
+      # Mixed into the one Net::HTTP object of a connection. Given the name, Net::HTTP
+      # let TCPSocket try every address of it; given one pinned address, a dual-stack
+      # endpoint with broken IPv6 would fail although its IPv4 address answers. So the
+      # TCP connect walks the checked addresses in order and gives up with the last
+      # error.
+      #
+      # Only around Net::HTTP#connect, which opens the socket and does the TLS
+      # handshake and nothing else: the request is written after it returns, so
+      # nothing has been sent when the next address is tried, and a request is never
+      # sent twice. On failure #connect closes the socket it opened. #connect is
+      # private, but it is the seam both the net-http gem in the bundle (0.6.0) and the
+      # one in Ruby 4.0 share; the helper below it differs between the two.
+      module PinnedAddresses
+        CONNECT_ERRORS = [SystemCallError, IO::TimeoutError, Net::OpenTimeout].freeze
+
+        attr_accessor :pinned_addresses
+
+        private
+
+        def connect
+          *earlier, last = pinned_addresses
+          earlier.each do |address|
+            self.ipaddr = address
+            return super
+          rescue *CONNECT_ERRORS
+            next
+          end
+          self.ipaddr = last
+          super
+        end
+      end
+
       def net_http_connection(env)
         raise EndpointNotPublicError, 'the endpoint is not a public address' if env[:request][:proxy]
 
-        address = PublicAddress.resolve!(env[:url].hostname).first
-        super.tap { |http| http.ipaddr = address }
+        addresses = PublicAddress.resolve!(env[:url].hostname)
+        super.tap do |http|
+          http.extend(PinnedAddresses)
+          http.pinned_addresses = addresses
+          # What Net::HTTP reports as the address it connects to (#ipaddr, and the
+          # "Failed to open TCP connection to" message) is the first checked one.
+          http.ipaddr = addresses.first
+        end
       rescue PublicAddress::NotPublicError
         raise EndpointNotPublicError, 'the endpoint is not a public address'
       end

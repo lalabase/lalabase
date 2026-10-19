@@ -125,7 +125,12 @@ module Lalabase
       end
 
       def clone_args(dir)
-        ['git', 'clone', '--depth', @depth.to_s,
+        # core.symlinks=false checks every symlink out as a plain file holding the
+        # link target. Every reader of the working tree follows links, so a link
+        # to a server file (the app's .env, /proc/self/environ) would otherwise
+        # be read and published as a documentation page. `clone -c` writes the
+        # setting into the clone's config, so the ref checkout below keeps it.
+        ['git', 'clone', '-c', 'core.symlinks=false', '--depth', @depth.to_s,
          '--branch', @repository.default_branch.to_s,
          '--single-branch', clone_url, dir]
       end

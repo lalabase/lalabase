@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe Lalabase::Indexer::GitCloner do
+RSpec.describe Lalabase::Indexer::GitCloner, :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:project)      { create(:project, organisation: organisation) }
   let(:repository) do
@@ -72,7 +72,7 @@ RSpec.describe Lalabase::Indexer::GitCloner do
       stub_popen3(exit_status: 0)
       described_class.new(repository).call { |_| }
       expect(Open3).to have_received(:popen3).with(
-        'git', 'clone', '--depth', '1', '--branch', 'main', '--single-branch',
+        'git', 'clone', '-c', 'core.symlinks=false', '--depth', '1', '--branch', 'main', '--single-branch',
         'https://x-access-token:ghp_secret_token_value@github.com/acme/backend.git',
         a_string_matching(%r{/lalabase-clone-})
       )
@@ -82,7 +82,7 @@ RSpec.describe Lalabase::Indexer::GitCloner do
       stub_popen3(exit_status: 0)
       described_class.new(repository, depth: 5).call { |_| }
       expect(Open3).to have_received(:popen3).with(
-        'git', 'clone', '--depth', '5', anything, anything, anything, anything, anything
+        'git', 'clone', '-c', 'core.symlinks=false', '--depth', '5', anything, anything, anything, anything, anything
       )
     end
 
@@ -286,7 +286,7 @@ RSpec.describe Lalabase::Indexer::GitCloner do
       described_class.new(repository, ref: 'deadbeef123').call { |_| }
 
       expect(Open3).to have_received(:popen3).with(
-        'git', 'clone', '--depth', '1', '--branch', 'main', '--single-branch', anything, anything
+        'git', 'clone', '-c', 'core.symlinks=false', '--depth', '1', '--branch', 'main', '--single-branch', anything, anything
       )
       expect(Open3).to have_received(:popen3).with('git', '-C', anything, 'fetch', '--depth', '1', 'origin', 'deadbeef123')
       expect(Open3).to have_received(:popen3).with('git', '-C', anything, 'checkout', '--quiet', 'deadbeef123')
@@ -343,7 +343,7 @@ RSpec.describe Lalabase::Indexer::GitCloner do
         stub_popen3(exit_status: 0)
         described_class.new(feature_repo).call { |_| }
         expect(Open3).to have_received(:popen3).with(
-          'git', 'clone', '--depth', '1', '--branch', 'feature/foo', '--single-branch', anything, anything
+          'git', 'clone', '-c', 'core.symlinks=false', '--depth', '1', '--branch', 'feature/foo', '--single-branch', anything, anything
         )
       end
     end
@@ -392,6 +392,60 @@ RSpec.describe Lalabase::Indexer::GitCloner do
       allow(cloner).to receive(:clone_url).and_return('/nonexistent/nowhere.git')
 
       expect(cloner.remote_head_commit).to be_nil
+    end
+  end
+
+  # Every reader of the working tree (documentation sync, RepoScanner, symbol
+  # walker) follows symlinks. A repository that commits `docs/x.md -> /etc/passwd`
+  # or a link to the app's own .env made the documentation sync publish that
+  # server file as a page. The working tree must hold no symlink at all.
+  describe 'symlinks in the repository' do
+    let(:outside) { Dir.mktmpdir('cloner-outside-') }
+    let(:source)  { Dir.mktmpdir('cloner-symlinks-') }
+
+    before do
+      File.write(File.join(outside, 'secret.txt'), 'SERVER_SECRET=do-not-leak')
+      system('git', 'init', '-b', 'main', source, out: File::NULL, err: File::NULL)
+      system('git', '-C', source, 'config', 'user.email', 'spec@example.com', out: File::NULL)
+      system('git', '-C', source, 'config', 'user.name', 'Spec', out: File::NULL)
+      system('git', '-C', source, 'config', 'uploadpack.allowAnySHA1InWant', 'true', out: File::NULL)
+      FileUtils.mkdir_p(File.join(source, 'docs'))
+      File.write(File.join(source, 'docs', 'index.md'), '# Docs')
+      File.symlink(File.join(outside, 'secret.txt'), File.join(source, 'docs', 'leak.md'))
+      File.symlink(outside, File.join(source, 'linked_dir'))
+      system('git', '-C', source, 'add', '.', out: File::NULL)
+      system('git', '-C', source, 'commit', '-m', 'init', out: File::NULL, err: File::NULL)
+    end
+
+    after { [outside, source].each { |d| FileUtils.remove_entry(d, true) } }
+
+    def working_tree_after_clone(cloner)
+      allow(cloner).to receive(:clone_url).and_return("file://#{source}")
+      seen = {}
+      cloner.call do |path|
+        seen[:links] = Dir.glob('**/*', File::FNM_DOTMATCH, base: path.to_s)
+                          .select { |p| File.symlink?(path.join(p)) }
+        seen[:leak] = path.join('docs', 'leak.md').read
+        seen[:dir_is_directory] = path.join('linked_dir').directory?
+      end
+      seen
+    end
+
+    it 'checks every link out as a plain file holding the target path' do
+      seen = working_tree_after_clone(described_class.new(repository))
+
+      expect(seen[:links]).to be_empty
+      expect(seen[:leak]).not_to include('do-not-leak')
+      expect(seen[:leak]).to eq(File.join(outside, 'secret.txt'))
+      expect(seen[:dir_is_directory]).to be(false)
+    end
+
+    it 'does the same when a pinned ref is fetched and checked out' do
+      sha = `git -C #{source} rev-parse HEAD`.strip
+      seen = working_tree_after_clone(described_class.new(repository, ref: sha))
+
+      expect(seen[:links]).to be_empty
+      expect(seen[:leak]).not_to include('do-not-leak')
     end
   end
 end

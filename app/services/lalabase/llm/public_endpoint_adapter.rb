@@ -36,6 +36,14 @@ module Lalabase
       # sent twice. On failure #connect closes the socket it opened. #connect is
       # private, but it is the seam both the net-http gem in the bundle (0.6.0) and the
       # one in Ruby 4.0 share; the helper below it differs between the two.
+      #
+      # All attempts share ONE open timeout, as all addresses of a name did before.
+      # Restarting it per address would turn the client's budget (120 seconds from
+      # ruby-openai) into one per address, and a worker would hang N times as long on
+      # an endpoint that drops packets. Each attempt gets what is left; the configured
+      # value is restored afterwards for any later reconnect. Since #connect also does
+      # the TLS handshake, the handshake now draws on the same budget: stricter than
+      # before, never longer.
       module PinnedAddresses
         CONNECT_ERRORS = [SystemCallError, IO::TimeoutError, Net::OpenTimeout].freeze
 
@@ -44,15 +52,28 @@ module Lalabase
         private
 
         def connect
-          *earlier, last = pinned_addresses
-          earlier.each do |address|
+          budget = open_timeout
+          deadline = budget && (monotonic_now + budget)
+          pinned_addresses.each_with_index do |address, index|
             self.ipaddr = address
+            self.open_timeout = remaining_until(deadline) if deadline
             return super
           rescue *CONNECT_ERRORS
-            next
+            raise if index == pinned_addresses.size - 1
           end
-          self.ipaddr = last
-          super
+        ensure
+          self.open_timeout = budget
+        end
+
+        def remaining_until(deadline)
+          remaining = deadline - monotonic_now
+          raise Net::OpenTimeout, 'the open timeout is spent' unless remaining.positive?
+
+          remaining
+        end
+
+        def monotonic_now
+          Process.clock_gettime(Process::CLOCK_MONOTONIC)
         end
       end
 

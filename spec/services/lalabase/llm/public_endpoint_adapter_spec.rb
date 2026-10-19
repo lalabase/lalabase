@@ -103,6 +103,25 @@ RSpec.describe Lalabase::Llm::PublicEndpointAdapter, :ci_guard do
       expect(attempts).to eq(['2001:db8::1', '203.0.113.20'])
     end
 
+    # With the name, every address shared one open timeout. Restarting it for each
+    # checked address would turn the client's budget into one per address, and a
+    # worker thread would hang N times as long on an endpoint that drops packets.
+    it 'shares one open timeout across all checked addresses' do
+      resolve_names('dual.provider.example' => ['203.0.113.20', '203.0.113.21', '203.0.113.22'])
+      allow(TCPSocket).to receive(:open) do |address, *|
+        attempts << address
+        sleep 5
+      end
+
+      http = connection_for("http://dual.provider.example:#{server.addr[1]}/v1")
+      http.open_timeout = 0.3
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+      expect { http.start(&:started?) }.to raise_error(Net::OpenTimeout)
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < 0.6
+      expect(http.open_timeout).to eq(0.3)
+    end
+
     # Once connected, the request may have been written. A failure from there on must
     # not go to the next address: a chat request would run, and be billed, twice.
     it 'does not try the next address when the request fails after the connect' do

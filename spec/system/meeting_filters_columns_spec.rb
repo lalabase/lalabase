@@ -203,4 +203,48 @@ RSpec.describe 'Meeting filters and columns', type: :system do
     row.send_keys(:enter)
     expect(page).to have_css('#meeting-header', text: title)
   end
+
+  # The "+" puts the form where the open meeting was: the address has to say
+  # so (new instead of meeting_id), and the meeting's row may not stay marked.
+  # A reload of that address shows the form, with the list state kept.
+  it 'opens the form from the "+" in place of the open meeting' do
+    page.driver.browser.manage.window.resize_to(1440, 1000)
+    visit path(search: 'a', search_mode: 'title_only')
+    # The rows show before their scripts listen: a click before that opens nothing.
+    page.document.synchronize do
+      connected = page.evaluate_script(<<~JS)
+        Boolean(window.Stimulus?.getControllerForElementAndIdentifier(document.querySelector('tr[data-meeting-id]'), 'list-row'))
+      JS
+      raise Capybara::ExpectationNotMet, 'the row controller is not connected yet' unless connected
+    end
+    find("tr[data-meeting-id='#{meetings.second.id}']").click
+    expect(page).to have_css('tr.selected-row', text: 'Beta', wait: 5)
+    expect(page).to have_css('#meeting-header', text: 'Beta', wait: 5)
+
+    plus = "a[title='#{I18n.t('views.organisations.meetings.index.new_meeting')}']"
+    # The lane opens with a width transition (layout.css, --panel-width), and
+    # the "+" moves with the list column until it ends.
+    page.document.synchronize(5) do
+      left = -> { page.evaluate_script("document.querySelector(\"#{plus}\").getBoundingClientRect().left") }
+      before = left.call
+      sleep 0.15
+      raise Capybara::ExpectationNotMet, 'the "+" is still moving' unless left.call == before
+    end
+    # A full visit of the href would show the same state: the marker proves
+    # the lane opened the form in place.
+    page.execute_script('window.laneStayed = true')
+    find(plus).click
+
+    expect(page).to have_css('#meeting_display_frame #meeting-form-card form', wait: 5)
+    expect(page.evaluate_script('window.laneStayed')).to be(true)
+    expect(page).to have_no_css('tr.selected-row')
+    expect(page).to have_current_path(/[?&]new=meeting/, url: true)
+    expect(page).to have_no_current_path(/meeting_id=/, url: true)
+    expect(page).to have_current_path(/search_mode=title_only/, url: true)
+
+    page.refresh
+    expect(page).to have_css('#meeting_display_frame #meeting-form-card form', wait: 5)
+    expect(page).to have_no_css('tr.selected-row')
+    expect(find('input[name="search"]').value).to eq('a')
+  end
 end

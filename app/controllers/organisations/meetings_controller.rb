@@ -103,9 +103,11 @@ module Organisations
         return
       end
 
-      # The list header normally opens the form in the desktop detail frame. On a
-      # phone that frame is absent from the list DOM, so the top-level request turns
-      # the form into an explicit index-page state while retaining active filters.
+      # The first-use CTA of an empty list opens the form in the desktop detail
+      # frame (the list head's "+" is a lane-link to ?new=meeting itself). On a
+      # phone that frame is absent from the list DOM, so the top-level request
+      # turns the form into an explicit index-page state while retaining active
+      # filters.
       if params[:frame] == 'content'
         redirect_to organisation_project_meetings_path(
           @current_organisation,

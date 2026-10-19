@@ -20,10 +20,10 @@ import { readLaneParams, laneParamNames, withLaneState } from "lane/params"
 //   focus   a selector to focus once the frame has loaded (the way back returns
 //           the focus to the file name that opened the preview, D10)
 //
-// A link that removes a selection parameter (the "+" of "Alle Meetings" takes
-// meeting_id away) leaves no row open, so it takes the mark off the row that
-// was (.selected-row, list_row_controller). The address is the truth, and a
-// full visit of the new address marks no row either.
+// A link that removes a selection parameter (the "+" of either meetings page
+// takes meeting_id away) leaves no row open, so it takes the mark off the row
+// that was (.selected-row, list_row_controller). The address is the truth, and
+// a full visit of the new address marks no row either.
 export default class extends Controller {
   static values = {
     url: String,

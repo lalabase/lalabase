@@ -70,7 +70,10 @@ module AiCredentialConnectivity
       # as a Factory helper it was only reachable from here by naming the service,
       # and the rescue below turns any slip into a quiet `false` rather than a raise.
       uri_base: effective_api_base,
-      additional_config: additional_config
+      additional_config: additional_config,
+      # The operator's own credential, tested from the admin area: its endpoint is
+      # theirs to choose, a model server on the same host included.
+      operator_endpoint: true
     )
   end
 

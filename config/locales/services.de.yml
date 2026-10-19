@@ -8,7 +8,7 @@ de:
         unusable_token: "Der hinterlegte Schlüssel passt nicht zum Format, das %{provider} erwartet. Gespeichert würde er die KI für die Organisation abschalten, statt sie einzurichten."
         token_reentry_required: "Anbieter oder Endpunkt sollen sich ändern. Bitte trage den Schlüssel dafür erneut ein: er wird nie im Klartext angezeigt, und ohne diesen Schritt könnte ein bestehender Schlüssel an eine neue Adresse geschickt werden, ohne dass jemand ihn kennt."
         api_base_not_https: "Die Endpunkt-URL muss mit https:// beginnen. Über eine unverschlüsselte Verbindung ginge der Schlüssel im Klartext an den Anbieter."
-        api_base_not_public: "Diese Endpunkt-URL zeigt auf das Servernetz von Lalabase statt auf einen Anbieter. Bitte trage die öffentliche Adresse deines Endpunkts ein."
+        api_base_not_public: "Diese Endpunkt-URL führt nicht zu einer öffentlichen Adresse: Sie zeigt auf das Servernetz von Lalabase oder lässt sich nicht auflösen. Bitte trage die öffentliche Adresse deines Endpunkts ein."
         fields:
           ai_access_token: "Schlüssel"
           ai_api_base: "Endpunkt-URL"

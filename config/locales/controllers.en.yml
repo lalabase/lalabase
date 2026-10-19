@@ -392,7 +392,7 @@ en:
       connection_success: "Connection to %{provider} successfully tested."
       connection_no_models: "Connection test failed: No models found."
       client_configured: "Client for %{provider} configured."
-      connection_error: "Connection test failed: %{error}"
+      connection_error: "Connection test failed. The provider could not be reached or refused the request. Check the endpoint URL, the key and the model."
       activated: "AI features have been activated for this organisation."
       activated_without_embedding_access: >-
         AI features are active. Embedding access is still missing. New content stays

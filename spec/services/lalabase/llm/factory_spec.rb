@@ -476,6 +476,44 @@ RSpec.describe Lalabase::Llm::Factory do
     end
   end
 
+  # An endpoint a customer typed is judged again for every request
+  # (Lalabase::Llm::PublicEndpointAdapter). One the operator put on a system credential
+  # is not: a model server next to a self-hosted app is a legitimate place for it.
+  describe 'who chose the endpoint' do
+    let(:system_credential) do
+      build_stubbed(:ai_credential, provider: 'openai_compatible', enabled: true,
+                                    access_token: 'sk-sys', default_model: 'm', api_base: 'https://sys.internal/v1')
+    end
+
+    it "treats the organisation's own chat endpoint as the customer's" do
+      organisation.update!(ai_provider: 'openai_compatible', ai_access_token: 'key-123',
+                           ai_api_base: 'https://own.example/v1', preferred_chat_model: 'm')
+
+      expect(described_class.for_chat(organisation).operator_endpoint?).to be(false)
+    end
+
+    it "treats the system credential's chat endpoint as the operator's" do
+      organisation.update!(ai_provider: 'openai_compatible', ai_access_token: nil)
+      allow(AiCredential).to receive(:active_for_provider).with('openai_compatible').and_return(system_credential)
+
+      expect(described_class.for_chat(organisation).operator_endpoint?).to be(true)
+    end
+
+    it "treats the organisation's own embedding endpoint as the customer's" do
+      organisation.update!(embedding_provider: 'openai_compatible', embedding_access_token: 'sk-local',
+                           embedding_api_base: 'https://own.example/v1', embedding_model: 'bge-1536')
+
+      expect(described_class.for_embeddings(organisation, space: :configured).operator_endpoint?).to be(false)
+    end
+
+    it "treats the system credential's embedding endpoint as the operator's" do
+      organisation.update!(embedding_provider: 'openai_compatible')
+      allow(AiCredential).to receive(:active_for_provider).with('openai_compatible').and_return(system_credential)
+
+      expect(described_class.for_embeddings(organisation, space: :configured).operator_endpoint?).to be(true)
+    end
+  end
+
   # ⚠️ REWRITTEN in the review of S7, and the old title was the defect: there was no
   # single "precedence", there were two branches, and the org column had a meaning in
   # exactly one of them. The examples below used to PIN the wrong behaviour — three of

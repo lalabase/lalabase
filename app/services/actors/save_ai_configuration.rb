@@ -67,23 +67,6 @@ module Actors
     # column outside the audit is a change nobody can reconstruct afterwards.
     WRITABLE = AiConfigurationAudit::COLUMNS
 
-    # Names that resolve to the app server itself. The literal-IP families are
-    # covered by IPAddr below; this list is for the names that never reach it.
-    BLOCKED_API_BASE_HOSTS = %w[localhost ip6-localhost].freeze
-
-    # Ranges that reach an internal network but that NO IPAddr predicate reports:
-    # #loopback?, #private? and #link_local? together do not cover them, so without
-    # this table they read as public.
-    #
-    #   100.64.0.0/10  Carrier-grade NAT (RFC 6598). Not exotic: it is the address
-    #                  space Tailscale hands out, and several managed-Kubernetes
-    #                  offerings put pod/service networks there. "Shared address
-    #                  space" means shared with the operator's own hosts.
-    #
-    # A table, not a fourth boolean in the predicate below, so a range added later is
-    # a data row somebody can read.
-    BLOCKED_API_BASE_RANGES = ['100.64.0.0/10'].map { |cidr| IPAddr.new(cidr) }.freeze
-
     def initialize(organisation:, params:, current_user:)
       super()
       @organisation = organisation
@@ -196,14 +179,12 @@ module Actors
     #   * a public host — without this the same field reaches the app server's own
     #     network (127.0.0.1, RFC1918, link-local), i.e. SSRF with a credential attached.
     #
-    # ⚠️ Residual gap, stated rather than papered over: a NAME that resolves to a private
-    # address passes here. Closing that needs resolution at REQUEST time (a check at save
-    # time is TOCTOU — DNS can move afterwards), which belongs to the provider layer, not
-    # to a write. This check removes the direct route, not the determined one.
-    #
-    # ⚠️ The embedding lane has the same column (embedding_api_base) and today no such
-    # guard, only a presence validation. It has no org-side write path yet; when S5 adds
-    # one, this rule moves to a shared owner rather than being copied.
+    # Where a host leads is Lalabase::PublicAddress's question, asked here so a wrong
+    # endpoint is refused while its owner is still on the form. It is not the
+    # protection: DNS answers again for every request and can point inward by then, so
+    # Lalabase::Llm::PublicEndpointAdapter asks again for every connection and sends the
+    # socket to exactly the address it judged. The embedding lane (embedding_api_base)
+    # has no org-side write path yet; when S5 adds one, it calls the same owner.
     def reject_unsafe_api_base!
       base = @organisation.ai_api_base
       return if base.blank?
@@ -219,65 +200,8 @@ module Actors
       nil
     end
 
-    # ⚠️⚠️ THE ONE RULE OF THIS PREDICATE: judge the DESTINATION a socket would reach,
-    # never the NOTATION the customer typed. It has been broken twice, both times by
-    # asking IPAddr a question about spelling:
-    #
-    #   1st  IPv4-mapped IPv6 literals. #loopback?/#private?/#link_local? judge the
-    #        address in the form it was WRITTEN, so ::ffff:127.0.0.1 was none of them.
-    #        Fixed with .native, which folds the form away before the question.
-    #   2nd  Numeric notations IPAddr refuses to parse but getaddrinfo resolves happily
-    #        — 2130706433, 127.1, 0x7f.0.0.1, 0xa.0.0.5. They fell into the rescue
-    #        branch, which used to conclude "not a literal, therefore a name" and let
-    #        them through. Measured: all four were stored, all four reach 127.0.0.1 or
-    #        10.0.0.5.
-    #
-    # Before adding a THIRD notation to the example list below, ask the question that
-    # would have caught both of the above at design time: does this check decide on the
-    # address a connect() ends up at, or on the characters in the field? Only the first
-    # is a security property. Another notation is a symptom; another parser that
-    # disagrees with the resolver is the defect.
-    #
-    # The honest remaining gap is a different one and must not be confused with these:
-    # a genuine DNS NAME whose record points inward, or moves inward afterwards. That is
-    # TOCTOU and belongs to request time (see #reject_unsafe_api_base!). Everything a
-    # resolver would answer WITHOUT a DNS lookup belongs here.
-    #
-    # hostname, not host: it hands over the bare address without the brackets an IPv6
-    # literal carries in a URL. IPAddr accepts "[::1]" too, so this is not today the
-    # difference between catching a loopback and missing one — it is the form every host
-    # check that is not IPAddr would need.
     def public_host?(hostname)
-      return false if BLOCKED_API_BASE_HOSTS.include?(hostname.downcase)
-
-      # .native folds ::ffff:7f00:1 back to 127.0.0.1 before any predicate is asked.
-      address = IPAddr.new(hostname).native
-
-      # The unspecified addresses (0.0.0.0 and ::) are none of the three predicates and
-      # mean "this host" to a connecting socket — the same destination under a name none
-      # of the checks above covers.
-      return false if address.to_i.zero?
-      return false if BLOCKED_API_BASE_RANGES.any? { |range| range.include?(address) }
-
-      !(address.loopback? || address.private? || address.link_local?)
-    rescue IPAddr::InvalidAddressError
-      # IPAddr could not parse it — which says nothing about whether a RESOLVER could.
-      # So the branch does not conclude "name", it PROVES name, and refuses everything
-      # it cannot prove.
-      dns_name?(hostname)
-    end
-
-    # Is this a DNS name rather than an address in a notation IPAddr does not speak?
-    #
-    # Decided on the RIGHTMOST label, because that is the one the rules constrain: a
-    # fully qualified name ends in a TLD, and no TLD may begin with a digit (RFC 1123
-    # relaxed the rule for the other labels; punycode TLDs start "xn--", still a
-    # letter). Every numeric notation, in every base, ends in a digit — that is what
-    # makes it numeric. So the test is cheap, has no false negative among real names,
-    # and needs no list of notations to stay complete, which is exactly what the second
-    # defect above cost us.
-    def dns_name?(hostname)
-      hostname.downcase.delete_suffix('.').split('.').last.to_s.match?(/\A[a-z]/)
+      Lalabase::PublicAddress.public?(hostname)
     end
 
     # The other half of the exfiltration guard. Keeping a stored key (E2-A) is safe only

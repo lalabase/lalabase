@@ -73,9 +73,14 @@ module Lalabase
       #   (KI-Pakete P0, doc/ki_pakete_plan.md §4.1 — with packages, several
       #   credentials of the same provider are in service at once and a name-based
       #   second resolution would be ambiguous).
+      # @param operator_endpoint [Boolean] true only when uri_base is the endpoint an
+      #   operator put on an AiCredential (Factory#operator_endpoint?). Anything else,
+      #   above all an endpoint a customer typed, is judged again for every connection
+      #   (PublicEndpointAdapter). Defaults to false, so a construction path that
+      #   forgets to say is guarded rather than trusted.
       def initialize(api_key:, organisation_id_param: nil, organisation: nil, uri_base: nil,
                      embedding_model: nil, chat_model: nil, provider_name: nil, additional_config: nil,
-                     embedding_dims: nil, billing_credential: nil)
+                     embedding_dims: nil, billing_credential: nil, operator_endpoint: false)
         @api_key = api_key
         @organisation_id_param = organisation_id_param
         @organisation = organisation
@@ -86,6 +91,11 @@ module Lalabase
         @additional_config = additional_config
         @configured_embedding_dims = embedding_dims
         @billing_credential = billing_credential
+        @operator_endpoint = operator_endpoint
+      end
+
+      def operator_endpoint?
+        @operator_endpoint == true
       end
 
       # Non-streaming chat completion.

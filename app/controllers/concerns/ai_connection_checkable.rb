@@ -29,11 +29,11 @@ module AiConnectionCheckable
     when :no_models then { alert: t('flash.ai_settings.connection_no_models') }
     when :missing_credential then { alert: t('flash.ai_settings.no_client', provider: label) }
     else
-      # The provider's own words, in a flash — read once by the person who asked for the
-      # check. Deliberately NOT the same decision as the stored verdict, which holds only
-      # ok/failed: a column the hub renders must not carry unreviewed third-party text
-      # (see Lalabase::Llm::ConnectionCheck).
-      { alert: t('flash.ai_settings.connection_error', error: result.message) }
+      # A fixed text, never the words of the failure. Those say whether a port is open
+      # (refused, timed out, TLS failed), and with an endpoint the customer typed that
+      # is a port scan of whatever the endpoint reaches. The reason is in the log
+      # (Lalabase::Llm::ConnectionCheck writes it there).
+      { alert: t('flash.ai_settings.connection_error') }
     end
   end
 end

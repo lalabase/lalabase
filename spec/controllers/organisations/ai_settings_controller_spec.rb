@@ -246,16 +246,30 @@ RSpec.describe Organisations::AiSettingsController, type: :controller do
         )
       end
 
-      it 'reports a connection error with the reason when the probe itself raises' do
-        # Provider maps the vendor 401 to AuthError; it must surface as the specific
-        # connection_error (with the message), not the generic no_client copy.
+      it 'reports a connection error, not the generic no_client copy, when the probe raises' do
         provider = instance_double(Lalabase::Llm::OpenAiProvider)
         allow(provider).to receive(:connectivity_check).and_raise(Lalabase::Llm::Provider::AuthError, '401 bad key')
         allow(Lalabase::Llm::Factory).to receive(:chat_probe).with(organisation).and_return(provider)
 
         post :test_connection, params: test_params
 
-        expect(flash[:alert]).to eq(I18n.t('flash.ai_settings.connection_error', error: '401 bad key'))
+        expect(flash[:alert]).to eq(I18n.t('flash.ai_settings.connection_error'))
+      end
+
+      # The error text of a failed connection says whether a port is open (refused,
+      # timed out, TLS failed). With a customer's endpoint that is a port scan of
+      # whatever the endpoint reaches, so the flash carries none of it.
+      it 'does not show the words of the failure' do
+        provider = instance_double(Lalabase::Llm::OpenAiCompatibleProvider)
+        allow(provider).to receive(:connectivity_check)
+          .and_raise(Faraday::ConnectionFailed, 'Failed to open TCP connection to 127.0.0.1:6379 (Connection refused)')
+        allow(Lalabase::Llm::Factory).to receive(:chat_probe).with(organisation).and_return(provider)
+
+        post :test_connection, params: test_params
+
+        expect(flash[:alert]).not_to include('6379')
+        expect(flash[:alert]).not_to include('refused')
+        expect(flash[:alert]).to eq(I18n.t('flash.ai_settings.connection_error'))
       end
     end
 

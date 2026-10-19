@@ -225,6 +225,31 @@ RSpec.describe Actors::SaveAiConfiguration do
       expect(save_endpoint('https://localhost/v1').code).to eq(:api_base_not_public)
     end
 
+    # Reported against the first version, which judged the spelling of a name: each of
+    # these passed it, and the connection test then said which ports were open.
+    {
+      'https://localhost./v1' => 'the trailing dot names the same host',
+      'https://redis.:6379/v1' => 'a short name of the server network',
+      'https://localhost.attacker.example/v1' => 'a public name pointing at loopback',
+      'https://awsmeta.attacker.example/v1' => 'a public name pointing at the metadata service'
+    }.each do |endpoint, why|
+      it "refuses #{endpoint} (#{why})" do
+        resolve_names('redis' => ['192.168.0.1'], 'localhost.attacker.example' => ['127.0.0.1', '::1'],
+                      'awsmeta.attacker.example' => ['169.254.169.254'])
+
+        expect(save_endpoint(endpoint).code).to eq(:api_base_not_public)
+        expect(organisation.reload.ai_api_base).to be_blank
+      end
+    end
+
+    # Same answer as for an inward name: a different one would tell the caller which
+    # internal names exist.
+    it 'refuses a name that does not resolve, with the same answer' do
+      Lalabase::PublicAddress.resolver = ->(_hostname) { raise SocketError, 'no such name' }
+
+      expect(save_endpoint('https://nowhere.example/v1').code).to eq(:api_base_not_public)
+    end
+
     it 'refuses something that is not a URL at all' do
       expect(save_endpoint('not a url').code).to eq(:api_base_not_https)
     end

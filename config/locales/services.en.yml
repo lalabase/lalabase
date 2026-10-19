@@ -8,7 +8,7 @@ en:
         unusable_token: "The stored key does not match the format %{provider} expects. Saving it would switch AI off for the organisation rather than set it up."
         token_reentry_required: "The provider or the endpoint is about to change. Please enter the key again for that: it is never shown in clear, and without this step an existing key could be sent to a new address by someone who does not know it."
         api_base_not_https: "The endpoint URL must start with https://. Over an unencrypted connection the key would reach the provider in clear."
-        api_base_not_public: "This endpoint URL points at the Lalabase server network rather than at a provider. Please enter the public address of your endpoint."
+        api_base_not_public: "This endpoint URL does not lead to a public address: it points at the Lalabase server network or does not resolve. Please enter the public address of your endpoint."
         fields:
           ai_access_token: "key"
           ai_api_base: "endpoint URL"

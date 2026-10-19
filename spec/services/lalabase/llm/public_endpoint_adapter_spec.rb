@@ -5,8 +5,8 @@
 # Why: a check at save time cannot hold. DNS answers again for every request, and a
 #   name that pointed outward when it was saved can point at the app server when the
 #   key is sent (DNS rebinding). So the address is judged again for every connection,
-#   and the socket goes to exactly the address that was judged, never to a second
-#   lookup of the name.
+#   and the socket goes only to the addresses that were judged, never to a second
+#   lookup of the name. The race across them has its own spec (address_race_spec.rb).
 
 require 'rails_helper'
 require 'socket'
@@ -22,37 +22,77 @@ RSpec.describe Lalabase::Llm::PublicEndpointAdapter, :ci_guard do
   end
 
   describe 'the connection it builds' do
-    it 'connects to the address it checked and keeps the name for TLS' do
-      resolve_names('api.provider.example' => ['52.1.2.3'])
+    let(:server) { TCPServer.new('127.0.0.1', 0) }
+    let(:raced) { [] }
 
-      http = connection_for('https://api.provider.example/v1/models')
+    after { server.close }
 
-      expect(http.ipaddr).to eq('52.1.2.3')
+    # The race gets only checked addresses and hands back a socket to the local
+    # listener, so these examples need no network.
+    before do
+      allow(Lalabase::Llm::AddressRace).to receive(:call) do |addresses:, port:, deadline:|
+        raced << { addresses: addresses, port: port, deadline: deadline }
+        TCPSocket.new('127.0.0.1', server.addr[1])
+      end
+    end
+
+    def open(url)
+      http = connection_for(url)
+      http.start(&:started?)
+      http
+    end
+
+    it 'connects only to the addresses it checked and keeps the name for TLS' do
+      resolve_names('api.provider.example' => ['52.1.2.3', '2606:4700:4700::1111'])
+
+      http = open("http://api.provider.example:#{server.addr[1]}/v1/models")
+
+      expect(raced.last).to include(addresses: ['52.1.2.3', '2606:4700:4700::1111'], port: server.addr[1])
       expect(http.address).to eq('api.provider.example')
     end
 
-    it 'refuses a name that points inward' do
+    it 'refuses a name that points inward, before any connect' do
       resolve_names('localhost.attacker.example' => ['127.0.0.1'])
 
-      expect { connection_for('https://localhost.attacker.example/v1/models') }
+      expect { open('https://localhost.attacker.example/v1/models') }
         .to raise_error(described_class::EndpointNotPublicError)
+      expect(raced).to be_empty
     end
 
     # Rebinding: the first answer was public (that is what the save saw), the next
     # one is not. The adapter asks again and refuses.
     it 'judges the address again for every connection' do
       answers = [['52.1.2.3'], ['127.0.0.1']]
-      Lalabase::PublicAddress.resolver = ->(_hostname) { answers.shift }
+      Lalabase::PublicAddress.resolver = ->(_hostname, **) { answers.shift }
 
-      expect(connection_for('https://rebind.attacker.example/v1').ipaddr).to eq('52.1.2.3')
-      expect { connection_for('https://rebind.attacker.example/v1') }
+      open("http://rebind.attacker.example:#{server.addr[1]}/v1")
+      expect { open("http://rebind.attacker.example:#{server.addr[1]}/v1") }
         .to raise_error(described_class::EndpointNotPublicError)
+      expect(raced.size).to eq(1)
     end
 
-    # Through a proxy the proxy resolves the name, and the address checked here would
+    # Given the name, Net::HTTP spent its open timeout on the lookup AND the connect.
+    # A lookup outside it would let a slow resolver hold a worker past the budget.
+    it 'counts the DNS lookup against the open timeout' do
+      lookup = {}
+      Lalabase::PublicAddress.resolver = lambda do |_hostname, timeout:|
+        lookup[:timeout] = timeout
+        sleep 0.2
+        ['52.1.2.3']
+      end
+      http = connection_for("http://slow-dns.provider.example:#{server.addr[1]}/v1")
+      http.open_timeout = 0.3
+
+      http.start(&:started?)
+
+      expect(lookup[:timeout]).to eq(0.3)
+      left_for_the_connect = raced.last[:deadline] - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(left_for_the_connect).to be < 0.15
+    end
+
+    # Through a proxy the proxy resolves the name, and the addresses checked here would
     # mean nothing.
     it 'refuses to go through a proxy' do
-      resolve_names('api.provider.example' => ['52.1.2.3'])
       env = env_for('https://api.provider.example/v1')
       env.request.proxy = { uri: URI('http://proxy.example:3128') }
 
@@ -63,81 +103,25 @@ RSpec.describe Lalabase::Llm::PublicEndpointAdapter, :ci_guard do
     it 'is a connection failure to every rescue that already handles one' do
       expect(described_class::EndpointNotPublicError.ancestors).to include(Faraday::ConnectionFailed)
     end
-  end
-
-  # With the name, Net::HTTP let TCPSocket try every address of it. Pinned to one
-  # address, a dual-stack endpoint with broken IPv6 would fail every request although
-  # its IPv4 address answers. So the TCP connect walks the checked addresses in order,
-  # and only the connect: nothing has been sent at that point, so trying the next
-  # address cannot send a request twice.
-  describe 'failover across the checked addresses' do
-    let(:server) { TCPServer.new('127.0.0.1', 0) }
-    let(:attempts) { [] }
-
-    after { server.close }
-
-    def connect_through(unreachable:)
-      allow(TCPSocket).to receive(:open).and_wrap_original do |original, address, _port, *rest, **options|
-        attempts << address
-        raise Errno::ENETUNREACH, address if unreachable.include?(address)
-
-        original.call('127.0.0.1', server.addr[1], *rest, **options)
-      end
-
-      http = connection_for("http://dual.provider.example:#{server.addr[1]}/v1")
-      http.start(&:started?)
-    end
-
-    it 'connects to the next checked address when the first is unreachable' do
-      resolve_names('dual.provider.example' => ['2001:db8::1', '203.0.113.20'])
-
-      expect(connect_through(unreachable: ['2001:db8::1'])).to be(true)
-      expect(attempts).to eq(['2001:db8::1', '203.0.113.20'])
-    end
-
-    it 'tries only the checked addresses and fails with the last error when none answers' do
-      resolve_names('dual.provider.example' => ['2001:db8::1', '203.0.113.20'])
-
-      expect { connect_through(unreachable: ['2001:db8::1', '203.0.113.20']) }
-        .to raise_error(Errno::ENETUNREACH)
-      expect(attempts).to eq(['2001:db8::1', '203.0.113.20'])
-    end
-
-    # With the name, every address shared one open timeout. Restarting it for each
-    # checked address would turn the client's budget into one per address, and a
-    # worker thread would hang N times as long on an endpoint that drops packets.
-    it 'shares one open timeout across all checked addresses' do
-      resolve_names('dual.provider.example' => ['203.0.113.20', '203.0.113.21', '203.0.113.22'])
-      allow(TCPSocket).to receive(:open) do |address, *|
-        attempts << address
-        sleep 5
-      end
-
-      http = connection_for("http://dual.provider.example:#{server.addr[1]}/v1")
-      http.open_timeout = 0.3
-      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-      expect { http.start(&:started?) }.to raise_error(Net::OpenTimeout)
-      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be < 0.6
-      expect(http.open_timeout).to eq(0.3)
-    end
 
     # Once connected, the request may have been written. A failure from there on must
-    # not go to the next address: a chat request would run, and be billed, twice.
-    it 'does not try the next address when the request fails after the connect' do
-      resolve_names('dual.provider.example' => ['203.0.113.20', '203.0.113.21'])
+    # not connect again: a chat request would run, and be billed, twice.
+    it 'does not connect again when the request fails after the connect' do
+      resolve_names('api.provider.example' => ['203.0.113.20', '203.0.113.21'])
       listener = Thread.new { loop { server.accept.close } }
-      allow(TCPSocket).to receive(:open).and_wrap_original do |original, address, _port, *rest, **options|
-        attempts << address
-        original.call('127.0.0.1', server.addr[1], *rest, **options)
-      end
 
-      http = connection_for("http://dual.provider.example:#{server.addr[1]}/v1")
+      http = connection_for("http://api.provider.example:#{server.addr[1]}/v1")
       expect { http.request(Net::HTTP::Post.new('/v1/chat/completions')) }.to raise_error(StandardError)
-      expect(attempts).to eq(['203.0.113.20'])
+      expect(raced.size).to eq(1)
     ensure
       listener&.kill
     end
+  end
+
+  # The seam is private to Net::HTTP; without it, Net::HTTP would resolve and connect
+  # to the name on its own, unchecked.
+  it 'sits on a Net::HTTP that still has the seam it takes over' do
+    expect(Net::HTTP.private_method_defined?(:timeouted_connect)).to be(true)
   end
 
   # End to end, with the real OpenAI client: a listener on loopback stands for a

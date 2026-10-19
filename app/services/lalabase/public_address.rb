@@ -32,8 +32,9 @@ module Lalabase
     #                  service networks.
     BLOCKED_RANGES = ['100.64.0.0/10'].map { |cidr| IPAddr.new(cidr) }.freeze
 
-    DEFAULT_RESOLVER = lambda do |hostname|
-      Addrinfo.getaddrinfo(hostname, nil, nil, :STREAM).map(&:ip_address).uniq
+    # timeout nil means the system resolver's own limits.
+    DEFAULT_RESOLVER = lambda do |hostname, timeout: nil|
+      Addrinfo.getaddrinfo(hostname, nil, nil, :STREAM, timeout: timeout).map(&:ip_address).uniq
     end
 
     class << self
@@ -45,22 +46,24 @@ module Lalabase
         @resolver || DEFAULT_RESOLVER
       end
 
+      # @param timeout [Numeric, nil] seconds the lookup may take. A lookup that runs
+      #   out of time is a name that does not resolve.
       # @return [Array<String>] every address the host resolves to, all of them public
       # @raise [NotPublicError] when the host is blank, does not resolve, or any one of
       #   its addresses is not public
-      def resolve!(hostname)
+      def resolve!(hostname, timeout: nil)
         host = hostname.to_s.delete_prefix('[').delete_suffix(']')
         raise NotPublicError, 'blank host' if host.empty?
 
-        addresses = addresses_of(host)
+        addresses = addresses_of(host, timeout)
         raise NotPublicError, "#{host} does not resolve" if addresses.empty?
         raise NotPublicError, "#{host} is not a public address" unless addresses.all? { |a| public_ip?(a) }
 
         addresses
       end
 
-      def public?(hostname)
-        resolve!(hostname)
+      def public?(hostname, timeout: nil)
+        resolve!(hostname, timeout: timeout)
         true
       rescue NotPublicError
         false
@@ -70,15 +73,15 @@ module Lalabase
 
       # A literal is its own answer; everything else, including the numeric notations
       # IPAddr does not speak, goes to the resolver.
-      def addresses_of(host)
+      def addresses_of(host, timeout)
         [IPAddr.new(host).to_s]
       rescue IPAddr::InvalidAddressError
-        resolved_addresses(host)
+        resolved_addresses(host, timeout)
       end
 
-      def resolved_addresses(host)
-        Array(resolver.call(host))
-      rescue SocketError, SystemCallError
+      def resolved_addresses(host, timeout)
+        Array(resolver.call(host, timeout: timeout))
+      rescue SocketError, SystemCallError, IO::TimeoutError
         []
       end
 

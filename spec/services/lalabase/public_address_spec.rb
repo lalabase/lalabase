@@ -55,13 +55,13 @@ RSpec.describe Lalabase::PublicAddress, :ci_guard do
     # Unresolvable and inward must read the same: a different answer for a name that
     # does not exist would tell the caller which internal names do.
     it 'refuses a name that does not resolve' do
-      described_class.resolver = ->(_hostname) { raise SocketError, 'getaddrinfo: nodename nor servname provided' }
+      described_class.resolver = ->(_hostname, **) { raise SocketError, 'getaddrinfo: nodename nor servname provided' }
 
       expect { described_class.resolve!('nowhere.example') }.to raise_error(described_class::NotPublicError)
     end
 
     it 'refuses a name that resolves to nothing' do
-      described_class.resolver = ->(_hostname) { [] }
+      described_class.resolver = ->(_hostname, **) { [] }
 
       expect { described_class.resolve!('empty.example') }.to raise_error(described_class::NotPublicError)
     end

@@ -40,7 +40,6 @@ module Lalabase
 
       # AI on, through the instance's system credential: no own key, no package.
       ORGANISATION = { ai_enabled: true, assistant_enabled: true, ai_provider: 'openai' }.freeze
-      LOCALE = :en
 
       def self.call(**) = new(**).call
 
@@ -73,7 +72,7 @@ module Lalabase
           wipe
           files.restore_kept
           reseed
-          World.new(locale: LOCALE, now: @now, organisation: ORGANISATION, embeddings: true,
+          World.new(locale: Demo::LOCALE, now: @now, organisation: ORGANISATION, embeddings: true,
                     password: PASSWORD).build
         end
         # After the commit: a world that failed to build keeps its files. The

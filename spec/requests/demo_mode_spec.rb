@@ -90,6 +90,43 @@ RSpec.describe 'Demo mode', :ci_guard, type: :request do
     end
   end
 
+  # The world is written in one language (Lalabase::Demo::LOCALE), and the pages
+  # around it speak the same, whatever the visitor's browser or address asks for.
+  describe 'the language' do
+    def page_language = Nokogiri::HTML(response.body).at_css('html')['lang']
+
+    it 'is the language of the world, whatever the browser asks for' do
+      get new_user_session_path, headers: { 'Accept-Language' => 'de-DE,de;q=0.9' }
+      expect(page_language).to eq(Lalabase::Demo::LOCALE.to_s)
+    end
+
+    it 'is the language of the world on a page that asks for another, and after it' do
+      get new_user_session_path(locale: 'de')
+      expect(page_language).to eq(Lalabase::Demo::LOCALE.to_s)
+
+      get new_user_session_path
+      expect(page_language).to eq(Lalabase::Demo::LOCALE.to_s)
+    end
+
+    it 'is the language of the world for a person whose profile says another' do
+      user = member(email: 'profile-de@example.com', password: 'a-long-password-1', language_preference: 'de')
+      sign_in_with(user.email, 'a-long-password-1')
+      follow_redirect!
+
+      expect(response).to have_http_status(:ok)
+      expect(page_language).to eq(Lalabase::Demo::LOCALE.to_s)
+    end
+
+    context 'without the flag' do
+      let(:demo_on) { false }
+
+      it 'follows the browser' do
+        get new_user_session_path, headers: { 'Accept-Language' => 'de-DE,de;q=0.9' }
+        expect(page_language).to eq('de')
+      end
+    end
+  end
+
   # One account for everybody: Devise's lockout and the per-address throttle
   # would let any visitor shut out all the others.
   describe 'the shared login' do

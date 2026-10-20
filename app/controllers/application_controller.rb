@@ -261,7 +261,9 @@ class ApplicationController < ActionController::Base
     I18n.with_locale(request_locale, &)
   end
 
-  # In this order:
+  # On the public demo, its one language (Lalabase::Demo::LOCALE), before anything
+  # else: the world is written in it, and nobody's choice can stick to the login
+  # every visitor shares. Otherwise, in this order:
   # 1. A supported locale in the query string. Remember it for the Devise pages
   #    that follow without a locale parameter.
   # 2. The signed-in user's profile language.
@@ -287,6 +289,8 @@ class ApplicationController < ActionController::Base
   # own error handling turns a malformed JSON body into a 400. Through params, the parse
   # error was raised here instead, one callback earlier, and the webhook answered 500.
   def request_locale
+    return Lalabase::Demo::LOCALE if Lalabase::Demo.enabled?
+
     query_locale = supported_locale(request.query_parameters['locale'])
     if query_locale
       remember_chosen_locale(query_locale)

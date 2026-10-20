@@ -8,8 +8,8 @@
 # (rich_text.rb: `self.embeds = body.attachables.grep(ActiveStorage::Blob).uniq`). A sgid
 # stops resolving for everything stored before a secret_key_base rotation, and then
 # editing only the words of a text detached every image and enqueued the purge of its
-# file. Which embed a dead node meant cannot be told without
-# the old key, so every stored embed that would be dropped is kept. The price is that an
+# file. A dead node is not trusted to say which embed it meant, so every stored embed
+# that would be dropped is kept. The price is that an
 # image removed in the same edit stays attached until the text is saved again with
 # readable nodes; RichTextSgidResign makes them readable.
 #

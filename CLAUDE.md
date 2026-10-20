@@ -962,6 +962,9 @@ Kern antwortet.
   vor `authenticate_user!` (Devise übersetzt seine Anmelde-Hinweise in der Sprache, die in
   diesem Moment gilt). Reihenfolge: gültiges `?locale=`, Profilsprache eines Angemeldeten,
   gemerkte Sprache dieser Sitzung (`session[:public_locale]`), `Accept-Language`, Deutsch.
+  Im Demo-Modus (`LALABASE_DEMO=1`) gilt davor immer `Lalabase::Demo::LOCALE`: Die Welt ist
+  in dieser Sprache geschrieben, und das geteilte Konto darf keine Wahl festhalten
+  (Guard: `spec/requests/demo_mode_spec.rb`).
   Ein gültiges `?locale=` wird gemerkt. Die Registrierung übernimmt die Sprache des
   Formulars ins Profil. Guard: `spec/requests/locale_per_request_spec.rb`.
   ⚠️ **Über dieser Leiter stand eine Sprosse: die Sprache im PFAD.** `/docs/:locale/…`

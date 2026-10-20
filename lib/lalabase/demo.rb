@@ -30,6 +30,10 @@ module Lalabase
     # The hour (UTC) of the nightly reset (DemoResetJob). The banner reads it from
     # here; spec/config/recurring_schedule_spec.rb holds config/recurring.yml to it.
     RESET_HOUR_UTC = 3
+    # The one language of the demo: the world is written in it (Lalabase::Demo::Reset),
+    # and every page speaks it, whatever the browser, the address or a profile asks for
+    # (ApplicationController#request_locale).
+    LOCALE = :en
     # The second latch of the reset (Lalabase::Demo::Reset): a row in system_settings
     # that only `bin/rails lalabase:demo:setup` writes, and only on an instance
     # without organisations. The flag alone never empties a database.

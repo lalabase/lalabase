@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-10-09)
+# Karte: app/models (Stand: 2026-10-20)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -110,6 +110,19 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   `valid?` abgelehnt hat, beim zweiten durch (PDF, fremde Organisation). Die Prüfung steht mit
   `prepend: true` vor der Autosave-Validierung, weil ein Blob ohne Datei dort schon
   `FileNotFoundError` wirft, und hält dann per `throw :abort` an.
+  ⚠️ **Jede Bild- und Erwähnungs-Kennung im Text ist mit `secret_key_base` signiert** (die
+  `sgid` im `<action-text-attachment>`, ohne Ablauf). Nach einem Tausch des Schlüssels geht
+  keine mehr auf: Rails zeigt `☒`, und beim Speichern baut es `embeds` nur aus den Kennungen,
+  die aufgehen, hängt also jedes Bild ab und löscht die Datei per Purge-Job.
+  `concerns/rich_text_embed_retention.rb` (auf `ActionText::RichText`, eingebunden per
+  Initializer) behält deshalb die gespeicherten Anhänge, solange der Text eine tote Kennung
+  trägt. **Nach jedem Tausch** einmal `rich_text_embeds:resign_sgids` laufen lassen (zuerst
+  `DRY_RUN=1`, braucht keinen alten Schlüssel): er signiert neu, wenn die Daten neben dem Text
+  dasselbe Ziel nennen (Bild: `embeds` dieses Textes, Erwähnung: `outgoing_references` der
+  Notiz), liest die Kennung nur als JSON, nie Marshal, und listet den Rest. Eine
+  Selbst-Erwähnung hat keinen Verweis und bleibt liegen. Specs:
+  `spec/models/action_text/rich_text_embed_key_rotation_spec.rb`,
+  `spec/services/rich_text_sgid_resign_spec.rb`.
 * **Dokumente/Doku/Codebase**: `document`, `document_version`, `documentation_*`, `codebase_*`,
   `code_symbol`, `project_index{,_run}`, `project_repository`, `project_capability`,
   `project_layer4_vision`, `reference`, `fragment`, `imported_object`, `product_knowledge_entry`

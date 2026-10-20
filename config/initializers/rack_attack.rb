@@ -41,6 +41,19 @@ class Rack::Attack
   DIRECT_UPLOADS_PATH = %r{\A/rails/active_storage/direct_uploads#{FORMAT_SUFFIX}\z}
   # The byte channel of a direct upload: PUT with the signed token from the POST above.
   DISK_UPLOADS_PATH = %r{\A/rails/active_storage/disk/[^/]+\z}
+  # The requests a visitor of the public demo can make that call a model: the
+  # assistant (a new thread carries the first question, a message, a regenerated
+  # answer, an analysis, a retried run of ticket suggestions), the summaries of tickets
+  # and meetings, meeting analyses, ticket suggestions from a meeting, participant
+  # detection, customer descriptions of a time group. Adding a reference or reading
+  # asks no model. A comment asks one only with ask_ai (DEMO_ASK_AI_POSTS_PATH).
+  DEMO_MODEL_CALL_PATHS = [
+    %r{\A/org/[^/]+/assistant_chats(/[^/]+/(chatposts(/[^/]+/(regenerate|analysis))?|ticket_suggestion_runs/[^/]+/retry))?#{FORMAT_SUFFIX}\z},
+    %r{\A/org/[^/]+/projects/[^/]+/tickets/(bulk_summary|[^/]+/create_summary)#{FORMAT_SUFFIX}\z},
+    %r{\A/org/[^/]+/projects/[^/]+/meetings/(detect_participants|[^/]+/(create_summary|analyses(/[^/]+)?|ticket_suggestions/run))#{FORMAT_SUFFIX}\z},
+    %r{\A/org/[^/]+/time_session_groups/[^/]+/generate_customer_descriptions#{FORMAT_SUFFIX}\z}
+  ].freeze
+  DEMO_ASK_AI_POSTS_PATH = %r{\A/org/[^/]+/projects/[^/]+/tickets/[^/]+/posts#{FORMAT_SUFFIX}\z}
 
   # Signup allowance per IP. Deliberately generous: a whole invited team can sit
   # behind one office NAT and accept their invitations within the hour (the
@@ -73,6 +86,16 @@ class Rack::Attack
   # lacked: noticing a wave at all.
   REGISTRATIONS_GLOBAL_ALERT_LIMIT = 40
   REGISTRATIONS_GLOBAL_ALERT_PERIOD = 1.hour
+
+  # The public demo (Lalabase::Demo) pays for every visitor's questions out of one
+  # daily quota. Without a per-visitor share, the first visitor of the day could
+  # spend it all and leave the AI dead for everybody after them.
+  DEMO_MODEL_CALL_LIMIT = 10
+  DEMO_MODEL_CALL_PERIOD = 10.minutes
+  # Files in the demo: 30 an hour of at most 5 MB each per address. The storage
+  # budget (Lalabase::Demo::STORAGE_BUDGET_BYTES) is the ceiling for all of them.
+  DEMO_UPLOAD_LIMIT = 30
+  DEMO_UPLOAD_PERIOD = 1.hour
 
   # Confirmation resend mails an ARBITRARY address on request — without a limit
   # it is an open relay for harassment and the fastest way to burn the sender
@@ -256,6 +279,19 @@ class Rack::Attack
     req.ip if put_to?(req, DISK_UPLOADS_PATH)
   end
 
+  ### Throttle what calls a model per IP in the public demo ###
+  # Per IP and not per user: every visitor of the demo is the same user.
+  throttle('demo_model_calls/ip', limit: DEMO_MODEL_CALL_LIMIT, period: DEMO_MODEL_CALL_PERIOD) do |req|
+    req.ip if Lalabase::Demo.enabled? && demo_model_call?(req)
+  end
+
+  ### Throttle files per IP in the public demo ###
+  # direct_uploads/user counts one user, and in the demo that is every visitor.
+  throttle('demo_uploads/ip', limit: DEMO_UPLOAD_LIMIT, period: DEMO_UPLOAD_PERIOD) do |req|
+    req.ip if Lalabase::Demo.enabled? && !(req.get? || req.head?) &&
+              req.content_length.to_i > Lalabase::Demo::LARGE_BODY_BYTES
+  end
+
   ### General throttling per IP (all requests) ###
   throttle('requests/ip', limit: 300, period: 5.minutes) do |req|
     req.ip unless normalized_path(req).start_with?('/assets')
@@ -312,6 +348,17 @@ class Rack::Attack
     JSON.parse(body.to_s).dig('user', 'email')
   rescue JSON::ParserError, TypeError, NoMethodError
     nil
+  end
+
+  # Any method but GET and HEAD: an analysis is updated with PATCH, and a form can
+  # carry its method in _method.
+  def self.demo_model_call?(req)
+    return false if req.get? || req.head?
+
+    path = normalized_path(req)
+    return true if DEMO_MODEL_CALL_PATHS.any? { |pattern| path.match?(pattern) }
+
+    path.match?(DEMO_ASK_AI_POSTS_PATH) && req.params['ask_ai'] == '1'
   end
 
   def self.put_to?(req, pattern)

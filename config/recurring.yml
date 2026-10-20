@@ -173,6 +173,15 @@ production:
     queue: default
     schedule: every day at 3:40am
 
+  # The public demo (Lalabase::Demo::Reset): empties what visitors wrote and builds
+  # the world again. A no-op on every instance without both demo latches. The hour
+  # is Lalabase::Demo::RESET_HOUR_UTC, which the banner names; the schedule spec
+  # holds the two together.
+  demo_reset:
+    class: DemoResetJob
+    queue: default
+    schedule: "0 3 * * * UTC"
+
 staging:
   # Here too, so the dry-run log exists somewhere before enforcement is armed.
   unconfirmed_signup_purge:

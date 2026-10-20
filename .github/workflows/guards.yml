@@ -185,12 +185,14 @@ jobs:
           spec/jobs/tenant_propagation_spec.rb
           spec/jobs/import_users_from_codebase_job_spec.rb
           spec/jobs/embedding_processing_job_spec.rb
+          spec/jobs/demo_reset_job_spec.rb
           spec/locales/
           spec/lib/lalabase/admin_extensions_spec.rb
           spec/lib/lalabase/release_spec.rb
           spec/lib/lalabase/release_script_spec.rb
           spec/lib/lalabase/leak_guard_spec.rb
           spec/lib/lalabase/leak_guard_script_spec.rb
+          spec/lib/lalabase/demo/
           spec/lib/tasks/bmp_attachments_convert_spec.rb
           spec/lib/tasks/chats_backfill_scope_references_spec.rb
           spec/lib/tasks/organisations_backfill_code_indexing_spec.rb

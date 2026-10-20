@@ -6,7 +6,7 @@
     <i class="bi bi-info-circle-fill text-xl" aria-hidden="true"></i>
     <p>
       <strong><%= t('views.demo.banner.title') %></strong>
-      <span class="ms-2"><%= t('views.demo.banner.body') %></span>
+      <span class="ms-2"><%= t('views.demo.banner.body', time: Lalabase::Demo.reset_time) %></span>
     </p>
   </div>
 </div>

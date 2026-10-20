@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require 'fugit'
 
 # What: config/recurring.yml — Solid Queue recurring schedule drift guard.
 # Type: Config spec.
@@ -141,6 +142,19 @@ RSpec.describe 'config/recurring.yml' do
 
     it 'is deliberately absent from staging' do
       expect(schedule.fetch('staging')).not_to have_key('seat_snapshot')
+    end
+  end
+
+  # The demo banner names the hour of the reset (Lalabase::Demo::RESET_HOUR_UTC).
+  # A schedule moved here without the constant would make the banner lie. In UTC
+  # explicitly: a cron line without a zone runs in the server's local time.
+  describe 'demo reset' do
+    it 'runs nightly at the hour the banner names' do
+      entry = schedule.fetch('production')['demo_reset']
+      expect(entry['class']).to eq('DemoResetJob')
+
+      cron = Fugit.parse_cron(entry['schedule'])
+      expect([cron.hours, cron.minutes, cron.timezone&.name]).to eq([[Lalabase::Demo::RESET_HOUR_UTC], [0], 'UTC'])
     end
   end
 

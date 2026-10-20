@@ -53,7 +53,9 @@ RSpec.describe 'Demo mode', :ci_guard, type: :request do
       follow_redirect!
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('data-testid="demo-banner"')
+      banner = Nokogiri::HTML(response.body).at_css('[data-testid="demo-banner"]')
+      expect(banner.text).to include("#{Lalabase::Demo.reset_time} UTC")
+      expect(Lalabase::Demo.reset_time).to match(/\A\d{2}:00\z/)
     end
 
     context 'without the flag' do
@@ -168,6 +170,206 @@ RSpec.describe 'Demo mode', :ci_guard, type: :request do
       it 'is delivered' do
         with_delivered_mails { Devise::Mailer.reset_password_instructions(demo_user, 'token').deliver_later }
         expect(ActionMailer::Base.deliveries.size).to eq(1)
+      end
+    end
+  end
+
+  describe 'uploads' do
+    let(:limit) { Lalabase::Demo::MAX_UPLOAD_BYTES }
+
+    def post_blob(byte_size: 5, content_type: 'image/png')
+      blob = { filename: 'shot', byte_size: byte_size, checksum: 'XUFAKrxLKna5cZ2REBfFkg==', content_type: content_type }
+      post rails_direct_uploads_path, params: { blob: blob }.to_json,
+                                      headers: { 'Content-Type' => 'application/json', 'Accept' => 'application/json' }
+    end
+
+    def post_body(bytes)
+      post user_session_path, params: 'x' * bytes, headers: { 'Content-Type' => 'application/octet-stream' }
+    end
+
+    before { sign_in demo_user }
+
+    it 'takes an image or a PDF up to the limit' do
+      post_blob(byte_size: limit)
+      expect(response).to have_http_status(:ok)
+      post_blob(content_type: 'application/pdf')
+      expect(response).to have_http_status(:ok)
+    end
+
+    # SVG is an image that runs script.
+    it 'refuses a larger file and any other type before the blob exists' do
+      Prosopite.pause do
+        expect do
+          post_blob(byte_size: limit + 1)
+          expect(response).to have_http_status(:unprocessable_content)
+          %w[text/html image/svg+xml].each do |type|
+            post_blob(content_type: type)
+            expect(response).to have_http_status(:unprocessable_content)
+          end
+        end.not_to change(ActiveStorage::Blob, :count)
+      end
+    end
+
+    # The forms that post a file themselves, and the byte channel of direct uploads.
+    it 'refuses any request body above the limit, and only above it' do
+      post_body(limit)
+      expect(response).not_to have_http_status(:content_too_large)
+      post_body(limit + 1)
+      expect(response).to have_http_status(:content_too_large)
+    end
+
+    # Rack::MethodOverride parses a form body before any controller could refuse it.
+    it 'refuses the body before anything parses it' do
+      expect(Rails.application.middleware.first.klass).to eq(Lalabase::Demo::UploadLimit)
+    end
+
+    describe 'once the stored files reach the budget' do
+      let(:file_size) { Lalabase::Demo::LARGE_BODY_BYTES + 1 }
+
+      before do
+        stub_const('Lalabase::Demo::STORAGE_BUDGET_BYTES', file_size)
+        ActiveStorage::Blob.create_and_upload!(io: StringIO.new('x' * file_size), filename: 'earlier.png')
+      end
+
+      it 'takes no further file, by either way' do
+        post_blob(byte_size: 1)
+        expect(response).to have_http_status(:unprocessable_content)
+        post_body(file_size)
+        expect(response).to have_http_status(:content_too_large)
+      end
+
+      it 'still takes a form or a message' do
+        post_body(Lalabase::Demo::LARGE_BODY_BYTES)
+        expect(response).not_to have_http_status(:content_too_large)
+      end
+    end
+
+    context 'without the flag' do
+      let(:demo_on) { false }
+
+      it 'takes what any instance takes' do
+        post_blob(byte_size: limit + 1, content_type: 'text/html')
+        expect(response).to have_http_status(:ok)
+        post_body(limit + 1)
+        expect(response).not_to have_http_status(:content_too_large)
+      end
+    end
+  end
+
+  describe 'the per-address throttles' do
+    around do |example|
+      enabled_was = Rack::Attack.enabled
+      store_was = Rack::Attack.cache.store
+      Rack::Attack.enabled = true
+      Rack::Attack.cache.store = ActiveSupport::Cache::MemoryStore.new
+      travel_to(Time.current) { example.run }
+      Rack::Attack.cache.store = store_was
+      Rack::Attack.enabled = enabled_was
+    end
+
+    # Many requests to one handler; the repeated queries are not a page's N+1.
+    def from(ip, path, count = 1, method: :post, params: nil)
+      Prosopite.pause { count.times { send(method, path, params: params, headers: { 'REMOTE_ADDR' => ip }) } }
+    end
+
+    def throttled? = response.status == 429
+
+    # One daily quota for every visitor: one of them must not spend it alone.
+    describe 'on what calls a model' do
+      let(:limit) { Rack::Attack::DEMO_MODEL_CALL_LIMIT }
+      let(:org) { "/org/#{SecureRandom.uuid}" }
+      let(:project) { "#{org}/projects/#{SecureRandom.uuid}" }
+      let(:model_calls) do
+        ["#{org}/assistant_chats", "#{org}/assistant_chats/c1/chatposts", "#{org}/assistant_chats/c1/chatposts/p1/regenerate",
+         "#{org}/assistant_chats/c1/chatposts/p1/analysis", "#{org}/assistant_chats/c1/ticket_suggestion_runs/r1/retry",
+         "#{project}/tickets/t1/create_summary", "#{project}/tickets/bulk_summary", "#{project}/meetings/m1/create_summary",
+         "#{project}/meetings/m1/analyses", "#{project}/meetings/m1/ticket_suggestions/run",
+         "#{project}/meetings/detect_participants", "#{org}/time_session_groups/g1/generate_customer_descriptions"]
+      end
+
+      it 'counts every one of them, per address' do
+        model_calls.each do |path|
+          Rack::Attack.cache.store.clear
+          from('10.0.2.1', path, limit)
+          expect(throttled?).to be(false), path
+          from('10.0.2.1', path)
+          expect(throttled?).to be(true), path
+          from('10.0.2.2', path)
+          expect(throttled?).to be(false), path
+        end
+      end
+
+      it 'counts an analysis changed and a comment that asks the AI' do
+        from('10.0.2.1', "#{project}/meetings/m1/analyses/a1", 5, method: :patch)
+        from('10.0.2.1', "#{project}/tickets/t1/posts", 5, params: { ask_ai: '1' })
+        expect(throttled?).to be(false)
+        from('10.0.2.1', "#{org}/assistant_chats.json")
+        expect(throttled?).to be(true)
+      end
+
+      # rack-test tidies a padded path before the request is made, so the padding is
+      # handed to the rule as Rack would hand it.
+      it 'counts a padded path like the plain one' do
+        padded = Rack::Attack::Request.new(Rack::MockRequest.env_for('/', method: 'POST'))
+        padded.path_info = "/#{org}//assistant_chats/c1/chatposts/"
+        expect(Rack::Attack.demo_model_call?(padded)).to be(true)
+      end
+
+      it 'does not count what asks no model' do
+        [["#{org}/assistant_chats/c1/references", {}], ["#{project}/tickets/t1/posts", { params: { content: 'hi' } }],
+         ["#{org}/assistant_chats/c1", { method: :get }]].each do |path, options|
+          Rack::Attack.cache.store.clear
+          from('10.0.2.1', path, limit + 1, **options)
+          expect(throttled?).to be(false), path
+        end
+      end
+
+      # Everybody in the demo is the same user: a bucket per user would be one for all.
+      it 'counts signed-in visitors by their address, not by the shared user' do
+        sign_in demo_user
+        from('10.0.2.1', "#{org}/assistant_chats/c1/chatposts", limit)
+        from('10.0.2.2', "#{org}/assistant_chats/c1/chatposts")
+        expect(throttled?).to be(false)
+      end
+
+      context 'without the flag' do
+        let(:demo_on) { false }
+
+        it 'counts nothing' do
+          from('10.0.2.1', "#{org}/assistant_chats", limit + 1)
+          expect(throttled?).to be(false)
+        end
+      end
+    end
+
+    describe 'on files' do
+      let(:limit) { Rack::Attack::DEMO_UPLOAD_LIMIT }
+      let(:file) { 'x' * (Lalabase::Demo::LARGE_BODY_BYTES + 1) }
+
+      # A path no other throttle counts.
+      let(:documents) { "/org/#{SecureRandom.uuid}/projects/#{SecureRandom.uuid}/documents" }
+
+      it 'counts every body that carries a file, per address' do
+        from('10.0.3.1', documents, limit, params: file)
+        expect(throttled?).to be(false)
+        from('10.0.3.1', documents, params: file)
+        expect(throttled?).to be(true)
+        from('10.0.3.2', documents, params: file)
+        expect(throttled?).to be(false)
+      end
+
+      it 'does not count a form or a message' do
+        from('10.0.3.1', documents, limit + 1, params: 'x' * Lalabase::Demo::LARGE_BODY_BYTES)
+        expect(throttled?).to be(false)
+      end
+
+      context 'without the flag' do
+        let(:demo_on) { false }
+
+        it 'counts nothing' do
+          from('10.0.3.1', documents, limit + 1, params: file)
+          expect(throttled?).to be(false)
+        end
       end
     end
   end

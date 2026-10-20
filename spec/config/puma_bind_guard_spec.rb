@@ -27,7 +27,7 @@ require 'rails_helper'
 # console apart. Everything else Puma's DSL offers (threads, plugins) is
 # irrelevant here and gets swallowed.
 class PumaConfigProbe
-  attr_reader :binds, :ports, :pidfile_path, :state_file, :worker_count
+  attr_reader :binds, :ports, :pidfile_path, :state_file, :worker_count, :content_length_limit
 
   def initialize
     @binds = []
@@ -59,15 +59,19 @@ class PumaConfigProbe
     @preloaded = true
   end
 
+  def http_content_length_limit(bytes)
+    @content_length_limit = bytes
+  end
+
   def preloaded?
     @preloaded
   end
 
   # The probe evaluates config/puma.rb under a release path that does not exist
-  # here, so its require of the operator console resolves to nowhere. Rails has
-  # loaded that file already.
+  # here, so its requires of the operator console and the demo resolve to nowhere.
+  # Rails has loaded those files already.
   def require(path)
-    path.end_with?('lib/lalabase/operator_console') || super
+    path.end_with?('lib/lalabase/operator_console', 'lib/lalabase/demo') || super
   end
 
   def method_missing(_name, *_args, &_block)
@@ -221,6 +225,23 @@ RSpec.describe 'config/puma.rb bindings' do
 
     it 'binds no deployment socket' do
       expect(config.binds).to be_empty
+    end
+  end
+
+  # Puma reads a whole body into a temporary file before Rails can refuse it, so the
+  # demo's upload limit (Lalabase::Demo::UploadLimit) protects the disk only here.
+  describe 'the body limit of the public demo' do
+    def probe_demo(flag)
+      flag_was = ENV.fetch(Lalabase::Demo::ENV_FLAG, nil)
+      ENV[Lalabase::Demo::ENV_FLAG] = flag
+      probe('production', container_flag: '1')
+    ensure
+      ENV[Lalabase::Demo::ENV_FLAG] = flag_was
+    end
+
+    it 'is the upload limit in demo mode, and Puma\'s own default otherwise' do
+      expect(probe_demo(Lalabase::Demo::ENABLED_VALUE).content_length_limit).to eq(Lalabase::Demo::MAX_UPLOAD_BYTES)
+      expect(probe_demo(nil).content_length_limit).to be_nil
     end
   end
 end

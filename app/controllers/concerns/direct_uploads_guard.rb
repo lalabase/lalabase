@@ -13,7 +13,8 @@
 # a signed-in user (Devise scope :user; the admin area does not direct-upload) and an
 # upper bound on byte_size. Type rules do NOT belong here: the same endpoint serves
 # documents (PDF, Office) and codebase archives, so "images only" is a rule of the
-# carrier (rich-text embed validator, spike plan E1), not of the upload.
+# carrier (rich-text embed validator, spike plan E1), not of the upload. The one
+# exception is the public demo, see #reject_demo_blob.
 module DirectUploadsGuard
   extend ActiveSupport::Concern
 
@@ -28,6 +29,7 @@ module DirectUploadsGuard
   included do
     before_action :require_signed_in_user
     before_action :reject_oversized_blob
+    before_action :reject_demo_blob, if: -> { Lalabase::Demo.enabled? }
   end
 
   private
@@ -43,6 +45,24 @@ module DirectUploadsGuard
     return if declared_byte_size <= MAX_BYTE_SIZE
 
     head :unprocessable_entity
+  end
+
+  # The public demo (Lalabase::Demo) takes less: its codebase import is blocked, so
+  # nothing legitimate there is larger than a screenshot or a PDF, and a shared
+  # instance is no file host. Lalabase::Demo::UploadLimit refuses the bytes of a
+  # larger file, or of any file once the storage budget is spent; this refuses the
+  # blob before it exists.
+  def reject_demo_blob
+    return if declared_byte_size <= Lalabase::Demo::MAX_UPLOAD_BYTES &&
+              Lalabase::Demo::UPLOAD_CONTENT_TYPES.include?(declared_content_type) &&
+              !Lalabase::Demo.storage_full?(declared_byte_size)
+
+    head :unprocessable_entity
+  end
+
+  def declared_content_type
+    blob = params[:blob]
+    blob.is_a?(ActionController::Parameters) ? blob[:content_type].to_s : ''
   end
 
   def declared_byte_size

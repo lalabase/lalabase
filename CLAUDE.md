@@ -122,12 +122,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 * **Zwei Sicherheits-Jobs, absichtlich getrennt.** Ein Job trägt genau einen Status, und
   `dependencies` ist heute rot (s. u.). Zusammengelegt wäre brakemans Rot von diesem Rot nicht
   mehr zu unterscheiden, und brakemans ganzer Wert ist die Aussage „Rot = NEUER Befund":
-  * `brakeman`, gegen die frozen `config/brakeman.ignore`-Baseline (37 Einträge, Stand
-    01.10.2026; der `constantize`-Eintrag im Datei-Proxy ist mit #915 behoben statt neu
+  * `brakeman`, gegen die frozen `config/brakeman.ignore`-Baseline (38 Einträge, Stand
+    20.10.2026; der `constantize`-Eintrag im Datei-Proxy ist mit #915 behoben statt neu
     eingefroren, der Eintrag der Titelsuche ging mit dem Umbau der Ticketsuche).
     Rot = NEUER Befund. **Jeder Eintrag ist geprüft** und nennt im `note`-Feld
     den Grund, warum er sicher ist; die Datei darf nur schrumpfen, und ein neuer Eintrag
-    braucht dieselbe Begründung. Bei der Prüfung am 26.09.2026 war einer eine echte
+    braucht dieselbe Begründung. Ausnahme seit 20.10.2026: das TRUNCATE des Demo-Resets
+    (`lib/lalabase/demo/reset.rb`), ohne Eingabe; Brakeman sieht die Quotierung durch
+    `map` und `join` nicht. Bei der Prüfung am 26.09.2026 war einer eine echte
     SQL-Injection (Ticketsuche, #889); fünf weitere wurden gehärtet statt eingefroren.
     ⚠️ Ein eingefrorener Eintrag ist öffentlich sichtbar: „ungeprüft" darin ist eine Liste mit
     Angriffszielen.

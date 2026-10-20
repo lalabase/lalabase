@@ -34,6 +34,12 @@ plugin :solid_queue if ENV['SOLID_QUEUE_IN_PUMA']
 # to it, an SSH tunnel does. The flag is read by Lalabase::OperatorConsole, the
 # predicate the Rails settings use too, so socket and settings cannot disagree.
 require File.expand_path('../lib/lalabase/operator_console', __dir__)
+require File.expand_path('../lib/lalabase/demo', __dir__)
+
+# The public demo (Lalabase::Demo) takes no body above its upload limit. Here, because
+# Puma reads a whole body into a temporary file before the application sees it, so a
+# limit further in would still let anybody fill the disk with one request.
+http_content_length_limit Lalabase::Demo::MAX_UPLOAD_BYTES if Lalabase::Demo.enabled?
 
 # Our servers run a Capistrano release, <deploy root>/releases/<timestamp>,
 # reached through <deploy root>/current, with shared/ next to them. The root is

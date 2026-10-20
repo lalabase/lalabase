@@ -18,6 +18,18 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ## [Unreleased]
 
+### Fixed
+
+- Images in rich texts are kept when an instance gets a new `SECRET_KEY_BASE`, for example
+  after moving to a new server or cloning one. Until now, editing such a text afterwards
+  detached its images and deleted the files.
+
+### Added
+
+- `bin/rails rich_text_embeds:resign_sgids` brings back the images and note mentions of
+  rich texts after a new `SECRET_KEY_BASE` (run it with `DRY_RUN=1` first). See "Moving to
+  a new server or cloning a server" in the self-hosting docs.
+
 ## [2026.10.0] - 2026-10-12
 
 <!-- drafted from 4622099a2ca151fbe8fa3995108ca320a2d3cbee -->

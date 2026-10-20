@@ -111,12 +111,12 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   `prepend: true` vor der Autosave-Validierung, weil ein Blob ohne Datei dort schon
   `FileNotFoundError` wirft, und hält dann per `throw :abort` an.
   ⚠️ **Jede Bild- und Erwähnungs-Kennung im Text ist mit `secret_key_base` signiert** (die
-  `sgid` im `<action-text-attachment>`, ohne Ablauf). Nach einem Tausch des Schlüssels geht
-  keine mehr auf: Rails zeigt `☒`, und beim Speichern baut es `embeds` nur aus den Kennungen,
+  `sgid` im `<action-text-attachment>`, ohne Ablauf). Bekommt eine Instanz einen neuen Schlüssel
+  (Umzug auf einen neuen Server oder Klon mit eigenem Schlüssel), geht keine mehr auf: Rails zeigt `☒`, und beim Speichern baut es `embeds` nur aus den Kennungen,
   die aufgehen, hängt also jedes Bild ab und löscht die Datei per Purge-Job.
   `concerns/rich_text_embed_retention.rb` (auf `ActionText::RichText`, eingebunden per
   Initializer) behält deshalb die gespeicherten Anhänge, solange der Text eine tote Kennung
-  trägt. **Nach jedem Tausch** einmal `rich_text_embeds:resign_sgids` laufen lassen (zuerst
+  trägt. **Nach jedem Schlüsselwechsel** einmal `rich_text_embeds:resign_sgids` laufen lassen (zuerst
   `DRY_RUN=1`, braucht keinen alten Schlüssel): er signiert neu, wenn die Daten neben dem Text
   dasselbe Ziel nennen (Bild: `embeds` dieses Textes, Erwähnung: `outgoing_references` der
   Notiz), liest die Kennung nur als JSON, nie Marshal, und listet den Rest. Eine

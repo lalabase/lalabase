@@ -332,6 +332,15 @@
       "line": 8,
       "fingerprint": "6290e53c8c83863741d60e150142e37c0a44000507f36ffd071a9f2a81ec6086",
       "note": "Reviewed 26.09.2026: the component is built by Dashboards::LayoutEngine.component_for_widget from a server-side registry constant (nil for unknown keys); the preview action authorizes the project and the partial renders only if should_render?."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "lib/lalabase/demo/reset.rb",
+      "line": 89,
+      "fingerprint": "16d009bd985f82192c5e8bde0deecdda839a27bd99eac7abf8dae4ce258599e1",
+      "note": "Reviewed 20.10.2026: no input reaches it. The names are the tables of the database itself (connection.tables) minus a constant keep-list, each quoted with quote_table_name; one TRUNCATE has to name them all, because TRUNCATE refuses a table referenced from outside the statement, and Brakeman cannot see the quoting through map and join. Runs only from the reset job and the rake tasks, behind both demo latches."
     }
   ],
   "updated": "2026-08-27 00:00:00 +0200",

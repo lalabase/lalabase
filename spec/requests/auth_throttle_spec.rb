@@ -100,6 +100,32 @@ RSpec.describe 'Auth endpoint throttling', type: :request do
 
       expect(response).to have_http_status(:too_many_requests)
     end
+
+    # Behind a proxy (REMOTE_ADDR is the proxy, a trusted address) the client's
+    # address comes from a header. Caddy and nginx set X-Forwarded-For and pass
+    # the client's own `Forwarded` header through untouched, and Rack read that
+    # one first: a new `for=` per request was a new address per request, for
+    # every throttle keyed on req.ip. A new address per attempt as well, so only
+    # the per-IP brake can answer 429. Without X-Forwarded-For too: `Forwarded`
+    # must not count as the fallback either.
+    {
+      'behind a proxy' => { 'X-Forwarded-For' => '203.0.113.5' },
+      'without X-Forwarded-For' => {}
+    }.each do |setting, proxy_headers|
+      it "cannot be bypassed with a Forwarded header of the client (#{setting})" do
+        Prosopite.pause
+
+        6.times do |i|
+          attempt = { user: { email: "nobody#{i}@example.com", password: 'wrong-password' } }
+          post user_session_path, params: attempt, headers: proxy_headers.merge(
+            'REMOTE_ADDR' => '172.18.0.5',
+            'Forwarded' => "for=198.51.100.#{i + 1}"
+          )
+        end
+
+        expect(response).to have_http_status(:too_many_requests)
+      end
+    end
   end
 
   # The most privileged login in the app got the same rewrite as the others,

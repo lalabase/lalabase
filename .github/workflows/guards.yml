@@ -202,6 +202,7 @@ jobs:
           spec/migrations/remove_ticket_id_from_chats_spec.rb
           spec/jobs/rich_text_embed_variant_job_spec.rb
           spec/models/action_text/rich_text_embed_guard_inclusion_spec.rb
+          spec/models/action_text/rich_text_embed_key_rotation_spec.rb
           spec/models/action_text/rich_text_embed_lifecycle_spec.rb
           spec/models/action_text/rich_text_embed_missing_spec.rb
           spec/models/action_text/rich_text_embed_plain_text_spec.rb
@@ -568,6 +569,7 @@ jobs:
           spec/services/time_sessions/viewing_scope_spec.rb
           spec/services/time_session_navigation_service_spec.rb
           spec/services/rich_text_embed_url_sweep_spec.rb
+          spec/services/rich_text_sgid_resign_spec.rb
           spec/services/power_search_service_spec.rb
           spec/services/docs/plain_text_spec.rb
           spec/services/product_knowledge/ensure_fresh_spec.rb

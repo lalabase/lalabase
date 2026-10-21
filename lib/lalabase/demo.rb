@@ -6,8 +6,8 @@ module Lalabase
   #
   # Off unless LALABASE_DEMO=1. Everything that changes in demo mode asks
   # enabled? when it runs, not at boot: the mail interceptor, the restrictions
-  # (DemoRestrictions), the sign-in page, the banner, the lockout and the
-  # per-address login throttle, the upload limits and budget, and the throttle on
+  # (DemoRestrictions), the sign-in page, the banner, the link back to the
+  # website, the lockout and the per-address login throttle, the upload limits and budget, and the throttle on
   # everything that calls a model. An instance without the flag behaves as before.
   #
   # The nightly reset (Lalabase::Demo::Reset) needs a second latch, the marker
@@ -49,6 +49,12 @@ module Lalabase
     # A body above this size carries a file; below it, a form or a message.
     LARGE_BODY_BYTES = 64 * 1024
     UPLOAD_CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp application/pdf].freeze
+    # The website a visitor came from, linked on the sign-in page and in the banner so
+    # the demo is no dead end. Set in the environment of the demo instance, never
+    # written here: the core names no operator's website
+    # (spec/architecture/app_operator_claims_guard_spec.rb).
+    WEBSITE_ENV = 'LALABASE_DEMO_WEBSITE_URL'
+    WEBSITE_SCHEMES = %w[https http].freeze
 
     class << self
       def enabled?(env = ENV)
@@ -75,6 +81,24 @@ module Lalabase
 
       # The clock reads the same in both languages, so no locale format.
       def reset_time = format('%02d:00', RESET_HOUR_UTC)
+
+      # The address in WEBSITE_ENV, or nil: without the flag, and for anything but an
+      # absolute http(s) address (a link with another scheme would run in the page).
+      def website_url(env = ENV)
+        return unless enabled?(env)
+
+        uri = URI.parse(env[WEBSITE_ENV].to_s.strip)
+        uri.to_s if WEBSITE_SCHEMES.include?(uri.scheme) && uri.host.present?
+      rescue URI::InvalidURIError
+        nil
+      end
+
+      # What the link says: the host without "www.", so the visitor sees where it goes.
+      def website_name(env = ENV)
+        url = website_url(env) or return
+
+        URI.parse(url).host.delete_prefix('www.')
+      end
     end
 
     # Drops every outgoing mail while demo mode is on. An invitation or a

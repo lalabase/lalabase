@@ -74,6 +74,72 @@ RSpec.describe 'Demo mode', :ci_guard, type: :request do
     end
   end
 
+  # Without it a visitor who came from the website finds no way back: the demo has
+  # no sign-up link, and the logo leads into the demo itself.
+  describe 'the way back to the website' do
+    let(:website) { 'https://www.example.com/en' }
+
+    around do |example|
+      website_was = ENV.fetch(Lalabase::Demo::WEBSITE_ENV, nil)
+      ENV[Lalabase::Demo::WEBSITE_ENV] = website
+      example.run
+    ensure
+      ENV[Lalabase::Demo::WEBSITE_ENV] = website_was
+    end
+
+    def sign_in_link
+      get new_user_session_path
+      Nokogiri::HTML(response.body).at_css('.lp-auth-top .lp-auth-cross a')
+    end
+
+    def banner_link
+      sign_in demo_user
+      get organisation_root_path(organisation)
+      expect(response).to have_http_status(:ok)
+      banner = Nokogiri::HTML(response.body).at_css('[data-testid="demo-banner"]')
+      expect(banner).to be_present
+      banner.at_css('a')
+    end
+
+    it 'is linked on the sign-in page and in the banner, named by its host' do
+      [sign_in_link, banner_link].each do |link|
+        expect(link['href']).to eq(website)
+        expect(link.text.strip).to eq('Back to example.com')
+      end
+    end
+
+    context 'when the instance names none' do
+      let(:website) { nil }
+
+      it 'is linked nowhere' do
+        expect(sign_in_link).to be_nil
+        expect(banner_link).to be_nil
+      end
+    end
+
+    ['javascript:alert(1)', 'example.com', 'ftp://example.com/', 'https://'].each do |value|
+      context "when the address is #{value.inspect}" do
+        let(:website) { value }
+
+        it 'is linked nowhere' do
+          expect(sign_in_link).to be_nil
+          expect(banner_link).to be_nil
+        end
+      end
+    end
+
+    context 'without the flag' do
+      let(:demo_on) { false }
+
+      it 'leaves the sign-up link where it was' do
+        link = sign_in_link
+        expect(link['href']).to eq(new_user_registration_path)
+        expect(response.body).not_to include(website)
+        expect(Lalabase::Demo.website_url).to be_nil
+      end
+    end
+  end
+
   describe 'search engines' do
     it 'are told not to index any response' do
       get new_user_session_path

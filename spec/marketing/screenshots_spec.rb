@@ -11,7 +11,9 @@ require 'rails_helper'
 # It builds the Nordlicht fiction (Lalabase::Demo::World, the same world as the
 # public demo) in the test database, freezes the clock and saves
 # one picture per motif and language to tmp/screenshots/marketing/<locale>/. The
-# website imports them from there; nothing of it is committed here.
+# website imports them from there. The README shows five English ones, copied by hand
+# to .github/readme/ (ticket_assistant, meeting_assistant, assistant, time, board,
+# with dashes for underscores); copy them again after a new run.
 #
 # It fails loudly when a screen changes shape (a selector it waits for is gone), which
 # is the point: a stale picture on the website is worse than a red run.

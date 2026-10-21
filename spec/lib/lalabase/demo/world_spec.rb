@@ -31,7 +31,8 @@ RSpec.describe Lalabase::Demo::World do
       expect(TimeSession.where(organisation: organisation).count).to eq(fiction::TIME.size)
       expect(world.notes.map(&:title)).to eq(fiction::NOTES.map { _1[:en] })
       expect(world.ticket(fiction::CHAT[:ticket]).posts.count).to eq(fiction::COMMENTS.size)
-      expect(world.chat.chatposts.count).to eq(2)
+      chats = [world.chat, world.ticket_question, world.meeting_question]
+      expect(Prosopite.pause { chats.map { _1.chatposts.count } }).to eq([2, 2, 2])
     end
 
     # The demo signs a visitor in as this person: every right of the team, none of
@@ -83,6 +84,25 @@ RSpec.describe Lalabase::Demo::World do
     it 'dates its records back from the moment it is built' do
       expect(world.ticket(0).created_at).to eq(now - (fiction::TICKETS.size * 3).days)
       expect(TimeSession.where(organisation: organisation).maximum(:occurred_on).to_date).to eq(now.to_date)
+    end
+
+    # The pictures beside a ticket and a meeting: the panel shows the object as the
+    # chat's reference, and every [n] of the answer has a citation to point to.
+    it 'adds a chat about the ticket and one about the meeting, each with its reference and citations' do
+      statement = world.ticket(fiction::TICKET_QUESTION[:ticket])
+      weekly_call = world.meetings.fetch(fiction::MEETING_QUESTION[:meeting])
+      expect(world.ticket_question.scope_references).to eq([{ 'type' => 'Ticket', 'id' => statement.id }])
+      expect(world.meeting_question.scope_references).to eq([{ 'type' => 'Meeting', 'id' => weekly_call.id }])
+      expect(world.chat.scope_references).to eq([])
+
+      { world.ticket_question => [['ticket', statement.id], ['post', statement.posts.order(:created_at).last.id],
+                                  ['meeting', weekly_call.id]],
+        world.meeting_question => [['meeting', weekly_call.id], ['ticket', statement.id]] }.each do |chat, cited|
+        answer = Prosopite.pause { chat.chatposts.find_by!(role: 'assistant') }
+        expect(answer.source_citations.map { _1.values_at('type', 'id') }).to eq(cited)
+        expect(answer.content.scan(/\[(\d+)\]/).flatten.map(&:to_i).uniq.sort).to eq((1..cited.size).to_a)
+        expect(answer.model_used).to be_present
+      end
     end
 
     it 'leaves the assistant search off unless asked' do

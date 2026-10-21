@@ -11,7 +11,9 @@ require 'rails_helper'
 # It builds the Nordlicht fiction (Lalabase::Demo::World, the same world as the
 # public demo) in the test database, freezes the clock and saves
 # one picture per motif and language to tmp/screenshots/marketing/<locale>/. The
-# website imports them from there; nothing of it is committed here.
+# website imports them from there. The README shows five English ones, copied by hand
+# to .github/readme/ (ticket_assistant, meeting_assistant, assistant, time, board,
+# with dashes for underscores); copy them again after a new run.
 #
 # It fails loudly when a screen changes shape (a selector it waits for is gone), which
 # is the point: a stale picture on the website is worse than a red run.
@@ -120,6 +122,12 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
     sleep 0.2
   end
 
+  # The sources of the answer in the open panel, unfolded.
+  def open_citations(count)
+    find('#assistant_panel [data-testid="citation-list"] summary').click
+    expect(page).to have_css('#assistant_panel [data-testid="citation-row"]', count: count)
+  end
+
   def picture_bottom(selector)
     if selector
       box(selector)['bottom'] + 32
@@ -176,6 +184,37 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
         visit organisation_project_ticket_path(world.organisation, world.project(:deichblick), ticket)
         expect(page).to have_text(Lalabase::Demo::Fiction::COMMENTS.last.fetch(locale))
         capture(locale, :ticket)
+      end
+
+      # The tickets as a board: a setting per person and project, stored the way the
+      # view switch stores it.
+      it 'takes the ticket board' do
+        ViewConfiguration.for_user_project(world.signed_in, world.project(:deichblick), 'tickets')
+                         .update!(view_mode: 'kanban')
+        visit organisation_project_tickets_path(world.organisation, world.project(:deichblick))
+        expect(page).to have_css('.kanban-board')
+        expect(page).to have_text(Lalabase::Demo::Fiction::TICKETS.last.fetch(locale))
+        capture(locale, :board)
+      end
+
+      # The assistant beside the object it was asked about, with the object as its
+      # reference: the ticket of the detail motif, and the weekly call. The open panel
+      # reaches the bottom of the window, so the picture is the whole window.
+      it 'takes the assistant beside the ticket' do
+        ticket = world.ticket(Lalabase::Demo::Fiction::TICKET_QUESTION[:ticket])
+        visit organisation_project_ticket_path(world.organisation, ticket.project, ticket,
+                                               assistant_chat_id: world.ticket_question.id)
+        # Three citations, two rows: the comment is listed under its ticket.
+        open_citations(2)
+        capture(locale, :ticket_assistant, until_bottom_of: 'body')
+      end
+
+      it 'takes the assistant beside the meeting' do
+        meeting = world.meetings.fetch(Lalabase::Demo::Fiction::MEETING_QUESTION[:meeting])
+        visit organisation_project_meeting_path(world.organisation, meeting.project, meeting,
+                                                assistant_chat_id: world.meeting_question.id)
+        open_citations(2)
+        capture(locale, :meeting_assistant, until_bottom_of: 'body')
       end
 
       it 'takes the assistant answer with its sources' do

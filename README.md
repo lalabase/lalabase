@@ -1,4 +1,20 @@
-# Lalabase
+<p align="center">
+  <img src=".github/readme/logo.svg" width="96" height="96" alt="Lalabase logo: a lime tile with the letter L">
+</p>
+
+<h1 align="center">Lalabase</h1>
+
+<p align="center">
+  <strong>A self-hosted project brain for devs and customers.</strong><br>
+  <sub>RUBY ON RAILS · POSTGRESQL</sub>
+</p>
+
+<p align="center">
+  <a href="https://github.com/lalabase/lalabase/releases/latest"><img src="https://img.shields.io/github/v/release/lalabase/lalabase?label=release" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--only-blue" alt="License: AGPL-3.0-only"></a>
+  <a href="https://lalabase.com/docs/en/self-hosting/getting-started/overview"><img src="https://img.shields.io/badge/docs-lalabase.com-blue" alt="Documentation"></a>
+  <a href="https://demo.lalabase.com"><img src="https://img.shields.io/badge/demo-live-brightgreen" alt="Live demo"></a>
+</p>
 
 **Self-hosted project management for software agencies, with an AI assistant that answers from
 your own project data and cites its sources.** Tickets, time tracking, docs and meetings in one
@@ -17,7 +33,7 @@ everything resets every night.
   <img src=".github/readme/lala-assistant-light.svg" width="760" alt="Lala, the Lalabase mascot, asks the assistant how many hours went into the shop relaunch in September. The answer: 38.5 hours across 12 tickets, most of it checkout and payment, with the tickets and the time list as sources.">
 </picture>
 
-![The ticket list of a client project in Lalabase: tickets with status, assignee and age, saved views above, projects in the sidebar](.github/readme/ticket-list.png)
+![A ticket open in Lalabase with the assistant beside it. The ticket is the question's reference; the answer says who works on it and what is still open, and cites the ticket, a comment and a meeting.](.github/readme/ticket-assistant.png)
 
 In production for customers since September 2025. This repository starts with the first public
 release, 2026.10.0; [more under Status](#status).
@@ -38,6 +54,33 @@ release, 2026.10.0; [more under Status](#status).
 - **Your choice of AI.** OpenAI, Anthropic, Google Gemini through Vertex AI in the EU, Mistral,
   IONOS, OVHcloud, or any OpenAI-compatible endpoint, including a model in your own network.
   The AI stays off until you switch it on.
+
+## See it
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src=".github/readme/meeting-assistant.png" alt="A meeting with its summary, action items and transcript, and the assistant beside it answering what was agreed, with the meeting and a ticket as sources">
+      <br><strong>Ask about a meeting.</strong> Summary, action items and transcript next to the answer.
+    </td>
+    <td width="50%" valign="top">
+      <img src=".github/readme/assistant.png" alt="The assistant answers how far a feature is, citing the ticket, the hours booked on it and a note">
+      <br><strong>One question across the project.</strong> The answer cites a ticket, the hours on it and a note.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src=".github/readme/board.png" alt="The tickets of a project as a board with the columns New, In Progress, Resolved and Closed">
+      <br><strong>Tickets as a board</strong> or a list, with the statuses you define per project.
+    </td>
+    <td width="50%" valign="top">
+      <img src=".github/readme/time.png" alt="The time list of the week: hours per person and ticket, day by day">
+      <br><strong>Time tracking per ticket.</strong> Every session billable on its own.
+    </td>
+  </tr>
+</table>
+
+The pictures show the same invented company as the [live demo](https://demo.lalabase.com).
 
 ## Who it is for
 

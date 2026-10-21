@@ -11,8 +11,10 @@ By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md
 Lalabase is **open source, but not open contribution**. The code is public under
 the AGPLv3, and all of it is written by the maintainer. We do **not** accept pull
 requests, and we will close them without review. This is not about the quality of
-your work: it keeps the copyright in one hand, so the project can stay simple to
-license and to maintain.
+your work. In other projects we have seen that, since AI coding assistants, outside
+pull requests take more work to review and fold in than the change itself, so we
+write every change ourselves. It also keeps the copyright in one hand, so the
+project can stay simple to license and to maintain.
 
 What helps us most:
 
@@ -64,8 +66,8 @@ bin/rails server -b 0.0.0.0     # the web server, in a second terminal
 
 `bin/dev` does not start the web server, so both processes are needed.
 
-> 💡 A one-command `docker compose up` setup is on the roadmap. Until then, the
-> steps above are the supported path.
+> 💡 To run a release instead of working on the code, use the Docker setup in the
+> [README](README.md#self-host-with-docker).
 
 ### Checks
 

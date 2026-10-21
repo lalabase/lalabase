@@ -8,7 +8,7 @@ by us in Germany.
 **[Try the live demo](https://demo.lalabase.com)**: no sign-up, the login is on the page, and
 everything resets every night.
 
-[Website](https://lalabase.com/en) · [Self-hosting](https://lalabase.com/en/self-hosting) ·
+[Website](https://lalabase.com/en) · [Self-hosting](https://lalabase.com/docs/en/self-hosting/getting-started/overview) ·
 [Documentation](https://lalabase.com/docs/en/self-hosting/getting-started/overview) ·
 [Cloud pricing](https://lalabase.com/en/pricing) · [Changelog](CHANGELOG.md)
 

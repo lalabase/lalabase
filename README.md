@@ -29,7 +29,31 @@ everything resets every night.
 [Website](https://lalabase.com/en) · [Self-hosting](https://lalabase.com/docs/en/self-hosting/getting-started/overview) ·
 [Cloud pricing](https://lalabase.com/en/pricing) · [Changelog](CHANGELOG.md)
 
-![A ticket open in Lalabase with the assistant beside it. The ticket is the question's reference; the answer says who works on it and what is still open, and cites the ticket, a comment and a meeting.](.github/readme/ticket-assistant.png)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href=".github/readme/ticket-assistant.png"><img src=".github/readme/gallery/ticket-assistant.png" width="400" alt="A ticket open in Lalabase with the assistant beside it. The ticket is the question's reference; the answer says who works on it and what is still open, and cites the ticket, a comment and a meeting."></a><br>
+      <strong>Ask about a ticket.</strong> The answer cites the ticket, a comment and a meeting.
+    </td>
+    <td width="50%" valign="top">
+      <a href=".github/readme/meeting-assistant.png"><img src=".github/readme/gallery/meeting-assistant.png" width="400" alt="A meeting with its summary, action items and transcript, and the assistant beside it answering what was agreed, with the meeting and a ticket as sources"></a><br>
+      <strong>Ask about a meeting.</strong> Summary, action items and transcript next to the answer.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href=".github/readme/board.png"><img src=".github/readme/gallery/board.png" width="400" alt="The tickets of a project as a board with the columns New, In Progress and Resolved"></a><br>
+      <strong>Tickets as a board</strong> or a list, with your own statuses per project.
+    </td>
+    <td width="50%" valign="top">
+      <a href=".github/readme/time.png"><img src=".github/readme/gallery/time.png" width="400" alt="The time list of the week: hours per person and ticket, day by day"></a><br>
+      <strong>Time tracking per ticket.</strong> Every session billable on its own.
+    </td>
+  </tr>
+</table>
+
+Click a picture for the full size. The pictures show the same invented company as the
+[live demo](https://demo.lalabase.com).
 
 In production for customers since September 2025. This repository starts with the first public
 release, 2026.10.0; [more under Status](#status). If Lalabase is useful to you, a star helps
@@ -55,23 +79,6 @@ others find it.
 - **MCP server and REST API.** Connect Claude, Cursor or your own agent with a personal access
   token: list, create and update tickets, comment, log time, search the knowledge base, read the
   inbox, and look things up in the indexed code of your repositories.
-
-## See it
-
-**Ask about a meeting.** Summary, action items and transcript next to the answer, with the meeting
-as the reference.
-
-![A meeting with its summary, action items and transcript, and the assistant beside it answering what was agreed, with the meeting and a ticket as sources](.github/readme/meeting-assistant.png)
-
-**Tickets as a board** or a list, with the statuses you define per project.
-
-![The tickets of a project as a board with the columns New, In Progress and Resolved](.github/readme/board.png)
-
-**Time tracking per ticket.** Every session billable on its own.
-
-![The time list of the week: hours per person and ticket, day by day](.github/readme/time.png)
-
-The pictures show the same invented company as the [live demo](https://demo.lalabase.com).
 
 ## Built with
 

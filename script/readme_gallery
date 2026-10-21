@@ -1,0 +1,95 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Draws the picture gallery of the README: a small framed copy of each README picture.
+#
+#   bundle exec ruby script/readme_gallery
+#
+# Reads .github/readme/<motif>.png and writes .github/readme/gallery/<motif>.png. Run it
+# after copying new pictures from the marketing screenshots
+# (spec/marketing/screenshots_spec.rb).
+#
+# GitHub drops every style of a README, so the frame is part of the picture. The label
+# in the title bar is set in the machine's monospace font: the pictures are checked in,
+# and another machine may draw it a little differently.
+
+require 'base64'
+require 'cgi'
+require 'fileutils'
+require 'vips'
+
+SOURCE = File.expand_path('../.github/readme', __dir__)
+TARGET = File.join(SOURCE, 'gallery')
+
+# In reading order. `fit` says how a picture becomes a tile: :crop keeps the full
+# width and cuts from the top, :whole shrinks it to the top of a white ground (the
+# board is wider than a tile, and a cut would lose a column).
+MOTIFS = [
+  { name: 'ticket-assistant', label: 'Ticket · Assistant', fit: :crop },
+  { name: 'meeting-assistant', label: 'Meeting · Weekly call', fit: :crop },
+  { name: 'board', label: 'Project · Board', fit: :whole },
+  { name: 'time', label: 'Time · This week', fit: :crop }
+].freeze
+
+# In pixels, twice what GitHub shows: two tiles side by side are about 400 px wide each.
+TILE_WIDTH = 800
+TILE_HEIGHT = TILE_WIDTH * 10 / 16
+BORDER = 4
+BAR = 56
+RADIUS = 16
+SHADOW = 8
+DOT = 16
+FONT_SIZE = 22
+
+# One version for both themes of GitHub. A dark one cannot be offered: GitHub links every
+# picture to itself and moves a picture inside a link out of its <picture>, so the
+# README's own link to the full size would cost the switch. On a dark page the black
+# frame fades and the tile reads as a white card, which is enough.
+COLORS = { line: '#1f2328', bar: '#f6f8fa', label: '#59636e', accent: '#b5e48c' }.freeze
+
+def tile(path, fit)
+  source = Vips::Image.new_from_file(path)
+  source = source.flatten(background: [255, 255, 255]) if source.has_alpha?
+  if fit == :crop
+    resized = source.resize(TILE_WIDTH.to_f / source.width)
+    resized.crop(0, 0, TILE_WIDTH, [TILE_HEIGHT, resized.height].min)
+           .embed(0, 0, TILE_WIDTH, TILE_HEIGHT, extend: :white)
+  else
+    resized = source.resize([TILE_WIDTH.to_f / source.width, TILE_HEIGHT.to_f / source.height].min)
+    resized.gravity(:north, TILE_WIDTH, TILE_HEIGHT, extend: :white)
+  end
+end
+
+def frame_svg(tile, label, colors)
+  width = TILE_WIDTH + (2 * BORDER)
+  height = BAR + TILE_HEIGHT + (3 * BORDER)
+  image = Base64.strict_encode64(tile.write_to_buffer('.png'))
+  dots = 3.times.map do |index|
+    fill = index == 2 ? colors[:accent] : 'none'
+    cx = BORDER + 20 + (index * (DOT + 10)) + (DOT / 2)
+    %(<circle cx="#{cx}" cy="#{BORDER + (BAR / 2)}" r="#{(DOT - BORDER) / 2}" fill="#{fill}" stroke="#{colors[:line]}" stroke-width="#{BORDER}"/>)
+  end
+  text_x = BORDER + 20 + (3 * (DOT + 10)) + 10
+
+  <<~SVG
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="#{width + SHADOW}" height="#{height + SHADOW}">
+      <defs><clipPath id="inside"><rect x="#{BORDER}" y="#{BORDER}" width="#{TILE_WIDTH}" height="#{height - (2 * BORDER)}" rx="#{RADIUS - BORDER}"/></clipPath></defs>
+      <rect x="#{SHADOW}" y="#{SHADOW}" width="#{width}" height="#{height}" rx="#{RADIUS}" fill="#{colors[:line]}"/>
+      <rect width="#{width}" height="#{height}" rx="#{RADIUS}" fill="#{colors[:line]}"/>
+      <g clip-path="url(#inside)">
+        <rect x="#{BORDER}" y="#{BORDER}" width="#{TILE_WIDTH}" height="#{BAR}" fill="#{colors[:bar]}"/>
+        <image x="#{BORDER}" y="#{BAR + (2 * BORDER)}" width="#{TILE_WIDTH}" height="#{TILE_HEIGHT}" xlink:href="data:image/png;base64,#{image}"/>
+      </g>
+      #{dots.join("\n  ")}
+      <text x="#{text_x}" y="#{BORDER + (BAR / 2)}" dominant-baseline="central" font-family="Menlo, Consolas, monospace" font-size="#{FONT_SIZE}" fill="#{colors[:label]}">#{CGI.escapeHTML(label)}</text>
+    </svg>
+  SVG
+end
+
+FileUtils.mkdir_p(TARGET)
+MOTIFS.each do |motif|
+  picture = tile(File.join(SOURCE, "#{motif[:name]}.png"), motif[:fit])
+  path = File.join(TARGET, "#{motif[:name]}.png")
+  Vips::Image.svgload_buffer(frame_svg(picture, motif[:label], COLORS)).write_to_file(path, compression: 9)
+  puts path.delete_prefix("#{File.expand_path('..', __dir__)}/")
+end

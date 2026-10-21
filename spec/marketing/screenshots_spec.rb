@@ -13,7 +13,8 @@ require 'rails_helper'
 # one picture per motif and language to tmp/screenshots/marketing/<locale>/. The
 # website imports them from there. The README shows four English ones, copied by hand
 # to .github/readme/ (ticket_assistant, meeting_assistant, board, time, with dashes for
-# underscores); copy them again after a new run.
+# underscores); copy them again after a new run, then redraw the framed tiles of the
+# README's gallery with `bundle exec ruby script/readme_gallery`.
 #
 # It fails loudly when a screen changes shape (a selector it waits for is gone), which
 # is the point: a stale picture on the website is worse than a red run.

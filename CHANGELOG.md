@@ -18,17 +18,63 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ## [Unreleased]
 
+## [2026.10.1] - 2026-10-21
+
+<!-- drafted from d03168b613c25580924a59815580a512c0b95666 -->
+
+### Added
+
+- "Alle Meetings" works like the meetings page of a project: the shared filter bar with saved
+  views and search, a filter by project, the column picker, and the detail lane on the right
+  for opening a meeting or creating a new one with a project select (#5, #7, #8, #11).
+- `bin/rails rich_text_embeds:resign_sgids` brings back the images and note mentions of rich
+  texts after a new `SECRET_KEY_BASE` (run it with `DRY_RUN=1` first). It needs no old key.
+  See "Moving to a new server or cloning a server" in the self-hosting docs (#23, #24, #25).
+- A demo mode for a public demo instance, behind `LALABASE_DEMO=1`: a shared, published
+  login, an invented example company, a reset every night, limits on uploads and AI requests.
+  The nightly reset deletes all data of the instance. Do not set `LALABASE_DEMO` on a normal
+  instance; without it nothing changes (#18, #21, #26, #28, #30, #33).
+
+### Changed
+
+- The API list of a ticket's files (`GET /api/v1/tickets/:id/attachments`) loads them in one
+  query. The files of comments now come in the order of the comments' ids (#1).
+
 ### Fixed
 
 - Images in rich texts are kept when an instance gets a new `SECRET_KEY_BASE`, for example
   after moving to a new server or cloning one. Until now, editing such a text afterwards
-  detached its images and deleted the files.
+  detached its images and deleted the files (#23).
+- Escape closes only the topmost menu or dialog. Before, a filter menu or the "+" dialog
+  could also close the detail lane behind it, together with an unsaved edit (#9).
+- The "+" on a project's meetings page opens the new-meeting form as its own state: the
+  previously open meeting is no longer marked, and a reload shows the form again (#16).
+- The dates in the knowledge list follow the language of the interface (#10).
 
-### Added
+### Security
 
-- `bin/rails rich_text_embeds:resign_sgids` brings back the images and note mentions of
-  rich texts after a new `SECRET_KEY_BASE` (run it with `DRY_RUN=1` first). See "Moving to
-  a new server or cloning a server" in the self-hosting docs.
+- IDs taken from a request are now always checked against the organisation: the Kanban
+  attribute of a view, the user mapping of the codebase user import, the recipient of a
+  private comment through the API, and the users in smart folder rules (#3).
+- A custom OpenAI-compatible AI endpoint is checked by the addresses its name resolves to,
+  on saving and again on every request, and only public addresses are accepted. The
+  connection test no longer shows raw network errors (#20, #22).
+- Cloning a connected repository writes symbolic links as plain files, so documentation
+  sync and code indexing cannot read files outside the repository (#19).
+- The client address behind a reverse proxy comes from `X-Forwarded-For` only. A
+  `Forwarded` header sent by a client is ignored, so it can no longer change the address
+  that the sign-in and other request limits count (#27).
+
+### Upgrade notes
+
+- If the `SECRET_KEY_BASE` of your instance was ever changed (moved to a new server, cloned
+  from another one), run `bin/rails rich_text_embeds:resign_sgids` once, first with
+  `DRY_RUN=1` (in Docker: `docker compose exec web bin/rails rich_text_embeds:resign_sgids`).
+  It reattaches images and note mentions that show as missing.
+- Behind a reverse proxy, the client address now comes from `X-Forwarded-For` only. Caddy
+  (as in `compose.yml`) and nginx set it. A proxy that sends only a `Forwarded` header makes
+  every visitor count as the proxy, so all of them share one request limit: configure it to
+  set `X-Forwarded-For`.
 
 ## [2026.10.0] - 2026-10-12
 

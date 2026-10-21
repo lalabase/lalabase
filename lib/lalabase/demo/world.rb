@@ -10,7 +10,7 @@ module Lalabase
     # their actors, projects the way Organisations::ProjectsController creates them.
     # No factories: the demo runs in production, where FactoryBot is not installed,
     # and a factory would show a state no real instance produces. Only the stored
-    # assistant answer is written directly, because its actor would ask a model.
+    # assistant chats are written directly, because their actor would ask a model.
     #
     # Entry point: build. The order of writes is explicit: people before projects,
     # projects before tickets, tickets before the hours booked on them.
@@ -26,7 +26,7 @@ module Lalabase
     class World
       ORGANISATION_NAME = 'Nordlicht Software GmbH'
 
-      attr_reader :organisation, :chat, :notes, :meetings
+      attr_reader :organisation, :chat, :ticket_question, :meeting_question, :notes, :meetings
 
       def initialize(locale:, now: Time.current, organisation: {}, embeddings: false, password: nil)
         @locale = locale.to_sym
@@ -70,7 +70,7 @@ module Lalabase
         add_notes
         add_comments
         add_meetings
-        add_chat
+        add_chats
       end
 
       def create_organisation
@@ -166,7 +166,7 @@ module Lalabase
 
       def add_comments
         target = ticket(Fiction::CHAT[:ticket])
-        Fiction::COMMENTS.each do |entry|
+        @comments = Fiction::COMMENTS.map do |entry|
           params = { content: entry.fetch(@locale), create_embeddings: @embeddings }
           post = succeed!(Actors::SavePost.call(ticket: target, params: params, current_user: person(entry[:person])))
           backdate(post, @now - entry[:hours_ago].hours)
@@ -190,21 +190,48 @@ module Lalabase
         { display_name: Fiction.full_name(who), user_id: person(who).id }
       end
 
+      # Three chats, newest last, each with the citations its [n] links point to, in
+      # that order. The ticket and the meeting chat carry their object as the reference
+      # the panel offers on that page.
+      def add_chats
+        @chat = add_chat(Fiction::CHAT, minutes_ago: 20,
+                                        citations: [Lalabase::Citations.ticket(ticket(Fiction::CHAT[:ticket])),
+                                                    Lalabase::Citations.time_report(project(:deichblick), {}),
+                                                    Lalabase::Citations.note(@notes.fetch(Fiction::CHAT[:note]))])
+        add_ticket_question
+        add_meeting_question
+      end
+
+      def add_ticket_question
+        spec = Fiction::TICKET_QUESTION
+        target = ticket(spec[:ticket])
+        @ticket_question = add_chat(spec, minutes_ago: 10, references: [target],
+                                          citations: [Lalabase::Citations.ticket(target),
+                                                      Lalabase::Citations.post(@comments.last),
+                                                      Lalabase::Citations.meeting(@meetings.fetch(spec[:meeting]))])
+      end
+
+      def add_meeting_question
+        spec = Fiction::MEETING_QUESTION
+        target = @meetings.fetch(spec[:meeting])
+        @meeting_question = add_chat(spec, minutes_ago: 5, references: [target],
+                                           citations: [Lalabase::Citations.meeting(target),
+                                                       Lalabase::Citations.ticket(ticket(spec[:ticket]))])
+      end
+
       # The first post of a chat renders as the question (Chatpost#set_initial_role
       # makes it 'system'). model_used marks the answer as finished; without it the [n]
       # links stay text.
-      def add_chat
-        spec = Fiction::CHAT
-        @chat = Chat.new(organisation: @organisation, user: signed_in)
-        @chat.chatposts.build(organisation: @organisation, user: signed_in, content: spec[:question].fetch(@locale))
-        @chat.save!
-        citations = [Lalabase::Citations.ticket(ticket(spec[:ticket])),
-                     Lalabase::Citations.time_report(project(:deichblick), {}),
-                     Lalabase::Citations.note(@notes.fetch(spec[:note]))]
-        @chat.chatposts.create!(organisation: @organisation, user: signed_in, role: 'assistant',
-                                content: dated(spec[:answer].fetch(@locale)), model_used: spec[:model],
-                                source_citations: citations.map(&:deep_stringify_keys))
-        @chat.chatposts.update_all(created_at: @now - 20.minutes)
+      def add_chat(spec, minutes_ago:, citations:, references: [])
+        chat = Chat.new(organisation: @organisation, user: signed_in,
+                        scope_references: references.map { { 'type' => _1.class.name, 'id' => _1.id } })
+        chat.chatposts.build(organisation: @organisation, user: signed_in, content: spec[:question].fetch(@locale))
+        chat.save!
+        chat.chatposts.create!(organisation: @organisation, user: signed_in, role: 'assistant',
+                               content: dated(spec[:answer].fetch(@locale)), model_used: spec[:model],
+                               source_citations: citations.map(&:deep_stringify_keys))
+        chat.chatposts.update_all(created_at: @now - minutes_ago.minutes)
+        chat
       end
 
       def random_password = SecureRandom.base58(24)

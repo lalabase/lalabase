@@ -254,6 +254,50 @@ module Lalabase
         model: 'mistral-medium-latest'
       }.freeze
 
+      # Asked from the ticket of the detail motif, with the ticket as its reference
+      # (Chat#scope_references): the picture beside the open ticket. Cites the ticket,
+      # Ole's last comment (COMMENTS) and the weekly call (MEETINGS). Same rule as CHAT:
+      # stored, and checked against a real run before a new set of pictures.
+      TICKET_QUESTION = {
+        question: { de: 'Was ist an diesem Ticket noch offen, und wer arbeitet daran?',
+                    en: 'What is still open on this ticket, and who is working on it?' },
+        answer: {
+          de: 'Ole Jensen arbeitet daran, die Priorität ist dringend [1]. Summenzeile und Mieter-Ebene ' \
+              'stehen; offen ist die Vorlage mit dem Logo von Deichblick, die Ole morgen angeht [2]. ' \
+              'Im Wochentermin hat Deichblick eine eigene Seite je Mieter gewünscht, das Logo schickt ' \
+              'Kerstin Möller als Vektordatei [3].',
+          en: 'Ole Jensen is working on it, and it is marked urgent [1]. The totals row and the tenant ' \
+              'level are done; still open is the template with the Deichblick logo, which Ole plans for ' \
+              'tomorrow [2]. In the weekly call Deichblick asked for a page per tenant, and Kerstin Möller ' \
+              'sends the logo as a vector file [3].'
+        },
+        ticket: 3,
+        meeting: 0,
+        model: 'mistral-medium-latest'
+      }.freeze
+
+      # Asked from the weekly call, with the meeting as its reference. Cites the
+      # meeting and the ticket the call was about. Same rule as CHAT.
+      MEETING_QUESTION = {
+        question: { de: 'Was haben wir in diesem Termin vereinbart, und was sind die nächsten Schritte?',
+                    en: 'What did we agree in this meeting, and what are the next steps?' },
+        answer: {
+          de: 'Jeder Mieter bekommt in der Nebenkostenabrechnung eine eigene Seite mit seinem Anteil, oben ' \
+              'mit dem Logo von Deichblick [1]. Nächste Schritte: Kerstin Möller schickt das Logo als ' \
+              'Vektordatei, Ole Jensen baut die Seite je Mieter, und drei Hausmeister testen die ' \
+              'Schadensmeldung ab Montag [1]. Die Abnahme ist in zwei Wochen geplant; der PDF-Export ist ' \
+              'noch in Bearbeitung [2].',
+          en: 'Each tenant gets a page of their own in the service charge statement, with their share and ' \
+              'the Deichblick logo at the top [1]. Next steps: Kerstin Möller sends the logo as a vector ' \
+              'file, Ole Jensen builds the page per tenant, and three caretakers test the damage report ' \
+              'from Monday [1]. The acceptance is planned in two weeks; the PDF export is still in ' \
+              'progress [2].'
+        },
+        meeting: 0,
+        ticket: 3,
+        model: 'mistral-medium-latest'
+      }.freeze
+
       module_function
 
       # The sidebar shows the part before the @, so the address carries the full name.

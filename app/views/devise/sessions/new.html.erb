@@ -12,8 +12,15 @@
      is DELIBERATELY not implemented: it is marked there as an optional
      suggestion, not an existing feature; with it the OR divider goes away too. %>
 
-<%# The demo has no sign-up: everybody uses the login shown in the form. %>
-<% unless Lalabase::Demo.enabled? %>
+<%# The demo has no sign-up: everybody uses the login shown in the form. Its place
+    holds the way back to the website the visitor came from, if the demo names one. %>
+<% if Lalabase::Demo.enabled? %>
+  <% if (website_link = demo_website_link(class: 'lp-auth-cross-link')) %>
+    <% content_for :auth_cross do %>
+      <p class="lp-auth-cross"><%= website_link %></p>
+    <% end %>
+  <% end %>
+<% else %>
   <% content_for :auth_cross do %>
     <p class="lp-auth-cross">
       <%= t('.no_account') %>

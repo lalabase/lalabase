@@ -5,6 +5,8 @@ en:
       banner:
         title: "Demo"
         body: "Every visitor signs in to this account, so others see what you change. Everything is reset every night at %{time} UTC."
+      website:
+        back: "Back to %{site}"
       sign_in:
         lead: "Try the demo: sign in as %{name}, project lead at an invented software company."
         email: "Email"

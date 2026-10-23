@@ -75,7 +75,7 @@ test("a full draft reference collection explains why an explicit intent was not 
   controller.open = () => {}
   controller.whenComposerReady = callback => callback()
   controller.openThreadId = () => null
-  controller.pageContext = () => ({ key: "Meeting:c", label: "Meeting C" })
+  controller.pageContexts = () => [{ key: "Meeting:c", label: "Meeting C" }]
   let activated = 0
   controller.fulfilMeetingIntent = () => activated++
 

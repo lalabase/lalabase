@@ -9,6 +9,7 @@
  *    Without a name: page, the form that works on any page.
  * 2. The panel's head (tickets/_meeting_panel): the meetings of the ticket as tabs.
  *    The lane's own surface and width live in layout.css, beside the other lanes.
+ * 3. The tab bar of the narrow stage, below.
  */
 
 .meeting-reference--panel,
@@ -68,4 +69,75 @@
   font-size: 0.875rem;
   font-style: italic;
   color: rgb(var(--cream-600));
+}
+
+/* 3. The narrow stage (layout.css, "NARROW"): ticket and meeting are two tabs in one
+ *    column. The bar is the panel's first row and the one part of it that stays
+ *    visible while the ticket is in front; it is sticky, so a meeting read halfway
+ *    down still shows it. Hidden at every other stage. */
+.layout {
+  --meeting-panel-tabs-height: 3rem;
+}
+
+.ticket-meeting-panel__stage-tabs {
+  display: none;
+}
+
+/* Inside the same media query as layout.css's NARROW rules: below 1024px the ticket
+   page is the phone page, and a tab bar without the stage behind it would switch
+   nothing. */
+@media (min-width: 1024px) {
+  .layout[data-meeting-panel-stage="narrow"]:not(.hide-panel) > .column.panel {
+    padding-top: 0;
+  }
+
+  .layout[data-meeting-panel-stage="narrow"]:not(.hide-panel) .ticket-meeting-panel__stage-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: var(--meeting-panel-tabs-height);
+    margin-bottom: 1rem;
+    padding-right: 2rem;
+    border-bottom: 1px solid rgb(var(--cream-200));
+    background: rgb(var(--white));
+    visibility: visible;
+  }
+
+  .ticket-meeting-panel__stage-tab {
+    height: 2rem;
+    padding: 0 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgb(var(--cream-700));
+  }
+
+  .ticket-meeting-panel__stage-tab:hover {
+    background: rgb(var(--cream-100));
+    color: rgb(var(--cream-900));
+  }
+
+  .ticket-meeting-panel__stage-tab[aria-pressed="true"] {
+    background: rgb(var(--cream-100));
+    color: rgb(var(--cream-900));
+    font-weight: 700;
+    box-shadow: inset 0 -2px 0 rgb(var(--ink));
+  }
+
+  /* Follow the sticky tabs in either tab, even when the meeting keeps its scroll
+     position behind the ticket. Float with no flow height to share the tabs' row. */
+  .layout[data-meeting-panel-stage="narrow"]:not(.hide-panel) > .column.panel .panel-close {
+    position: sticky;
+    top: 8px;
+    right: auto;
+    float: right;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: -2rem;
+    visibility: visible;
+    z-index: 2;
+  }
 }

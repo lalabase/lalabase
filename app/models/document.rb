@@ -66,7 +66,7 @@ class Document < ApplicationRecord
   # The title as ONE line, cut to `max` (OneLineText), for the assistant's
   # reference chip and system prompt. ⚠️ Never blank: #title is nil without a
   # current version, and a blank label is a marker the panel walks past
-  # (pageContext() wants id, type and label), i.e. a page that offers nothing
+  # (pageContexts() wants id, type and label), i.e. a page that offers nothing
   # and says nothing. The fallback is a word, translated, not the empty string.
   def one_line_title(max:)
     one_line(title.presence || I18n.t('models.document.untitled'), max:)

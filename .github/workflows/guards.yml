@@ -639,6 +639,8 @@ jobs:
           spec/system/ticket_list_unread_dot_spec.rb
           spec/system/ticket_relations_spec.rb
           spec/system/ticket_meeting_panel_spec.rb
+          spec/system/ticket_meeting_panel_stages_spec.rb
+          spec/system/ticket_meeting_panel_assistant_spec.rb
           spec/system/ticket_waiting_list_spec.rb
           spec/system/ticket_waiting_filters_spec.rb
           spec/services/smart_folder_query_builder_spec.rb

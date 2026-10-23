@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { escapeOwned } from "escape_owner"
+import { meetingPanelStage } from "lane/meeting_panel_stage"
 
 // The meeting beside the ticket (doc/ticket_meeting_panel_plan.md, S1), mounted on the
 // content of turbo-frame#ticket_meeting_panel (tickets/_meeting_panel, and the "not
@@ -14,11 +15,36 @@ import { escapeOwned } from "escape_owner"
 //   * the ticket lane showing another ticket, or none, closes it (decision F3): the
 //     meeting belongs to the ticket it was opened from. The lane has eight writers and
 //     most are streams that fire no load event, so the lane is watched instead.
+// And while it is open it decides how much of it fits (S2): a ResizeObserver on the grid
+// writes data-meeting-panel-stage (wide | medium | narrow, lib/lane/meeting_panel_stage)
+// for the stylesheet, and at the narrow stage it keeps which of ticket and meeting is in
+// front (data-meeting-panel-tab). The grid, not the window: the assistant beside the page
+// changes the grid's width without the window changing at all.
 export default class extends Controller {
+  static targets = ["ticketTab", "meetingTab"]
   static values = { ticketId: String }
 
   connect() {
     this.grid = this.element.closest(".layout")
+    if (this.grid) {
+      // Read once: they are the stylesheet's constants (layout.css, :root, in px),
+      // and the observer below can fire on every frame of the assistant's drag.
+      const style = getComputedStyle(this.grid)
+      const number = name => parseFloat(style.getPropertyValue(name))
+      this.panelNumbers = {
+        panelMin: number("--panel-min"),
+        panelShare: number("--panel-share"),
+        panelMax: number("--panel-max"),
+        gap: number("--lane-gap")
+      }
+      // Before the lane opens, so its first frame already has the right stage.
+      this.select("meeting")
+      this.updateStage(this.grid.getBoundingClientRect().width)
+      this.resizeObserver = new ResizeObserver(([entry]) =>
+        this.updateStage(entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width))
+      this.resizeObserver.observe(this.grid)
+    }
+
     this.dispatch(this.laneShowsTicket() ? "open" : "close")
 
     this.boundNoteEscape = this.noteEscape.bind(this)
@@ -33,6 +59,48 @@ export default class extends Controller {
     window.removeEventListener("keydown", this.boundNoteEscape, true)
     document.removeEventListener("keydown", this.boundCloseOnEscape)
     this.laneObserver?.disconnect()
+    this.resizeObserver?.disconnect()
+    // A tab of the panel replaces this content and connects a new instance in the
+    // same task, which writes both again before anything is painted.
+    delete this.grid?.dataset.meetingPanelStage
+    delete this.grid?.dataset.meetingPanelTab
+  }
+
+  // --- stages (S2) --------------------------------------------------------
+
+  updateStage(gridWidth) {
+    const stage = meetingPanelStage({ gridWidth, ...this.panelNumbers })
+    const previous = this.grid.dataset.meetingPanelStage
+    if (stage === previous) return
+
+    this.grid.dataset.meetingPanelStage = stage
+    // Dropping to the tabs shows the meeting first: it is what was opened last (F6).
+    // Unless the panel was already open and somebody is working in the ticket (the
+    // focus is in it): the grid narrows under their hands (a window or the assistant
+    // dragged), and hiding the field they type into would send the next keys
+    // nowhere. Not on opening: the link just clicked sits in the ticket, too.
+    if (stage === "narrow") this.select(previous && this.ticketHasFocus() ? "ticket" : "meeting")
+  }
+
+  ticketHasFocus() {
+    const active = document.activeElement
+    return Boolean(active && active !== document.body && this.grid.querySelector(":scope > .column.content")?.contains(active))
+  }
+
+  showTicket() {
+    this.select("ticket")
+  }
+
+  showMeeting() {
+    this.select("meeting")
+  }
+
+  select(tab) {
+    if (!this.grid) return
+
+    this.grid.dataset.meetingPanelTab = tab
+    if (this.hasTicketTabTarget) this.ticketTabTarget.setAttribute("aria-pressed", String(tab === "ticket"))
+    if (this.hasMeetingTabTarget) this.meetingTabTarget.setAttribute("aria-pressed", String(tab === "meeting"))
   }
 
   // While the lane shows this panel, the next Escape closes it.

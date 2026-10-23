@@ -21,7 +21,9 @@
        width the assistant rule gives it), named once: the clamp below is built
        from these, and lib/lane/meeting_panel_stage reads the same four from the
        grid to decide how much fits (ticket_meeting_panel_controller), with
-       --lane-gap above. */
+       --lane-gap above. ⚠️ In px (and a plain number for the share): the
+       controller reads them with parseFloat, and a custom property is not
+       resolved to px for it. A rem here would lay out right and decide wrong. */
     --panel-min: 320px;
     --panel-share: 0.34;
     --panel-max: 480px;
@@ -1526,6 +1528,7 @@ main:has(.layout) > div {
      assistant has taken the list's place, and not at the narrow one (two tracks,
      no channel). */
   .layout.two-column:not(.hide-content):not(.hide-panel):not([data-meeting-panel-stage="wide"]):not([data-meeting-panel-stage="narrow"]) > .column.content,
+  .layout.two-column.hide-list:not(.hide-content):not(.hide-panel):not([data-meeting-panel-stage="narrow"]) > .column.content,
   body.assistant-panel-open .layout.two-column:not(.hide-content):not(.hide-panel):not([data-meeting-panel-stage="narrow"]) > .column.content {
     margin-left: calc(-1 * var(--lane-gap));
   }
@@ -1541,8 +1544,9 @@ main:has(.layout) > div {
      minimums lane_split drags between. The handle stays hidden: it is drawn from
      --list-split, a share of the WHOLE grid, and would stand beside the edge it
      claims to move. Not while the assistant is open: it takes the list's place
-     (L12) at any width. */
-  body:not(.assistant-panel-open) .layout--lane.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="wide"] {
+     (L12) at any width. And not while the list is hidden on purpose
+     (.hide-list, the full-width detail): the track would stand empty. */
+  body:not(.assistant-panel-open) .layout--lane.two-column:not(.hide-content):not(.hide-panel):not(.hide-list)[data-meeting-panel-stage="wide"] {
     grid-template-columns:
       clamp(var(--list-min),
             calc((100% - var(--panel-width) - 2 * var(--lane-gap)) * var(--list-share)),

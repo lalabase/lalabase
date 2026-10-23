@@ -238,6 +238,8 @@ en:
           stage_tabs_label: Show the ticket or the meeting
           ticket_tab: "Ticket #%{number}"
           meeting_tab: "Meeting %{date}"
+          ticket_tab_plain: Ticket
+          meeting_tab_plain: Meeting
         shared:
           subtasks:
             heading: Sub-tasks

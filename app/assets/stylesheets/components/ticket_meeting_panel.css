@@ -83,48 +83,53 @@
   display: none;
 }
 
-.layout[data-meeting-panel-stage="narrow"]:not(.hide-panel) > .column.panel {
-  padding-top: 0;
-}
+/* Inside the same media query as layout.css's NARROW rules: below 1024px the ticket
+   page is the phone page, and a tab bar without the stage behind it would switch
+   nothing. */
+@media (min-width: 1024px) {
+  .layout[data-meeting-panel-stage="narrow"]:not(.hide-panel) > .column.panel {
+    padding-top: 0;
+  }
 
-.layout[data-meeting-panel-stage="narrow"]:not(.hide-panel) .ticket-meeting-panel__stage-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  height: var(--meeting-panel-tabs-height);
-  margin-bottom: 1rem;
-  padding-right: 2rem;
-  border-bottom: 1px solid rgb(var(--cream-200));
-  background: rgb(var(--white));
-  visibility: visible;
-}
+  .layout[data-meeting-panel-stage="narrow"]:not(.hide-panel) .ticket-meeting-panel__stage-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: var(--meeting-panel-tabs-height);
+    margin-bottom: 1rem;
+    padding-right: 2rem;
+    border-bottom: 1px solid rgb(var(--cream-200));
+    background: rgb(var(--white));
+    visibility: visible;
+  }
 
-.ticket-meeting-panel__stage-tab {
-  height: 2rem;
-  padding: 0 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: rgb(var(--cream-700));
-}
+  .ticket-meeting-panel__stage-tab {
+    height: 2rem;
+    padding: 0 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgb(var(--cream-700));
+  }
 
-.ticket-meeting-panel__stage-tab:hover {
-  background: rgb(var(--cream-100));
-  color: rgb(var(--cream-900));
-}
+  .ticket-meeting-panel__stage-tab:hover {
+    background: rgb(var(--cream-100));
+    color: rgb(var(--cream-900));
+  }
 
-.ticket-meeting-panel__stage-tab[aria-selected="true"] {
-  background: rgb(var(--cream-100));
-  color: rgb(var(--cream-900));
-  font-weight: 700;
-  box-shadow: inset 0 -2px 0 rgb(var(--ink));
-}
+  .ticket-meeting-panel__stage-tab[aria-pressed="true"] {
+    background: rgb(var(--cream-100));
+    color: rgb(var(--cream-900));
+    font-weight: 700;
+    box-shadow: inset 0 -2px 0 rgb(var(--ink));
+  }
 
-/* The lane's close button stays reachable while the ticket is in front. */
-.layout[data-meeting-panel-stage="narrow"][data-meeting-panel-tab="ticket"]:not(.hide-panel) > .column.panel .panel-close {
-  visibility: visible;
-  z-index: 2;
+  /* The lane's close button stays reachable while the ticket is in front. */
+  .layout[data-meeting-panel-stage="narrow"][data-meeting-panel-tab="ticket"]:not(.hide-panel) > .column.panel .panel-close {
+    visibility: visible;
+    z-index: 2;
+  }
 }

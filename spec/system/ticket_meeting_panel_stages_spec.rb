@@ -46,6 +46,13 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
   end
 
   after do
+    # The window is reused by the next example, and with it this origin's storage: a
+    # hidden list or a remembered split must not travel.
+    begin
+      page.execute_script('sessionStorage.clear(); localStorage.clear()')
+    rescue StandardError
+      nil
+    end
     page.driver.browser.manage.window.resize_to(1440, 900)
     ActsAsTenant.current_tenant = nil
     Prosopite.resume
@@ -82,9 +89,21 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
 
   def assistant_open? = page.evaluate_script('document.body.classList.contains("assistant-panel-open")')
 
-  # Wait for the grid's transition to settle before measuring.
+  # Measure only a grid at rest: its tracks animate (layout.css), and while the
+  # assistant opens or closes the grid's width changes over several frames, each of
+  # which re-sets the split and restarts that animation. A fixed sleep measured one
+  # of those frames.
   def settled
-    sleep 0.5
+    probe = "(() => { const g = document.querySelector('.layout'); " \
+            'return [g.getAnimations().length, Math.round(g.getBoundingClientRect().width)] })()'
+    previous = nil
+    40.times do
+      state = page.evaluate_script(probe)
+      break if state.first.zero? && state == previous
+
+      previous = state
+      sleep 0.1
+    end
   end
 
   context 'without the assistant' do
@@ -119,13 +138,13 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
       expect(widths[:ticket]).to eq(width('.layout'))
       expect(widths[:meeting]).to eq(width('.layout'))
       # The meeting first: it was opened last (F6).
-      expect(stage_tab('Meeting')['aria-selected']).to eq('true')
+      expect(stage_tab('Meeting')['aria-pressed']).to eq('true')
       expect(page).to have_css('aside.column.panel h2', text: 'Planning call', visible: :visible)
       expect(page).to have_no_css("#ticket-content-#{ticket.id}", visible: :visible)
 
       scroll('.layout .column.panel', to: 900)
       stage_tab("Ticket ##{ticket.number}").click
-      expect(stage_tab("Ticket ##{ticket.number}")['aria-selected']).to eq('true')
+      expect(stage_tab("Ticket ##{ticket.number}")['aria-pressed']).to eq('true')
       expect(page).to have_css("#ticket-content-#{ticket.id}", visible: :visible)
       expect(page).to have_no_css('aside.column.panel h2', visible: :visible)
       # The tab bar stays, so there is a way back.
@@ -139,6 +158,70 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
       stage_tab("Ticket ##{ticket.number}").click
       expect(page).to have_css("#ticket-content-#{ticket.id}", visible: :visible)
       expect(scroll_top('.layout .column.content')).to be_within(2).of(700)
+    end
+
+    it 'keeps a hidden list hidden at the wide stage, with no channel before the ticket' do
+      page.driver.browser.manage.window.resize_to(1600, 900)
+      visit organisation_project_tickets_path(organisation, project)
+      page.execute_script("sessionStorage.setItem('layoutState', JSON.stringify({ categories: false, list: false, content: true, panel: false }))")
+      visit organisation_project_tickets_path(organisation, project, ticket_id: ticket.id)
+      expect(page).to have_css('.layout.hide-list')
+      open_panel
+
+      expect(page).to have_css('.layout[data-meeting-panel-stage="wide"]')
+      settled
+      expect(widths[:list]).to eq(0)
+      expect(page.evaluate_script("document.querySelector('.layout .column.content').getBoundingClientRect().left"))
+        .to be_within(1).of(page.evaluate_script("document.querySelector('.layout').getBoundingClientRect().left"))
+    end
+
+    it 'offers the way back to the ticket when the meeting is not available on a narrow grid' do
+      page.driver.browser.manage.window.resize_to(1024, 900)
+      visit organisation_project_tickets_path(organisation, project, ticket_id: ticket.id)
+      expect(page).to have_css("#ticket-content-#{ticket.id}")
+      url = organisation_project_ticket_meeting_panel_path(organisation, project, ticket, meeting_id: SecureRandom.uuid)
+      page.execute_script("document.getElementById('ticket_meeting_panel').src = #{url.to_json}")
+
+      expect(page).to have_css('.layout[data-meeting-panel-stage="narrow"]:not(.hide-panel)')
+      expect(page).to have_text(I18n.t('views.organisations.tickets.meeting_panel.unavailable'))
+      stage_tab('Ticket').click
+      expect(page).to have_css("#ticket-content-#{ticket.id}", visible: :visible)
+    end
+
+    it 'keeps the ticket in front when the grid narrows while the ticket has the focus' do
+      open_at(1200)
+      expect(page).to have_css('.layout[data-meeting-panel-stage="medium"]')
+      page.execute_script("document.querySelector('#ticket-header a[href], #ticket-header button').focus()")
+      focused = page.evaluate_script('document.activeElement.outerHTML')
+
+      page.driver.browser.manage.window.resize_to(1024, 900)
+
+      expect(page).to have_css('.layout[data-meeting-panel-stage="narrow"]')
+      expect(stage_tab("Ticket ##{ticket.number}")['aria-pressed']).to eq('true')
+      expect(page).to have_css("#ticket-content-#{ticket.id}", visible: :visible)
+      expect(page.evaluate_script('document.activeElement.outerHTML')).to eq(focused)
+    end
+  end
+
+  # The split follows the GRID's width as well: the assistant changes it without the
+  # window changing. Before, the split was computed from the window's resize only, and a
+  # list remembered at 70 % came back at whatever the narrower grid had allowed.
+  context 'the split between list and lane' do
+    it 'takes its remembered share of the grid again when the assistant closes' do
+      page.driver.browser.manage.window.resize_to(1600, 900)
+      visit organisation_project_tickets_path(organisation, project, ticket_id: ticket.id)
+      page.execute_script("localStorage.setItem('lalabase:lane-split:tickets', '0.7')")
+      find('#assistant-panel-trigger').click
+      expect(page).to have_css('body.assistant-panel-open')
+      visit organisation_project_tickets_path(organisation, project, ticket_id: ticket.id)
+      expect(page).to have_css('body.assistant-panel-open')
+
+      find('#assistant-panel-trigger').click
+      expect(page).to have_no_css('body.assistant-panel-open')
+      settled
+
+      grid = width('.layout')
+      expect(widths[:list]).to be_within(2).of((grid * 0.7).round)
     end
   end
 
@@ -170,7 +253,7 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
 
       expect(page).to have_css('.layout[data-meeting-panel-stage="narrow"]')
       expect(page).to have_css('.ticket-meeting-panel__stage-tabs', visible: :visible)
-      expect(stage_tab('Meeting')['aria-selected']).to eq('true')
+      expect(stage_tab('Meeting')['aria-pressed']).to eq('true')
       expect(assistant_open?).to be(true)
     end
   end

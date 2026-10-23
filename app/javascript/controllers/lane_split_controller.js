@@ -32,15 +32,18 @@ export default class extends Controller {
     // between the same two minimums the drag is held between.
     this.element.style.setProperty("--list-min", `${MIN_LIST_PX}px`)
     this.element.style.setProperty("--lane-min", `${MIN_LANE_PX}px`)
-    this.onWindowResize = this.onWindowResize.bind(this)
     this.onPointerMove = this.onPointerMove.bind(this)
     this.onPointerUp = this.onPointerUp.bind(this)
-    window.addEventListener("resize", this.onWindowResize)
     this.apply(this.storedShare)
+    // The GRID's width, not the window's: the assistant beside the page narrows
+    // and widens the grid with the window unchanged, and a split re-measured only
+    // on window resize kept the pixels the narrower grid had allowed.
+    this.resizeObserver = new ResizeObserver(() => this.onGridResize())
+    this.resizeObserver.observe(this.element)
   }
 
   disconnect() {
-    window.removeEventListener("resize", this.onWindowResize)
+    this.resizeObserver?.disconnect()
     this.stopDragging()
   }
 
@@ -95,7 +98,7 @@ export default class extends Controller {
     this.handleTarget.setAttribute("aria-valuenow", String(Math.round((px / this.gridWidth) * 100)))
   }
 
-  onWindowResize() {
+  onGridResize() {
     // The remembered SHARE, re-measured - not the pixels currently set. Reading
     // the pixels back would ratchet the list smaller on every resize, because
     // each clamp would become the new remembered width.

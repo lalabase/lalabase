@@ -127,8 +127,16 @@
     box-shadow: inset 0 -2px 0 rgb(var(--ink));
   }
 
-  /* The lane's close button stays reachable while the ticket is in front. */
-  .layout[data-meeting-panel-stage="narrow"][data-meeting-panel-tab="ticket"]:not(.hide-panel) > .column.panel .panel-close {
+  /* Follow the sticky tabs in either tab, even when the meeting keeps its scroll
+     position behind the ticket. Float with no flow height to share the tabs' row. */
+  .layout[data-meeting-panel-stage="narrow"]:not(.hide-panel) > .column.panel .panel-close {
+    position: sticky;
+    top: 8px;
+    right: auto;
+    float: right;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: -2rem;
     visibility: visible;
     z-index: 2;
   }

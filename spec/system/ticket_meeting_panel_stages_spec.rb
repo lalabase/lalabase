@@ -158,6 +158,13 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
       stage_tab("Ticket ##{ticket.number}").click
       expect(page).to have_css("#ticket-content-#{ticket.id}", visible: :visible)
       expect(scroll_top('.layout .column.content')).to be_within(2).of(700)
+
+      # The meeting still sits 900px down behind the ticket. Its close control must
+      # stay in the visible tab bar, without scrolling either lane back to the top.
+      expect(page).to have_css('aside.column.panel .panel-close', obscured: false)
+      find('aside.column.panel .panel-close').click
+      expect(page).to have_css('.layout.hide-panel')
+      expect(page).to have_css("#ticket-content-#{ticket.id}", visible: :visible)
     end
 
     it 'keeps a hidden list hidden at the wide stage, with no channel before the ticket' do

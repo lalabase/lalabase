@@ -34,13 +34,22 @@ module Organisations
       # covers the normal "clicked twice" case; the rescue is the race backstop.
       return respond_link_result(:alert, 'flash.meeting_ticket_links.already_linked') if @meeting.outgoing_references.exists?(target: ticket)
 
-      @meeting.outgoing_references.create!(
-        organisation: @current_organisation,
-        target: ticket,
-        # Snapshot the live title for the tombstone shown after a target delete.
-        # Truncate: the snapshot column is capped at 255 and must never fail the save.
-        target_title_snapshot: ticket.display_title&.truncate(255)
-      )
+      # The meeting's row lock, the one Actors::MoveMeeting holds: a move that
+      # committed while this waited has taken the meeting into another project,
+      # and the ticket of this one may not follow it there (404, as for a
+      # foreign meeting).
+      Meeting.transaction do
+        @meeting.lock!
+        raise ActiveRecord::RecordNotFound unless @meeting.project_id == @project.id
+
+        @meeting.outgoing_references.create!(
+          organisation: @current_organisation,
+          target: ticket,
+          # Snapshot the live title for the tombstone shown after a target delete.
+          # Truncate: the snapshot column is capped at 255 and must never fail the save.
+          target_title_snapshot: ticket.display_title&.truncate(255)
+        )
+      end
       respond_link_result(:notice, 'flash.meeting_ticket_links.created')
     rescue ActiveRecord::RecordNotUnique
       respond_link_result(:alert, 'flash.meeting_ticket_links.already_linked')

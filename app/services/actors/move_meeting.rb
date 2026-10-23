@@ -39,8 +39,9 @@ module Actors
 
     def perform
       guard_target!
-      # Row lock first, as AcceptTicketSuggestion does: a link or a run created
-      # concurrently waits for the move instead of slipping past the guards.
+      # Row lock first. Everything that ties the meeting to its project takes the
+      # same lock and looks again (AcceptTicketSuggestion, a manual ticket link,
+      # SaveTimeSession), so none of them lands in the old project after a move.
       @meeting.lock!
       guard_movable!
 
@@ -51,6 +52,7 @@ module Actors
       Notification.where(notifiable: @meeting).update_all(project_id: @target_project.id)
       @meeting.meeting_ticket_suggestions.open
               .update_all(status: MeetingTicketSuggestion.statuses[:dismissed], updated_at: Time.current)
+      carry_meeting_citations
 
       @source_project.track_meeting_moved_out(@meeting, @target_project)
       @target_project.track_meeting_moved_in(@meeting, @source_project)
@@ -71,7 +73,10 @@ module Actors
       refuse!(:forbidden_target)
     end
 
+    # lock! reloads the row: a move that committed while this one waited has
+    # taken the meeting out of the project this move was checked against.
     def guard_movable!
+      refuse!(:moved_meanwhile) if @meeting.project_id != @source_project.id
       refuse!(:has_ticket_links) if ticket_links.exists?
       refuse!(:suggestion_run_active) if suggestion_run_active?
     end
@@ -85,6 +90,26 @@ module Actors
     def suggestion_run_active?
       @meeting.suggestions_generation_running? ||
         MeetingTicketSuggestionRun.where(meeting_id: @meeting.id).any? { |run| run.active? && !run.stale? }
+    end
+
+    # A saved analysis may be published when its sources are this meeting
+    # (Assistant::AnalysisSources.publishable?), and a meeting citation names
+    # the project it was read in. The meeting is the same one after the move,
+    # so its citations follow it; every other source keeps its project and
+    # stays a reason not to publish (a chat narrowed to the source project too).
+    def carry_meeting_citations
+      @meeting.meeting_analyses.where.not(source_context: nil).find_each do |analysis|
+        provenance = analysis.source_context['provenance']
+        next unless provenance.is_a?(Array)
+
+        carried = provenance.map do |citation|
+          own = citation.is_a?(Hash) && citation['type'] == 'meeting' && citation['id'] == @meeting.id
+          own ? citation.merge('project_id' => @target_project.id) : citation
+        end
+        next if carried == provenance
+
+        analysis.update_columns(source_context: analysis.source_context.merge('provenance' => carried))
+      end
     end
 
     def refuse!(code)

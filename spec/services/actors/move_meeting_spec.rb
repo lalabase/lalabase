@@ -75,6 +75,25 @@ RSpec.describe Actors::MoveMeeting, type: :service do
       expect(moved_in.parameters).to include('meeting_title' => meeting.title, 'from_project_id' => source_project.id)
     end
 
+    it 'keeps a saved analysis publishable when its only source is this meeting' do
+      own = create(:meeting_analysis, meeting: meeting, organisation: organisation, creator: admin,
+                                      source_context: { 'provenance' => [
+                                        { 'type' => 'meeting', 'id' => meeting.id, 'project_id' => source_project.id }
+                                      ] })
+      scoped = create(:meeting_analysis, meeting: meeting, organisation: organisation, creator: admin,
+                                         source_context: { 'provenance' => [
+                                           { 'type' => 'meeting', 'id' => meeting.id, 'project_id' => source_project.id },
+                                           { 'type' => 'project', 'id' => source_project.id }
+                                         ] })
+
+      move
+
+      expect(own.reload).to be_sources_publishable
+      expect(own.source_context['provenance'].first['project_id']).to eq(target_project.id)
+      # The chat was narrowed to the source project: that stays a foreign source.
+      expect(scoped.reload).not_to be_sources_publishable
+    end
+
     describe '#preflight' do
       it 'names the booked time, the billed part and the open suggestions' do
         create(:time_session, project: source_project, organisation: organisation, meeting: meeting)
@@ -127,6 +146,26 @@ RSpec.describe Actors::MoveMeeting, type: :service do
         run.update_columns(updated_at: (Meeting::SUGGESTIONS_STALE_AFTER + 1.minute).ago)
 
         expect(move).to be_success
+      end
+
+      # Two moves of the same meeting race: the second passed its checks against
+      # the project the meeting was in, then waited for the row lock while the
+      # first moved it. It must not move the meeting out of a project it was
+      # never checked against.
+      it 'refuses when the meeting moved while the move waited for its lock' do
+        elsewhere = create(:project, organisation: organisation)
+        allow(meeting).to receive(:lock!).and_wrap_original do |original, *args|
+          Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+          original.call(*args)
+        end
+
+        result = move
+
+        expect(result).not_to be_success
+        expect(result.code).to eq(:moved_meanwhile)
+        # The stand-in for the other move ran inside this transaction and rolled
+        # back with the refusal; what counts is that this move wrote nothing.
+        expect(meeting.reload.project_id).not_to eq(target_project.id)
       end
 
       it 'refuses the project the meeting is already in' do

@@ -36,6 +36,7 @@ module Actors
 
     def perform
       refresh_persisted_state
+      guard_meeting_project!
       guard_group_transition!
       @time_session.assign_attributes(@attributes)
       apply_group_transition
@@ -56,6 +57,20 @@ module Actors
       pending = @time_session.changes.transform_values(&:last)
       @time_session.reload
       @time_session.assign_attributes(pending)
+    end
+
+    # A booking on a meeting takes the meeting's row lock, the one
+    # Actors::MoveMeeting holds while it moves the meeting and its bookings. A
+    # move that committed meanwhile has taken the meeting into another project;
+    # the booking would land in the old one, so it is refused.
+    def guard_meeting_project!
+      meeting = @time_session.meeting
+      return unless meeting
+
+      meeting.lock!
+      return if meeting.project_id == @time_session.project_id
+
+      raise ActorError.new(I18n.t("#{ERROR_SCOPE}.meeting_moved"), code: :meeting_moved)
     end
 
     def target_group

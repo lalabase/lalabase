@@ -40,6 +40,32 @@ RSpec.describe Actors::SaveTimeSession, type: :service do
   end
 
   describe 'create' do
+    # A booking on a meeting takes the meeting's row lock, the one
+    # Actors::MoveMeeting holds: a move that committed while the booking waited
+    # has taken the meeting into another project, and the booking must not land
+    # in the old one.
+    it 'refuses a booking on a meeting that is no longer in the booking project' do
+      meeting = create(:meeting, project: project, organisation: organisation, creator: user)
+      elsewhere = create(:project, organisation: organisation)
+      session = build_session(meeting: meeting)
+      allow(meeting).to receive(:lock!).and_wrap_original do |original, *args|
+        Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+        original.call(*args)
+      end
+
+      result = call_actor(session)
+
+      expect(result).not_to be_success
+      expect(result.code).to eq(:meeting_moved)
+      expect(session).not_to be_persisted
+    end
+
+    it 'books on a meeting of the booking project' do
+      meeting = create(:meeting, project: project, organisation: organisation, creator: user)
+
+      expect(call_actor(build_session(meeting: meeting))).to be_success
+    end
+
     it 'saves a new record and assigns the requested unbilled group without billing it' do
       group = create(:time_session_group, organisation: organisation, creator: user)
       session = build_session

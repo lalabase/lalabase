@@ -51,6 +51,7 @@ en:
         same_project: "The meeting is already in this project."
         forbidden_target: "You may not add meetings to this project."
         has_ticket_links: "The meeting is linked to tickets. Remove the links, then you can move it."
+        moved_meanwhile: "The meeting was just moved already. Reload the page."
         suggestion_run_active: "Ticket suggestions are being generated for this meeting. Try again in a moment."
       move_ticket:
         number_conflict: "Number conflict after %{retries} retries: %{error}"
@@ -84,6 +85,7 @@ en:
       group_billed: "The selected billing group is already invoiced — the time session can no longer be assigned to it."
       session_billed: "This time session is already invoiced and can no longer be changed or removed from its billing group."
       generic_error: "The time session could not be saved. Please try again later."
+      meeting_moved: "The meeting is in another project now. Please book the time there."
     bulk_customer_description_generator:
       empty_result: "Time session %{id}: The AI returned no description."
     embedding_reprocessing:

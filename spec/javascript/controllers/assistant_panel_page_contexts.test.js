@@ -124,3 +124,70 @@ test("refusing the ticket by hand brings up the meeting", () => {
   assert.equal(shown.at(-1), "Meeting:m1")
   assert.equal(controller.dismissedContexts.has("Ticket:t1"), true)
 })
+
+// The draft of a new conversation holds up to referenceLimit objects: at the limit the
+// strip stays down, one below it the next object is offered.
+test("a new conversation's draft offers up to its limit, and not one more", () => {
+  const atLimit = (limit, standing) => {
+    const controller = controllerFor([TICKET, MEETING])
+    Object.assign(controller, {
+      hasOfferTarget: true, chatFrameSeen: true, pendingContext: null,
+      dismissedContexts: new Set(), refusedContexts: new Set(),
+      draftSubmitting: () => false, canOpen: () => true, openThreadId: () => null,
+      hasDraftReferencesTarget: true,
+      draftReferencesTarget: { dataset: { referenceLimit: String(limit) } },
+      standingReferenceKeys: () => standing.join(" "),
+      standingKeySet: () => new Set(standing)
+    })
+    const shown = []
+    controller.showOffer = context => shown.push(context.key)
+    controller.hideOffer = () => shown.push(null)
+    controller.offerPageContext()
+    return shown.at(-1)
+  }
+
+  assert.equal(atLimit(2, ["Ticket:t1"]), "Meeting:m1")
+  assert.equal(atLimit(1, ["Ticket:t1"]), null)
+})
+
+// Taking the strip asks the page again: the meeting, second on the page, is taken as
+// well as the ticket; an object the page no longer names is not.
+test("taking the offer takes the meeting beside the ticket, not only the page's first object", () => {
+  const taking = (markers, offered) => {
+    const controller = controllerFor(markers)
+    controller.offerTarget = { dataset: { contextId: offered } }
+    const adopted = []
+    let reoffered = false
+    controller.hideOffer = () => {}
+    controller.adoptContext = event => adopted.push(event.detail.referenceKey)
+    controller.offerPageContext = () => { reoffered = true }
+    controller.takeOffer()
+    return { adopted, reoffered }
+  }
+
+  assert.deepEqual(taking([TICKET, MEETING], "Meeting:m1"), { adopted: ["Meeting:m1"], reoffered: false })
+  assert.deepEqual(taking([TICKET], "Meeting:m1"), { adopted: [], reoffered: true })
+})
+
+// Without a thread yet, the object goes into the new conversation's draft. The page is
+// asked for its label there, and the meeting is on the page as much as the ticket.
+test("adopting into a new conversation finds the meeting beside the ticket", () => {
+  const adopting = (markers, referenceKey) => {
+    const controller = controllerFor(markers)
+    const drafted = []
+    Object.assign(controller, {
+      hasContextFormTarget: true,
+      canOpen: () => true,
+      open: () => {},
+      whenComposerReady: callback => callback(),
+      standingKeySet: () => new Set(),
+      openThreadId: () => null,
+      addDraftReference: context => drafted.push(context.key)
+    })
+    controller.adoptContext({ detail: { referenceKey } })
+    return drafted
+  }
+
+  assert.deepEqual(adopting([TICKET, MEETING], "Meeting:m1"), ["Meeting:m1"])
+  assert.deepEqual(adopting([TICKET], "Meeting:m1"), [])
+})

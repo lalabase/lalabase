@@ -163,6 +163,10 @@ de:
               aller Projekte der Organisation.
             read_access_tickets_all_projects: Gibt Lesezugriff auf die Ticket-Bereiche
               aller Projekte der Organisation.
+            read_access_meetings_all_projects: Gibt Lesezugriff auf die Meetings aller
+              Projekte der Organisation.
+            read_access_documentation_all_projects: Gibt Lesezugriff auf die Dokumentation
+              aller Projekte der Organisation.
             read_access_documents_all_projects: Gibt Lesezugriff auf die Dokument-Bereiche
               aller Projekte der Organisation.
             read_access_time_tracking_all_projects: Gibt Lesezugriff auf die Zeiterfassung
@@ -173,6 +177,10 @@ de:
               aller Projekte der Organisation.
             write_access_tickets_all_projects: Gibt Schreibzugriff auf die Ticket-Bereiche
               aller Projekte der Organisation.
+            write_access_meetings_all_projects: Gibt Schreibzugriff auf die Meetings aller
+              Projekte der Organisation.
+            write_access_documentation_all_projects: Gibt Schreibzugriff auf die Dokumentation
+              aller Projekte der Organisation.
             write_access_documents_all_projects: Gibt Schreibzugriff auf die Dokument-Bereiche
               aller Projekte der Organisation.
             write_access_time_tracking_all_projects: Gibt Schreibzugriff auf die Zeiterfassung
@@ -181,6 +189,8 @@ de:
             delete_tickets: Erlaubt das Löschen von Tickets und deren zugehörigen
               Inhalten.
             move_tickets: Erlaubt das Verschieben von Tickets in andere Projekte.
+          meetings:
+            move_meetings: Erlaubt das Verschieben von Meetings in andere Projekte.
           users:
             view_user_contact_details: Ermöglicht das Anzeigen von Kontaktdaten anderer
               Benutzer.
@@ -194,6 +204,7 @@ de:
           accounts: Konten & Organisationen
           projects: Projekte
           tickets: Tickets
+          meetings: Meetings
           users: Benutzer
     layouts:
       docs:
@@ -517,6 +528,8 @@ de:
         chat_created: Chat erstellt
         meeting_created: Meeting erstellt
         meeting_deleted: Meeting gelöscht
+        meeting_moved_in: Meeting ins Projekt verschoben
+        meeting_moved_out: Meeting aus Projekt verschoben
         smart_folder_created: Smart Folder erstellt
         codebase_imported: Codebase importiert
         started: Gestartet

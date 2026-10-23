@@ -77,6 +77,11 @@ class Permission < ApplicationRecord
       delete_tickets
       move_tickets
     ],
+    # Its own category for the same reason as :assistant below: an action under
+    # :projects would join the guest ceiling's forbidden list as a side effect.
+    meetings: %w[
+      move_meetings
+    ],
     users: %w[
       view_user_contact_details
       view_user_full_name

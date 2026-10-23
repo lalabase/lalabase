@@ -738,6 +738,9 @@ Rails.application.routes.draw do
         resources :relations, only: %i[new create destroy], module: :tickets
         # The ticket view, open for a moment, marks the viewer's notifications about it read.
         resource :notification_read, only: %i[update], module: :tickets
+        # The meeting beside the ticket, read only: a frame request renders the panel, any other
+        # request goes to the meeting's own page (doc/ticket_meeting_panel_plan.md, S1).
+        resource :meeting_panel, only: %i[show], controller: 'ticket_meeting_panels'
 
         # Notification subscription routes
         resource :subscription, only: [], controller: 'notification_subscriptions' do

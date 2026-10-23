@@ -18,6 +18,7 @@
  *= require components/markdown_preview
  *= require components/filter_bar
  *= require components/column_picker
+ *= require components/ticket_meeting_panel
  *= require components/sidebar_nav
  *= require components/mobile_app
  */

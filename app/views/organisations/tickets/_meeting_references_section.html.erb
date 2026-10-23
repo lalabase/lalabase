@@ -20,12 +20,24 @@
       <% meetings.each do |meeting| %>
         <li class="flex items-center gap-3 px-3 py-2">
           <i class="bi bi-chat-quote shrink-0 text-xs text-cream-500" aria-hidden="true"></i>
-          <%# _top: this section renders inside ticket_display_frame (the lane, on
-              the list and on the board), but the meetings page has no frame with that id —
-              without the escape Turbo renders "Content missing" instead of navigating. %>
+          <%# How an entry opens depends on the page around the ticket, and only the
+              owner of turbo-frame#ticket_display_frame knows that page: it names it in
+              data-meeting-links (panel: the list and the board, the meeting opens beside
+              the ticket; text: the inbox pane, no link; page: the phone, the meetings
+              page). Eight writers re-render this frame, several of them without knowing
+              which page asked, so every entry carries the three forms and
+              components/ticket_meeting_panel.css shows the one the frame names. Without
+              a name it is page, the form that works everywhere.
+              _top on the page link: this section renders inside ticket_display_frame,
+              and the meetings page has no frame with that id. %>
+          <% meeting_page = organisation_project_meetings_path(@current_organisation, meeting.project, meeting_id: meeting.id) %>
           <%= link_to meeting.title,
-                      organisation_project_meetings_path(@current_organisation, meeting.project, meeting_id: meeting.id),
-                      class: 'flex-1 truncate text-sm text-cream-900 hover:underline',
+                      organisation_project_ticket_meeting_panel_path(@current_organisation, ticket.project, ticket, meeting_id: meeting.id),
+                      class: 'meeting-reference meeting-reference--panel flex-1 truncate text-sm text-cream-900 hover:underline',
+                      data: { turbo_frame: Organisations::TicketMeetingPanelsController::FRAME_ID } %>
+          <span class="meeting-reference meeting-reference--text flex-1 truncate text-sm text-cream-900"><%= meeting.title %></span>
+          <%= link_to meeting.title, meeting_page,
+                      class: 'meeting-reference meeting-reference--page flex-1 truncate text-sm text-cream-900 hover:underline',
                       data: { turbo_frame: '_top' } %>
           <span class="shrink-0 font-mono text-xs tabular-nums text-cream-500">
             <%= l(meeting.occurred_at.to_date, format: :default) %>

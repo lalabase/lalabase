@@ -37,6 +37,18 @@ RSpec.describe Tickets::LinkedMeetings do
     expect(described_class.call(ticket: ticket, user: reader)).to be_empty
   end
 
+  it 'names no meeting for a ticket without links, while meetings link to other tickets' do
+    other = ActsAsTenant.with_tenant(organisation) do
+      create(:ticket, project: project, organisation: organisation, creator: creator)
+    end
+    ActsAsTenant.with_tenant(organisation) do
+      create(:meeting, project: project, organisation: organisation, creator: creator)
+        .outgoing_references.create!(organisation: organisation, target: other, target_title_snapshot: other.display_title)
+    end
+
+    expect(described_class.call(ticket: ticket, user: reader)).to be_empty
+  end
+
   it 'lists the linking meetings oldest link first, whatever their own dates' do
     later = meeting_linked_at(1.hour.ago, 'Linked second')
     earlier = meeting_linked_at(2.hours.ago, 'Linked first')

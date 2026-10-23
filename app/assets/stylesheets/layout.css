@@ -14,6 +14,8 @@
  * History: was called labor.css until 06/2026 (inventory: doc/frontend_inventur_phase1_css.md). */
 :root {
     --panel-raw:  300px; --panel-width:  var(--panel-raw);
+    /* The channel between two tracks of a .layout grid. */
+    --lane-gap: 24px;
 
     /* Page widths, named once (section "Page widths" below). A view names the
        class, never a number: spec/architecture/page_width_guard_spec.rb. */
@@ -102,7 +104,7 @@
   .layout {
     display: grid;
     grid-template-rows: minmax(0, 1fr);
-    column-gap: 24px;
+    column-gap: var(--lane-gap);
     transition: --panel-width 0.4s ease;
   }
 
@@ -1295,6 +1297,15 @@ main:has(.layout) > div {
   transition: padding 0.25s ease;
 }
 
+/* The third lane of a lane page (the meeting beside the ticket) is a surface
+   like the detail: white, the same even inset, the same one-line edge on the
+   left. Not the light blue of the old chat lane. */
+.layout--lane .column.panel {
+  background: rgb(var(--white));
+  padding: 1.5rem;
+  border-left: 1px solid rgb(var(--cream-200));
+}
+
 .layout--lane.hide-content .column.content {
   display: block;
   padding: 0 !important;
@@ -1442,32 +1453,14 @@ main:has(.layout) > div {
   box-shadow: 0 20px 44px -18px rgb(var(--ink) / 0.5);
 }
 
-/* Panel focus mode: when BOTH a detail (content) and the panel lane are open,
-   the list collapses and the lane gains real reading width — the default 300px
-   lane squeezed all three columns. Panel open WITHOUT a selected item keeps the
-   list visible, otherwise the empty lane would strand the user with no way to
-   pick one; closing either one restores the default columns. Only the meetings
-   page renders a lane here (the tickets lane went with S4-T1, the knowledge chat
-   placeholder on 10.09.2026); the other pages always carry .hide-panel, so this
-   rule never fires there.
-   The board is not excluded any more: since it opens its ticket in the lane
-   (D4 of doc/kanban_ticket_als_bahn_plan.md) its grid has a list track like
-   the table's, and it yields the same way. */
-.layout.two-column:not(.hide-content):not(.hide-panel) {
-  --panel-width: clamp(380px, 36vw, 560px);
-  grid-template-columns: 0px 1fr var(--panel-width);
-}
-.layout.two-column:not(.hide-content):not(.hide-panel) .list {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-100%);
-  padding: 0;
-}
-
-/* Companion-panel focus mode (assistant plan L12, S3a T4): the MIRROR of the
-   rule above, for the assistant panel docked to the left of the page instead of
-   a lane inside it. Same trade, same conditions: with the panel open and a
-   detail visible, the list yields its "pick something" job to the conversation.
+/* The list yields (assistant plan L12, S3a T4; doc/ticket_meeting_panel_plan.md,
+   decision 2): ONE rule for the two things that take room beside an open detail,
+   the assistant docked to the left of the page and the meeting panel in the
+   grid's third lane. With either open and a detail visible, the list gives up
+   its "pick something" job, the detail keeps its room and the third lane gets a
+   fixed width. Before the meeting panel this block had a twin for the lane
+   ("panel focus mode", 36vw); no page filled the lane any more, and two rules
+   for one trade drift apart.
    Without a selected detail (.hide-content) the list stays -- otherwise there
    would be nothing left to pick from. The board yields like the table (D4):
    assistant open, ticket open, the board is at 0px and there is no handle;
@@ -1482,9 +1475,12 @@ main:has(.layout) > div {
    Wrapped in the lg media query for the same reason as the content offset in
    components/assistant_panel.css: the panel is `hidden lg:block`, so below that
    width there is no companion lane and nothing for the list to yield to. The
-   body class says "open", the media query says "and visible". */
+   body class says "open", the media query says "and visible". The meeting panel
+   needs no width of its own here: the ticket page is the phone page below
+   1024px (data-viewport-breakpoint-value), so its grid is never narrower. */
 @media (min-width: 1024px) {
-  body.assistant-panel-open .layout.two-column:not(.hide-content) {
+  body.assistant-panel-open .layout.two-column:not(.hide-content),
+  .layout.two-column:not(.hide-content):not(.hide-panel) {
     /* The lane width above is viewport-relative (36vw) because it was written for
        a grid that spans the window. With the assistant open, <main> is 636px
        narrower than the window, and 36vw of the WINDOW ate the content column:
@@ -1499,7 +1495,8 @@ main:has(.layout) > div {
     grid-template-columns: 0px 1fr;
     column-gap: 0;
   }
-  body.assistant-panel-open .layout.two-column:not(.hide-content) .list {
+  body.assistant-panel-open .layout.two-column:not(.hide-content) .list,
+  .layout.two-column:not(.hide-content):not(.hide-panel) .list {
     opacity: 0;
     pointer-events: none;
     transform: translateX(-100%);
@@ -1508,8 +1505,16 @@ main:has(.layout) > div {
   /* While the list track is 0 the handle is out of the picture: not visible,
      not a 25px drag surface inside the detail, not in the tab order (S6 of
      doc/kanban_ticket_als_bahn_plan.md). */
-  body.assistant-panel-open .layout.two-column:not(.hide-content) .lane-split {
+  body.assistant-panel-open .layout.two-column:not(.hide-content) .lane-split,
+  .layout.two-column:not(.hide-content):not(.hide-panel) .lane-split {
     display: none;
+  }
+  /* Three tracks with the list's at 0px still have two channels, and the first
+     one stands before the ticket: 24px of page ground on top of the page's own
+     inset (the two-track variants above set column-gap: 0 for the same reason).
+     The ticket takes that channel back; the one between ticket and meeting stays. */
+  .layout.two-column:not(.hide-content):not(.hide-panel) > .column.content {
+    margin-left: calc(-1 * var(--lane-gap));
   }
 }
 

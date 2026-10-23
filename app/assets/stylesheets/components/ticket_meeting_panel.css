@@ -1,0 +1,71 @@
+/* The meeting beside the ticket (doc/ticket_meeting_panel_plan.md).
+ *
+ * 1. The meetings section of a ticket (tickets/_meeting_references_section) renders
+ *    every entry in three forms, and the owner of turbo-frame#ticket_display_frame
+ *    names the one that applies in data-meeting-links: "panel" on the list and the
+ *    board (opens beside the ticket), "text" in the inbox pane (no link), "page" on
+ *    the phone (the meetings page). Eight writers re-render that frame, several of
+ *    them without knowing which page asked; the frame element survives all of them.
+ *    Without a name: page, the form that works on any page.
+ * 2. The panel's head (tickets/_meeting_panel): the meetings of the ticket as tabs.
+ *    The lane's own surface and width live in layout.css, beside the other lanes.
+ */
+
+.meeting-reference--panel,
+.meeting-reference--text {
+  display: none;
+}
+
+[data-meeting-links="panel"] .meeting-reference--panel,
+[data-meeting-links="text"] .meeting-reference--text {
+  display: block;
+}
+
+[data-meeting-links="panel"] .meeting-reference--page,
+[data-meeting-links="text"] .meeting-reference--page {
+  display: none;
+}
+
+/* Room on the right for the lane's close button (NeoTwoColumnGridComponent),
+   which sits absolutely in the top right corner of the lane. */
+.ticket-meeting-panel__head {
+  padding-right: 2rem;
+}
+
+.ticket-meeting-panel__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.ticket-meeting-panel__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  max-width: 100%;
+  padding: 0.125rem 0.625rem;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: rgb(var(--cream-700));
+}
+
+.ticket-meeting-panel__tab:hover {
+  border-color: rgb(var(--cream-500));
+  color: rgb(var(--cream-900));
+}
+
+.ticket-meeting-panel__tab[aria-current="true"] {
+  border-color: rgb(var(--ink));
+  background: rgb(var(--cream-100));
+  color: rgb(var(--cream-900));
+  font-weight: 600;
+}
+
+.ticket-meeting-panel__empty {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: rgb(var(--cream-600));
+}

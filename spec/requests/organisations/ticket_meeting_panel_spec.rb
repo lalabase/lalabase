@@ -75,6 +75,8 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
                                             'Transcript-Body-QX')
       expect(frame_element.at_css('[data-controller~="ticket-meeting-panel"]')['data-ticket-meeting-panel-ticket-id-value'])
         .to eq(ticket.id)
+      # A fragment for the frame, not a page around it.
+      expect(response.body).not_to match(/<html/i)
     end
 
     it 'is read only: no form, no edit, delete, analyses, suggestions or assistant entry point' do
@@ -234,6 +236,18 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
       expect(document.text).to include('Ticket-With-Meetings')
     end
 
+    it 'lists the linked tickets oldest link first' do
+      ActsAsTenant.with_tenant(organisation) do
+        Reference.where(source: meeting, target: sibling).update_all(created_at: 2.hours.ago)
+      end
+      sign_in reader
+      panel
+
+      titles = Nokogiri::HTML(response.body).css('section li').map { |item| item.text.squish }
+      expect(titles.index { |text| text.include?('Sibling-QX') })
+        .to be < titles.index { |text| text.include?('Ticket-With-Meetings') }
+    end
+
     it 'hides a linked ticket the reader may not read' do
       sign_in reader
       panel
@@ -259,6 +273,33 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
     def expect_unavailable
       expect(response).to have_http_status(:not_found)
       expect(response.body).to include('turbo-frame id="ticket_meeting_panel"', unavailable_text)
+      expect(response.body).not_to include('Hidden-QX')
+      expect(response.body).not_to match(/<html/i)
+    end
+
+    # The ticket comes from the project of the address, not from anywhere the reader may look.
+    it 'is a 404 for the ticket under the address of another project' do
+      meeting
+      other_project = ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation) }
+      user = reader
+      grant(user, other_project, tickets_access: 'read_only', meetings_access: 'read_only')
+      sign_in user
+      panel(project_id: other_project.id)
+
+      expect_unavailable
+    end
+
+    # Two locks: the scope finds the meeting, and MeetingPolicy#show? is asked as well.
+    # They answer alike today; this keeps the second one from going as redundant.
+    it 'shows nothing when MeetingPolicy#show? refuses a meeting the scope found' do
+      meeting
+      allow(MeetingPolicy).to receive(:new).and_wrap_original do |original, *args|
+        original.call(*args).tap { |policy| allow(policy).to receive(:show?).and_return(false) }
+      end
+      sign_in reader
+      panel
+
+      expect(response).not_to have_http_status(:ok)
       expect(response.body).not_to include('Hidden-QX')
     end
 
@@ -381,6 +422,15 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
       expect(response.body).to include('Before-Move-QX')
       expect(response.body).to include(organisation_project_meetings_path(organisation, project, meeting_id: meeting.id))
     end
+
+    it "sends a request outside the frame to the meeting's page in the meeting's project" do
+      user = member(meetings_access: 'read_only')
+      grant(user, project_b, tickets_access: 'read_only')
+      sign_in user
+      panel(project_id: project_b.id, headers: {})
+
+      expect(response).to redirect_to(organisation_project_meetings_path(organisation, project, meeting_id: meeting.id))
+    end
   end
 
   describe 'a request that is not for the panel frame' do
@@ -414,8 +464,10 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
       sign_in reader
       panel(meeting_id: SecureRandom.uuid, headers: {})
 
-      # The test environment's 404 page prints the spec source; the status is the answer.
+      # The test environment's 404 page prints the spec source, as text: an element is
+      # what tells the frame's answer from the application's.
       expect(response).to have_http_status(:not_found)
+      expect(Nokogiri::HTML(response.body).at_css('turbo-frame#ticket_meeting_panel')).to be_nil
     end
   end
 

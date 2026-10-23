@@ -120,6 +120,15 @@ RSpec.describe 'Ticket meeting references after a move', :ci_guard, type: :reque
       expect(body).to include(organisation_project_meetings_path(organisation, project_a, meeting_id: meeting.id))
       expect(body).not_to include(organisation_project_meetings_path(organisation, project_b, meeting_id: meeting.id))
     end
+
+    # The panel beside the ticket is addressed through the ticket, which now lives in B.
+    it "opens the panel under the ticket's project B" do
+      sign_in viewer
+      body = ticket_page
+
+      expect(body).to include(organisation_project_ticket_meeting_panel_path(organisation, project_b, ticket, meeting_id: meeting.id))
+      expect(body).not_to include(organisation_project_ticket_meeting_panel_path(organisation, project_a, ticket, meeting_id: meeting.id))
+    end
   end
 
   context 'viewer reads meetings in both projects' do
@@ -230,6 +239,35 @@ RSpec.describe 'Ticket meeting references after a move', :ci_guard, type: :reque
         expect(body).to include(organisation_project_tickets_path(organisation, project_b, ticket_id: ticket.id))
         expect(body).not_to include(organisation_project_tickets_path(organisation, project_a, ticket_id: ticket.id))
       end
+    end
+  end
+
+  # A linked ticket that stayed in the meeting's project, for a reader of the meetings
+  # there who may not read its tickets: the title it has now (it is no news in a project
+  # the reader belongs to), without a link.
+  describe "the meeting's linked ticket that stayed in its project" do
+    let(:stayed) do
+      ActsAsTenant.with_tenant(organisation) do
+        create(:ticket, project: project_a, organisation: organisation, creator: creator, title: 'Stayed ticket')
+      end
+    end
+
+    before do
+      ActsAsTenant.with_tenant(organisation) do
+        meeting.outgoing_references.create!(organisation: organisation, target: stayed,
+                                            target_title_snapshot: stayed.display_title)
+        stayed.update!(title: 'Renamed-in-A-QV')
+      end
+    end
+
+    it 'shows its current title, without a link' do
+      viewer = member.tap { |user| grant(user, project_a, meetings_access: 'read_only') }
+      sign_in viewer
+      get organisation_project_meeting_path(organisation, project_a, meeting)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Renamed-in-A-QV')
+      expect(response.body).not_to include("ticket_id=#{stayed.id}")
     end
   end
 end

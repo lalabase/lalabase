@@ -236,6 +236,23 @@ RSpec.describe Actors::SaveMeetingAnalysis do
   describe 'flip (publish/unpublish)' do
     let(:analysis) { create(:meeting_analysis, meeting: meeting, creator: user, is_private: true) }
 
+    # The write was authorized against the meeting's project. A move
+    # (Actors::MoveMeeting) that committed meanwhile has taken the meeting into
+    # another one; under the meeting's row lock the analysis is not found here.
+    it 'does not publish once the meeting has moved to another project' do
+      elsewhere = create(:project, organisation: organisation)
+      analysis
+      allow(meeting).to receive(:lock!).and_wrap_original do |original, *args|
+        Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+        original.call(*args)
+      end
+
+      result = described_class.call(meeting: meeting, current_user: user, id: analysis.id, params: { is_private: 'false' })
+
+      expect(result.success).to be(false)
+      expect(analysis.reload).to be_is_private
+    end
+
     it 'publishes a private analysis (visible_to_user nulled)' do
       result = described_class.call(meeting: meeting, current_user: user,
                                     id: analysis.id, params: { is_private: 'false' })

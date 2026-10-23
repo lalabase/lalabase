@@ -87,6 +87,7 @@ en:
       session_billed: "This time session is already invoiced and can no longer be changed or removed from its billing group."
       generic_error: "The time session could not be saved. Please try again later."
       meeting_moved: "The meeting is in another project now. Please book the time there."
+      moved_meanwhile: "The time session is in another project now. Please reload the page."
     bulk_customer_description_generator:
       empty_result: "Time session %{id}: The AI returned no description."
     embedding_reprocessing:

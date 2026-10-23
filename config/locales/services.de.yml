@@ -87,6 +87,7 @@ de:
       session_billed: "Diese Zeit-Session ist bereits abgerechnet und kann nicht mehr geändert oder aus ihrer Abrechnung entfernt werden."
       generic_error: "Die Zeit-Session konnte nicht gespeichert werden. Bitte versuchen Sie es später erneut."
       meeting_moved: "Das Meeting liegt inzwischen in einem anderen Projekt. Bitte buchen Sie die Zeit dort."
+      moved_meanwhile: "Die Zeit-Session liegt inzwischen in einem anderen Projekt. Bitte laden Sie die Seite neu."
     bulk_customer_description_generator:
       empty_result: "Zeit-Session %{id}: Die KI hat keine Beschreibung geliefert."
     embedding_reprocessing:

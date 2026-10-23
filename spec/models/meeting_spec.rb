@@ -399,6 +399,18 @@ RSpec.describe Meeting, type: :model do
       meeting.update!(summary_creation_flag: true)
     end
 
+    # A summary job loads the meeting, a move commits, the job finishes on its
+    # stale instance. The stream must name the project the row is in now:
+    # the old one would hand the new summary to readers of the old project.
+    it 'sends to the stream of the persisted project from a stale instance' do
+      elsewhere = create(:project, organisation: organisation)
+      Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+      moved_stream = "#{ActionView::RecordIdentifier.dom_id(meeting)}_#{elsewhere.id}_summary"
+
+      expect(meeting).to receive(:broadcast_replace_to).with(moved_stream, anything)
+      meeting.update!(summary_creation_flag: true)
+    end
+
     it 'does not broadcast on an unrelated update (title only)' do
       expect(meeting).not_to receive(:broadcast_replace_to)
       meeting.update!(title: 'Renamed meeting')

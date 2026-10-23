@@ -220,8 +220,8 @@ class Meeting < ApplicationRecord
   # The live summary stream names the project: after a move (Actors::MoveMeeting)
   # a page still open in the old project hears nothing of what is written in
   # the new one. The view subscribes through the same method.
-  def summary_stream_name
-    "#{dom_id(self)}_#{project_id}_summary"
+  def summary_stream_name(for_project_id = project_id)
+    "#{dom_id(self)}_#{for_project_id}_summary"
   end
 
   def summary_source
@@ -271,8 +271,10 @@ class Meeting < ApplicationRecord
     return unless saved_change_to_generated_summary? || saved_change_to_summary_creation_flag? ||
                   saved_change_to_summary_creation_error?
 
+    # The persisted project, not this instance's: a summary job loads the
+    # meeting, a move commits, and the job finishes on its stale copy.
     broadcast_replace_to(
-      summary_stream_name,
+      summary_stream_name(Meeting.unscoped.where(id: id).pick(:project_id) || project_id),
       target: "#{dom_id(self)}_summary_section",
       partial: 'organisations/meetings/summary_section',
       locals: { meeting: self }

@@ -178,6 +178,18 @@ RSpec.describe 'Organisations::Meetings move', :ci_guard, type: :request do
       expect(response.body).not_to include('Erstgespräch')
     end
 
+    it 'does not delete a meeting that moved away after the delete was authorized' do
+      allow_any_instance_of(Meeting).to receive(:lock!).and_wrap_original do |original, *args|
+        Meeting.where(id: original.receiver.id).update_all(project_id: target.id)
+        original.call(*args)
+      end
+      meeting
+      sign_in mover
+      delete organisation_project_meeting_path(organisation, source, meeting)
+
+      expect(ActsAsTenant.without_tenant { Meeting.exists?(meeting.id) }).to be(true)
+    end
+
     context 'with a target the move refuses' do
       def expect_refused(target_id, message)
         sign_in mover

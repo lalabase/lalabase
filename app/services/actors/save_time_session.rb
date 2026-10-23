@@ -25,6 +25,9 @@ module Actors
     def initialize(time_session:, attributes:, group_change:, current_user:)
       super()
       @time_session = time_session
+      # The project the caller authorized the write against (a requested move
+      # included), before any reload.
+      @authorized_project_id = time_session.project_id
       @attributes = attributes.to_h # decouple from ActionController::Parameters
       @group_change = group_change
       @current_user = current_user
@@ -34,8 +37,13 @@ module Actors
       @time_session
     end
 
+    # Lock order as in Actors::MoveMeeting, meeting before booking: the other
+    # way round, a move and an edit of one of its bookings would wait on each
+    # other.
     def perform
+      lock_meeting
       refresh_persisted_state
+      guard_authorized_project!
       guard_meeting_project!
       guard_group_transition!
       @time_session.assign_attributes(@attributes)
@@ -55,19 +63,29 @@ module Actors
       return unless @time_session.persisted?
 
       pending = @time_session.changes.transform_values(&:last)
-      @time_session.reload
+      @time_session.reload(lock: true)
       @time_session.assign_attributes(pending)
     end
 
+    # A move of the booking's meeting that committed after the caller's check
+    # has taken the booking into a project this editor was never checked for.
+    def guard_authorized_project!
+      return if @time_session.project_id == @authorized_project_id
+
+      raise ActorError.new(I18n.t("#{ERROR_SCOPE}.moved_meanwhile"), code: :moved_meanwhile)
+    end
+
     # A booking on a meeting takes the meeting's row lock, the one
-    # Actors::MoveMeeting holds while it moves the meeting and its bookings. A
-    # move that committed meanwhile has taken the meeting into another project;
-    # the booking would land in the old one, so it is refused.
+    # Actors::MoveMeeting holds while it moves the meeting and its bookings.
+    def lock_meeting
+      @time_session.meeting&.lock!
+    end
+
+    # A move that committed meanwhile has taken the meeting into another
+    # project; the booking would land in the old one, so it is refused.
     def guard_meeting_project!
       meeting = @time_session.meeting
       return unless meeting
-
-      meeting.lock!
       return if meeting.project_id == @time_session.project_id
 
       raise ActorError.new(I18n.t("#{ERROR_SCOPE}.meeting_moved"), code: :meeting_moved)

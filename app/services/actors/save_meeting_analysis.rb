@@ -28,6 +28,8 @@ module Actors
     def initialize(meeting:, current_user:, params: {}, id: nil)
       super()
       @meeting = meeting
+      # The project the caller authorized the write against, before any lock.
+      @authorized_project_id = meeting.project_id
       @current_user = current_user
       @params = params
       @id = id
@@ -40,6 +42,7 @@ module Actors
     end
 
     def perform
+      guard_meeting_in_project!
       if @id.blank?
         create_analysis
       elsif boolean(@params[:rerun])
@@ -196,6 +199,17 @@ module Actors
     # the UPDATE below, and this run then writes its search release onto an analysis that
     # has meanwhile become private. `perform` already runs inside BaseActor's transaction,
     # so the lock lives exactly as long as it must.
+    # Actors::MoveMeeting holds the meeting's row lock while it moves it and
+    # checks the published analyses. Under the same lock a meeting that moved
+    # meanwhile is gone from the project this write was authorized against,
+    # so nothing is created, rerun or published there.
+    def guard_meeting_in_project!
+      @meeting.lock!
+      return if @meeting.project_id == @authorized_project_id
+
+      raise ActorError, I18n.t('services.meetings.analysis.not_found')
+    end
+
     def load_analysis!
       @meeting.meeting_analyses.lock.find_by(id: @id) ||
         raise(ActorError, I18n.t('services.meetings.analysis.not_found'))

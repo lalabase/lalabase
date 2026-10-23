@@ -779,6 +779,10 @@ Rails.application.routes.draw do
           # One-click search & chat release flip (Meeting-Such-Status): flips
           # create_embeddings via Actors::SaveMeeting (job enqueue / PII purge).
           post :toggle_search
+          # Moving into another project (doc/meeting_verschieben_plan.md): the
+          # dialog (frame content) and the write, both behind move_meetings.
+          get :move_preflight
+          post :move
         end
         collection do
           # LLM participant detection (Slice 5): runs BEFORE save on the raw

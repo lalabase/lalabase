@@ -419,8 +419,8 @@ export default class extends Controller {
 
       const thread = this.openThreadId()
       if (!thread) {
-        const context = this.pageContext()
-        if (context?.key === referenceKey) {
+        const context = this.pageContexts().find(candidate => candidate.key === referenceKey)
+        if (context) {
           this.addDraftReference(context)
           if (this.standingKeySet().has(referenceKey)) this.fulfilMeetingIntent(intent, referenceKey)
         }
@@ -674,34 +674,43 @@ export default class extends Controller {
     //
     if (!this.chatFrameSeen) return this.hideOffer()
 
-    const context = this.pageContext()
+    // The page may name more than one object: the ticket and, beside it, its
+    // meeting (doc/ticket_meeting_panel_plan.md, S3). They are offered one after
+    // the other, in page order, through the one strip: taking or refusing the
+    // first brings up the next. Every guard below asks about one of them.
+    const contexts = this.pageContexts()
     // 1. the page names no object -- most pages do not.
-    if (!context) return this.hideOffer()
+    if (!contexts.length) return this.hideOffer()
     // 2. this device has no companion lane, so there is nowhere to show a
     //    reference and nothing to take it into (same door as toggle/adoptContext).
     if (!this.canOpen()) return this.hideOffer()
+    const standing = this.standingReferenceKeys()
+    const standingKeys = this.standingKeySet()
+    // 4. (for the slot) a context that has arrived in the collection is no longer
+    //    on its way.
+    if (this.pendingContext && standingKeys.has(this.pendingContext)) this.pendingContext = null
+    // 4b. A context of this page on its WAY into the collection holds the strip
+    //     back for ALL of them. Between the click and the stream that brings the
+    //     chip back, the thread has no visible reference yet, and any unrelated
+    //     frame load in that window re-raises the offer for something that is
+    //     already being set (a ticket page brings its own: the lazy timeline
+    //     frame reaches the document listener; found as a flaky assertion, kept
+    //     as a rule). And offering the NEXT one meanwhile would invite a second
+    //     requestSubmit on the same form, which stops the first (adoptContext).
+    //     Its settle asks again and the next one comes up then.
+    if (contexts.some(candidate => candidate.key === this.pendingContext)) return this.hideOffer()
     // 3. refused for this object -- by hand (dismissOffer, permanent for the tab)
     //    or by the server (any 422 from the reference route: the limit, or an
     //    object that no longer resolves). Cleared as soon as the standing set
     //    shrinks, so a refusal outlives only its own reason.
-    if (this.dismissedContexts.has(context.key)) return this.hideOffer()
-    if (this.refusedContexts.has(context.key)) return this.hideOffer()
     // 4. the reference collection already CONTAINS this very object -- nothing
     //    to take. Membership, not equality: with more than one entry (S2) the
-    //    question is whether it is in there, and asking it that way already now
-    //    keeps the two halves of the offer from being written twice.
-    const standing = this.standingReferenceKeys()
-    if (this.standingKeySet().has(context.key)) {
-      this.pendingContext = null
-      return this.hideOffer()
-    }
-    // 4b. ...or it is on its WAY there. Between the click and the stream that
-    //     brings the chip back, the thread has no visible reference yet, and any
-    //     unrelated frame load in that window re-raises the offer for something
-    //     that is already being set. A ticket page brings its own: the lazy
-    //     timeline frame reaches the document listener. Found as a flaky
-    //     assertion, kept as a rule -- it is a flicker either way.
-    if (this.pendingContext === context.key) return this.hideOffer()
+    //    question is whether it is in there.
+    const context = contexts.find(candidate =>
+      !this.dismissedContexts.has(candidate.key) &&
+      !this.refusedContexts.has(candidate.key) &&
+      !standingKeys.has(candidate.key))
+    if (!context) return this.hideOffer()
     // A new conversation holds references in its form until the first message.
     // History/settings have neither a thread nor a draft, and offer nothing.
     if (!this.openThreadId() && !this.hasDraftReferencesTarget) return this.hideOffer()
@@ -775,8 +784,8 @@ export default class extends Controller {
     // connect() closes most of that, but not the frame between a mutation and
     // the next repaint. Comparing what the page says NOW against what was
     // offered costs one querySelectorAll and is the last word.
-    const context = this.pageContext()
-    const referenceKey = context?.key === this.offerTarget.dataset.contextId ? context.key : null
+    const offered = this.offerTarget.dataset.contextId
+    const referenceKey = this.pageContexts().some(context => context.key === offered) ? offered : null
 
     // ⚠️ NOT hidden before the guard. The first version hid unconditionally, so a
     // click on a stale strip looked EXACTLY like a click that worked: the strip
@@ -834,8 +843,9 @@ export default class extends Controller {
     this.offerLabelTarget.removeAttribute("title")
   }
 
-  // What the page says it is showing, or null. Searched rather than received:
-  // this node is permanent, so nothing ever renders a message to it.
+  // What the page says it is showing: every object it names, in page order and
+  // each once (the ticket's two roots both name it). Searched rather than
+  // received: this node is permanent, so nothing ever renders a message to it.
   //
   // The panel's own subtree is excluded on purpose -- an answer may well quote a
   // ticket, and a citation must never become an offer to re-point the thread.
@@ -846,21 +856,30 @@ export default class extends Controller {
   // long as nothing else replaced the frame. The class is the lane's own state
   // (.layout.hide-content, the one flag updateLayout writes), and
   // observePageContent watches it so the offer follows the ✕ the same way it
-  // follows a frame load.
-  pageContext() {
-    const markers = document.querySelectorAll("[data-assistant-context]")
-    for (const marker of markers) {
+  // follows a frame load. The same for a CLOSED third lane (.layout.hide-panel,
+  // the meeting beside a ticket): closing empties that lane too, but the class
+  // flips first, and the class is what the reader sees.
+  pageContexts() {
+    const contexts = []
+    const keys = new Set()
+    for (const marker of document.querySelectorAll("[data-assistant-context]")) {
       if (this.element.contains(marker)) continue
       if (marker.closest(".layout.hide-content")) continue
+      if (marker.closest(".layout.hide-panel > .column.panel")) continue
 
       const id = marker.dataset.assistantContext
       const type = marker.dataset.assistantContextType
       const label = marker.dataset.assistantContextLabel
+      if (!id || !type || !label) continue
       // The composite key of §7.1, composed HERE and nowhere else on this side:
       // the page names a type and an id, the collection is addressed by the pair.
-      if (id && type && label) return { key: `${type}:${id}`, label }
+      const key = `${type}:${id}`
+      if (keys.has(key)) continue
+
+      keys.add(key)
+      contexts.push({ key, label })
     }
-    return null
+    return contexts
   }
 
   // Which objects the thread points at right now, read off the chip the server

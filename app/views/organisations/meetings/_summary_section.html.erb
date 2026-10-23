@@ -16,6 +16,7 @@
       ai_available           → active. %>
 <% can_write = local_assigns.fetch(:can_write, true) %>
 <% lane_state = local_assigns.fetch(:lane_state, {}).symbolize_keys %>
+<% refreshable = local_assigns.fetch(:refreshable, true) %>
 <% org = meeting.organisation %>
 <% ai_enabled = org&.ai_enabled? %>
 <%# R2: asks the FEATURE this section offers — :meeting_summary, whose seam is
@@ -70,11 +71,15 @@
           <i class="bi bi-arrow-repeat inline-block animate-spin" aria-hidden="true"></i>
           <%= t('views.organisations.meetings.show.summary_in_progress') %>
           <%# Fallback for when the live broadcast is not delivered: reload the
-              detail frame in request context (correct permissions + latest state). %>
-          <%= link_to t('views.organisations.meetings.show.summary_refresh'),
-                organisation_project_meeting_path(org, meeting.project, meeting, frame: 'content', **lane_state),
-                data: { turbo_frame: 'meeting_display_frame' },
-                class: 'not-italic underline hover:text-ink' %>
+              detail frame in request context (correct permissions + latest state).
+              Not in the panel beside a ticket (refreshable: false): that page has no
+              meeting_display_frame to reload. %>
+          <% if refreshable %>
+            <%= link_to t('views.organisations.meetings.show.summary_refresh'),
+                  organisation_project_meeting_path(org, meeting.project, meeting, frame: 'content', **lane_state),
+                  data: { turbo_frame: 'meeting_display_frame' },
+                  class: 'not-italic underline hover:text-ink' %>
+          <% end %>
         </p>
       <% elsif summary.present? %>
         <%# The LLM answers in Markdown ("**Kopf:**", "- Punkt"), so this goes through the

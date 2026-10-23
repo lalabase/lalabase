@@ -327,6 +327,7 @@ jobs:
           spec/requests/organisations/rich_text_editor_forms_spec.rb
           spec/requests/organisations/ticket_assistant_seams_spec.rb
           spec/requests/organisations/ticket_meeting_references_access_spec.rb
+          spec/requests/organisations/ticket_meeting_panel_spec.rb
           spec/requests/organisations/ticket_writing_surface_spec.rb
           spec/requests/organisations/mobile_navigation_spec.rb
           spec/requests/organisations/tickets_destroy_spec.rb
@@ -637,6 +638,7 @@ jobs:
           spec/system/meeting_filters_columns_spec.rb
           spec/system/ticket_list_unread_dot_spec.rb
           spec/system/ticket_relations_spec.rb
+          spec/system/ticket_meeting_panel_spec.rb
           spec/system/ticket_waiting_list_spec.rb
           spec/system/ticket_waiting_filters_spec.rb
           spec/services/smart_folder_query_builder_spec.rb

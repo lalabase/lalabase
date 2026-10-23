@@ -227,6 +227,14 @@ en:
             user_not_assignable: A person no longer has access to this project. Nothing was changed.
             required: Required field, the value cannot be cleared.
             internal_error: The run failed. Nothing was changed.
+        meeting_panel:
+          close: Close meeting
+          eyebrow: Meeting of this ticket
+          tabs_label: Meetings of this ticket
+          linked_tickets: Linked tickets
+          this_ticket: this ticket
+          open_meeting: Open meeting
+          unavailable: This meeting is not available.
         shared:
           subtasks:
             heading: Sub-tasks

@@ -227,6 +227,14 @@ de:
             user_not_assignable: Eine Person hat inzwischen keinen Zugang mehr zu diesem Projekt. Nichts wurde geändert.
             required: Pflichtfeld, der Wert kann nicht entfernt werden.
             internal_error: Der Durchlauf ist fehlgeschlagen. Nichts wurde geändert.
+        meeting_panel:
+          close: Meeting schließen
+          eyebrow: Meeting zum Ticket
+          tabs_label: Meetings dieses Tickets
+          linked_tickets: Verknüpfte Tickets
+          this_ticket: dieses Ticket
+          open_meeting: Meeting öffnen
+          unavailable: Dieses Meeting ist nicht verfügbar.
         shared:
           subtasks:
             heading: Unteraufgaben

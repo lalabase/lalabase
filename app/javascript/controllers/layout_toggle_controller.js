@@ -51,7 +51,11 @@ export default class extends Controller {
     laneContext: { type: Object, default: {} },
     // Lane parameters of this visit the server did not open ({ name: value }):
     // a meeting_id it could not resolve, a new form it did not render.
-    unresolvedSelection: { type: Object, default: {} }
+    unresolvedSelection: { type: Object, default: {} },
+    // The frame of a third lane whose content IS its state (the meeting beside the
+    // ticket, doc/ticket_meeting_panel_plan.md): open while it holds something,
+    // emptied on close, never restored from storage and never in the address.
+    panelFrameId: { type: String, default: "" }
   }
 
   connect() {
@@ -92,6 +96,8 @@ export default class extends Controller {
     if (!this.hasCategoriesColumn) {
       this.layoutState.categories = false
     }
+
+    this.panelFromFrame()
 
     // A grid without a panel column can never show one, whatever the shared
     // storage key says (it may carry panel:true from Knowledge). The clamp lives
@@ -208,6 +214,7 @@ export default class extends Controller {
         // Error restoring state, keep current
       }
     }
+    this.panelFromFrame()
 
     // Re-evaluate selection after frame load (rows might have been replaced)
     if (this.hasSelectedRow(event.target)) {
@@ -427,9 +434,41 @@ export default class extends Controller {
         ? this._categoriesBeforePanel
         : true
       delete this._categoriesBeforePanel
+      this.emptyPanelFrame()
     }
 
     this.updateLayout()
+  }
+
+  // The panel frame was filled (ticket-meeting-panel:open) or is to go
+  // (ticket-meeting-panel:close, the panel's Escape and its ticket leaving the
+  // lane). Both go through togglePanel, the one path that opens and closes it.
+  openPanel() {
+    if (!this.layoutState.panel) this.togglePanel()
+  }
+
+  closePanel() {
+    if (this.layoutState.panel) this.togglePanel()
+  }
+
+  // A panel whose frame holds its state is open exactly while the frame holds
+  // something: a stored "open" from an earlier visit would show an empty lane.
+  panelFromFrame() {
+    if (!this.panelFrameIdValue) return
+
+    const frame = document.getElementById(this.panelFrameIdValue)
+    this.layoutState.panel = Boolean(frame && frame.childElementCount > 0)
+  }
+
+  // Emptied, not only hidden: the next open is a fresh request, and a closed
+  // panel holds no meeting the assistant could still find on the page (S3).
+  emptyPanelFrame() {
+    if (!this.panelFrameIdValue) return
+
+    const frame = document.getElementById(this.panelFrameIdValue)
+    if (!frame) return
+    frame.removeAttribute("src")
+    frame.replaceChildren()
   }
 
   // The lane's object is gone: close as the ✕ does, and take its names out of
@@ -455,6 +494,8 @@ export default class extends Controller {
     }
 
     this.layoutState.content = false
+    // The meeting beside the ticket belongs to the ticket (F3).
+    this.closePanel()
 
     // Deselect the chosen row or card, wherever it is. .selected-row is the
     // one class of the list pages with a lane (tickets, knowledge and meetings,

@@ -156,11 +156,11 @@ Lalabase is licensed under the **GNU Affero General Public License, version 3 on
 (SPDX: `AGPL-3.0-only`). Later versions of the license do not apply unless a release says so.
 The full license text is in [LICENSE](LICENSE).
 
-Bug reports, ideas and questions are always welcome as issues. Pull requests are not accepted:
-in other projects we have seen that, since AI coding assistants, outside pull requests take more
-work to review and fold in than the change itself, so we write every change ourselves. An issue
-that describes the problem helps most. Details in
-[CONTRIBUTING.md](CONTRIBUTING.md#issues-yes-pull-requests-no).
+Bug reports, ideas and questions are always welcome as issues. Unsolicited pull requests are
+not accepted: in other projects we have seen that, since AI coding assistants, outside pull
+requests take more work to review and fold in than the change itself. The code comes from the
+maintainer and a few people we invite. An issue that describes the problem helps most. Details in
+[CONTRIBUTING.md](CONTRIBUTING.md#issues-yes-unsolicited-pull-requests-no).
 Bundled third-party components keep their own licenses, listed in
 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
 

@@ -71,6 +71,10 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
 
   def stage = find('.layout')['data-meeting-panel-stage']
 
+  def rect(selector, side)
+    page.evaluate_script("document.querySelector(#{selector.to_json}).getBoundingClientRect().#{side}")
+  end
+
   def width(selector)
     page.evaluate_script("Math.round(document.querySelector(#{selector.to_json}).getBoundingClientRect().width)")
   end
@@ -108,6 +112,7 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
 
   context 'without the assistant' do
     it 'shows list, ticket and meeting side by side on a wide grid' do
+      other = create(:ticket, project: project, title: 'Another ticket on the list', creator: user)
       open_at(1600)
 
       expect(page).to have_css('.layout[data-meeting-panel-stage="wide"]')
@@ -117,6 +122,13 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
       expect(widths[:meeting]).to be_between(320, 480)
       expect(page).to have_no_css('.ticket-meeting-panel__stage-tabs', visible: :visible)
       expect(page).to have_no_css('.lane-split', visible: :visible)
+      # The list keeps its channel: the ticket does not take it back as it does when
+      # the list has yielded.
+      expect(rect('.layout .column.content', 'left') - rect('.layout .column.list', 'right')).to be_within(1).of(24)
+
+      # And the list is a list, not a yielded one under the ticket: its rows take a click.
+      find(%([data-list-row-id-value="#{other.id}"])).click
+      expect(page).to have_css("#ticket-content-#{other.id}")
     end
 
     it 'lets the list yield on a medium grid' do
@@ -149,6 +161,9 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
       expect(page).to have_no_css('aside.column.panel h2', visible: :visible)
       # The tab bar stays, so there is a way back.
       expect(page).to have_css('.ticket-meeting-panel__stage-tabs', visible: :visible)
+      # It lies over the top of the ticket's cell; the ticket begins below it.
+      scroll('.layout .column.content', to: 0)
+      expect(rect('#ticket-header', 'top')).to be >= rect('.ticket-meeting-panel__stage-tabs', 'bottom') - 1
 
       scroll('.layout .column.content', to: 700)
       stage_tab('Meeting').click
@@ -165,6 +180,8 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
       find('aside.column.panel .panel-close').click
       expect(page).to have_css('.layout.hide-panel')
       expect(page).to have_css("#ticket-content-#{ticket.id}", visible: :visible)
+      # A closed panel leaves no stage behind for the stylesheet and the assistant to read.
+      expect(page).to have_no_css('.layout[data-meeting-panel-stage], .layout[data-meeting-panel-tab]')
     end
 
     it 'keeps a hidden list hidden at the wide stage, with no channel before the ticket' do

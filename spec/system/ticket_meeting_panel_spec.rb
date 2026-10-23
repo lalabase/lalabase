@@ -35,6 +35,12 @@ RSpec.describe 'Meeting beside the ticket', type: :system do
   end
 
   after do
+    # The window is reused by the next example, and with it this origin's storage.
+    begin
+      page.execute_script('sessionStorage.clear(); localStorage.clear()')
+    rescue StandardError
+      nil
+    end
     ActsAsTenant.current_tenant = nil
     Prosopite.resume
   end
@@ -49,6 +55,16 @@ RSpec.describe 'Meeting beside the ticket', type: :system do
 
   def same_page?
     page.evaluate_script('window.__meetingPanelPageMark === true')
+  end
+
+  # A Turbo visit keeps the window but swaps the body: a mark on the list tells a
+  # frame load from a visit.
+  def mark_list
+    page.execute_script("document.querySelector('.layout .column.list').dataset.meetingPanelMark = '1'")
+  end
+
+  def same_list?
+    page.evaluate_script("document.querySelector('.layout .column.list')?.dataset.meetingPanelMark === '1'")
   end
 
   def width_of(selector)
@@ -90,6 +106,57 @@ RSpec.describe 'Meeting beside the ticket', type: :system do
     expect(page).to have_css('.layout.hide-content')
   end
 
+  # The move dialog closes itself on Escape, before the panel's listener runs and without
+  # marking the event: only what was open when the key went down tells the panel that this
+  # Escape was the dialog's (ticket_meeting_panel#noteEscape, lib/escape_owner.js).
+  it 'leaves Escape to the move dialog above it, then closes on the next' do
+    visit lane_path
+    open_panel
+
+    within('#ticket-header') do
+      find(%(button[data-action="click->neo-dropdown#toggle"])).click
+      click_button I18n.t('views.organisations.tickets.ticket_header_show.menu_move')
+    end
+    expect(page).to have_css('[data-move-ticket-modal-target="modal"]', visible: :visible)
+
+    find('body').send_keys(:escape)
+    expect(page).to have_no_css('[data-move-ticket-modal-target="modal"]', visible: :visible)
+    expect(page).to have_css('aside.column.panel h2', text: 'Planning call')
+    expect(page).to have_no_css('.layout.hide-panel')
+
+    find('body').send_keys(:escape)
+    expect_panel_closed
+  end
+
+  it 'stays open while a tab of the panel opens another meeting of the ticket' do
+    create(:meeting, project: project, title: 'Earlier review', creator: user, occurred_at: 5.days.ago).tap do |m|
+      m.outgoing_references.create!(organisation: organisation, target: ticket, target_title_snapshot: ticket.display_title)
+    end
+    visit lane_path
+    open_panel
+
+    within('aside.column.panel .ticket-meeting-panel__tabs') { click_link 'Earlier review' }
+
+    expect(page).to have_css('aside.column.panel h2', text: 'Earlier review')
+    expect(page).to have_no_css('.layout.hide-panel')
+  end
+
+  # The panel is open exactly while its frame holds a meeting. The lane's stored state
+  # can say otherwise (an earlier visit, another tab of the same area).
+  it 'stays closed on a visit whose stored state remembers it open' do
+    visit lane_path
+    key = page.evaluate_script(
+      "document.querySelector('[data-layout-toggle-storage-key-value]')?.dataset.layoutToggleStorageKeyValue || 'layoutState'"
+    )
+    page.execute_script("sessionStorage.setItem(#{key.to_json}, " \
+                        'JSON.stringify({ categories: false, list: true, content: true, panel: true }))')
+
+    visit lane_path
+
+    expect(page).to have_css("#ticket-content-#{ticket.id}")
+    expect(page).to have_css('.layout.hide-panel')
+  end
+
   it 'closes and empties the panel with its ✕' do
     visit lane_path
     open_panel
@@ -126,10 +193,13 @@ RSpec.describe 'Meeting beside the ticket', type: :system do
   it 'marks the row of a ticket opened from the panel, not the link' do
     visit lane_path
     open_panel
+    mark_list
 
     within('aside.column.panel') { click_link 'Sibling from the meeting' }
 
     expect(page).to have_css("#ticket-content-#{sibling.id}")
+    # By its row, in the lane: the list was not loaded again.
+    expect(same_list?).to be(true)
     expect(page).to have_css(%([data-list-row-id-value="#{sibling.id}"].selected-row), visible: :all)
     expect(page).to have_no_css(%([data-list-row-id-value="#{ticket.id}"].selected-row), visible: :all)
   end

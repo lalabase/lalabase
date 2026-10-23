@@ -326,6 +326,7 @@ jobs:
           spec/requests/organisations/prompt_personas_spec.rb
           spec/requests/organisations/rich_text_editor_forms_spec.rb
           spec/requests/organisations/ticket_assistant_seams_spec.rb
+          spec/requests/organisations/ticket_meeting_references_access_spec.rb
           spec/requests/organisations/ticket_writing_surface_spec.rb
           spec/requests/organisations/mobile_navigation_spec.rb
           spec/requests/organisations/tickets_destroy_spec.rb

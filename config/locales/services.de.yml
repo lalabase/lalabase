@@ -47,6 +47,11 @@ de:
         ticket_missing: "Eines der beiden Tickets gibt es nicht mehr."
       destroy_ticket_relation:
         not_found: "Die Beziehung wurde nicht gefunden."
+      move_meeting:
+        same_project: "Das Meeting liegt schon in diesem Projekt."
+        forbidden_target: "In diesem Projekt darfst du keine Meetings anlegen."
+        has_ticket_links: "Das Meeting ist mit Tickets verknüpft. Entferne die Verknüpfungen, dann kannst du es verschieben."
+        suggestion_run_active: "Für das Meeting werden gerade Ticket-Vorschläge erzeugt. Versuche es gleich noch einmal."
       move_ticket:
         number_conflict: "Nummernkonflikt nach %{retries} Versuchen: %{error}"
         has_hierarchy: "Tickets mit Unteraufgaben oder einem übergeordneten Ticket können nicht verschoben werden."

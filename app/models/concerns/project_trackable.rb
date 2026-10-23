@@ -186,6 +186,30 @@ module ProjectTrackable
     )
   end
 
+  def track_meeting_moved_in(meeting, from_project)
+    create_activity(
+      action: 'meeting_moved_in',
+      secondary: meeting,
+      parameters: {
+        meeting_title: meeting.title,
+        from_project_name: from_project&.name,
+        from_project_id: from_project&.id
+      }.compact
+    )
+  end
+
+  def track_meeting_moved_out(meeting, to_project)
+    create_activity(
+      action: 'meeting_moved_out',
+      secondary: meeting,
+      parameters: {
+        meeting_title: meeting.title,
+        to_project_name: to_project&.name,
+        to_project_id: to_project&.id
+      }.compact
+    )
+  end
+
   # No `secondary:` — the meeting row is gone when this fires (after_destroy_commit);
   # a polymorphic reference to a deleted record would dangle. Parameters carry the
   # audit facts instead (transcripts are PII: deletions must leave a trace).

@@ -75,6 +75,8 @@ module Activities
       'project.document_created' => :documents,
       'project.meeting_created' => :meetings,
       'project.meeting_deleted' => :meetings,
+      'project.meeting_moved_in' => :meetings,
+      'project.meeting_moved_out' => :meetings,
       'project.chat_created' => :chats,
       'project.member_added' => :members,
       'project.member_removed' => :members,

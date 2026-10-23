@@ -47,6 +47,11 @@ en:
         ticket_missing: "One of the two tickets no longer exists."
       destroy_ticket_relation:
         not_found: "The relation was not found."
+      move_meeting:
+        same_project: "The meeting is already in this project."
+        forbidden_target: "You may not add meetings to this project."
+        has_ticket_links: "The meeting is linked to tickets. Remove the links, then you can move it."
+        suggestion_run_active: "Ticket suggestions are being generated for this meeting. Try again in a moment."
       move_ticket:
         number_conflict: "Number conflict after %{retries} retries: %{error}"
         has_hierarchy: "Tickets with sub-tasks or a parent ticket cannot be moved."

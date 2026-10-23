@@ -51,6 +51,8 @@ RSpec.describe Activities::AreaRegistry do
       expect(described_class.area_for('project.note_created')).to eq(:notes)
       expect(described_class.area_for('project.document_created')).to eq(:documents)
       expect(described_class.area_for('project.meeting_created')).to eq(:meetings)
+      expect(described_class.area_for('project.meeting_moved_in')).to eq(:meetings)
+      expect(described_class.area_for('project.meeting_moved_out')).to eq(:meetings)
       expect(described_class.area_for('project.member_added')).to eq(:members)
       expect(described_class.area_for('project.ticket_created')).to eq(:tickets)
     end

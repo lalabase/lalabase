@@ -21,6 +21,7 @@ class NeoActivityFilterComponent < ViewComponent::Base
     'tickets' => %w[created updated deleted status_changed priority_changed title_changed description_changed
                     assigned unassigned post_added moved ticket_created ticket_moved_in ticket_moved_out],
     'knowledge' => %w[document_created note_created chat_created meeting_created meeting_deleted
+                      meeting_moved_in meeting_moved_out
                       smart_folder_created codebase_imported],
     'times' => %w[created started stopped paused resumed],
     'administration' => %w[member_added member_removed permission_changed role_changed updated]

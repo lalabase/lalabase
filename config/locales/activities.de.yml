@@ -29,6 +29,8 @@ de:
         tickets_bulk_deleted: "%{actor} hat %{count} Tickets gelöscht: %{numbers}"
         meeting_created: "Meeting \"%{meeting_title}\" erstellt (%{actor})"
         meeting_deleted: "Meeting \"%{meeting_title}\" gelöscht (%{actor})"
+        meeting_moved_in: "Meeting \"%{meeting_title}\" aus „%{from_project_name}“ hierher verschoben (%{actor})"
+        meeting_moved_out: "Meeting \"%{meeting_title}\" nach „%{to_project_name}“ verschoben (%{actor})"
       # KI-Paket-Wahl (trackable = Organisation, KI-Pakete P4e / E4). Zwei Verben für
       # die zwei Achsen aus §2: nur der Paketwechsel trägt eine Rechtsraum-Entscheidung,
       # der Stufenwechsel nicht. Ein Protokoll, das beides gleich benennt, wäre

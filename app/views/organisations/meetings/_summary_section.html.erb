@@ -11,7 +11,7 @@
     back to the project's list.
 
     Gate trio (plan D3, organisation.rb ai_available?/ai_enabled?):
-      !ai_enabled            → feature invisible (no controls, only existing summary)
+      !ai_enabled            → no controls; existing summary or pending status stays visible
       ai_enabled, !available → button disabled + setup hint
       ai_available           → active. %>
 <% can_write = local_assigns.fetch(:can_write, true) %>
@@ -38,7 +38,8 @@
 <% show_controls = ai_enabled && can_write %>
 
 <div id="<%= dom_id(meeting) %>_summary_section">
-  <% if summary.present? || show_controls %>
+  <%# Pending status and refresh are readable even before the first summary exists. %>
+  <% if summary.present? || in_progress || show_controls %>
     <section class="mb-8 rounded-xl bg-cream-100 px-4 py-3.5">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
         <h3 class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-cream-600">

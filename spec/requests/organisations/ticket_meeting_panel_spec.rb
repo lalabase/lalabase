@@ -120,17 +120,36 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
       expect(response.body).to include('Kickoff-Panel-QX')
     end
 
-    it 'refreshes a summary still being written into the panel, not into the meetings lane' do
-      ActsAsTenant.with_tenant(organisation) { meeting.update!(summary_creation_flag: true) }
-      sign_in reader
-      panel
+    { 'first summary' => '', 'regenerated summary' => 'Summary-Body-QX' }.each do |state, existing_summary|
+      it "refreshes a pending #{state} into the read-only panel" do
+        ActsAsTenant.with_tenant(organisation) do
+          meeting.update!(generated_summary: existing_summary, summary_creation_flag: true)
+        end
+        sign_in reader
+        panel
 
-      refresh = Nokogiri::HTML(response.body)
-                        .at_css(%(a[href="#{organisation_project_ticket_meeting_panel_path(organisation, project, ticket, meeting_id: meeting.id)}"]))
-      expect(refresh).not_to be_nil
-      expect(refresh.text).to include(I18n.t('views.organisations.meetings.show.summary_refresh'))
-      expect(refresh['data-turbo-frame']).to eq('ticket_meeting_panel')
-      expect(response.body).not_to include('meeting_display_frame')
+        expect(response).to have_http_status(:ok)
+        document = Nokogiri::HTML(response.body)
+        status = document.at_css('[role="status"]')
+        expect(status).not_to be_nil
+        expect(status.text).to include(I18n.t('views.organisations.meetings.show.summary_in_progress'))
+        refresh = status.at_css('a')
+        expect(refresh['href']).to eq(organisation_project_ticket_meeting_panel_path(organisation, project, ticket, meeting_id: meeting.id))
+        expect(refresh.text).to include(I18n.t('views.organisations.meetings.show.summary_refresh'))
+        expect(refresh['data-turbo-frame']).to eq('ticket_meeting_panel')
+        expect(document.css('form')).to be_empty
+        expect(response.body).not_to include('meeting_display_frame')
+
+        ActsAsTenant.with_tenant(organisation) do
+          meeting.update!(generated_summary: 'Finished-Summary-QX', summary_creation_flag: false)
+        end
+        get refresh['href'], headers: frame
+
+        expect(response).to have_http_status(:ok)
+        refreshed_panel = Nokogiri::HTML(response.body).at_css('turbo-frame#ticket_meeting_panel')
+        expect(refreshed_panel.text).to include('Finished-Summary-QX')
+        expect(refreshed_panel.css('[role="status"], form')).to be_empty
+      end
     end
 
     it 'offers the meeting page and leaves the frame for it' do

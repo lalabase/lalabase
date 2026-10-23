@@ -12,6 +12,19 @@
 <div class="ticket-meeting-panel"
      data-controller="ticket-meeting-panel"
      data-ticket-meeting-panel-ticket-id-value="<%= ticket.id %>">
+  <%# The narrow stage (S2): ticket and meeting as two tabs in one column. Hidden at the
+      other stages (components/ticket_meeting_panel.css); the controller keeps the
+      selection on the grid and in aria-selected. %>
+  <div class="ticket-meeting-panel__stage-tabs" role="tablist" aria-label="<%= t("#{mp}.stage_tabs_label") %>">
+    <button type="button" role="tab" class="ticket-meeting-panel__stage-tab" aria-selected="false"
+            data-ticket-meeting-panel-target="ticketTab" data-action="ticket-meeting-panel#showTicket">
+      <%= t("#{mp}.ticket_tab", number: ticket.number) %>
+    </button>
+    <button type="button" role="tab" class="ticket-meeting-panel__stage-tab" aria-selected="true"
+            data-ticket-meeting-panel-target="meetingTab" data-action="ticket-meeting-panel#showMeeting">
+      <%= t("#{mp}.meeting_tab", date: l(meeting.occurred_at.to_date, format: :short)) %>
+    </button>
+  </div>
   <header class="ticket-meeting-panel__head">
     <p class="text-xs font-mono uppercase tracking-wider text-cream-600"><%= t("#{mp}.eyebrow") %></p>
     <% if meetings.size > 1 %>

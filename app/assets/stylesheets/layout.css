@@ -17,6 +17,15 @@
     /* The channel between two tracks of a .layout grid. */
     --lane-gap: 24px;
 
+    /* The third lane beside an open detail (the meeting beside the ticket, and the
+       width the assistant rule gives it), named once: the clamp below is built
+       from these, and lib/lane/meeting_panel_stage reads the same four from the
+       grid to decide how much fits (ticket_meeting_panel_controller), with
+       --lane-gap above. */
+    --panel-min: 320px;
+    --panel-share: 0.34;
+    --panel-max: 480px;
+
     /* Page widths, named once (section "Page widths" below). A view names the
        class, never a number: spec/architecture/page_width_guard_spec.rb. */
     --width-capped: 620px;
@@ -1488,7 +1497,7 @@ main:has(.layout) > div {
        now shrinks with the space it actually sits in. Which lane yields is
        unchanged (L12: the LIST does); this only stops the remaining two from
        being measured against the wrong ruler. */
-    --panel-width: clamp(320px, 34%, 480px);
+    --panel-width: clamp(var(--panel-min), calc(var(--panel-share) * 100%), var(--panel-max));
     grid-template-columns: 0px 1fr var(--panel-width);
   }
   body.assistant-panel-open .layout.two-column:not(.hide-content).hide-panel {
@@ -1496,7 +1505,7 @@ main:has(.layout) > div {
     column-gap: 0;
   }
   body.assistant-panel-open .layout.two-column:not(.hide-content) .list,
-  .layout.two-column:not(.hide-content):not(.hide-panel) .list {
+  .layout.two-column:not(.hide-content):not(.hide-panel):not([data-meeting-panel-stage="wide"]) .list {
     opacity: 0;
     pointer-events: none;
     transform: translateX(-100%);
@@ -1512,9 +1521,72 @@ main:has(.layout) > div {
   /* Three tracks with the list's at 0px still have two channels, and the first
      one stands before the ticket: 24px of page ground on top of the page's own
      inset (the two-track variants above set column-gap: 0 for the same reason).
-     The ticket takes that channel back; the one between ticket and meeting stays. */
-  .layout.two-column:not(.hide-content):not(.hide-panel) > .column.content {
+     The ticket takes that channel back; the one between ticket and meeting stays.
+     Not at the wide stage (the list is there, and so is its channel) unless the
+     assistant has taken the list's place, and not at the narrow one (two tracks,
+     no channel). */
+  .layout.two-column:not(.hide-content):not(.hide-panel):not([data-meeting-panel-stage="wide"]):not([data-meeting-panel-stage="narrow"]) > .column.content,
+  body.assistant-panel-open .layout.two-column:not(.hide-content):not(.hide-panel):not([data-meeting-panel-stage="narrow"]) > .column.content {
     margin-left: calc(-1 * var(--lane-gap));
+  }
+
+  /* The meeting beside the ticket in three stages (doc/ticket_meeting_panel_plan.md,
+     S2), by the grid's width: ticket_meeting_panel_controller writes
+     data-meeting-panel-stage from lib/lane/meeting_panel_stage, which reads the
+     same --panel-* numbers as the clamp above. "medium" is the rule above as it
+     stands: the list yields.
+
+     WIDE: room for all three, so the list stays, with its share of what the
+     panel leaves (--list-share, written by lane_split), held between the two
+     minimums lane_split drags between. The handle stays hidden: it is drawn from
+     --list-split, a share of the WHOLE grid, and would stand beside the edge it
+     claims to move. Not while the assistant is open: it takes the list's place
+     (L12) at any width. */
+  body:not(.assistant-panel-open) .layout--lane.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="wide"] {
+    grid-template-columns:
+      clamp(var(--list-min),
+            calc((100% - var(--panel-width) - 2 * var(--lane-gap)) * var(--list-share)),
+            calc(100% - var(--panel-width) - 2 * var(--lane-gap) - var(--lane-min)))
+      1fr
+      var(--panel-width);
+  }
+
+  /* NARROW: ticket and meeting do not fit side by side, so they share one column
+     as two tabs (never stacked: two long scroll areas on top of each other trap
+     the scroll). The panel moves into the detail's cell, above it; which of the
+     two is in front is data-meeting-panel-tab (ticket_meeting_panel_controller).
+     Neither is display:none, so each keeps its scroll position by itself: the
+     one behind is visibility:hidden, which keeps its box, its scrollTop and its
+     place in nothing else (no focus, no clicks, no screen reader). The panel's
+     tab bar stays visible in both (components/ticket_meeting_panel.css). */
+  .layout.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="narrow"] {
+    grid-template-columns: 0px 1fr;
+    column-gap: 0;
+  }
+  /* Both into the one cell, by name: placed only the panel, auto-placement put
+     the detail into an implicit column beside it (measured: 49px wide). */
+  .layout.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="narrow"] > .column.content,
+  .layout.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="narrow"] > .column.panel {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .layout.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="narrow"] > .column.panel {
+    z-index: 5;
+  }
+  .layout.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="narrow"][data-meeting-panel-tab="meeting"] > .column.content {
+    visibility: hidden;
+  }
+  /* The tab bar lies over the top of the detail's cell; the detail begins below it
+     (a spacer, so the lane's own inset is not written a second time). */
+  .layout.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="narrow"] > .column.content::before {
+    content: "";
+    display: block;
+    height: var(--meeting-panel-tabs-height);
+  }
+  .layout.two-column:not(.hide-content):not(.hide-panel)[data-meeting-panel-stage="narrow"][data-meeting-panel-tab="ticket"] > .column.panel {
+    visibility: hidden;
+    background: transparent;
+    border-left-color: transparent;
   }
 }
 

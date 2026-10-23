@@ -15,6 +15,9 @@ RSpec.describe 'Meeting beside the ticket', type: :system do
 
   before do
     driven_by :selenium_chrome_headless_full
+    # A medium grid (896px): ticket and meeting beside each other, the list yielded.
+    # The three stages are ticket_meeting_panel_stages_spec's.
+    page.driver.browser.manage.window.resize_to(1200, 900)
     Prosopite.pause
     ActsAsTenant.current_tenant = organisation
     create(:membership, user: user, organisation: organisation, role: create(:admin_role, organisation: organisation),
@@ -41,6 +44,7 @@ RSpec.describe 'Meeting beside the ticket', type: :system do
     rescue StandardError
       nil
     end
+    page.driver.browser.manage.window.resize_to(1440, 900)
     ActsAsTenant.current_tenant = nil
     Prosopite.resume
   end

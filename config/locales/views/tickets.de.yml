@@ -235,6 +235,9 @@ de:
           this_ticket: dieses Ticket
           open_meeting: Meeting öffnen
           unavailable: Dieses Meeting ist nicht verfügbar.
+          stage_tabs_label: Ticket oder Meeting zeigen
+          ticket_tab: "Ticket #%{number}"
+          meeting_tab: "Meeting %{date}"
         shared:
           subtasks:
             heading: Unteraufgaben

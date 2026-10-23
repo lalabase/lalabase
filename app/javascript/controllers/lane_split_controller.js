@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { MIN_LIST_PX, MIN_LANE_PX } from "lane/meeting_panel_stage"
 
 // The split between the list and the lane, dragged at the line that separates
 // them (layout.css, ".layout--lane" and ".lane-split").
@@ -17,13 +18,20 @@ export default class extends Controller {
 
   // The list stays wide enough for a number, a title and one more column; the
   // lane wide enough for the running text it exists for. Below either the split
-  // stops - a resizer that can hide a pane is a resizer that loses one.
-  static MIN_LIST_PX = 320
-  static MIN_LANE_PX = 360
+  // stops - a resizer that can hide a pane is a resizer that loses one. The
+  // numbers live in lib/lane/meeting_panel_stage, which decides from the same
+  // two how much of the meeting beside a ticket fits.
+  static MIN_LIST_PX = MIN_LIST_PX
+  static MIN_LANE_PX = MIN_LANE_PX
   static KEYBOARD_STEP_PX = 32
   static DEFAULT_SHARE = 0.4
 
   connect() {
+    // For the stylesheet: with the meeting panel open on a wide grid the list
+    // keeps its SHARE of what the panel leaves (layout.css, "wide"), held
+    // between the same two minimums the drag is held between.
+    this.element.style.setProperty("--list-min", `${MIN_LIST_PX}px`)
+    this.element.style.setProperty("--lane-min", `${MIN_LANE_PX}px`)
     this.onWindowResize = this.onWindowResize.bind(this)
     this.onPointerMove = this.onPointerMove.bind(this)
     this.onPointerUp = this.onPointerUp.bind(this)
@@ -78,6 +86,9 @@ export default class extends Controller {
   apply(share) {
     const px = this.clamp(share * this.gridWidth)
     this.element.style.setProperty("--list-split", `${Math.round(px)}px`)
+    // The share actually applied (after the clamp); a grid not laid out yet has no
+    // width to divide by and keeps the share it was asked for.
+    this.element.style.setProperty("--list-share", String(this.gridWidth ? px / this.gridWidth : share))
     this.currentPx = px
 
     if (!this.hasHandleTarget) return

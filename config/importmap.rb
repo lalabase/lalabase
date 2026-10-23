@@ -45,6 +45,7 @@ pin 'list_row/address', to: 'lib/list_row/address.js'
 pin 'lane/params', to: 'lib/lane/params.js'
 pin 'lane/history', to: 'lib/lane/history.js'
 pin 'lane/filter_context', to: 'lib/lane/filter_context.js'
+pin 'lane/meeting_panel_stage', to: 'lib/lane/meeting_panel_stage.js'
 # Who takes an Escape: the topmost menu, modal or drawer, before the lane.
 pin 'escape_owner', to: 'lib/escape_owner.js'
 # The document forms' drop zone: the title a file suggests (S4 of doc/dokumentansicht_plan.md).

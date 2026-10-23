@@ -112,6 +112,27 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
       expect(transcript).not_to be_nil
     end
 
+    it 'accepts the meeting id in capitals, as the database does' do
+      sign_in reader
+      panel(meeting_id: meeting.id.upcase)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Kickoff-Panel-QX')
+    end
+
+    it 'refreshes a summary still being written into the panel, not into the meetings lane' do
+      ActsAsTenant.with_tenant(organisation) { meeting.update!(summary_creation_flag: true) }
+      sign_in reader
+      panel
+
+      refresh = Nokogiri::HTML(response.body)
+                        .at_css(%(a[href="#{organisation_project_ticket_meeting_panel_path(organisation, project, ticket, meeting_id: meeting.id)}"]))
+      expect(refresh).not_to be_nil
+      expect(refresh.text).to include(I18n.t('views.organisations.meetings.show.summary_refresh'))
+      expect(refresh['data-turbo-frame']).to eq('ticket_meeting_panel')
+      expect(response.body).not_to include('meeting_display_frame')
+    end
+
     it 'offers the meeting page and leaves the frame for it' do
       sign_in reader
       panel
@@ -186,9 +207,9 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
       panel
 
       document = Nokogiri::HTML(response.body)
-      sibling_link = document.at_css(%(a[data-list-row-id-value="#{sibling.id}"]))
-      expect(sibling_link['data-controller']).to eq('list-row')
-      expect(sibling_link['data-list-row-frame-value']).to eq('ticket_display_frame')
+      sibling_link = document.at_css(%(a[data-ticket-id="#{sibling.id}"]))
+      expect(sibling_link['data-action']).to eq('ticket-meeting-panel#openTicket')
+      expect(sibling_link['data-turbo-frame']).to be_nil
       expect(sibling_link['href']).to eq(organisation_project_tickets_path(organisation, project, ticket_id: sibling.id))
       expect(document.css('a').map(&:text)).not_to include('Ticket-With-Meetings')
       expect(document.text).to include('Ticket-With-Meetings')

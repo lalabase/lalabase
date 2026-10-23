@@ -16,8 +16,12 @@
       ai_available           → active. %>
 <% can_write = local_assigns.fetch(:can_write, true) %>
 <% lane_state = local_assigns.fetch(:lane_state, {}).symbolize_keys %>
-<% refreshable = local_assigns.fetch(:refreshable, true) %>
 <% org = meeting.organisation %>
+<%# Where "refresh" reloads: the meetings lane by default; the panel beside a ticket
+    passes its own address and frame (meetings/_meeting_reading). %>
+<% refresh = local_assigns[:refresh] ||
+             { url: organisation_project_meeting_path(org, meeting.project, meeting, frame: 'content', **lane_state),
+               frame: 'meeting_display_frame' } %>
 <% ai_enabled = org&.ai_enabled? %>
 <%# R2: asks the FEATURE this section offers — :meeting_summary, whose seam is
     Meetings::SummaryService. Same key as MeetingsController#create_summary, so
@@ -72,14 +76,12 @@
           <%= t('views.organisations.meetings.show.summary_in_progress') %>
           <%# Fallback for when the live broadcast is not delivered: reload the
               detail frame in request context (correct permissions + latest state).
-              Not in the panel beside a ticket (refreshable: false): that page has no
-              meeting_display_frame to reload. %>
-          <% if refreshable %>
-            <%= link_to t('views.organisations.meetings.show.summary_refresh'),
-                  organisation_project_meeting_path(org, meeting.project, meeting, frame: 'content', **lane_state),
-                  data: { turbo_frame: 'meeting_display_frame' },
-                  class: 'not-italic underline hover:text-ink' %>
-          <% end %>
+              The panel beside a ticket subscribes to no broadcast, so this is its
+              only way to the finished summary. %>
+          <%= link_to t('views.organisations.meetings.show.summary_refresh'),
+                refresh[:url],
+                data: { turbo_frame: refresh[:frame] },
+                class: 'not-italic underline hover:text-ink' %>
         </p>
       <% elsif summary.present? %>
         <%# The LLM answers in Markdown ("**Kopf:**", "- Punkt"), so this goes through the

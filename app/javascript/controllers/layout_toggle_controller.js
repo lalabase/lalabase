@@ -100,7 +100,7 @@ export default class extends Controller {
     this.panelFromFrame()
 
     // A grid without a panel column can never show one, whatever the shared
-    // storage key says (it may carry panel:true from Knowledge). The clamp lives
+    // storage key says (it may carry panel:true from an older visit). The clamp lives
     // in updateLayout(), the ONE place that flips hide-panel, so every reader of
     // the stored state (connect, handleFrameLoad, togglePanel) is covered, and the
     // stored value itself is left alone: a tickets visit must not close the lane
@@ -410,9 +410,10 @@ export default class extends Controller {
     this.updateLayout()
   }
 
-  // True when the grid renders a third lane. The current ticket, knowledge and
-  // meetings grids render none; NeoTwoColumnGridComponent only emits the aside
-  // for a filled slot.
+  // True when the grid renders a third lane. Only the ticket page's grids (table
+  // and board) render one, for the meeting beside the ticket; knowledge and
+  // meetings render none. NeoTwoColumnGridComponent emits the aside only for a
+  // filled slot.
   hasPanelColumn() {
     const layout = this.hasLayoutTarget ? this.layoutTarget : document.querySelector('.layout')
     return Boolean(layout && layout.querySelector('.column.panel'))
@@ -447,8 +448,14 @@ export default class extends Controller {
     if (!this.layoutState.panel) this.togglePanel()
   }
 
+  // Closed or not, the frame is emptied: an answer that arrived for a ticket the
+  // lane has already left must not wait in a hidden lane.
   closePanel() {
-    if (this.layoutState.panel) this.togglePanel()
+    if (this.layoutState.panel) {
+      this.togglePanel()
+    } else {
+      this.emptyPanelFrame()
+    }
   }
 
   // A panel whose frame holds its state is open exactly while the frame holds
@@ -462,13 +469,19 @@ export default class extends Controller {
 
   // Emptied, not only hidden: the next open is a fresh request, and a closed
   // panel holds no meeting the assistant could still find on the page (S3).
+  // REPLACED by a new empty frame of the same id, not cleared: removing src does
+  // not cancel a request that is still running, and its answer would fill the
+  // frame again and reopen the panel the user has just closed. The answer now
+  // lands in the old element, which is no longer in the page. Links find the
+  // frame by its id when they are clicked, so they reach the new one.
   emptyPanelFrame() {
     if (!this.panelFrameIdValue) return
 
     const frame = document.getElementById(this.panelFrameIdValue)
     if (!frame) return
-    frame.removeAttribute("src")
-    frame.replaceChildren()
+    const empty = document.createElement("turbo-frame")
+    empty.id = frame.id
+    frame.replaceWith(empty)
   }
 
   // The lane's object is gone: close as the ✕ does, and take its names out of

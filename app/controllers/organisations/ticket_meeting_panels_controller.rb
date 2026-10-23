@@ -40,7 +40,8 @@ module Organisations
       requested = params[:meeting_id]
       return @meetings.first if requested.blank?
 
-      @meetings.find { |meeting| meeting.id == requested.to_s }
+      # Postgres accepts a UUID in either case and answers in lower case.
+      @meetings.find { |meeting| meeting.id == requested.to_s.downcase }
     end
 
     def panel_request?

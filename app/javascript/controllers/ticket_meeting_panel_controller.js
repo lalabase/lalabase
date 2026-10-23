@@ -7,7 +7,9 @@ import { escapeOwned } from "escape_owner"
 // when to open and when to close, as events on its mount:
 //   * connect opens it: the frame has just been filled. Not turbo:frame-load: on the
 //     ticket page that event does not reliably reach the document (ticket_selection,
-//     controllers/CLAUDE.md), and a connect happens for every way content arrives;
+//     controllers/CLAUDE.md), and a connect happens for every way content arrives.
+//     Unless the lane has moved on to another ticket while the answer was on its way:
+//     then it closes at once;
 //   * Escape closes it, before the ticket lane behind it (lib/escape_owner.js);
 //   * the ticket lane showing another ticket, or none, closes it (decision F3): the
 //     meeting belongs to the ticket it was opened from. The lane has eight writers and
@@ -16,7 +18,8 @@ export default class extends Controller {
   static values = { ticketId: String }
 
   connect() {
-    this.dispatch("open")
+    this.grid = this.element.closest(".layout")
+    this.dispatch(this.laneShowsTicket() ? "open" : "close")
 
     this.boundNoteEscape = this.noteEscape.bind(this)
     window.addEventListener("keydown", this.boundNoteEscape, true)
@@ -69,12 +72,40 @@ export default class extends Controller {
     return escapeOwned(others, document)
   }
 
+  // A linked ticket of the same project opens in the lane the way its row does, by
+  // clicking that row: list_row writes the address, loads the lane and marks the row,
+  // and nothing else ends up marked. Off the current page of the list, the ticket
+  // page itself (the link's address). A modified click is the browser's (new tab).
+  openTicket(event) {
+    if (event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+
+    const id = event.currentTarget.dataset.ticketId
+    const row = this.grid?.querySelector(`.column.list [data-controller~="list-row"][data-list-row-id-value="${CSS.escape(id)}"]`)
+    event.preventDefault()
+    if (row) {
+      row.click()
+    } else {
+      window.Turbo.visit(event.currentTarget.href)
+    }
+  }
+
+  get lane() {
+    return document.getElementById("ticket_display_frame")
+  }
+
+  laneShowsTicket() {
+    const lane = this.lane
+    if (!lane || !this.ticketIdValue) return true
+
+    return Boolean(lane.querySelector(`#ticket-content-${CSS.escape(this.ticketIdValue)}`))
+  }
+
   observeTicketLane() {
-    const lane = document.getElementById("ticket_display_frame")
+    const lane = this.lane
     if (!lane || !this.ticketIdValue) return
 
     this.laneObserver = new MutationObserver(() => {
-      if (!lane.querySelector(`#ticket-content-${CSS.escape(this.ticketIdValue)}`)) this.close()
+      if (!this.laneShowsTicket()) this.close()
     })
     this.laneObserver.observe(lane, { childList: true })
   }

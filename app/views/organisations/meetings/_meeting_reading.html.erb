@@ -1,11 +1,12 @@
-<%# locals: (meeting:, participants:, can_write: false, lane_state: {}, current_frame_id: nil, panel: false) %>
+<%# locals: (meeting:, participants:, can_write: false, lane_state: {}, current_frame_id: nil, panel: false, summary_refresh: nil) %>
 <%# What a meeting says: the AI summary, the notes and the transcript. The meeting's page
     and the read-only panel beside a ticket (panel: true) render this one block, so the two
-    cannot drift. In the panel nothing is writable (can_write is false there), the summary
-    offers no refresh into a frame the ticket page does not have, and the transcript is
-    always collapsed: the panel is a look beside the ticket, not the reading place. %>
+    cannot drift. In the panel nothing is writable (can_write is false there), the
+    summary's refresh reloads the panel (summary_refresh: url and frame; the meetings lane
+    it reloads by default is not on the ticket page), and the transcript is always
+    collapsed: the panel is a look beside the ticket, not the reading place. %>
 <div class="width-text">
-  <%= render 'organisations/meetings/summary_section', meeting: meeting, can_write: can_write, lane_state: lane_state, refreshable: !panel %>
+  <%= render 'organisations/meetings/summary_section', meeting: meeting, can_write: can_write, lane_state: lane_state, refresh: summary_refresh %>
 
   <% if meeting.notes.blank? && meeting.transcript.blank? %>
     <div class="text-sm text-cream-600 italic py-2">

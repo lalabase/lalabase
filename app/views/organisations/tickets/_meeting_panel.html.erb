@@ -40,7 +40,10 @@
 
   <div class="border-b border-cream-300 mt-4 mb-5"></div>
 
-  <%= render 'organisations/meetings/meeting_reading', meeting: meeting, participants: participants, panel: true %>
+  <%= render 'organisations/meetings/meeting_reading',
+             meeting: meeting, participants: participants, panel: true,
+             summary_refresh: { url: organisation_project_ticket_meeting_panel_path(current_organisation, ticket.project, ticket, meeting_id: meeting.id),
+                                frame: Organisations::TicketMeetingPanelsController::FRAME_ID } %>
 
   <% if linked_tickets.any? %>
     <section class="mt-8">
@@ -55,23 +58,18 @@
               <span class="min-w-0 flex-1 truncate text-cream-900"><%= other.title %></span>
               <span class="shrink-0 text-xs italic text-cream-500"><%= t("#{mp}.this_ticket") %></span>
             <% elsif other.project_id == ticket.project_id %>
-              <%# Opens in the lane the way a row does (list_row: the page address, the lane's
-                  frame, the selection mark); the href is the page address for a new tab.
-                  The lane then shows another ticket, and this panel closes (F3). %>
-              <a href="<%= organisation_project_tickets_path(current_organisation, other.project, ticket_id: other.id) %>"
-                 class="min-w-0 flex-1 truncate text-cream-900 hover:underline"
-                 data-controller="list-row"
-                 data-list-row-url-value="<%= organisation_project_ticket_path(current_organisation, other.project, other) %>"
-                 data-list-row-id-value="<%= other.id %>"
-                 data-list-row-param-value="ticket_id"
-                 data-list-row-frame-value="ticket_display_frame"
-                 data-action="click->list-row#click"><%= other.title %></a>
-            <% else %>
-              <%# Another project, another page: no lane of this one can show it. %>
+              <%# Opens in the lane by clicking its row (ticket_meeting_panel#openTicket), so
+                  the row is what gets marked; the href is the ticket page for a new tab and
+                  for a ticket off the list's current page. The lane then shows another
+                  ticket, and this panel closes (F3). %>
               <%= link_to other.title,
                           organisation_project_tickets_path(current_organisation, other.project, ticket_id: other.id),
                           class: 'min-w-0 flex-1 truncate text-cream-900 hover:underline',
-                          data: { turbo_frame: '_top' } %>
+                          data: { ticket_id: other.id, action: 'ticket-meeting-panel#openTicket' } %>
+            <% else %>
+              <%# Another project, another page: no lane of this one can show it. The
+                  relations' link already decides that (TicketRelationsHelper). %>
+              <%= ticket_relation_link(other, from: ticket, class: 'min-w-0 flex-1 truncate text-cream-900 hover:underline') do %><%= other.title %><% end %>
               <span class="shrink-0 truncate text-xs text-cream-500"><%= other.project.name %></span>
             <% end %>
           </li>

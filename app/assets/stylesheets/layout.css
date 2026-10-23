@@ -14,6 +14,8 @@
  * History: was called labor.css until 06/2026 (inventory: doc/frontend_inventur_phase1_css.md). */
 :root {
     --panel-raw:  300px; --panel-width:  var(--panel-raw);
+    /* The channel between two tracks of a .layout grid. */
+    --lane-gap: 24px;
 
     /* Page widths, named once (section "Page widths" below). A view names the
        class, never a number: spec/architecture/page_width_guard_spec.rb. */
@@ -102,7 +104,7 @@
   .layout {
     display: grid;
     grid-template-rows: minmax(0, 1fr);
-    column-gap: 24px;
+    column-gap: var(--lane-gap);
     transition: --panel-width 0.4s ease;
   }
 
@@ -1506,6 +1508,13 @@ main:has(.layout) > div {
   body.assistant-panel-open .layout.two-column:not(.hide-content) .lane-split,
   .layout.two-column:not(.hide-content):not(.hide-panel) .lane-split {
     display: none;
+  }
+  /* Three tracks with the list's at 0px still have two channels, and the first
+     one stands before the ticket: 24px of page ground on top of the page's own
+     inset (the two-track variants above set column-gap: 0 for the same reason).
+     The ticket takes that channel back; the one between ticket and meeting stays. */
+  .layout.two-column:not(.hide-content):not(.hide-panel) > .column.content {
+    margin-left: calc(-1 * var(--lane-gap));
   }
 }
 

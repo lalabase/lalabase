@@ -113,6 +113,52 @@ RSpec.describe 'Meeting beside the ticket', type: :system do
     expect(page).to have_current_path(lane_path(sibling))
   end
 
+  it 'starts the ticket at the edge of the grid while the list has yielded' do
+    visit lane_path
+    open_panel
+    sleep 0.5 # the grid's transition
+
+    grid_left = page.evaluate_script("document.querySelector('.layout').getBoundingClientRect().left")
+    ticket_left = page.evaluate_script("document.querySelector('.layout .column.content').getBoundingClientRect().left")
+    expect(ticket_left).to be_within(1).of(grid_left)
+  end
+
+  it 'marks the row of a ticket opened from the panel, not the link' do
+    visit lane_path
+    open_panel
+
+    within('aside.column.panel') { click_link 'Sibling from the meeting' }
+
+    expect(page).to have_css("#ticket-content-#{sibling.id}")
+    expect(page).to have_css(%([data-list-row-id-value="#{sibling.id}"].selected-row), visible: :all)
+    expect(page).to have_no_css(%([data-list-row-id-value="#{ticket.id}"].selected-row), visible: :all)
+  end
+
+  it 'does not open a meeting that arrives after its ticket has left the lane' do
+    visit lane_path
+    find(%([data-list-row-id-value="#{sibling.id}"])).click
+    expect(page).to have_css("#ticket-content-#{sibling.id}")
+
+    url = organisation_project_ticket_meeting_panel_path(organisation, project, ticket, meeting_id: meeting.id)
+    page.execute_script("document.getElementById('ticket_meeting_panel').src = #{url.to_json}")
+    sleep 1
+
+    expect_panel_closed
+    expect(page).to have_css("#ticket-content-#{sibling.id}")
+  end
+
+  it 'stays closed when the answer to a request still running arrives after the close' do
+    visit lane_path
+    open_panel
+
+    url = organisation_project_ticket_meeting_panel_path(organisation, project, ticket, meeting_id: meeting.id)
+    page.execute_script("document.getElementById('ticket_meeting_panel').src = #{"#{url}&again=1".to_json};" \
+                        "document.querySelector('aside.column.panel .panel-close').click()")
+    sleep 1
+
+    expect_panel_closed
+  end
+
   it 'closes the panel when the lane closes' do
     visit lane_path
     open_panel

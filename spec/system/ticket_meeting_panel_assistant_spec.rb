@@ -72,6 +72,18 @@ RSpec.describe 'Assistant beside the ticket and its meeting', type: :system do
     expect(collected_keys).to eq(["Ticket:#{ticket.id}", "Meeting:#{meeting.id}"])
   end
 
+  it 'offers what the narrow stage shows in front, and follows the tab' do
+    page.driver.browser.manage.window.resize_to(1280, 900)
+    open_ticket_with_assistant_and_meeting
+    expect(page).to have_css('.layout[data-meeting-panel-stage="narrow"]')
+
+    # The meeting is in front (F6), the ticket behind it: the meeting is offered.
+    expect(page).to have_css(%([data-assistant-panel-target="offer"][data-context-id="Meeting:#{meeting.id}"]))
+
+    find('.ticket-meeting-panel__stage-tab', text: "Ticket ##{ticket.number}").click
+    expect(page).to have_css(%([data-assistant-panel-target="offer"][data-context-id="Ticket:#{ticket.id}"]))
+  end
+
   it 'offers no meeting once the panel is closed' do
     open_ticket_with_assistant_and_meeting
     expect(page).to have_css(%([data-assistant-panel-target="offer"][data-context-id="Ticket:#{ticket.id}"]))

@@ -16,10 +16,11 @@ const source = readFileSync(new URL("../../../app/javascript/controllers/assista
 
 // A marker as the page renders it (AssistantContextHelper), sitting inside the given
 // ancestors: closest() answers for the selectors the controller asks about.
-function marker(type, id, label, { insideClosed = [] } = {}) {
+function marker(type, id, label, { insideClosed = [], visible = true } = {}) {
   return {
     dataset: { assistantContext: id, assistantContextType: type, assistantContextLabel: label },
-    closest: selector => (insideClosed.includes(selector) ? {} : null)
+    closest: selector => (insideClosed.includes(selector) ? {} : null),
+    checkVisibility: () => visible
   }
 }
 
@@ -44,12 +45,20 @@ test("names every object of the page once, in page order", () => {
   assert.deepEqual(keysOf(controller), ["Ticket:t1", "Meeting:m1"])
 })
 
+// A closed lane keeps its box (it slides at 0px), so only its class says it is shut; a
+// closed third lane is display:none, which the browser answers (checkVisibility).
 test("skips what a closed lane or a closed panel still holds", () => {
-  const closedPanel = marker("Meeting", "m1", "Weekly", { insideClosed: [".layout.hide-panel > .column.panel"] })
+  const closedPanel = marker("Meeting", "m1", "Weekly", { visible: false })
   const closedLane = marker("Ticket", "t1", "#1", { insideClosed: [".layout.hide-content"] })
 
   assert.deepEqual(keysOf(controllerFor([TICKET, closedPanel])), ["Ticket:t1"])
   assert.deepEqual(keysOf(controllerFor([closedLane, MEETING])), ["Meeting:m1"])
+})
+
+test("skips a marker the reader cannot see: the column behind the other tab at the narrow stage", () => {
+  const behindTheTicket = marker("Meeting", "m1", "Weekly", { visible: false })
+
+  assert.deepEqual(keysOf(controllerFor([TICKET, behindTheTicket])), ["Ticket:t1"])
 })
 
 test("skips a marker without id, type or label", () => {
@@ -96,6 +105,22 @@ test("holds the strip back while one of them is on its way, and lets go once it 
   assert.equal(controller.pendingContext, null)
 })
 
-test("a context on its way elsewhere does not hold back this page's offer", () => {
-  assert.equal(offering([TICKET, MEETING], { pending: "Meeting:other" }).shown, "Ticket:t1")
+// Any write on its way holds the strip, not only one of this page's: taking an offer
+// submits the same form, and a second requestSubmit stops the first.
+test("a context on its way elsewhere holds back this page's offer too", () => {
+  assert.equal(offering([TICKET, MEETING], { pending: "Meeting:other" }).shown, null)
+})
+
+test("refusing the ticket by hand brings up the meeting", () => {
+  const { controller } = offering([TICKET, MEETING])
+  const shown = []
+  controller.showOffer = context => shown.push(context.key)
+  controller.hideOffer = () => shown.push(null)
+  controller.offerTarget = { dataset: { contextId: "Ticket:t1" }, contains: () => false }
+  controller.focusComposer = () => {}
+
+  controller.dismissOffer()
+
+  assert.equal(shown.at(-1), "Meeting:m1")
+  assert.equal(controller.dismissedContexts.has("Ticket:t1"), true)
 })

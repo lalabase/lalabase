@@ -148,7 +148,7 @@ RSpec.describe AssistantContextHelper do
   # The knowledge objects (doc/assistent_wissen_kontext_plan.md, step 1). The
   # helper itself is type-blind; what these pin is that the registry now names
   # the two types AND that each has a label -- because a marker WITHOUT a label
-  # is one the panel skips (pageContext() wants id, type and label together),
+  # is one the panel skips (pageContexts() wants id, type and label together),
   # so an empty label is not a cosmetic gap, it is a missing offer.
   describe 'the knowledge objects' do
     let(:note) do
@@ -185,7 +185,7 @@ RSpec.describe AssistantContextHelper do
     end
 
     # Document#title delegates to the current version and is nil without one.
-    # nil would reach the attribute as "", and "" is what makes pageContext()
+    # nil would reach the attribute as "", and "" is what makes pageContexts()
     # walk past the marker -- the page would be on a document and offer nothing,
     # silently. So the label falls back to a translated word, in both languages.
     # A page's own word after the title, inside the chip's bound: the preview of

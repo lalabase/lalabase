@@ -89,6 +89,8 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
       expect(body).not_to include(edit_organisation_project_meeting_path(organisation, project, meeting))
       expect(body).not_to include('data-turbo-method')
       expect(body).not_to include('assistant-trigger')
+      # Without the assistant (this organisation has none) the panel names nothing to it.
+      expect(body).not_to include('data-assistant-context')
       expect(body).not_to include(ActionView::RecordIdentifier.dom_id(meeting, :ticket_links))
       expect(body).not_to include('analyses')
       expect(body).not_to include('ticket_suggestions')

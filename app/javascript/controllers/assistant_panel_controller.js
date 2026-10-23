@@ -686,26 +686,23 @@ export default class extends Controller {
     if (!this.canOpen()) return this.hideOffer()
     const standing = this.standingReferenceKeys()
     const standingKeys = this.standingKeySet()
-    // 4. (for the slot) a context that has arrived in the collection is no longer
-    //    on its way.
+    // 3. a write on its WAY into the collection holds the strip back, whichever
+    //    object it carries. Between the click and the stream that brings the chip
+    //    back, the thread has no visible reference yet, and any unrelated frame
+    //    load in that window re-raises the offer for something that is already
+    //    being set (a ticket page brings its own: the lazy timeline frame reaches
+    //    the document listener; found as a flaky assertion, kept as a rule). And
+    //    offering anything meanwhile invites a second requestSubmit on the same
+    //    form, which stops the first (adoptContext). Its settle asks again. A key
+    //    that has arrived in the collection is no longer on its way.
     if (this.pendingContext && standingKeys.has(this.pendingContext)) this.pendingContext = null
-    // 4b. A context of this page on its WAY into the collection holds the strip
-    //     back for ALL of them. Between the click and the stream that brings the
-    //     chip back, the thread has no visible reference yet, and any unrelated
-    //     frame load in that window re-raises the offer for something that is
-    //     already being set (a ticket page brings its own: the lazy timeline
-    //     frame reaches the document listener; found as a flaky assertion, kept
-    //     as a rule). And offering the NEXT one meanwhile would invite a second
-    //     requestSubmit on the same form, which stops the first (adoptContext).
-    //     Its settle asks again and the next one comes up then.
-    if (contexts.some(candidate => candidate.key === this.pendingContext)) return this.hideOffer()
-    // 3. refused for this object -- by hand (dismissOffer, permanent for the tab)
-    //    or by the server (any 422 from the reference route: the limit, or an
-    //    object that no longer resolves). Cleared as soon as the standing set
-    //    shrinks, so a refusal outlives only its own reason.
-    // 4. the reference collection already CONTAINS this very object -- nothing
-    //    to take. Membership, not equality: with more than one entry (S2) the
-    //    question is whether it is in there.
+    if (this.pendingContext) return this.hideOffer()
+    // 4. the first of the page's objects that is still worth offering: not
+    //    refused -- by hand (dismissOffer, permanent for the tab) or by the
+    //    server (any 422 from the reference route: the limit, or an object that
+    //    no longer resolves; cleared as soon as the standing set shrinks, so a
+    //    refusal outlives only its own reason) -- and not already IN the
+    //    collection (membership, not equality: it holds up to ten).
     const context = contexts.find(candidate =>
       !this.dismissedContexts.has(candidate.key) &&
       !this.refusedContexts.has(candidate.key) &&
@@ -715,7 +712,7 @@ export default class extends Controller {
     // History/settings have neither a thread nor a draft, and offer nothing.
     if (!this.openThreadId() && !this.hasDraftReferencesTarget) return this.hideOffer()
     if (this.hasDraftReferencesTarget &&
-        this.standingKeySet().size >= Number(this.draftReferencesTarget.dataset.referenceLimit)) return this.hideOffer()
+        standingKeys.size >= Number(this.draftReferencesTarget.dataset.referenceLimit)) return this.hideOffer()
 
     this.showOffer(context, standing)
   }
@@ -827,6 +824,9 @@ export default class extends Controller {
     // this object", and it outlives a shrinking collection. The server's refusal
     // says "not now" and is cleared as soon as room appears.
     this.dismissedContexts.add(referenceKey)
+    // The page may name another object (the meeting beside the ticket): it comes
+    // up now, not on whatever next touches the page.
+    this.offerPageContext()
   }
 
   hideOffer() {
@@ -856,16 +856,19 @@ export default class extends Controller {
   // long as nothing else replaced the frame. The class is the lane's own state
   // (.layout.hide-content, the one flag updateLayout writes), and
   // observePageContent watches it so the offer follows the ✕ the same way it
-  // follows a frame load. The same for a CLOSED third lane (.layout.hide-panel,
-  // the meeting beside a ticket): closing empties that lane too, but the class
-  // flips first, and the class is what the reader sees.
+  // follows a frame load. A closed lane keeps its box (it slides, 0px wide), so
+  // the class is the only thing that says so. Everything else the reader cannot
+  // see is asked of the browser (checkVisibility): a closed third lane
+  // (display:none), and at the narrow stage the column behind the other tab
+  // (visibility:hidden, doc/ticket_meeting_panel_plan.md S2). observePageContent
+  // watches the grid's attributes that decide this.
   pageContexts() {
     const contexts = []
     const keys = new Set()
     for (const marker of document.querySelectorAll("[data-assistant-context]")) {
       if (this.element.contains(marker)) continue
       if (marker.closest(".layout.hide-content")) continue
-      if (marker.closest(".layout.hide-panel > .column.panel")) continue
+      if (marker.checkVisibility?.({ visibilityProperty: true }) === false) continue
 
       const id = marker.dataset.assistantContext
       const type = marker.dataset.assistantContextType
@@ -990,8 +993,15 @@ export default class extends Controller {
     // never sees the ✕. Watched on that one element and that one attribute
     // rather than every attribute under <main>: the same rAF-coalesced handler,
     // one more target. A page without a grid has nothing to watch here.
+    // The tab in front at the narrow stage is an attribute of the grid as well
+    // (ticket_meeting_panel_controller), and so is the stage that makes it count.
     const layout = main.querySelector(".layout")
-    if (layout) this.pageObserver.observe(layout, { attributes: true, attributeFilter: ["class"] })
+    if (layout) {
+      this.pageObserver.observe(layout, {
+        attributes: true,
+        attributeFilter: ["class", "data-meeting-panel-stage", "data-meeting-panel-tab"]
+      })
+    }
     this.observedMain = main
   }
 

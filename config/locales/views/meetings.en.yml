@@ -113,6 +113,9 @@ en:
           has_ticket_links:
             one: The meeting is linked to a ticket and therefore cannot be moved. Remove the link first.
             other: The meeting is linked to %{count} tickets and therefore cannot be moved. Remove the links first.
+          published_analyses_bound:
+            one: A published analysis draws on the old project. Make it private first.
+            other: "%{count} published analyses draw on the old project. Make them private first."
           time_sessions:
             zero: No time is booked on this meeting.
             one: The booked time moves with it (1 entry, %{billed} of it billed).

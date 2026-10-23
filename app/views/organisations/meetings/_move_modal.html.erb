@@ -5,7 +5,8 @@
     a refused move replaces exactly it with the message. Shape and lifecycle after
     README_MODAL_PATTERN.md.
 
-    A meeting with linked tickets cannot move: the dialog says so and offers no form.
+    A meeting with linked tickets, or with a published analysis that draws on this
+    project, cannot move: the dialog says why and offers no form.
     The form goes to _top, so a successful move is a visit to the meeting in its new
     place; a refusal answers with a stream into this opening. %>
 <% mm = 'views.organisations.meetings.move' %>
@@ -13,6 +14,7 @@
 <% field_class = 'w-full rounded border border-cream-300 bg-surface-raised px-3 py-2 text-sm focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink' %>
 <% cancel_class = 'h-9 rounded border border-cream-300 bg-cream-100 px-4 text-sm font-medium text-cream-800 hover:bg-cream-200' %>
 <% linked = impact[:ticket_links_count] %>
+<% bound = impact[:bound_analyses_count] %>
 <div id="<%= meeting_move_modal_instance_id(meeting, token) %>"
      data-controller="meeting-move-modal"
      data-meeting-move-modal-return-id-value="<%= meeting_move_trigger_id(meeting) %>"
@@ -46,8 +48,13 @@
             </div>
           <% end %>
 
-          <% if linked.positive? %>
-            <p class="text-sm text-cream-800"><%= t("#{mm}.has_ticket_links", count: linked) %></p>
+          <% if linked.positive? || bound.positive? %>
+            <% if linked.positive? %>
+              <p class="text-sm text-cream-800"><%= t("#{mm}.has_ticket_links", count: linked) %></p>
+            <% end %>
+            <% if bound.positive? %>
+              <p class="text-sm text-cream-800"><%= t("#{mm}.published_analyses_bound", count: bound) %></p>
+            <% end %>
             <div class="flex justify-end border-t border-cream-200 pt-3">
               <button type="button" class="<%= cancel_class %>" data-meeting-move-modal-target="first"
                       data-action="click->meeting-move-modal#close">

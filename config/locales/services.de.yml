@@ -51,6 +51,7 @@ de:
         same_project: "Das Meeting liegt schon in diesem Projekt."
         forbidden_target: "In diesem Projekt darfst du keine Meetings anlegen."
         has_ticket_links: "Das Meeting ist mit Tickets verknüpft. Entferne die Verknüpfungen, dann kannst du es verschieben."
+        published_analyses_bound: "Eine veröffentlichte Analyse stützt sich auf das alte Projekt. Mach sie wieder privat, dann kannst du das Meeting verschieben."
         moved_meanwhile: "Das Meeting wurde gerade schon verschoben. Lade die Seite neu."
         suggestion_run_active: "Für das Meeting werden gerade Ticket-Vorschläge erzeugt. Versuche es gleich noch einmal."
       move_ticket:

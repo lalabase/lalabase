@@ -53,6 +53,25 @@ RSpec.describe Actors::SaveMeeting do
       expect(result.success).to be(false)
       expect(ActsAsTenant.with_tenant(other_org) { foreign_meeting.reload.title }).not_to eq('Kickoff')
     end
+
+    # The edit was authorized against this project. A move (Actors::MoveMeeting)
+    # that committed meanwhile has taken the meeting into another one, where the
+    # editor may have no rights: the edit finds no meeting here.
+    it 'does not edit a meeting that has moved to another project' do
+      meeting = create(:meeting, project: project, organisation: organisation, creator: user, title: 'Alt')
+      elsewhere = create(:project, organisation: organisation)
+      allow(Meeting).to receive(:where).and_wrap_original do |original, *args, **kwargs|
+        relation = original.call(*args, **kwargs)
+        Meeting.unscoped.where(id: meeting.id).update_all(project_id: elsewhere.id)
+        relation
+      end
+
+      result = described_class.call(project: project, params: valid_params, id: meeting.id, current_user: user)
+
+      expect(result.success).to be(false)
+      expect(result.resource).to be_nil
+      expect(meeting.reload.title).to eq('Alt')
+    end
   end
 
   describe 'participant sync' do

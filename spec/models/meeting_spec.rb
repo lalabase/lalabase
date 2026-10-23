@@ -378,12 +378,24 @@ RSpec.describe Meeting, type: :model do
   # live updates), and an unrelated edit must NOT broadcast (the guard).
   describe 'summary broadcast (after_update_commit)' do
     let(:meeting) { create(:meeting, organisation: organisation, project: project, creator: creator, notes: 'x') }
-    let(:stream) { "#{ActionView::RecordIdentifier.dom_id(meeting)}_summary" }
+    let(:stream) { "#{ActionView::RecordIdentifier.dom_id(meeting)}_#{project.id}_summary" }
     let(:target) { "#{ActionView::RecordIdentifier.dom_id(meeting)}_summary_section" }
 
     it 'broadcasts the summary section when a summary column changes' do
       expect(meeting).to receive(:broadcast_replace_to)
         .with(stream, hash_including(target: target, partial: 'organisations/meetings/summary_section'))
+      meeting.update!(summary_creation_flag: true)
+    end
+
+    # A reader of the old project may still have the meeting open after a move
+    # (Actors::MoveMeeting). The stream names the project, so the summaries
+    # written after the move reach only pages rendered in the new one.
+    it 'sends to the stream of the project the meeting is in now' do
+      elsewhere = create(:project, organisation: organisation)
+      meeting.update_columns(project_id: elsewhere.id)
+      moved_stream = "#{ActionView::RecordIdentifier.dom_id(meeting)}_#{elsewhere.id}_summary"
+
+      expect(meeting).to receive(:broadcast_replace_to).with(moved_stream, anything)
       meeting.update!(summary_creation_flag: true)
     end
 

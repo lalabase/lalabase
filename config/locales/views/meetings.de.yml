@@ -114,6 +114,9 @@ de:
           has_ticket_links:
             one: Das Meeting ist mit einem Ticket verknüpft und kann deshalb nicht verschoben werden. Entferne zuerst die Verknüpfung.
             other: Das Meeting ist mit %{count} Tickets verknüpft und kann deshalb nicht verschoben werden. Entferne zuerst die Verknüpfungen.
+          published_analyses_bound:
+            one: Eine veröffentlichte Analyse stützt sich auf das alte Projekt. Mach sie zuerst wieder privat.
+            other: "%{count} veröffentlichte Analysen stützen sich auf das alte Projekt. Mach sie zuerst wieder privat."
           time_sessions:
             zero: Auf dieses Meeting ist keine Zeit gebucht.
             one: Die gebuchte Zeit zieht mit um (1 Eintrag, davon %{billed} abgerechnet).

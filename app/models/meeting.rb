@@ -217,6 +217,13 @@ class Meeting < ApplicationRecord
   # to the notes, and the LLM never sees the id:/parent: noise. Controller guard,
   # view gate and Meetings::SummaryService all derive from THIS method so the rule
   # cannot drift apart (review #235).
+  # The live summary stream names the project: after a move (Actors::MoveMeeting)
+  # a page still open in the old project hears nothing of what is written in
+  # the new one. The view subscribes through the same method.
+  def summary_stream_name
+    "#{dom_id(self)}_#{project_id}_summary"
+  end
+
   def summary_source
     self.class.strip_frontmatter(transcript).presence || self.class.strip_frontmatter(notes).presence
   end
@@ -265,7 +272,7 @@ class Meeting < ApplicationRecord
                   saved_change_to_summary_creation_error?
 
     broadcast_replace_to(
-      "#{dom_id(self)}_summary",
+      summary_stream_name,
       target: "#{dom_id(self)}_summary_section",
       partial: 'organisations/meetings/summary_section',
       locals: { meeting: self }

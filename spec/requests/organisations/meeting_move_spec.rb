@@ -89,6 +89,18 @@ RSpec.describe 'Organisations::Meetings move', :ci_guard, type: :request do
       expect(response.body).not_to include('name="target_project_id"')
     end
 
+    it 'says up front that a published analysis drawing on this project keeps the meeting here' do
+      ActsAsTenant.with_tenant(organisation) do
+        create(:meeting_analysis, meeting: meeting, organisation: organisation, creator: mover, is_private: false,
+                                  source_context: { 'provenance' => [{ 'type' => 'project', 'id' => source.id }] })
+      end
+      sign_in mover
+      frame_get preflight_path
+
+      expect(response.body).to include(I18n.t('views.organisations.meetings.move.published_analyses_bound', count: 1))
+      expect(response.body).not_to include('name="target_project_id"')
+    end
+
     it 'refuses a member without move_meetings' do
       user = member(move: false, access: { source => 'read_write', target => 'read_write' })
       sign_in user

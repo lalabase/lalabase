@@ -5,7 +5,7 @@
 <% visible_analyses = visible_meeting_analyses(meeting) %>
 <% can_see_time = policy(meeting.project).area_access?(:time_sessions, :read) %>
 
-<%= turbo_stream_from "#{dom_id(meeting)}_summary" %>
+<%= turbo_stream_from meeting.summary_stream_name %>
 
 <div id="meeting-header" class="meeting-content min-w-0" <%= assistant_context_attributes(meeting) %>>
   <%= render 'organisations/meetings/lane_head', meeting: meeting, current_frame_id: current_frame_id %>

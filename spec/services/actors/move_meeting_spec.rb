@@ -94,6 +94,23 @@ RSpec.describe Actors::MoveMeeting, type: :service do
       expect(scoped.reload).not_to be_sources_publishable
     end
 
+    it 'carries the displayed citations of this meeting and its analyses along' do
+      analysis = create(:meeting_analysis, meeting: meeting, organisation: organisation, creator: admin,
+                                           source_context: { 'citations' => [
+                                             { 'type' => 'meeting', 'id' => meeting.id, 'project_id' => source_project.id },
+                                             { 'type' => 'ticket', 'id' => SecureRandom.uuid, 'project_id' => source_project.id }
+                                           ], 'provenance' => [] })
+      analysis.source_context['citations'] << { 'type' => 'meeting_analysis', 'id' => analysis.id,
+                                                'project_id' => source_project.id }
+      analysis.save!
+
+      move
+
+      projects = analysis.reload.source_context['citations'].to_h { |citation| [citation['type'], citation['project_id']] }
+      expect(projects).to eq('meeting' => target_project.id, 'meeting_analysis' => target_project.id,
+                             'ticket' => source_project.id)
+    end
+
     describe '#preflight' do
       it 'names the booked time, the billed part and the open suggestions' do
         create(:time_session, project: source_project, organisation: organisation, meeting: meeting)
@@ -104,7 +121,7 @@ RSpec.describe Actors::MoveMeeting, type: :service do
         impact = described_class.new(meeting: meeting, target_project: target_project, current_user: admin).preflight
 
         expect(impact).to include(time_sessions_count: 2, billed_time_sessions_count: 1,
-                                  open_suggestions_count: 1, ticket_links_count: 0)
+                                  open_suggestions_count: 1, ticket_links_count: 0, bound_analyses_count: 0)
       end
     end
 
@@ -166,6 +183,26 @@ RSpec.describe Actors::MoveMeeting, type: :service do
         # The stand-in for the other move ran inside this transaction and rolled
         # back with the refusal; what counts is that this move wrote nothing.
         expect(meeting.reload.project_id).not_to eq(target_project.id)
+      end
+
+      # A chat narrowed to the source project is a source of its own: the
+      # analysis may not be public in the target, so the move does not decide
+      # that silently. Unpublish it first.
+      it 'refuses while a published analysis cites the source project' do
+        create(:meeting_analysis, meeting: meeting, organisation: organisation, creator: admin, is_private: false,
+                                  source_context: { 'provenance' => [
+                                    { 'type' => 'meeting', 'id' => meeting.id, 'project_id' => source_project.id },
+                                    { 'type' => 'project', 'id' => source_project.id }
+                                  ] })
+
+        expect_refusal(move, :published_analyses_bound)
+      end
+
+      it 'moves when such an analysis is private' do
+        create(:meeting_analysis, meeting: meeting, organisation: organisation, creator: admin,
+                                  source_context: { 'provenance' => [{ 'type' => 'project', 'id' => source_project.id }] })
+
+        expect(move).to be_success
       end
 
       it 'refuses the project the meeting is already in' do

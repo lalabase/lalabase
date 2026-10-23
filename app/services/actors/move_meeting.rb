@@ -33,7 +33,8 @@ module Actors
         time_sessions_count: sessions.count,
         billed_time_sessions_count: sessions.where(billed: true).count,
         open_suggestions_count: @meeting.meeting_ticket_suggestions.open.count,
-        ticket_links_count: ticket_links.count
+        ticket_links_count: ticket_links.count,
+        bound_analyses_count: bound_analyses.size
       }
     end
 
@@ -78,6 +79,7 @@ module Actors
     def guard_movable!
       refuse!(:moved_meanwhile) if @meeting.project_id != @source_project.id
       refuse!(:has_ticket_links) if ticket_links.exists?
+      refuse!(:published_analyses_bound) if bound_analyses.any?
       refuse!(:suggestion_run_active) if suggestion_run_active?
     end
 
@@ -93,22 +95,55 @@ module Actors
     end
 
     # A saved analysis may be published when its sources are this meeting
-    # (Assistant::AnalysisSources.publishable?), and a meeting citation names
-    # the project it was read in. The meeting is the same one after the move,
-    # so its citations follow it; every other source keeps its project and
-    # stays a reason not to publish (a chat narrowed to the source project too).
+    # (Assistant::AnalysisSources.publishable?), and a citation of the meeting
+    # names the project it was read in; the source list links through that
+    # project too (Lalabase::CitationLink). The meeting and its analyses are the
+    # same records after the move, so their citations follow them, in the
+    # provenance and in the displayed list. Every other source keeps its
+    # project and stays a reason not to publish (a chat narrowed to the source
+    # project too, see #bound_analyses).
+    CARRIED_LISTS = %w[provenance citations].freeze
+
     def carry_meeting_citations
+      analysis_ids = @meeting.meeting_analyses.pluck(:id)
       @meeting.meeting_analyses.where.not(source_context: nil).find_each do |analysis|
-        provenance = analysis.source_context['provenance']
-        next unless provenance.is_a?(Array)
-
-        carried = provenance.map do |citation|
-          own = citation.is_a?(Hash) && citation['type'] == 'meeting' && citation['id'] == @meeting.id
-          own ? citation.merge('project_id' => @target_project.id) : citation
+        context = analysis.source_context
+        carried = CARRIED_LISTS.select { |key| context[key].is_a?(Array) }.index_with do |key|
+          context[key].map { |citation| carry(citation, analysis_ids, to: @target_project.id) }
         end
-        next if carried == provenance
+        next if carried.all? { |key, list| list == context[key] }
 
-        analysis.update_columns(source_context: analysis.source_context.merge('provenance' => carried))
+        analysis.update_columns(source_context: context.merge(carried))
+      end
+    end
+
+    def carry(citation, analysis_ids, to:)
+      return citation unless citation.is_a?(Hash)
+
+      own = (citation['type'] == 'meeting' && citation['id'] == @meeting.id) ||
+            (citation['type'] == 'meeting_analysis' && analysis_ids.include?(citation['id']))
+      own ? citation.merge('project_id' => to) : citation
+    end
+
+    # Published analyses that could not be published in the target, the
+    # meeting citations already carried along: their other sources (in practice
+    # a chat narrowed to the source project) stay behind. The move does not
+    # decide their visibility silently; they are unpublished first. Asked
+    # through the publication rule itself, with the meeting in a project that
+    # is not the source: the answer is the same for every target, so the dialog
+    # can ask before one is chosen.
+    ELSEWHERE = 'elsewhere'
+
+    def bound_analyses
+      @bound_analyses ||= begin
+        moved = Struct.new(:id, :project_id).new(@meeting.id, ELSEWHERE)
+        analysis_ids = @meeting.meeting_analyses.pluck(:id)
+        @meeting.meeting_analyses.where(is_private: false).where.not(source_context: nil).reject do |analysis|
+          context = analysis.source_context
+          provenance = context['provenance']
+          carried = provenance.is_a?(Array) ? provenance.map { |c| carry(c, analysis_ids, to: ELSEWHERE) } : provenance
+          Assistant::AnalysisSources.publishable?(context: context.merge('provenance' => carried), meeting: moved)
+        end
       end
     end
 

@@ -868,7 +868,7 @@ export default class extends Controller {
     for (const marker of document.querySelectorAll("[data-assistant-context]")) {
       if (this.element.contains(marker)) continue
       if (marker.closest(".layout.hide-content")) continue
-      if (marker.checkVisibility?.({ visibilityProperty: true }) === false) continue
+      if (!this.pageContextVisible(marker)) continue
 
       const id = marker.dataset.assistantContext
       const type = marker.dataset.assistantContextType
@@ -883,6 +883,17 @@ export default class extends Controller {
       contexts.push({ key, label })
     }
     return contexts
+  }
+
+  // Asked with the option's original name: allow_browser :modern admits Chrome 120 and
+  // Firefox 121, which ignore the newer visibilityProperty (and so answer only for
+  // display:none); every later version still takes the old name. Safari before 17.4
+  // has no checkVisibility: a box says display:none, and visibility is inherited.
+  pageContextVisible(marker) {
+    if (typeof marker.checkVisibility === "function") {
+      return marker.checkVisibility({ checkVisibilityCSS: true })
+    }
+    return marker.getClientRects().length > 0 && getComputedStyle(marker).visibility === "visible"
   }
 
   // Which objects the thread points at right now, read off the chip the server

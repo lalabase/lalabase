@@ -201,15 +201,6 @@ class Meeting < ApplicationRecord
     Meetings::ParticipantFilter.call(all, [name])
   }
 
-  # Meetings that link to `record` (a ticket), oldest link first. Says nothing
-  # about who may read them: compose it onto MeetingPolicy::Scope, which judges
-  # every meeting against its OWN project. A ticket moved to another project keeps
-  # its links, so the ticket's project is the wrong question for its meetings.
-  scope :linking_to, lambda { |record|
-    joins(:outgoing_references).merge(Reference.pointing_to(record))
-                               .order(Reference.arel_table[:created_at])
-  }
-
   # Removes a leading YAML frontmatter block (FRONTMATTER_BLOCK) from `text`. Pure
   # function (mirrors MeetingParticipant.normalize_name) so display, the excerpt and
   # summary_source share ONE codepath — the raw value in the DB / edit textarea is

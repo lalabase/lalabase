@@ -3,17 +3,17 @@
     (Gespräche Slice 3): meetings that link TO this ticket. Sits between the
     sub-tasks section and the comment timeline, styled after _subtasks_section.
 
-    GATE (here, per meeting): a meeting shows only to people who may read meetings
-    in the MEETING's project (MeetingPolicy::Scope), and its link names that project.
+    GATE (here, per meeting, Tickets::LinkedMeetings): a meeting shows only to
+    people who may read meetings in the MEETING's project, and its link names that
+    project.
     A ticket moved to another project keeps its meeting links, so the ticket's
     project answers neither question. Somebody who may read none of the meetings
     does not learn that links exist: the section renders nothing without an entry,
     so it never appears empty.
 
     No tombstones on this side: a meeting owns its outgoing link (dependent:
-    :destroy), so a backlink's source meeting always exists. includes(:project)
-    avoids an N+1 across the linking meetings' paths. %>
-<% meetings = policy_scope(Meeting).linking_to(ticket).includes(:project).to_a %>
+    :destroy), so a backlink's source meeting always exists. %>
+<% meetings = Tickets::LinkedMeetings.call(ticket: ticket, user: current_user).to_a %>
 <% if meetings.any? %>
   <section id="meeting-references-<%= ticket.id %>" class="meeting-references-section mb-6">
     <ul class="divide-y divide-cream-200 overflow-hidden rounded-lg bg-cream-50">

@@ -88,8 +88,9 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
       expect(body).not_to include('<form')
       expect(body).not_to include(edit_organisation_project_meeting_path(organisation, project, meeting))
       expect(body).not_to include('data-turbo-method')
-      expect(body).not_to include('data-assistant-context')
       expect(body).not_to include('assistant-trigger')
+      # Without the assistant (this organisation has none) the panel names nothing to it.
+      expect(body).not_to include('data-assistant-context')
       expect(body).not_to include(ActionView::RecordIdentifier.dom_id(meeting, :ticket_links))
       expect(body).not_to include('analyses')
       expect(body).not_to include('ticket_suggestions')
@@ -162,6 +163,32 @@ RSpec.describe 'Ticket meeting panel', :ci_guard, type: :request do
                        .at_css(%(a[href="#{organisation_project_meetings_path(organisation, project, meeting_id: meeting.id)}"]))
       expect(anchor).not_to be_nil
       expect(anchor['data-turbo-frame']).to eq('_top')
+    end
+  end
+
+  # S3: with the assistant available the panel NAMES its meeting, so the assistant can
+  # offer it after the ticket. A name, not a button: still no trigger.
+  describe 'with the assistant available' do
+    let(:organisation) do
+      create(:organisation, assistant_enabled: true, ai_enabled: true,
+                            ai_provider: 'openai', ai_access_token: 'sk-org-own-1234567890abcdef')
+    end
+    let!(:meeting) { meeting_in(project, title: 'Named-Meeting-QX').tap { |m| link(m) } }
+
+    it 'names the meeting to the assistant and offers no trigger' do
+      user = reader
+      ActsAsTenant.with_tenant(organisation) do
+        role = user.memberships.find_by(organisation: organisation).role
+        create(:permission, role: role, category: 'assistant', action: 'use_assistant', allowed: true)
+      end
+      sign_in user
+      panel
+
+      root = Nokogiri::HTML(response.body).at_css('[data-controller~="ticket-meeting-panel"]')
+      expect(root['data-assistant-context']).to eq(meeting.id)
+      expect(root['data-assistant-context-type']).to eq('Meeting')
+      expect(root['data-assistant-context-label']).to include('Named-Meeting-QX')
+      expect(response.body).not_to include('assistant-trigger')
     end
   end
 

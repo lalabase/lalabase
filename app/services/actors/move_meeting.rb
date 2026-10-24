@@ -40,10 +40,12 @@ module Actors
 
     def perform
       guard_target!
-      # Row lock first. Everything that ties the meeting to its project takes the
-      # same lock and looks again (AcceptTicketSuggestion, a manual ticket link,
-      # SaveTimeSession), so none of them lands in the old project after a move.
-      @meeting.lock!
+      # Row lock first (Meeting#lock_in_project!). Every write that ties the
+      # meeting to its project takes the same lock and looks again, so none of
+      # them lands in the old project after a move. A move that committed while
+      # this one waited has taken the meeting out of the project this move was
+      # checked against.
+      refuse!(:moved_meanwhile) unless @meeting.lock_in_project!(@source_project.id)
       guard_movable!
 
       @meeting.update_columns(project_id: @target_project.id, updated_at: Time.current)
@@ -74,10 +76,7 @@ module Actors
       refuse!(:forbidden_target)
     end
 
-    # lock! reloads the row: a move that committed while this one waited has
-    # taken the meeting out of the project this move was checked against.
     def guard_movable!
-      refuse!(:moved_meanwhile) if @meeting.project_id != @source_project.id
       refuse!(:has_ticket_links) if ticket_links.exists?
       refuse!(:published_analyses_bound) if bound_analyses.any?
       refuse!(:suggestion_run_active) if suggestion_run_active?

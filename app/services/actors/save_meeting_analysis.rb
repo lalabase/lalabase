@@ -199,13 +199,11 @@ module Actors
     # the UPDATE below, and this run then writes its search release onto an analysis that
     # has meanwhile become private. `perform` already runs inside BaseActor's transaction,
     # so the lock lives exactly as long as it must.
-    # Actors::MoveMeeting holds the meeting's row lock while it moves it and
-    # checks the published analyses. Under the same lock a meeting that moved
-    # meanwhile is gone from the project this write was authorized against,
-    # so nothing is created, rerun or published there.
+    # Actors::MoveMeeting checks the published analyses under the meeting's
+    # lock. A meeting that moved meanwhile is gone from the project this write
+    # was authorized against, so nothing is created, rerun or published there.
     def guard_meeting_in_project!
-      @meeting.lock!
-      return if @meeting.project_id == @authorized_project_id
+      return if @meeting.lock_in_project!(@authorized_project_id)
 
       raise ActorError, I18n.t('services.meetings.analysis.not_found')
     end

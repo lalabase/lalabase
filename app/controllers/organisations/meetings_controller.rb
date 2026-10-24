@@ -474,13 +474,11 @@ module Organisations
       organisation_project_meetings_path(@current_organisation, target, meeting_id: @meeting.id)
     end
 
-    # The delete was authorized against this project. Actors::MoveMeeting holds
-    # the meeting's row lock while it moves it: under the same lock a meeting
-    # that moved meanwhile is gone from here, as a deleted one would be.
+    # The delete was authorized against this project: a meeting that moved
+    # meanwhile is gone from here, as a deleted one would be.
     def destroy_in_project
       Meeting.transaction do
-        @meeting.lock!
-        raise ActiveRecord::RecordNotFound unless @meeting.project_id == @project.id
+        raise ActiveRecord::RecordNotFound unless @meeting.lock_in_project!(@project.id)
 
         @meeting.destroy
       end

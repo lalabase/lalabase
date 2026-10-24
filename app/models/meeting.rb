@@ -211,12 +211,17 @@ class Meeting < ApplicationRecord
     text.sub(FRONTMATTER_BLOCK, '')
   end
 
-  # The single source rule for the AI summary (plan decision 11): transcript
-  # preferred, notes fallback. Both are frontmatter-stripped BEFORE the presence
-  # check, so a transcript that is nothing but a metadata block still falls through
-  # to the notes, and the LLM never sees the id:/parent: noise. Controller guard,
-  # view gate and Meetings::SummaryService all derive from THIS method so the rule
-  # cannot drift apart (review #235).
+  # THE lock for a write that was authorized against a project: takes the
+  # meeting's row lock and answers whether the meeting is still in that
+  # project. Actors::MoveMeeting holds the same lock while it moves the
+  # meeting, so a write that answers true cannot land after a move, and one
+  # that answers false treats the meeting as gone from that project. Call it
+  # inside the write's transaction. Guard: spec/architecture/meeting_lock_guard_spec.rb.
+  def lock_in_project!(authorized_project_id)
+    lock!
+    project_id == authorized_project_id
+  end
+
   # The live summary stream names the project: after a move (Actors::MoveMeeting)
   # a page still open in the old project hears nothing of what is written in
   # the new one. The view subscribes through the same method.
@@ -224,6 +229,12 @@ class Meeting < ApplicationRecord
     "#{dom_id(self)}_#{for_project_id}_summary"
   end
 
+  # The single source rule for the AI summary (plan decision 11): transcript
+  # preferred, notes fallback. Both are frontmatter-stripped BEFORE the presence
+  # check, so a transcript that is nothing but a metadata block still falls through
+  # to the notes, and the LLM never sees the id:/parent: noise. Controller guard,
+  # view gate and Meetings::SummaryService all derive from THIS method so the rule
+  # cannot drift apart (review #235).
   def summary_source
     self.class.strip_frontmatter(transcript).presence || self.class.strip_frontmatter(notes).presence
   end

@@ -72,13 +72,11 @@ module Actors
     # Tenant-scoped lookup. A given id that matches no meeting in this tenant
     # (including a foreign-tenant id) yields nil, which #perform turns into a
     # "Meeting not found" failure. A blank id builds a new meeting in the project.
-    # The caller authorized the edit against @project. Actors::MoveMeeting holds
-    # the meeting's row lock while it moves it; a move that committed meanwhile
-    # has taken the meeting where this edit was never authorized. Under the lock
+    # The caller authorized the edit against @project. A move that committed
+    # meanwhile has taken the meeting where this edit was never authorized:
     # the meeting is gone from this project, as a deleted one would be.
     def guard_still_in_project!
-      @meeting.lock!
-      return if @meeting.project_id == @project.id
+      return if @meeting.lock_in_project!(@project.id)
 
       @meeting = nil
       raise ActorError, 'Meeting not found'

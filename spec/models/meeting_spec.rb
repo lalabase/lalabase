@@ -376,6 +376,23 @@ RSpec.describe Meeting, type: :model do
   # a summary-column change pushes the section to the per-meeting stream with the
   # exact target/partial the view subscribes to (drift here would silently break
   # live updates), and an unrelated edit must NOT broadcast (the guard).
+  describe '#lock_in_project!' do
+    let(:meeting) { create(:meeting, organisation: organisation, project: project, creator: creator) }
+
+    it 'answers true while the meeting is in the authorized project' do
+      expect(Meeting.transaction { meeting.lock_in_project!(project.id) }).to be(true)
+    end
+
+    # The row is read again under the lock: a move that committed after the
+    # instance was loaded counts, not the project the instance still names.
+    it 'answers false once the row names another project' do
+      elsewhere = create(:project, organisation: organisation)
+      Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+
+      expect(Meeting.transaction { meeting.lock_in_project!(project.id) }).to be(false)
+    end
+  end
+
   describe 'summary broadcast (after_update_commit)' do
     let(:meeting) { create(:meeting, organisation: organisation, project: project, creator: creator, notes: 'x') }
     let(:stream) { "#{ActionView::RecordIdentifier.dom_id(meeting)}_#{project.id}_summary" }

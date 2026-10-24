@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-10-20)
+# Karte: app/models (Stand: 2026-10-24)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -129,6 +129,10 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   (Lalabases eigene Hilfetexte als Suchtabelle, tenant-frei, siehe Falle 3)
 * **Meetings**: `meeting`, `meeting_participant`, `meeting_participant_claim_rejection`,
   `meeting_analysis` (Post-Sichtbarkeitsmuster: `is_private`+`visible_to_user`), `analysis_prompt` (org-weite Prompt-Bibliothek)
+  ⚠️ Ein Meeting kann das Projekt wechseln (`Actors::MoveMeeting`). Jeder Schreibweg, der gegen
+  ein Projekt geprüft wurde, sperrt über `Meeting#lock_in_project!` und gibt bei `false` auf;
+  eine nackte Sperre auf einem Meeting lehnt `spec/architecture/meeting_lock_guard_spec.rb`
+  ab (Stand 24.10.2026, Abschnitt in der Wurzel-`CLAUDE.md`).
 * **Kein AR-Modell, liegt aber hier**: `acquisition_source` — Value Object über
   `accounts.acquisition` (Herkunft eines Neukunden). Besitzt die Kanal-Priorität
   ref > utm_source > referrer_host > direct an genau EINER Stelle (`doc/akquise_herkunft.md`).

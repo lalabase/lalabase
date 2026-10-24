@@ -205,6 +205,29 @@ Einen privaten Kommentar lesen sein Adressat, sein Autor und die Kontoadmins. Da
 * Bis zum Audit vom 26.09.2026 stand die Regel nur in `PostPolicy`. Fünf Leser hatten sie
   vergessen, zwei weitere fanden sich beim Beheben.
 
+### A meeting write locks through `Meeting#lock_in_project!`
+
+**Binding** (guard spec: `spec/architecture/meeting_lock_guard_spec.rb`; runs through the
+directory entry `spec/architecture/` in the CI guard list):
+
+A meeting can move into another project (`Actors::MoveMeeting`, under the meeting's row lock).
+A write that was authorized against a project takes the same lock through
+`meeting.lock_in_project!(authorized_project_id)` and treats `false` as "the meeting is gone
+from this project": refuse, or answer as if it were not found.
+
+* The guard refuses a bare lock on a meeting (`@meeting.lock!`, `Meeting.lock`,
+  `project.meetings.lock`) anywhere outside `app/models/meeting.rb`. Its allow list names two
+  actors that lock and then authorize again, under the lock, in the project the meeting is in
+  now (`AcceptTicketSuggestion`, `StartTicketSuggestionRun`). It only shrinks, and every entry
+  gives its reason.
+* `WRITERS` pins the six writes that exist: the move, the edit, the delete, the ticket link,
+  the analysis publication and the booking. Three review rounds of the move found each of
+  them landing in the old project after a move.
+* ⚠️ **Not seen: a new write that takes no lock at all.** Writing a meeting's data (its
+  project, links, analyses, bookings) means calling the helper; the guard cannot know that a
+  file it has never heard of should.
+* Lock order: the meeting before a booking or an analysis, never the other way round.
+
 ---
 
 ## ViewComponent & Design System

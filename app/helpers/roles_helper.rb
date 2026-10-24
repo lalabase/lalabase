@@ -19,17 +19,24 @@ module RolesHelper
         'read_access_chats_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.read_access_chats_all_projects'),
         'read_access_notes_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.read_access_notes_all_projects'),
         'read_access_tickets_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.read_access_tickets_all_projects'),
+        'read_access_meetings_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.read_access_meetings_all_projects'),
+        'read_access_documentation_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.read_access_documentation_all_projects'),
         'read_access_documents_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.read_access_documents_all_projects'),
         'read_access_time_tracking_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.read_access_time_tracking_all_projects'),
         'write_access_chats_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.write_access_chats_all_projects'),
         'write_access_notes_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.write_access_notes_all_projects'),
         'write_access_tickets_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.write_access_tickets_all_projects'),
+        'write_access_meetings_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.write_access_meetings_all_projects'),
+        'write_access_documentation_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.write_access_documentation_all_projects'),
         'write_access_documents_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.write_access_documents_all_projects'),
         'write_access_time_tracking_all_projects' => I18n.t('views.helpers.roles.descriptions.projects.write_access_time_tracking_all_projects')
       },
       'tickets' => {
         'delete_tickets' => I18n.t('views.helpers.roles.descriptions.tickets.delete_tickets'),
         'move_tickets' => I18n.t('views.helpers.roles.descriptions.tickets.move_tickets')
+      },
+      'meetings' => {
+        'move_meetings' => I18n.t('views.helpers.roles.descriptions.meetings.move_meetings')
       },
       'users' => {
         'view_user_contact_details' => I18n.t('views.helpers.roles.descriptions.users.view_user_contact_details'),
@@ -49,6 +56,7 @@ module RolesHelper
       'accounts' => I18n.t('views.helpers.roles.categories.accounts'),
       'projects' => I18n.t('views.helpers.roles.categories.projects'),
       'tickets' => I18n.t('views.helpers.roles.categories.tickets'),
+      'meetings' => I18n.t('views.helpers.roles.categories.meetings'),
       'users' => I18n.t('views.helpers.roles.categories.users'),
       'assistant' => I18n.t('views.helpers.roles.categories.assistant')
     }

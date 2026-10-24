@@ -12,12 +12,13 @@ module Organisations
     include AdHocFilterable
     include Pageable
     include MeetingList
+    include MeetingInProject
 
     # edit/update included so the detail-frame re-render after a save keeps the right
     # viewport: the edit link + form carry viewport so the round-trip preserves it.
     # Since #817 _meeting_show has no viewport branch of its own any more.
     before_action :set_viewport_mode, only: %i[index show new create edit update]
-    before_action :set_meeting, only: %i[show edit update destroy create_summary toggle_search]
+    before_action :set_meeting, only: %i[show edit update destroy create_summary toggle_search move_preflight move]
     before_action :redirect_organisation_list_page, only: %i[index show new]
 
     # The same literal ids live in the meetings views and the shared list-row
@@ -183,7 +184,9 @@ module Organisations
     def destroy
       authorize @meeting, :destroy?
 
-      if @meeting.destroy
+      # The delete was authorized against this project: a meeting that moved
+      # meanwhile is gone from here, as a deleted one would be.
+      if with_meeting_in_project { @meeting.destroy }
         respond_to do |format|
           format.turbo_stream do
             # closeLane (application.js): the meeting is gone, so is its lane and
@@ -230,7 +233,9 @@ module Organisations
 
       # Pending flag → the section shows "wird erstellt…"; the job clears it on
       # completion and the after_update_commit broadcast pushes the final state.
-      @meeting.update!(summary_creation_flag: true, summary_creation_error: '')
+      # A meeting that moved meanwhile is gone from here; its summary is not
+      # started from a project it left.
+      with_meeting_in_project { @meeting.update!(summary_creation_flag: true, summary_creation_error: '') }
       Meetings::SummaryJob.perform_later(meeting_id: @meeting.id)
 
       respond_to do |format|
@@ -269,6 +274,37 @@ module Organisations
       else
         respond_hint('flash.meetings.search_toggle_error')
       end
+    end
+
+    # GET /projects/:project_id/meetings/:id/move_preflight
+    # The "move" dialog (doc/meeting_verschieben_plan.md) as the content of its
+    # frame (README_MODAL_PATTERN.md): what moves with the meeting, the target
+    # projects, or why it cannot move. Each opening carries a token of its own.
+    def move_preflight
+      authorize @meeting, :move?
+
+      token = SecureRandom.hex(8)
+      render html: helpers.turbo_frame_tag(helpers.meeting_move_modal_id(@meeting)) {
+        helpers.render(partial: 'organisations/meetings/move_modal', locals: move_modal_locals(token))
+      }.html_safe, layout: false
+    end
+
+    # POST /projects/:project_id/meetings/:id/move
+    # The write is Actors::MoveMeeting's. The target comes from the projects the
+    # dialog offers, so another organisation's project, an archived one and one
+    # without meetings write access are not found. A success opens the meeting
+    # in its new project (or keeps "Alle Meetings", where it is still listed);
+    # a refusal replaces exactly this opening of the dialog with the message.
+    def move
+      authorize @meeting, :move?
+
+      target = move_target_projects.find_by(id: params[:target_project_id])
+      return render_move_refusal([t('services.actors.move_meeting.forbidden_target')]) unless target
+
+      result = Actors::MoveMeeting.call(meeting: @meeting, target_project: target, current_user: current_user)
+      return render_move_refusal(result.errors) unless result.success?
+
+      redirect_to moved_meeting_path(target), notice: t('flash.meetings.moved', project: target.name), status: :see_other
     end
 
     # POST /projects/:project_id/meetings/detect_participants
@@ -397,6 +433,50 @@ module Organisations
       latest = {}
       rows.each { |normalized, display| latest[normalized] ||= display }
       latest.values.map { |display| { display_name: display } }
+    end
+
+    # The projects a meeting of this project may move to: active, not this one,
+    # and with meetings write access (the same reach the participant claims use).
+    def move_target_projects
+      writable = AccessCheck::ProjectAccessService.writable_meetings_project_ids(current_user, @current_organisation)
+      policy_scope(Project).active.where(id: writable).where.not(id: @project.id).order(:name)
+    end
+
+    # The counts of the dialog do not depend on the target, so the preflight is
+    # asked before one is chosen, with this project standing in for it.
+    def move_modal_locals(token, errors: [])
+      { meeting: @meeting, token: token, errors: errors, targets: move_target_projects,
+        impact: Actors::MoveMeeting.new(meeting: @meeting, target_project: @project, current_user: current_user).preflight }
+    end
+
+    # The token names one opening of the dialog; it is echoed into an id, so only
+    # the shape the dialog itself creates is taken back.
+    def move_modal_token
+      token = params[:modal_token].to_s
+      token.match?(/\A\h{1,32}\z/) ? token : SecureRandom.hex(8)
+    end
+
+    def render_move_refusal(errors)
+      respond_to do |format|
+        format.turbo_stream do
+          token = move_modal_token
+          render turbo_stream: turbo_stream.replace(helpers.meeting_move_modal_instance_id(@meeting, token),
+                                                    partial: 'organisations/meetings/move_modal',
+                                                    locals: move_modal_locals(token, errors: errors)),
+                 status: :unprocessable_content
+        end
+        format.html do
+          redirect_to meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)), alert: errors.to_sentence
+        end
+      end
+    end
+
+    # "Alle Meetings" still lists the moved meeting; the project page does not,
+    # so the meeting opens in the list of its new project.
+    def moved_meeting_path(target)
+      return meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)) if meeting_organisation_list?
+
+      organisation_project_meetings_path(@current_organisation, target, meeting_id: @meeting.id)
     end
 
     def set_meeting

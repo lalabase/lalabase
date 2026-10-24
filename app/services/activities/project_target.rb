@@ -8,7 +8,7 @@ module Activities
     SECONDARY_ACTIONS = %w[
       ticket_created ticket_moved_in ticket_moved_out
       document_added document_created note_created chat_created
-      meeting_created smart_folder_created
+      meeting_created meeting_moved_in smart_folder_created
     ].freeze
 
     def self.call(activity)

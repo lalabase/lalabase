@@ -29,6 +29,8 @@ en:
         tickets_bulk_deleted: "%{actor} deleted %{count} tickets: %{numbers}"
         meeting_created: "Meeting \"%{meeting_title}\" created (%{actor})"
         meeting_deleted: "Meeting \"%{meeting_title}\" deleted (%{actor})"
+        meeting_moved_in: "Meeting \"%{meeting_title}\" moved here from “%{from_project_name}” (%{actor})"
+        meeting_moved_out: "Meeting \"%{meeting_title}\" moved to “%{to_project_name}” (%{actor})"
       # AI package choice (trackable = Organisation, KI-Pakete P4e / E4). Two verbs
       # for the two axes of §2: only the package switch carries a jurisdiction
       # decision, the tier switch does not. A log naming both the same would be

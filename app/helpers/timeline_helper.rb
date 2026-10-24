@@ -161,6 +161,10 @@ module TimelineHelper
       t('views.organisations.tickets.timeline.meeting_created')
     when 'meeting_deleted'
       t('views.organisations.tickets.timeline.meeting_deleted')
+    when 'meeting_moved_in'
+      t('views.organisations.tickets.timeline.meeting_moved_in', project: activity.parameters&.dig('from_project_name'))
+    when 'meeting_moved_out'
+      t('views.organisations.tickets.timeline.meeting_moved_out', project: activity.parameters&.dig('to_project_name'))
     when 'smart_folder_created'
       t('views.organisations.tickets.timeline.smart_folder_created')
     when 'codebase_imported'

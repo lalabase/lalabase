@@ -51,6 +51,7 @@ en:
           type_label: Meeting
           ask_assistant: "Ask assistant"
           edit_meeting: Edit meeting
+          move_meeting: Move to another project
           back_to_list: Back to list
           close: Close meeting
           no_content: No notes or transcript recorded.
@@ -102,6 +103,27 @@ en:
           cancel: Cancel
           save: Save
           delete: Delete
+        move:
+          title: Move meeting
+          close: Close
+          cancel: Cancel
+          submit: Move
+          target: Target project
+          no_targets: There is no other project you may add meetings to.
+          has_ticket_links:
+            one: The meeting is linked to a ticket and therefore cannot be moved. Remove the link first.
+            other: The meeting is linked to %{count} tickets and therefore cannot be moved. Remove the links first.
+          published_analyses_bound:
+            one: A published analysis draws on the old project. Make it private first.
+            other: "%{count} published analyses draw on the old project. Make them private first."
+          time_sessions:
+            zero: No time is booked on this meeting.
+            one: The booked time moves with it (1 entry, %{billed} of it billed).
+            other: The booked time moves with it (%{count} entries, %{billed} of them billed).
+          open_suggestions:
+            one: One open ticket suggestion will be dismissed.
+            other: "%{count} open ticket suggestions will be dismissed."
+          rights: Who may see the meeting afterwards is decided by the rights in the target project.
         ticket_links:
           heading: Linked tasks
           empty: No tasks linked to this meeting yet.

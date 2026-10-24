@@ -205,6 +205,35 @@ Einen privaten Kommentar lesen sein Adressat, sein Autor und die Kontoadmins. Da
 * Bis zum Audit vom 26.09.2026 stand die Regel nur in `PostPolicy`. Fünf Leser hatten sie
   vergessen, zwei weitere fanden sich beim Beheben.
 
+### A meeting write locks through `Meeting#lock_in_project!`
+
+**Binding** (guard spec: `spec/architecture/meeting_lock_guard_spec.rb`; runs through the
+directory entry `spec/architecture/` in the CI guard list):
+
+A meeting can move into another project (`Actors::MoveMeeting`, under the meeting's row lock).
+A write that was authorized against a project takes the same lock through
+`meeting.lock_in_project!(authorized_project_id)` and treats `false` as "the meeting is gone
+from this project": refuse, or answer as if it were not found.
+
+* The guard refuses a bare lock on a meeting (`@meeting.lock!`, `Meeting.lock`,
+  `project.meetings.lock`) anywhere outside `app/models/meeting.rb`. Its allow list names two
+  actors that lock and then authorize again, under the lock, in the project the meeting is in
+  now (`AcceptTicketSuggestion`, `StartTicketSuggestionRun`). It only shrinks, and every entry
+  gives its reason.
+* In a controller the lock is `with_meeting_in_project { ... }` (`MeetingInProject`): the
+  block runs under the lock, a moved meeting answers 404. The guard asks **every write
+  action** (each route but GET) of `MeetingsController` and `MeetingTicketLinksController`
+  for that call or for an actor that locks itself (`LOCKING_ACTORS`). A check per file had
+  passed `create_summary`, unlocked next to a delete that locked, until a fourth review round.
+  The exception list (`NO_MEETING_YET`, a write before any meeting exists) only shrinks.
+* `WRITERS` pins the services that lock: the move, the edit, the analysis publication, the
+  booking, and the controller helper. Four review rounds of the move found each of these
+  writes landing in the old project after a move.
+* ⚠️ **Not seen: a write in a service or controller the guard does not name.** Writing a
+  meeting's data (its project, links, analyses, bookings) elsewhere means calling the helper
+  and adding the file to `WRITERS` or `CONTROLLERS`.
+* Lock order: the meeting before a booking or an analysis, never the other way round.
+
 ---
 
 ## ViewComponent & Design System

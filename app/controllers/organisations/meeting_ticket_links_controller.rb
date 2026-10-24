@@ -15,6 +15,7 @@
 module Organisations
   class MeetingTicketLinksController < Organisations::BaseController
     include ProjectController
+    include MeetingInProject
 
     before_action :set_meeting
 
@@ -34,13 +35,18 @@ module Organisations
       # covers the normal "clicked twice" case; the rescue is the race backstop.
       return respond_link_result(:alert, 'flash.meeting_ticket_links.already_linked') if @meeting.outgoing_references.exists?(target: ticket)
 
-      @meeting.outgoing_references.create!(
-        organisation: @current_organisation,
-        target: ticket,
-        # Snapshot the live title for the tombstone shown after a target delete.
-        # Truncate: the snapshot column is capped at 255 and must never fail the save.
-        target_title_snapshot: ticket.display_title&.truncate(255)
-      )
+      # A move that committed while this waited has taken the meeting into
+      # another project, and the ticket of this one may not follow it there
+      # (404, as for a foreign meeting).
+      with_meeting_in_project do
+        @meeting.outgoing_references.create!(
+          organisation: @current_organisation,
+          target: ticket,
+          # Snapshot the live title for the tombstone shown after a target delete.
+          # Truncate: the snapshot column is capped at 255 and must never fail the save.
+          target_title_snapshot: ticket.display_title&.truncate(255)
+        )
+      end
       respond_link_result(:notice, 'flash.meeting_ticket_links.created')
     rescue ActiveRecord::RecordNotUnique
       respond_link_result(:alert, 'flash.meeting_ticket_links.already_linked')
@@ -50,7 +56,8 @@ module Organisations
       authorize @meeting, :update?
 
       # Scoped to this meeting's outgoing references: a foreign reference id is 404.
-      @meeting.outgoing_references.find(params[:id]).destroy
+      # Under the lock like every meeting write here (MeetingInProject).
+      with_meeting_in_project { @meeting.outgoing_references.find(params[:id]).destroy }
       respond_link_result(:notice, 'flash.meeting_ticket_links.removed')
     end
 

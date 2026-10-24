@@ -45,6 +45,18 @@ class MeetingPolicy < ApplicationPolicy
     account_admin? || project_policy.area_access?(:meetings, :write)
   end
 
+  # Moving into another project (Actors::MoveMeeting): the role permission
+  # move_meetings, like move_tickets, plus meetings write access here. The
+  # target's write access is asked by the controller and the actor. An
+  # archived project is closed for it, account admins included: the area
+  # check lets them write there, a move out of the archive is not meant.
+  def move?
+    return false if record.project.archived?
+
+    (account_admin? || has_permission?('meetings', 'move_meetings')) &&
+      project_policy.area_access?(:meetings, :write)
+  end
+
   private
 
   def project_policy

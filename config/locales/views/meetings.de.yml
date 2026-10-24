@@ -52,6 +52,7 @@ de:
           type_label: Meeting
           ask_assistant: "Assistent fragen"
           edit_meeting: Meeting bearbeiten
+          move_meeting: In anderes Projekt verschieben
           back_to_list: Zurück zur Liste
           close: Meeting schließen
           no_content: Keine Notizen oder Transkript erfasst.
@@ -103,6 +104,27 @@ de:
           cancel: Abbrechen
           save: Speichern
           delete: Löschen
+        move:
+          title: Meeting verschieben
+          close: Schließen
+          cancel: Abbrechen
+          submit: Verschieben
+          target: Zielprojekt
+          no_targets: Es gibt kein anderes Projekt, in dem du Meetings anlegen darfst.
+          has_ticket_links:
+            one: Das Meeting ist mit einem Ticket verknüpft und kann deshalb nicht verschoben werden. Entferne zuerst die Verknüpfung.
+            other: Das Meeting ist mit %{count} Tickets verknüpft und kann deshalb nicht verschoben werden. Entferne zuerst die Verknüpfungen.
+          published_analyses_bound:
+            one: Eine veröffentlichte Analyse stützt sich auf das alte Projekt. Mach sie zuerst wieder privat.
+            other: "%{count} veröffentlichte Analysen stützen sich auf das alte Projekt. Mach sie zuerst wieder privat."
+          time_sessions:
+            zero: Auf dieses Meeting ist keine Zeit gebucht.
+            one: Die gebuchte Zeit zieht mit um (1 Eintrag, davon %{billed} abgerechnet).
+            other: Die gebuchte Zeit zieht mit um (%{count} Einträge, davon %{billed} abgerechnet).
+          open_suggestions:
+            one: Ein offener Ticket-Vorschlag wird verworfen.
+            other: "%{count} offene Ticket-Vorschläge werden verworfen."
+          rights: Wer das Meeting danach sehen darf, bestimmen die Rechte im Zielprojekt.
         ticket_links:
           heading: Verknüpfte Aufgaben
           empty: Noch keine Aufgaben mit diesem Meeting verknüpft.

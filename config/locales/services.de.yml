@@ -47,6 +47,13 @@ de:
         ticket_missing: "Eines der beiden Tickets gibt es nicht mehr."
       destroy_ticket_relation:
         not_found: "Die Beziehung wurde nicht gefunden."
+      move_meeting:
+        same_project: "Das Meeting liegt schon in diesem Projekt."
+        forbidden_target: "In diesem Projekt darfst du keine Meetings anlegen."
+        has_ticket_links: "Das Meeting ist mit Tickets verknüpft. Entferne die Verknüpfungen, dann kannst du es verschieben."
+        published_analyses_bound: "Eine veröffentlichte Analyse stützt sich auf das alte Projekt. Mach sie wieder privat, dann kannst du das Meeting verschieben."
+        moved_meanwhile: "Das Meeting wurde gerade schon verschoben. Lade die Seite neu."
+        suggestion_run_active: "Für das Meeting werden gerade Ticket-Vorschläge erzeugt. Versuche es gleich noch einmal."
       move_ticket:
         number_conflict: "Nummernkonflikt nach %{retries} Versuchen: %{error}"
         has_hierarchy: "Tickets mit Unteraufgaben oder einem übergeordneten Ticket können nicht verschoben werden."
@@ -79,6 +86,8 @@ de:
       group_billed: "Die gewählte Abrechnung ist bereits abgerechnet — die Zeit-Session kann ihr nicht mehr zugeordnet werden."
       session_billed: "Diese Zeit-Session ist bereits abgerechnet und kann nicht mehr geändert oder aus ihrer Abrechnung entfernt werden."
       generic_error: "Die Zeit-Session konnte nicht gespeichert werden. Bitte versuchen Sie es später erneut."
+      meeting_moved: "Das Meeting liegt inzwischen in einem anderen Projekt. Bitte buchen Sie die Zeit dort."
+      moved_meanwhile: "Die Zeit-Session liegt inzwischen in einem anderen Projekt. Bitte laden Sie die Seite neu."
     bulk_customer_description_generator:
       empty_result: "Zeit-Session %{id}: Die KI hat keine Beschreibung geliefert."
     embedding_reprocessing:

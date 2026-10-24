@@ -458,6 +458,8 @@ en:
           chat_created: Chat created
           meeting_created: Meeting created
           meeting_deleted: Meeting deleted
+          meeting_moved_in: "Meeting moved here from “%{project}”"
+          meeting_moved_out: "Meeting moved to “%{project}”"
           smart_folder_created: Smart folder created
           codebase_imported: Codebase imported
           member_added: "Member added: %{name}"

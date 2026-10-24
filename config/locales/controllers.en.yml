@@ -226,6 +226,7 @@ en:
       no_edit_permission: "You do not have permission to edit this meeting."
       no_delete_permission: "You do not have permission to delete this meeting."
       summary_started: "The summary is being generated."
+      moved: "Meeting was moved to “%{project}”."
       summary_no_content: "This meeting has neither notes nor a transcript to summarize."
       summary_ai_unavailable: "The AI summary is not available. Please check the AI settings."
       summary_already_running: "The summary is already being generated."

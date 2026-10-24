@@ -65,6 +65,7 @@ module NotificationReadGuard
     'app/services/notifications/mark_ticket_read.rb' => [3, 'writes: marks the rows of an opened ticket read'],
     'app/services/posts/mark_read.rb' => [1, 'writes: marks the rows of a read comment read'],
     'app/services/tickets/mover.rb' => [1, 'writes: moves the notifications of a moved ticket along'],
+    'app/services/actors/move_meeting.rb' => [1, 'writes: moves the notifications of a moved meeting along'],
     'app/services/posts/excerpt_redaction.rb' => [1, 'writes: redacts excerpts of a deleted or private comment'],
     'app/services/notifications/unread_signals.rb' =>
       [1, 'a grouped pre-count that only decides WHERE to ask; each count shown is inbox_unread'],

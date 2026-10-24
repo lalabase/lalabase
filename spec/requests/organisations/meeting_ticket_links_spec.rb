@@ -54,6 +54,23 @@ RSpec.describe 'Organisations::MeetingTicketLinks', type: :request do
   end
 
   describe 'POST create' do
+    # A move of the meeting (Actors::MoveMeeting) refuses a meeting with links,
+    # under the meeting's row lock. A link has to take the same lock and look
+    # again: a move that committed while it waited has taken the meeting into
+    # another project, and the ticket stays behind in this one.
+    it 'links nothing when the meeting moved away while the link waited for its lock' do
+      elsewhere = ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation) }
+      ticket
+      allow_any_instance_of(Meeting).to receive(:lock!).and_wrap_original do |original, *args|
+        Meeting.where(id: original.receiver.id).update_all(project_id: elsewhere.id)
+        original.call(*args)
+      end
+      sign_in writer
+
+      expect { post create_path, params: { ticket_id: ticket.id } }.not_to(change { reference_count })
+      expect(response).to have_http_status(:not_found)
+    end
+
     it 'links a ticket for a meetings writer, snapshotting its title' do
       sign_in writer
       expect { post create_path, params: { ticket_id: ticket.id } }.to change { reference_count }.by(1)

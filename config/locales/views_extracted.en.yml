@@ -160,6 +160,10 @@ en:
               all projects in the organisation.
             read_access_tickets_all_projects: Grants read access to the ticket areas
               of all projects in the organisation.
+            read_access_meetings_all_projects: Grants read access to the meetings of all
+              projects in the organisation.
+            read_access_documentation_all_projects: Grants read access to the documentation
+              of all projects in the organisation.
             read_access_documents_all_projects: Grants read access to the document
               areas of all projects in the organisation.
             read_access_time_tracking_all_projects: Grants read access to the time
@@ -170,6 +174,10 @@ en:
               of all projects in the organisation.
             write_access_tickets_all_projects: Grants write access to the ticket areas
               of all projects in the organisation.
+            write_access_meetings_all_projects: Grants write access to the meetings of all
+              projects in the organisation.
+            write_access_documentation_all_projects: Grants write access to the documentation
+              of all projects in the organisation.
             write_access_documents_all_projects: Grants write access to the document
               areas of all projects in the organisation.
             write_access_time_tracking_all_projects: Grants write access to the time
@@ -177,6 +185,8 @@ en:
           tickets:
             delete_tickets: Allows deleting tickets and their associated content.
             move_tickets: Allows moving tickets to other projects.
+          meetings:
+            move_meetings: Allows moving meetings to other projects.
           users:
             view_user_contact_details: Allows viewing contact details of other users.
             view_user_full_name: Allows viewing full names of other users.
@@ -188,6 +198,7 @@ en:
           accounts: Accounts & Organisations
           projects: Projects
           tickets: Tickets
+          meetings: Meetings
           users: Users
     layouts:
       docs:
@@ -503,6 +514,8 @@ en:
         chat_created: Chat created
         meeting_created: Meeting created
         meeting_deleted: Meeting deleted
+        meeting_moved_in: Meeting moved into project
+        meeting_moved_out: Meeting moved out of project
         smart_folder_created: Smart folder created
         codebase_imported: Codebase imported
         started: Started

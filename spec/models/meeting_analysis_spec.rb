@@ -178,6 +178,33 @@ RSpec.describe MeetingAnalysis do
 
       analysis.update!(creation_flag: false, creation_error: 'kaputt')
     end
+
+    # A job loads the analysis and its meeting, a move commits (Actors::MoveMeeting)
+    # while the model answers, the job finishes on its stale copy. The creator
+    # reads meetings only in the old project and gets nothing pushed.
+    it 'pushes nothing once the meeting is in a project the creator cannot read' do
+      analysis = create(:meeting_analysis, meeting: meeting, creator: creator, creation_flag: true)
+      stale = described_class.find(analysis.id)
+      stale.meeting.project
+      elsewhere = create(:project, organisation: organisation)
+      Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+
+      expect(stale).not_to receive(:broadcast_replace_to)
+      stale.update!(creation_flag: false, content: 'Ergebnis nach dem Umzug')
+    end
+
+    it 'still pushes to a creator who reads meetings in the new project' do
+      analysis = create(:meeting_analysis, meeting: meeting, creator: creator, creation_flag: true)
+      stale = described_class.find(analysis.id)
+      stale.meeting.project
+      elsewhere = create(:project, organisation: organisation)
+      create(:project_permission, user: creator, project: elsewhere, meetings_access: 'read_only')
+      Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+
+      expect(stale).to receive(:broadcast_replace_to).with(meeting, creator, :analyses,
+                                                           hash_including(locals: hash_including(can_write: false)))
+      stale.update!(creation_flag: false, content: 'Ergebnis nach dem Umzug')
+    end
   end
 
   # Standalone destroy purge (embedding v2 PR 2, Delete-Matrix §3.5 row 7): destroying

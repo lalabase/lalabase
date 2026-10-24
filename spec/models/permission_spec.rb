@@ -181,6 +181,18 @@ RSpec.describe Permission, type: :model do
         end
       end
 
+      # move_meetings sits in its own category on purpose: an action under
+      # :projects would join the guest ceiling's forbidden list automatically.
+      it 'allows a meetings-category permission' do
+        ActsAsTenant.with_tenant(organisation) do
+          guest_role = create(:role, billable: false)
+          permission = build(:permission, role: guest_role, category: 'meetings',
+                                          action: 'move_meetings', allowed: true)
+
+          expect(permission).to be_valid
+        end
+      end
+
       it 'allows a forbidden category when allowed is false (the permission grants nothing)' do
         ActsAsTenant.with_tenant(organisation) do
           guest_role = create(:role, billable: false)
@@ -230,6 +242,10 @@ RSpec.describe Permission, type: :model do
 
     it 'has predefined actions for tickets category' do
       expect(Permission::CATEGORIES[:tickets]).to include('delete_tickets')
+    end
+
+    it 'has predefined actions for meetings category' do
+      expect(Permission::CATEGORIES[:meetings]).to eq(%w[move_meetings])
     end
 
     it 'has predefined actions for users category' do

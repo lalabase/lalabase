@@ -211,6 +211,24 @@ class Meeting < ApplicationRecord
     text.sub(FRONTMATTER_BLOCK, '')
   end
 
+  # THE lock for a write that was authorized against a project: takes the
+  # meeting's row lock and answers whether the meeting is still in that
+  # project. Actors::MoveMeeting holds the same lock while it moves the
+  # meeting, so a write that answers true cannot land after a move, and one
+  # that answers false treats the meeting as gone from that project. Call it
+  # inside the write's transaction. Guard: spec/architecture/meeting_lock_guard_spec.rb.
+  def lock_in_project!(authorized_project_id)
+    lock!
+    project_id == authorized_project_id
+  end
+
+  # The live summary stream names the project: after a move (Actors::MoveMeeting)
+  # a page still open in the old project hears nothing of what is written in
+  # the new one. The view subscribes through the same method.
+  def summary_stream_name(for_project_id = project_id)
+    "#{dom_id(self)}_#{for_project_id}_summary"
+  end
+
   # The single source rule for the AI summary (plan decision 11): transcript
   # preferred, notes fallback. Both are frontmatter-stripped BEFORE the presence
   # check, so a transcript that is nothing but a metadata block still falls through
@@ -264,8 +282,10 @@ class Meeting < ApplicationRecord
     return unless saved_change_to_generated_summary? || saved_change_to_summary_creation_flag? ||
                   saved_change_to_summary_creation_error?
 
+    # The persisted project, not this instance's: a summary job loads the
+    # meeting, a move commits, and the job finishes on its stale copy.
     broadcast_replace_to(
-      "#{dom_id(self)}_summary",
+      summary_stream_name(Meeting.unscoped.where(id: id).pick(:project_id) || project_id),
       target: "#{dom_id(self)}_summary_section",
       partial: 'organisations/meetings/summary_section',
       locals: { meeting: self }

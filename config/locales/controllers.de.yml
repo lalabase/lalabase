@@ -230,6 +230,7 @@ de:
       no_edit_permission: "Sie haben keine Berechtigung, dieses Meeting zu bearbeiten."
       no_delete_permission: "Sie haben keine Berechtigung, dieses Meeting zu löschen."
       summary_started: "Die Zusammenfassung wird erstellt."
+      moved: "Meeting wurde nach „%{project}“ verschoben."
       summary_no_content: "Dieses Meeting enthält weder Notizen noch ein Transkript für eine Zusammenfassung."
       summary_ai_unavailable: "Die KI-Zusammenfassung ist nicht verfügbar. Bitte prüfen Sie die KI-Einstellungen."
       summary_already_running: "Die Zusammenfassung wird bereits erstellt."

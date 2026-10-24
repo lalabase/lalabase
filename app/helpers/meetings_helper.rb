@@ -20,6 +20,20 @@ module MeetingsHelper
     meeting_list_state.merge(Meetings::ListState.context_query(organisation: meeting_organisation_list?))
   end
 
+  # The "move" dialog (README_MODAL_PATTERN.md): the empty frame in the lane
+  # head, one opening inside it (its token), and the trigger the focus returns to.
+  def meeting_move_modal_id(meeting)
+    "meeting-move-modal-#{meeting.id}"
+  end
+
+  def meeting_move_modal_instance_id(meeting, token)
+    "#{meeting_move_modal_id(meeting)}-#{token}"
+  end
+
+  def meeting_move_trigger_id(meeting)
+    "meeting-move-trigger-#{meeting.id}"
+  end
+
   def meeting_list_hidden_fields
     safe_join(URI.decode_www_form(meeting_lane_state.to_query).map { |key, value| hidden_field_tag(key, value) })
   end

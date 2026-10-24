@@ -19,6 +19,7 @@ module Actors
       # Extract BEFORE find_meeting: a new record does project.meetings.build(params),
       # which would choke on a :participants key that is not a Meeting column.
       @participants_payload = extract_participants(params)
+      @project = project
       @meeting = find_meeting(project, params, id)
       @meeting_params = params
       @current_user = current_user
@@ -32,6 +33,7 @@ module Actors
       raise ActorError, 'Meeting not found' if @meeting.nil?
 
       if @meeting.id.present?
+        guard_still_in_project!
         @meeting.update!(@meeting_params)
       else
         @meeting.creator = @current_user
@@ -70,6 +72,16 @@ module Actors
     # Tenant-scoped lookup. A given id that matches no meeting in this tenant
     # (including a foreign-tenant id) yields nil, which #perform turns into a
     # "Meeting not found" failure. A blank id builds a new meeting in the project.
+    # The caller authorized the edit against @project. A move that committed
+    # meanwhile has taken the meeting where this edit was never authorized:
+    # the meeting is gone from this project, as a deleted one would be.
+    def guard_still_in_project!
+      return if @meeting.lock_in_project!(@project.id)
+
+      @meeting = nil
+      raise ActorError, 'Meeting not found'
+    end
+
     def find_meeting(project, params, id)
       if id.present?
         Meeting.where(organisation: project.organisation, id: id).first

@@ -597,6 +597,8 @@ jobs:
           spec/requests/organisations/meetings_overview_spec.rb
           spec/requests/organisations/meetings_overview_access_spec.rb
           spec/requests/organisations/meetings_overview_views_spec.rb
+          spec/requests/organisations/meeting_move_spec.rb
+          spec/services/actors/move_meeting_spec.rb
           spec/requests/organisations/meetings_overview_columns_spec.rb
           spec/requests/organisations/meetings_overview_lane_spec.rb
           spec/requests/organisations/meetings_overview_lane_access_spec.rb

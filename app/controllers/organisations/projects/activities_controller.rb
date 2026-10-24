@@ -7,7 +7,7 @@ class Organisations::Projects::ActivitiesController < Organisations::BaseControl
   # Meeting activities are tracked on the project (trackable_type = 'Project')
   # and distinguished only by their action, so the "Meeting" object-type filter
   # matches on action instead of trackable_type.
-  MEETING_ACTIONS = %w[meeting_created meeting_deleted].freeze
+  MEETING_ACTIONS = %w[meeting_created meeting_deleted meeting_moved_in meeting_moved_out].freeze
   KNOWLEDGE_AREAS = %i[notes documents meetings chats documentation].freeze
   ADMINISTRATION_AREAS = %i[members project].freeze
   TICKET_KEYS = (Activities::AreaRegistry.keys_by_area.fetch(:tickets, []) - ['project.smart_folder_created']).freeze

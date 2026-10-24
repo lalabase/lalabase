@@ -376,14 +376,55 @@ RSpec.describe Meeting, type: :model do
   # a summary-column change pushes the section to the per-meeting stream with the
   # exact target/partial the view subscribes to (drift here would silently break
   # live updates), and an unrelated edit must NOT broadcast (the guard).
+  describe '#lock_in_project!' do
+    let(:meeting) { create(:meeting, organisation: organisation, project: project, creator: creator) }
+
+    it 'answers true while the meeting is in the authorized project' do
+      expect(Meeting.transaction { meeting.lock_in_project!(project.id) }).to be(true)
+    end
+
+    # The row is read again under the lock: a move that committed after the
+    # instance was loaded counts, not the project the instance still names.
+    it 'answers false once the row names another project' do
+      elsewhere = create(:project, organisation: organisation)
+      Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+
+      expect(Meeting.transaction { meeting.lock_in_project!(project.id) }).to be(false)
+    end
+  end
+
   describe 'summary broadcast (after_update_commit)' do
     let(:meeting) { create(:meeting, organisation: organisation, project: project, creator: creator, notes: 'x') }
-    let(:stream) { "#{ActionView::RecordIdentifier.dom_id(meeting)}_summary" }
+    let(:stream) { "#{ActionView::RecordIdentifier.dom_id(meeting)}_#{project.id}_summary" }
     let(:target) { "#{ActionView::RecordIdentifier.dom_id(meeting)}_summary_section" }
 
     it 'broadcasts the summary section when a summary column changes' do
       expect(meeting).to receive(:broadcast_replace_to)
         .with(stream, hash_including(target: target, partial: 'organisations/meetings/summary_section'))
+      meeting.update!(summary_creation_flag: true)
+    end
+
+    # A reader of the old project may still have the meeting open after a move
+    # (Actors::MoveMeeting). The stream names the project, so the summaries
+    # written after the move reach only pages rendered in the new one.
+    it 'sends to the stream of the project the meeting is in now' do
+      elsewhere = create(:project, organisation: organisation)
+      meeting.update_columns(project_id: elsewhere.id)
+      moved_stream = "#{ActionView::RecordIdentifier.dom_id(meeting)}_#{elsewhere.id}_summary"
+
+      expect(meeting).to receive(:broadcast_replace_to).with(moved_stream, anything)
+      meeting.update!(summary_creation_flag: true)
+    end
+
+    # A summary job loads the meeting, a move commits, the job finishes on its
+    # stale instance. The stream must name the project the row is in now:
+    # the old one would hand the new summary to readers of the old project.
+    it 'sends to the stream of the persisted project from a stale instance' do
+      elsewhere = create(:project, organisation: organisation)
+      Meeting.where(id: meeting.id).update_all(project_id: elsewhere.id)
+      moved_stream = "#{ActionView::RecordIdentifier.dom_id(meeting)}_#{elsewhere.id}_summary"
+
+      expect(meeting).to receive(:broadcast_replace_to).with(moved_stream, anything)
       meeting.update!(summary_creation_flag: true)
     end
 

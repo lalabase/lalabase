@@ -95,8 +95,10 @@ module ProjectController
     # at this concern layer, exactly like create_summary/detect_participants.
     # regenerate (chatposts) persists a style nudge and enqueues a paid LLM job —
     # same fail-closed rule (Actors C1 review).
+    # move_preflight/move: moving a meeting into another project needs write
+    # access to the project it leaves (its dialog too, it offers only that).
     write_actions = %w[new create edit update destroy create_summary detect_participants
-                       run accept dismiss regenerate]
+                       run accept dismiss regenerate move_preflight move]
     write_actions.include?(action_name) ? :write : :read
   end
 

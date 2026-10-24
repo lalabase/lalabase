@@ -62,7 +62,7 @@ module ProjectActivityRow
       params['note_title']
     when 'chat_created'
       params['chat_title']
-    when 'meeting_created', 'meeting_deleted'
+    when 'meeting_created', 'meeting_deleted', 'meeting_moved_in', 'meeting_moved_out'
       params['meeting_title']
     when 'smart_folder_created'
       params['folder_name']

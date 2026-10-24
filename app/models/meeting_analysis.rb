@@ -166,7 +166,13 @@ class MeetingAnalysis < ApplicationRecord
     recipient = User.find_by(id: creator_id)
     return unless recipient
 
-    project_policy = ProjectPolicy.new(recipient, meeting.project)
+    # The meeting as stored, not the job's copy: a move (Actors::MoveMeeting)
+    # may have committed while the model answered, and the creator's page in
+    # the old project must not hear of it unless they read the new one.
+    current_meeting = reload_meeting
+    return unless current_meeting
+
+    project_policy = ProjectPolicy.new(recipient, current_meeting.project)
     return unless project_policy.area_access?(:meetings, :read)
 
     # Only replace the stored-results list. The request-rendered assistant entry
@@ -176,10 +182,10 @@ class MeetingAnalysis < ApplicationRecord
     # organisation: a job has no assistant_available? helper, and a retry button
     # for someone the gate excludes would only ever answer 403.
     broadcast_replace_to(
-      meeting, recipient, :analyses,
-      target: ActionView::RecordIdentifier.dom_id(meeting, :analyses_list),
+      current_meeting, recipient, :analyses,
+      target: ActionView::RecordIdentifier.dom_id(current_meeting, :analyses_list),
       partial: 'organisations/meetings/analyses_list',
-      locals: { meeting: meeting, analyses: self.class.visible_for(meeting, recipient),
+      locals: { meeting: current_meeting, analyses: self.class.visible_for(current_meeting, recipient),
                 can_write: project_policy.area_access?(:meetings, :write),
                 can_rerun: ChatPolicy.assistant_gate_open?(recipient, organisation) }
     )

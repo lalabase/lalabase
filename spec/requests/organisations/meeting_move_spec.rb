@@ -190,6 +190,24 @@ RSpec.describe 'Organisations::Meetings move', :ci_guard, type: :request do
       expect(ActsAsTenant.without_tenant { Meeting.exists?(meeting.id) }).to be(true)
     end
 
+    # The move commits during the last check before the write. The summary
+    # would start in a project where this writer has no rights.
+    it 'does not start a summary on a meeting that moved away after the start was authorized' do
+      writer = member(move: false, access: { source => 'read_write' })
+      ActsAsTenant.with_tenant(organisation) { meeting.update!(transcript: 'Kunde will Feature X bis Q3.') }
+      allow_any_instance_of(Organisation).to receive(:has_valid_ai_configuration?) do
+        Meeting.where(id: meeting.id).update_all(project_id: target.id)
+        true
+      end
+      allow(Meetings::SummaryJob).to receive(:perform_later)
+      sign_in writer
+      post create_summary_organisation_project_meeting_path(organisation, source, meeting)
+
+      expect(response).to have_http_status(:not_found)
+      expect(Meetings::SummaryJob).not_to have_received(:perform_later)
+      expect(ActsAsTenant.without_tenant { meeting.reload.summary_creation_flag }).to be(false)
+    end
+
     context 'with a target the move refuses' do
       def expect_refused(target_id, message)
         sign_in mover

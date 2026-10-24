@@ -230,7 +230,13 @@ module Organisations
 
       # Pending flag → the section shows "wird erstellt…"; the job clears it on
       # completion and the after_update_commit broadcast pushes the final state.
-      @meeting.update!(summary_creation_flag: true, summary_creation_error: '')
+      # Under the meeting's lock: a meeting that moved meanwhile is gone from
+      # here, and its summary is not started from a project it left.
+      Meeting.transaction do
+        raise ActiveRecord::RecordNotFound unless @meeting.lock_in_project!(@project.id)
+
+        @meeting.update!(summary_creation_flag: true, summary_creation_error: '')
+      end
       Meetings::SummaryJob.perform_later(meeting_id: @meeting.id)
 
       respond_to do |format|

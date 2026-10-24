@@ -220,9 +220,12 @@ from this project": refuse, or answer as if it were not found.
   actors that lock and then authorize again, under the lock, in the project the meeting is in
   now (`AcceptTicketSuggestion`, `StartTicketSuggestionRun`). It only shrinks, and every entry
   gives its reason.
-* `WRITERS` pins the six writes that exist: the move, the edit, the delete, the ticket link,
-  the analysis publication and the booking. Three review rounds of the move found each of
-  them landing in the old project after a move.
+* `WRITERS` pins the files of the seven writes that exist: the move, the edit, the delete, the
+  ticket link, the analysis publication, the booking and the start of a summary. Four review
+  rounds of the move found each of them landing in the old project after a move.
+* ⚠️ **The guard checks files, not actions.** A second write in a listed file passes as soon
+  as one other write there takes the lock: `create_summary` sat next to the delete without
+  it until a fourth review round.
 * ⚠️ **Not seen: a new write that takes no lock at all.** Writing a meeting's data (its
   project, links, analyses, bookings) means calling the helper; the guard cannot know that a
   file it has never heard of should.

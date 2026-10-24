@@ -12,6 +12,7 @@ module Organisations
     include AdHocFilterable
     include Pageable
     include MeetingList
+    include MeetingInProject
 
     # edit/update included so the detail-frame re-render after a save keeps the right
     # viewport: the edit link + form carry viewport so the round-trip preserves it.
@@ -183,7 +184,9 @@ module Organisations
     def destroy
       authorize @meeting, :destroy?
 
-      if destroy_in_project
+      # The delete was authorized against this project: a meeting that moved
+      # meanwhile is gone from here, as a deleted one would be.
+      if with_meeting_in_project { @meeting.destroy }
         respond_to do |format|
           format.turbo_stream do
             # closeLane (application.js): the meeting is gone, so is its lane and
@@ -230,13 +233,9 @@ module Organisations
 
       # Pending flag → the section shows "wird erstellt…"; the job clears it on
       # completion and the after_update_commit broadcast pushes the final state.
-      # Under the meeting's lock: a meeting that moved meanwhile is gone from
-      # here, and its summary is not started from a project it left.
-      Meeting.transaction do
-        raise ActiveRecord::RecordNotFound unless @meeting.lock_in_project!(@project.id)
-
-        @meeting.update!(summary_creation_flag: true, summary_creation_error: '')
-      end
+      # A meeting that moved meanwhile is gone from here; its summary is not
+      # started from a project it left.
+      with_meeting_in_project { @meeting.update!(summary_creation_flag: true, summary_creation_error: '') }
       Meetings::SummaryJob.perform_later(meeting_id: @meeting.id)
 
       respond_to do |format|
@@ -478,16 +477,6 @@ module Organisations
       return meeting_list_index_path(meeting_index_query.merge(meeting_id: @meeting.id)) if meeting_organisation_list?
 
       organisation_project_meetings_path(@current_organisation, target, meeting_id: @meeting.id)
-    end
-
-    # The delete was authorized against this project: a meeting that moved
-    # meanwhile is gone from here, as a deleted one would be.
-    def destroy_in_project
-      Meeting.transaction do
-        raise ActiveRecord::RecordNotFound unless @meeting.lock_in_project!(@project.id)
-
-        @meeting.destroy
-      end
     end
 
     def set_meeting

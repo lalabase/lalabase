@@ -1,4 +1,4 @@
-# Karte: app/controllers/concerns (Stand: 2026-10-17)
+# Karte: app/controllers/concerns (Stand: 2026-10-24)
 
 > Für die Ticket-**Domäne** (Attributsystem, Kanban, Actors, Fallen) gilt zusätzlich
 > `docs/architektur/tickets_lesepfad.md`. Diese Karte hier beschreibt nur den **Stack**.
@@ -51,7 +51,10 @@ Lese-Reihenfolge, um eine Listen-Seite wirklich zu verstehen:
    `viewport_switchable.rb` (Mobile/Desktop-Umschaltung), `project_controller.rb`
    (Projekt-Scope-Basis, nutzt z. B. der MeetingsController), `ai_feature_gate.rb`
    (`ensure_ai_enabled`, org-Ebene; aus `project_controller.rb` extrahiert in S3a T2,
-   damit die projektlosen Assistant-Controller dasselbe Gate nutzen).
+   damit die projektlosen Assistant-Controller dasselbe Gate nutzen),
+   `meeting_in_project.rb` (24.10.2026: `with_meeting_in_project { ... }`, die Sperre eines
+   Meeting-Schreibwegs im Controller, Abschnitt zu `Meeting#lock_in_project!` in der
+   Wurzel-`CLAUDE.md`; der Wächter fragt jede schreibende Aktion der Meeting-Controller).
 
 Daneben liegen **Patches in Rails-eigene Controller**, die nicht per `include` im App-Controller,
 sondern über einen `to_prepare`-Initializer eingehängt werden: `direct_uploads_guard.rb` →

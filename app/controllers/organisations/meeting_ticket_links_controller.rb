@@ -15,6 +15,7 @@
 module Organisations
   class MeetingTicketLinksController < Organisations::BaseController
     include ProjectController
+    include MeetingInProject
 
     before_action :set_meeting
 
@@ -37,9 +38,7 @@ module Organisations
       # A move that committed while this waited has taken the meeting into
       # another project, and the ticket of this one may not follow it there
       # (404, as for a foreign meeting).
-      Meeting.transaction do
-        raise ActiveRecord::RecordNotFound unless @meeting.lock_in_project!(@project.id)
-
+      with_meeting_in_project do
         @meeting.outgoing_references.create!(
           organisation: @current_organisation,
           target: ticket,
@@ -57,7 +56,8 @@ module Organisations
       authorize @meeting, :update?
 
       # Scoped to this meeting's outgoing references: a foreign reference id is 404.
-      @meeting.outgoing_references.find(params[:id]).destroy
+      # Under the lock like every meeting write here (MeetingInProject).
+      with_meeting_in_project { @meeting.outgoing_references.find(params[:id]).destroy }
       respond_link_result(:notice, 'flash.meeting_ticket_links.removed')
     end
 

@@ -220,15 +220,18 @@ from this project": refuse, or answer as if it were not found.
   actors that lock and then authorize again, under the lock, in the project the meeting is in
   now (`AcceptTicketSuggestion`, `StartTicketSuggestionRun`). It only shrinks, and every entry
   gives its reason.
-* `WRITERS` pins the files of the seven writes that exist: the move, the edit, the delete, the
-  ticket link, the analysis publication, the booking and the start of a summary. Four review
-  rounds of the move found each of them landing in the old project after a move.
-* ⚠️ **The guard checks files, not actions.** A second write in a listed file passes as soon
-  as one other write there takes the lock: `create_summary` sat next to the delete without
-  it until a fourth review round.
-* ⚠️ **Not seen: a new write that takes no lock at all.** Writing a meeting's data (its
-  project, links, analyses, bookings) means calling the helper; the guard cannot know that a
-  file it has never heard of should.
+* In a controller the lock is `with_meeting_in_project { ... }` (`MeetingInProject`): the
+  block runs under the lock, a moved meeting answers 404. The guard asks **every write
+  action** (each route but GET) of `MeetingsController` and `MeetingTicketLinksController`
+  for that call or for an actor that locks itself (`LOCKING_ACTORS`). A check per file had
+  passed `create_summary`, unlocked next to a delete that locked, until a fourth review round.
+  The exception list (`NO_MEETING_YET`, a write before any meeting exists) only shrinks.
+* `WRITERS` pins the services that lock: the move, the edit, the analysis publication, the
+  booking, and the controller helper. Four review rounds of the move found each of these
+  writes landing in the old project after a move.
+* ⚠️ **Not seen: a write in a service or controller the guard does not name.** Writing a
+  meeting's data (its project, links, analyses, bookings) elsewhere means calling the helper
+  and adding the file to `WRITERS` or `CONTROLLERS`.
 * Lock order: the meeting before a booking or an analysis, never the other way round.
 
 ---

@@ -131,7 +131,7 @@ GEM
     connection_pool (2.5.0)
     countries (8.1.0)
       unaccent (~> 0.3)
-    crass (1.0.7)
+    crass (1.0.8)
     csv (3.3.6)
     database_cleaner-active_record (2.2.0)
       activerecord (>= 5.a)

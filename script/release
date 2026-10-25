@@ -4,16 +4,21 @@
 # Cuts a release of the core, in three steps:
 #
 #   script/release draft              print the next version and draft notes, change nothing
-#   script/release prepare [VERSION]  write the draft into CHANGELOG.md (then edit, PR, merge)
+#   script/release prepare [VERSION]  write the draft into CHANGELOG.md and the version into
+#                                     compose.yml (then edit, PR, merge)
 #   script/release publish VERSION    tag main and create the GitHub release from CHANGELOG.md
 #
 # draft changes nothing. prepare refuses a version that is already in
 # CHANGELOG.md, and marks the section with the commit it was drafted from.
+# The GitHub release starts .github/workflows/docker-release.yml, which builds
+# the image that compose.yml of the tag pulls.
 #
 # publish runs on an up-to-date main and refuses while:
 # - CHANGELOG.md is not in shape (Lalabase::Release.problems), or Unreleased has lines;
+# - compose.yml does not pull the image of this version;
 # - a pull request merged since the mark is not named in the section as (#N);
-#   a pull request into main that changed only CHANGELOG.md is exempt;
+#   a pull request into main that changed only CHANGELOG.md (and the image
+#   version in compose.yml) is exempt;
 # - a commit on main's first-parent line is no pull request (a rebase merge, a
 #   direct push).
 # --anyway skips the last two, after you read what they name.
@@ -36,12 +41,16 @@ require_relative '../lib/lalabase/release'
 
 ROOT = File.expand_path('..', __dir__)
 CHANGELOG = File.join(ROOT, 'CHANGELOG.md')
+COMPOSE = File.join(ROOT, 'compose.yml')
 # The release date, in UTC like the application (no Rails here to ask).
 TODAY = Time.now.utc.to_date
 ENV_EXAMPLES = %w[.env.example .env.docker.example .env.production.example].freeze
+# compose.yml changes with every release (the image version prepare writes);
+# its hint is only for a change beyond that line, see upgrade_hints.
 WATCHED = {
-  'Dockerfile' => 'The Dockerfile changed: rebuild the image.',
+  'Dockerfile' => 'The Dockerfile changed: if you build the image yourself (compose.build.yml), rebuild it.',
   'compose.yml' => 'compose.yml changed: compare it with your copy before `docker compose up -d`.',
+  'compose.build.yml' => 'compose.build.yml changed: if you build the image yourself, compare it with your copy.',
   'lib/lalabase/data_backfills.rb' => 'The data backfills changed; they run by themselves when the container starts ' \
                                       '(without Docker: `bin/rails lalabase:data_backfills`).'
 }.freeze
@@ -102,7 +111,17 @@ def upgrade_hints(tag)
 
   hints = new_env_keys(tag).map { |key| "New environment variable `#{key}` (see the example files)." }
   changed = sh('git', 'diff', '--name-only', "#{tag}..HEAD").split("\n")
+  changed.delete('compose.yml') if Lalabase::Release.version_only_diff?(sh('git', 'diff', '-U0', "#{tag}..HEAD", '--', 'compose.yml'))
   hints + WATCHED.filter_map { |path, hint| hint if changed.include?(path) }
+end
+
+# What prepare leaves for the notes pull request besides CHANGELOG.md: the
+# version of the release image in compose.yml. A commit (or pull request)
+# that changed nothing else needs no line in the notes.
+def notes_only?(from, to)
+  names = sh('git', 'diff', '--name-only', from, to).split("\n")
+  names.delete('compose.yml') if Lalabase::Release.version_only_diff?(sh('git', 'diff', '-U0', from, to, '--', 'compose.yml'))
+  names == ['CHANGELOG.md']
 end
 
 def draft_block(version)
@@ -134,9 +153,15 @@ def prepare(version)
   changelog = File.read(CHANGELOG)
   abort "CHANGELOG.md has a section for #{version} already: edit it, do not prepare it twice." if Lalabase::Release.section(changelog, version)
 
+  compose = begin
+    Lalabase::Release.with_compose_version(File.read(COMPOSE), version)
+  rescue ArgumentError => e
+    abort "#{e.message}: nothing was changed."
+  end
   File.write(CHANGELOG, Lalabase::Release.insert(changelog, draft_block(version)))
-  puts "CHANGELOG.md has a draft for #{version}. Edit it (drop what a self-hoster does not need,"
-  puts 'write the upgrade notes), open a pull request, merge it, then:'
+  File.write(COMPOSE, compose)
+  puts "CHANGELOG.md has a draft for #{version}, and compose.yml pulls its image. Edit the draft"
+  puts '(drop what a self-hoster does not need, write the upgrade notes), open a pull request, merge it, then:'
   puts "  script/release publish #{version}"
 end
 
@@ -158,7 +183,7 @@ def unaccounted(section)
     number = Lalabase::Release.pull_request_numbers([subject]).first
     next direct << "#{sha[0, 10]} #{subject}" unless number
 
-    exempt << number if sh('git', 'diff', '--name-only', "#{sha}^", sha).split("\n") == ['CHANGELOG.md']
+    exempt << number if notes_only?("#{sha}^", sha)
   end
   [merged_numbers(range) - exempt - Lalabase::Release.mentioned_numbers(section), direct]
 end
@@ -173,6 +198,11 @@ def check_publishable!(version, anyway:)
   abort "CHANGELOG.md is not in shape:\n  #{problems.join("\n  ")}" unless problems.empty?
   section = Lalabase::Release.section(changelog, version)
   abort "CHANGELOG.md on main has no section for #{version}: run prepare and merge it first." if section.nil?
+  pulled = Lalabase::Release.compose_version(File.read(COMPOSE))
+  unless pulled == version
+    abort "compose.yml on main pulls #{pulled ? "the image of #{pulled}" : "no single #{Lalabase::Release::IMAGE}"}, " \
+          "not #{version}: a tag of it would install another release. prepare writes the version; merge that first."
+  end
   reasons = []
   reasons << 'Unreleased is not empty: move its lines into the release (a pull request) or wait with them.' unless Lalabase::Release.section_body(changelog, Lalabase::Release::UNRELEASED).empty?
   missing, direct = anyway ? [[], []] : unaccounted(section)
@@ -218,6 +248,8 @@ def create_release(version, section)
        stdin_data: Lalabase::Release.notes(section))
   end
   puts "Released #{version}: tag on origin, GitHub release created."
+  puts "The workflow Docker release now builds #{Lalabase::Release::IMAGE}:#{version} (gh run list --workflow docker-release.yml);"
+  puts 'it adds the image to the release notes once the image is pushed.'
 end
 
 def publish(version, anyway:)

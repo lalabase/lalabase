@@ -1,0 +1,23 @@
+# Builds the image from this checkout instead of pulling the release image
+# that compose.yml names, for a change of your own.
+#
+#   docker compose -f compose.yml -f compose.build.yml up -d --build
+#
+# Or put COMPOSE_FILE=compose.yml:compose.build.yml into .env, and every
+# docker compose command (build, up, exec) uses both files.
+#
+# Build on the architecture the server runs: native extensions do not carry
+# over between arm64 and amd64.
+#
+# Only web builds, and the worker runs the image web built. With both
+# building the same image, the first `up --build` failed on Docker 29: the
+# two exports collide and one reports that the image already exists.
+
+services:
+  web:
+    build: .
+    image: lalabase:local
+
+  worker:
+    image: lalabase:local
+    pull_policy: never

@@ -84,9 +84,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   27.09.2026 liefen die Regressions-Specs von #895 und #896 nirgends. Neue Specs zu Rechten,
   Mandantengrenzen oder behobenen Lücken: Tag setzen **und** Pfad eintragen.
   The full suite and full `erblint` still run locally (known drift, separate cleanup).
-* **Docker** (`Dockerfile`, `compose.yml`, `.env.docker.example`): for self-hosters only, our
-  servers deploy with Capistrano and never run the image. `.github/workflows/docker.yml` builds it
-  and boots the stack, only for PRs touching the image or `config/`. Every production setting that
+* **Docker** (`Dockerfile`, `compose.yml`, `compose.build.yml`, `.env.docker.example`): for
+  self-hosters only, our servers deploy with Capistrano and never run the image. Each published
+  release builds `ghcr.io/lalabase/lalabase:<version>` for amd64 and arm64
+  (`.github/workflows/docker-release.yml`), checks it with `script/docker_check` and only then
+  pushes it. `compose.yml` pulls the release in its `image:` line, which `script/release
+  prepare` writes and `publish` holds against the version (guard: `changelog_guard_spec.rb`);
+  never edit that line by hand. `.github/workflows/docker.yml` builds from the checkout
+  (`compose.build.yml`) and boots the stack, only for PRs touching the image or `config/`.
+  Every production setting that
   names a host goes through `Lalabase::InstanceSettings`; without `LALABASE_HOST` it returns our
   servers' values unchanged (pinned by `spec/config/instance_settings_spec.rb`).
   ⚠️ **The compiled CSS carries the asset host.** The image precompiles with `ASSET_HOST=` set

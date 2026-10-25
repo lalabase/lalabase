@@ -40,6 +40,12 @@ module Lalabase
     }.freeze
     FIRST_RELEASE = 'First public release.'
     UNSORTED = '### Unsorted (move or delete before publishing)'
+    # The image .github/workflows/docker-release.yml publishes for each release.
+    IMAGE = 'ghcr.io/lalabase/lalabase'
+    # The line of compose.yml that names the image of its release. prepare
+    # writes the version into it and publish holds it against the version, so
+    # a checked-out tag pulls the image built from that tag.
+    COMPOSE_IMAGE = /^(?<lead>\s*image: #{Regexp.escape(IMAGE)}:\$\{LALABASE_VERSION:-)(?<version>[^}]*)(?<tail>\})$/
 
     module_function
 
@@ -73,6 +79,27 @@ module Lalabase
 
     # The release notes as GitHub shows them: the section without HTML comments.
     def notes(section) = section.gsub(/^<!--.*?-->\n*/m, '').strip
+
+    # The release compose.yml pulls, or nil unless it names the image exactly once.
+    def compose_version(text)
+      versions = text.to_s.to_enum(:scan, COMPOSE_IMAGE).map { Regexp.last_match[:version] }
+      versions.first if versions.one?
+    end
+
+    def with_compose_version(text, version)
+      count = text.to_s.scan(COMPOSE_IMAGE).size
+      raise ArgumentError, "compose.yml names #{IMAGE} #{count} times, not once" unless count == 1
+
+      text.sub(COMPOSE_IMAGE) { "#{Regexp.last_match[:lead]}#{version}#{Regexp.last_match[:tail]}" }
+    end
+
+    # A diff of compose.yml (`git diff -U0`) that changes nothing but the
+    # version of the release image: what prepare does, and nothing a
+    # self-hoster has to compare with their copy.
+    def version_only_diff?(diff)
+      changed = diff.to_s.lines.drop_while { |line| !line.start_with?('@@') }.grep(/\A[-+]/)
+      changed.any? && changed.all? { |line| COMPOSE_IMAGE.match?(line[1..].chomp) }
+    end
 
     # Titles marked breaking ("feat(api)!: …"), as upgrade notes.
     def breaking_changes(pull_requests)

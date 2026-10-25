@@ -1,0 +1,178 @@
+# Release images: builds ghcr.io/lalabase/lalabase for each published
+# release, for linux/amd64 and linux/arm64, checks each with
+# script/docker_check and pushes it. compose.yml of the release tag pulls
+# exactly this image: script/release writes the version into it.
+#
+# Each architecture builds on a runner of its own kind: native extensions and
+# the tree-sitter grammars do not carry over between them (Dockerfile), and an
+# emulated build takes far longer. An image is pushed only after it booted, so
+# a release never names an image that does not start. The publish job joins
+# both architectures under the version, moves `latest` only for the newest
+# release, attests where the image was built (`gh attestation verify`) and
+# adds the image to the release notes.
+#
+# A pull request that changes the image or this file builds and checks both
+# architectures and pushes nothing: docker.yml builds amd64 only. By hand
+# (workflow_dispatch) for a release tag on main, for example one published
+# before this workflow existed.
+name: Docker release
+
+on:
+  release:
+    types: [published]
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'script/docker_check'
+      - '.github/workflows/docker-release.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag on main, e.g. 2026.10.1'
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: docker-release-${{ github.event.release.tag_name || inputs.tag || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/lalabase/lalabase
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  # A pull request builds and checks; only a release (or a run by hand) pushes.
+  PUSH: ${{ github.event_name != 'pull_request' }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ARCH: ${{ matrix.arch }}
+      HOST: lalabase-ci.test:3000
+
+    steps:
+      # The checkout is this workflow's commit: the release tag, or main for a
+      # run by hand. compose.yml and script/docker_check come from it; the
+      # image is built from the tag (src/).
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # The version scheme of Lalabase::Release::VERSION. The tag lands in
+      # shell commands and image names, so nothing else passes.
+      - name: Release tag on main
+        if: env.PUSH == 'true'
+        run: |
+          [[ "$TAG" =~ ^[0-9]{4}\.([1-9]|1[0-2])\.[0-9]+$ ]] || { echo "::error::Not a release tag: $TAG"; exit 1; }
+          git merge-base --is-ancestor "refs/tags/$TAG" origin/main || { echo "::error::$TAG is not on main"; exit 1; }
+          echo "LALABASE_VERSION=$TAG" >> "$GITHUB_ENV"
+          git worktree add --detach src "refs/tags/$TAG"
+
+      - name: Pull request source
+        if: env.PUSH != 'true'
+        run: |
+          echo "LALABASE_VERSION=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_ENV"
+          git worktree add --detach src HEAD
+
+      - name: Build
+        run: |
+          docker build \
+            --label org.opencontainers.image.source=https://github.com/lalabase/lalabase \
+            --label org.opencontainers.image.title=Lalabase \
+            --label org.opencontainers.image.licenses=AGPL-3.0-only \
+            --label org.opencontainers.image.version="$LALABASE_VERSION" \
+            --label org.opencontainers.image.revision="$(git -C src rev-parse HEAD)" \
+            --tag "$IMAGE:$LALABASE_VERSION" \
+            src
+
+      - name: Boot and check the install
+        run: script/docker_check
+
+      - name: Log in to the registry
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # One tag per architecture, for the publish job to join. They stay in
+      # the registry; compose.yml pulls the version itself.
+      - name: Push
+        if: env.PUSH == 'true'
+        run: |
+          docker tag "$IMAGE:$TAG" "$IMAGE:$TAG-$ARCH"
+          docker push --quiet "$IMAGE:$TAG-$ARCH"
+
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # the release notes
+      packages: write
+      id-token: write # the attestation
+      attestations: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+
+    steps:
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # `latest` only for the newest release: a run by hand for an older tag
+      # must not move it back.
+      - name: One tag for both architectures
+        id: manifest
+        run: |
+          tags=(--tag "$IMAGE:$TAG")
+          newest=$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)
+          if [ "$newest" = "$TAG" ]; then tags+=(--tag "$IMAGE:latest"); fi
+          docker buildx imagetools create "${tags[@]}" "$IMAGE:$TAG-amd64" "$IMAGE:$TAG-arm64"
+          digest=$(docker buildx imagetools inspect "$IMAGE:$TAG" --format '{{json .Manifest}}' | jq -r .digest)
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "::error::No digest for $IMAGE:$TAG: $digest"; exit 1; }
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true
+
+      # Appended last, so a second run replaces what the first one wrote.
+      - name: The image in the release notes
+        env:
+          DIGEST: ${{ steps.manifest.outputs.digest }}
+        run: |
+          gh release view "$TAG" --json body --jq .body | awk '/^### Docker image$/ { exit } { print }' > notes.md
+          cat >> notes.md <<EOF
+
+          ### Docker image
+
+          \`\`\`
+          docker pull $IMAGE:$TAG
+          \`\`\`
+
+          For linux/amd64 and linux/arm64, digest \`$DIGEST\`. Check where it was built:
+          \`gh attestation verify oci://$IMAGE:$TAG --owner lalabase\`
+          EOF
+          gh release edit "$TAG" --notes-file notes.md

@@ -53,8 +53,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build the image
-        run: docker compose build
-
-      - name: Boot and check the install
-        run: script/docker_check
+      - name: Build the image, boot it and check the install
+        run: script/docker_check --build

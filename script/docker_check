@@ -5,7 +5,10 @@
 # pull request (COMPOSE_FILE=compose.yml:compose.build.yml), docker-release.yml
 # with the release image before it pushes it (LALABASE_VERSION).
 #
-#   HOST=lalabase-ci.test:3000 script/docker_check
+#   HOST=lalabase-ci.test:3000 script/docker_check [--build]
+#
+# --build runs `docker compose build` once .env is written: compose reads the
+# required values of .env already to build.
 #
 # HOST is a host that is not localhost: the health check in compose.yml calls
 # /up on localhost, so it passes only through the /up exemptions from the
@@ -53,6 +56,10 @@ rm -f .env.bak
   echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
   echo "DATABASE_URL=postgres://lalabase:wrong@db:5432/lalabase_production"
 } >> .env
+
+if [ "${1:-}" = "--build" ]; then
+  docker compose build
+fi
 
 # --pull never: the image under test is the one built in this run. A pull
 # would test whatever the registry holds under that name. The database and

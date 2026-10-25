@@ -631,10 +631,10 @@ GEM
     useragent (0.16.11)
     valvat (2.0.1)
       rexml (>= 3.3.6, < 4.0.0)
-    view_component (3.27.0)
-      activesupport (>= 5.2.0, < 8.2)
+    view_component (4.14.0)
+      actionview (>= 7.1.0)
+      activesupport (>= 7.1.0)
       concurrent-ruby (~> 1)
-      method_source (~> 1.0)
     warden (1.2.9)
       rack (>= 2.0.9)
     web-console (4.2.1)
@@ -738,7 +738,7 @@ DEPENDENCIES
   tailwindcss-rails (~> 3.3.1)
   turbo-rails
   valvat
-  view_component (~> 3.25)
+  view_component (~> 4.14.0)
   web-console
   whatlanguage
 

@@ -23,10 +23,8 @@ gem 'lexxy', '~> 0.9'           # Lexical-based ActionText editor (Wiki notes on
 gem 'redcarpet'
 gem 'reverse_markdown'          # HTML → GFM-Markdown für die Wiki markdown_body-Projektion
 gem 'rouge'                     # Syntax highlighting for documentation code blocks
-# Pinned to the 3.x line on 27.08.2026: GHSA-7f3r-gwc9-2995 and GHSA-hg3h-g7xc-f7vp are
-# fixed in 3.25.0 as well as in 4.9.0, and without a constraint bundle update would take
-# the 4.x major across every component in app/components. Lifting this pin is its own job.
-gem 'view_component', '~> 3.25'
+# Keep the remediation required by GHSA-8qw7-6phv-7q6p on the 4.14 patch line.
+gem 'view_component', '~> 4.14.0'
 
 gem 'dotenv-rails' # Loads environment variables from .env
 gem 'pagy', '~> 9.0'

@@ -73,6 +73,6 @@ module Lalabase
     config.autoload_paths += %W[#{config.root}/app/controllers]
 
     # ViewComponent configuration
-    config.view_component.preview_paths << "#{Rails.root.join('spec/components/previews')}"
+    config.view_component.previews.paths << "#{Rails.root.join('spec/components/previews')}"
   end
 end

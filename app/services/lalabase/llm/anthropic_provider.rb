@@ -37,15 +37,21 @@ module Lalabase
         response = client.messages.create(params)
         text_parts, tool_calls = extract_content_blocks(response)
         content_text = text_parts.join.strip
-        raise Error, 'Anthropic returned empty content' if content_text.empty? && tool_calls.empty?
-
-        {
+        result = {
           content: content_text,
           tool_calls: tool_calls.empty? ? nil : tool_calls,
           stop_reason: extract_stop_reason(response),
           model_used: model,
           token_usage: extract_token_usage(response, model: model)
         }
+        if content_text.empty? && tool_calls.empty?
+          # Stopped at max_tokens before any text: see Provider::TruncatedError.
+          raise TruncatedError.new('Anthropic returned empty content', result: result) if result[:stop_reason] == 'length'
+
+          raise Error, 'Anthropic returned empty content'
+        end
+
+        result
       rescue Anthropic::Errors::APIError => e
         raise mapped_error(e)
       end

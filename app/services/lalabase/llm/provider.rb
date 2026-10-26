@@ -32,6 +32,20 @@ module Lalabase
       # space's expected dimension — raised by #guard_dimensions (see there).
       class DimensionMismatchError < Error; end
 
+      # The answer hit max_tokens before a single word of it was written: a thinking
+      # model can spend the whole limit on its thoughts. Still an Error, so every
+      # caller that rescues Error behaves as before. It carries the result hash of
+      # #chat (empty content, stop_reason 'length', token_usage) because the call
+      # was billed: Meetings::BaseLlmService meters it and reports 'truncated'.
+      class TruncatedError < Error
+        attr_reader :result
+
+        def initialize(message = nil, result: {})
+          super(message)
+          @result = result
+        end
+      end
+
       # Fallback embedding dimension when none is configured on the provider
       # (embedding_dims: nil). Historically the hard "1536-lane" invariant
       # (doc/embedding_provider_abstraction_plan.md); with v2 the dimension is a
@@ -110,7 +124,9 @@ module Lalabase
       # @param model [String, nil] Provider-specific model id. Falls back to #default_chat_model.
       # @param max_tokens [Integer] Budget of the ANSWER. A provider whose model
       #   thinks first puts its own reserve on top (GoogleVertexProvider::THINKING_BUDGET,
-      #   OpenAiProvider::REASONING_RESERVE); callers never add one themselves.
+      #   OpenAiProvider::REASONING_RESERVE); callers never add one themselves. An
+      #   answer that hit the limit before any text raises TruncatedError (with the
+      #   result and its usage) where a provider would otherwise raise "empty content".
       # @param temperature [Float]
       # @return [Hash] {content:, tool_calls: nil | Array, stop_reason: String,
       #                 model_used:, token_usage: {...}}.

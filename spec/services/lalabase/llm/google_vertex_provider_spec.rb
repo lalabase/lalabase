@@ -359,9 +359,11 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
         )
       end
 
-      it 'matches a versioned name of a thinking family' do
-        provider.chat(messages: messages, model: 'gemini-2.5-flash-002')
-        expect(last_payload['generationConfig']).to include('thinkingConfig' => { 'thinkingBudget' => budget })
+      ['gemini-2.5-flash-002', 'gemini-2.5-pro-preview-05-06', 'gemini-2.5-flash-preview-09-2025'].each do |model|
+        it "matches the versioned name #{model} of a thinking family" do
+          provider.chat(messages: messages, model: model)
+          expect(last_payload['generationConfig']).to include('thinkingConfig' => { 'thinkingBudget' => budget })
+        end
       end
 
       it 'keeps the budget inside the range both 2.5 families accept (Pro 128..32768, Flash 1..24576)' do
@@ -372,7 +374,12 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
       # thinking ON for Flash-Lite and cost tokens nobody asked for. Gemini 3 takes
       # thinkingLevel instead (thinkingBudget is deprecated there and can 400), and
       # whether its thoughts count against maxOutputTokens is not documented yet.
-      ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-3-pro-preview', 'gemini-3-flash', 'some-tuned-model']
+      # The image, speech and live variants of 2.5 do not think either (a
+      # thinkingConfig can be refused there), and a longer word is not the family.
+      ['gemini-2.5-flash-lite', 'gemini-2.5-flash-lite-preview-06-17', 'gemini-2.5-flash-image',
+       'gemini-2.5-flash-image-preview', 'gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts',
+       'gemini-2.5-flash-live-preview', 'gemini-2.5-flash-native-audio-dialog', 'gemini-2.5-flashy',
+       'gemini-2.0-flash', 'gemini-3-pro-preview', 'gemini-3-flash', 'some-tuned-model']
         .each do |model|
         it "sends #{model} the bare limit, byte for byte as before" do
           provider.chat(messages: messages, model: model)
@@ -450,6 +457,27 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
       stub_post(body: chat_response(parts: [], finish_reason: 'MAX_TOKENS'))
       expect { provider.chat(messages: messages) }
         .to raise_error(Lalabase::Llm::Provider::Error, /empty content.*MAX_TOKENS/m)
+    end
+
+    # Thinking can still spend the whole output limit (the budget is a target, not
+    # a hard cap). The empty answer stays an Error for every caller, but a
+    # TruncatedError that carries the billed usage, so a caller can meter it and
+    # say "cut off" instead of "something went wrong".
+    it 'raises TruncatedError carrying stop_reason and usage when MAX_TOKENS left no text' do
+      stub_post(body: chat_response(parts: [], finish_reason: 'MAX_TOKENS',
+                                    usage: { 'promptTokenCount' => 10, 'candidatesTokenCount' => 0,
+                                             'totalTokenCount' => 3558 }))
+      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::TruncatedError) { |error|
+        expect(error.result).to include(content: '', stop_reason: 'length', model_used: 'gemini-2.5-flash')
+        expect(error.result[:token_usage]).to include(input_tokens: 10, total_tokens: 3558)
+      }
+    end
+
+    it 'keeps a plain Error (not TruncatedError) for an empty answer that did not hit the limit' do
+      stub_post(body: chat_response(parts: [], finish_reason: 'STOP'))
+      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::Error) { |error|
+        expect(error).not_to be_a(Lalabase::Llm::Provider::TruncatedError)
+      }
     end
 
     it 'returns content_filter (not an error) when an output-side safety block empties the content' do

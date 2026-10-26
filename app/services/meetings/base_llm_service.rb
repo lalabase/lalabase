@@ -72,6 +72,11 @@ module Meetings
       return record_truncated(result) if result[:stop_reason] == TRUNCATED_STOP_REASON
 
       handle_result(result)
+    rescue Lalabase::Llm::Provider::TruncatedError => e
+      # The limit was reached before any text: the provider raises instead of
+      # returning, but the call was billed all the same. Same outcome as above.
+      track_usage(provider, e.result)
+      record_truncated(e.result)
     rescue Lalabase::Llm::Factory::MissingCredentialError
       record_error(t('not_configured'))
     rescue Lalabase::Llm::QuotaExceededError

@@ -66,11 +66,13 @@ module Lalabase
       # fixed thinking budget and the same reserve on top of the answer budget.
       # 2,048 lies inside both accepted ranges (Pro 128..32,768, it cannot turn
       # thinking off; Flash 1..24,576).
-      # Not matched on purpose: Flash-Lite (a budget would switch thinking ON),
+      # Not matched on purpose: Flash-Lite (a budget would switch thinking on),
       # 2.0 Flash (no thinking) and Gemini 3 (thinkingLevel instead, and
       # thinkingBudget is deprecated there and can answer 400).
       THINKING_BUDGET = 2_048
-      THINKING_MODEL_PATTERN = /\Agemini-2\.5-(?:pro|flash(?!-lite))/
+      # Also not matched: the image, speech (tts), live and native-audio variants
+      # of 2.5, which do not think, and a longer word after the family name.
+      THINKING_MODEL_PATTERN = /\Agemini-2\.5-(?:pro|flash)(?:\z|-(?!.*(?:lite|image|tts|live|audio)))/
 
       # Gemini finishReason → canonical vocabulary (see Provider#chat). The
       # whole safety family collapses onto content_filter; unknown values pass
@@ -191,18 +193,24 @@ module Lalabase
         # finishReason is right here on the candidate. Only a truly empty result
         # (no content, no tools, no filter signal) is an error — now carrying the
         # finishReason for diagnosis.
-        if content_text.empty? && tool_calls.empty? && stop_reason != 'content_filter'
-          finish = candidate['finishReason'].inspect
-          raise Error, "Vertex AI returned empty content (finishReason: #{finish})"
-        end
-
-        {
+        result = {
           content: content_text,
           tool_calls: tool_calls.empty? ? nil : tool_calls,
           stop_reason: stop_reason,
           model_used: model,
           token_usage: usage_from_metadata(response['usageMetadata'], model: model)
         }
+        if content_text.empty? && tool_calls.empty? && stop_reason != 'content_filter'
+          finish = candidate['finishReason'].inspect
+          message = "Vertex AI returned empty content (finishReason: #{finish})"
+          # MAX_TOKENS with no text: the thoughts used the whole limit (the
+          # thinking budget is a target, not a hard cap). See TruncatedError.
+          raise TruncatedError.new(message, result: result) if stop_reason == 'length'
+
+          raise Error, message
+        end
+
+        result
       end
 
       def stream_chat(messages:, model: nil, max_tokens: 1500, temperature: 0.7, provider_options: {}, &on_chunk)

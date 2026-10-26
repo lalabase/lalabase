@@ -244,7 +244,18 @@ RSpec.describe Lalabase::Llm::AnthropicProvider do
     it 'raises Error when content blocks contain no text' do
       empty_response = Struct.new(:content, :usage).new([], usage)
       allow(fake_messages).to receive(:create).and_return(empty_response)
-      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::Error, /empty content/)
+      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::Error, /empty content/) { |error|
+        expect(error).not_to be_a(Lalabase::Llm::Provider::TruncatedError)
+      }
+    end
+
+    it 'raises TruncatedError carrying the usage when max_tokens stopped it before any text' do
+      cut_response = Struct.new(:content, :usage, :stop_reason).new([], usage, 'max_tokens')
+      allow(fake_messages).to receive(:create).and_return(cut_response)
+      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::TruncatedError) { |error|
+        expect(error.result).to include(content: '', stop_reason: 'length')
+        expect(error.result[:token_usage]).to be_present
+      }
     end
 
     it 'maps Anthropic::Errors::AuthenticationError → AuthError' do

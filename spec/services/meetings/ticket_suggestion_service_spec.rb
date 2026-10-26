@@ -211,6 +211,26 @@ RSpec.describe Meetings::TicketSuggestionService do
       end
     end
 
+    context 'when the answer of an assistant-started run was cut at the output limit' do
+      let(:chat_result) { { content: llm_content, stop_reason: 'length', token_usage: { total_tokens: 100 }, model_used: 'gpt-4o-mini' } }
+      let(:run) do
+        MeetingTicketSuggestionRun.create!(
+          organisation: organisation, meeting: meeting, project_id: meeting.project_id, status: :running,
+          meeting_title: meeting.title, project_title: project.name, job_id: SecureRandom.uuid,
+          results: [], sources: {}
+        )
+      end
+
+      it 'fails the run with the truncated message and creates no suggestion' do
+        expect { described_class.call(meeting: meeting, run: run) }
+          .not_to(change { meeting.meeting_ticket_suggestions.count })
+
+        expect(run.reload).to be_failed
+        expect(run.error).to eq(I18n.t('services.meetings.ticket_suggestions.truncated'))
+        expect(meeting.reload.suggestions_creation_flag).to be(false)
+      end
+    end
+
     context 'when the quota is exhausted (Factory raises)' do
       before { allow(Lalabase::Llm::Factory).to receive(:for_feature).with(:meeting_ticket_suggestions, organisation).and_raise(Lalabase::Llm::QuotaExceededError) }
 

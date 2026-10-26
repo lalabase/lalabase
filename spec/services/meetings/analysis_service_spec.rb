@@ -173,6 +173,29 @@ RSpec.describe Meetings::AnalysisService do
     end
   end
 
+  describe 'answer cut before any text (provider raises TruncatedError)' do
+    let(:transcript) { 'Some transcript' }
+    let(:cut_result) do
+      { content: '', stop_reason: 'length', model_used: 'gemini-2.5-flash',
+        token_usage: { input_tokens: 900, output_tokens: 0, total_tokens: 3548 } }
+    end
+
+    before do
+      allow(provider).to receive(:chat)
+        .and_raise(Lalabase::Llm::Provider::TruncatedError.new('empty content', result: cut_result))
+    end
+
+    it 'records the truncated error (not the generic one) and meters the billed call' do
+      described_class.call(analysis: analysis)
+      analysis.reload
+      expect(analysis.creation_error).to eq(I18n.t('services.meetings.analysis.truncated'))
+      expect(analysis.creation_flag).to be(false)
+      expect(analysis.content).to eq('')
+      expect(Lalabase::Llm::UsageTracking).to have_received(:record)
+        .with(hash_including(token_usage: cut_result[:token_usage], subject: analysis))
+    end
+  end
+
   describe 'an answer that ended normally (stop_reason stop)' do
     let(:transcript) { 'Some transcript' }
     let(:chat_result) { { content: 'Fertige Analyse.', stop_reason: 'stop', token_usage: {}, model_used: 'gpt-4o-mini' } }

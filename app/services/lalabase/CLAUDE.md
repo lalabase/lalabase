@@ -1,4 +1,4 @@
-# Karte: app/services/lalabase (Stand: 2026-10-10)
+# Karte: app/services/lalabase (Stand: 2026-10-26)
 
 AI/RAG-Domäne (Produktname „Lalabase"): alles rund um LLM-Aufrufe, Embeddings und
 Codebase-Verständnis.
@@ -226,3 +226,13 @@ Wichtig:
    Gebucht wird EINE `AiUsage`-Zeile pro Lauf, nicht pro Batch (`UsageTracking`).
    ⚠️ `Indexer::SymbolPersistence` nutzt weiterhin `embed_batch` und bucht NICHTS — bekannte
    Altlast, nicht von P4a berührt.
+7. **`max_tokens` ist das Budget der ANTWORT** (seit 2026-10-26). Ein Modell, das vorher
+   denkt, bekommt die Reserve im Provider obendrauf: `GoogleVertexProvider::THINKING_BUDGET`
+   für Gemini 2.5 Flash und Pro (`thinkingConfig` + `maxOutputTokens`),
+   `OpenAiProvider::REASONING_RESERVE` für gpt-5 und die o-Reihe (`max_completion_tokens`).
+   Ohne Reserve zählten die Denk-Tokens gegen das Limit, und von einer kurzen Antwort blieb
+   fast nichts übrig. Ein Aufrufer rechnet nie selbst eine Reserve ein und
+   schickt keine Anbieter-Felder. Endet eine Antwort am Limit (`stop_reason 'length'`), ist
+   sie abgeschnitten: `Meetings::BaseLlmService` meldet dann den Fehler `truncated` statt
+   den Teiltext zu speichern. ⚠️ Der Assistent (`Tools::Runner`) und die Teilnehmer-Erkennung
+   werten `'length'` noch nicht aus.

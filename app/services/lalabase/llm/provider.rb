@@ -108,7 +108,9 @@ module Lalabase
       # @param tools [Array<Hash>, nil] Optional tool schemas in provider-neutral form:
       #   [{name:, description:, input_schema: <JSON-Schema hash>}]. nil disables tool-use.
       # @param model [String, nil] Provider-specific model id. Falls back to #default_chat_model.
-      # @param max_tokens [Integer]
+      # @param max_tokens [Integer] Budget of the ANSWER. A provider whose model
+      #   thinks first puts its own reserve on top (GoogleVertexProvider::THINKING_BUDGET,
+      #   OpenAiProvider::REASONING_RESERVE); callers never add one themselves.
       # @param temperature [Float]
       # @return [Hash] {content:, tool_calls: nil | Array, stop_reason: String,
       #                 model_used:, token_usage: {...}}.

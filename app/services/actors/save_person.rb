@@ -18,6 +18,8 @@
 module Actors
   class SavePerson < BaseActor
     ATTRIBUTES = %i[name function department company email phone notes lock_version].freeze
+    # lock_version is an integer column (4 bytes).
+    LOCK_VERSION_RANGE = (0..((2**31) - 1))
 
     def initialize(organisation:, params:, current_user:, id: nil)
       super()
@@ -35,7 +37,9 @@ module Actors
       raise ActorError.new(I18n.t('controllers.people.not_found'), code: :not_found) if @person.nil?
 
       check_lock_version
-      @person.assign_attributes(@params.slice(*ATTRIBUTES))
+      attributes = @params.slice(*ATTRIBUTES)
+      attributes.delete(:lock_version) if @person.new_record?
+      @person.assign_attributes(attributes)
       assign_link if @params.key?(:user_id)
       @person.creator ||= @current_user if @person.new_record?
       @person.updater = @current_user
@@ -46,11 +50,12 @@ module Actors
 
     attr_reader :current_user
 
-    # A lock_version that is not a number (a hand-made request) cannot say what
-    # the writer saw; Rails would raise on a nil one. Treated as stale.
+    # On an update, a lock_version that is not a number the column can hold (a
+    # hand-made request) cannot say what the writer saw; Rails would raise on
+    # it. Treated as stale. A new row has none to compare.
     def check_lock_version
-      return unless @params.key?(:lock_version)
-      return if Integer(@params[:lock_version].to_s, exception: false)
+      return if @person.nil? || @person.new_record? || !@params.key?(:lock_version)
+      return if LOCK_VERSION_RANGE.cover?(Integer(@params[:lock_version].to_s, exception: false))
 
       raise ActorError.new(I18n.t('controllers.people.update.stale'), code: :stale_object)
     end

@@ -84,16 +84,22 @@ module PeopleHelper
     end
   end
 
-  # The active members the reader may link a row to: visible on the members
-  # page and without a row of their own yet. The row's current member always
-  # stays an option, also once deactivated: without it the select shows "no
-  # member", and every save of the form would drop the link (review round 1).
-  def linkable_members_for(person)
+  # The options of the member select: the active members the reader may link
+  # (visible on the members page, without a row of their own yet), labelled
+  # through the viewer's name display setting. The member a stored row is
+  # linked to always stays an option, also once deactivated: without it the
+  # select shows "no member" and every save drops the link (review round 1).
+  # A stored member the reader cannot link now (deactivated, out of sight) is
+  # labelled with the row's own name, never with the account (review round 3).
+  def member_options_for(person)
     taken = Person.where(organisation: current_organisation).linked.where.not(id: person.id).select(:user_id)
     member_ids = policy_scope(Membership).where(organisation: current_organisation, active: true).select(:user_id)
     members = User.where(id: member_ids).where.not(id: taken).to_a
-    stored = User.find_by(id: person.user_id_in_database) if person.persisted? && person.user_id_in_database
-    members |= [stored] if stored
-    members.sort_by { |user| viewer_display_name(user).downcase }
+    options = members.map { |user| [viewer_display_name(user), user.id] }.sort_by { |label, _id| label.downcase }
+    stored_id = person.user_id_in_database if person.persisted?
+    return options if stored_id.nil? || members.any? { |user| user.id == stored_id }
+
+    label = t('views.organisations.people.form.former_member_option', name: person.name_in_database)
+    [[label, stored_id]] + options
   end
 end

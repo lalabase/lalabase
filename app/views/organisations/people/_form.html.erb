@@ -24,16 +24,17 @@
 
   <div>
     <%= f.label :user_id, Person.human_attribute_name(:user), class: 'block text-sm font-medium text-cream-700 mb-1' %>
-    <%= f.select :user_id, linkable_members_for(person).map { |user| [viewer_display_name(user), user.id] },
+    <%= f.select :user_id, member_options_for(person),
                  { include_blank: t('views.organisations.people.form.no_member') }, class: input_class %>
     <p class="mt-1 text-xs text-muted"><%= t('views.organisations.people.form.member_hint') %></p>
   </div>
 
   <div>
     <%= f.label :name, class: 'block text-sm font-medium text-cream-700 mb-1' %>
-    <%# A linked row shows the member's own name; the copy here only shows once
-        the link is gone, so it is not edited while linked. %>
-    <%= f.text_field :name, class: input_class, maxlength: Person::MAX_FIELD_LENGTH, readonly: person.user_id.present? %>
+    <%# A row of an active member shows the member's own name; the copy here
+        only shows once the link is gone or the member left, so it is not
+        edited while the member is active. %>
+    <%= f.text_field :name, class: input_class, maxlength: Person::MAX_FIELD_LENGTH, readonly: person_member_user(person).present? %>
   </div>
 
   <% %i[function department company].each do |field| %>

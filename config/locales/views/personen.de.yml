@@ -49,6 +49,7 @@ de:
           new_title: "Person anlegen"
           edit_title: "Person bearbeiten"
           no_member: "Kein Mitglied"
+          former_member_option: "%{name} (früheres Mitglied)"
           member_hint: "Mit einem Mitglied verknüpft, zeigt die Liste den Namen aus seinem Konto."
           shared_hint: "Alle mit Zugriff auf Personen sehen diese Angaben, auch die Kundenseite."
           save: "Speichern"

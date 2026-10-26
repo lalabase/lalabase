@@ -280,7 +280,7 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
       get organisation_person_path(organisation, person), headers: frame_headers
 
       expect(response.body).to include(I18n.t('views.organisations.people.show.duplicates_title'),
-                                       organisation_person_path(organisation, twin))
+                                       "person_id=#{twin.id}")
     end
 
     it 'lists the history without values' do
@@ -475,6 +475,106 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     get edit_organisation_person_path(organisation, linked), headers: frame_headers
 
     expect(response.body).to match(/<input[^>]*readonly="readonly"[^>]*id="person_name"|<input[^>]*id="person_name"[^>]*readonly="readonly"/)
+  end
+
+  # Review round 3, finding 1: the member select named the CURRENT account of
+  # a deactivated member, also to a reader who may not see that member.
+  it 'labels the stored former member with the row name, not the account' do
+    project = create(:project, organisation: organisation)
+    create(:project_permission, user: manager, project: project, tickets_access: :read_only)
+    hidden = member_with(role_with, first_name: 'Kopie')
+    create(:project_permission, user: hidden, project: create(:project, organisation: organisation),
+                                tickets_access: :read_only)
+    row = create(:person, organisation: organisation, user: hidden, name: 'Kopie Name')
+    Membership.find_by(user: hidden, organisation: organisation).update!(active: false)
+    hidden.update!(first_name: 'Geheim', last_name: 'Neuname')
+    sign_in manager
+
+    get edit_organisation_person_path(organisation, row), headers: frame_headers
+
+    expect(response.body).not_to include('Neuname')
+    expect(response.body).to match(/<option selected="selected" value="#{hidden.id}">Kopie Name/)
+  end
+
+  # Review round 3, finding 2: the name of a former member's row is the only
+  # name shown, so it stays editable.
+  it 'keeps the name field editable for the row of a former member' do
+    former = member_with(role_with, first_name: 'Alt')
+    row = create(:person, organisation: organisation, user: former, name: 'Alt Name')
+    Membership.find_by(user: former, organisation: organisation).update!(active: false)
+    sign_in admin
+
+    get edit_organisation_person_path(organisation, row), headers: frame_headers
+
+    expect(response.body[/<input[^>]*id="person_name"[^>]*>/]).not_to include('readonly')
+  end
+
+  # Review round 3, finding 3: ?user_id= only preselects a member without a row
+  # who is active.
+  describe 'preselecting a member through the address' do
+    before { sign_in admin }
+
+    it 'does not preselect a member who already has a row' do
+      taken = member_with(role_with, first_name: 'Vergeben')
+      create(:person, organisation: organisation, user: taken)
+
+      get new_organisation_person_path(organisation, user_id: taken.id), headers: frame_headers
+
+      expect(response.body).not_to include('selected="selected"')
+      expect(response.body[/<input[^>]*id="person_name"[^>]*>/]).not_to include('readonly')
+    end
+
+    it 'does not preselect a deactivated member' do
+      former = member_with(role_with, first_name: 'Inaktiv')
+      Membership.find_by(user: former, organisation: organisation).update!(active: false)
+
+      get new_organisation_person_path(organisation, user_id: former.id), headers: frame_headers
+
+      expect(response.body).not_to include('selected="selected"')
+    end
+  end
+
+  # Review round 3, finding 4: the address rules of user_id (form group, the
+  # "+" takes it away, an unopened one is dropped).
+  it 'wires user_id as part of the lane form state' do
+    sign_in admin
+
+    get organisation_people_path(organisation, user_id: 'x')
+
+    expect(response.body).to include(CGI.escapeHTML('"form":["new","user_id"]'),
+                                     CGI.escapeHTML('["person_id","user_id"]'),
+                                     CGI.escapeHTML('{"user_id":"x"}'))
+  end
+
+  # Review round 3, findings 5 and 6: hand-made lock versions.
+  it 'creates a person even when the request carries an unusable lock_version' do
+    sign_in admin
+
+    expect do
+      post organisation_people_path(organisation), params: { person: { name: 'Neu Person', lock_version: '' } }
+    end.to change(Person, :count).by(1)
+  end
+
+  it 'answers a lock_version beyond the column as a stale save' do
+    sign_in admin
+
+    patch organisation_person_path(organisation, person),
+          params: { person: { phone: '0', lock_version: '99999999999999999999' } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(person.reload.phone).to eq('+49 30 1234567')
+  end
+
+  # Review round 3, finding 7: a duplicate opens like a row, with its own
+  # address, not inside the frame alone.
+  it 'links a duplicate to the page address of that person' do
+    twin = create(:person, organisation: organisation, name: 'Doris Dienstleister')
+    sign_in admin
+
+    get organisation_person_path(organisation, person), headers: frame_headers
+
+    link = response.body[/<a[^>]*href="[^"]*person_id=#{twin.id}[^"]*"[^>]*>/]
+    expect(link).to include('data-turbo-frame="_top"')
   end
 
   it 'has no missing translation on the page' do

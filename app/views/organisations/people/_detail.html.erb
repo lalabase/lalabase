@@ -74,7 +74,10 @@
         <% duplicates.each do |entry| %>
           <li>
             <% if entry.person %>
-              <%= link_to person_display_name(person: entry.person, user: entry.user), organisation_person_path(@current_organisation, entry.person) %>
+              <%# A full visit, like a row: the address names the person shown. %>
+              <%= link_to person_display_name(person: entry.person, user: entry.user),
+                          organisation_people_path(@current_organisation, list_state.merge('person_id' => entry.person.id)),
+                          data: { turbo_frame: '_top' } %>
             <% else %>
               <%= viewer_display_name(entry.user) %>
             <% end %>

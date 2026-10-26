@@ -49,6 +49,7 @@ en:
           new_title: "Add person"
           edit_title: "Edit person"
           no_member: "No member"
+          former_member_option: "%{name} (former member)"
           member_hint: "When linked to a member, the list shows the name from their account."
           shared_hint: "Everyone with access to people sees these details, the customer's side too."
           save: "Save"

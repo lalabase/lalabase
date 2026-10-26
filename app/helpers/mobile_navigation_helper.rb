@@ -24,6 +24,7 @@ module MobileNavigationHelper
     'memberships' => 'settings.members',
     'organisation_settings' => 'navigation.management',
     'overview_configurations' => 'mobile.page_titles.overview_configuration',
+    'people' => 'navigation.people',
     'power_search' => 'mobile.search',
     'projects' => 'mobile.projects',
     'prompt_personas' => 'views.organisations.ai_overview.pages.personas',

@@ -1,0 +1,59 @@
+---
+de:
+  controllers:
+    people:
+      not_found: "Diese Person gibt es nicht."
+      link_not_allowed: "Dieses Mitglied lässt sich nicht verknüpfen."
+      create:
+        success: "Person angelegt."
+      update:
+        success: "Person gespeichert."
+        stale: "Jemand anderes hat diese Person inzwischen geändert. Unten stehen die aktuellen Angaben, bitte noch einmal ändern."
+      destroy:
+        success: "Person gelöscht."
+  views:
+    organisations:
+      people:
+        index:
+          title: "Personen"
+          new_person: "Person anlegen"
+          search_label: "Personen durchsuchen"
+          search_placeholder: "Name, Funktion, Firma, E-Mail …"
+          filter_label: "Anzeigen"
+          kinds:
+            all: "Alle"
+            members: "Mitglieder"
+            contacts: "Kontakte"
+          member_badge: "Mitglied"
+          add_details: "Angaben ergänzen"
+          placeholder_title: "Keine Person gewählt"
+          placeholder_body: "Wähle links eine Person aus."
+          empty_title: "Noch keine Personen"
+          empty_description: "Mitglieder der Organisation erscheinen hier von selbst. Personen ohne Konto legst du mit dem Plus an."
+          empty_no_results: "Keine Person passt zur Suche."
+          back_to_list: "Personen"
+        show:
+          type_label: "PERSON"
+          close: "Schließen"
+          edit: "Bearbeiten"
+          delete: "Löschen"
+          delete_confirm: "Diese Person wirklich löschen? Die Angaben sind danach weg."
+          linked_member: "Mitglied: %{name}"
+          no_account: "Kein Konto"
+          contact_label: "Kontakt"
+          duplicates_title: "Gleicher Name"
+          created_by: "Angelegt von %{name} am %{date}"
+          created_at: "Angelegt am %{date}"
+        form:
+          new_title: "Person anlegen"
+          edit_title: "Person bearbeiten"
+          no_member: "Kein Mitglied"
+          member_hint: "Mit einem Mitglied verknüpft, zeigt die Liste den Namen aus seinem Konto."
+          shared_hint: "Alle mit Zugriff auf Personen sehen diese Angaben, auch die Kundenseite."
+          save: "Speichern"
+          cancel: "Abbrechen"
+        history:
+          title: "Verlauf"
+          created: "%{actor} hat die Person angelegt"
+          updated: "%{actor} hat %{fields} geändert"
+          other: "%{actor} hat die Person geändert"

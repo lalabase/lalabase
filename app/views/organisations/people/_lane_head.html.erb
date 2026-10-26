@@ -1,0 +1,30 @@
+<%# locals: (closes:, person: nil) %>
+<%# The head of the lane: the type and the way out. An open person closes the
+    lane in place (layout-toggle); the new form leaves to the list, the edit
+    form goes back to its person. %>
+<% icon_button = 'inline-flex h-8 w-8 items-center justify-center rounded-md text-cream-500 transition-colors hover:bg-cream-200 hover:text-cream-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink' %>
+<div class="flex items-center gap-4 mb-2" data-lane-head data-lane-index-url="<%= organisation_people_path(@current_organisation) %>">
+  <span class="hidden lg:inline font-mono text-[13px] tracking-wide text-cream-500">
+    <%= t('views.organisations.people.show.type_label') %>
+  </span>
+  <div class="ml-auto">
+    <% if closes == :lane %>
+      <button type="button" class="<%= icon_button %> hidden lg:inline-flex"
+              title="<%= t('views.organisations.people.show.close') %>"
+              data-lane-close data-action="click->layout-toggle#closeContent">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    <% elsif closes == :edit %>
+      <%= link_to organisation_person_path(@current_organisation, person), class: "#{icon_button} inline-flex",
+                                                                           title: t('views.organisations.people.form.cancel') do %>
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      <% end %>
+    <% else %>
+      <%= link_to organisation_people_path(@current_organisation, list_state), class: "#{icon_button} inline-flex",
+                                                                               title: t('views.organisations.people.show.close'),
+                                                                               data: { lane_close: true, turbo_frame: '_top' } do %>
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      <% end %>
+    <% end %>
+  </div>
+</div>

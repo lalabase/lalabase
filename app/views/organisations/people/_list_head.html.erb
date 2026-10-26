@@ -1,0 +1,50 @@
+<%# locals: () %>
+<%# The head of the list: title box with the "+", the search and the three
+    filters (all, members, contacts). A search or a filter is a full visit of
+    the index; the open person travels along. %>
+<% frame_id = Organisations::PeopleController::DETAIL_FRAME_ID %>
+<%= render NeoTitleBoxComponent.new(title: t('views.organisations.people.index.title'), variant: :organisation) do |box| %>
+  <%# The "+" opens the form in the lane, only for those who may write. %>
+  <% if policy(Person).create? %>
+    <% box.with_title_action do %>
+      <%= render Neo::Buttons::IconButtonComponent.new(
+        variant: :primary,
+        icon: 'plus-lg',
+        size: :medium,
+        title: t('views.organisations.people.index.new_person'),
+        url: organisation_people_path(@current_organisation, list_state.merge('new' => Organisations::PeopleController::NEW_STATE)),
+        data: {
+          controller: 'lane-link',
+          action: 'click->lane-link#click',
+          lane_link_url_value: new_organisation_person_path(@current_organisation),
+          lane_link_frame_value: frame_id,
+          lane_link_set_value: { new: Organisations::PeopleController::NEW_STATE }.to_json,
+          lane_link_remove_value: %w[person_id].to_json,
+          lane_link_focus_value: '#person_name'
+        }
+      ) %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<div class="people-list-head flex flex-wrap items-center gap-3 mb-4">
+  <%= form_with url: organisation_people_path(@current_organisation), method: :get, class: 'flex-1 min-w-48', data: { turbo_frame: '_top' } do %>
+    <%= hidden_field_tag :kind, list_state['kind'] if list_state['kind'] %>
+    <%= hidden_field_tag :person_id, params[:person_id] if params[:person_id].is_a?(String) %>
+    <label for="people-search" class="sr-only"><%= t('views.organisations.people.index.search_label') %></label>
+    <%= search_field_tag :q, list_state['q'], id: 'people-search', autocomplete: 'off',
+                         placeholder: t('views.organisations.people.index.search_placeholder'),
+                         class: 'block w-full py-2 px-4 border border-cream-300 rounded-lg bg-surface-raised focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink' %>
+  <% end %>
+
+  <nav class="flex items-center gap-2" aria-label="<%= t('views.organisations.people.index.filter_label') %>">
+    <% People::Directory::KINDS.each do |kind| %>
+      <% active = (list_state['kind'] || 'all') == kind %>
+      <%= link_to t("views.organisations.people.index.kinds.#{kind}"),
+                  organisation_people_path(@current_organisation, list_state.merge('kind' => (kind == 'all' ? nil : kind)).compact),
+                  class: "inline-flex items-center rounded-full border px-3 py-1 text-sm #{active ? 'border-ink bg-ink text-cream-50' : 'border-cream-300 text-cream-700 hover:bg-cream-100'}",
+                  'aria-current': (active ? 'true' : nil),
+                  data: { turbo_frame: '_top' } %>
+    <% end %>
+  </nav>
+</div>

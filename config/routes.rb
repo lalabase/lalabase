@@ -326,6 +326,12 @@ Rails.application.routes.draw do
     # project-nested MeetingsController (which is bound to @project).
     get 'meetings', to: 'meetings_overview#index', as: :meetings
 
+    # The shared people directory of the organisation (Person): one page with a
+    # lane, the list on the left, the person or the form in the lane. show, new
+    # and edit answer the lane frame; a full visit lands on the index with
+    # ?person_id= or ?new=person.
+    resources :people
+
     # The column picker of "Alle Meetings" saves the overview's base view here:
     # the controller of the project route (view_configuration under a project),
     # without a project. The path default pins the list type; a view_type in the

@@ -1,0 +1,97 @@
+<%# locals: (person:) %>
+<%# One person: the fields, the link state, who created the row, the
+    history, and rows that may be the same person (read only). Edit and
+    delete only for those who may write (PersonPolicy). %>
+<% fields = %i[function department company email phone] %>
+<div class="people-detail space-y-6">
+  <div class="flex flex-wrap items-start gap-3">
+    <% if person.user %>
+      <%= render Neo::Users::AvatarComponent.new(user: person.user, size: :medium) %>
+    <% else %>
+      <%= render Neo::Users::AvatarComponent.new(user: nil, size: :medium, fallback_initials: person_initials(person.name)) %>
+    <% end %>
+    <div class="min-w-0 flex-1">
+      <h2 class="text-[22px] leading-snug font-bold text-heading"><%= person_display_name(person: person) %></h2>
+      <p class="text-sm text-muted">
+        <% if person.user %>
+          <%= t('views.organisations.people.show.linked_member', name: viewer_display_name(person.user)) %>
+        <% else %>
+          <%= t('views.organisations.people.show.no_account') %>
+        <% end %>
+      </p>
+    </div>
+    <% if policy(person).update? %>
+      <div class="flex shrink-0 items-center gap-2">
+        <%= render Neo::Buttons::ButtonComponent.new(variant: :secondary, size: :small, icon: 'pencil',
+                                                     url: edit_organisation_person_path(@current_organisation, person)) do %>
+          <%= t('views.organisations.people.show.edit') %>
+        <% end %>
+        <%= render Neo::Buttons::ButtonComponent.new(
+          variant: :danger, size: :small, icon: 'trash',
+          form: { action: organisation_person_path(@current_organisation, person, list_state), method: :delete,
+                  data: { turbo_frame: '_top' } },
+          confirm: t('views.organisations.people.show.delete_confirm'),
+          title: t('views.organisations.people.show.delete')
+        ) do %>
+          <%= t('views.organisations.people.show.delete') %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <dl class="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
+    <% fields.each do |field| %>
+      <% value = person.public_send(field) %>
+      <% next if value.blank? %>
+      <dt class="text-muted"><%= Person.human_attribute_name(field) %></dt>
+      <dd class="min-w-0 break-words text-heading">
+        <% if field == :email %>
+          <%= mail_to value %>
+        <% elsif field == :phone %>
+          <%= link_to value, "tel:#{value.gsub(/[^\d+]/, '')}" %>
+        <% else %>
+          <%= value %>
+        <% end %>
+      </dd>
+    <% end %>
+  </dl>
+
+  <% if person.notes.present? %>
+    <section>
+      <h3 class="mb-1 text-sm font-semibold text-heading"><%= Person.human_attribute_name(:notes) %></h3>
+      <p class="width-text whitespace-pre-line text-sm text-heading"><%= person.notes %></p>
+    </section>
+  <% end %>
+
+  <% duplicates = People::Directory.new(viewer: current_user, organisation: @current_organisation).duplicates_of(person) %>
+  <% if duplicates.any? %>
+    <section class="rounded-lg border border-cream-300 bg-cream-50 p-3">
+      <h3 class="mb-1 text-sm font-semibold text-heading"><%= t('views.organisations.people.show.duplicates_title') %></h3>
+      <ul class="space-y-1 text-sm">
+        <% duplicates.each do |entry| %>
+          <li>
+            <% if entry.person %>
+              <%= link_to person_display_name(person: entry.person, user: entry.user), organisation_person_path(@current_organisation, entry.person) %>
+            <% else %>
+              <%= viewer_display_name(entry.user) %>
+            <% end %>
+            <span class="text-muted">
+              (<%= entry.member? ? t('views.organisations.people.index.member_badge') : t('views.organisations.people.show.contact_label') %>)
+            </span>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
+  <p class="text-xs text-muted">
+    <% if person.creator %>
+      <%= t('views.organisations.people.show.created_by', name: viewer_display_name(person.creator),
+                                                         date: l(person.created_at.to_date, format: :default)) %>
+    <% else %>
+      <%= t('views.organisations.people.show.created_at', date: l(person.created_at.to_date, format: :default)) %>
+    <% end %>
+  </p>
+
+  <%= render 'organisations/people/history', person: person %>
+</div>

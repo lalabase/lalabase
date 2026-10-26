@@ -48,11 +48,29 @@ module People
         list.concat(member_entries) unless @kind == 'contacts'
         list.concat(contact_entries) unless @kind == 'members'
         list.select! { |entry| matches?(entry) } if @query.present?
-        list.sort_by { |entry| [entry.sort_name, entry.person&.id.to_s, entry.user&.id.to_s] }
+        sorted(list)
+      end
+    end
+
+    # The other entries with the same normalized name as this person: rows and
+    # members that may be the same person (the duplicate hint, read only).
+    def duplicates_of(person)
+      return [] unless PersonPolicy.view_allowed?(@viewer, @organisation)
+
+      ActsAsTenant.with_tenant(@organisation) do
+        same = (member_entries + contact_entries).select do |entry|
+          entry.sort_name == person.normalized_name && entry.person&.id != person.id &&
+            !(entry.user && entry.user.id == person.user_id)
+        end
+        sorted(same)
       end
     end
 
     private
+
+    def sorted(list)
+      list.sort_by { |entry| [entry.sort_name, entry.person&.id.to_s, entry.user&.id.to_s] }
+    end
 
     def member_entries
       memberships = MembershipPolicy::Scope.new(@viewer, Membership).resolve

@@ -1,0 +1,24 @@
+<%# locals: (entries:, selected: nil) %>
+<%# The rows of the directory (People::Directory). A row with a person row
+    opens it in the lane (list-row); a member without one is plain text, with
+    "Angaben ergänzen" for those who may write. %>
+<turbo-frame id="<%= Organisations::PeopleController::LIST_FRAME_ID %>">
+  <% if entries.empty? %>
+    <div class="flex items-center justify-center min-h-[40vh]">
+      <% if list_state.any? %>
+        <%= render 'shared/empty_content', variant: :no_results, icon_class: 'bi bi-search',
+                                           title: t('views.organisations.people.index.empty_no_results') %>
+      <% else %>
+        <%= render 'shared/empty_content', variant: :first_time, icon_class: 'bi bi-people',
+                                           title: t('views.organisations.people.index.empty_title'),
+                                           description: t('views.organisations.people.index.empty_description') %>
+      <% end %>
+    </div>
+  <% else %>
+    <ul class="people-list divide-y divide-cream-200">
+      <% entries.each do |entry| %>
+        <%= render 'organisations/people/row', entry: entry, selected: selected %>
+      <% end %>
+    </ul>
+  <% end %>
+</turbo-frame>

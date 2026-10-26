@@ -1,0 +1,18 @@
+<%# locals: (state:, person: nil, message: nil) %>
+<%# What the lane frame holds: a person (:detail), the form (:form, new or
+    edit), or nothing yet (:empty). Rendered by the index on a full visit and
+    alone for a frame request (show, new, edit, a lane request of the index). %>
+<div class="person-content min-w-0 relative">
+  <% if state == :detail %>
+    <%= render 'organisations/people/lane_head', closes: :lane %>
+    <%= render 'organisations/people/detail', person: person %>
+  <% elsif state == :form %>
+    <%= render 'organisations/people/lane_head', closes: (person.persisted? ? :edit : :new_form), person: person %>
+    <%= render 'organisations/people/form', person: person, message: message %>
+  <% else %>
+    <div id="person-display-placeholder" class="ticket-placeholder px-4 py-10 text-center">
+      <h2 class="text-lg font-semibold text-heading"><%= t('views.organisations.people.index.placeholder_title') %></h2>
+      <p class="text-sm text-muted"><%= t('views.organisations.people.index.placeholder_body') %></p>
+    </div>
+  <% end %>
+</div>

@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-10-19)
+# Karte: app/services (Stand: 2026-10-26)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -154,6 +154,10 @@ Verzeichnis-Übersicht (Auswahl):
   ist `User#claim_first_visit!` (`UPDATE ... WHERE last_seen_at IS NULL`); die App führt
   kein Devise `trackable`. ⚠️ Host aus `ActionMailer::Base.default_url_options`, nicht
   aus dem Config-Objekt: das ist unter RSpec leer.
+* `people/` — `directory.rb`, das Lese-Objekt der Personenliste (seit 26.10.2026): Mitglieder
+  über `MembershipPolicy::Scope` (dieselbe Reichweite wie die Mitgliederseite), dazu die
+  Zeilen ohne aktives Mitglied als Kontakte; Suche in Ruby über `PersonName.normalize`.
+  Rechte nur über `PersonPolicy`, keine eigene Regel daneben.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

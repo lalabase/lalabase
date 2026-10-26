@@ -1,0 +1,59 @@
+---
+en:
+  controllers:
+    people:
+      not_found: "This person does not exist."
+      link_not_allowed: "This member cannot be linked."
+      create:
+        success: "Person added."
+      update:
+        success: "Person saved."
+        stale: "Someone else changed this person in the meantime. The current details are shown below, please make your change again."
+      destroy:
+        success: "Person deleted."
+  views:
+    organisations:
+      people:
+        index:
+          title: "People"
+          new_person: "Add person"
+          search_label: "Search people"
+          search_placeholder: "Name, function, company, email …"
+          filter_label: "Show"
+          kinds:
+            all: "All"
+            members: "Members"
+            contacts: "Contacts"
+          member_badge: "Member"
+          add_details: "Add details"
+          placeholder_title: "No person selected"
+          placeholder_body: "Pick a person on the left."
+          empty_title: "No people yet"
+          empty_description: "Members of the organisation show up here on their own. Add people without an account with the plus."
+          empty_no_results: "No person matches the search."
+          back_to_list: "People"
+        show:
+          type_label: "PERSON"
+          close: "Close"
+          edit: "Edit"
+          delete: "Delete"
+          delete_confirm: "Really delete this person? The details will be gone."
+          linked_member: "Member: %{name}"
+          no_account: "No account"
+          contact_label: "Contact"
+          duplicates_title: "Same name"
+          created_by: "Added by %{name} on %{date}"
+          created_at: "Added on %{date}"
+        form:
+          new_title: "Add person"
+          edit_title: "Edit person"
+          no_member: "No member"
+          member_hint: "When linked to a member, the list shows the name from their account."
+          shared_hint: "Everyone with access to people sees these details, the customer's side too."
+          save: "Save"
+          cancel: "Cancel"
+        history:
+          title: "History"
+          created: "%{actor} added the person"
+          updated: "%{actor} changed %{fields}"
+          other: "%{actor} changed the person"

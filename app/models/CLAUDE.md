@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-10-24)
+# Karte: app/models (Stand: 2026-10-26)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -45,6 +45,20 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   ⚠️ Wer eine Beziehung SEHEN darf, entscheidet nur `TicketRelation.visible_to(user, org, token:)`:
   beide Enden lesbar (`TicketPolicy::Scope`), mit Token zusätzlich in dessen Reichweite. Titel,
   Nummer und Projekt eines Tickets ohne Leserecht erscheinen nirgends (Plan §4).
+* **Personen** (seit 26.10.2026): `person` (eine gemeinsame Personenliste je Organisation,
+  Tabelle `people`), `person_name` (der EINE Namens-Normalisierer, auch für
+  `MeetingParticipant.normalize_name`). Eine Zeile ist ein Kontakt ohne Konto oder die
+  Zusatzangaben eines Mitglieds (`user_id`, nur aktive Mitglieder derselben Org, eindeutig
+  je Org); `name` ist immer gefüllt. Eigenes Recht (`Permission::CATEGORIES[:people]`,
+  `view_people`/`manage_people`, gastrollen-tauglich), Kontoadmins ohne Zeile; die Policy
+  prüft die aktive Mitgliedschaft selbst. Lesen über `People::Directory`, Schreiben über
+  `Actors::SavePerson`/`DestroyPerson`.
+  ⚠️ `concerns/person_trackable.rb`: Aktivitäten tragen KEINE Personendaten (leere Parameter,
+  bei Änderungen nur Feldnamen), `skip_notifications` immer; ein Löschen hinterlässt genau eine
+  anonyme `person.deleted`-Zeile. ⚠️ `concerns/person_link_release.rb` steht in `membership`
+  UND `admin/membership`: wer eine Mitgliedschaft entfernt, behält die Zeile und verliert nur
+  die Verknüpfung. Darum läuft `erase_personal_data!` in beiden Löschwegen VOR
+  `memberships.destroy_all`; andersherum findet `erase_person_links!` nichts mehr.
 * **Activity/Notifications**: `activity`, `user_activity`, `outbox_event`, `notification`,
   `notification_preference`, `notification_subscription`, `email_log` — Services dazu unter
   `app/services/notifications/` (eigene Karte dort)

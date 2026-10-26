@@ -1,0 +1,46 @@
+<%# locals: (entry:, selected: nil) %>
+<% person = entry.person %>
+<% name = person_display_name(person: person, user: entry.user) %>
+<% row_data = if person
+     { controller: 'list-row', action: 'click->list-row#click', person_id: person.id,
+       list_row_url_value: organisation_person_path(@current_organisation, person),
+       list_row_id_value: person.id, list_row_param_value: 'person_id',
+       list_row_params_value: %w[person_id].to_json,
+       list_row_frame_value: Organisations::PeopleController::DETAIL_FRAME_ID }
+   else
+     {}
+   end %>
+<%= tag.li data: row_data, tabindex: (person ? -1 : nil),
+           class: "people-row flex items-center gap-3 px-3 py-2.5 #{'cursor-pointer hover:bg-cream-100' if person} #{'selected-row' if person && selected&.id == person.id}" do %>
+  <% if entry.user %>
+    <%= render Neo::Users::AvatarComponent.new(user: entry.user, size: :small) %>
+  <% else %>
+    <%= render Neo::Users::AvatarComponent.new(user: nil, size: :small, fallback_initials: person_initials(name)) %>
+  <% end %>
+  <div class="min-w-0 flex-1">
+    <div class="flex min-w-0 items-center gap-2">
+      <span class="truncate text-sm font-medium text-heading"><%= name %></span>
+      <% if entry.member? %>
+        <span class="shrink-0 rounded border border-cream-300 px-1.5 text-[11px] text-cream-600"><%= t('views.organisations.people.index.member_badge') %></span>
+      <% end %>
+    </div>
+    <% meta = [person&.function, person&.company].compact_blank %>
+    <% if meta.any? %>
+      <p class="truncate text-xs text-muted"><%= meta.join(' · ') %></p>
+    <% end %>
+  </div>
+  <% if person.nil? && policy(Person).create? %>
+    <%= link_to t('views.organisations.people.index.add_details'),
+                organisation_people_path(@current_organisation, list_state.merge('new' => Organisations::PeopleController::NEW_STATE,
+                                                                                  'user_id' => entry.user.id)),
+                class: 'shrink-0 text-xs text-cobalt-600 hover:underline',
+                data: {
+                  controller: 'lane-link',
+                  action: 'click->lane-link#click',
+                  lane_link_url_value: new_organisation_person_path(@current_organisation, user_id: entry.user.id),
+                  lane_link_frame_value: Organisations::PeopleController::DETAIL_FRAME_ID,
+                  lane_link_set_value: { new: Organisations::PeopleController::NEW_STATE }.to_json,
+                  lane_link_remove_value: %w[person_id].to_json
+                } %>
+  <% end %>
+<% end %>

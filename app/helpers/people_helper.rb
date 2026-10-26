@@ -84,6 +84,21 @@ module PeopleHelper
     end
   end
 
+  # The member whose account fills (and locks) name and email in the form: the
+  # STORED link of a saved row, or the member chosen for a new one. A link the
+  # save just refused (taken, not a member) is no member: the form shows the
+  # select again so the writer can correct it.
+  def person_form_member(person)
+    return if person.errors.include?(:user_id) || person.errors.include?(:user)
+    return person_member_user(person) unless person.persisted?
+
+    stored_id = person.user_id_in_database
+    return unless stored_id
+
+    active = Membership.where(organisation: current_organisation, user_id: stored_id, active: true).exists?
+    User.find_by(id: stored_id) if active
+  end
+
   # A member row with none of the details the directory is for yet.
   def person_bare?(person)
     person.nil? || %i[function department phone notes].all? { |field| person.public_send(field).blank? }

@@ -9,10 +9,10 @@
     shown, locked, and not sent. Its link is fixed, so the member select is
     left out (no user_id sent: SavePerson keeps the link). A new row and a
     contact may be linked. %>
-<% member = person_member_user(person) %>
+<% member = person_form_member(person) %>
 <% url = person.persisted? ? organisation_person_path(@current_organisation, person) : organisation_people_path(@current_organisation) %>
 <% title = person.persisted? || member ? t('views.organisations.people.form.edit_title', name: person_display_name(person: person, user: member)) : t('views.organisations.people.form.new_title') %>
-<% cancel_url = person.persisted? ? organisation_person_path(@current_organisation, person) : organisation_people_path(@current_organisation, list_state) %>
+<% cancel_url = person.persisted? ? organisation_person_path(@current_organisation, person, list_state) : organisation_people_path(@current_organisation, list_state) %>
 <div class="people-form-wrap">
   <div class="people-lane__head" data-lane-head data-lane-index-url="<%= organisation_people_path(@current_organisation) %>">
     <h2 class="people-form__title"><%= title %></h2>

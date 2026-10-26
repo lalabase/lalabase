@@ -236,10 +236,15 @@ module Organisations
     end
 
     # The list state of this request (the address, or the hidden fields of a
-    # lane form). Kept to strings: a list state is a word and a search.
+    # lane form). Kept to strings: a list state is a word and a search. The
+    # phone view rides along (viewport=mobile): without it a refused save or a
+    # redirect renders the desktop page, and viewport_controller reloads the
+    # original address, losing the reason and the values typed.
     def list_state
-      state = request.query_parameters.merge(request.request_parameters).slice(*LIST_PARAMS)
-      state.select { |_key, value| value.is_a?(String) && value.present? }
+      given = request.query_parameters.merge(request.request_parameters)
+      state = given.slice(*LIST_PARAMS).select { |_key, value| value.is_a?(String) && value.present? }
+      state['viewport'] = 'mobile' if given['viewport'] == 'mobile'
+      state
     end
     helper_method :list_state
   end

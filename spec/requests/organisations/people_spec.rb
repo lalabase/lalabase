@@ -684,6 +684,53 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     end
   end
 
+  # External review of 26.10.2026.
+  describe 'on a phone' do
+    before { sign_in admin }
+
+    it 'keeps the phone view when a save is refused' do
+      post organisation_people_path(organisation), params: { person: { name: '' }, viewport: 'mobile' }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('people-mobile-grid', 'name="viewport"')
+    end
+
+    it 'carries the phone view into the edit form of the lane' do
+      get organisation_people_path(organisation, person_id: person.id, viewport: 'mobile')
+
+      expect(response.body).to include(edit_organisation_person_path(organisation, person, viewport: 'mobile'))
+    end
+
+    it 'lands on the phone view after a save' do
+      patch organisation_person_path(organisation, person),
+            params: { person: { phone: '0', lock_version: person.lock_version }, viewport: 'mobile' }
+
+      expect(response).to redirect_to(organisation_people_path(organisation, person_id: person.id, viewport: 'mobile'))
+    end
+  end
+
+  it 'keeps the member select when a link is refused (the member has a row already)' do
+    taken = member_with(role_with, first_name: 'Vergeben')
+    create(:person, organisation: organisation, user: taken)
+    sign_in admin
+
+    patch organisation_person_path(organisation, person),
+          params: { person: { user_id: taken.id, lock_version: person.lock_version } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include('name="person[user_id]"')
+    expect(response.body[/<input[^>]*id="person_name"[^>]*>/]).not_to include('readonly')
+  end
+
+  it 'opens a row from the keyboard (Enter and Space)' do
+    sign_in admin
+
+    get organisation_people_path(organisation)
+
+    row = response.body[/<li[^>]*data-list-row-id-value="#{person.id}"[^>]*>/]
+    expect(row).to include(CGI.escapeHTML('keydown.enter->list-row#click'), CGI.escapeHTML('keydown.space->list-row#click'))
+  end
+
   it 'has no missing translation on the page' do
     sign_in admin
     get organisation_people_path(organisation, person_id: person.id)

@@ -10,7 +10,7 @@
 <div class="people-detail">
   <%= render 'organisations/people/lane_head',
              kind_label: t("views.organisations.people.show.kind.#{kind}"),
-             edit_url: (edit_organisation_person_path(@current_organisation, person) if can_write) %>
+             edit_url: (edit_organisation_person_path(@current_organisation, person, list_state) if can_write) %>
 
   <% status_icon, status = person_link_state(person, member) %>
   <%= render 'organisations/people/identity', name: name, user: member, status_icon: status_icon, status: status %>
@@ -30,7 +30,7 @@
           </p>
         <% end %>
         <% if can_write && member.nil? && duplicates.any?(&:member?) %>
-          <%= link_to t('views.organisations.people.show.duplicate_link'), edit_organisation_person_path(@current_organisation, person),
+          <%= link_to t('views.organisations.people.show.duplicate_link'), edit_organisation_person_path(@current_organisation, person, list_state),
                       class: 'people-text-action' %>
         <% end %>
       </div>
@@ -38,7 +38,7 @@
   <% end %>
 
   <% if member && person_bare?(person) %>
-    <%= render 'organisations/people/bare_hint', member: member, url: (edit_organisation_person_path(@current_organisation, person) if can_write) %>
+    <%= render 'organisations/people/bare_hint', member: member, url: (edit_organisation_person_path(@current_organisation, person, list_state) if can_write) %>
   <% end %>
 
   <%= render 'organisations/people/fields', fields: person_fields(person, member) %>

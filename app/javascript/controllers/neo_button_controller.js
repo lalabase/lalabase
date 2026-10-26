@@ -13,13 +13,21 @@ export default class extends Controller {
       this.showLoading()
     }
 
-    // Reset loading state after Turbo form submission completes
+    // Reset loading state after Turbo form submission completes. Turbo fires
+    // the submit events on the FORM, so a button inside one listens there.
     this.boundReset = this.hideLoading.bind(this)
+    this.boundShow = this.showLoading.bind(this)
+    this.form = this.element.tagName === "BUTTON" ? this.element.closest("form") : null
     this.element.addEventListener("turbo:submit-end", this.boundReset)
+    if (this.form) this.form.addEventListener("turbo:submit-end", this.boundReset)
   }
 
   disconnect() {
     this.element.removeEventListener("turbo:submit-end", this.boundReset)
+    if (this.form) {
+      this.form.removeEventListener("turbo:submit-end", this.boundReset)
+      this.form.removeEventListener("turbo:submit-start", this.boundShow)
+    }
   }
   
   async handleClick(event) {
@@ -38,6 +46,15 @@ export default class extends Controller {
       return
     }
     
+    // A form that asks first (data-turbo-confirm, the form: + confirm: button):
+    // Turbo asks after this click. Loading starts only when it really submits;
+    // a "no" leaves the button as it was, nothing to restore.
+    if (this.form && this.form.dataset.turboConfirm) {
+      this.form.removeEventListener("turbo:submit-start", this.boundShow)
+      this.form.addEventListener("turbo:submit-start", this.boundShow)
+      return
+    }
+
     // For forms and turbo-method links, show loading state
     this.showLoading()
   }

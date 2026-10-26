@@ -65,6 +65,7 @@ module Actors
     def save_link_safely
       @person.save!
     rescue ActiveRecord::RecordNotUnique
+      @person.errors.add(:user_id, :taken)
       raise ActorError.new(I18n.t('controllers.people.link_not_allowed'), code: :validation_failed)
     end
 

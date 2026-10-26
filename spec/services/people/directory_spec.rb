@@ -96,6 +96,20 @@ RSpec.describe People::Directory, :ci_guard do
     end
   end
 
+  # External review of 26.10.2026: a linked member is compared by the name
+  # the directory shows, not by the copy taken when the row was linked.
+  it 'finds duplicates of a member by the current account name' do
+    row = create(:person, organisation: organisation, user: colleague, name: 'Carl Kollege')
+    colleague.update!(first_name: 'Carlo', last_name: 'Neu')
+    namesake = create(:person, organisation: organisation, name: 'Carlo Neu')
+    old_namesake = create(:person, organisation: organisation, name: 'Carl Kollege')
+
+    duplicates = described_class.new(viewer: admin, organisation: organisation).duplicates_of(row.reload)
+
+    expect(duplicates.map(&:person)).to include(namesake)
+    expect(duplicates.map(&:person)).not_to include(old_namesake)
+  end
+
   it 'returns nothing without the right' do
     expect(entries(colleague)).to be_empty
   end

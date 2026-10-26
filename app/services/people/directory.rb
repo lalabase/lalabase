@@ -61,8 +61,10 @@ module People
     # The other entries with the same normalized name as this person: rows and
     # members that may be the same person (the duplicate hint, read only).
     def duplicates_of(person)
+      own = everyone.find { |entry| entry.person&.id == person.id }
+      name = own ? own.sort_name : person.normalized_name
       everyone.select do |entry|
-        entry.sort_name == person.normalized_name && entry.person&.id != person.id &&
+        entry.sort_name == name && entry.person&.id != person.id &&
           !(entry.user && entry.user.id == person.user_id)
       end
     end

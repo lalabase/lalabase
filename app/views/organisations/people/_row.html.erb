@@ -10,7 +10,9 @@
   <% param, id = 'member_id', entry.user.id %>
   <% open = member&.id == entry.user.id %>
 <% end %>
-<% row_data = { controller: 'list-row', action: 'click->list-row#click', people_row: true,
+<%# Enter and Space open the row like a click: the row is the only control. %>
+<% row_data = { controller: 'list-row', action: 'click->list-row#click keydown.enter->list-row#click keydown.space->list-row#click',
+                people_row: true,
                 list_row_url_value: url, list_row_id_value: id, list_row_param_value: param,
                 list_row_params_value: PeopleHelper::SELECTION_PARAMS.to_json,
                 list_row_frame_value: Organisations::PeopleController::DETAIL_FRAME_ID } %>

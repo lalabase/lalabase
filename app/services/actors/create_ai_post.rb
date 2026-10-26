@@ -98,7 +98,9 @@ module Actors
       # Provider maps the vendor 401 to AuthError.
       Rails.logger.error "AI API key invalid: #{e.message}"
       raise ActorError.new(e.message, code: :invalid_key)
-    rescue Faraday::ClientError => e
+    rescue Lalabase::Llm::Provider::RequestRefusedError, Faraday::ClientError => e
+      # The providers map a vendor 400 to RequestRefusedError (a Provider::Error,
+      # no longer a Faraday::ClientError); it stays the handled provider error.
       Rails.logger.error "AI API error: #{e.message}"
       raise ActorError.new(e.message, code: :provider_error)
     end

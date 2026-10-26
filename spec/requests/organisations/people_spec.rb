@@ -731,6 +731,19 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     expect(row).to include(CGI.escapeHTML('keydown.enter->list-row#click'), CGI.escapeHTML('keydown.space->list-row#click'))
   end
 
+  # Review of db1b0288a: the empty lane carried the content marker, so
+  # layout-toggle took it for loaded and opened an empty column on every list
+  # visit and after a delete.
+  it 'renders no content marker in the empty lane, only with something open' do
+    sign_in admin
+
+    get organisation_people_path(organisation)
+    expect(response.body).not_to match(/class="person-content/)
+
+    get organisation_people_path(organisation, person_id: person.id)
+    expect(response.body).to match(/class="person-content/)
+  end
+
   it 'has no missing translation on the page' do
     sign_in admin
     get organisation_people_path(organisation, person_id: person.id)

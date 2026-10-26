@@ -16,9 +16,16 @@ de:
       people:
         index:
           title: "Personen"
-          count_line:
-            one: "%{count} Person · %{members} Mitglieder, %{contacts} Kontakte"
-            other: "%{count} Personen · %{members} Mitglieder, %{contacts} Kontakte"
+          count_line: "%{people} · %{members}, %{contacts}"
+          count_people:
+            one: "%{count} Person"
+            other: "%{count} Personen"
+          count_members:
+            one: "%{count} Mitglied"
+            other: "%{count} Mitglieder"
+          count_contacts:
+            one: "%{count} Kontakt"
+            other: "%{count} Kontakte"
           new_person: "Person anlegen"
           search_label: "Personen durchsuchen"
           search_placeholder: "Name, Funktion oder Firma"
@@ -56,6 +63,7 @@ de:
           add_details: "Angaben ergänzen"
           call: "anrufen"
           created_by: "Angelegt von %{name} am %{date}"
+          someone: "Jemand"
           created_at: "Angelegt am %{date}"
           from_account: "Aus dem Konto übernommen am %{date}"
           read_only: "Du kannst Personen ansehen, aber nicht bearbeiten."

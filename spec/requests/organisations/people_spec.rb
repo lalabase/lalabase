@@ -633,7 +633,7 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
       get organisation_people_path(organisation, member_id: colleague.id)
 
-      expect(response.body).to include('show-content', I18n.t('views.organisations.people.show.bare_text', first_name: 'Kolja'))
+      expect(response.body).to include('show-content', CGI.escapeHTML(I18n.t('views.organisations.people.show.bare_text', first_name: colleague.display_name)))
       expect(response.body).to match(/class="people-row selected-row"[^>]*>|data-list-row-id-value="#{colleague.id}"[^>]*class="people-row selected-row"/)
     end
 
@@ -654,7 +654,11 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     get organisation_people_path(organisation, kind: 'contacts')
 
     members = Membership.where(organisation: organisation, active: true).count
-    expect(response.body).to include(I18n.t('views.organisations.people.index.count_line', count: members + 1, members: members, contacts: 1))
+    scope = 'views.organisations.people.index'
+    line = I18n.t("#{scope}.count_line", people: I18n.t("#{scope}.count_people", count: members + 1),
+                                         members: I18n.t("#{scope}.count_members", count: members),
+                                         contacts: I18n.t("#{scope}.count_contacts", count: 1))
+    expect(response.body).to include(line)
   end
 
   describe 'the row of an active member' do
@@ -742,6 +746,106 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
     get organisation_people_path(organisation, person_id: person.id)
     expect(response.body).to match(/class="person-content/)
+  end
+
+  # Review round 4.
+  describe 'names of members the reader cannot see' do
+    let(:project) { create(:project, organisation: organisation) }
+    let(:hidden_writer) { member_with(role_with('manage_people'), first_name: 'Geheim') }
+
+    before do
+      create(:project_permission, user: manager, project: project, tickets_access: :read_only)
+      create(:project_permission, user: hidden_writer, project: create(:project, organisation: organisation),
+                                  tickets_access: :read_only)
+    end
+
+    it 'shows neither the creator nor the editor by name' do
+      row = Current.set(user: hidden_writer) { create(:person, organisation: organisation, creator: hidden_writer) }
+      Current.set(user: hidden_writer) { row.update!(phone: '1') }
+      sign_in manager
+
+      get organisation_person_path(organisation, row), headers: frame_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include('Geheim')
+      expect(response.body).to include(I18n.t('views.organisations.people.history.updated', actor: I18n.t('views.organisations.people.show.someone'),
+                                                                                            fields: Person.human_attribute_name(:phone)))
+    end
+  end
+
+  it 'keeps the phone view in a lane frame (show after "Abbrechen")' do
+    sign_in admin
+
+    get organisation_person_path(organisation, person, viewport: 'mobile'), headers: frame_headers
+
+    expect(response.body).not_to include('data-lane-close')
+  end
+
+  it 'counts with the right singular and plural forms' do
+    sign_in admin
+    get organisation_people_path(organisation)
+
+    expect(response.body).to match(/1 Kontakt(?!e)/)
+    expect(response.body).not_to include('1 Kontakte')
+  end
+
+  it 'names the member of the hint through the name display setting' do
+    reader = admin
+    reader.preference_store.set!('name_display', 'initial_last')
+    member = member_with(role_with, first_name: 'Carla')
+    sign_in reader
+
+    get member_organisation_people_path(organisation, member.id), headers: frame_headers
+
+    expect(response.body).not_to include('wofür Carla')
+  end
+
+  it 'shows the member select again when a new row asks for a member who has one' do
+    taken = member_with(role_with, first_name: 'Vergeben')
+    create(:person, organisation: organisation, user: taken)
+    sign_in admin
+
+    post organisation_people_path(organisation), params: { person: { name: 'X', user_id: taken.id } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include('name="person[user_id]"')
+    expect(response.body).not_to include(%(type="hidden" value="#{taken.id}"))
+  end
+
+  it 'opens no form for ?new=person without the right to write' do
+    sign_in viewer
+
+    get organisation_people_path(organisation, new: 'person')
+
+    expect(response.body).not_to include('id="person_name"')
+  end
+
+  it 'sends ?member_id= of a member with a row to that row' do
+    row = create(:person, organisation: organisation, user: viewer)
+    sign_in admin
+
+    get organisation_people_path(organisation, member_id: viewer.id)
+
+    expect(response).to redirect_to(organisation_people_path(organisation, person_id: row.id))
+  end
+
+  it 'answers a lane request of the index with the member lane' do
+    member = member_with(role_with, first_name: 'Lena')
+    sign_in admin
+
+    get organisation_people_path(organisation, member_id: member.id), headers: frame_headers
+
+    expect(response.body).to include(I18n.t('views.organisations.people.show.add_details'), member.email)
+  end
+
+  it 'shows the account email of an active member in the lane, not an old row email' do
+    row = create(:person, organisation: organisation, user: viewer, email: 'alt@example.com')
+    sign_in admin
+
+    get organisation_person_path(organisation, row), headers: frame_headers
+
+    expect(response.body).to include(viewer.email)
+    expect(response.body).not_to include('alt@example.com')
   end
 
   it 'has no missing translation on the page' do

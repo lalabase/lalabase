@@ -145,10 +145,21 @@ module PeopleHelper
     name.to_s.split.first(2).map { |part| part[0] }.join.upcase
   end
 
+  # The name of whoever created or changed a row, only when the reader may see
+  # that person on the members page (MembershipPolicy::Scope, the rule the
+  # whole directory follows); otherwise "Jemand". The reader always sees
+  # themselves.
+  def person_actor_name(user)
+    return t('views.organisations.people.show.someone') unless user
+
+    visible = user.id == current_user.id || people_visible_member_ids.include?(user.id)
+    visible ? viewer_display_name(user) : t('views.organisations.people.show.someone')
+  end
+
   # One line of the history: who did what. An update names the changed fields
   # (never their values, PersonTrackable).
   def person_history_line(activity)
-    actor = viewer_display_name(activity.actor)
+    actor = person_actor_name(activity.actor)
     case activity.action
     when 'created' then t('views.organisations.people.history.created', actor: actor)
     when 'updated'

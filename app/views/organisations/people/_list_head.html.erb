@@ -24,7 +24,10 @@
       <h1 class="people-head__h1"><%= t('views.organisations.people.index.title') %></h1>
     <% end %>
     <p class="people-head__count">
-      <%= t('views.organisations.people.index.count_line', count: counts['all'], members: counts['members'], contacts: counts['contacts']) %>
+      <%= t('views.organisations.people.index.count_line',
+            people: t('views.organisations.people.index.count_people', count: counts['all']),
+            members: t('views.organisations.people.index.count_members', count: counts['members']),
+            contacts: t('views.organisations.people.index.count_contacts', count: counts['contacts'])) %>
     </p>
   </div>
   <% if policy(Person).create? && mobile %>

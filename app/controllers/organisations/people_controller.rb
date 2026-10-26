@@ -33,13 +33,18 @@ module Organisations
 
     rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
 
-    before_action :set_viewport_mode, only: :index
+    # Every action: the lane frames (show, member, new, edit) render the phone
+    # layout too, and only the address knows which one.
+    before_action :set_viewport_mode
     before_action :set_person, only: %i[show edit update destroy]
 
     def index
       authorize Person
       @people = policy_scope(Person)
       return render_lane_frame if lane_frame_request?
+
+      member_row = member_with_row
+      return redirect_to(index_path(person_id: member_row.id)) if member_row
 
       load_list
       @lane_person = selected_person
@@ -157,6 +162,14 @@ module Organisations
       entry.person ? { person_id: entry.person.id } : { member_id: entry.user.id }
     end
 
+    # ?member_id= of a member who has a row by now: the row is the address.
+    def member_with_row
+      id = params[:member_id]
+      return unless id.is_a?(String) && id.present? && params[:person_id].blank?
+
+      directory.member_entry(id)&.person
+    end
+
     # ?member_id=: the account of a visible member without a row. A member who
     # has a row is opened through that row (person_id), never twice.
     def selected_member
@@ -234,6 +247,14 @@ module Organisations
     def index_path(**lane)
       organisation_people_path(current_organisation, list_state.merge(lane.stringify_keys).compact_blank)
     end
+
+    # The accounts the reader may see on the members page (MembershipPolicy::
+    # Scope), once per request: who created or changed a row is named only
+    # when the reader may see them (PeopleHelper#person_actor_name).
+    def people_visible_member_ids
+      @people_visible_member_ids ||= policy_scope(Membership).where(organisation: current_organisation).pluck(:user_id).to_set
+    end
+    helper_method :people_visible_member_ids
 
     # The list state of this request (the address, or the hidden fields of a
     # lane form). Kept to strings: a list state is a word and a search. The

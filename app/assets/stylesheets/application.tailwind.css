@@ -474,6 +474,7 @@
   .people-form__field { @apply flex flex-col gap-1; }
   .people-form__field label { @apply text-xs text-muted; }
   .people-form__required { color: #A03227; }
+  .dark .people-form__required { color: var(--wash-danger-text); }
   .people-input { @apply box-border w-full rounded-lg border border-cream-400 bg-surface-raised px-2.5 py-2 text-sm text-heading focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink; }
   .people-input--area { @apply resize-y leading-normal; }
   .people-input--locked { @apply bg-cream-100 text-cream-700; }

@@ -31,7 +31,7 @@ module PeopleHelper
       index_page_selected_row_selector_value: '.selected-row[data-person-id]',
       index_page_skip_if_content_visible_value: 'true',
       index_url: organisation_people_path(current_organisation),
-      lane_params: lane_params_json(selection: %w[person_id], form: %w[new])
+      lane_params: lane_params_json(selection: %w[person_id], form: %w[new user_id])
     }.compact
   end
 
@@ -44,14 +44,26 @@ module PeopleHelper
     unresolved['person_id'] = person_id if person_id.is_a?(String) && person_id.present? && selected.nil?
     new_state = params[:new]
     unresolved['new'] = new_state if new_state.is_a?(String) && new_state.present? && !form_open
+    user_id = params[:user_id]
+    unresolved['user_id'] = user_id if user_id.is_a?(String) && user_id.present? && !form_open
     unresolved
   end
 
-  # The name a row or the lane shows: a member through the viewer's name
-  # display setting, a contact as written in the row.
+  # The name a row or the lane shows: a member (an ACTIVE member, passed as
+  # user) through the viewer's name display setting, a contact as written in
+  # the row. A row of a former member is a contact: its own name, never the
+  # account's current one (search and order read the row too).
   def person_display_name(person: nil, user: nil)
-    user ||= person&.user
     user ? viewer_display_name(user) : person.name
+  end
+
+  # The linked account of a row while it is an active member of this
+  # organisation, else nil (the row is then shown as a contact).
+  def person_member_user(person)
+    return unless person.user_id
+
+    active = Membership.where(organisation: current_organisation, user_id: person.user_id, active: true).exists?
+    person.user if active
   end
 
   # Initials for a contact's avatar (no account, no picture).
@@ -80,7 +92,8 @@ module PeopleHelper
     taken = Person.where(organisation: current_organisation).linked.where.not(id: person.id).select(:user_id)
     member_ids = policy_scope(Membership).where(organisation: current_organisation, active: true).select(:user_id)
     members = User.where(id: member_ids).where.not(id: taken).to_a
-    members |= [person.user] if person.user
+    stored = User.find_by(id: person.user_id_in_database) if person.persisted? && person.user_id_in_database
+    members |= [stored] if stored
     members.sort_by { |user| viewer_display_name(user).downcase }
   end
 end

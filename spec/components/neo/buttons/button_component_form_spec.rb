@@ -130,7 +130,9 @@ RSpec.describe 'Neo::Buttons::ButtonComponent with form', type: :component do
         # Button with all features
         expect(page).to have_css("form button[type='submit']")
         expect(page).to have_css("form button[data-controller='neo-button']")
-        expect(page).to have_css("form button[data-neo-button-confirm-value*='wirklich löschen']")
+        # The form asks once; the button no longer asks a second time.
+        expect(page).to have_css("form[data-turbo-confirm*='wirklich löschen']")
+        expect(page).to have_no_css('form button[data-neo-button-confirm-value]')
         expect(page).to have_css('form button i.bi.bi-trash')
 
         # Icon only - no margins

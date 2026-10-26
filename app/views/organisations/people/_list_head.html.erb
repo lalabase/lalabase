@@ -19,7 +19,7 @@
           lane_link_url_value: new_organisation_person_path(@current_organisation),
           lane_link_frame_value: frame_id,
           lane_link_set_value: { new: Organisations::PeopleController::NEW_STATE }.to_json,
-          lane_link_remove_value: %w[person_id].to_json,
+          lane_link_remove_value: %w[person_id user_id].to_json,
           lane_link_focus_value: '#person_name'
         }
       ) %>

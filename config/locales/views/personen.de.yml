@@ -40,6 +40,7 @@ de:
           delete_confirm: "Diese Person wirklich löschen? Die Angaben sind danach weg."
           linked_member: "Mitglied: %{name}"
           no_account: "Kein Konto"
+          former_member: "Früheres Mitglied"
           contact_label: "Kontakt"
           duplicates_title: "Gleicher Name"
           created_by: "Angelegt von %{name} am %{date}"

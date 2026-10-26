@@ -11,6 +11,19 @@ RSpec.describe Neo::Buttons::IconButtonComponent, type: :component do
     render_inline(component)
   end
 
+  # Same rule as ButtonComponent: with form: the form asks, the button does not
+  # ask a second time (review round 2 of the people directory).
+  describe 'form button with confirmation' do
+    let(:options) { { icon: 'trash', confirm: 'Delete this?', form: { action: '/things/1', method: :delete } } }
+
+    it 'asks once, through the form' do
+      rendered_component
+
+      expect(page).to have_css("form[data-turbo-confirm='Delete this?'] button")
+      expect(page).to have_no_css('button[data-neo-button-confirm-value]')
+    end
+  end
+
   describe 'basic rendering' do
     it 'renders a button with icon' do
       rendered_component

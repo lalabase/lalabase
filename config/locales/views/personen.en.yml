@@ -40,6 +40,7 @@ en:
           delete_confirm: "Really delete this person? The details will be gone."
           linked_member: "Member: %{name}"
           no_account: "No account"
+          former_member: "Former member"
           contact_label: "Contact"
           duplicates_title: "Same name"
           created_by: "Added by %{name} on %{date}"

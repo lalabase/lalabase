@@ -31,7 +31,9 @@
 
   <div>
     <%= f.label :name, class: 'block text-sm font-medium text-cream-700 mb-1' %>
-    <%= f.text_field :name, class: input_class, maxlength: Person::MAX_FIELD_LENGTH %>
+    <%# A linked row shows the member's own name; the copy here only shows once
+        the link is gone, so it is not edited while linked. %>
+    <%= f.text_field :name, class: input_class, maxlength: Person::MAX_FIELD_LENGTH, readonly: person.user_id.present? %>
   </div>
 
   <% %i[function department company].each do |field| %>

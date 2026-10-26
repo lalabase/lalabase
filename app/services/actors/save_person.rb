@@ -34,6 +34,7 @@ module Actors
     def perform
       raise ActorError.new(I18n.t('controllers.people.not_found'), code: :not_found) if @person.nil?
 
+      check_lock_version
       @person.assign_attributes(@params.slice(*ATTRIBUTES))
       assign_link if @params.key?(:user_id)
       @person.creator ||= @current_user if @person.new_record?
@@ -44,6 +45,15 @@ module Actors
     private
 
     attr_reader :current_user
+
+    # A lock_version that is not a number (a hand-made request) cannot say what
+    # the writer saw; Rails would raise on a nil one. Treated as stale.
+    def check_lock_version
+      return unless @params.key?(:lock_version)
+      return if Integer(@params[:lock_version].to_s, exception: false)
+
+      raise ActorError.new(I18n.t('controllers.people.update.stale'), code: :stale_object)
+    end
 
     # Two saves linking the same member at once: the validation passes for
     # both, the unique index refuses the second. A failure, not a crash.

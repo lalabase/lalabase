@@ -133,9 +133,20 @@ module Organisations
     end
 
     # A member row without a person row opens the form with the member chosen
-    # (?user_id=); SavePerson checks the choice again.
+    # (?user_id=). Only a member the reader may link: an active member visible
+    # on the members page without a row yet. Anything else is no choice, so the
+    # select never names an account the reader may not see. SavePerson checks
+    # the choice again on save.
     def new_person
-      current_organisation.people.build(user_id: params[:user_id].presence)
+      current_organisation.people.build(user_id: linkable_user_id(params[:user_id]))
+    end
+
+    def linkable_user_id(value)
+      return unless value.is_a?(String) && value.present?
+
+      visible = policy_scope(Membership).where(organisation: current_organisation, active: true, user_id: value).exists?
+      taken = Person.where(organisation: current_organisation, user_id: value).exists?
+      value if visible && !taken
     end
 
     def new_person_requested?

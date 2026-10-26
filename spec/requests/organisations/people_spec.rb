@@ -390,6 +390,93 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     end
   end
 
+  # Review round 2, finding 1: "Angaben ergänzen" must name the member in the
+  # PAGE address too: below the lane width and on a reload only that is used.
+  it 'puts the member into the page address of "Angaben ergänzen"' do
+    sign_in admin
+    member = member_with(role_with, first_name: 'Ohne')
+
+    get organisation_people_path(organisation)
+
+    row = response.body[%r{<li[^>]*people-row[\s\S]*?Ohne[\s\S]*?</li>}]
+    expect(row).to include(CGI.escapeHTML({ new: 'person', user_id: member.id }.to_json))
+  end
+
+  it 'opens the form with the member chosen on a full visit with ?new=person&user_id=' do
+    sign_in admin
+    member = member_with(role_with, first_name: 'Ohne')
+
+    get organisation_people_path(organisation, new: 'person', user_id: member.id)
+
+    expect(response.body).to match(/<option selected="selected" value="#{member.id}">/)
+  end
+
+  # Review round 2, finding 2: a raw user_id in the address named any account
+  # in the member select, also one the reader may not see or of another org.
+  describe 'a raw user_id in the address of the new form' do
+    let(:project) { create(:project, organisation: organisation) }
+    let(:stranger) { member_with(role_with, first_name: 'Verborgen') }
+    let(:outsider) { create(:user, first_name: 'Fremdorga', last_name: 'Nisation') }
+
+    before do
+      create(:project_permission, user: manager, project: project, tickets_access: :read_only)
+      create(:project_permission, user: stranger, project: create(:project, organisation: organisation),
+                                  tickets_access: :read_only)
+      create(:membership, user: outsider, organisation: other_organisation)
+      sign_in manager
+    end
+
+    it 'does not name a member the reader cannot see' do
+      get new_organisation_person_path(organisation, user_id: stranger.id), headers: frame_headers
+
+      expect(response.body).not_to include('Verborgen', stranger.id)
+    end
+
+    it 'does not name an account of another organisation' do
+      get organisation_people_path(organisation, new: 'person', user_id: outsider.id)
+
+      expect(response.body).not_to include('Fremdorga', outsider.id)
+    end
+  end
+
+  # Review round 2, finding 3: a row whose member was deactivated is a contact;
+  # list and lane show the row's own name, not the account's current one.
+  it 'shows the row name, not the account, for a row of a deactivated member' do
+    former = member_with(role_with, first_name: 'Alt')
+    create(:person, organisation: organisation, user: former, name: 'Alt Name')
+    Membership.find_by(user: former, organisation: organisation).update!(active: false)
+    former.update!(first_name: 'Neu', last_name: 'Anders')
+    row = Person.find_by!(user: former)
+    sign_in admin
+
+    get organisation_people_path(organisation, person_id: row.id)
+
+    expect(response.body).to include('Alt Name')
+    expect(response.body).not_to include('Neu Anders')
+  end
+
+  # Review round 2, finding 5: a hand-made request without a usable
+  # lock_version must not crash.
+  it 'answers a missing lock_version as a stale save, not with an error' do
+    sign_in admin
+
+    patch organisation_person_path(organisation, person), params: { person: { phone: '0', lock_version: '' } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(person.reload.phone).to eq('+49 30 1234567')
+  end
+
+  # Review round 2, finding 6: a linked row shows the member's name; its own
+  # name field is read only there.
+  it 'shows the name field read only for a linked row' do
+    linked = create(:person, organisation: organisation, user: viewer, name: 'Kopie')
+    sign_in admin
+
+    get edit_organisation_person_path(organisation, linked), headers: frame_headers
+
+    expect(response.body).to match(/<input[^>]*readonly="readonly"[^>]*id="person_name"|<input[^>]*id="person_name"[^>]*readonly="readonly"/)
+  end
+
   it 'has no missing translation on the page' do
     sign_in admin
     get organisation_people_path(organisation, person_id: person.id)

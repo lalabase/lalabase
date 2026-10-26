@@ -39,7 +39,7 @@
                   action: 'click->lane-link#click',
                   lane_link_url_value: new_organisation_person_path(@current_organisation, user_id: entry.user.id),
                   lane_link_frame_value: Organisations::PeopleController::DETAIL_FRAME_ID,
-                  lane_link_set_value: { new: Organisations::PeopleController::NEW_STATE }.to_json,
+                  lane_link_set_value: { new: Organisations::PeopleController::NEW_STATE, user_id: entry.user.id }.to_json,
                   lane_link_remove_value: %w[person_id].to_json
                 } %>
   <% end %>

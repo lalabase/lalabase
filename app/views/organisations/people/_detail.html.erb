@@ -3,18 +3,21 @@
     history, and rows that may be the same person (read only). Edit and
     delete only for those who may write (PersonPolicy). %>
 <% fields = %i[function department company email phone] %>
+<% member = person_member_user(person) %>
 <div class="people-detail space-y-6">
   <div class="flex flex-wrap items-start gap-3">
-    <% if person.user %>
-      <%= render Neo::Users::AvatarComponent.new(user: person.user, size: :medium) %>
+    <% if member %>
+      <%= render Neo::Users::AvatarComponent.new(user: member, size: :medium) %>
     <% else %>
       <%= render Neo::Users::AvatarComponent.new(user: nil, size: :medium, fallback_initials: person_initials(person.name)) %>
     <% end %>
     <div class="min-w-0 flex-1">
-      <h2 class="text-[22px] leading-snug font-bold text-heading"><%= person_display_name(person: person) %></h2>
+      <h2 class="text-[22px] leading-snug font-bold text-heading"><%= person_display_name(person: person, user: member) %></h2>
       <p class="text-sm text-muted">
-        <% if person.user %>
-          <%= t('views.organisations.people.show.linked_member', name: viewer_display_name(person.user)) %>
+        <% if member %>
+          <%= t('views.organisations.people.show.linked_member', name: viewer_display_name(member)) %>
+        <% elsif person.user_id %>
+          <%= t('views.organisations.people.show.former_member') %>
         <% else %>
           <%= t('views.organisations.people.show.no_account') %>
         <% end %>

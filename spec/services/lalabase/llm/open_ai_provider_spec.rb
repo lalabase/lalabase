@@ -127,13 +127,22 @@ RSpec.describe Lalabase::Llm::OpenAiProvider do
       expect(result[:token_usage][:cost_cents]).to eq(0)
     end
 
-    it 'maps reasoning models (gpt-5) to max_completion_tokens and drops temperature' do
+    # max_tokens is the budget of the ANSWER. A reasoning model spends its
+    # reasoning tokens out of max_completion_tokens too, so the caller's answer
+    # budget gets REASONING_RESERVE on top.
+    it 'maps reasoning models (gpt-5) to max_completion_tokens plus the reasoning reserve and drops temperature' do
       provider.chat(messages: messages, model: 'gpt-5-nano', max_tokens: 1000, temperature: 0.7,
                     provider_options: { reasoning_effort: 'minimal' })
       expect(fake_client).to have_received(:chat).with(
-        parameters: hash_including(model: 'gpt-5-nano', max_completion_tokens: 1000, reasoning_effort: 'minimal')
+        parameters: hash_including(model: 'gpt-5-nano', max_completion_tokens: 1000 + described_class::REASONING_RESERVE,
+                                   reasoning_effort: 'minimal')
       )
       expect(fake_client).to have_received(:chat).with(parameters: hash_excluding(:max_tokens, :temperature))
+    end
+
+    it 'lets provider_options override the reserved max_completion_tokens (raw override wins)' do
+      provider.chat(messages: messages, model: 'gpt-5', max_tokens: 1000, provider_options: { max_completion_tokens: 700 })
+      expect(fake_client).to have_received(:chat).with(parameters: hash_including(max_completion_tokens: 700))
     end
 
     it 'forwards provider_options (e.g. presence_penalty) for non-reasoning models' do
@@ -161,7 +170,8 @@ RSpec.describe Lalabase::Llm::OpenAiProvider do
         provider.chat(messages: messages, model: model, max_tokens: 500, temperature: 0.3)
 
         if kind == :reasoning
-          expect(fake_client).to have_received(:chat).with(parameters: hash_including(max_completion_tokens: 500))
+          expect(fake_client).to have_received(:chat)
+            .with(parameters: hash_including(max_completion_tokens: 500 + described_class::REASONING_RESERVE))
           expect(fake_client).to have_received(:chat).with(parameters: hash_excluding(:max_tokens, :temperature))
         else
           expect(fake_client).to have_received(:chat).with(parameters: hash_including(max_tokens: 500, temperature: 0.3))
@@ -220,6 +230,21 @@ RSpec.describe Lalabase::Llm::OpenAiProvider do
       expect(result[:content]).to eq('Hello world')
       expect(result[:token_usage][:estimated]).to be(true)
       expect(result[:token_usage][:output_tokens]).to be_positive
+    end
+
+    it 'adds the reasoning reserve when streaming a reasoning model, and leaves a standard model alone' do
+      captured = []
+      allow(fake_client).to receive(:chat) do |args|
+        captured << args[:parameters]
+        nil
+      end
+
+      provider.stream_chat(messages: messages, model: 'gpt-5', max_tokens: 1500) { |_| }
+      provider.stream_chat(messages: messages, model: 'gpt-4o-mini', max_tokens: 1500) { |_| }
+
+      expect(captured.first[:max_completion_tokens]).to eq(1500 + described_class::REASONING_RESERVE)
+      expect(captured.last).to include(max_tokens: 1500)
+      expect(captured.last).not_to have_key(:max_completion_tokens)
     end
 
     it 'requests stream_options.include_usage so OpenAI emits real token counts' do

@@ -158,6 +158,54 @@ RSpec.describe Lalabase::Release do
     end
   end
 
+  describe 'the release image in compose.yml' do
+    let(:compose) do
+      "x-app: &app\n  image: ghcr.io/lalabase/lalabase:${LALABASE_VERSION:-2026.10.1}\n  restart: unless-stopped\n"
+    end
+
+    it 'reads the version compose.yml pulls' do
+      expect(described_class.compose_version(compose)).to eq('2026.10.1')
+    end
+
+    it 'reads nothing from a file without the image, with it twice, or with another image' do
+      expect(described_class.compose_version("services:\n  web:\n    build: .\n")).to be_nil
+      expect(described_class.compose_version(compose * 2)).to be_nil
+      expect(described_class.compose_version(compose.sub('lalabase/lalabase', 'someone/lalabase'))).to be_nil
+    end
+
+    it 'writes a new version into that one line and leaves the rest' do
+      result = described_class.with_compose_version(compose, '2026.11.0')
+
+      expect(result).to eq(compose.sub('2026.10.1', '2026.11.0'))
+    end
+
+    it 'refuses to write when the line is missing or there twice' do
+      expect { described_class.with_compose_version("services: {}\n", '2026.11.0') }.to raise_error(ArgumentError, /0 times/)
+      expect { described_class.with_compose_version(compose * 2, '2026.11.0') }.to raise_error(ArgumentError, /2 times/)
+    end
+
+    describe '.version_only_diff?' do
+      def diff(*lines) = "diff --git a/compose.yml b/compose.yml\n--- a/compose.yml\n+++ b/compose.yml\n@@ -2 +2 @@\n#{lines.join("\n")}\n"
+
+      let(:old_line) { '-  image: ghcr.io/lalabase/lalabase:${LALABASE_VERSION:-2026.10.1}' }
+      let(:new_line) { '+  image: ghcr.io/lalabase/lalabase:${LALABASE_VERSION:-2026.11.0}' }
+
+      it 'is true for a diff that only moves the version, as prepare does' do
+        expect(described_class.version_only_diff?(diff(old_line, new_line))).to be(true)
+      end
+
+      it 'is false as soon as another line changes, or nothing changes' do
+        expect(described_class.version_only_diff?(diff(old_line, new_line, '+    pull_policy: always'))).to be(false)
+        expect(described_class.version_only_diff?(diff('-  restart: always', '+  restart: unless-stopped'))).to be(false)
+        expect(described_class.version_only_diff?('')).to be(false)
+      end
+
+      it 'does not take the file names of the diff header for changed lines' do
+        expect(described_class.version_only_diff?(diff(new_line))).to be(true)
+      end
+    end
+  end
+
   describe '.mentioned_numbers' do
     it 'reads the pull requests a section names as (#N), and nothing else' do
       expect(described_class.mentioned_numbers("- one (#5)\n- two (#12), see #7\n- one again (#5)")).to eq([5, 12])

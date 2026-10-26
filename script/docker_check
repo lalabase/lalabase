@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# Boots compose.yml with an image that is already there and checks the
+# install a self-hoster would get, then removes the stack and its volumes.
+# Run by both Docker workflows: docker.yml with the image it built from the
+# pull request (COMPOSE_FILE=compose.yml:compose.build.yml), docker-release.yml
+# with the release image before it pushes it (LALABASE_VERSION).
+#
+#   HOST=lalabase-ci.test:3000 script/docker_check [--build]
+#
+# --build runs `docker compose build` once .env is written: compose reads the
+# required values of .env already to build.
+#
+# HOST is a host that is not localhost: the health check in compose.yml calls
+# /up on localhost, so it passes only through the /up exemptions from the
+# host check and the https redirect. The pages are asked for with this host.
+#
+# It writes .env and deletes the stack's volumes: for a CI runner, never for
+# a checkout with an instance of its own.
+
+set -euo pipefail
+
+: "${HOST:?Set HOST, e.g. lalabase-ci.test:3000}"
+cd "$(dirname "$0")/.."
+if [ -e .env ] && [ "${CI:-}" != "true" ]; then
+  echo "There is a .env here, and this check overwrites it and deletes the volumes. Run it on a CI runner." >&2
+  exit 1
+fi
+
+finish() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    echo "::group::Logs"
+    docker compose logs --no-color --tail 200 || true
+    echo "::endgroup::"
+  fi
+  docker compose down -v || true
+  exit "$status"
+}
+trap finish EXIT
+
+# The .env a self-hoster would write without a certificate: fresh secrets,
+# plain http, no Caddy. Plus the DATABASE_URL line the guide for installs
+# without Docker shows: compose.yml must win over it.
+cp .env.docker.example .env
+sed -i.bak \
+  -e "s/^LALABASE_HOST=.*/LALABASE_HOST=${HOST}/" \
+  -e '/^COMPOSE_PROFILES=/d' \
+  .env
+rm -f .env.bak
+{
+  echo "LALABASE_FORCE_SSL=false"
+  echo "SECRET_KEY_BASE=$(openssl rand -hex 64)"
+  echo "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY=$(openssl rand -hex 32)"
+  echo "ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY=$(openssl rand -hex 32)"
+  echo "ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT=$(openssl rand -hex 32)"
+  echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+  echo "DATABASE_URL=postgres://lalabase:wrong@db:5432/lalabase_production"
+} >> .env
+
+if [ "${1:-}" = "--build" ]; then
+  docker compose build
+fi
+
+# --pull never: the image under test is the one built in this run. A pull
+# would test whatever the registry holds under that name. The database and
+# Valkey come from their registries, so they are pulled first.
+docker compose pull --quiet db redis
+docker compose up -d --pull never --wait --wait-timeout 300
+
+echo "Health check, a page that needs the database, a foreign host"
+curl -fsS -o /dev/null http://localhost:3000/up
+curl -fsS -o /dev/null -H "Host: ${HOST}" http://localhost:3000/users/sign_in
+code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.example' http://localhost:3000/users/sign_in)
+test "$code" = "403" || { echo "::error::A foreign host got $code instead of 403"; exit 1; }
+
+echo "The data lands in the database the backups dump"
+found=$(docker compose exec -T db psql -U lalabase -d lalabase -tAc \
+  "SELECT 1 FROM information_schema.tables WHERE table_name = 'schema_migrations'")
+test "$found" = "1"
+
+# The compiled CSS carries its font URLs with the asset host burnt in. A
+# self-hosted instance must not load anything from our host. grep exits 1 for
+# "no match"; 0 is a match and 2 a failed search, both red.
+echo "No asset names our host"
+rc=0
+docker compose exec -T web grep -rl 'lalabase.com' public/assets || rc=$?
+if [ "$rc" -ne 1 ]; then
+  echo "::error::grep exited $rc: assets name lalabase.com (0) or could not be searched (2)"
+  exit 1
+fi
+
+echo "First admin"
+docker compose exec -T \
+  -e LALABASE_ADMIN_EMAIL=admin@example.org \
+  -e LALABASE_ADMIN_PASSWORD=ci-check-password-123 \
+  web bin/rails lalabase:setup
+
+# The worker stays up: Solid Queue exits at boot when the pool is smaller
+# than its threads, and compose would just keep restarting it.
+echo "Worker is running"
+sleep 10
+test "$(docker compose ps worker --format '{{.State}}')" = "running"
+# Not a pipe into grep -q: grep stops at the first match, and with pipefail
+# the cut-off logs command would turn a passing check red.
+grep -q 'Started Worker' <<<"$(docker compose logs worker)"
+
+echo "Docker check passed."

@@ -4,8 +4,11 @@
 # The image for running Lalabase yourself with Docker Compose (compose.yml).
 # Our own servers do not use it: they deploy with Capistrano.
 #
-#   docker compose build
-#   docker compose up -d
+# Each release publishes it as ghcr.io/lalabase/lalabase:<version>, for
+# linux/amd64 and linux/arm64 (.github/workflows/docker-release.yml), and
+# compose.yml pulls that. To build it from a checkout:
+#
+#   docker compose -f compose.yml -f compose.build.yml up -d --build
 #
 # Build it on the architecture it runs on, or with buildx for that platform:
 # native extensions do not carry over between arm64 and amd64.

@@ -1,8 +1,17 @@
 # Lalabase with Docker Compose, for running it yourself.
 #
 #   cp .env.docker.example .env      # then fill in the values it asks for
-#   docker compose up -d --build
+#   docker compose up -d
 #   docker compose exec web bin/rails lalabase:setup
+#
+# The application runs the image of this file's release, built for
+# linux/amd64 and linux/arm64 when the release was published
+# (.github/workflows/docker-release.yml). Check out a release tag, not main:
+# the version below is the one script/release wrote for that tag. Updating
+# means checking out the next tag, reading its upgrade notes, then
+# `docker compose pull && docker compose up -d`. LALABASE_VERSION in .env
+# overrides the version, for example to go back to the previous release.
+# To build the image from your checkout instead, see compose.build.yml.
 #
 # Services: web (Puma), worker (Solid Queue), db (PostgreSQL with pgvector),
 # redis (Action Cable and the cache; Valkey, a BSD-licensed Redis fork) and
@@ -14,8 +23,7 @@
 # Caddy's certificates. `docker compose down -v` deletes all of them.
 
 x-app: &app
-  build: .
-  image: lalabase:local
+  image: ghcr.io/lalabase/lalabase:${LALABASE_VERSION:-2026.10.1}
   restart: unless-stopped
   env_file: .env
   environment: &app-env

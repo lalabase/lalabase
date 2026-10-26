@@ -58,6 +58,15 @@ RSpec.describe 'CHANGELOG.md', type: :model do
     )
   end
 
+  # compose.yml of a tag pulls the image built from that tag. prepare writes
+  # both files, publish holds the version against compose.yml; a hand edit of
+  # one of them shows here, before a release is cut from it.
+  it 'goes with a compose.yml that pulls the image of the newest release' do
+    newest = Rails.root.join('CHANGELOG.md').read.match(Lalabase::Release::VERSION_HEADING)[:version]
+
+    expect(Lalabase::Release.compose_version(Rails.root.join('compose.yml').read)).to eq(newest)
+  end
+
   it 'accepts a release in the right shape' do
     good = "# Changelog\n\n## [Unreleased]\n\n## [2026.11.0] - 2026-11-20\n\n### Upgrade notes\n\n- None.\n\n" \
            "## [2026.10.0] - 2026-10-30\n\n### Upgrade notes\n\n- None.\n"

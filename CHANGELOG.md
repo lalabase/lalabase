@@ -18,6 +18,26 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ## [Unreleased]
 
+### Added
+
+- A Docker image for each release, `ghcr.io/lalabase/lalabase:<version>`, for linux/amd64
+  and linux/arm64. It boots and passes the install check before it is pushed, and carries a
+  signed record of where it was built (`gh attestation verify oci://ghcr.io/lalabase/lalabase:<version> --owner lalabase`).
+  `compose.yml` of a release pulls the image of that release instead of building it, and
+  `compose.build.yml` still builds the image from the checkout (#48).
+
+### Fixed
+
+- Building the image yourself no longer fails on the first `up --build` with Docker 29:
+  only the web service builds, and the worker runs the image it built (#48).
+
+### Upgrade notes
+
+- `compose.yml` no longer builds the image: it pulls `ghcr.io/lalabase/lalabase` in the
+  version of the release you checked out. Update with `git checkout <release>`, then
+  `docker compose pull && docker compose up -d`. To keep building the image on your
+  server, add `COMPOSE_FILE=compose.yml:compose.build.yml` to `.env`.
+
 ## [2026.10.1] - 2026-10-21
 
 <!-- drafted from d03168b613c25580924a59815580a512c0b95666 -->

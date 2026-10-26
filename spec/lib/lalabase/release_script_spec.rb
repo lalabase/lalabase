@@ -90,6 +90,23 @@ RSpec.describe 'script/release' do
     git('push', '-q', 'origin', 'main')
   end
 
+  def compose_with(version, restart: 'unless-stopped')
+    "x-app: &app\n  image: ghcr.io/lalabase/lalabase:${LALABASE_VERSION:-#{version}}\n  restart: #{restart}\n"
+  end
+
+  def compose_file = File.join(work, 'compose.yml')
+
+  # A pull request that writes the given files (path => content), merged.
+  def pull_request_writing(number, title, files)
+    git('switch', '-q', '-c', "pr-#{number}")
+    files.each { |path, content| File.write(File.join(work, path), content) }
+    git('commit', '-q', '-am', title)
+    git('switch', '-q', 'main')
+    git('merge', '-q', '--no-ff', "pr-#{number}", '-m', "Merge pull request ##{number} from someone/pr-#{number}")
+    git('push', '-q', 'origin', 'main')
+    record_pull_request(number, title)
+  end
+
   before do
     FileUtils.mkdir_p([File.join(@tmp, 'bin'), state])
     File.write(File.join(@tmp, 'bin/gh'), fake_gh)
@@ -104,6 +121,7 @@ RSpec.describe 'script/release' do
     FileUtils.cp(File.join(root, 'script/release'), File.join(work, 'script/release'))
     FileUtils.cp(File.join(root, 'lib/lalabase/release.rb'), File.join(work, 'lib/lalabase/release.rb'))
     File.write(File.join(work, 'CHANGELOG.md'), "# Changelog\n\n## [Unreleased]\n")
+    File.write(File.join(work, 'compose.yml'), compose_with('2026.9.0'))
     git('switch', '-q', '-c', 'main')
     git('add', '-A')
     git('commit', '-q', '-m', 'init')
@@ -205,6 +223,35 @@ RSpec.describe 'script/release' do
     expect(out).to include('not newer than the last release 2026.9.0')
   end
 
+  # A checked-out tag pulls the image built from it: compose.yml of the tag
+  # names its version, and prepare is what writes it.
+  it 'writes the version into compose.yml on prepare' do
+    merge_pull_request(5, 'feat: one task')
+
+    out, ok = release('prepare', '2026.10.0')
+
+    expect(ok).to be(true), out
+    expect(File.read(compose_file)).to eq(compose_with('2026.10.0'))
+  end
+
+  it 'refuses to prepare without the release image in compose.yml, and changes nothing' do
+    pull_request_writing(5, 'feat: build here', 'compose.yml' => "services:\n  web:\n    build: .\n")
+
+    out, ok = release('prepare', '2026.10.0')
+
+    expect(ok).to be(false)
+    expect(out).to include('names ghcr.io/lalabase/lalabase 0 times', 'nothing was changed')
+    expect(File.read(File.join(work, 'CHANGELOG.md'))).not_to include('2026.10.0')
+  end
+
+  it 'tells to compare compose.yml only for a change beyond the image version' do
+    pull_request_writing(5, 'chore: next image', 'compose.yml' => compose_with('2026.9.1'))
+    expect(release('draft').first).not_to include('compose.yml changed')
+
+    pull_request_writing(6, 'fix: restart', 'compose.yml' => compose_with('2026.9.1', restart: 'always'))
+    expect(release('draft').first).to include('compose.yml changed: compare it with your copy')
+  end
+
   context 'when the notes are on main' do
     before do
       merge_pull_request(5, 'feat: one task')
@@ -214,6 +261,30 @@ RSpec.describe 'script/release' do
       git('switch', '-q', 'main')
       git('merge', '-q', '--no-ff', 'release-notes', '-m', 'Merge pull request #7 from someone/release-notes')
       git('push', '-q', 'origin', 'main')
+    end
+
+    it 'refuses to publish while compose.yml pulls another release, before tagging anything' do
+      pull_request_writing(9, 'chore: back to the old image', 'compose.yml' => compose_with('2026.9.0'))
+
+      out, ok = release('publish', '2026.10.0', '--anyway')
+
+      expect(ok).to be(false)
+      expect(out).to include('compose.yml on main pulls the image of 2026.9.0, not 2026.10.0')
+      expect(git('tag', '--list', '2026.10.0').strip).to eq('')
+    end
+
+    # The notes pull request (#7) changed the image version too and needs no
+    # line. One that changes compose.yml beyond it is code and needs one.
+    it 'wants a line for a notes pull request that also changed compose.yml beyond the version' do
+      notes = File.read(File.join(work, 'CHANGELOG.md'))
+      pull_request_writing(9, 'docs: notes and a restart',
+                           'CHANGELOG.md' => notes.sub('- one task (#5)', "- one task (#5)\n- more"),
+                           'compose.yml' => compose_with('2026.10.0', restart: 'always'))
+
+      out, ok = release('publish', '2026.10.0')
+
+      expect(ok).to be(false)
+      expect(out).to include('not in the release notes: #9')
     end
 
     # A pull request merged between prepare and publish would be in no release (finding 2).

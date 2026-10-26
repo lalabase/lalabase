@@ -116,13 +116,15 @@ Docker Compose v2, and a domain pointing at it.
 git clone https://github.com/lalabase/lalabase.git && cd lalabase
 git checkout "$(git describe --tags --abbrev=0)"   # the latest release, not main
 cp .env.docker.example .env      # fill in the values it asks for
-docker compose up -d --build
+docker compose up -d             # pulls the image of that release
 docker compose exec web bin/rails lalabase:setup
 ```
 
 `compose.yml` starts the application, a job worker, PostgreSQL with pgvector, Valkey and Caddy,
 which fetches a TLS certificate for `LALABASE_HOST`. If a proxy of your own terminates TLS, drop
-the `COMPOSE_PROFILES=tls` line. Build the image on the architecture it runs on.
+the `COMPOSE_PROFILES=tls` line. Each release has an image `ghcr.io/lalabase/lalabase:<version>`
+for linux/amd64 and linux/arm64, and the `compose.yml` of the release pulls it. To build the image
+from your checkout instead, use `compose.build.yml` (see its first lines).
 
 The guide covers installation, configuration, AI keys, backups and updates, in English and
 German: [lalabase.com/docs](https://lalabase.com/docs/en/self-hosting/getting-started/overview).

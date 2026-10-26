@@ -193,6 +193,24 @@ RSpec.describe Meetings::TicketSuggestionService do
       end
     end
 
+    # Checked before the JSON is parsed: even an answer that happens to parse
+    # (cut right after a closing bracket) is not the list the model meant to give.
+    context 'when the answer was cut at the output limit' do
+      let(:chat_result) { { content: llm_content, stop_reason: 'length', token_usage: { total_tokens: 100 }, model_used: 'gpt-4o-mini' } }
+
+      it 'creates and deletes no suggestion, records the truncated error and still meters' do
+        old_open = create(:meeting_ticket_suggestion, meeting: meeting)
+
+        expect { described_class.call(meeting: meeting) }.not_to(change { meeting.meeting_ticket_suggestions.count })
+
+        expect(MeetingTicketSuggestion.exists?(old_open.id)).to be(true)
+        expect(meeting.reload.suggestions_creation_error)
+          .to eq(I18n.t('services.meetings.ticket_suggestions.truncated'))
+        expect(meeting.suggestions_creation_flag).to be(false)
+        expect(Lalabase::Llm::UsageTracking).to have_received(:record)
+      end
+    end
+
     context 'when the quota is exhausted (Factory raises)' do
       before { allow(Lalabase::Llm::Factory).to receive(:for_feature).with(:meeting_ticket_suggestions, organisation).and_raise(Lalabase::Llm::QuotaExceededError) }
 

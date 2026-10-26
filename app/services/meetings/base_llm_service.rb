@@ -33,6 +33,11 @@ module Meetings
     # more than a summary/analysis needs and bounds the cost (review #235).
     SOURCE_CHAR_LIMIT = 100_000
 
+    # The canonical stop_reason of an answer that hit max_tokens (Provider#chat).
+    # Such an answer stops mid-sentence (or mid-JSON); it used to be stored as a
+    # finished result without a hint.
+    TRUNCATED_STOP_REASON = 'length'
+
     # Template. Mirrors the original SummaryService#process one-to-one; the only
     # difference is that the varying parts are hook methods.
     def process
@@ -61,6 +66,11 @@ module Meetings
       # Meter BEFORE handling the result — a malformed/empty answer still cost
       # tokens (track-before-parse, the ParticipantDetectionService rule).
       track_usage(provider, result)
+      # A cut answer is never a finished one: checked after metering (it cost
+      # tokens) and before handle_result, so every subclass gets it, including
+      # one that overrides handle_result.
+      return record_truncated(result) if result[:stop_reason] == TRUNCATED_STOP_REASON
+
       handle_result(result)
     rescue Lalabase::Llm::Factory::MissingCredentialError
       record_error(t('not_configured'))
@@ -193,6 +203,16 @@ module Meetings
     # Clear the pending flag AND record a readable error.
     def record_error(message)
       record.update!(flag_attr => false, error_attr => message)
+    end
+
+    # Keep no part of a cut answer: readable error, flag cleared, earlier content
+    # untouched. The log names the token counts, never the answer itself.
+    def record_truncated(result)
+      usage = result[:token_usage] || {}
+      Rails.logger.warn "#{log_prefix}: answer cut at the output limit " \
+                        "(input #{usage[:input_tokens].inspect}, output #{usage[:output_tokens].inspect}, " \
+                        "total #{usage[:total_tokens].inspect})"
+      record_error(t('truncated'))
     end
 
     # Nothing to process: clear the pending flag AND any leftover error.

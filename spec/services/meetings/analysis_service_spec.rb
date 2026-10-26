@@ -135,6 +135,55 @@ RSpec.describe Meetings::AnalysisService do
     end
   end
 
+  # An answer that hit the output limit is cut mid-way. It used to be stored as a
+  # finished analysis without a hint; now it is a readable error and nothing of
+  # it is kept. The call still cost tokens, so it is metered all the same.
+  describe 'answer cut at the output limit (stop_reason length)' do
+    let(:transcript) { 'Some transcript' }
+    let(:chat_result) do
+      { content: 'Analyse, die mitten im', stop_reason: 'length', model_used: 'gpt-4o-mini',
+        token_usage: { input_tokens: 900, output_tokens: 1500, total_tokens: 2400 } }
+    end
+
+    it 'records the truncated error, keeps no part of the answer and clears the flag' do
+      described_class.call(analysis: analysis)
+      analysis.reload
+      expect(analysis.content).to eq('')
+      expect(analysis.creation_flag).to be(false)
+      expect(analysis.creation_error).to eq(I18n.t('services.meetings.analysis.truncated'))
+    end
+
+    it 'leaves an earlier content untouched' do
+      analysis.update!(content: 'FRUEHERE_ANALYSE')
+      described_class.call(analysis: analysis)
+      expect(analysis.reload.content).to eq('FRUEHERE_ANALYSE')
+    end
+
+    it 'still meters the call' do
+      described_class.call(analysis: analysis)
+      expect(Lalabase::Llm::UsageTracking).to have_received(:record).with(hash_including(subject: analysis))
+    end
+
+    it 'logs the token counts but not the answer' do
+      logged = []
+      allow(Rails.logger).to receive(:warn) { |message| logged << message }
+      described_class.call(analysis: analysis)
+      expect(logged.join).to include('2400').and include('1500')
+      expect(logged.join).not_to include('mitten im')
+    end
+  end
+
+  describe 'an answer that ended normally (stop_reason stop)' do
+    let(:transcript) { 'Some transcript' }
+    let(:chat_result) { { content: 'Fertige Analyse.', stop_reason: 'stop', token_usage: {}, model_used: 'gpt-4o-mini' } }
+
+    it 'is stored as before' do
+      described_class.call(analysis: analysis)
+      expect(analysis.reload.content).to eq('Fertige Analyse.')
+      expect(analysis.creation_error).to eq('')
+    end
+  end
+
   describe 'blank source' do
     it 'does not call the LLM and clears the pending flag' do
       expect(Lalabase::Llm::Factory).not_to receive(:for_feature)

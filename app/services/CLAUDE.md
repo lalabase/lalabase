@@ -158,7 +158,7 @@ Verzeichnis-Übersicht (Auswahl):
   über `MembershipPolicy::Scope` (dieselbe Reichweite wie die Mitgliederseite), dazu die
   Zeilen ohne aktives Mitglied als Kontakte; Suche in Ruby über `PersonName.normalize`.
   Rechte nur über `PersonPolicy`, keine eigene Regel daneben.
-  `contacts.rb` (S2a, 27.10.2026): Meetings einer Person (`person_id` ODER `user_id` des
+  `contacts.rb` (S2a, 26.10.2026): Meetings einer Person (`person_id` ODER `user_id` des
   Mitglieds) und „Letzter Kontakt“ einer ganzen Liste in fester Abfragezahl. Lesbar nur über
   `MeetingPolicy::Scope`, `TicketPolicy::Scope`, `Post.readable_by` und `Activity.feed`; bei
   aktiven Mitgliedern zählt eigene Ticket-Arbeit (`TICKET_ACTIONS`: angelegt, geändert,

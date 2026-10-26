@@ -204,11 +204,14 @@ module PeopleHelper
   end
 
   # The words of a last contact (People::Contacts::LastContact): the last
-  # meeting with its date, or the ticket work with its age.
+  # meeting with its date (with the year when it is not this year), or the
+  # ticket work with its age.
   def last_contact_text(last)
     scope = 'views.organisations.people.last_contact'
     if last.kind == :meeting
-      t("#{scope}.meeting", title: last.meeting_title, date: l(last.at.to_date, format: :short))
+      date = last.at.to_date
+      t("#{scope}.meeting", title: last.meeting_title,
+                            date: l(date, format: date.year == Time.zone.today.year ? :short : :default))
     else
       t("#{scope}.ticket.#{last.action}", number: last.ticket_number, age: last_contact_age(last.at))
     end
@@ -219,9 +222,8 @@ module PeopleHelper
   # of a former member only its meetings.
   def person_contacts(person: nil, member: nil)
     contacts = People::Contacts.new(viewer: current_user, organisation: current_organisation)
-    subject = People::Contacts::Subject.new(person_id: person&.id, user_id: member&.id || person&.user_id,
-                                            member: member.present?)
     meetings = contacts.meetings_for(person: person, user: member).includes(:project)
-    { last: contacts.last_contacts([subject]).first, meetings: meetings }
+    { last: contacts.last_contacts([People::Contacts::Subject.for(person: person, member: member)]).first,
+      meetings: meetings }
   end
 end

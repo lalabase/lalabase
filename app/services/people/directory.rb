@@ -57,9 +57,7 @@ module People
     # The one subject People::Contacts asks about for an entry: a member counts
     # their own ticket work, a contact (also a former member) only meetings.
     def self.contact_subject(entry)
-      People::Contacts::Subject.new(person_id: entry.person&.id,
-                                    user_id: entry.member? ? entry.user.id : entry.person&.user_id,
-                                    member: entry.member?)
+      People::Contacts::Subject.for(person: entry.person, member: (entry.user if entry.member?))
     end
 
     # How many people the page holds, before search and filter: the head line

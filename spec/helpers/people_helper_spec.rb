@@ -33,6 +33,24 @@ RSpec.describe PeopleHelper, type: :helper do
     end
   end
 
+  # Review round 1: the date of the last meeting names its year when it is
+  # not this year.
+  describe '#last_contact_text' do
+    def meeting_contact(at)
+      People::Contacts::LastContact.new(at: at, kind: :meeting, meeting_title: 'Kick-off')
+    end
+
+    it 'leaves the year out for this year' do
+      expect(I18n.with_locale(:de) { helper.last_contact_text(meeting_contact(Time.zone.local(2026, 10, 3, 10))) })
+        .to eq('Letztes Meeting: Kick-off, 03.10.')
+    end
+
+    it 'names the year of an older meeting' do
+      expect(I18n.with_locale(:de) { helper.last_contact_text(meeting_contact(Time.zone.local(2024, 10, 3, 10))) })
+        .to eq('Letztes Meeting: Kick-off, 03.10.2024')
+    end
+  end
+
   it 'counts late yesterday evening as yesterday, not as hours ago' do
     expect(I18n.with_locale(:de) { helper.last_contact_age(Time.zone.local(2026, 10, 25, 23, 50)) }).to eq('gestern')
   end

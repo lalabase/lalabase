@@ -98,6 +98,30 @@ RSpec.describe People::Contacts, :ci_guard do
       expect(last.at).to be_within(1.second).of(5.days.ago)
     end
 
+    # Review round 1: a meeting still to come is no contact yet.
+    it 'does not count a meeting in the future, but lists it' do
+      past = meeting_with(readable, at: 3.days.ago, title: 'Status', person: contact)
+      future = meeting_with(readable, at: 10.days.from_now, title: 'Planung', person: contact)
+
+      last = contacts.last_contacts([subject_for(person: contact)]).first
+
+      expect(last.meeting_title).to eq('Status')
+      expect(contacts.meetings_for(person: contact).to_a).to eq([future, past])
+    end
+
+    describe 'Subject.for (one rule for the list and the lane)' do
+      it 'counts ticket work only for an active member' do
+        row = create(:person, organisation: organisation, user: colleague)
+
+        expect(described_class::Subject.for(person: row, member: colleague).to_h)
+          .to eq(person_id: row.id, user_id: colleague.id, member: true)
+        expect(described_class::Subject.for(person: row, member: nil).to_h)
+          .to eq(person_id: row.id, user_id: colleague.id, member: false)
+        expect(described_class::Subject.for(person: nil, member: colleague).to_h)
+          .to eq(person_id: nil, user_id: colleague.id, member: true)
+      end
+    end
+
     it 'is nil without anything readable' do
       meeting_with(hidden, at: 1.day.ago, title: 'Geheim', person: contact)
 

@@ -266,6 +266,7 @@ module Organisations
     def list_state
       given = request.query_parameters.merge(request.request_parameters)
       state = given.slice(*LIST_PARAMS).select { |_key, value| value.is_a?(String) && value.present? }
+      state.delete('sort') unless People::Directory::SORTS.include?(state['sort'])
       state['viewport'] = 'mobile' if given['viewport'] == 'mobile'
       state
     end

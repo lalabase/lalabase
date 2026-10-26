@@ -61,8 +61,10 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
       head = response.body[%r{<div class="people-columns"[\s\S]*?</div>}]
       expect(head).to include(I18n.t('views.organisations.people.index.columns.name'),
                               I18n.t('views.organisations.people.index.columns.last'))
-      active = head[%r{<span[^>]*aria-sort="ascending"[^>]*>[\s\S]*?</span>}]
-      expect(active).to include(I18n.t('views.organisations.people.index.columns.name'), 'bi-arrow-down')
+      expect(head).not_to include('role=', 'aria-sort')
+      active = head[%r{<a[^>]*aria-current="true"[^>]*>[\s\S]*?</a>}]
+      expect(active).to include(I18n.t('views.organisations.people.index.columns.name'), 'bi-arrow-down',
+                                I18n.t('views.organisations.people.index.columns.sorted'))
       expect(response.body.index('Carl Beispiel')).to be < response.body.index('Doris Dienstleister')
     end
 
@@ -86,6 +88,16 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
       expect(response.body).to match(/<input type="hidden" name="sort"[^>]*value="last"/)
       expect(response.body).to include(CGI.escapeHTML(organisation_people_path(organisation, kind: 'contacts', sort: 'last')))
       expect(response.body).to include(CGI.escapeHTML('"sort"'))
+    end
+
+    it 'drops an unknown sort from every link' do
+      sign_in viewer
+
+      get organisation_people_path(organisation, sort: 'evil')
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Doris Dienstleister')
+      expect(response.body).not_to include('sort=evil')
     end
 
     it 'is not moved by, and does not show, a meeting the viewer may not read' do
@@ -194,6 +206,37 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
       get organisation_person_path(organisation, row), headers: frame_headers
 
       expect(response.body).to include(I18n.t('views.organisations.people.show.from_account', date: I18n.l(row.created_at.to_date, format: :default)))
+    end
+  end
+
+  # Review round 1: a row of a former member (a contact with the account's
+  # user_id) counts meetings through the account, never ticket work, in the
+  # row, in the sort and in the lane alike.
+  describe 'a row of a former member' do
+    let(:ticket) { create(:ticket, organisation: organisation, project: readable) }
+    let!(:former_row) { create(:person, organisation: organisation, user: colleague, name: 'Carl Frueher') }
+
+    before do
+      meeting(readable, at: 6.days.ago, title: 'Altrunde', user: colleague)
+      Activity.create!(actor: colleague, trackable: ticket, organisation: organisation, action: 'created',
+                       parameters: { 'skip_notifications' => true }, created_at: 1.day.ago)
+      Membership.find_by(user: colleague, organisation: organisation).update!(active: false)
+      sign_in viewer
+    end
+
+    it 'shows the meeting through the account and not the ticket work in the row' do
+      get organisation_people_path(organisation)
+
+      row = row_of(response.body, 'Carl Frueher')
+      expect(row).to include('vor 6 Tagen', 'Letztes Meeting: Altrunde')
+      expect(row).not_to include('Ticket')
+    end
+
+    it 'shows the meeting and not the ticket work in the lane' do
+      get organisation_person_path(organisation, former_row), headers: frame_headers
+
+      expect(response.body).to include('Letztes Meeting: Altrunde', 'Altrunde')
+      expect(response.body).not_to include("Hat Ticket ##{ticket.number}")
     end
   end
 

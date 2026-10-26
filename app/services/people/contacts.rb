@@ -10,7 +10,8 @@ module People
   #   A member without a row of their own has meetings through user_id alone.
   # * Readable means MeetingPolicy::Scope and TicketPolicy::Scope, the rules of
   #   "Alle Meetings" and the ticket list; no rule of its own next to them.
-  # * The last contact (E3) is the newest readable meeting; for an active
+  # * The last contact (E3) is the newest readable meeting that took place;
+  #   for an active
   #   member also their own work on a readable ticket (created, changed,
   #   commented), whichever is newer. A comment the viewer may not read
   #   (Post.readable_by) does not count, nor does a bulk run (Activity.feed).
@@ -37,7 +38,14 @@ module People
 
     # One entry of the directory: its person row, its account, and whether the
     # account is an active member (only then does ticket work count).
-    Subject = Struct.new(:person_id, :user_id, :member, keyword_init: true)
+    Subject = Struct.new(:person_id, :user_id, :member, keyword_init: true) do
+      # The one rule for the list and the lane: pass the active member's
+      # account as member:, never for a row of a former member, whose account
+      # still finds its meetings through the row's user_id.
+      def self.for(person:, member:)
+        new(person_id: person&.id, user_id: member&.id || person&.user_id, member: member.present?)
+      end
+    end
 
     # The participant column a meeting lookup reads, by name; never interpolated
     # from a caller.
@@ -84,14 +92,15 @@ module People
       @readable_tickets ||= TicketPolicy::Scope.new(@viewer, Ticket).resolve
     end
 
-    # The newest readable meeting per person row or per account.
+    # The newest readable meeting per person row or per account. A meeting
+    # still to come is listed in the lane but is no contact yet.
     def latest_meetings(key, ids)
       return {} if ids.empty?
 
       column = PARTICIPANT_COLUMNS.fetch(key)
       rows = MeetingParticipant.where(meeting_id: readable_meetings.select(:id))
                                .where(key == :person ? { person_id: ids } : { user_id: ids })
-                               .joins(:meeting)
+                               .joins(:meeting).where(meetings: { occurred_at: ..Time.current })
                                .select(Arel.sql("DISTINCT ON (#{column}) #{column} AS subject_id, " \
                                                 'meetings.title AS meeting_title, meetings.occurred_at AS met_at'))
                                .order(Arel.sql("#{column}, meetings.occurred_at DESC, meetings.id DESC"))

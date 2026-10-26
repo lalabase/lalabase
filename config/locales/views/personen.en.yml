@@ -51,6 +51,7 @@ en:
           columns:
             name: "Name"
             last: "Last"
+            sorted: "(sorted)"
         age:
           today: "today"
           yesterday: "yesterday"

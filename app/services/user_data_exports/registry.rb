@@ -216,6 +216,13 @@ module UserDataExports
       source(key: :chat_style_preferences, model: 'ChatStylePreference', tenant_scoped: true,
              attributes: %w[technicality length created_at],
              scope: ->(user) { ChatStylePreference.where(user: user) }),
+      # The people directory row linked to the account (at most one per
+      # organisation). creator_id/updater_id are authoring metadata on org
+      # content (as analysis_prompts); unlinked rows are data about third
+      # parties, whose requests go through the organisation as controller.
+      source(key: :people, model: 'Person', tenant_scoped: true,
+             attributes: %w[name function department company email phone notes created_at updated_at],
+             scope: ->(user) { Person.where(user_id: user.id) }),
       source(key: :notification_subscriptions, model: 'NotificationSubscription', tenant_scoped: true,
              attributes: %w[subscribable_type source created_at],
              scope: ->(user) { NotificationSubscription.where(user: user) }),

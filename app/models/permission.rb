@@ -92,6 +92,15 @@ class Permission < ApplicationRecord
     # stays a decision, not a side effect. Grantable to billable: false roles.
     assistant: %w[
       use_assistant
+    ],
+    # The shared people directory of the organisation (Person). Its own category
+    # for the same reason as :assistant: customer roles are billable: false and
+    # must be able to keep the list, which an action under :projects would
+    # forbid. manage_people (create, edit, delete, link) implies view_people in
+    # PersonPolicy. No role gets either automatically; account admins need none.
+    people: %w[
+      view_people
+      manage_people
     ]
   }.freeze
 

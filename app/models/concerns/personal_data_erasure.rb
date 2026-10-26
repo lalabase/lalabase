@@ -2,7 +2,8 @@
 
 # Erases the personal records an account owns BEYOND the users row itself, for
 # the account-erasure path: GDPR export archives, private meeting analyses,
-# private ticket posts, personal tasks, the account's own chat threads (via
+# private ticket posts, personal tasks, linked people directory rows, the
+# account's own chat threads (via
 # PersonalChatErasure, which is included here so that both entry points get it
 # through this ONE include) and, as access revocation, its personal access
 # tokens.
@@ -37,6 +38,7 @@ module PersonalDataErasure
     erase_private_posts!
     erase_personal_tasks!
     erase_personal_chats!
+    erase_person_links!
     revoke_personal_access_tokens!
   end
 
@@ -103,6 +105,18 @@ module PersonalDataErasure
   def erase_personal_tasks!
     ActsAsTenant.without_tenant do
       PersonalTask.where(user_id: id).delete_all
+    end
+  end
+
+  # The people directory rows linked to this account, in every organisation:
+  # once the account is erased the row describes nobody the organisation still
+  # works with through Lalabase, and its fields (phone, notes) are personal
+  # data. Rows NOT linked to the account stay; they are the organisation's
+  # contacts, even when they carry the same name. destroy_all so each row
+  # leaves its anonymous person.deleted activity (PersonTrackable).
+  def erase_person_links!
+    ActsAsTenant.without_tenant do
+      Person.where(user_id: id).destroy_all
     end
   end
 

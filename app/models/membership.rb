@@ -32,6 +32,8 @@ class Membership < ApplicationRecord
   # Registers its own commit callbacks -- read the concern before adding another
   # one here, it explains why the method names have to stay distinct.
   include SeatEventRecording
+  # Removing a member keeps their person row and drops its link.
+  include PersonLinkRelease
 
   belongs_to :organisation
 

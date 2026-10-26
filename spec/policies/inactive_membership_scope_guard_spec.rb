@@ -100,6 +100,22 @@ RSpec.describe 'Policy scopes and a deactivated membership', :ci_guard, type: :p
   # The org-wide assistant threads have no project, so they never pass through
   # accessible_project_ids. ChatPolicy::Scope keeps its own check for that branch;
   # this cell is what says so out loud.
+  # The people directory has no project either: PersonPolicy::Scope asks the
+  # membership itself (PersonPolicy.view_allowed?).
+  describe 'PersonPolicy::Scope' do
+    let!(:person) { create(:person, organisation: organisation) }
+
+    it 'drops the rows once the membership is deactivated' do
+      create(:permission, role: role, category: 'people', action: 'view_people', allowed: true)
+
+      expect(PersonPolicy::Scope.new(User.find(user.id), Person).resolve).to include(person)
+
+      membership.update!(active: false)
+
+      expect(PersonPolicy::Scope.new(User.find(user.id), Person).resolve).to be_empty
+    end
+  end
+
   describe 'ChatPolicy::Scope' do
     let!(:org_thread) { create(:chat, user: user, organisation: organisation) }
 

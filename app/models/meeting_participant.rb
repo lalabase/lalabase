@@ -60,16 +60,11 @@ class MeetingParticipant < ApplicationRecord
     where(user_id: nil).joins(:meeting).where(meetings: { project_id: project_ids })
   }
 
-  # Normalization contract (mirrored in name_normalizer.js): NFC -> trim + collapse
-  # whitespace -> downcase -> umlaut transliteration. Accents other than umlauts
-  # are only downcased. Pure function so the contract spec can call it directly.
+  # Normalization contract: PersonName.normalize, the one normalizer shared
+  # with the people directory (mirrored in name_normalizer.js). Pure function so
+  # the contract spec can call it directly.
   def self.normalize_name(value)
-    return '' if value.nil?
-
-    s = value.to_s.unicode_normalize(:nfc)
-    s = s.strip.gsub(/\s+/, ' ')
-    s = s.downcase
-    s.gsub('ä', 'ae').gsub('ö', 'oe').gsub('ü', 'ue').gsub('ß', 'ss')
+    PersonName.normalize(value)
   end
 
   # Distinct people across a set of meetings, deduped by normalized_name with the

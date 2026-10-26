@@ -198,6 +198,10 @@ de:
               Benutzer.
           assistant:
             use_assistant: Erlaubt die Nutzung des organisationsweiten KI-Assistenten.
+          people:
+            view_people: Erlaubt das Lesen der Personenliste der Organisation.
+            manage_people: Erlaubt das Anlegen, Bearbeiten und Löschen von Personen
+              in der Personenliste der Organisation.
           none_available: Keine Beschreibung verfügbar
         categories:
           assistant: Assistent
@@ -206,6 +210,7 @@ de:
           tickets: Tickets
           meetings: Meetings
           users: Benutzer
+          people: Personen
     layouts:
       docs:
         title_with_page: "%{page} · Lalabase Docs"

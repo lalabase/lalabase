@@ -114,6 +114,16 @@ RSpec.describe Role, type: :model do
       expect(role).to be_valid
     end
 
+    it 'allows billable: false with people-category permissions (customer roles keep the list)' do
+      role = create(:role, billable: true)
+      create(:permission, role: role, category: 'people', action: 'view_people', allowed: true)
+      create(:permission, role: role, category: 'people', action: 'manage_people', allowed: true)
+
+      role.billable = false
+
+      expect(role).to be_valid
+    end
+
     it 'does not block a non-billable role with no forbidden permissions' do
       role = build(:role, billable: false)
 

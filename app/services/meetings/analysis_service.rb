@@ -21,6 +21,10 @@ module Meetings
     # 1,500 tokens. Since an answer cut at the limit is an error (BaseLlmService),
     # a small budget would fail every long analysis on a model without a thinking
     # reserve. Still bounded; SOURCE_CHAR_LIMIT bounds the input.
+    # Requirement for the configured model: an output limit of at least 8,000
+    # tokens (plus the thinking reserve the provider adds) and a context window
+    # for the transcript plus 8,000. A model below that refuses with a 400, shown
+    # as services.meetings.analysis.request_refused*, never as "try again later".
     MAX_TOKENS = 8_000
     TEMPERATURE = 0.5
 

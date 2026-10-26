@@ -86,6 +86,14 @@ module Meetings
     rescue Lalabase::Llm::AiDisabledError
       # ai_enabled? returns ai_disabled above first; this is defence in depth.
       record_error(t('ai_disabled'))
+    rescue Lalabase::Llm::Provider::RequestRefusedError => e
+      # The endpoint refused the request (a model whose output limit is below
+      # the answer budget, a prompt beyond its context, an exhausted balance).
+      # Waiting changes nothing, so not the generic "try again later". Who can
+      # fix it decides the copy, as in ChatResponseJob#refused_copy; the
+      # provider's own words stay in the log.
+      Rails.logger.error "#{log_prefix}: provider refused the request: #{e.message}"
+      record_error(t(own_access? ? 'request_refused_own_access' : 'request_refused'))
     rescue Lalabase::Llm::Provider::AuthError => e
       Rails.logger.error "#{log_prefix}: invalid AI key: #{e.message}"
       record_error(t('invalid_key'))
@@ -181,6 +189,13 @@ module Meetings
 
     def organisation
       record.organisation
+    end
+
+    # Does this request run on the organisation's own access (on the rung of
+    # this feature)? Same question ChatResponseJob#refused_copy asks.
+    def own_access?
+      utility = Lalabase::Llm::FeatureRegistry.fetch(feature_key).utility?
+      Lalabase::Llm::Factory.own_chat_access?(organisation, utility: utility)
     end
 
     # Caps `text` at SOURCE_CHAR_LIMIT. Returns [capped_text, truncated?] so the

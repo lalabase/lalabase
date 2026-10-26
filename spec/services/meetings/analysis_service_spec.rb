@@ -221,6 +221,43 @@ RSpec.describe Meetings::AnalysisService do
     end
   end
 
+  # The endpoint refused the request (400): a model whose output limit is below
+  # the answer budget, or a prompt + budget beyond its context. Waiting does not
+  # change that, so the message must not say "try again later".
+  describe 'request refused by the provider' do
+    let(:transcript) { 'Some transcript' }
+
+    before do
+      allow(provider).to receive(:chat).and_raise(Lalabase::Llm::Provider::RequestRefusedError, 'HTTP 400: too long')
+    end
+
+    it 'records the refused message (not the generic one) when the operator access is used' do
+      described_class.call(analysis: analysis)
+      analysis.reload
+      expect(analysis.creation_error).to eq(I18n.t('services.meetings.analysis.request_refused'))
+      expect(analysis.creation_error).not_to eq(I18n.t('services.meetings.analysis.generic_error'))
+      expect(analysis.creation_flag).to be(false)
+    end
+
+    it 'points to the AI settings when the organisation uses its own access' do
+      organisation.update!(ai_provider: AiCredential::PROVIDER_ANTHROPIC,
+                           ai_access_token: 'sk-ant-test-token-that-is-long-enough')
+      described_class.call(analysis: analysis)
+      expect(analysis.reload.creation_error).to eq(I18n.t('services.meetings.analysis.request_refused_own_access'))
+    end
+
+    it 'asks whose access it was on the main rung (an analysis is not a utility feature)' do
+      allow(Lalabase::Llm::Factory).to receive(:own_chat_access?).and_call_original
+      described_class.call(analysis: analysis)
+      expect(Lalabase::Llm::Factory).to have_received(:own_chat_access?).with(organisation, utility: false)
+    end
+
+    it 'keeps the provider message out of the stored error' do
+      described_class.call(analysis: analysis)
+      expect(analysis.reload.creation_error).not_to include('too long')
+    end
+  end
+
   describe 'an answer that ended normally (stop_reason stop)' do
     let(:transcript) { 'Some transcript' }
     let(:chat_result) { { content: 'Fertige Analyse.', stop_reason: 'stop', token_usage: {}, model_used: 'gpt-4o-mini' } }

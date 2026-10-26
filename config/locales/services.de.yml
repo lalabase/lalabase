@@ -110,6 +110,8 @@ de:
         generic_error: "Die Zusammenfassung konnte nicht erstellt werden. Bitte versuchen Sie es später erneut."
         quota_exhausted: "Das KI-Kontingent ist aufgebraucht. Die Zusammenfassung ist nach Budget-Erhöhung oder Monatsreset wieder möglich."
         truncated: "Die Antwort der KI war zu lang und wurde abgeschnitten. Bitte versuchen Sie es erneut."
+        request_refused: "Der KI-Anbieter hat die Anfrage abgelehnt. Ein erneuter Versuch ändert daran nichts; bitte wenden Sie sich an den Betreiber dieser Instanz."
+        request_refused_own_access: "Der KI-Anbieter hat die Anfrage abgelehnt. Diese Organisation nutzt einen eigenen Zugang: Ein Administrator kann in den KI-Einstellungen prüfen, ob das Modell verfügbar ist und Guthaben besteht."
       # Slice 5: JSON messages of the detect_participants endpoint — gate answers
       # (ai_unavailable/empty/too_large) AND the service status mapping, one source.
       participant_detection:
@@ -132,6 +134,8 @@ de:
         generic_error: "Die Analyse konnte nicht erstellt werden. Bitte versuchen Sie es später erneut."
         quota_exhausted: "Das KI-Kontingent ist aufgebraucht. Die Analyse ist nach Budget-Erhöhung oder Monatsreset wieder möglich."
         truncated: "Die Antwort der KI war zu lang und wurde abgeschnitten. Bitte fordern Sie in der Arbeitsanweisung ein kürzeres Ergebnis an oder teilen Sie die Analyse auf."
+        request_refused: "Der KI-Anbieter hat die Anfrage abgelehnt. Ein erneuter Versuch ändert daran nichts; bitte wenden Sie sich an den Betreiber dieser Instanz."
+        request_refused_own_access: "Der KI-Anbieter hat die Anfrage abgelehnt. Diese Organisation nutzt einen eigenen Zugang: Ein Administrator kann in den KI-Einstellungen prüfen, ob das gewählte Modell so lange Antworten und Mitschriften dieser Länge annimmt und ob Guthaben besteht."
         not_found: "Die Analyse existiert nicht mehr."
         prompt_not_found: "Die gewählte Analyse-Vorlage wurde nicht gefunden."
         prompt_blank: "Bitte eine Vorlage wählen oder einen Prompt eingeben."
@@ -145,6 +149,8 @@ de:
         quota_exhausted: "Das KI-Kontingent ist aufgebraucht. Die Ticket-Vorschläge sind nach Budget-Erhöhung oder Monatsreset wieder möglich."
         parse_error: "Die KI-Antwort war nicht auswertbar. Bitte versuche es erneut."
         truncated: "Die Antwort der KI war zu lang und wurde abgeschnitten. Bitte versuche es erneut."
+        request_refused: "Der KI-Anbieter hat die Anfrage abgelehnt. Ein erneuter Versuch ändert daran nichts; bitte wende dich an den Betreiber dieser Instanz."
+        request_refused_own_access: "Der KI-Anbieter hat die Anfrage abgelehnt. Diese Organisation nutzt einen eigenen Zugang: Ein Administrator kann in den KI-Einstellungen prüfen, ob das Modell verfügbar ist und Guthaben besteht."
     post_update:
       unexpected_error: "Unerwarteter Fehler: %{error}"
     default_smart_folder:

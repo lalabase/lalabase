@@ -111,7 +111,7 @@ module Lalabase
         end
 
         result
-      rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError => e
+      rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError, Faraday::BadRequestError => e
         raise mapped_error(e)
       end
 
@@ -168,7 +168,7 @@ module Lalabase
                 end
 
         { content: captured_content, model_used: model, token_usage: usage }
-      rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError => e
+      rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError, Faraday::BadRequestError => e
         raise mapped_error(e)
       end
 
@@ -270,6 +270,9 @@ module Lalabase
         case error
         when Faraday::UnauthorizedError    then AuthError.new(error.message)
         when Faraday::TooManyRequestsError then RateLimitError.new(error.message)
+        # The endpoint refused what we asked for (max_tokens above the model's
+        # output limit, prompt + max_tokens beyond its context): see RequestRefusedError.
+        when Faraday::BadRequestError      then RequestRefusedError.new(error.message)
         else error
         end
       end

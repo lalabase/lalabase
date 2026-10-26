@@ -218,6 +218,14 @@ RSpec.describe Lalabase::Llm::OpenAiProvider do
       allow(fake_client).to receive(:chat).and_raise(Faraday::TooManyRequestsError.new('429'))
       expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::RateLimitError)
     end
+
+    # A 400 is the endpoint refusing what we asked for (max_tokens above the
+    # model's output limit, prompt + max_tokens beyond its context): retrying
+    # cannot help. It used to escape as a raw Faraday error.
+    it 'maps Faraday::BadRequestError → RequestRefusedError' do
+      allow(fake_client).to receive(:chat).and_raise(Faraday::BadRequestError.new('400'))
+      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::RequestRefusedError)
+    end
   end
 
   # -------------------------------------------------------------------------
@@ -317,6 +325,12 @@ RSpec.describe Lalabase::Llm::OpenAiProvider do
     it 'maps Faraday::UnauthorizedError → AuthError' do
       allow(fake_client).to receive(:chat).and_raise(Faraday::UnauthorizedError.new('401'))
       expect { provider.stream_chat(messages: messages) { |_| } }.to raise_error(Lalabase::Llm::Provider::AuthError)
+    end
+
+    it 'maps Faraday::BadRequestError → RequestRefusedError' do
+      allow(fake_client).to receive(:chat).and_raise(Faraday::BadRequestError.new('400'))
+      expect { provider.stream_chat(messages: messages) { |_| } }
+        .to raise_error(Lalabase::Llm::Provider::RequestRefusedError)
     end
 
     it 'handles a completely empty stream (no chunks at all)' do

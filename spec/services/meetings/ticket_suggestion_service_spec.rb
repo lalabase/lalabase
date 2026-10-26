@@ -233,6 +233,29 @@ RSpec.describe Meetings::TicketSuggestionService do
       end
     end
 
+    context 'when the provider refuses the request' do
+      before { allow(provider).to receive(:chat).and_raise(Lalabase::Llm::Provider::RequestRefusedError, 'HTTP 400') }
+
+      it 'records its own refused message and leaves the open suggestions untouched' do
+        old_open = create(:meeting_ticket_suggestion, meeting: meeting)
+
+        described_class.call(meeting: meeting)
+
+        expect(MeetingTicketSuggestion.exists?(old_open.id)).to be(true)
+        expect(meeting.reload.suggestions_creation_error)
+          .to eq(I18n.t('services.meetings.ticket_suggestions.request_refused'))
+        expect(meeting.suggestions_creation_flag).to be(false)
+      end
+
+      # Ticket suggestions route on the utility rung (FeatureRegistry), and that
+      # rung may run on a different access than the organisation's main one.
+      it 'asks whose access it was on the utility rung this request routed on' do
+        allow(Lalabase::Llm::Factory).to receive(:own_chat_access?).and_call_original
+        described_class.call(meeting: meeting)
+        expect(Lalabase::Llm::Factory).to have_received(:own_chat_access?).with(organisation, utility: true)
+      end
+    end
+
     context 'when the quota is exhausted (Factory raises)' do
       before { allow(Lalabase::Llm::Factory).to receive(:for_feature).with(:meeting_ticket_suggestions, organisation).and_raise(Lalabase::Llm::QuotaExceededError) }
 

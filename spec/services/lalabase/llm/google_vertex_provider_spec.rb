@@ -511,10 +511,21 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
         end
       end
 
+      # A 400 is the endpoint refusing what we asked for (a max_tokens above the
+      # model's output limit, a prompt beyond its context): retrying cannot help,
+      # so it is the same RequestRefusedError the Anthropic provider raises.
+      it 'maps HTTP 400 → RequestRefusedError' do
+        stub_post(status: 400, body: '{"error":{"message":"max output tokens"}}')
+        expect { provider.chat(messages: messages) }
+          .to raise_error(Lalabase::Llm::Provider::RequestRefusedError, /HTTP 400.*max output tokens/)
+      end
+
       it 'raises a generic Provider::Error with diagnostics for other statuses' do
         stub_post(status: 500, body: '{"error":{"message":"boom"}}')
         expect { provider.chat(messages: messages) }
-          .to raise_error(Lalabase::Llm::Provider::Error, /HTTP 500.*boom/)
+          .to raise_error(Lalabase::Llm::Provider::Error, /HTTP 500.*boom/) { |error|
+            expect(error).not_to be_a(Lalabase::Llm::Provider::RequestRefusedError)
+          }
       end
 
       it 'copes with non-JSON error bodies' do

@@ -237,5 +237,9 @@ Wichtig:
    `Meetings::BaseLlmService` meldet dann den Fehler `truncated` statt den Teiltext zu
    speichern. Kam vor dem Limit gar kein Text, werfen OpenAI, Vertex und Anthropic
    `Provider::TruncatedError` (eine Unterklasse von `Provider::Error`, mit dem Ergebnis samt
-   Verbrauch); `BaseLlmService` bucht ihn und meldet ebenfalls `truncated`. ⚠️ Der Assistent
+   Verbrauch); `BaseLlmService` bucht ihn und meldet ebenfalls `truncated`. Lehnt der
+   Anbieter die Anfrage ab (400, etwa ein Modell mit kleinerem Ausgabe-Limit als die
+   8.000 Tokens der Analyse oder ein zu kleines Kontextfenster), werfen OpenAI, Vertex und
+   Anthropic `Provider::RequestRefusedError`; `BaseLlmService` meldet `request_refused`
+   bzw. bei eigenem Zugang `request_refused_own_access`, nie „später erneut versuchen“. ⚠️ Der Assistent
    (`Tools::Runner`) und die Teilnehmer-Erkennung werten `'length'` noch nicht aus.

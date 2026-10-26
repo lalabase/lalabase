@@ -390,12 +390,15 @@ module Lalabase
 
       # HTTP status → canonical provider error: the mapped_error pattern of the
       # SDK-backed providers, applied to raw REST statuses. 401/403 auth, 429
-      # rate limit, anything else a generic (but diagnostic) Provider::Error.
+      # rate limit, 400 refused (the request itself was not accepted, e.g. a
+      # maxOutputTokens above the model's limit), anything else a generic (but
+      # diagnostic) Provider::Error.
       def raise_mapped_http_error(status, body)
         message = "Vertex AI HTTP #{status}: #{error_message_from(body)}"
         case status
         when 401, 403 then raise AuthError, message
         when 429      then raise RateLimitError, message
+        when 400      then raise RequestRefusedError, message
         else               raise Error, message
         end
       end

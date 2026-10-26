@@ -43,6 +43,13 @@ module Lalabase
       # description generator's gpt-5-nano, migrated onto this seam in S2).
       REASONING_MODEL_PATTERN = /\A(?:gpt-5|o[1-9])/i
 
+      # max_tokens is the budget of the ANSWER (Provider#chat contract). A
+      # reasoning model spends its reasoning tokens out of max_completion_tokens
+      # as well, so with the bare limit the reasoning can use it all and leave an
+      # empty or cut answer. The reserve goes on top; a caller that sets
+      # max_completion_tokens in provider_options still wins.
+      REASONING_RESERVE = 4_096
+
       # OpenAI's finish_reason is already close to the canonical vocabulary
       # (stop / length / tool_calls / content_filter). The only legacy quirk
       # is `function_call` (predecessor of tool_calls) — normalise so the
@@ -88,16 +95,23 @@ module Lalabase
         content = msg['content']
         raw_tool_calls = Array(msg['tool_calls'])
 
-        raise Error, "OpenAI returned empty response: #{response.inspect}" if content.nil? && raw_tool_calls.empty?
-
-        {
+        result = {
           content: content.to_s.strip,
           tool_calls: raw_tool_calls.empty? ? nil : raw_tool_calls.map { |tc| parse_tool_call(tc) },
           stop_reason: normalise_stop_reason(response.dig('choices', 0, 'finish_reason')),
           model_used: model,
           token_usage: extract_token_usage(response, model: model)
         }
-      rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError => e
+        if content.nil? && raw_tool_calls.empty?
+          message = "OpenAI returned empty response: #{response.inspect}"
+          # Stopped at the limit before any text: see Provider::TruncatedError.
+          raise TruncatedError.new(message, result: result) if result[:stop_reason] == 'length'
+
+          raise Error, message
+        end
+
+        result
+      rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError, Faraday::BadRequestError => e
         raise mapped_error(e)
       end
 
@@ -154,7 +168,7 @@ module Lalabase
                 end
 
         { content: captured_content, model_used: model, token_usage: usage }
-      rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError => e
+      rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError, Faraday::BadRequestError => e
         raise mapped_error(e)
       end
 
@@ -256,6 +270,9 @@ module Lalabase
         case error
         when Faraday::UnauthorizedError    then AuthError.new(error.message)
         when Faraday::TooManyRequestsError then RateLimitError.new(error.message)
+        # The endpoint refused what we asked for (max_tokens above the model's
+        # output limit, prompt + max_tokens beyond its context): see RequestRefusedError.
+        when Faraday::BadRequestError      then RequestRefusedError.new(error.message)
         else error
         end
       end
@@ -272,7 +289,7 @@ module Lalabase
         if reasoning_model?(model)
           # gpt-5 / o-series: max_completion_tokens (not max_tokens), and temperature
           # must stay at the model's default — omit it entirely.
-          params[:max_completion_tokens] = max_tokens
+          params[:max_completion_tokens] = max_tokens + REASONING_RESERVE
         else
           params[:max_tokens] = max_tokens
           params[:temperature] = temperature

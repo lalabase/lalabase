@@ -193,6 +193,69 @@ RSpec.describe Meetings::TicketSuggestionService do
       end
     end
 
+    # Checked before the JSON is parsed: even an answer that happens to parse
+    # (cut right after a closing bracket) is not the list the model meant to give.
+    context 'when the answer was cut at the output limit' do
+      let(:chat_result) { { content: llm_content, stop_reason: 'length', token_usage: { total_tokens: 100 }, model_used: 'gpt-4o-mini' } }
+
+      it 'creates and deletes no suggestion, records the truncated error and still meters' do
+        old_open = create(:meeting_ticket_suggestion, meeting: meeting)
+
+        expect { described_class.call(meeting: meeting) }.not_to(change { meeting.meeting_ticket_suggestions.count })
+
+        expect(MeetingTicketSuggestion.exists?(old_open.id)).to be(true)
+        expect(meeting.reload.suggestions_creation_error)
+          .to eq(I18n.t('services.meetings.ticket_suggestions.truncated'))
+        expect(meeting.suggestions_creation_flag).to be(false)
+        expect(Lalabase::Llm::UsageTracking).to have_received(:record)
+      end
+    end
+
+    # A run started from the meeting page (no chat post, no pinned sources). A
+    # run from the assistant goes through the same record_error, see mark_failed!.
+    context 'when the answer of a run was cut at the output limit' do
+      let(:chat_result) { { content: llm_content, stop_reason: 'length', token_usage: { total_tokens: 100 }, model_used: 'gpt-4o-mini' } }
+      let(:run) do
+        MeetingTicketSuggestionRun.create!(
+          organisation: organisation, meeting: meeting, project_id: meeting.project_id, status: :running,
+          meeting_title: meeting.title, project_title: project.name, job_id: SecureRandom.uuid,
+          results: [], sources: {}
+        )
+      end
+
+      it 'fails the run with the truncated message and creates no suggestion' do
+        expect { described_class.call(meeting: meeting, run: run) }
+          .not_to(change { meeting.meeting_ticket_suggestions.count })
+
+        expect(run.reload).to be_failed
+        expect(run.error).to eq(I18n.t('services.meetings.ticket_suggestions.truncated'))
+        expect(meeting.reload.suggestions_creation_flag).to be(false)
+      end
+    end
+
+    context 'when the provider refuses the request' do
+      before { allow(provider).to receive(:chat).and_raise(Lalabase::Llm::Provider::RequestRefusedError, 'HTTP 400') }
+
+      it 'records its own refused message and leaves the open suggestions untouched' do
+        old_open = create(:meeting_ticket_suggestion, meeting: meeting)
+
+        described_class.call(meeting: meeting)
+
+        expect(MeetingTicketSuggestion.exists?(old_open.id)).to be(true)
+        expect(meeting.reload.suggestions_creation_error)
+          .to eq(I18n.t('services.meetings.ticket_suggestions.request_refused'))
+        expect(meeting.suggestions_creation_flag).to be(false)
+      end
+
+      # Ticket suggestions route on the utility rung (FeatureRegistry), and that
+      # rung may run on a different access than the organisation's main one.
+      it 'asks whose access it was on the utility rung this request routed on' do
+        allow(Lalabase::Llm::Factory).to receive(:own_chat_access?).and_call_original
+        described_class.call(meeting: meeting)
+        expect(Lalabase::Llm::Factory).to have_received(:own_chat_access?).with(organisation, utility: true)
+      end
+    end
+
     context 'when the quota is exhausted (Factory raises)' do
       before { allow(Lalabase::Llm::Factory).to receive(:for_feature).with(:meeting_ticket_suggestions, organisation).and_raise(Lalabase::Llm::QuotaExceededError) }
 

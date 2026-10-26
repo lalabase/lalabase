@@ -135,6 +135,140 @@ RSpec.describe Meetings::AnalysisService do
     end
   end
 
+  # An answer that hit the output limit is cut mid-way. It used to be stored as a
+  # finished analysis without a hint; now it is a readable error and nothing of
+  # it is kept. The call still cost tokens, so it is metered all the same.
+  describe 'answer cut at the output limit (stop_reason length)' do
+    let(:transcript) { 'Some transcript' }
+    let(:chat_result) do
+      { content: 'Analyse, die mitten im', stop_reason: 'length', model_used: 'gpt-4o-mini',
+        token_usage: { input_tokens: 900, output_tokens: 1500, total_tokens: 2400 } }
+    end
+
+    it 'records the truncated error, keeps no part of the answer and clears the flag' do
+      described_class.call(analysis: analysis)
+      analysis.reload
+      expect(analysis.content).to eq('')
+      expect(analysis.creation_flag).to be(false)
+      expect(analysis.creation_error).to eq(I18n.t('services.meetings.analysis.truncated'))
+    end
+
+    it 'leaves an earlier content untouched' do
+      analysis.update!(content: 'FRUEHERE_ANALYSE')
+      described_class.call(analysis: analysis)
+      expect(analysis.reload.content).to eq('FRUEHERE_ANALYSE')
+    end
+
+    it 'still meters the call' do
+      described_class.call(analysis: analysis)
+      expect(Lalabase::Llm::UsageTracking).to have_received(:record).with(hash_including(subject: analysis))
+    end
+
+    it 'logs the token counts but not the answer' do
+      logged = []
+      allow(Rails.logger).to receive(:warn) { |message| logged << message }
+      described_class.call(analysis: analysis)
+      expect(logged.join).to include('2400').and include('1500')
+      expect(logged.join).not_to include('mitten im')
+    end
+  end
+
+  describe 'answer cut before any text (provider raises TruncatedError)' do
+    let(:transcript) { 'Some transcript' }
+    let(:cut_result) do
+      { content: '', stop_reason: 'length', model_used: 'gemini-2.5-flash',
+        token_usage: { input_tokens: 900, output_tokens: 0, total_tokens: 3548 } }
+    end
+
+    before do
+      allow(provider).to receive(:chat)
+        .and_raise(Lalabase::Llm::Provider::TruncatedError.new('empty content', result: cut_result))
+    end
+
+    it 'records the truncated error (not the generic one) and meters the billed call' do
+      described_class.call(analysis: analysis)
+      analysis.reload
+      expect(analysis.creation_error).to eq(I18n.t('services.meetings.analysis.truncated'))
+      expect(analysis.creation_flag).to be(false)
+      expect(analysis.content).to eq('')
+      expect(Lalabase::Llm::UsageTracking).to have_received(:record)
+        .with(hash_including(token_usage: cut_result[:token_usage], subject: analysis))
+    end
+  end
+
+  describe 'TruncatedError raised without a result' do
+    let(:transcript) { 'Some transcript' }
+
+    before { allow(provider).to receive(:chat).and_raise(Lalabase::Llm::Provider::TruncatedError.new('cut', result: nil)) }
+
+    it 'still records the truncated error and clears the flag instead of raising' do
+      expect { described_class.call(analysis: analysis) }.not_to raise_error
+      analysis.reload
+      expect(analysis.creation_error).to eq(I18n.t('services.meetings.analysis.truncated'))
+      expect(analysis.creation_flag).to be(false)
+    end
+  end
+
+  # A protocol of a long meeting does not fit into 1,500 tokens. With a cut
+  # answer now being an error, a model without a thinking reserve (Mistral,
+  # gpt-4o-mini) would otherwise fail every long analysis the same way.
+  describe 'answer budget' do
+    let(:transcript) { 'Some transcript' }
+
+    it 'asks for up to 8,000 answer tokens' do
+      described_class.call(analysis: analysis)
+      expect(provider).to have_received(:chat).with(hash_including(max_tokens: 8_000))
+    end
+  end
+
+  # The endpoint refused the request (400): a model whose output limit is below
+  # the answer budget, or a prompt + budget beyond its context. Waiting does not
+  # change that, so the message must not say "try again later".
+  describe 'request refused by the provider' do
+    let(:transcript) { 'Some transcript' }
+
+    before do
+      allow(provider).to receive(:chat).and_raise(Lalabase::Llm::Provider::RequestRefusedError, 'HTTP 400: too long')
+    end
+
+    it 'records the refused message (not the generic one) when the operator access is used' do
+      described_class.call(analysis: analysis)
+      analysis.reload
+      expect(analysis.creation_error).to eq(I18n.t('services.meetings.analysis.request_refused'))
+      expect(analysis.creation_error).not_to eq(I18n.t('services.meetings.analysis.generic_error'))
+      expect(analysis.creation_flag).to be(false)
+    end
+
+    it 'points to the AI settings when the organisation uses its own access' do
+      organisation.update!(ai_provider: AiCredential::PROVIDER_ANTHROPIC,
+                           ai_access_token: 'sk-ant-test-token-that-is-long-enough')
+      described_class.call(analysis: analysis)
+      expect(analysis.reload.creation_error).to eq(I18n.t('services.meetings.analysis.request_refused_own_access'))
+    end
+
+    it 'asks whose access it was on the main rung (an analysis is not a utility feature)' do
+      allow(Lalabase::Llm::Factory).to receive(:own_chat_access?).and_call_original
+      described_class.call(analysis: analysis)
+      expect(Lalabase::Llm::Factory).to have_received(:own_chat_access?).with(organisation, utility: false)
+    end
+
+    it 'keeps the provider message out of the stored error' do
+      described_class.call(analysis: analysis)
+      expect(analysis.reload.creation_error).not_to include('too long')
+    end
+  end
+
+  describe 'an answer that ended normally (stop_reason stop)' do
+    let(:transcript) { 'Some transcript' }
+    let(:chat_result) { { content: 'Fertige Analyse.', stop_reason: 'stop', token_usage: {}, model_used: 'gpt-4o-mini' } }
+
+    it 'is stored as before' do
+      described_class.call(analysis: analysis)
+      expect(analysis.reload.content).to eq('Fertige Analyse.')
+      expect(analysis.creation_error).to eq('')
+    end
+  end
+
   describe 'blank source' do
     it 'does not call the LLM and clears the pending flag' do
       expect(Lalabase::Llm::Factory).not_to receive(:for_feature)

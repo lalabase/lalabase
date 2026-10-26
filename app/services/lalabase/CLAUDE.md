@@ -1,4 +1,4 @@
-# Karte: app/services/lalabase (Stand: 2026-10-10)
+# Karte: app/services/lalabase (Stand: 2026-10-26)
 
 AI/RAG-Domäne (Produktname „Lalabase"): alles rund um LLM-Aufrufe, Embeddings und
 Codebase-Verständnis.
@@ -226,3 +226,20 @@ Wichtig:
    Gebucht wird EINE `AiUsage`-Zeile pro Lauf, nicht pro Batch (`UsageTracking`).
    ⚠️ `Indexer::SymbolPersistence` nutzt weiterhin `embed_batch` und bucht NICHTS — bekannte
    Altlast, nicht von P4a berührt.
+7. **`max_tokens` ist das Budget der ANTWORT** (seit 2026-10-26). Ein Modell, das vorher
+   denkt, bekommt die Reserve im Provider obendrauf: `GoogleVertexProvider::THINKING_BUDGET`
+   für Gemini 2.5 Flash und Pro (`thinkingConfig` + `maxOutputTokens`),
+   `OpenAiProvider::REASONING_RESERVE` für gpt-5 und die o-Reihe (`max_completion_tokens`).
+   Ohne Reserve zählten die Denk-Tokens gegen das Limit, und von einer kurzen Antwort blieb
+   fast nichts übrig. Ein Aufrufer rechnet nie selbst eine Reserve ein; Anbieter-Felder
+   (etwa `reasoning_effort`) schickt nur ein Seam mit Registry-Pin (`:customer_description`).
+   Endet eine Antwort am Limit (`stop_reason 'length'`), ist sie abgeschnitten:
+   `Meetings::BaseLlmService` meldet dann den Fehler `truncated` statt den Teiltext zu
+   speichern. Kam vor dem Limit gar kein Text, werfen OpenAI, Vertex und Anthropic
+   `Provider::TruncatedError` (eine Unterklasse von `Provider::Error`, mit dem Ergebnis samt
+   Verbrauch); `BaseLlmService` bucht ihn und meldet ebenfalls `truncated`. Lehnt der
+   Anbieter die Anfrage ab (400, etwa ein Modell mit kleinerem Ausgabe-Limit als die
+   8.000 Tokens der Analyse oder ein zu kleines Kontextfenster), werfen OpenAI, Vertex und
+   Anthropic `Provider::RequestRefusedError`; `BaseLlmService` meldet `request_refused`
+   bzw. bei eigenem Zugang `request_refused_own_access`, nie „später erneut versuchen“. ⚠️ Der Assistent
+   (`Tools::Runner`) und die Teilnehmer-Erkennung werten `'length'` noch nicht aus.

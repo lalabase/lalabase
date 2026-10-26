@@ -223,6 +223,29 @@ RSpec.describe Actors::CreateAiPost, type: :service do
       expect(result.errors.first).to include('boom 502')
     end
 
+    # The providers map a vendor 400 to RequestRefusedError (a Provider::Error,
+    # no longer a Faraday::ClientError). It must stay the handled provider error,
+    # not fall through to :internal_error (or raise in development and test).
+    it 'maps a chat RequestRefusedError → :provider_error and preserves the message' do
+      allow(Lalabase::Llm::Factory).to receive(:for_feature).and_call_original
+      allow(Lalabase::Llm::Factory).to receive(:for_feature).with(:ask_ai_post, anything).and_return(provider)
+      allow(provider).to receive(:chat).and_raise(Lalabase::Llm::Provider::RequestRefusedError.new('HTTP 400: refused'))
+      result = nil
+      expect { result = call }.not_to change(Post.where(ticket: ticket), :count)
+      expect(result.code).to eq(:provider_error)
+      expect(result.errors.first).to include('HTTP 400: refused')
+    end
+
+    it 'keeps an OpenAI 400 the handled provider error end to end (real provider, stubbed client)' do
+      fake_client = instance_double(OpenAI::Client)
+      allow(OpenAI::Client).to receive(:new).and_return(fake_client)
+      allow(fake_client).to receive(:chat).and_raise(Faraday::BadRequestError.new('the server responded with status 400'))
+      allow(Lalabase::Llm::Factory).to receive(:for_feature).and_call_original
+      real_provider = Lalabase::Llm::OpenAiProvider.new(api_key: 'sk-test')
+      allow(Lalabase::Llm::Factory).to receive(:for_feature).with(:ask_ai_post, anything).and_return(real_provider)
+      expect(call.code).to eq(:provider_error)
+    end
+
     it 'writes no post on any provider failure' do
       allow(Lalabase::Llm::Factory).to receive(:for_feature).and_call_original
       allow(Lalabase::Llm::Factory).to receive(:for_feature).with(:ask_ai_post, anything).and_raise(Lalabase::Llm::AiDisabledError.new('off'))

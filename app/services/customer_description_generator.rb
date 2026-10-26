@@ -267,7 +267,8 @@ class CustomerDescriptionGenerator
       model: MODEL,
       max_tokens: 1000,
       # gpt-5-nano is a reasoning model: the provider maps max_tokens →
-      # max_completion_tokens and omits temperature; reasoning_effort passes through
+      # max_completion_tokens (plus OpenAiProvider::REASONING_RESERVE, so 1000 stays
+      # the answer budget) and omits temperature; reasoning_effort passes through
       # provider_options so the "fast, direct" behaviour is preserved 1:1.
       provider_options: { reasoning_effort: 'minimal' }
     )

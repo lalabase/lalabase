@@ -109,6 +109,9 @@ en:
         empty_result: "The AI returned no summary. Please try again."
         generic_error: "The summary could not be created. Please try again later."
         quota_exhausted: "The AI quota is used up. The summary is possible again after a budget increase or the monthly reset."
+        truncated: "The AI answer was too long and was cut off. Please try again."
+        request_refused: "The AI provider refused the request. Trying again will not change that; please contact the operator of this instance."
+        request_refused_own_access: "The AI provider refused the request. This organisation uses its own access: an administrator can check in the AI settings that the model is available and that there is credit."
       # Slice 5: JSON messages of the detect_participants endpoint — gate answers
       # (ai_unavailable/empty/too_large) AND the service status mapping, one source.
       participant_detection:
@@ -130,6 +133,9 @@ en:
         empty_result: "The AI returned no result. Please try again."
         generic_error: "The analysis could not be created. Please try again later."
         quota_exhausted: "The AI quota is used up. The analysis is possible again after a budget increase or the monthly reset."
+        truncated: "The AI answer was too long and was cut off. Please ask for a shorter result in the instruction, or split the analysis."
+        request_refused: "The AI provider refused the request. Trying again will not change that; please contact the operator of this instance."
+        request_refused_own_access: "The AI provider refused the request. This organisation uses its own access: an administrator can check in the AI settings that the chosen model accepts answers this long and transcripts of this length, and that there is credit."
         not_found: "The analysis no longer exists."
         prompt_not_found: "The selected analysis template was not found."
         prompt_blank: "Please choose a template or enter a prompt."
@@ -142,6 +148,9 @@ en:
         generic_error: "The ticket suggestions could not be created. Please try creating suggestions again later."
         quota_exhausted: "The AI quota is used up. The ticket suggestions are possible again after a budget increase or the monthly reset."
         parse_error: "The AI response could not be parsed. Please try creating suggestions again."
+        truncated: "The AI answer was too long and was cut off. Please try creating suggestions again."
+        request_refused: "The AI provider refused the request. Trying again will not change that; please contact the operator of this instance."
+        request_refused_own_access: "The AI provider refused the request. This organisation uses its own access: an administrator can check in the AI settings that the model is available and that there is credit."
     post_update:
       unexpected_error: "Unexpected error: %{error}"
     default_smart_folder:

@@ -33,6 +33,11 @@ module Meetings
     # more than a summary/analysis needs and bounds the cost (review #235).
     SOURCE_CHAR_LIMIT = 100_000
 
+    # The canonical stop_reason of an answer that hit max_tokens (Provider#chat).
+    # Such an answer stops mid-sentence (or mid-JSON); it used to be stored as a
+    # finished result without a hint.
+    TRUNCATED_STOP_REASON = 'length'
+
     # Template. Mirrors the original SummaryService#process one-to-one; the only
     # difference is that the varying parts are hook methods.
     def process
@@ -61,7 +66,17 @@ module Meetings
       # Meter BEFORE handling the result — a malformed/empty answer still cost
       # tokens (track-before-parse, the ParticipantDetectionService rule).
       track_usage(provider, result)
+      # A cut answer is never a finished one: checked after metering (it cost
+      # tokens) and before handle_result, so every subclass gets it, including
+      # one that overrides handle_result.
+      return record_truncated(result) if result[:stop_reason] == TRUNCATED_STOP_REASON
+
       handle_result(result)
+    rescue Lalabase::Llm::Provider::TruncatedError => e
+      # The limit was reached before any text: the provider raises instead of
+      # returning, but the call was billed all the same. Same outcome as above.
+      track_usage(provider, e.result)
+      record_truncated(e.result)
     rescue Lalabase::Llm::Factory::MissingCredentialError
       record_error(t('not_configured'))
     rescue Lalabase::Llm::QuotaExceededError
@@ -71,6 +86,14 @@ module Meetings
     rescue Lalabase::Llm::AiDisabledError
       # ai_enabled? returns ai_disabled above first; this is defence in depth.
       record_error(t('ai_disabled'))
+    rescue Lalabase::Llm::Provider::RequestRefusedError => e
+      # The endpoint refused the request (a model whose output limit is below
+      # the answer budget, a prompt beyond its context, an exhausted balance).
+      # Waiting changes nothing, so not the generic "try again later". Who can
+      # fix it decides the copy, as in ChatResponseJob#refused_copy; the
+      # provider's own words stay in the log.
+      Rails.logger.error "#{log_prefix}: provider refused the request: #{e.message}"
+      record_error(t(own_access? ? 'request_refused_own_access' : 'request_refused'))
     rescue Lalabase::Llm::Provider::AuthError => e
       Rails.logger.error "#{log_prefix}: invalid AI key: #{e.message}"
       record_error(t('invalid_key'))
@@ -168,6 +191,13 @@ module Meetings
       record.organisation
     end
 
+    # Does this request run on the organisation's own access (on the rung of
+    # this feature)? Same question ChatResponseJob#refused_copy asks.
+    def own_access?
+      utility = Lalabase::Llm::FeatureRegistry.fetch(feature_key).utility?
+      Lalabase::Llm::Factory.own_chat_access?(organisation, utility: utility)
+    end
+
     # Caps `text` at SOURCE_CHAR_LIMIT. Returns [capped_text, truncated?] so the
     # subclass can phrase its own truncation notice on the prompt.
     def cap_source(text)
@@ -193,6 +223,16 @@ module Meetings
     # Clear the pending flag AND record a readable error.
     def record_error(message)
       record.update!(flag_attr => false, error_attr => message)
+    end
+
+    # Keep no part of a cut answer: readable error, flag cleared, earlier content
+    # untouched. The log names the token counts, never the answer itself.
+    def record_truncated(result)
+      usage = result[:token_usage] || {}
+      Rails.logger.warn "#{log_prefix}: answer cut at the output limit " \
+                        "(input #{usage[:input_tokens].inspect}, output #{usage[:output_tokens].inspect}, " \
+                        "total #{usage[:total_tokens].inspect})"
+      record_error(t('truncated'))
     end
 
     # Nothing to process: clear the pending flag AND any leftover error.

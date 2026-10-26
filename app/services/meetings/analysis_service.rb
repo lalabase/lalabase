@@ -16,9 +16,16 @@ module Meetings
     # A literal 'gpt-4o-mini' would be a runtime 404 on a Mistral/IONOS endpoint,
     # and the task profile is provider-neutral anyway: a prompt in, German prose
     # out — every chat model can do that.
-    # An analysis (protocol, decision list, redacted version) can run longer than a
-    # 150-word summary; still bounded, and the SOURCE_CHAR_LIMIT cap bounds input.
-    MAX_TOKENS = 1_500
+    # An analysis (protocol, decision list, redacted version) can run much longer
+    # than a 150-word summary: a protocol of a long meeting does not fit into
+    # 1,500 tokens. Since an answer cut at the limit is an error (BaseLlmService),
+    # a small budget would fail every long analysis on a model without a thinking
+    # reserve. Still bounded; SOURCE_CHAR_LIMIT bounds the input.
+    # Requirement for the configured model: an output limit of at least 8,000
+    # tokens (plus the thinking reserve the provider adds) and a context window
+    # for the transcript plus 8,000. A model below that refuses with a 400, shown
+    # as services.meetings.analysis.request_refused*, never as "try again later".
+    MAX_TOKENS = 8_000
     TEMPERATURE = 0.5
 
     def self.call(analysis:)

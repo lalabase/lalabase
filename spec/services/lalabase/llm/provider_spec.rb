@@ -5,6 +5,17 @@ require 'rails_helper'
 RSpec.describe Lalabase::Llm::Provider do
   subject(:provider) { described_class.new(api_key: 'k') }
 
+  describe Lalabase::Llm::Provider::TruncatedError do
+    it 'is a Provider::Error, so every caller that rescues Error behaves as before' do
+      expect(described_class.ancestors).to include(Lalabase::Llm::Provider::Error)
+    end
+
+    it 'always carries a Hash as result, also when raised without one or with nil' do
+      expect(described_class.new('cut').result).to eq({})
+      expect(described_class.new('cut', result: nil).result).to eq({})
+    end
+  end
+
   describe '#chat / #stream_chat / #embed' do
     it 'raises NotImplementedError on chat' do
       expect { provider.chat(messages: []) }.to raise_error(NotImplementedError)

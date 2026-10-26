@@ -336,9 +336,64 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
       expect(last_payload['contents'].map { |c| c['role'] }).to eq(%w[user model user])
     end
 
-    it 'sends maxOutputTokens and temperature in generationConfig (locked defaults 1500/0.7)' do
-      provider.chat(messages: messages)
-      expect(last_payload['generationConfig']).to eq('maxOutputTokens' => 1500, 'temperature' => 0.7)
+    # max_tokens is the budget of the ANSWER. Gemini 2.5 Flash and Pro think
+    # first, and their thought tokens count against maxOutputTokens: with the
+    # bare limit a short answer could be left with almost nothing. So these
+    # two families get a fixed thinking budget and the same reserve on top.
+    describe 'answer budget and thinking reserve' do
+      let(:budget) { described_class::THINKING_BUDGET }
+
+      it 'gives the default model (gemini-2.5-flash) a thinking budget and adds it to maxOutputTokens' do
+        provider.chat(messages: messages)
+        expect(last_payload['generationConfig']).to eq(
+          'maxOutputTokens' => 1500 + budget, 'temperature' => 0.7,
+          'thinkingConfig' => { 'thinkingBudget' => budget }
+        )
+      end
+
+      it 'does the same for gemini-2.5-pro, keeping the caller max_tokens as the answer part' do
+        provider.chat(messages: messages, model: 'gemini-2.5-pro', max_tokens: 500)
+        expect(last_payload['generationConfig']).to eq(
+          'maxOutputTokens' => 500 + budget, 'temperature' => 0.7,
+          'thinkingConfig' => { 'thinkingBudget' => budget }
+        )
+      end
+
+      ['gemini-2.5-flash-002', 'gemini-2.5-pro-preview-05-06', 'gemini-2.5-flash-preview-09-2025'].each do |model|
+        it "matches the versioned name #{model} of a thinking family" do
+          provider.chat(messages: messages, model: model)
+          expect(last_payload['generationConfig']).to include('thinkingConfig' => { 'thinkingBudget' => budget })
+        end
+      end
+
+      it 'keeps the budget inside the range both 2.5 families accept (Pro 128..32768, Flash 1..24576)' do
+        expect(budget).to be_between(128, 24_576)
+      end
+
+      # Flash-Lite and 2.0 Flash are left exactly as before: a budget would switch
+      # thinking ON for Flash-Lite and cost tokens nobody asked for. Gemini 3 takes
+      # thinkingLevel instead (thinkingBudget is deprecated there and can 400), and
+      # whether its thoughts count against maxOutputTokens is not documented yet.
+      # The image, speech and live variants of 2.5 do not think either (a
+      # thinkingConfig can be refused there), and a longer word is not the family.
+      ['gemini-2.5-flash-lite', 'gemini-2.5-flash-lite-preview-06-17', 'gemini-2.5-flash-image',
+       'gemini-2.5-flash-image-preview', 'gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts',
+       'gemini-2.5-flash-live-preview', 'gemini-2.5-flash-native-audio-dialog', 'gemini-2.5-flashy',
+       'gemini-2.0-flash', 'gemini-3-pro-preview', 'gemini-3-flash', 'some-tuned-model']
+        .each do |model|
+        it "sends #{model} the bare limit, byte for byte as before" do
+          provider.chat(messages: messages, model: model)
+          expect(last_payload['generationConfig']).to eq('maxOutputTokens' => 1500, 'temperature' => 0.7)
+        end
+      end
+
+      it 'lets provider_options override the reserve and the thinking config (raw override wins)' do
+        provider.chat(messages: messages,
+                      provider_options: { maxOutputTokens: 900, thinkingConfig: { thinkingBudget: 0 } })
+        expect(last_payload['generationConfig']).to eq(
+          'maxOutputTokens' => 900, 'temperature' => 0.7, 'thinkingConfig' => { 'thinkingBudget' => 0 }
+        )
+      end
     end
 
     it 'merges provider_options into generationConfig LAST (raw override wins)' do
@@ -404,6 +459,27 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
         .to raise_error(Lalabase::Llm::Provider::Error, /empty content.*MAX_TOKENS/m)
     end
 
+    # Thinking can still spend the whole output limit (the budget is a target, not
+    # a hard cap). The empty answer stays an Error for every caller, but a
+    # TruncatedError that carries the billed usage, so a caller can meter it and
+    # say "cut off" instead of "something went wrong".
+    it 'raises TruncatedError carrying stop_reason and usage when MAX_TOKENS left no text' do
+      stub_post(body: chat_response(parts: [], finish_reason: 'MAX_TOKENS',
+                                    usage: { 'promptTokenCount' => 10, 'candidatesTokenCount' => 0,
+                                             'totalTokenCount' => 3558 }))
+      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::TruncatedError) { |error|
+        expect(error.result).to include(content: '', stop_reason: 'length', model_used: 'gemini-2.5-flash')
+        expect(error.result[:token_usage]).to include(input_tokens: 10, total_tokens: 3558)
+      }
+    end
+
+    it 'keeps a plain Error (not TruncatedError) for an empty answer that did not hit the limit' do
+      stub_post(body: chat_response(parts: [], finish_reason: 'STOP'))
+      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::Error) { |error|
+        expect(error).not_to be_a(Lalabase::Llm::Provider::TruncatedError)
+      }
+    end
+
     it 'returns content_filter (not an error) when an output-side safety block empties the content' do
       # Gemini reports finishReason SAFETY/RECITATION with NO parts on an
       # output-side policy block — surface the contract's content_filter so the
@@ -435,10 +511,21 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
         end
       end
 
+      # A 400 is the endpoint refusing what we asked for (a max_tokens above the
+      # model's output limit, a prompt beyond its context): retrying cannot help,
+      # so it is the same RequestRefusedError the Anthropic provider raises.
+      it 'maps HTTP 400 → RequestRefusedError' do
+        stub_post(status: 400, body: '{"error":{"message":"max output tokens"}}')
+        expect { provider.chat(messages: messages) }
+          .to raise_error(Lalabase::Llm::Provider::RequestRefusedError, /HTTP 400.*max output tokens/)
+      end
+
       it 'raises a generic Provider::Error with diagnostics for other statuses' do
         stub_post(status: 500, body: '{"error":{"message":"boom"}}')
         expect { provider.chat(messages: messages) }
-          .to raise_error(Lalabase::Llm::Provider::Error, /HTTP 500.*boom/)
+          .to raise_error(Lalabase::Llm::Provider::Error, /HTTP 500.*boom/) { |error|
+            expect(error).not_to be_a(Lalabase::Llm::Provider::RequestRefusedError)
+          }
       end
 
       it 'copes with non-JSON error bodies' do
@@ -660,6 +747,21 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
       provider.stream_chat(messages: messages) { |_| }
       expect(captured.last[:path]).to include(':streamGenerateContent')
       expect(captured.last[:req].params['alt']).to eq('sse')
+    end
+
+    it 'adds the thinking reserve exactly like #chat (the assistant streams)' do
+      stub_stream_post(chunks: [sse(final_event)])
+      provider.stream_chat(messages: messages, model: 'gemini-2.5-pro', max_tokens: 1500) { |_| }
+      budget = described_class::THINKING_BUDGET
+      expect(last_payload['generationConfig']).to eq(
+        'maxOutputTokens' => 1500 + budget, 'temperature' => 0.7, 'thinkingConfig' => { 'thinkingBudget' => budget }
+      )
+    end
+
+    it 'sends a non-thinking model the bare limit when streaming' do
+      stub_stream_post(chunks: [sse(final_event)])
+      provider.stream_chat(messages: messages, model: 'gemini-2.0-flash') { |_| }
+      expect(last_payload['generationConfig']).to eq('maxOutputTokens' => 1500, 'temperature' => 0.7)
     end
 
     it 'folds a system-only request into a single user content (parity with #chat)' do

@@ -169,6 +169,24 @@ RSpec.describe Meetings::SummaryService do
     end
   end
 
+  describe 'answer cut at the output limit (stop_reason length)' do
+    let(:transcript) { 'Some transcript' }
+    let(:chat_result) do
+      { content: 'Eine Kurzfassung, die', stop_reason: 'length', model_used: 'gemini-2.5-flash',
+        token_usage: { input_tokens: 300, output_tokens: 19, total_tokens: 819 } }
+    end
+
+    it 'records the truncated error, keeps the previous summary and still meters' do
+      meeting.update!(generated_summary: 'FRUEHERE_KURZFASSUNG')
+      described_class.call(meeting: meeting)
+      meeting.reload
+      expect(meeting.generated_summary).to eq('FRUEHERE_KURZFASSUNG')
+      expect(meeting.summary_creation_flag).to be(false)
+      expect(meeting.summary_creation_error).to eq(I18n.t('services.meetings.summary.truncated'))
+      expect(Lalabase::Llm::UsageTracking).to have_received(:record)
+    end
+  end
+
   describe 'error mapping (flag always cleared, no raise)' do
     let(:transcript) { 'Some transcript' }
 

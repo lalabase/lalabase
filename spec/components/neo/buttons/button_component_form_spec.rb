@@ -74,11 +74,14 @@ RSpec.describe 'Neo::Buttons::ButtonComponent with form', type: :component do
         }
       end
 
-      it 'applies Stimulus controller to the button' do
+      # The controller stays (loading state); the question is asked ONCE, by the
+      # form. The button's own confirm asked a second time (until 26.10.2026).
+      it 'applies Stimulus controller to the button and leaves the question to the form' do
         rendered_component
 
         expect(page).to have_css("form button[data-controller='neo-button']")
-        expect(page).to have_css("form button[data-neo-button-confirm-value='Really delete?']")
+        expect(page).to have_css("form[data-turbo-confirm='Really delete?']")
+        expect(page).to have_no_css('form button[data-neo-button-confirm-value]')
         expect(page).to have_css("form button[data-action='click->neo-button#handleClick']")
       end
     end

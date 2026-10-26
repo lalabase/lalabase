@@ -104,7 +104,11 @@ module Activities
     #   organisation.*        administration (AI package selected, AI activated).
     #                         Those belong in the AI protocol, not in a record of
     #                         what people worked on.
-    IGNORED_PREFIXES = %w[time_session_group organisation].freeze
+    #   person.*              the people directory (2026-10-26): org-level, read
+    #                         only on the person's own page under PersonPolicy,
+    #                         and its rows carry no personal data
+    #                         (PersonTrackable). No project, no area.
+    IGNORED_PREFIXES = %w[time_session_group organisation person].freeze
 
     # nil means "no rule", and every caller treats that as "drop the row"
     # (fail-closed). A new event type therefore disappears from the feed rather

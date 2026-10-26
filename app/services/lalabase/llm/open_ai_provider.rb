@@ -95,15 +95,22 @@ module Lalabase
         content = msg['content']
         raw_tool_calls = Array(msg['tool_calls'])
 
-        raise Error, "OpenAI returned empty response: #{response.inspect}" if content.nil? && raw_tool_calls.empty?
-
-        {
+        result = {
           content: content.to_s.strip,
           tool_calls: raw_tool_calls.empty? ? nil : raw_tool_calls.map { |tc| parse_tool_call(tc) },
           stop_reason: normalise_stop_reason(response.dig('choices', 0, 'finish_reason')),
           model_used: model,
           token_usage: extract_token_usage(response, model: model)
         }
+        if content.nil? && raw_tool_calls.empty?
+          message = "OpenAI returned empty response: #{response.inspect}"
+          # Stopped at the limit before any text: see Provider::TruncatedError.
+          raise TruncatedError.new(message, result: result) if result[:stop_reason] == 'length'
+
+          raise Error, message
+        end
+
+        result
       rescue Faraday::UnauthorizedError, Faraday::TooManyRequestsError => e
         raise mapped_error(e)
       end

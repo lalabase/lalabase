@@ -131,7 +131,7 @@ en:
         empty_result: "The AI returned no result. Please try again."
         generic_error: "The analysis could not be created. Please try again later."
         quota_exhausted: "The AI quota is used up. The analysis is possible again after a budget increase or the monthly reset."
-        truncated: "The AI answer was too long and was cut off. Please try again."
+        truncated: "The AI answer was too long and was cut off. Please ask for a shorter result in the instruction, or split the analysis."
         not_found: "The analysis no longer exists."
         prompt_not_found: "The selected analysis template was not found."
         prompt_blank: "Please choose a template or enter a prompt."

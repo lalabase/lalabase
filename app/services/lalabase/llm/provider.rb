@@ -42,7 +42,7 @@ module Lalabase
 
         def initialize(message = nil, result: {})
           super(message)
-          @result = result
+          @result = result || {}
         end
       end
 
@@ -126,7 +126,8 @@ module Lalabase
       #   thinks first puts its own reserve on top (GoogleVertexProvider::THINKING_BUDGET,
       #   OpenAiProvider::REASONING_RESERVE); callers never add one themselves. An
       #   answer that hit the limit before any text raises TruncatedError (with the
-      #   result and its usage) where a provider would otherwise raise "empty content".
+      #   result and its usage) in #chat of the OpenAI, Anthropic and Vertex
+      #   providers, where they would otherwise raise "empty content".
       # @param temperature [Float]
       # @return [Hash] {content:, tool_calls: nil | Array, stop_reason: String,
       #                 model_used:, token_usage: {...}}.

@@ -235,7 +235,7 @@ Wichtig:
    (etwa `reasoning_effort`) schickt nur ein Seam mit Registry-Pin (`:customer_description`).
    Endet eine Antwort am Limit (`stop_reason 'length'`), ist sie abgeschnitten:
    `Meetings::BaseLlmService` meldet dann den Fehler `truncated` statt den Teiltext zu
-   speichern. Kam vor dem Limit gar kein Text, werfen Vertex und Anthropic
+   speichern. Kam vor dem Limit gar kein Text, werfen OpenAI, Vertex und Anthropic
    `Provider::TruncatedError` (eine Unterklasse von `Provider::Error`, mit dem Ergebnis samt
    Verbrauch); `BaseLlmService` bucht ihn und meldet ebenfalls `truncated`. ⚠️ Der Assistent
    (`Tools::Runner`) und die Teilnehmer-Erkennung werten `'length'` noch nicht aus.

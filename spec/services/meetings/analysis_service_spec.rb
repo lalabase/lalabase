@@ -196,6 +196,31 @@ RSpec.describe Meetings::AnalysisService do
     end
   end
 
+  describe 'TruncatedError raised without a result' do
+    let(:transcript) { 'Some transcript' }
+
+    before { allow(provider).to receive(:chat).and_raise(Lalabase::Llm::Provider::TruncatedError.new('cut', result: nil)) }
+
+    it 'still records the truncated error and clears the flag instead of raising' do
+      expect { described_class.call(analysis: analysis) }.not_to raise_error
+      analysis.reload
+      expect(analysis.creation_error).to eq(I18n.t('services.meetings.analysis.truncated'))
+      expect(analysis.creation_flag).to be(false)
+    end
+  end
+
+  # A protocol of a long meeting does not fit into 1,500 tokens. With a cut
+  # answer now being an error, a model without a thinking reserve (Mistral,
+  # gpt-4o-mini) would otherwise fail every long analysis the same way.
+  describe 'answer budget' do
+    let(:transcript) { 'Some transcript' }
+
+    it 'asks for up to 8,000 answer tokens' do
+      described_class.call(analysis: analysis)
+      expect(provider).to have_received(:chat).with(hash_including(max_tokens: 8_000))
+    end
+  end
+
   describe 'an answer that ended normally (stop_reason stop)' do
     let(:transcript) { 'Some transcript' }
     let(:chat_result) { { content: 'Fertige Analyse.', stop_reason: 'stop', token_usage: {}, model_used: 'gpt-4o-mini' } }

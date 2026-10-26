@@ -249,13 +249,16 @@ RSpec.describe Lalabase::Llm::AnthropicProvider do
       }
     end
 
-    it 'raises TruncatedError carrying the usage when max_tokens stopped it before any text' do
-      cut_response = Struct.new(:content, :usage, :stop_reason).new([], usage, 'max_tokens')
-      allow(fake_messages).to receive(:create).and_return(cut_response)
-      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::TruncatedError) { |error|
-        expect(error.result).to include(content: '', stop_reason: 'length')
-        expect(error.result[:token_usage]).to be_present
-      }
+    # The SDK reports stop_reason as a Symbol; a String is accepted as well.
+    [:max_tokens, 'max_tokens'].each do |stop_reason|
+      it "raises TruncatedError carrying the real usage when #{stop_reason.inspect} stopped it before any text" do
+        cut_response = Struct.new(:content, :usage, :stop_reason).new([], usage(input: 37, output: 0), stop_reason)
+        allow(fake_messages).to receive(:create).and_return(cut_response)
+        expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::TruncatedError) { |error|
+          expect(error.result).to include(content: '', stop_reason: 'length')
+          expect(error.result[:token_usage]).to include(input_tokens: 37, output_tokens: 0, total_tokens: 37)
+        }
+      end
     end
 
     it 'maps Anthropic::Errors::AuthenticationError → AuthError' do

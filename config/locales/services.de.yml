@@ -131,7 +131,7 @@ de:
         empty_result: "Die KI hat kein Ergebnis zurückgegeben. Bitte versuchen Sie es erneut."
         generic_error: "Die Analyse konnte nicht erstellt werden. Bitte versuchen Sie es später erneut."
         quota_exhausted: "Das KI-Kontingent ist aufgebraucht. Die Analyse ist nach Budget-Erhöhung oder Monatsreset wieder möglich."
-        truncated: "Die Antwort der KI war zu lang und wurde abgeschnitten. Bitte versuchen Sie es erneut."
+        truncated: "Die Antwort der KI war zu lang und wurde abgeschnitten. Bitte fordern Sie in der Arbeitsanweisung ein kürzeres Ergebnis an oder teilen Sie die Analyse auf."
         not_found: "Die Analyse existiert nicht mehr."
         prompt_not_found: "Die gewählte Analyse-Vorlage wurde nicht gefunden."
         prompt_blank: "Bitte eine Vorlage wählen oder einen Prompt eingeben."

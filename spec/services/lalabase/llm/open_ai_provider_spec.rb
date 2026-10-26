@@ -190,7 +190,23 @@ RSpec.describe Lalabase::Llm::OpenAiProvider do
 
     it 'raises an explicit Error when content is missing' do
       allow(fake_client).to receive(:chat).and_return({ 'choices' => [{ 'message' => { 'content' => nil } }] })
-      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::Error, /empty response/)
+      expect { provider.chat(messages: messages) }.to raise_error(Lalabase::Llm::Provider::Error, /empty response/) { |error|
+        expect(error).not_to be_a(Lalabase::Llm::Provider::TruncatedError)
+      }
+    end
+
+    # A reasoning model (or a compatible endpoint) can stop at the limit with
+    # content null: same contract as Vertex and Anthropic, see TruncatedError.
+    it 'raises TruncatedError carrying the usage when finish_reason length left content null' do
+      allow(fake_client).to receive(:chat).and_return(
+        { 'choices' => [{ 'message' => { 'content' => nil }, 'finish_reason' => 'length' }],
+          'usage' => { 'prompt_tokens' => 21, 'completion_tokens' => 5596, 'total_tokens' => 5617 } }
+      )
+      expect { provider.chat(messages: messages, model: 'gpt-5') }
+        .to raise_error(Lalabase::Llm::Provider::TruncatedError, /empty response/) { |error|
+          expect(error.result).to include(content: '', stop_reason: 'length', model_used: 'gpt-5')
+          expect(error.result[:token_usage]).to include(input_tokens: 21, output_tokens: 5596, total_tokens: 5617)
+        }
     end
 
     it 'maps Faraday::UnauthorizedError → AuthError' do

@@ -211,7 +211,9 @@ RSpec.describe Meetings::TicketSuggestionService do
       end
     end
 
-    context 'when the answer of an assistant-started run was cut at the output limit' do
+    # A run started from the meeting page (no chat post, no pinned sources). A
+    # run from the assistant goes through the same record_error, see mark_failed!.
+    context 'when the answer of a run was cut at the output limit' do
       let(:chat_result) { { content: llm_content, stop_reason: 'length', token_usage: { total_tokens: 100 }, model_used: 'gpt-4o-mini' } }
       let(:run) do
         MeetingTicketSuggestionRun.create!(

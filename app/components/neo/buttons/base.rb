@@ -143,6 +143,15 @@ module Neo
         ].compact.join(' ')
       end
 
+      # The button inside a form: (button_to). The confirmation belongs to the
+      # form (data-turbo-confirm); the button's own confirm would ask a second
+      # time before Turbo asks again.
+      def form_button_attributes
+        attrs = component_attributes.except(:href, :type)
+        attrs[:data]&.delete(:neo_button_confirm_value)
+        attrs
+      end
+
       def component_attributes
         attrs = @options.except(:class).dup
 

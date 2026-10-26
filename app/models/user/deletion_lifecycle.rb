@@ -155,11 +155,13 @@ class User < ApplicationRecord
     # inconsistent, half-erased user that no later run can cleanly recover.
     def soft_delete_and_anonymize!
       transaction do
-        memberships.destroy_all
         # Export archives, private analyses, own chat threads: shared with
         # Admin::User through PersonalDataErasure (see there for why each step is
-        # explicit).
+        # explicit). BEFORE the memberships: removing a membership unlinks the
+        # person row (PersonLinkRelease), and erase_person_links! finds the rows
+        # by that link.
         erase_personal_data!
+        memberships.destroy_all
         # update_column, not update!: this row is about to be force-saved past
         # validations by anonymize! (an erasure must never be blocked by
         # validation), so validating here would let a legacy-invalid row abort

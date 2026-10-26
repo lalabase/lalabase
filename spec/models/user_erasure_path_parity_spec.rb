@@ -228,6 +228,27 @@ RSpec.describe 'Account erasure path parity', type: :model do
       end
     end
 
+    # The erasure runs BEFORE the memberships go: removing a membership drops
+    # the link (PersonLinkRelease), and without the link the step would find
+    # nothing and leave the row behind as a contact with the person's data.
+    describe 'people directory rows linked to the account' do
+      it 'deletes the linked rows in every organisation and keeps the unlinked ones' do
+        create(:membership, user: user, organisation: other_organisation)
+        linked = create(:person, organisation: organisation, user: user, phone: '1')
+        elsewhere = ActsAsTenant.with_tenant(other_organisation) do
+          create(:person, organisation: other_organisation, user: user)
+        end
+        namesake = create(:person, organisation: organisation, name: linked.name)
+
+        record.soft_delete_and_anonymize!
+
+        ActsAsTenant.without_tenant do
+          expect(Person.where(id: [linked.id, elsewhere.id])).not_to exist
+          expect(Person.where(id: namesake.id)).to exist
+        end
+      end
+    end
+
     describe 'personal access tokens (access revocation)' do
       it 'revokes the tokens so they stop authenticating' do
         raw = create(:personal_access_token, user: user, organisations: [organisation]).token

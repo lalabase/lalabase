@@ -1,0 +1,15 @@
+<%# locals: (person:) %>
+<%# The history of one person: who changed which field, never the values
+    (PersonTrackable). Read straight from the row's activities, like
+    time_session_groups/_activities. %>
+<% activities = person.activities.includes(:actor).where.not(action: 'created').order(created_at: :desc).limit(20).to_a %>
+<% if activities.any? %>
+  <ul class="people-history" aria-label="<%= t('views.organisations.people.history.title') %>">
+    <% activities.each do |activity| %>
+      <li>
+        <span><%= person_history_line(activity) %></span>
+        <time datetime="<%= activity.created_at.iso8601 %>"><%= l(activity.created_at.to_date, format: :short) %></time>
+      </li>
+    <% end %>
+  </ul>
+<% end %>

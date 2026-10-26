@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_17_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_26_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1055,6 +1055,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_120000) do
     t.index ["user_id"], name: "index_overview_configurations_on_user_id"
   end
 
+  create_table "people", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "organisation_id", null: false
+    t.uuid "user_id"
+    t.string "name", null: false
+    t.string "normalized_name", null: false
+    t.string "function"
+    t.string "department"
+    t.string "company"
+    t.string "email"
+    t.string "phone"
+    t.text "notes"
+    t.uuid "creator_id"
+    t.uuid "updater_id"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organisation_id", "normalized_name"], name: "index_people_on_organisation_id_and_normalized_name"
+    t.index ["organisation_id", "user_id"], name: "index_people_on_organisation_id_and_user_id", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["user_id"], name: "index_people_on_user_id"
+  end
+
   create_table "permissions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "role_id", null: false
     t.string "category", null: false
@@ -2071,6 +2092,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_17_120000) do
   add_foreign_key "outbox_events", "organisations"
   add_foreign_key "overview_configurations", "organisations"
   add_foreign_key "overview_configurations", "users"
+  add_foreign_key "people", "organisations"
+  add_foreign_key "people", "users", column: "creator_id", on_delete: :nullify
+  add_foreign_key "people", "users", column: "updater_id", on_delete: :nullify
+  add_foreign_key "people", "users", on_delete: :nullify
   add_foreign_key "permissions", "roles"
   add_foreign_key "personal_access_token_organisations", "organisations"
   add_foreign_key "personal_access_token_organisations", "personal_access_tokens"

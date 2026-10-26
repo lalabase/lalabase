@@ -1,5 +1,5 @@
 // Name normalization for meeting participants — the JS half of a contract shared
-// with Ruby (MeetingParticipant.normalize_name). Both sides are exercised against
+// with Ruby (PersonName.normalize). Both sides are exercised against
 // spec/fixtures/name_normalization_cases.json so they cannot drift.
 //
 // Rule (identical to Ruby): NFC -> trim + collapse inner whitespace -> downcase

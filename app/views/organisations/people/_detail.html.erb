@@ -1,0 +1,77 @@
+<%# locals: (person:) %>
+<%# One person row: what it is, the fields, the note, who created it, the
+    history, rows that may be the same person (read only), and delete. For a
+    member the row holds the extra details; name and email come from the
+    account, and "delete" removes only those details (the account stays). %>
+<% member = person_member_user(person) %>
+<% can_write = policy(person).update? %>
+<% name = person_display_name(person: person, user: member) %>
+<% kind = member ? 'member' : 'contact' %>
+<div class="people-detail">
+  <%= render 'organisations/people/lane_head',
+             kind_label: t("views.organisations.people.show.kind.#{kind}"),
+             edit_url: (edit_organisation_person_path(@current_organisation, person, list_state) if can_write) %>
+
+  <% status_icon, status = person_link_state(person, member) %>
+  <%= render 'organisations/people/identity', name: name, user: member, status_icon: status_icon, status: status %>
+
+  <% duplicates = People::Directory.new(viewer: current_user, organisation: @current_organisation).duplicates_of(person) %>
+  <% if duplicates.any? %>
+    <div class="people-callout people-callout--warning">
+      <i class="bi bi-people" aria-hidden="true"></i>
+      <div class="people-callout__body">
+        <% duplicates.each do |entry| %>
+          <p>
+            <%= t('views.organisations.people.show.duplicate_prefix') %>
+            <%= link_to person_display_name(person: entry.person, user: entry.user),
+                        organisation_people_path(@current_organisation, list_state.merge(entry.person ? { 'person_id' => entry.person.id } : { 'member_id' => entry.user.id })),
+                        data: { turbo_frame: '_top' }, class: 'people-callout__name' %>
+            (<%= entry.member? ? t('views.organisations.people.index.member_badge') : t('views.organisations.people.show.contact_label') %>).
+          </p>
+        <% end %>
+        <% if can_write && member.nil? && duplicates.any?(&:member?) %>
+          <%= link_to t('views.organisations.people.show.duplicate_link'), edit_organisation_person_path(@current_organisation, person, list_state),
+                      class: 'people-text-action' %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <% if member && person_bare?(person) %>
+    <%= render 'organisations/people/bare_hint', member: member, url: (edit_organisation_person_path(@current_organisation, person, list_state) if can_write) %>
+  <% end %>
+
+  <%= render 'organisations/people/fields', fields: person_fields(person, member) %>
+
+  <% if person.notes.present? %>
+    <section class="people-note">
+      <h3><%= Person.human_attribute_name(:notes) %></h3>
+      <p class="width-text"><%= person.notes %></p>
+    </section>
+  <% end %>
+
+  <div class="people-footer">
+    <p class="people-footer__created">
+      <% if person.creator %>
+        <%= t('views.organisations.people.show.created_by', name: person_actor_name(person.creator), date: l(person.created_at.to_date, format: :default)) %>
+      <% else %>
+        <%= t('views.organisations.people.show.created_at', date: l(person.created_at.to_date, format: :default)) %>
+      <% end %>
+    </p>
+    <%= render 'organisations/people/history', person: person %>
+  </div>
+
+  <% if can_write %>
+    <% key = member ? 'remove_details' : 'delete' %>
+    <%= render Neo::Buttons::ButtonComponent.new(
+      variant: :ghost, size: :small, icon: 'trash',
+      form: { action: organisation_person_path(@current_organisation, person, list_state), method: :delete, data: { turbo_frame: '_top' } },
+      confirm: t("views.organisations.people.show.#{key}_confirm", name: name),
+      class: 'people-danger-action'
+    ) do %>
+      <%= t("views.organisations.people.show.#{key}") %>
+    <% end %>
+  <% else %>
+    <p class="people-footer__readonly"><%= t('views.organisations.people.show.read_only') %></p>
+  <% end %>
+</div>

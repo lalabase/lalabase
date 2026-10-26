@@ -2,6 +2,15 @@
 en:
   activerecord:
     attributes:
+      person:
+        user: "Member"
+        name: "Name"
+        function: "Function"
+        department: "Department"
+        company: "Company"
+        email: "Email"
+        phone: "Phone"
+        notes: "Note"
       ticket_relation:
         source_ticket: "Source ticket"
         target_ticket: "Target ticket"
@@ -67,6 +76,10 @@ en:
         file: "PDF"
     errors:
       models:
+        person:
+          attributes:
+            user:
+              not_an_active_member: "must be an active member of this organisation"
         beuser:
           last_active_admin: "The last active admin cannot be demoted, deactivated or deleted."
         seat_event:

@@ -2,6 +2,15 @@
 de:
   activerecord:
     attributes:
+      person:
+        user: "Mitglied"
+        name: "Name"
+        function: "Funktion"
+        department: "Abteilung"
+        company: "Firma"
+        email: "E-Mail"
+        phone: "Telefon"
+        notes: "Notiz"
       ticket_relation:
         source_ticket: "Quell-Ticket"
         target_ticket: "Ziel-Ticket"
@@ -67,6 +76,10 @@ de:
         file: "PDF"
     errors:
       models:
+        person:
+          attributes:
+            user:
+              not_an_active_member: "muss ein aktives Mitglied dieser Organisation sein"
         beuser:
           last_active_admin: "Der letzte aktive Admin kann weder herabgestuft, deaktiviert noch gelöscht werden."
         # Modellspezifisch, weil die Regel zu PriceTier gehört. Die beiden

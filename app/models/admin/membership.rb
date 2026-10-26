@@ -58,6 +58,9 @@ module Admin
     # Guard: spec/models/seat_event_recording_spec.rb asserts that EVERY model
     # on this table includes it, so a third twin cannot reopen the gap.
     include SeatEventRecording
+    # Same as ::Membership: removing a member keeps their person row and drops
+    # its link (person_link_release.rb).
+    include PersonLinkRelease
 
     # Associations (without tenant restrictions)
     belongs_to :organisation, class_name: 'Admin::Organisation'

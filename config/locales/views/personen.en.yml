@@ -1,0 +1,95 @@
+---
+en:
+  controllers:
+    people:
+      not_found: "This person does not exist."
+      link_not_allowed: "This member cannot be linked."
+      create:
+        success: "Person added."
+      update:
+        success: "Person saved."
+        stale: "Someone else changed this person in the meantime. The current details are shown below, please make your change again."
+      destroy:
+        success: "Person deleted."
+  views:
+    organisations:
+      people:
+        index:
+          title: "People"
+          count_line: "%{people} · %{members}, %{contacts}"
+          count_people:
+            one: "%{count} person"
+            other: "%{count} people"
+          count_members:
+            one: "%{count} member"
+            other: "%{count} members"
+          count_contacts:
+            one: "%{count} contact"
+            other: "%{count} contacts"
+          new_person: "Add person"
+          search_label: "Search people"
+          search_placeholder: "Name, function or company"
+          filter_label: "Show"
+          kinds:
+            all: "All"
+            members: "Members"
+            contacts: "Contacts"
+          member_badge: "Member"
+          placeholder_title: "No person selected"
+          placeholder_body: "Pick a person on the left."
+          empty_title: "No people yet"
+          empty_description: "This is where you keep who is responsible for what: contacts, cover, the hosting provider. Members show up on their own once they are invited."
+          empty_no_results: "No person in this selection."
+          empty_kind:
+            members: "No members in the list."
+            contacts: "No contacts yet. Add people without an account with “Add person”."
+          no_hits_title: "No person matches “%{query}”."
+          no_hits_text: "The search looks at name, function, department, company and email."
+          clear_search: "Clear search"
+          back_to_list: "People"
+        show:
+          kind:
+            member: "Member"
+            contact: "Contact"
+          close: "Close"
+          edit: "Edit"
+          linked_member: "Member: %{name}"
+          no_account: "No account"
+          former_member: "Former member"
+          contact_label: "Contact"
+          duplicate_prefix: "Same name:"
+          duplicate_link: "Link …"
+          bare_text: "Name and email come from the account. Function, department, phone and a note are still missing, so others know what %{first_name} is responsible for."
+          add_details: "Add details"
+          call: "call"
+          created_by: "Added by %{name} on %{date}"
+          someone: "Someone"
+          created_at: "Added on %{date}"
+          from_account: "Taken from the account on %{date}"
+          read_only: "You can view people, but not edit them."
+          delete: "Delete"
+          delete_confirm: "%{name} will be deleted from the list. This cannot be undone."
+          remove_details: "Remove added details"
+          remove_details_confirm: "Function, department, phone and note of %{name} will be removed, the account stays. This cannot be undone."
+        form:
+          new_title: "Add person"
+          edit_title: "Edit %{name}"
+          link_label: "Link to a member (optional)"
+          no_member: "no member"
+          former_member_option: "%{name} (former member)"
+          placeholders:
+            name: "First and last name"
+            function: "e.g. technical contact"
+            department: "e.g. IT"
+            company: "third parties only, e.g. the hosting provider"
+            email: "name@example.com"
+            phone: "+49 30 1234567"
+            notes: "Plain text, e.g. availability or responsibility"
+          shared_hint: "Everyone with access to people sees these details, the customer's side too."
+          save: "Save"
+          cancel: "Cancel"
+        history:
+          title: "History"
+          created: "%{actor} added the person"
+          updated: "%{actor} changed %{fields}"
+          other: "%{actor} changed the person"

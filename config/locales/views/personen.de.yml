@@ -1,0 +1,95 @@
+---
+de:
+  controllers:
+    people:
+      not_found: "Diese Person gibt es nicht."
+      link_not_allowed: "Dieses Mitglied lässt sich nicht verknüpfen."
+      create:
+        success: "Person angelegt."
+      update:
+        success: "Person gespeichert."
+        stale: "Jemand anderes hat diese Person inzwischen geändert. Unten stehen die aktuellen Angaben, bitte noch einmal ändern."
+      destroy:
+        success: "Person gelöscht."
+  views:
+    organisations:
+      people:
+        index:
+          title: "Personen"
+          count_line: "%{people} · %{members}, %{contacts}"
+          count_people:
+            one: "%{count} Person"
+            other: "%{count} Personen"
+          count_members:
+            one: "%{count} Mitglied"
+            other: "%{count} Mitglieder"
+          count_contacts:
+            one: "%{count} Kontakt"
+            other: "%{count} Kontakte"
+          new_person: "Person anlegen"
+          search_label: "Personen durchsuchen"
+          search_placeholder: "Name, Funktion oder Firma"
+          filter_label: "Anzeigen"
+          kinds:
+            all: "Alle"
+            members: "Mitglieder"
+            contacts: "Kontakte"
+          member_badge: "Mitglied"
+          placeholder_title: "Keine Person gewählt"
+          placeholder_body: "Wähle links eine Person aus."
+          empty_title: "Noch keine Personen"
+          empty_description: "Hier steht, wer wofür zuständig ist: Ansprechpartner, Vertretungen, der Hoster. Mitglieder erscheinen von selbst, sobald sie eingeladen sind."
+          empty_no_results: "Keine Person in dieser Auswahl."
+          empty_kind:
+            members: "Keine Mitglieder in der Liste."
+            contacts: "Noch keine Kontakte. Personen ohne Konto legst du mit „Person anlegen“ an."
+          no_hits_title: "Keine Person passt zu „%{query}“."
+          no_hits_text: "Gesucht wird in Name, Funktion, Abteilung, Firma und E-Mail."
+          clear_search: "Suche zurücksetzen"
+          back_to_list: "Personen"
+        show:
+          kind:
+            member: "Mitglied"
+            contact: "Kontakt"
+          close: "Schließen"
+          edit: "Bearbeiten"
+          linked_member: "Mitglied: %{name}"
+          no_account: "Kein Konto"
+          former_member: "Früheres Mitglied"
+          contact_label: "Kontakt"
+          duplicate_prefix: "Gleicher Name:"
+          duplicate_link: "Verknüpfen …"
+          bare_text: "Name und E-Mail kommen vom Konto. Funktion, Abteilung, Telefon und eine Notiz fehlen noch, damit andere wissen, wofür %{first_name} zuständig ist."
+          add_details: "Angaben ergänzen"
+          call: "anrufen"
+          created_by: "Angelegt von %{name} am %{date}"
+          someone: "Jemand"
+          created_at: "Angelegt am %{date}"
+          from_account: "Aus dem Konto übernommen am %{date}"
+          read_only: "Du kannst Personen ansehen, aber nicht bearbeiten."
+          delete: "Löschen"
+          delete_confirm: "%{name} wird aus der Liste gelöscht. Das lässt sich nicht rückgängig machen."
+          remove_details: "Ergänzte Angaben entfernen"
+          remove_details_confirm: "Funktion, Abteilung, Telefon und Notiz von %{name} werden entfernt, das Konto bleibt. Das lässt sich nicht rückgängig machen."
+        form:
+          new_title: "Person anlegen"
+          edit_title: "%{name} bearbeiten"
+          link_label: "Mit Mitglied verknüpfen (optional)"
+          no_member: "kein Mitglied"
+          former_member_option: "%{name} (früheres Mitglied)"
+          placeholders:
+            name: "Vor- und Nachname"
+            function: "z. B. Technischer Ansprechpartner"
+            department: "z. B. IT"
+            company: "nur für Dritte, z. B. der Hoster"
+            email: "name@example.com"
+            phone: "+49 30 1234567"
+            notes: "Einfacher Text, z. B. Erreichbarkeit oder Zuständigkeit"
+          shared_hint: "Alle mit Zugriff auf Personen sehen diese Angaben, auch die Kundenseite."
+          save: "Speichern"
+          cancel: "Abbrechen"
+        history:
+          title: "Verlauf"
+          created: "%{actor} hat die Person angelegt"
+          updated: "%{actor} hat %{fields} geändert"
+          other: "%{actor} hat die Person geändert"

@@ -317,6 +317,8 @@ jobs:
           spec/requests/organisations/meeting_assistant_draft_context_spec.rb
           spec/requests/organisations/meeting_assistant_seams_spec.rb
           spec/requests/organisations/meetings_overview_create_spec.rb
+          spec/requests/organisations/people_spec.rb
+          spec/services/people/directory_spec.rb
           spec/requests/organisations/note_editor_embed_spec.rb
           spec/requests/organisations/onboarding_banner_spec.rb
           spec/requests/organisations/panel_lane_markup_guard_spec.rb

@@ -385,3 +385,99 @@
    ONLY the light action steps (200-500), NOT lime-50 (own-post tint). */
 .bg-btn-primary, .mobile-primary, .bg-lime-200, .bg-lime-300, .bg-lime-400, .bg-lime-500,
 [class*="bg-lime-200"], [class*="bg-lime-300"], [class*="bg-lime-400"] { color: #14110c; }
+
+/* Personen: the shared people directory (organisations/people). One column
+   of rows, the person in the lane. Hairlines everywhere; only the main action
+   (the primary Neo button) carries the hard edge and the offset shadow, as on
+   the rebuilt tickets. Tokens only, so all three themes follow. */
+@layer components {
+  .people-head { @apply flex items-start gap-4 px-6 pt-5; }
+  .people-head__title { @apply flex min-w-0 flex-col gap-1; }
+  .people-head__h1 { @apply text-[22px] font-bold leading-tight tracking-tight text-heading; }
+  .people-head__count { @apply text-[13px] text-muted; }
+  .people-head__action { margin-inline-start: auto; }
+  .people-tools { @apply flex flex-wrap items-center gap-2 px-6 pb-3 pt-4; }
+  .people-search { width: 260px; max-width: 100%; }
+  .people-search__field { @apply flex items-center gap-2 rounded-lg border border-cream-400 bg-surface-raised px-2.5 py-1.5 text-[13px] text-muted; }
+  .people-search__field input { @apply min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] text-heading outline-none focus:ring-0; }
+  .people-search__field:focus-within { border-color: rgb(var(--ink)); }
+  .people-filters { @apply flex flex-wrap items-center gap-2; }
+  .people-pill { @apply inline-flex items-baseline gap-1.5 rounded-full border border-cream-300 bg-surface-raised px-3 py-1 text-[13px] text-heading no-underline hover:bg-cream-200; }
+  .people-pill--active { @apply border-cream-600 font-semibold; background-color: rgb(var(--selected-row)); }
+  .people-pill__count { @apply font-mono text-[11px] font-normal text-muted; }
+  .people-list { @apply mx-6 mb-6 border-t border-ink; }
+  .people-row { @apply -mx-2 flex cursor-pointer items-center gap-3 border-b border-cream-200 px-2 py-2.5 outline-none hover:bg-cream-100 focus-visible:bg-cream-100; }
+  .people-row.selected-row { background-color: rgb(var(--selected-row)); }
+  .people-row.selected-row .people-row__name { @apply font-semibold; }
+  .people-row__text { @apply flex min-w-0 flex-1 flex-col gap-0.5; }
+  .people-row__line { @apply flex min-w-0 items-baseline gap-2; }
+  .people-row__name { @apply truncate text-sm font-medium text-heading; }
+  .people-row__sub { @apply truncate text-xs text-muted; }
+  .people-row__chevron { @apply hidden text-xs text-cream-400; }
+  .people-mobile-grid .people-row__chevron { @apply inline; }
+  .people-badge { @apply shrink-0 rounded-full border border-cream-300 bg-cream-100 px-1.5 text-[11px] text-cream-600; }
+  /* Members keep the chip's own tone; contacts (no account) a lighter one.
+     Scoped to the page so it wins over the chip's utility classes. */
+  .people-page .people-avatar { @apply font-mono font-normal; }
+  .people-page .people-avatar--contact { @apply border-cream-300 bg-surface-raised text-cream-600; }
+  .people-empty { @apply flex flex-col items-start gap-2.5 px-6 pt-8; }
+  .people-empty__icon { @apply text-2xl text-cream-500; }
+  .people-empty__title { @apply text-[15px] font-semibold text-heading; }
+  .people-empty__text { @apply text-[13px] leading-relaxed text-muted; }
+  .people-text-action { color: rgb(var(--text-action)); @apply text-[13px] hover:underline; }
+  .people-quiet-action { @apply text-[13px] text-cream-600 hover:text-heading; }
+  .people-ghost-action { @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-cream-600 no-underline hover:bg-cream-200 hover:text-heading; }
+  .people-icon-action { @apply inline-grid h-[30px] w-[30px] place-items-center rounded-md text-[13px] text-cream-500 hover:bg-cream-200 hover:text-heading; }
+  .people-secondary-action { @apply inline-flex items-center gap-1.5 rounded-lg border border-cream-400 bg-surface-raised px-3 py-1.5 text-[13px] text-heading no-underline hover:border-cream-600; }
+  .people-danger-action { color: #A03227; margin-inline-start: -8px; @apply self-start; }
+  .dark .people-danger-action { color: var(--wash-danger-text); }
+  .people-lane { @apply flex flex-col gap-4; }
+  .people-detail, .people-form-wrap { @apply flex flex-col gap-4; }
+  .people-lane__head { @apply flex items-center gap-1; }
+  .people-lane__kind { @apply mr-auto text-xs text-muted; }
+  .people-lane__divider { @apply mx-1 h-4 w-px bg-cream-200; }
+  .people-identity { @apply flex items-center gap-3.5; }
+  .people-identity__text { @apply flex min-w-0 flex-col gap-1; }
+  .people-identity__name { @apply text-[22px] font-semibold leading-tight tracking-tight text-heading; }
+  .people-identity__status { @apply inline-flex items-center gap-2 text-[13px] text-cream-700; }
+  .people-identity__status i { @apply text-muted; }
+  .people-callout { @apply flex items-baseline gap-2.5 rounded-lg border border-cream-300 bg-cream-50 px-3 py-2.5 text-[13px] leading-normal text-heading; }
+  .people-callout__body { @apply flex min-w-0 flex-1 flex-col items-start gap-2; }
+  .people-callout--quiet { @apply border-transparent; }
+  .people-callout--warning { border-color: #C08A3E; }
+  .people-callout--warning > i { color: #C08A3E; }
+  .people-callout--danger { @apply border-red-200 bg-red-50 text-red-800; }
+  .people-callout__name { @apply font-semibold text-heading; }
+  .people-fields { @apply flex flex-col border-t border-cream-200; }
+  .people-fields__row { @apply flex items-baseline gap-3.5 border-b border-cream-200 py-2; }
+  .people-fields__row dt { @apply w-24 shrink-0 text-[13px] text-muted; }
+  .people-fields__row dd { @apply min-w-0 break-words text-sm text-heading; }
+  .people-fields__row--stacked { @apply flex-col gap-0.5; }
+  .people-fields__row--stacked dt { @apply w-auto text-xs; }
+  .people-fields__link { color: rgb(var(--text-action)); @apply inline-flex items-center gap-2 hover:underline; }
+  .people-fields__link i { @apply text-xs; }
+  .people-fields__link--mono { @apply font-mono; }
+  .people-tap { min-height: 52px; @apply flex items-center gap-3 rounded-[10px] border border-cream-300 bg-cream-50 px-3.5 text-[15px] text-heading no-underline; }
+  .people-tap--mono { @apply font-mono; }
+  .people-tap__hint { margin-inline-start: auto; @apply font-sans text-xs text-muted; }
+  .people-note h3 { @apply mb-1.5 text-[13px] font-normal text-muted; }
+  .people-note p { @apply whitespace-pre-line text-sm leading-relaxed text-cream-700; }
+  .people-footer { @apply flex flex-col gap-2 border-t border-cream-200 pt-3.5; }
+  .people-footer__created { @apply text-xs text-muted; }
+  .people-footer__readonly { @apply text-xs text-muted; }
+  .people-history { @apply flex flex-col gap-1.5; }
+  .people-history li { @apply flex items-baseline gap-2.5 text-[13px] text-cream-600; }
+  .people-history li span { @apply min-w-0 flex-1; }
+  .people-history time { @apply shrink-0 font-mono text-xs text-muted; }
+  .people-form { @apply flex flex-col gap-3.5; }
+  .people-form__title { @apply mr-auto text-[17px] font-semibold text-heading; }
+  .people-form__field { @apply flex flex-col gap-1; }
+  .people-form__field label { @apply text-xs text-muted; }
+  .people-form__required { color: #A03227; }
+  .dark .people-form__required { color: var(--wash-danger-text); }
+  .people-input { @apply box-border w-full rounded-lg border border-cream-400 bg-surface-raised px-2.5 py-2 text-sm text-heading focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink; }
+  .people-input--area { @apply resize-y leading-normal; }
+  .people-input--locked { @apply bg-cream-100 text-cream-700; }
+  .people-form__actions { @apply flex items-center gap-4 pt-0.5; }
+  .people-page :is(a, button, input, select, textarea, li[tabindex]):focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 2px; }
+}

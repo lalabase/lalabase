@@ -109,6 +109,8 @@ class Organisation < ApplicationRecord
   has_many :ai_usages, dependent: :destroy
   has_many :codebase_import_files, dependent: :destroy
   has_many :tags, dependent: :destroy
+  # The shared people directory (Person). Rails-driven cleanup like the rows above.
+  has_many :people, dependent: :destroy
   has_many :personal_access_token_organisations, dependent: :destroy
 
   # The one order for lists of organisations a person sees: by name ignoring case, then by id

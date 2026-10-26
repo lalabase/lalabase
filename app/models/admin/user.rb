@@ -234,8 +234,10 @@ module Admin
     # spec/models/user_erasure_path_parity_spec.rb.
     def soft_delete_and_anonymize!
       ActiveRecord::Base.transaction do
-        memberships.destroy_all
+        # BEFORE the memberships, as on ::User: removing a membership unlinks
+        # the person row, and erase_person_links! finds the rows by that link.
         erase_personal_data!
+        memberships.destroy_all
         update_columns(
           anonymization_attributes.merge(
             deleted_at: Time.current,

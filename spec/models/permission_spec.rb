@@ -425,4 +425,27 @@ RSpec.describe Permission, type: :model do
       end
     end
   end
+
+  # The people directory: its own category for the same reason as :assistant,
+  # customer roles are billable: false and must be able to keep the list.
+  describe 'people category' do
+    it 'knows view_people and manage_people' do
+      expect(Permission::CATEGORIES[:people]).to eq(%w[view_people manage_people])
+    end
+
+    it 'is not on the guest ceiling list' do
+      expect(Role::FORBIDDEN_BILLABLE_FALSE_CATEGORIES).not_to include('people')
+    end
+
+    %w[view_people manage_people].each do |action|
+      it "stays grantable to a billable: false role (#{action})" do
+        ActsAsTenant.with_tenant(organisation) do
+          guest_role = create(:role, billable: false)
+          permission = build(:permission, role: guest_role, category: 'people', action: action, allowed: true)
+
+          expect(permission).to be_valid
+        end
+      end
+    end
+  end
 end

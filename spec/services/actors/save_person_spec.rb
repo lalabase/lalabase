@@ -1,0 +1,131 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe Actors::SavePerson do
+  let(:organisation) { create(:organisation) }
+  let(:other_organisation) { create(:organisation) }
+  let(:admin_role) { create(:role, organisation: organisation, title: Role::ACCOUNT_ADMIN_TITLE) }
+  let(:writer) { member(role: admin_role) }
+
+  before { ActsAsTenant.current_tenant = organisation }
+  after { ActsAsTenant.current_tenant = nil }
+
+  def member(role: create(:role, organisation: organisation), active: true, org: organisation)
+    user = create(:user, first_name: 'Mia', last_name: "Mitglied#{SecureRandom.hex(2)}")
+    create(:membership, user: user, organisation: org, role: role, active: active)
+    user
+  end
+
+  def save(id: nil, **params)
+    described_class.call(organisation: organisation, params: params, current_user: writer, id: id)
+  end
+
+  it 'creates a contact with creator and updater' do
+    result = save(name: 'Erika Beispiel', function: 'IT')
+
+    expect(result).to be_success
+    person = result.resource
+    expect(person).to be_persisted
+    expect([person.creator_id, person.updater_id]).to eq([writer.id, writer.id])
+  end
+
+  it 'records the actor of the activity (Current.user from the actor)' do
+    result = save(name: 'Erika Beispiel')
+
+    expect(Activity.find_by!(trackable: result.resource, action: 'created').actor).to eq(writer)
+  end
+
+  it 'updates and moves the updater, keeping the creator' do
+    person = save(name: 'Erika Beispiel').resource
+    editor = member(role: admin_role)
+
+    result = described_class.call(organisation: organisation, params: { phone: '1', lock_version: person.lock_version },
+                                  current_user: editor, id: person.id)
+
+    expect(result).to be_success
+    expect(person.reload.phone).to eq('1')
+    expect([person.creator_id, person.updater_id]).to eq([writer.id, editor.id])
+  end
+
+  it 'copies the member name when a link is set' do
+    user = member
+    result = save(name: 'egal', user_id: user.id)
+
+    expect(result.resource.user).to eq(user)
+    expect(result.resource.name).to eq(user.display_name)
+  end
+
+  it 'drops a link when user_id is blank' do
+    user = member
+    person = save(name: 'x', user_id: user.id).resource
+
+    save(user_id: '', lock_version: person.lock_version, id: person.id)
+
+    expect(person.reload.user_id).to be_nil
+    expect(person.name).to eq(user.display_name)
+  end
+
+  it 'refuses a raw user_id the writer may not link (another organisation)' do
+    foreign = member(org: other_organisation)
+
+    result = save(name: 'x', user_id: foreign.id)
+
+    expect(result).not_to be_success
+    expect(Person.count).to eq(0)
+  end
+
+  it 'refuses a member the writer cannot see' do
+    viewer_role = create(:role, organisation: organisation)
+    limited_writer = member(role: viewer_role)
+    stranger = member
+    project = create(:project, organisation: organisation)
+    create(:project_permission, user: limited_writer, project: project, tickets_access: :read_only)
+
+    result = described_class.call(organisation: organisation, params: { name: 'x', user_id: stranger.id },
+                                  current_user: limited_writer)
+
+    expect(result).not_to be_success
+  end
+
+  it 'maps a stale save to code :stale_object and keeps the newer value' do
+    person = save(name: 'Erika Beispiel').resource
+    stale_version = person.lock_version
+    save(phone: 'first', lock_version: stale_version, id: person.id)
+
+    result = save(phone: 'second', lock_version: stale_version, id: person.id)
+
+    expect(result).not_to be_success
+    expect(result.code).to eq(:stale_object)
+    expect(person.reload.phone).to eq('first')
+  end
+
+  it 'answers not found for an id of another organisation' do
+    theirs = ActsAsTenant.with_tenant(other_organisation) { create(:person, organisation: other_organisation) }
+
+    result = save(phone: '1', id: theirs.id)
+
+    expect(result).not_to be_success
+    expect(result.code).to eq(:not_found)
+    expect(Person.unscoped.find(theirs.id).phone).to be_nil
+  end
+
+  # Review round 1: two saves linking the same member at once. The unique index
+  # answers the second; it must be a failure, not an unexpected error.
+  it 'turns a lost race on the member link into a failure' do
+    user = member
+    allow_any_instance_of(Person).to receive(:save!).and_raise(ActiveRecord::RecordNotUnique)
+
+    result = save(name: 'x', user_id: user.id)
+
+    expect(result).not_to be_success
+    expect(result.code).to eq(:validation_failed)
+  end
+
+  it 'maps a validation error to a failure' do
+    result = save(name: '')
+
+    expect(result).not_to be_success
+    expect(result.code).to eq(:validation_failed)
+  end
+end

@@ -1,0 +1,10 @@
+<%# locals: (name:, user: nil, status_icon:, status:) %>
+<%# The big avatar, the name and the link state of a person or a member. %>
+<div class="people-identity">
+  <%= render Neo::Users::AvatarComponent.new(user: user, size: :large, fallback_initials: person_initials(name),
+                                              class: "people-avatar #{'people-avatar--contact' unless user}") %>
+  <div class="people-identity__text">
+    <h2 class="people-identity__name"><%= name %></h2>
+    <p class="people-identity__status"><i class="bi <%= status_icon %>" aria-hidden="true"></i><%= status %></p>
+  </div>
+</div>

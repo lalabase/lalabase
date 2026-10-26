@@ -1,4 +1,4 @@
-# Karte: app/controllers/concerns (Stand: 2026-10-24)
+# Karte: app/controllers/concerns (Stand: 2026-10-26)
 
 > Für die Ticket-**Domäne** (Attributsystem, Kanban, Actors, Fallen) gilt zusätzlich
 > `docs/architektur/tickets_lesepfad.md`. Diese Karte hier beschreibt nur den **Stack**.
@@ -88,6 +88,12 @@ Meeting-Ansicht gehört der Liste ihres Projekts, ohne Projekt der Übersicht. D
 nehmen `project: nil` als „organisationsweit“; Tickets und Wissen geben weiter ein Projekt mit.
 Die Grundansicht der Spalten wählt `ViewConfiguration.for_list` (ohne Projekt nur `meetings`,
 Route `meetings_view_configuration`, derselbe Controller wie die Projekt-Route).
+Die Personenliste (`Organisations::PeopleController`, 26.10.2026) ist die sechste Bahn:
+`ViewportSwitchable` + `People::Directory`, ohne Filterleiste und Spaltenwahl, dieselben
+Stimulus-Controller (`layout-toggle`, `index-page`, `list-row`, `lane-link`); Speichern und
+Löschen verlassen die Bahn (`_top`) und landen mit `?person_id=` wieder auf der Liste. Zwei
+Auswahlparameter schließen sich aus: `person_id` (eine Zeile) und `member_id` (ein Mitglied ohne
+eigene Zeile, `PeopleController#member`); `user_id` gehört zur Formular-Gruppe.
 Der Entscheid für EINE kanonische Listen-Architektur steht aus; bis dahin gilt für neue
 Listen-Features: am ähnlichsten Bestands-Feature orientieren und die Wahl im PR begründen.
 Seit 10.09.2026 teilen Tickets und Knowledge immerhin die OBERFLÄCHE der Liste-mit-Bahn

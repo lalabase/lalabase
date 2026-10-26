@@ -1488,6 +1488,7 @@ de:
         delimiter: "."
   navigation:
     all_meetings: Alle Meetings
+    people: Personen
     all_organisations: Alle Organisationen
     all_projects: Alle Projekte
     times: Zeiten

@@ -1382,6 +1382,7 @@ en:
         delimiter: ","
   navigation:
     all_meetings: All Meetings
+    people: People
     all_organisations: All organisations
     all_projects: All Projects
     times: Times

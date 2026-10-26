@@ -192,6 +192,9 @@ en:
             view_user_full_name: Allows viewing full names of other users.
           assistant:
             use_assistant: Allows using the org-wide AI assistant.
+          people:
+            view_people: View people
+            manage_people: Edit people (including delete)
           none_available: No description available
         categories:
           assistant: Assistant
@@ -200,6 +203,7 @@ en:
           tickets: Tickets
           meetings: Meetings
           users: Users
+          people: People
     layouts:
       docs:
         title_with_page: "%{page} · Lalabase Docs"

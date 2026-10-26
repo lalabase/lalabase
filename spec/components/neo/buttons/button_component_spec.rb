@@ -294,6 +294,21 @@ RSpec.describe Neo::Buttons::ButtonComponent, type: :component do
     end
   end
 
+  # A button with form: renders a real form, and the confirmation sits on the
+  # form (data-turbo-confirm). Until 26.10.2026 the button ALSO carried
+  # neo-button's own confirm, so a delete asked twice.
+  describe 'form button with confirmation' do
+    let(:options) { { confirm: 'Delete this?', form: { action: '/things/1', method: :delete } } }
+
+    it 'asks once, through the form' do
+      rendered_component
+
+      expect(page).to have_css("form[data-turbo-confirm='Delete this?']")
+      expect(page).to have_css('form button')
+      expect(page).to have_no_css('button[data-neo-button-confirm-value]')
+    end
+  end
+
   describe 'complex scenarios' do
     context 'form submit button with icon and confirmation' do
       let(:options) do

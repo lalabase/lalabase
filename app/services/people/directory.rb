@@ -20,8 +20,13 @@ module People
   #   organisation. Pagination is a follow-up once an organisation passes that.
   class Directory
     KINDS = %w[all members contacts].freeze
+    # The orders of the list (E5): by name (the default) or by last contact,
+    # newest first, people without any contact last.
+    SORTS = %w[name last].freeze
 
-    Entry = Struct.new(:kind, :user, :person, :sort_name, keyword_init: true) do
+    # last_contact: People::Contacts::LastContact or nil, set for the entries
+    # the page shows (#entries).
+    Entry = Struct.new(:kind, :user, :person, :sort_name, :last_contact, keyword_init: true) do
       def member?
         kind == :member
       end
@@ -33,15 +38,28 @@ module People
       end
     end
 
-    def initialize(viewer:, organisation:, query: nil, kind: 'all')
+    def initialize(viewer:, organisation:, query: nil, kind: 'all', sort: 'name')
       @viewer = viewer
       @organisation = organisation
       @query = PersonName.normalize(query)
       @kind = KINDS.include?(kind.to_s) ? kind.to_s : 'all'
+      @sort = SORTS.include?(sort.to_s) ? sort.to_s : 'name'
     end
 
+    # The entries the page shows, each with its last contact (People::Contacts,
+    # only what the viewer may read), in the order asked for.
     def entries
-      everyone.select { |entry| kind_matches?(entry) && (@query.blank? || matches?(entry)) }
+      list = everyone.select { |entry| kind_matches?(entry) && (@query.blank? || matches?(entry)) }
+      attach_last_contacts(list)
+      @sort == 'last' ? by_last_contact(list) : list
+    end
+
+    # The one subject People::Contacts asks about for an entry: a member counts
+    # their own ticket work, a contact (also a former member) only meetings.
+    def self.contact_subject(entry)
+      People::Contacts::Subject.new(person_id: entry.person&.id,
+                                    user_id: entry.member? ? entry.user.id : entry.person&.user_id,
+                                    member: entry.member?)
     end
 
     # How many people the page holds, before search and filter: the head line
@@ -70,6 +88,24 @@ module People
     end
 
     private
+
+    def attach_last_contacts(list)
+      return if list.empty?
+
+      contacts = People::Contacts.new(viewer: @viewer, organisation: @organisation)
+      ActsAsTenant.with_tenant(@organisation) do
+        contacts.last_contacts(list.map { |entry| self.class.contact_subject(entry) })
+                .each_with_index { |last, index| list[index].last_contact = last }
+      end
+    end
+
+    # Newest first, without a contact last; the name order breaks ties.
+    def by_last_contact(list)
+      list.each_with_index.sort_by do |entry, index|
+        at = entry.last_contact&.at
+        [at ? 0 : 1, at ? -at.to_f : 0, index]
+      end.map(&:first)
+    end
 
     # Everything the viewer may see, sorted, read once per directory.
     def everyone

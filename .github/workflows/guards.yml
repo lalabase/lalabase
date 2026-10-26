@@ -319,6 +319,8 @@ jobs:
           spec/requests/organisations/meetings_overview_create_spec.rb
           spec/requests/organisations/people_spec.rb
           spec/services/people/directory_spec.rb
+          spec/services/people/contacts_spec.rb
+          spec/requests/organisations/people_last_contact_spec.rb
           spec/requests/organisations/note_editor_embed_spec.rb
           spec/requests/organisations/onboarding_banner_spec.rb
           spec/requests/organisations/panel_lane_markup_guard_spec.rb

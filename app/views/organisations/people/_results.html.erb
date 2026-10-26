@@ -1,9 +1,27 @@
 <%# locals: (entries:, counts:, selected: nil, member: nil) %>
-<%# The rows of the directory (People::Directory), one column: name with a
-    "Mitglied" badge, function and company below. Every row opens the lane:
-    a person row through person_id, a member without a row through member_id. %>
+<%# The rows of the directory (People::Directory): name with a "Mitglied"
+    badge, function and company below, the age of the last contact on the
+    right. Every row opens the lane: a person row through person_id, a member
+    without a row through member_id. The two column heads sort the list
+    (?sort=last, E5), a full visit that keeps search, filter and the open
+    person. %>
+<% open_lane = params.permit(:person_id, :member_id).to_h %>
 <turbo-frame id="<%= Organisations::PeopleController::LIST_FRAME_ID %>">
   <% if entries.any? %>
+    <% sort = list_state['sort'] == 'last' ? 'last' : 'name' %>
+    <div class="people-columns" role="row">
+      <%# Class names written out: Tailwind keeps only component classes it finds whole in a template. %>
+      <% { 'name' => ['ascending', 'people-columns__head--name'], 'last' => ['descending', 'people-columns__head--last'] }.each do |key, (direction, head_class)| %>
+        <% active = sort == key %>
+        <%= tag.span role: 'columnheader', class: "people-columns__head #{head_class}", 'aria-sort': (active ? direction : 'none') do %>
+          <%= link_to organisation_people_path(@current_organisation, list_state.except('sort').merge(key == 'last' ? { 'sort' => 'last' } : {}).merge(open_lane)),
+                      class: "people-columns__link #{'people-columns__link--active' if active}", data: { turbo_frame: '_top' } do %>
+            <%= t("views.organisations.people.index.columns.#{key}") %>
+            <% if active %><i class="bi bi-arrow-down" aria-hidden="true"></i><% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
     <ul class="people-list">
       <% entries.each do |entry| %>
         <%= render 'organisations/people/row', entry: entry, selected: selected, member: member %>

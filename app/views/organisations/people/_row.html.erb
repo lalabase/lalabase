@@ -31,5 +31,8 @@
       <span class="people-row__sub"><%= sub %></span>
     <% end %>
   </span>
-  <i class="bi bi-chevron-right people-row__chevron" aria-hidden="true"></i>
+  <% last = entry.last_contact %>
+  <%= tag.span(last ? last_contact_age(last.at) : t('views.organisations.people.index.never'),
+               class: "people-row__last #{'people-row__last--none' unless last}",
+               title: last ? last_contact_text(last) : t('views.organisations.people.show.no_meeting')) %>
 <% end %>

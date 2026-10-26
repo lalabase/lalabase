@@ -110,6 +110,52 @@ RSpec.describe People::Directory, :ci_guard do
     expect(duplicates.map(&:person)).not_to include(old_namesake)
   end
 
+  # S2a: the last contact of each entry and the sort "Zuletzt" (E5).
+  describe 'last contact and sort' do
+    let(:hidden_project) { create(:project, organisation: organisation) }
+
+    before do
+      ProjectPermission.find_by(user: viewer, project: project).update!(meetings_access: :read_only)
+    end
+
+    def meeting(project_for, at:, person: nil, user: nil)
+      record = create(:meeting, organisation: organisation, project: project_for, occurred_at: at)
+      create(:meeting_participant, meeting: record, person: person, user: user, display_name: 'Gast')
+    end
+
+    it 'gives every entry its last readable contact' do
+      meeting(project, at: 3.days.ago, person: contact)
+      meeting(hidden_project, at: 1.day.ago, user: colleague)
+
+      list = entries.index_by { |entry| entry.person&.name || entry.user.first_name }
+
+      expect(list['Doris Dienstleister'].last_contact.kind).to eq(:meeting)
+      expect(list['Carl'].last_contact).to be_nil
+    end
+
+    it 'keeps sorting by name unless asked' do
+      meeting(project, at: 1.day.ago, user: viewer)
+
+      expect(names(entries)).to eq(['Carl Kollege', 'Doris Dienstleister', 'Vera Viewer'])
+      expect(names(entries(sort: 'nonsense'))).to eq(['Carl Kollege', 'Doris Dienstleister', 'Vera Viewer'])
+    end
+
+    it 'sorts by last contact, newest first, people without any contact last' do
+      meeting(project, at: 5.days.ago, person: contact)
+      meeting(project, at: 1.day.ago, user: viewer)
+
+      expect(names(entries(sort: 'last'))).to eq(['Vera Viewer', 'Doris Dienstleister', 'Carl Kollege'])
+    end
+
+    it 'is not moved by a meeting the viewer may not read' do
+      meeting(project, at: 5.days.ago, person: contact)
+      meeting(hidden_project, at: 1.hour.ago, user: colleague)
+
+      expect(names(entries(sort: 'last')).first).to eq('Doris Dienstleister')
+      expect(names(entries(admin, sort: 'last')).first).to eq('Carl Kollege')
+    end
+  end
+
   it 'returns nothing without the right' do
     expect(entries(colleague)).to be_empty
   end

@@ -413,8 +413,29 @@
   .people-row__line { @apply flex min-w-0 items-baseline gap-2; }
   .people-row__name { @apply truncate text-sm font-medium text-heading; }
   .people-row__sub { @apply truncate text-xs text-muted; }
-  .people-row__chevron { @apply hidden text-xs text-cream-400; }
-  .people-mobile-grid .people-row__chevron { @apply inline; }
+  /* S2a: the column heads (NAME, ZULETZT) sort the list; the ink line moves
+     from the list to the heads. */
+  .people-columns { @apply mx-6 flex items-center gap-3 border-b border-ink pb-1.5; }
+  .people-columns + .people-list { border-top-width: 0; }
+  .people-columns__head--name { @apply min-w-0 flex-1; padding-inline-start: 42px; }
+  .people-columns__head--last { @apply w-[120px] flex-none text-end; }
+  .people-columns__link { @apply inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.08em] text-muted no-underline hover:text-heading; }
+  .people-columns__link--active { @apply text-heading; }
+  .people-row__last { @apply w-[120px] flex-none whitespace-nowrap text-end text-xs text-cream-700; }
+  .people-row__last--none { @apply text-cream-500; }
+  .people-last { @apply flex items-baseline gap-2.5 rounded-lg bg-cream-50 px-3 py-2.5 text-[13px]; }
+  .people-last i, .people-last__label { @apply flex-none text-muted; }
+  .people-last__text { @apply min-w-0 flex-1 text-heading; }
+  .people-last__text--none { @apply text-muted; }
+  .people-meetings { @apply flex flex-col; }
+  .people-meetings__title { @apply pb-1.5 text-sm font-semibold text-heading; }
+  .people-meetings__empty { @apply py-1.5 text-[13px] text-muted; }
+  .people-meetings__row { @apply -mx-2 flex items-baseline gap-3 rounded-md border-t border-cream-200 px-2 py-2 text-heading no-underline hover:bg-cream-100; }
+  .people-meetings__date { @apply w-[88px] flex-none font-mono text-xs text-muted; }
+  .people-meetings__text { @apply flex min-w-0 flex-1 flex-col gap-px; }
+  .people-meetings__name { @apply truncate text-sm; }
+  .people-meetings__project { @apply text-xs text-muted; }
+  .people-meetings .people-text-action { @apply mt-1 self-start; }
   .people-badge { @apply shrink-0 rounded-full border border-cream-300 bg-cream-100 px-1.5 text-[11px] text-cream-600; }
   /* Members keep the chip's own tone; contacts (no account) a lighter one.
      Scoped to the page so it wins over the chip's utility classes. */

@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-10-26)
+# Karte: app/models (Stand: 2026-10-27)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -59,6 +59,10 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   UND `admin/membership`: wer eine Mitgliedschaft entfernt, behält die Zeile und verliert nur
   die Verknüpfung. Darum läuft `erase_personal_data!` in beiden Löschwegen VOR
   `memberships.destroy_all`; andersherum findet `erase_person_links!` nichts mehr.
+  Seit S2a (27.10.2026) zeigt `meeting_participant.person_id` (FK, nullt beim Löschen der
+  Person) auf eine Zeile; `belongs_to :person` steht VOR `acts_as_tenant`, eine Validierung
+  hält die Person in derselben Org. Ein Mitglied läuft weiter über `user_id`. Meetings und
+  „Letzter Kontakt“ einer Person liest nur `People::Contacts` (`app/services/CLAUDE.md`).
 * **Activity/Notifications**: `activity`, `user_activity`, `outbox_event`, `notification`,
   `notification_preference`, `notification_subscription`, `email_log` — Services dazu unter
   `app/services/notifications/` (eigene Karte dort)

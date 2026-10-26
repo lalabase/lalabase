@@ -47,7 +47,38 @@ en:
           no_hits_text: "The search looks at name, function, department, company and email."
           clear_search: "Clear search"
           back_to_list: "People"
+          never: "never"
+          columns:
+            name: "Name"
+            last: "Last"
+        age:
+          today: "today"
+          yesterday: "yesterday"
+          days:
+            one: "%{count} day ago"
+            other: "%{count} days ago"
+          weeks:
+            one: "%{count} week ago"
+            other: "%{count} weeks ago"
+          months:
+            one: "%{count} month ago"
+            other: "%{count} months ago"
+          years:
+            one: "%{count} year ago"
+            other: "%{count} years ago"
+        last_contact:
+          meeting: "Last meeting: %{title}, %{date}"
+          ticket:
+            created: "Created ticket #%{number}, %{age}"
+            changed: "Changed ticket #%{number}, %{age}"
+            commented: "Commented on ticket #%{number}, %{age}"
         show:
+          last_contact: "Last contact"
+          no_meeting: "No meeting yet."
+          meetings: "Meetings"
+          all_meetings:
+            one: "Show all %{count}"
+            other: "Show all %{count}"
           kind:
             member: "Member"
             contact: "Contact"

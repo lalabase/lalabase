@@ -336,9 +336,57 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
       expect(last_payload['contents'].map { |c| c['role'] }).to eq(%w[user model user])
     end
 
-    it 'sends maxOutputTokens and temperature in generationConfig (locked defaults 1500/0.7)' do
-      provider.chat(messages: messages)
-      expect(last_payload['generationConfig']).to eq('maxOutputTokens' => 1500, 'temperature' => 0.7)
+    # max_tokens is the budget of the ANSWER. Gemini 2.5 Flash and Pro think
+    # first, and their thought tokens count against maxOutputTokens: with the
+    # bare limit a short answer could be left with almost nothing. So these
+    # two families get a fixed thinking budget and the same reserve on top.
+    describe 'answer budget and thinking reserve' do
+      let(:budget) { described_class::THINKING_BUDGET }
+
+      it 'gives the default model (gemini-2.5-flash) a thinking budget and adds it to maxOutputTokens' do
+        provider.chat(messages: messages)
+        expect(last_payload['generationConfig']).to eq(
+          'maxOutputTokens' => 1500 + budget, 'temperature' => 0.7,
+          'thinkingConfig' => { 'thinkingBudget' => budget }
+        )
+      end
+
+      it 'does the same for gemini-2.5-pro, keeping the caller max_tokens as the answer part' do
+        provider.chat(messages: messages, model: 'gemini-2.5-pro', max_tokens: 500)
+        expect(last_payload['generationConfig']).to eq(
+          'maxOutputTokens' => 500 + budget, 'temperature' => 0.7,
+          'thinkingConfig' => { 'thinkingBudget' => budget }
+        )
+      end
+
+      it 'matches a versioned name of a thinking family' do
+        provider.chat(messages: messages, model: 'gemini-2.5-flash-002')
+        expect(last_payload['generationConfig']).to include('thinkingConfig' => { 'thinkingBudget' => budget })
+      end
+
+      it 'keeps the budget inside the range both 2.5 families accept (Pro 128..32768, Flash 1..24576)' do
+        expect(budget).to be_between(128, 24_576)
+      end
+
+      # Flash-Lite and 2.0 Flash are left exactly as before: a budget would switch
+      # thinking ON for Flash-Lite and cost tokens nobody asked for. Gemini 3 takes
+      # thinkingLevel instead (thinkingBudget is deprecated there and can 400), and
+      # whether its thoughts count against maxOutputTokens is not documented yet.
+      ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-3-pro-preview', 'gemini-3-flash', 'some-tuned-model']
+        .each do |model|
+        it "sends #{model} the bare limit, byte for byte as before" do
+          provider.chat(messages: messages, model: model)
+          expect(last_payload['generationConfig']).to eq('maxOutputTokens' => 1500, 'temperature' => 0.7)
+        end
+      end
+
+      it 'lets provider_options override the reserve and the thinking config (raw override wins)' do
+        provider.chat(messages: messages,
+                      provider_options: { maxOutputTokens: 900, thinkingConfig: { thinkingBudget: 0 } })
+        expect(last_payload['generationConfig']).to eq(
+          'maxOutputTokens' => 900, 'temperature' => 0.7, 'thinkingConfig' => { 'thinkingBudget' => 0 }
+        )
+      end
     end
 
     it 'merges provider_options into generationConfig LAST (raw override wins)' do
@@ -660,6 +708,21 @@ RSpec.describe Lalabase::Llm::GoogleVertexProvider do
       provider.stream_chat(messages: messages) { |_| }
       expect(captured.last[:path]).to include(':streamGenerateContent')
       expect(captured.last[:req].params['alt']).to eq('sse')
+    end
+
+    it 'adds the thinking reserve exactly like #chat (the assistant streams)' do
+      stub_stream_post(chunks: [sse(final_event)])
+      provider.stream_chat(messages: messages, model: 'gemini-2.5-pro', max_tokens: 1500) { |_| }
+      budget = described_class::THINKING_BUDGET
+      expect(last_payload['generationConfig']).to eq(
+        'maxOutputTokens' => 1500 + budget, 'temperature' => 0.7, 'thinkingConfig' => { 'thinkingBudget' => budget }
+      )
+    end
+
+    it 'sends a non-thinking model the bare limit when streaming' do
+      stub_stream_post(chunks: [sse(final_event)])
+      provider.stream_chat(messages: messages, model: 'gemini-2.0-flash') { |_| }
+      expect(last_payload['generationConfig']).to eq('maxOutputTokens' => 1500, 'temperature' => 0.7)
     end
 
     it 'folds a system-only request into a single user content (parity with #chat)' do

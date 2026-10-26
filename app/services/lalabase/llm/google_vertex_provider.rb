@@ -58,6 +58,20 @@ module Lalabase
       # comment there) — unify in the base class at the third occurrence.
       CHARS_PER_TOKEN = 4.0
 
+      # max_tokens is the budget of the ANSWER (Provider#chat contract). Gemini
+      # 2.5 Flash and Pro think before they answer, dynamically up to 8,192
+      # tokens, and the thought tokens count against maxOutputTokens: with the
+      # bare limit a short answer could be left with almost nothing, and a
+      # longer one stopped half way. So these two families get a
+      # fixed thinking budget and the same reserve on top of the answer budget.
+      # 2,048 lies inside both accepted ranges (Pro 128..32,768, it cannot turn
+      # thinking off; Flash 1..24,576).
+      # Not matched on purpose: Flash-Lite (a budget would switch thinking ON),
+      # 2.0 Flash (no thinking) and Gemini 3 (thinkingLevel instead, and
+      # thinkingBudget is deprecated there and can answer 400).
+      THINKING_BUDGET = 2_048
+      THINKING_MODEL_PATTERN = /\Agemini-2\.5-(?:pro|flash(?!-lite))/
+
       # Gemini finishReason → canonical vocabulary (see Provider#chat). The
       # whole safety family collapses onto content_filter; unknown values pass
       # through so the Runner can log them. NB: Gemini reports STOP even for
@@ -159,7 +173,7 @@ module Lalabase
 
       def chat(messages:, tools: nil, model: nil, max_tokens: 1500, temperature: 0.7, provider_options: {})
         model ||= default_chat_model
-        payload = build_generate_payload(messages: messages, tools: tools, max_tokens: max_tokens,
+        payload = build_generate_payload(messages: messages, tools: tools, model: model, max_tokens: max_tokens,
                                          temperature: temperature, provider_options: provider_options)
         response = post_json(model_path(model, :generateContent), payload)
 
@@ -195,7 +209,7 @@ module Lalabase
         raise ArgumentError, 'stream_chat requires a block' unless block_given?
 
         model ||= default_chat_model
-        payload = build_generate_payload(messages: messages, tools: nil, max_tokens: max_tokens,
+        payload = build_generate_payload(messages: messages, tools: nil, model: model, max_tokens: max_tokens,
                                          temperature: temperature, provider_options: provider_options)
         start_time = Time.current
         captured_content = +''
@@ -387,13 +401,13 @@ module Lalabase
 
       # ---- request translation (canonical → Gemini) ------------------------
 
-      def build_generate_payload(messages:, tools:, max_tokens:, temperature:, provider_options: {})
+      def build_generate_payload(messages:, tools:, model:, max_tokens:, temperature:, provider_options: {})
         system_prompt, conversation = split_system(messages)
         # provider_options are Gemini generationConfig extras (topP, topK,
         # stopSequences, …) — merged LAST so a raw override wins, the same
         # contract as the other providers' param merge.
-        generation_config = { maxOutputTokens: max_tokens, temperature: temperature }
-                            .merge(provider_options.to_h.symbolize_keys)
+        generation_config = answer_budget_config(model, max_tokens).merge(temperature: temperature)
+                                                                   .merge(provider_options.to_h.symbolize_keys)
         payload = {
           contents: translate_messages_for_gemini(conversation),
           generationConfig: generation_config
@@ -401,6 +415,14 @@ module Lalabase
         payload[:systemInstruction] = { parts: [{ text: system_prompt }] } if system_prompt
         payload[:tools] = [{ functionDeclarations: tools.map { |t| gemini_function_declaration(t) } }] if tools.present?
         payload
+      end
+
+      # See THINKING_BUDGET: a thinking family gets the budget and the reserve,
+      # every other model the bare limit, as before.
+      def answer_budget_config(model, max_tokens)
+        return { maxOutputTokens: max_tokens } unless THINKING_MODEL_PATTERN.match?(model.to_s)
+
+        { maxOutputTokens: max_tokens + THINKING_BUDGET, thinkingConfig: { thinkingBudget: THINKING_BUDGET } }
       end
 
       # A tool without arguments goes out without parameters. Gemini's schema subset refuses an

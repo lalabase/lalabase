@@ -85,7 +85,7 @@ module People
 
     def contact_entries
       active_member_ids = Membership.where(organisation: @organisation, active: true).select(:user_id)
-      rows = people.where(user_id: nil).or(people.where.not(user_id: active_member_ids))
+      rows = people.where(user_id: nil).or(people.where.not(user_id: active_member_ids)).includes(:user)
       rows.map { |person| Entry.new(kind: :contact, user: nil, person: person, sort_name: person.normalized_name) }
     end
 

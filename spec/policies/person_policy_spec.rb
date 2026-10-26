@@ -106,6 +106,14 @@ RSpec.describe PersonPolicy, :ci_guard, type: :policy do
       expect(described_class.new(User.find(viewer.id), stranger_row).show?).to be(false)
     end
 
+    it 'denies update and destroy of a row linked to an invisible member, even with manage_people' do
+      create(:project_permission, user: manager, project: visible_project, tickets_access: :read_only)
+      stranger_row = create(:person, organisation: organisation, user: stranger)
+      policy = described_class.new(User.find(manager.id), stranger_row)
+
+      expect([policy.update?, policy.destroy?]).to eq([false, false])
+    end
+
     it 'shows a row linked to a former member as a contact' do
       former_row = create(:person, organisation: organisation, user: stranger)
       Membership.find_by(user: stranger, organisation: organisation).update!(active: false)

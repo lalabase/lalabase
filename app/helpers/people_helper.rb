@@ -73,10 +73,14 @@ module PeopleHelper
   end
 
   # The active members the reader may link a row to: visible on the members
-  # page and without a row of their own yet (plus the row's current member).
+  # page and without a row of their own yet. The row's current member always
+  # stays an option, also once deactivated: without it the select shows "no
+  # member", and every save of the form would drop the link (review round 1).
   def linkable_members_for(person)
     taken = Person.where(organisation: current_organisation).linked.where.not(id: person.id).select(:user_id)
     member_ids = policy_scope(Membership).where(organisation: current_organisation, active: true).select(:user_id)
-    User.where(id: member_ids).where.not(id: taken).to_a.sort_by { |user| viewer_display_name(user).downcase }
+    members = User.where(id: member_ids).where.not(id: taken).to_a
+    members |= [person.user] if person.user
+    members.sort_by { |user| viewer_display_name(user).downcase }
   end
 end

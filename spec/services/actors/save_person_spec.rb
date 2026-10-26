@@ -110,6 +110,18 @@ RSpec.describe Actors::SavePerson do
     expect(Person.unscoped.find(theirs.id).phone).to be_nil
   end
 
+  # Review round 1: two saves linking the same member at once. The unique index
+  # answers the second; it must be a failure, not an unexpected error.
+  it 'turns a lost race on the member link into a failure' do
+    user = member
+    allow_any_instance_of(Person).to receive(:save!).and_raise(ActiveRecord::RecordNotUnique)
+
+    result = save(name: 'x', user_id: user.id)
+
+    expect(result).not_to be_success
+    expect(result.code).to eq(:validation_failed)
+  end
+
   it 'maps a validation error to a failure' do
     result = save(name: '')
 

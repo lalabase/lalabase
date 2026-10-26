@@ -299,6 +299,97 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     end
   end
 
+  # Review round 1, finding 1: the form only offered ACTIVE members, so the row
+  # of a deactivated member showed "Kein Mitglied" selected, and any save (only
+  # the phone changed) dropped the link without anybody noticing.
+  describe 'a row linked to a deactivated member' do
+    let(:former) { member_with(role_with, first_name: 'Frieda') }
+    let!(:linked) { create(:person, organisation: organisation, user: former, name: 'Frieda Former') }
+
+    before do
+      Membership.find_by(user: former, organisation: organisation).update!(active: false)
+      sign_in admin
+    end
+
+    it 'keeps the member selected in the edit form' do
+      get edit_organisation_person_path(organisation, linked), headers: frame_headers
+
+      expect(response.body).to match(/<option selected="selected" value="#{former.id}">/)
+    end
+
+    it 'keeps the link when the form is saved with its own values' do
+      patch organisation_person_path(organisation, linked),
+            params: { person: { user_id: former.id, phone: '1', lock_version: linked.lock_version } }
+
+      expect(linked.reload.user_id).to eq(former.id)
+      expect(linked.phone).to eq('1')
+    end
+  end
+
+  # Review round 1, finding 2: one users query per contact row that still
+  # points at a former member.
+  it 'loads the list without one query per contact linked to a former member' do
+    formers = Array.new(3) { |index| member_with(role_with, first_name: "Ehemalig#{index}") }
+    formers.each { |former| create(:person, organisation: organisation, user: former) }
+    Membership.where(user: formers, organisation: organisation).update_all(active: false)
+    sign_in admin
+
+    get organisation_people_path(organisation)
+
+    expect(response).to have_http_status(:ok)
+  end
+
+  # Review round 1, finding 3: the policy scope and visible_record? each hid
+  # the row of a member the reader cannot see, and no request pinned either.
+  describe 'a row linked to a member the writer cannot see' do
+    let(:project) { create(:project, organisation: organisation) }
+    let(:stranger) { member_with(role_with, first_name: 'Sven') }
+    let!(:hidden_row) { create(:person, organisation: organisation, user: stranger, phone: 'secret') }
+
+    before do
+      create(:project_permission, user: manager, project: project, tickets_access: :read_only)
+      create(:project_permission, user: stranger, project: create(:project, organisation: organisation),
+                                  tickets_access: :read_only)
+      sign_in manager
+    end
+
+    it 'answers 404 for show' do
+      get organisation_person_path(organisation, hidden_row), headers: frame_headers
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'answers 404 for update and leaves the row alone' do
+      patch organisation_person_path(organisation, hidden_row), params: { person: { phone: '0' } }
+
+      expect(response).to have_http_status(:not_found)
+      expect(hidden_row.reload.phone).to eq('secret')
+    end
+
+    it 'answers 404 for destroy and keeps the row' do
+      delete organisation_person_path(organisation, hidden_row)
+
+      expect(response).to have_http_status(:not_found)
+      expect(Person.exists?(hidden_row.id)).to be(true)
+    end
+
+    # Review round 1, finding 4: the member select must offer only what the
+    # members page shows this reader, and only active members.
+    it 'offers only visible, active members in the form' do
+      colleague = member_with(role_with, first_name: 'Carla')
+      create(:project_permission, user: colleague, project: project, tickets_access: :read_only)
+      former = member_with(role_with, first_name: 'Fritz')
+      create(:project_permission, user: former, project: project, tickets_access: :read_only)
+      Membership.find_by(user: former, organisation: organisation).update!(active: false)
+
+      get new_organisation_person_path(organisation), headers: frame_headers
+
+      expect(response.body).to include(%(value="#{colleague.id}"), %(value="#{manager.id}"))
+      expect(response.body).not_to include(%(value="#{stranger.id}"))
+      expect(response.body).not_to include(%(value="#{former.id}"))
+    end
+  end
+
   it 'has no missing translation on the page' do
     sign_in admin
     get organisation_people_path(organisation, person_id: person.id)

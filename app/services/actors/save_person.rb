@@ -38,12 +38,20 @@ module Actors
       assign_link if @params.key?(:user_id)
       @person.creator ||= @current_user if @person.new_record?
       @person.updater = @current_user
-      @person.save!
+      save_link_safely
     end
 
     private
 
     attr_reader :current_user
+
+    # Two saves linking the same member at once: the validation passes for
+    # both, the unique index refuses the second. A failure, not a crash.
+    def save_link_safely
+      @person.save!
+    rescue ActiveRecord::RecordNotUnique
+      raise ActorError.new(I18n.t('controllers.people.link_not_allowed'), code: :validation_failed)
+    end
 
     # Tenant-bound lookup: an id of another organisation is no person at all.
     def find_person(id)

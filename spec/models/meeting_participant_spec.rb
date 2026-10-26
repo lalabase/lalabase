@@ -109,6 +109,41 @@ RSpec.describe MeetingParticipant, type: :model do
     end
   end
 
+  # The people directory (S2a): a participant may point to a person row. Only
+  # a person of the meeting's own organisation.
+  describe 'person link' do
+    it 'accepts a person of the same organisation' do
+      person = ActsAsTenant.with_tenant(organisation) { create(:person, organisation: organisation) }
+      valid = ActsAsTenant.with_tenant(organisation) { build(:meeting_participant, meeting: meeting, person: person).valid? }
+
+      expect(valid).to be(true)
+    end
+
+    it 'refuses a person of another organisation' do
+      other = create(:organisation)
+      foreign = ActsAsTenant.with_tenant(other) { create(:person, organisation: other) }
+      errors = ActsAsTenant.with_tenant(organisation) do
+        participant = build(:meeting_participant, meeting: meeting, person_id: foreign.id)
+        participant.valid?
+        participant.errors.details[:person]
+      end
+
+      expect(errors).to include(error: :invalid)
+    end
+
+    it 'keeps the participant and its name when the person is deleted' do
+      person = ActsAsTenant.with_tenant(organisation) { create(:person, organisation: organisation) }
+      participant = ActsAsTenant.with_tenant(organisation) do
+        create(:meeting_participant, meeting: meeting, person: person, display_name: 'Rita Rot')
+      end
+
+      ActsAsTenant.with_tenant(organisation) { person.destroy! }
+
+      reloaded = ActsAsTenant.with_tenant(organisation) { described_class.find(participant.id) }
+      expect([reloaded.person_id, reloaded.display_name]).to eq([nil, 'Rita Rot'])
+    end
+  end
+
   describe 'user deletion (snapshot survives)' do
     it 'nulls user_id but keeps display_name when the linked user is deleted' do
       user = create(:user)

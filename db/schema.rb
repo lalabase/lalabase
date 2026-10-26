@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_26_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_27_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -787,9 +787,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_120000) do
     t.string "normalized_name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "person_id"
     t.index ["meeting_id", "normalized_name"], name: "index_meeting_participants_on_meeting_id_and_normalized_name", unique: true
     t.index ["meeting_id", "user_id"], name: "index_meeting_participants_on_meeting_id_and_user_id", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["organisation_id", "normalized_name"], name: "idx_on_organisation_id_normalized_name_5eadc4a5e5"
+    t.index ["person_id"], name: "index_meeting_participants_on_person_id"
     t.index ["user_id"], name: "index_meeting_participants_on_user_id"
   end
 
@@ -2058,6 +2060,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_120000) do
   add_foreign_key "meeting_participant_claim_rejections", "users", on_delete: :cascade
   add_foreign_key "meeting_participants", "meetings"
   add_foreign_key "meeting_participants", "organisations"
+  add_foreign_key "meeting_participants", "people", on_delete: :nullify
   add_foreign_key "meeting_participants", "users", on_delete: :nullify
   add_foreign_key "meeting_ticket_suggestion_runs", "chatposts", on_delete: :cascade
   add_foreign_key "meeting_ticket_suggestion_runs", "meetings", on_delete: :cascade

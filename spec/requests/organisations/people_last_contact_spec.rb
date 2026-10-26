@@ -90,6 +90,16 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
       expect(response.body).to include(CGI.escapeHTML('"sort"'))
     end
 
+    # Review round 2: a click on a column head keeps the open person.
+    it 'keeps the open person in the column heads' do
+      sign_in viewer
+
+      get organisation_people_path(organisation, person_id: contact.id)
+
+      head = response.body[%r{<div class="people-columns"[\s\S]*?</div>}]
+      expect(head).to include(CGI.escapeHTML(organisation_people_path(organisation, sort: 'last', person_id: contact.id)))
+    end
+
     it 'drops an unknown sort from every link' do
       sign_in viewer
 
@@ -149,6 +159,11 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
       expect(response.body).not_to include('Geheimrunde')
       expect(response.body).not_to include(I18n.t('views.organisations.people.show.all_meetings', count: 4))
       expect(response.body).to include('Letztes Meeting: Runde 0')
+
+      sign_in admin
+      get organisation_person_path(organisation, contact), headers: frame_headers
+
+      expect(response.body).to include('Geheimrunde', I18n.t('views.organisations.people.show.all_meetings', count: 4))
     end
 
     it 'says so when there is no meeting' do

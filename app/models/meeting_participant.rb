@@ -21,6 +21,7 @@
 #  updated_at      :datetime         not null
 #  meeting_id      :uuid             not null
 #  organisation_id :uuid             not null
+#  person_id       :uuid
 #  user_id         :uuid
 #
 # Indexes
@@ -28,12 +29,14 @@
 #  idx_on_organisation_id_normalized_name_5eadc4a5e5             (organisation_id,normalized_name)
 #  index_meeting_participants_on_meeting_id_and_normalized_name  (meeting_id,normalized_name) UNIQUE
 #  index_meeting_participants_on_meeting_id_and_user_id          (meeting_id,user_id) UNIQUE WHERE (user_id IS NOT NULL)
+#  index_meeting_participants_on_person_id                       (person_id)
 #  index_meeting_participants_on_user_id                         (user_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (meeting_id => meetings.id)
 #  fk_rails_...  (organisation_id => organisations.id)
+#  fk_rails_...  (person_id => people.id) ON DELETE => nullify
 #  fk_rails_...  (user_id => users.id) ON DELETE => nullify
 #
 class MeetingParticipant < ApplicationRecord

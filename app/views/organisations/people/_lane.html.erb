@@ -1,13 +1,13 @@
-<%# locals: (state:, person: nil, message: nil) %>
-<%# What the lane frame holds: a person (:detail), the form (:form, new or
-    edit), or nothing yet (:empty). Rendered by the index on a full visit and
-    alone for a frame request (show, new, edit, a lane request of the index). %>
-<div class="person-content min-w-0 relative">
+<%# locals: (state:, person: nil, member: nil, message: nil) %>
+<%# What the lane frame holds: a person row (:detail), a member without a row
+    (:member), the form (:form, new or edit), or nothing yet (:empty).
+    Rendered by the index on a full visit and alone for a frame request. %>
+<div class="person-content people-lane min-w-0 relative">
   <% if state == :detail %>
-    <%= render 'organisations/people/lane_head', closes: :lane %>
     <%= render 'organisations/people/detail', person: person %>
+  <% elsif state == :member %>
+    <%= render 'organisations/people/member', member: member %>
   <% elsif state == :form %>
-    <%= render 'organisations/people/lane_head', closes: (person.persisted? ? :edit : :new_form), person: person %>
     <%= render 'organisations/people/form', person: person, message: message %>
   <% else %>
     <div id="person-display-placeholder" class="ticket-placeholder px-4 py-10 text-center">

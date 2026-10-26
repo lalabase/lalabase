@@ -3,45 +3,51 @@
 # The people directory page (Organisations::PeopleController): the wiring of
 # its list and lane, and the words of a person's history.
 module PeopleHelper
+  # The two things a row can open in the lane: a person row, or a member who
+  # has no row of their own yet. They exclude each other.
+  SELECTION_PARAMS = %w[person_id member_id].freeze
+
   # The page wrapper's data: the lane (layout-toggle, index-page) and the
   # desktop/mobile switch, the same controllers as "Alle Meetings"
   # (meeting_list_page_data), without its filter bar and column picker.
-  def people_page_data(viewport_mode:, selected:, form_open:)
+  def people_page_data(viewport_mode:, selected:, form_open:, member: nil)
     detail_frame_id = Organisations::PeopleController::DETAIL_FRAME_ID
-    unresolved = people_unresolved_lane_params(selected: selected, form_open: form_open)
+    unresolved = people_unresolved_lane_params(selected: selected, member: member, form_open: form_open)
     {
       controller: 'layout-toggle index-page viewport',
       layout_toggle_list_frame_ids_value: [Organisations::PeopleController::LIST_FRAME_ID].to_json,
       layout_toggle_detail_frame_id_value: detail_frame_id,
       layout_toggle_content_selector_value: '.person-content',
-      layout_toggle_selected_row_selector_value: '.selected-row[data-person-id]',
-      layout_toggle_selection_params_value: %w[person_id].to_json,
+      layout_toggle_selected_row_selector_value: '.selected-row[data-people-row]',
+      layout_toggle_selection_params_value: SELECTION_PARAMS.to_json,
       layout_toggle_list_filter_params_value: Organisations::PeopleController::LIST_PARAMS.to_json,
       layout_toggle_storage_key_value: 'layoutState:people',
       layout_toggle_unresolved_selection_value: (unresolved.to_json if unresolved.any?),
       viewport_breakpoint_value: MeetingsHelper::LANE_FULL_PAGE_BELOW_PX,
       viewport_current_mode_value: viewport_mode,
-      index_page_param_name_value: 'person_id',
+      index_page_param_name_value: SELECTION_PARAMS.join(','),
       index_page_frame_id_value: detail_frame_id,
       index_page_content_selector_value: '.person-content',
       index_page_placeholder_id_value: 'person-display-placeholder',
       index_page_placeholder_class_value: 'ticket-placeholder px-4',
       index_page_placeholder_title_value: t('views.organisations.people.index.placeholder_title'),
       index_page_placeholder_body_value: t('views.organisations.people.index.placeholder_body'),
-      index_page_selected_row_selector_value: '.selected-row[data-person-id]',
+      index_page_selected_row_selector_value: '.selected-row[data-people-row]',
       index_page_skip_if_content_visible_value: 'true',
       index_url: organisation_people_path(current_organisation),
-      lane_params: lane_params_json(selection: %w[person_id], form: %w[new user_id])
+      lane_params: lane_params_json(selection: SELECTION_PARAMS, form: %w[new user_id])
     }.compact
   end
 
   # Lane parameters of this visit the server did not open (an unknown or
   # unreadable person_id, a form the reader may not open). layout-toggle takes
   # them out of the address, so the page stays the list.
-  def people_unresolved_lane_params(selected:, form_open:)
+  def people_unresolved_lane_params(selected:, form_open:, member: nil)
     unresolved = {}
     person_id = params[:person_id]
     unresolved['person_id'] = person_id if person_id.is_a?(String) && person_id.present? && selected.nil?
+    member_id = params[:member_id]
+    unresolved['member_id'] = member_id if member_id.is_a?(String) && member_id.present? && member.nil?
     new_state = params[:new]
     unresolved['new'] = new_state if new_state.is_a?(String) && new_state.present? && !form_open
     user_id = params[:user_id]
@@ -64,6 +70,59 @@ module PeopleHelper
 
     active = Membership.where(organisation: current_organisation, user_id: person.user_id, active: true).exists?
     person.user if active
+  end
+
+  # The link state under the name: [icon, words]. A member, a row whose member
+  # left (shown as a contact, without the account's name), or no account.
+  def person_link_state(person, member)
+    if member
+      ['bi-person-check', t('views.organisations.people.show.linked_member', name: viewer_display_name(member))]
+    elsif person&.user_id
+      ['bi-person-dash', t('views.organisations.people.show.former_member')]
+    else
+      ['bi-person-dash', t('views.organisations.people.show.no_account')]
+    end
+  end
+
+  # A member row with none of the details the directory is for yet.
+  def person_bare?(person)
+    person.nil? || %i[function department phone notes].all? { |field| person.public_send(field).blank? }
+  end
+
+  # The lines of the lane: label, value, and for email and phone the link. An
+  # active member's email is the account's (the form locks it).
+  def person_fields(person, member)
+    email = member ? member.email : person&.email
+    phone = person&.phone
+    [
+      ({ label: Person.human_attribute_name(:function), value: person.function } if person&.function.present?),
+      ({ label: Person.human_attribute_name(:department), value: person.department } if person&.department.present?),
+      ({ label: Person.human_attribute_name(:company), value: person.company } if person&.company.present?),
+      ({ label: Person.human_attribute_name(:email), value: email, href: "mailto:#{email}", icon: 'bi-envelope' } if email.present?),
+      if phone.present?
+        { label: Person.human_attribute_name(:phone), value: phone, href: "tel:#{phone.gsub(/[^\d+]/, '')}",
+          icon: 'bi-telephone', mono: true, action: t('views.organisations.people.show.call') }
+      end
+    ].compact
+  end
+
+  # The data of a link that opens the form for a member without a row
+  # ("Angaben ergänzen", "Bearbeiten" in the member's lane). Like the "+": the
+  # PAGE address names the member too (?new=person&user_id=), so a narrow
+  # screen and a reload open the form with the member chosen.
+  def add_member_details_link(member)
+    new_state = Organisations::PeopleController::NEW_STATE
+    {
+      href: organisation_people_path(current_organisation, list_state.merge('new' => new_state, 'user_id' => member.id)),
+      data: {
+        controller: 'lane-link',
+        action: 'click->lane-link#click',
+        lane_link_url_value: new_organisation_person_path(current_organisation, user_id: member.id),
+        lane_link_frame_value: Organisations::PeopleController::DETAIL_FRAME_ID,
+        lane_link_set_value: { new: new_state, user_id: member.id }.to_json,
+        lane_link_remove_value: SELECTION_PARAMS.to_json
+      }
+    }
   end
 
   # Initials for a contact's avatar (no account, no picture).

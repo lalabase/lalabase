@@ -193,9 +193,8 @@ en:
           assistant:
             use_assistant: Allows using the org-wide AI assistant.
           people:
-            view_people: Allows reading the organisation's people directory.
-            manage_people: Allows adding, editing and deleting people in the
-              organisation's people directory.
+            view_people: View people
+            manage_people: Edit people (including delete)
           none_available: No description available
         categories:
           assistant: Assistant

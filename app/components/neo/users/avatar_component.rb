@@ -36,7 +36,8 @@ module Neo
         xs: 'w-5 h-5 text-[9px]',
         small: 'w-[26px] h-[26px] text-[10px]',
         medium: 'w-8 h-8 text-xs',
-        detail: 'w-[34px] h-[34px] text-xs'
+        detail: 'w-[34px] h-[34px] text-xs',
+        large: 'w-[52px] h-[52px] text-[15px]'
       }.freeze
 
       CHIP_CLASSES = 'neo-user-avatar rounded-[5px] bg-cream-200 border border-cream-300 font-bold text-cream-900'

@@ -91,7 +91,9 @@ Route `meetings_view_configuration`, derselbe Controller wie die Projekt-Route).
 Die Personenliste (`Organisations::PeopleController`, 26.10.2026) ist die sechste Bahn:
 `ViewportSwitchable` + `People::Directory`, ohne Filterleiste und Spaltenwahl, dieselben
 Stimulus-Controller (`layout-toggle`, `index-page`, `list-row`, `lane-link`); Speichern und
-Löschen verlassen die Bahn (`_top`) und landen mit `?person_id=` wieder auf der Liste.
+Löschen verlassen die Bahn (`_top`) und landen mit `?person_id=` wieder auf der Liste. Zwei
+Auswahlparameter schließen sich aus: `person_id` (eine Zeile) und `member_id` (ein Mitglied ohne
+eigene Zeile, `PeopleController#member`); `user_id` gehört zur Formular-Gruppe.
 Der Entscheid für EINE kanonische Listen-Architektur steht aus; bis dahin gilt für neue
 Listen-Features: am ähnlichsten Bestands-Feature orientieren und die Wahl im PR begründen.
 Seit 10.09.2026 teilen Tickets und Knowledge immerhin die OBERFLÄCHE der Liste-mit-Bahn

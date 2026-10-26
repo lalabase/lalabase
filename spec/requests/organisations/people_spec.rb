@@ -279,7 +279,7 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
       get organisation_person_path(organisation, person), headers: frame_headers
 
-      expect(response.body).to include(I18n.t('views.organisations.people.show.duplicates_title'),
+      expect(response.body).to include(I18n.t('views.organisations.people.show.duplicate_prefix'),
                                        "person_id=#{twin.id}")
     end
 
@@ -396,10 +396,10 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     sign_in admin
     member = member_with(role_with, first_name: 'Ohne')
 
-    get organisation_people_path(organisation)
+    get member_organisation_people_path(organisation, member.id), headers: frame_headers
 
-    row = response.body[%r{<li[^>]*people-row[\s\S]*?Ohne[\s\S]*?</li>}]
-    expect(row).to include(CGI.escapeHTML({ new: 'person', user_id: member.id }.to_json))
+    expect(response.body).to include(CGI.escapeHTML({ new: 'person', user_id: member.id }.to_json),
+                                     "user_id=#{member.id}", I18n.t('views.organisations.people.show.add_details'))
   end
 
   it 'opens the form with the member chosen on a full visit with ?new=person&user_id=' do
@@ -408,7 +408,8 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
     get organisation_people_path(organisation, new: 'person', user_id: member.id)
 
-    expect(response.body).to match(/<option selected="selected" value="#{member.id}">/)
+    expect(response.body).to include(%(type="hidden" value="#{member.id}" name="person[user_id]"))
+    expect(response.body[/<input[^>]*id="person_name"[^>]*>/]).to include('readonly', CGI.escapeHTML(member.display_name))
   end
 
   # Review round 2, finding 2: a raw user_id in the address named any account
@@ -542,7 +543,7 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     get organisation_people_path(organisation, user_id: 'x')
 
     expect(response.body).to include(CGI.escapeHTML('"form":["new","user_id"]'),
-                                     CGI.escapeHTML('["person_id","user_id"]'),
+                                     CGI.escapeHTML('["person_id","member_id","user_id"]'),
                                      CGI.escapeHTML('{"user_id":"x"}'))
   end
 
@@ -575,6 +576,112 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
     link = response.body[/<a[^>]*href="[^"]*person_id=#{twin.id}[^"]*"[^>]*>/]
     expect(link).to include('data-turbo-frame="_top"')
+  end
+
+  # The design of 26.10.2026: a member without a row of their own opens in
+  # the lane too (?member_id=), with name and email from the account.
+  describe 'the lane of a member without a row' do
+    let(:project) { create(:project, organisation: organisation) }
+    let(:colleague) { member_with(role_with, first_name: 'Kolja') }
+    let(:stranger) { member_with(role_with, first_name: 'Sven') }
+
+    before do
+      create(:project_permission, user: viewer, project: project, tickets_access: :read_only)
+      create(:project_permission, user: colleague, project: project, tickets_access: :read_only)
+      create(:project_permission, user: stranger, project: create(:project, organisation: organisation),
+                                  tickets_access: :read_only)
+    end
+
+    it 'shows the account name, email and what is missing' do
+      sign_in viewer
+
+      get member_organisation_people_path(organisation, colleague.id), headers: frame_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(CGI.escapeHTML(colleague.display_name), colleague.email,
+                                       I18n.t('views.organisations.people.show.read_only'))
+      expect(response.body).not_to include(I18n.t('views.organisations.people.show.add_details'))
+    end
+
+    it 'answers 404 for a member the reader cannot see' do
+      sign_in viewer
+
+      get member_organisation_people_path(organisation, stranger.id), headers: frame_headers
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'answers 403 without the right' do
+      sign_in nobody
+
+      get member_organisation_people_path(organisation, colleague.id), headers: frame_headers
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it 'opens the row of a member who has one' do
+      row = create(:person, organisation: organisation, user: colleague, function: 'Netzwerk')
+      sign_in viewer
+
+      get member_organisation_people_path(organisation, colleague.id)
+
+      expect(response).to redirect_to(organisation_people_path(organisation, person_id: row.id))
+    end
+
+    it 'opens on a full visit with ?member_id= and marks the row' do
+      sign_in viewer
+
+      get organisation_people_path(organisation, member_id: colleague.id)
+
+      expect(response.body).to include('show-content', I18n.t('views.organisations.people.show.bare_text', first_name: 'Kolja'))
+      expect(response.body).to match(/class="people-row selected-row"[^>]*>|data-list-row-id-value="#{colleague.id}"[^>]*class="people-row selected-row"/)
+    end
+
+    it 'drops an unreadable ?member_id= from the address' do
+      sign_in viewer
+
+      get organisation_people_path(organisation, member_id: stranger.id)
+
+      expect(response.body).not_to include('show-content')
+      expect(response.body).to include(CGI.escapeHTML({ member_id: stranger.id }.to_json))
+    end
+  end
+
+  it 'counts all people, members and contacts in the head and the filters' do
+    sign_in admin
+    admin
+
+    get organisation_people_path(organisation, kind: 'contacts')
+
+    members = Membership.where(organisation: organisation, active: true).count
+    expect(response.body).to include(I18n.t('views.organisations.people.index.count_line', count: members + 1, members: members, contacts: 1))
+  end
+
+  describe 'the row of an active member' do
+    let!(:row) { create(:person, organisation: organisation, user: viewer, function: 'IT', email: 'alt@example.com') }
+
+    before { sign_in admin }
+
+    it 'offers to remove the added details, not to delete the person' do
+      get organisation_person_path(organisation, row), headers: frame_headers
+
+      expect(response.body).to include(I18n.t('views.organisations.people.show.remove_details'))
+      expect(response.body).not_to include(">#{I18n.t('views.organisations.people.show.delete')}<")
+    end
+
+    it 'shows the email of the account, and locks name and email in the form' do
+      get edit_organisation_person_path(organisation, row), headers: frame_headers
+
+      expect(response.body[/<input[^>]*id="person_email"[^>]*>/]).to include('readonly', viewer.email)
+      expect(response.body).not_to include('name="person[user_id]"')
+    end
+
+    it 'keeps the link when the form is saved' do
+      patch organisation_person_path(organisation, row), params: { person: { function: 'Netz', lock_version: row.lock_version } }
+
+      expect(row.reload.user_id).to eq(viewer.id)
+      expect(row.function).to eq('Netz')
+    end
   end
 
   it 'has no missing translation on the page' do

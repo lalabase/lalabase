@@ -1,24 +1,31 @@
-<%# locals: (entries:, selected: nil) %>
-<%# The rows of the directory (People::Directory). A row with a person row
-    opens it in the lane (list-row); a member without one is plain text, with
-    "Angaben ergänzen" for those who may write. %>
+<%# locals: (entries:, counts:, selected: nil, member: nil) %>
+<%# The rows of the directory (People::Directory), one column: name with a
+    "Mitglied" badge, function and company below. Every row opens the lane:
+    a person row through person_id, a member without a row through member_id. %>
 <turbo-frame id="<%= Organisations::PeopleController::LIST_FRAME_ID %>">
-  <% if entries.empty? %>
-    <div class="flex items-center justify-center min-h-[40vh]">
-      <% if list_state.any? %>
-        <%= render 'shared/empty_content', variant: :no_results, icon_class: 'bi bi-search',
-                                           title: t('views.organisations.people.index.empty_no_results') %>
-      <% else %>
-        <%= render 'shared/empty_content', variant: :first_time, icon_class: 'bi bi-people',
-                                           title: t('views.organisations.people.index.empty_title'),
-                                           description: t('views.organisations.people.index.empty_description') %>
-      <% end %>
-    </div>
-  <% else %>
-    <ul class="people-list divide-y divide-cream-200">
+  <% if entries.any? %>
+    <ul class="people-list">
       <% entries.each do |entry| %>
-        <%= render 'organisations/people/row', entry: entry, selected: selected %>
+        <%= render 'organisations/people/row', entry: entry, selected: selected, member: member %>
       <% end %>
     </ul>
+  <% elsif list_state['q'].present? %>
+    <div class="people-empty">
+      <p class="people-empty__title"><%= t('views.organisations.people.index.no_hits_title', query: list_state['q']) %></p>
+      <p class="people-empty__text"><%= t('views.organisations.people.index.no_hits_text') %></p>
+      <%= link_to t('views.organisations.people.index.clear_search'),
+                  organisation_people_path(@current_organisation, list_state.except('q')), class: 'people-text-action',
+                                                                                         data: { turbo_frame: '_top' } %>
+    </div>
+  <% elsif counts['all'].zero? %>
+    <div class="people-empty">
+      <i class="bi bi-people people-empty__icon" aria-hidden="true"></i>
+      <p class="people-empty__title"><%= t('views.organisations.people.index.empty_title') %></p>
+      <p class="people-empty__text width-text"><%= t('views.organisations.people.index.empty_description') %></p>
+    </div>
+  <% else %>
+    <div class="people-empty">
+      <p class="people-empty__text"><%= t("views.organisations.people.index.empty_kind.#{list_state['kind']}", default: t('views.organisations.people.index.empty_no_results')) %></p>
+    </div>
   <% end %>
 </turbo-frame>

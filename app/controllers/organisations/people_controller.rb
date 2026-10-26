@@ -5,7 +5,9 @@
 # together. One page with a lane, the shape of "Alle Meetings"
 # (MeetingsOverviewController): the list on the left, the person or the form in
 # the lane frame on the right. The address carries the lane state:
-# ?person_id= for a person, ?new=person for the form.
+# ?person_id= for a person, ?member_id= for a member who has no row of their
+# own yet (name and email from the account, "Angaben ergänzen"), ?new=person
+# for the form.
 #
 # show, new and edit answer the lane frame (a row click, the "+", "Bearbeiten");
 # a full visit of them lands on the index with the same lane state. The index
@@ -39,9 +41,23 @@ module Organisations
       @people = policy_scope(Person)
       return render_lane_frame if lane_frame_request?
 
-      @entries = directory.entries
+      load_list
       @lane_person = selected_person
-      @form_person = new_person if @lane_person.nil? && new_person_requested?
+      @lane_member = selected_member if @lane_person.nil?
+      @form_person = new_person if @lane_person.nil? && @lane_member.nil? && new_person_requested?
+    end
+
+    # A member without a row of their own, in the lane. Only a member the
+    # reader may see on the members page (People::Directory), else 404; a
+    # member who has a row opens that row.
+    def member
+      authorize Person, :index?
+      entry = directory.member_entry(params[:user_id])
+      raise ActiveRecord::RecordNotFound unless entry
+      return redirect_to(index_path(**member_lane(entry))) unless turbo_frame_request?
+      return render_frame(:detail, person: entry.person) if entry.person
+
+      render_frame(:member, member: entry.user)
     end
 
     def show
@@ -112,7 +128,7 @@ module Organisations
     def render_refused_save(result, id)
       @form_person = refused_form_person(result, id)
       @form_message = result.code == :stale_object ? t('controllers.people.update.stale') : result.errors.to_sentence
-      @entries = directory.entries
+      load_list
       set_viewport_mode
       render :index, status: :unprocessable_content
     end
@@ -128,8 +144,27 @@ module Organisations
     end
 
     def directory
-      People::Directory.new(viewer: current_user, organisation: current_organisation,
-                            query: params[:q], kind: params[:kind])
+      @directory ||= People::Directory.new(viewer: current_user, organisation: current_organisation,
+                                           query: params[:q], kind: params[:kind])
+    end
+
+    def load_list
+      @entries = directory.entries
+      @counts = directory.counts
+    end
+
+    def member_lane(entry)
+      entry.person ? { person_id: entry.person.id } : { member_id: entry.user.id }
+    end
+
+    # ?member_id=: the account of a visible member without a row. A member who
+    # has a row is opened through that row (person_id), never twice.
+    def selected_member
+      id = params[:member_id]
+      return unless id.is_a?(String) && id.present?
+
+      entry = directory.member_entry(id)
+      entry.user if entry && entry.person.nil?
     end
 
     # A member row without a person row opens the form with the member chosen
@@ -165,8 +200,11 @@ module Organisations
     # The lane alone, as a full visit of the same address shows it.
     def render_lane_frame
       person = selected_person
+      member = selected_member unless person
       if person
         render_frame(:detail, person: person)
+      elsif member
+        render_frame(:member, member: member)
       elsif new_person_requested?
         render_frame(:form, person: new_person)
       else
@@ -174,9 +212,10 @@ module Organisations
       end
     end
 
-    def render_frame(state, person: nil, status: :ok)
+    def render_frame(state, person: nil, member: nil, status: :ok)
       render html: helpers.turbo_frame_tag(DETAIL_FRAME_ID) {
-        helpers.render(partial: 'organisations/people/lane', locals: { state: state, person: person, message: nil })
+        helpers.render(partial: 'organisations/people/lane',
+                       locals: { state: state, person: person, member: member, message: nil })
       }, layout: false, status: status
     end
 

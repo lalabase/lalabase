@@ -199,9 +199,8 @@ de:
           assistant:
             use_assistant: Erlaubt die Nutzung des organisationsweiten KI-Assistenten.
           people:
-            view_people: Erlaubt das Lesen der Personenliste der Organisation.
-            manage_people: Erlaubt das Anlegen, Bearbeiten und Löschen von Personen
-              in der Personenliste der Organisation.
+            view_people: Personen ansehen
+            manage_people: Personen bearbeiten (inkl. Löschen)
           none_available: Keine Beschreibung verfügbar
         categories:
           assistant: Assistent

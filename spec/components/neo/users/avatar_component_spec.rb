@@ -23,8 +23,8 @@ RSpec.describe Neo::Users::AvatarComponent, type: :component do
   # removed size would get in production — the wrong size, no error.
   # An entry removed from the map removes its example, so the two assertions
   # below are what actually goes red.
-  it 'offers the identity scales (xs 20 / small 26 / medium 32 / detail 34)' do
-    expect(described_class::SIZES.keys).to contain_exactly(:xs, :small, :medium, :detail)
+  it 'offers the identity scales (xs 20 / small 26 / medium 32 / detail 34 / large 52)' do
+    expect(described_class::SIZES.keys).to contain_exactly(:xs, :small, :medium, :detail, :large)
   end
 
   it 'gives the two sizes genuinely different classes' do

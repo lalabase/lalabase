@@ -98,7 +98,7 @@ gem 'acts_as_tenant', '~> 1.0'  # Multi-tenancy support for Rails
 gem 'annotaterb'
 gem 'anthropic', '~> 1.13'      # Anthropic Claude API wrapper (official)
 gem 'googleauth', '~> 1.11'     # Service-account OAuth2 token mint for Vertex AI (pure Ruby, no google-cloud SDK)
-gem 'mcp', '~> 0.22'            # Official Model Context Protocol SDK (MCP server, Claude Code -> Lalabase)
+gem 'mcp', '~> 1.2'             # Official Model Context Protocol SDK (MCP server, Claude Code -> Lalabase)
 gem 'parser', '~> 3.3'          # Ruby AST parser (M6 — Layer-1 code symbol extraction)
 gem 'pry-rails'                 # Enhanced Rails console with Pry
 gem 'ruby-openai', '~> 7.1'     # OpenAI API wrapper

@@ -131,6 +131,17 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
     end
   end
 
+  describe 'a participant of a deactivated member' do
+    it 'is still a member participant (the account comes back with the membership)' do
+      colleague = member(first_name: 'Dora')
+      participant.update!(user: colleague)
+      Membership.where(user: colleague, organisation: organisation).update_all(active: false)
+
+      expect(link(person_id: contact.id).code).to eq(:member_participant)
+      expect(participant.reload.slice(:user_id, :person_id)).to eq('user_id' => colleague.id, 'person_id' => nil)
+    end
+  end
+
   describe 'unlinking' do
     it 'sets person_id to nil and keeps the row and its name' do
       link(person_id: contact.id)
@@ -254,6 +265,15 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
       expect(meeting).to receive(:lock_in_project!).with(project.id).and_call_original
 
       link(person_id: contact.id)
+    end
+
+    # The claim writes participants without the meeting lock: the row is locked too.
+    it 'locks the participant row' do
+      statements = []
+      collect = ->(*, payload) { statements << payload[:sql] }
+      ActiveSupport::Notifications.subscribed(collect, 'sql.active_record') { link(person_id: contact.id) }
+
+      expect(statements).to include(a_string_matching(/FROM "meeting_participants".*FOR UPDATE/m))
     end
   end
 end

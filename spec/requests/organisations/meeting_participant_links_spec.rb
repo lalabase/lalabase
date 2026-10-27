@@ -127,6 +127,11 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       gone = member_with(create(:role, organisation: organisation), first_name: 'Gerd')
       row = create(:person, organisation: organisation, name: 'Gerd Beispiel', user: gone)
       gone_participant = create(:meeting_participant, meeting: meeting, display_name: 'Gerd Beispiel', user: gone)
+      # Still a member elsewhere: only the membership HERE counts.
+      elsewhere = create(:organisation)
+      ActsAsTenant.with_tenant(elsewhere) do
+        create(:membership, user: gone, organisation: elsewhere, role: create(:role, organisation: elsewhere), active: true)
+      end
       RemoveMembershipService.new(membership: gone.memberships.find_by!(organisation: organisation), admin: admin).call
       expect(row.reload.user_id).to be_nil
       sign_in admin
@@ -140,6 +145,17 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       get organisation_people_path(organisation, person_id: row.id), headers: { 'Turbo-Frame' => Organisations::PeopleController::DETAIL_FRAME_ID }
       expect(response.body).to include('Hosting-Abstimmung')
+    end
+
+    it 'offers no link for the participant of a deactivated member' do
+      dora = member_with(create(:role, organisation: organisation), first_name: 'Dora')
+      dora_participant = create(:meeting_participant, meeting: meeting, display_name: 'Dora Beispiel', user: dora)
+      Membership.where(user: dora, organisation: organisation).update_all(active: false)
+      sign_in admin
+      show_meeting
+
+      expect(response.body).to include('Dora Beispiel', CGI.escapeHTML(new_link_path))
+      expect(response.body).not_to include(new_link_path(dora_participant))
     end
 
     it 'keeps a chip as text when its person is a row the viewer may not see' do
@@ -408,7 +424,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       post_link("person:#{hidden_row.id}")
       expect(response).to have_http_status(:not_found)
-      expect(response.body).to include('Jonas Weber')
+      expect(response.body).to include(I18n.t('services.actors.link_meeting_participant.not_found'))
       expect(response.body).not_to include('Hanna Weber')
       post_link("member:#{hidden_member.id}")
       expect(response).to have_http_status(:not_found)
@@ -425,6 +441,23 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       expect(response).to have_http_status(:not_found)
       expect(other.reload.person_id).to be_nil
+    end
+
+    # A move that commits between the lookup and the lock (lock_in_project! reloads the
+    # meeting): the answer closes the dialog and draws nothing of the new project.
+    it 'answers a meeting moved during the request without drawing it again' do
+      target = create(:project, organisation: organisation)
+      allow_any_instance_of(Meeting).to receive(:lock_in_project!) do |moved, _project_id|
+        moved.update_columns(project_id: target.id)
+        false
+      end
+      sign_in admin
+
+      post_link("person:#{contact.id}")
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.body).to include("action=\"remove\" target=\"meeting-participant-link-modal-#{meeting.id}-#{modal_token}\"")
+      expect(response.body).not_to include(target.id, 'action="replace"')
     end
 
     it 'does not find a meeting moved into another project' do

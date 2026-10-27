@@ -1,0 +1,8 @@
+<%# Not found: a person or member out of the writer's reach, or a meeting moved meanwhile (the
+    lock reloaded it into its new project). The dialog instance goes and the reason comes as a
+    flash; nothing of the meeting is drawn again, so a moved meeting shows nothing of the
+    project it is in now. %>
+<% if @modal_token %>
+  <%= turbo_stream.remove participant_link_modal_instance_id(@meeting, @modal_token) %>
+<% end %>
+<%= turbo_stream.prepend 'flash', partial: 'layouts/flash', locals: { flash: { alert: @errors.to_sentence } } %>

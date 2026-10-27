@@ -61,6 +61,24 @@ RSpec.describe 'Linking a meeting participant to a person', type: :system do
     expect(page).to have_css("##{trigger_id}:focus")
   end
 
+  # After a link to a member the name has no link action any more: the focus goes to the
+  # chip's link to the person instead of falling to the page.
+  it 'gives the focus to the person link after linking a member' do
+    colleague = create(:user, first_name: 'Jonas', last_name: 'Kollege')
+    create(:membership, user: colleague, organisation: organisation, role: create(:role, organisation: organisation), active: true)
+    visit organisation_project_meetings_path(organisation, project, meeting_id: meeting.id)
+    open_dialog
+
+    within('[role="dialog"]') do
+      find('label', text: 'Jonas Kollege').click
+      click_button I18n.t("#{pl}.submit")
+    end
+
+    expect(page).to have_no_css('[role="dialog"]')
+    expect(page).to have_css("a##{trigger_id}:focus", text: 'J. Weber (Hoster)')
+    expect(participant.reload.user_id).to eq(colleague.id)
+  end
+
   # A refusal swaps the dialog for a new instance: the focus must still go back to the
   # button that opened it, and a search in the refused dialog must still work.
   it 'gives the focus back after a refusal, a search and Escape' do

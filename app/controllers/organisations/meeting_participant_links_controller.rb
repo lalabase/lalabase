@@ -106,16 +106,24 @@ module Organisations
       end
     end
 
-    # The dialog again with the reason, in place of the instance that sent it.
-    # Gone meanwhile (a move, a deleted participant) is a 404, our own failure a 500.
+    # The dialog again with the reason, in place of the instance that sent it;
+    # our own failure is a 500. Not found (a person or member out of reach, or the
+    # meeting moved meanwhile, which the lock reloaded into its new project) closes
+    # the dialog with the reason and draws nothing of the meeting again.
     def refused(result)
       @errors = result.errors
-      status = if INTERNAL_CODES.include?(result.code) then :internal_server_error
-               elsif NOT_FOUND_CODES.include?(result.code) then :not_found
-               else :unprocessable_content
-               end
+      return gone if NOT_FOUND_CODES.include?(result.code)
+
+      status = INTERNAL_CODES.include?(result.code) ? :internal_server_error : :unprocessable_content
       respond_to do |format|
         format.turbo_stream { render 'organisations/meeting_participant_links/refused', status: status }
+        format.html { redirect_to meeting_path, alert: @errors.to_sentence, status: :see_other }
+      end
+    end
+
+    def gone
+      respond_to do |format|
+        format.turbo_stream { render 'organisations/meeting_participant_links/gone', status: :not_found }
         format.html { redirect_to meeting_path, alert: @errors.to_sentence, status: :see_other }
       end
     end

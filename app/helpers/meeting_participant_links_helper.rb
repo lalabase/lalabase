@@ -59,11 +59,14 @@ module MeetingParticipantLinksHelper
   end
 
   # The lines of the dialog: the suggestions (E6) first, marked, then the
-  # people matching the search, at most limit of them.
-  def participant_link_options(participant, query, limit:)
+  # people matching the search, at most limit of them. A pick sent back after a
+  # refusal (choice) stays in the list, wherever the search had found it.
+  def participant_link_options(participant, query, limit:, choice: nil)
     directory = People::Directory.new(viewer: current_user, organisation: current_organisation, query: query)
     suggested = query.blank? ? directory.suggestions_for(participant.display_name) : []
     others = (directory.candidates - suggested).first(limit)
+    picked = participant_link_chosen_entry(directory, choice)
+    others.unshift(picked) if picked && !suggested.include?(picked) && !others.include?(picked)
     suggested.map { |entry| [entry, true] } + others.map { |entry| [entry, false] }
   end
 
@@ -86,6 +89,15 @@ module MeetingParticipantLinksHelper
   end
 
   private
+
+  # The entry a choice names, through the viewer's own directory, or nil.
+  def participant_link_chosen_entry(directory, choice)
+    kind, id = choice.to_s.split(':', 2)
+    case kind
+    when 'person' then directory.person_entry(id)
+    when 'member' then directory.member_entry(id)
+    end
+  end
 
   def participant_directory_entry(directory, participant)
     if participant.user_id

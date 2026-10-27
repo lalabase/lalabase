@@ -78,7 +78,8 @@ module Actors
         @participant.update!(person_id: entry.person.id)
       end
     rescue ActiveRecord::RecordNotUnique
-      # The same member linked twice at once: the unique index refuses the second.
+      # The meeting lock runs two links one after the other, so the check above
+      # sees the first. A writer that skips the lock still meets the unique index.
       refuse!(:member_already_participant)
     end
 

@@ -155,6 +155,8 @@ module Actors
     # comes back on the next save). A new name without such a member is a new
     # row without a link: the form has no rename, a chip removed and another
     # added is another participant, and the link dialog sets the link again.
+    # One key per participant: a row the form gives to another member is that
+    # member now and drops its contact link (person_id).
     def reconcile_participants(desired)
       # Load the rows once (no per-row SELECT / N+1) and upsert against them.
       existing = @meeting.meeting_participants.to_a
@@ -170,6 +172,7 @@ module Actors
         participant ||= @meeting.meeting_participants.build
         participant.organisation = org
         participant.display_name = d[:display_name]
+        participant.person_id = nil if d[:user_id] && d[:user_id] != participant.user_id
         participant.user_id = d[:user_id]
         participant.save!
       end

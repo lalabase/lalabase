@@ -68,7 +68,9 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   ein Mitglied über `user_id`, ein Kontakt (auch die Zeile eines früheren Mitglieds) über
   `person_id`. Der Actor sperrt das Meeting (`lock_in_project!`) und löst Person und Mitglied
   nur über `People::Directory` des Schreibenden auf. Das Meeting-Formular kennt `person_id`
-  nicht; `SaveMeeting` behält die Zeile und damit den Link.
+  nicht; `SaveMeeting` behält die Zeile und damit den Link. Macht das Formular eine
+  Kontakt-Zeile zu der eines Mitglieds, fällt `person_id` weg (ein Schlüssel), und das
+  Zuordnen (`external_in_projects`) lässt Kontakt-Zeilen aus.
 * **Activity/Notifications**: `activity`, `user_activity`, `outbox_event`, `notification`,
   `notification_preference`, `notification_subscription`, `email_log` — Services dazu unter
   `app/services/notifications/` (eigene Karte dort)

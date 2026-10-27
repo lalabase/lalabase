@@ -3,7 +3,7 @@
 module Meetings
   # Live claim matcher (Nachtrag: Teilnehmer-Claim) — a READ-ONLY query PORO, not an
   # actor: it never writes. For the acting user it finds external participant rows
-  # (user_id nil) whose normalized_name equals an active, real-named org member's,
+  # (user_id and person_id nil, MeetingParticipant.external_in_projects) whose normalized_name equals an active, real-named org member's,
   # but ONLY within meetings the acting user may WRITE (:meetings area), and minus
   # the (member, name) pairs that were explicitly rejected. Each returned group
   # offers the writer "link this external name to this member" — the write itself is

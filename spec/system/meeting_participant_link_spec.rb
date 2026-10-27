@@ -36,6 +36,8 @@ RSpec.describe 'Linking a meeting participant to a person', type: :system do
   def open_dialog
     find("##{trigger_id}").click
     expect(page).to have_css('[role="dialog"]', text: I18n.t("#{pl}.title"))
+    # The search has the focus at once: typing searches without a click first.
+    expect(page).to have_css('[role="dialog"] input[type="search"]:focus')
   end
 
   it 'searches, links, closes and gives the focus back' do

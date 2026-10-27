@@ -176,6 +176,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       expect(body).to include(I18n.t("#{pl}.suggestion"))
       expect(body).to include(I18n.t("#{pl}.new_person"), 'value="J. Weber"')
       expect(body).not_to match(/<input[^>]*name="choice"[^>]*checked/)
+      expect(body.scan("value=\"person:#{contact.id}\"").size).to eq(1)
     end
 
     it 'searches in its list frame' do
@@ -243,12 +244,16 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
     it 'refuses a member already in the meeting with the dialog and a reason' do
       colleague = member_with(create(:role, organisation: organisation), first_name: 'Carl')
       create(:meeting_participant, meeting: meeting, display_name: 'Carl Beispiel', user: colleague)
+      # A list of suggestions only: the pick is no suggestion and must still be there.
+      stub_const('Organisations::MeetingParticipantLinksController::LIST_LIMIT', 0)
       sign_in admin
 
       post_link("member:#{colleague.id}")
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("action=\"replace\" target=\"meeting-participant-link-modal-#{meeting.id}-#{modal_token}\"")
+      # The pick stays marked, also when it is not among the first lines of the list.
+      expect(response.body).to match(/<input[^>]*value="member:#{colleague.id}"[^>]*checked/)
       expect(response.body).to include(I18n.t('services.actors.link_meeting_participant.member_already_participant'))
       expect(participant.reload.user_id).to be_nil
     end
@@ -397,6 +402,17 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       expect(response).to have_http_status(:ok)
       expect(participant.reload.person_id).to eq(contact.id)
+    end
+
+    it 'keeps one key when the form makes a contact-linked row a member' do
+      colleague = member_with(create(:role, organisation: organisation), first_name: 'Carl')
+      sign_in admin
+      post_link("person:#{contact.id}")
+
+      edit_with(display_name: 'J. Weber (Hoster)', user_id: colleague.id)
+
+      expect(participant.reload.user_id).to eq(colleague.id)
+      expect(participant.person_id).to be_nil
     end
 
     # The form labels a member chip with the member's profile name, so the row is kept by

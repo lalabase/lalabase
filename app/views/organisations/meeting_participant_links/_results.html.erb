@@ -4,7 +4,7 @@
     Members are offered by account, contacts by row (participant_link_choice). Picking one
     only marks it; "Verknüpfen" links. %>
 <% pl = 'views.organisations.meetings.participant_links' %>
-<% options = participant_link_options(participant, query, limit: Organisations::MeetingParticipantLinksController::LIST_LIMIT) %>
+<% options = participant_link_options(participant, query, limit: Organisations::MeetingParticipantLinksController::LIST_LIMIT, choice: choice) %>
 <%= turbo_frame_tag participant_link_results_id(participant), class: 'block' do %>
   <% if options.empty? %>
     <p class="participant-link-none px-2 py-2 text-sm text-cream-600"><%= t("#{pl}.none") %></p>

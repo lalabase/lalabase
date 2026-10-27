@@ -99,6 +99,13 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
       expect(participant.reload.user_id).to be_nil
     end
 
+    it 'links a participant that already carries the member\'s name' do
+      participant.update!(display_name: colleague.display_name)
+
+      expect(link(member_id: colleague.id)).to be_success
+      expect(participant.reload.user_id).to eq(colleague.id)
+    end
+
     # The meeting form labels a member chip with the member's profile name: a second
     # participant of that name would make every later save of the meeting fail.
     it 'refuses a member whose name another participant of the meeting carries' do

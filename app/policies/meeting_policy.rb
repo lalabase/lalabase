@@ -41,6 +41,14 @@ class MeetingPolicy < ApplicationPolicy
     project_policy.area_access?(:meetings, :write)
   end
 
+  # Linking a participant to the people directory (S2b): a meeting write, and
+  # the directory itself (view_people), because the dialog lists it. The
+  # controller authorizes with this, and the participant row asks the same to
+  # show its link action, so the button and the server cannot disagree.
+  def link_participants?
+    update? && PersonPolicy.view_allowed?(user, organisation)
+  end
+
   def destroy?
     account_admin? || project_policy.area_access?(:meetings, :write)
   end

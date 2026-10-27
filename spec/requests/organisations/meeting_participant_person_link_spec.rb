@@ -2,13 +2,13 @@
 
 require 'rails_helper'
 
-# A participant's person link (meeting_participants.person_id) survives a save of
-# the meeting form that leaves the participant alone. The form labels a member
-# chip with the member's CURRENT profile name, so after a change of name the
-# untouched chip comes back under another name. The actor spec covers the rule;
-# this one walks the real edit form, so a change to how the form names a member
-# cannot go round it.
-RSpec.describe 'Meeting edit keeps the person link of a member participant', type: :request do
+# A member participant keeps its row through a save of the meeting form that
+# leaves it alone. The form labels a member chip with the member's CURRENT
+# profile name, so after a change of name the untouched chip comes back under
+# another name. The actor spec covers the rule; this one walks the real edit
+# form, so a change to how the form names a member cannot go round it. (A member
+# row carries no person_id, one key per participant: the row id is the mark.)
+RSpec.describe 'Meeting edit keeps the row of a member participant', type: :request do
   let(:organisation) { create(:organisation) }
   let(:project) { ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation) } }
   let(:writer) do
@@ -21,13 +21,10 @@ RSpec.describe 'Meeting edit keeps the person link of a member participant', typ
     user
   end
 
-  it 'keeps the row and person_id after the member changed their name in the profile' do
-    meeting, row, person = ActsAsTenant.with_tenant(organisation) do
+  it 'keeps the row after the member changed their name in the profile' do
+    meeting, row = ActsAsTenant.with_tenant(organisation) do
       m = create(:meeting, project: project, organisation: organisation, creator: writer, title: 'Retro')
-      p = create(:person, organisation: organisation, name: 'Karl Krause')
-      r = create(:meeting_participant, meeting: m, display_name: 'Karl Krause', user_id: writer.id)
-      r.update_column(:person_id, p.id)
-      [m, r, p]
+      [m, create(:meeting_participant, meeting: m, display_name: 'Karl Krause', user_id: writer.id)]
     end
     writer.update!(last_name: 'Krause-Meier')
     sign_in writer
@@ -47,8 +44,8 @@ RSpec.describe 'Meeting edit keeps the person link of a member participant', typ
     expect(response).to have_http_status(:found)
 
     rows = ActsAsTenant.with_tenant(organisation) do
-      MeetingParticipant.where(meeting_id: meeting.id).pluck(:id, :user_id, :person_id)
+      MeetingParticipant.where(meeting_id: meeting.id).pluck(:id, :user_id)
     end
-    expect(rows).to eq([[row.id, writer.id, person.id]])
+    expect(rows).to eq([[row.id, writer.id]])
   end
 end

@@ -144,6 +144,63 @@ RSpec.describe MeetingParticipant, type: :model do
     end
   end
 
+  # One key per participant (S2b): a member by user_id, a contact by person_id.
+  # Two layers, each tested on its own: the validation names a writer that
+  # forgets, the check constraint stops a write past the model.
+  describe 'one key per participant' do
+    let(:user) { create(:user) }
+    let(:person) { ActsAsTenant.with_tenant(organisation) { create(:person, organisation: organisation) } }
+
+    it 'is invalid with both a user and a person' do
+      participant = ActsAsTenant.with_tenant(organisation) do
+        build(:meeting_participant, meeting: meeting, user: user, person: person).tap(&:valid?)
+      end
+
+      expect(participant.errors.details[:base]).to include(error: :one_key)
+    end
+
+    it 'is valid with either key alone, or with none' do
+      ActsAsTenant.with_tenant(organisation) do
+        expect(build(:meeting_participant, meeting: meeting, user: user)).to be_valid
+        expect(build(:meeting_participant, meeting: meeting, person: person)).to be_valid
+        expect(build(:meeting_participant, meeting: meeting)).to be_valid
+      end
+    end
+
+    it 'is refused by the database when the model is bypassed' do
+      participant = ActsAsTenant.with_tenant(organisation) do
+        create(:meeting_participant, meeting: meeting, user: user)
+      end
+
+      expect { participant.update_columns(person_id: person.id) }
+        .to raise_error(ActiveRecord::StatementInvalid, /meeting_participants_one_key/)
+    end
+  end
+
+  describe '.external' do
+    it 'is a free name only: no member and no contact' do
+      ActsAsTenant.with_tenant(organisation) do
+        free = create(:meeting_participant, meeting: meeting, display_name: 'Frei')
+        create(:meeting_participant, meeting: meeting, display_name: 'Mitglied', user: create(:user))
+        create(:meeting_participant, meeting: meeting, display_name: 'Kontakt',
+                                     person: create(:person, organisation: organisation))
+
+        expect(described_class.external).to contain_exactly(free)
+      end
+    end
+  end
+
+  describe '.in_row_order' do
+    it 'lists participants as they were added, not by name' do
+      ActsAsTenant.with_tenant(organisation) do
+        later = create(:meeting_participant, meeting: meeting, display_name: 'Anna', created_at: 1.minute.ago)
+        earlier = create(:meeting_participant, meeting: meeting, display_name: 'Zora', created_at: 2.minutes.ago)
+
+        expect(meeting.meeting_participants.in_row_order).to eq([earlier, later])
+      end
+    end
+  end
+
   describe 'user deletion (snapshot survives)' do
     it 'nulls user_id but keeps display_name when the linked user is deleted' do
       user = create(:user)

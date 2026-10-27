@@ -196,6 +196,74 @@ RSpec.describe People::Directory, :ci_guard do
       expect(described_class.surname('J.')).to be_nil
       expect(directory.suggestions_for(' ')).to eq([])
     end
+
+    describe '#entry_for_participant' do
+      let(:meeting) { create(:meeting, organisation: organisation, project: project) }
+
+      def participant(name, **keys)
+        create(:meeting_participant, meeting: meeting, display_name: name, **keys)
+      end
+
+      it 'is the member for a member participant' do
+        expect(directory(admin).entry_for_participant(participant('Carl', user: colleague)).user).to eq(colleague)
+      end
+
+      it 'is the row that keeps their meetings for a deactivated member' do
+        row = create(:person, organisation: organisation, name: 'Carl Kollege', user: colleague)
+        Membership.where(user: colleague).update_all(active: false)
+
+        entry = directory(admin).entry_for_participant(participant('Carl', user: colleague))
+
+        expect(entry).not_to be_member
+        expect(entry.person).to eq(row)
+      end
+
+      it 'is the row for a contact, and the member when that row is a member\'s' do
+        member_row = create(:person, organisation: organisation, name: 'Carl Kollege', user: colleague)
+
+        expect(directory(admin).entry_for_participant(participant('Doris', person: contact)).person).to eq(contact)
+        expect(directory(admin).entry_for_participant(participant('Carl', person: member_row))).to be_member
+      end
+
+      it 'is nil for a free name, and for someone the viewer may not see' do
+        expect(directory(admin).entry_for_participant(participant('Frei'))).to be_nil
+        expect(directory.entry_for_participant(participant('Sven', user: stranger))).to be_nil
+      end
+    end
+
+    describe '#former_member_entry' do
+      it 'is the contact entry of a deactivated member, nil while they are active' do
+        row = create(:person, organisation: organisation, name: 'Carl Kollege', user: colleague)
+
+        expect(directory(admin).former_member_entry(colleague.id)).to be_nil
+        Membership.where(user: colleague).update_all(active: false)
+        expect(directory(admin).former_member_entry(colleague.id).person).to eq(row)
+      end
+    end
+
+    describe 'Entry#detail' do
+      def entry(**fields)
+        described_class::Entry.new(**fields)
+      end
+
+      it 'is function and company of a row, joined' do
+        person = build(:person, function: 'CTO', company: 'Beispiel GmbH')
+
+        expect(entry(kind: :contact, person: person).detail).to eq('CTO · Beispiel GmbH')
+        expect(entry(kind: :contact, person: build(:person, function: nil, company: 'Beispiel GmbH')).detail)
+          .to eq('Beispiel GmbH')
+      end
+
+      it "is a member's email without function and company, and nothing for such a contact" do
+        user = build(:user, email: 'carl@example.com')
+
+        bare = { function: nil, company: nil }
+
+        expect(entry(kind: :member, user: user, person: build(:person, **bare)).detail).to eq('carl@example.com')
+        expect(entry(kind: :member, user: user).detail).to eq('carl@example.com')
+        expect(entry(kind: :contact, person: build(:person, email: 'doris@example.com', **bare)).detail).to be_nil
+      end
+    end
   end
 
   it 'returns nothing without the right' do

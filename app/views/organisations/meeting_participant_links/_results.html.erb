@@ -1,17 +1,18 @@
 <%# locals: (meeting:, participant:, query:, choice: nil) %>
 <%# The people the dialog offers, in their own frame so the search reloads only them: the
     suggestions first (E6, only without a search), then the people matching the search.
-    Members are offered by account, contacts by row (participant_link_choice). Picking one
-    only marks it; "Verknüpfen" links. %>
+    Members are offered by account, contacts by row (Meetings::ParticipantLinkChoice). Picking
+    one only marks it; "Verknüpfen" links. %>
 <% pl = 'views.organisations.meetings.participant_links' %>
-<% options = participant_link_options(participant, query, limit: Organisations::MeetingParticipantLinksController::LIST_LIMIT, choice: choice) %>
+<% lines = participant_link_options(participant, query, limit: Organisations::MeetingParticipantLinksController::LIST_LIMIT, choice: choice) %>
 <%= turbo_frame_tag participant_link_results_id(participant), class: 'block' do %>
-  <% if options.empty? %>
+  <% if lines.empty? %>
     <p class="participant-link-none px-2 py-2 text-sm text-cream-600"><%= t("#{pl}.none") %></p>
   <% else %>
     <ul class="participant-link-options max-h-72 space-y-0.5 overflow-y-auto" role="list">
-      <% options.each do |entry, suggested| %>
-        <% value = participant_link_choice(entry) %>
+      <% lines.each do |line| %>
+        <% entry = line.entry %>
+        <% value = Meetings::ParticipantLinkChoice.value_for(entry) %>
         <% input_id = "#{participant_link_results_id(participant)}-#{value.tr(':', '-')}" %>
         <% name = person_display_name(person: entry.person, user: (entry.user if entry.member?)) %>
         <li class="participant-link-option flex items-center gap-3 rounded px-2 py-2 hover:bg-cream-100">
@@ -26,12 +27,12 @@
                 <span class="people-badge"><%= t('views.organisations.people.index.member_badge') %></span>
               <% end %>
             </span>
-            <% detail = participant_link_detail(entry) %>
+            <% detail = entry.detail %>
             <% if detail.present? %>
               <span class="truncate text-xs text-cream-600"><%= detail %></span>
             <% end %>
           </label>
-          <% if suggested %>
+          <% if line.suggested? %>
             <span class="participant-link-suggestion shrink-0 rounded-full border border-amber-500 px-2 text-xs text-cream-700"><%= t("#{pl}.suggestion") %></span>
           <% end %>
         </li>

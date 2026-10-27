@@ -61,16 +61,25 @@ class MeetingParticipant < ApplicationRecord
   validates :normalized_name, uniqueness: { scope: :meeting_id }, allow_blank: true
   validates :user_id, uniqueness: { scope: :meeting_id }, allow_nil: true
   validate :person_in_same_organisation, if: -> { person_id.present? && will_save_change_to_person_id? }
+  validate :one_key
 
-  # External (name-only) participants in the given projects — the ONE definition of
-  # "an external participation eligible to be claimed", shared by the claim matcher
-  # (counts them) and the claim actor (links them). Callers pass an already
-  # access-scoped project_ids list. A name linked to a contact of the people
-  # directory (person_id) is that contact, not a free name: one key per
-  # participant, the link dialog relinks it.
+  # A free name: neither a member (user_id) nor a contact of the people
+  # directory (person_id). The ONE definition of "external", read by the claim
+  # matcher (counts them) and the claim actor (links them, and asks again in
+  # its UPDATE). A name linked to a contact is that contact, not a free name a
+  # member could claim: one key per participant (see #one_key).
+  scope :external, -> { where(user_id: nil, person_id: nil) }
+
+  # External participants in the given projects. Callers pass an already
+  # access-scoped project_ids list.
   scope :external_in_projects, lambda { |project_ids|
-    where(user_id: nil, person_id: nil).joins(:meeting).where(meetings: { project_id: project_ids })
+    external.joins(:meeting).where(meetings: { project_id: project_ids })
   }
+
+  # The order of the participant row: as they were added. The meeting page,
+  # the panel beside a ticket and the redraw after a link (the stream replaces
+  # the row in place) must agree, or the chips jump.
+  scope :in_row_order, -> { order(:created_at) }
 
   # Normalization contract: PersonName.normalize, the one normalizer shared
   # with the people directory (mirrored in name_normalizer.js). Pure function so
@@ -106,5 +115,16 @@ class MeetingParticipant < ApplicationRecord
     return if Person.where(id: person_id, organisation_id: organisation_id).exists?
 
     errors.add(:person, :invalid)
+  end
+
+  # One key per participant: a member is linked by user_id, a contact by
+  # person_id, never both. With both, the person's lane would count the meeting
+  # for the contact AND the member, and every writer would have to decide which
+  # key wins. The writers (Actors::LinkMeetingParticipant, SaveMeeting,
+  # ClaimMeetingParticipants) clear the other key themselves; this validation
+  # names a writer that forgets, and the check constraint
+  # meeting_participants_one_key catches a write past the model (update_all).
+  def one_key
+    errors.add(:base, :one_key) if user_id.present? && person_id.present?
   end
 end

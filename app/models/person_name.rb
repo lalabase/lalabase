@@ -15,4 +15,14 @@ module PersonName
     s = s.downcase
     s.gsub('ä', 'ae').gsub('ö', 'oe').gsub('ü', 'ue').gsub('ß', 'ss')
   end
+
+  # A name without its notes in round brackets: "J. Weber (Hoster)" ->
+  # "J. Weber". A meeting participant is often written with a note about the
+  # role; the note is no part of the person's name. The surname of a
+  # suggestion (People::Directory.surname) and the name a new person starts
+  # with in the link dialog both read it, so the two never disagree. Empty
+  # when the name is only a note.
+  def self.without_note(value)
+    value.to_s.gsub(/\([^)]*\)/, ' ').squish
+  end
 end

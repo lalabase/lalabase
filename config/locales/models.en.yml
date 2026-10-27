@@ -119,6 +119,8 @@ en:
           content_too_large: "is too large (max. 1 MB)"
           duplicate_participant_name: "A participant was listed twice (same name)."
           duplicate_participant_user: "The same person was listed more than once as a participant."
+        meeting_participant:
+          one_key: "A participant is either a member or a contact, never both."
         documentation_set:
           attributes:
             project_repository:

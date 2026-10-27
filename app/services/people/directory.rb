@@ -36,6 +36,15 @@ module People
       def plain_name
         member? ? user.display_name : person.name
       end
+
+      # The line under the name, in the list and in the link dialog: function
+      # and company of the row, else a member's email. A contact without
+      # either has none (nil). A contact never shows an email here: the row's
+      # own email is a field of its page, not a label.
+      def detail
+        [person&.function, person&.company].compact_blank.join(' · ').presence ||
+          (user&.email if member?)
+      end
     end
 
     def initialize(viewer:, organisation:, query: nil, kind: 'all', sort: 'name')
@@ -86,6 +95,20 @@ module People
       everyone.find { |entry| !entry.member? && entry.person&.user_id == user_id.to_s }
     end
 
+    # The entry a meeting participant stands for, or nil when the viewer may
+    # not see it (or it is a free name). A participant carries one key:
+    # * user_id: the member, or, once the membership is gone or inactive, the
+    #   row that keeps their meetings (former_member_entry);
+    # * person_id: that row, which is a member's entry when the row belongs to
+    #   an active member (person_entry).
+    def entry_for_participant(participant)
+      if participant.user_id
+        member_entry(participant.user_id) || former_member_entry(participant.user_id)
+      elsif participant.person_id
+        person_entry(participant.person_id)
+      end
+    end
+
     # The entries matching the search, without last contacts: the list of the
     # dialog that links a meeting participant (S2b).
     def candidates
@@ -108,7 +131,7 @@ module People
     # The last word of a name, normalized, without a note in brackets and
     # without initials: "J. Weber (Hoster)" -> "weber". Nil without one.
     def self.surname(name)
-      words = PersonName.normalize(name).gsub(/\([^)]*\)/, ' ').scan(/[[:alpha:]][[:alpha:]'-]*/)
+      words = PersonName.normalize(PersonName.without_note(name)).scan(/[[:alpha:]][[:alpha:]'-]*/)
       words.reverse.find { |word| word.length > 1 }
     end
 

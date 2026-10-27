@@ -7,6 +7,8 @@ require 'rails_helper'
 # writes. Rights in both directions; every negative claim about a page stands
 # next to proof that the page itself was rendered.
 RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :request do
+  include PeopleVisibilityHelpers
+
   let(:organisation) { create(:organisation) }
 
   before { ActsAsTenant.current_tenant = organisation }
@@ -60,6 +62,30 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
   def post_link(choice, target: participant, on: meeting, in_project: project, **extra)
     post link_path(target, on: on, in_project: in_project),
          params: { choice: choice, modal_token: modal_token }.merge(extra), headers: stream
+  end
+
+  # The answer as a page Capybara's matchers can search: selectors instead of
+  # regexes, so attribute order and quoting do not matter.
+  def page_markup
+    Capybara.string(response.body)
+  end
+
+  # The markup one stream of the answer carries. A stream's markup is the content
+  # of its <template>, which Capybara's HTML5 parser keeps out of the tree it
+  # searches; a missing stream fails here instead of turning a negative check green.
+  def stream_markup(action, target)
+    node = Nokogiri::HTML(response.body).at_css(%(turbo-stream[action="#{action}"][target="#{target}"]))
+    raise "no #{action} stream for #{target} in the answer" unless node
+
+    Capybara.string(node.at_css('template').inner_html)
+  end
+
+  def dialog_instance_id
+    "meeting-participant-link-modal-#{meeting.id}-#{modal_token}"
+  end
+
+  def chips_id
+    ActionView::RecordIdentifier.dom_id(meeting, :participants)
   end
 
   describe 'the participant row' do
@@ -159,10 +185,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
     end
 
     it 'keeps a chip as text when its person is a row the viewer may not see' do
-      hidden_member = member_with(create(:role, organisation: organisation), first_name: 'Hanna')
-      create(:project_permission, user: hidden_member, project: create(:project, organisation: organisation),
-                                  tickets_access: :read_only)
-      hidden_row = create(:person, organisation: organisation, name: 'Hanna Beispiel', user: hidden_member)
+      hidden_row = row_out_of_sight(organisation: organisation, name: 'Hanna Beispiel')
       participant.update!(person: hidden_row)
       viewer = writer('view_people')
       sign_in viewer
@@ -182,6 +205,29 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       show_meeting
 
       expect(response).to have_http_status(:ok)
+    end
+
+    it 'offers to change a link, from a single trigger the focus can come back to' do
+      participant.update!(person: contact)
+      sign_in admin
+      show_meeting
+
+      label = I18n.t("#{pl}.change", name: 'J. Weber (Hoster)')
+      expect(page_markup).to have_css(%(a[title="#{label}"] i.bi-pencil), visible: :all)
+      expect(page_markup).to have_css("[id='meeting-participant-link-trigger-#{participant.id}']", count: 1)
+    end
+
+    # The row was linked to a member after the participant was linked to it: the
+    # participant is that member now, and the meeting form owns its link.
+    it 'offers no link action for a contact whose row belongs to a member now' do
+      participant.update!(person: contact)
+      contact.update!(user: member_with(create(:role, organisation: organisation), first_name: 'Jonas'))
+      sign_in admin
+      show_meeting
+
+      expect(response.body).to include('J. Weber (Hoster)',
+                                       CGI.escapeHTML(organisation_people_path(organisation, person_id: contact.id)))
+      expect(response.body).not_to include(new_link_path)
     end
 
     it 'shows the links in the panel beside a ticket too' do
@@ -213,8 +259,9 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       expect(body.index('Jonas Weber')).to be < body.index('Anton Anders')
       expect(body).to include(I18n.t("#{pl}.suggestion"))
       expect(body).to include(I18n.t("#{pl}.new_person"), 'value="J. Weber"')
-      expect(body).not_to match(/<input[^>]*name="choice"[^>]*checked/)
-      expect(body.scan("value=\"person:#{contact.id}\"").size).to eq(1)
+      expect(page_markup).to have_css('input[name=choice]', visible: :all)
+      expect(page_markup).to have_no_css('input[name=choice][checked]', visible: :all)
+      expect(page_markup).to have_css("input[value='person:#{contact.id}']", count: 1, visible: :all)
     end
 
     it 'searches in its list frame' do
@@ -241,10 +288,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
     end
 
     it 'does not name a linked person the viewer may not see' do
-      hidden_member = member_with(create(:role, organisation: organisation), first_name: 'Hanna')
-      create(:project_permission, user: hidden_member, project: create(:project, organisation: organisation),
-                                  tickets_access: :read_only)
-      hidden_row = create(:person, organisation: organisation, name: 'Hanna Weber', user: hidden_member)
+      hidden_row = row_out_of_sight(organisation: organisation, name: 'Hanna Weber')
       participant.update_column(:person_id, hidden_row.id)
       sign_in writer('view_people')
 
@@ -252,6 +296,15 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       expect(response.body).to include(I18n.t("#{pl}.linked"), 'Jonas Weber')
       expect(response.body).not_to include('Hanna Weber')
+    end
+
+    it 'names the visible person the participant is linked to' do
+      participant.update!(person: contact)
+      sign_in admin
+
+      get new_link_path
+
+      expect(response.body).to include(CGI.escapeHTML(I18n.t("#{pl}.linked_to", name: 'Jonas Weber')))
     end
 
     it 'offers no new person without manage_people' do
@@ -265,10 +318,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
     it 'lists no person of another organisation and no row of an invisible member' do
       ActsAsTenant.with_tenant(create(:organisation)) { create(:person, name: 'Fremde Weber') }
-      hidden_member = member_with(create(:role, organisation: organisation), first_name: 'Hanna')
-      create(:project_permission, user: hidden_member, project: create(:project, organisation: organisation),
-                                  tickets_access: :read_only)
-      create(:person, organisation: organisation, name: 'Hanna Weber', user: hidden_member)
+      row_out_of_sight(organisation: organisation, name: 'Hanna Weber')
       sign_in writer('view_people')
 
       get new_link_path
@@ -287,7 +337,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       expect(response).to have_http_status(:ok)
       expect(participant.reload.person_id).to eq(contact.id)
-      expect(response.body).to include("turbo-stream action=\"replace\" target=\"#{ActionView::RecordIdentifier.dom_id(meeting, :participants)}\"")
+      expect(response.body).to include("turbo-stream action=\"replace\" target=\"#{chips_id}\"")
       expect(response.body).to include("action=\"remove\" target=\"meeting-participant-link-modal-#{meeting.id}-#{modal_token}\"")
       expect(response.body).to include(CGI.escapeHTML(organisation_people_path(organisation, person_id: contact.id)))
 
@@ -300,10 +350,9 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       post_link("person:#{contact.id}")
 
-      chips_id = ActionView::RecordIdentifier.dom_id(meeting, :participants)
-      replaced = response.body[%r{<turbo-stream action="replace" target="#{chips_id}">[\s\S]*?</turbo-stream>}]
-      expect(replaced).to include('J. Weber (Hoster)')
-      expect(replaced).not_to include("<turbo-frame id=\"meeting-participant-link-modal-#{meeting.id}\"")
+      replaced = stream_markup('replace', chips_id)
+      expect(replaced).to have_text('J. Weber (Hoster)')
+      expect(replaced).to have_no_css("turbo-frame[id='meeting-participant-link-modal-#{meeting.id}']", visible: :all)
     end
 
     it 'links a member by account and leaves person_id empty' do
@@ -326,9 +375,9 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       post_link("member:#{colleague.id}")
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include("action=\"replace\" target=\"meeting-participant-link-modal-#{meeting.id}-#{modal_token}\"")
       # The pick stays marked, also when it is not among the first lines of the list.
-      expect(response.body).to match(/<input[^>]*value="member:#{colleague.id}"[^>]*checked/)
+      expect(stream_markup('replace', dialog_instance_id))
+        .to have_css("input[value='member:#{colleague.id}'][checked]", visible: :all)
       expect(response.body).to include(I18n.t('services.actors.link_meeting_participant.member_already_participant'))
       expect(participant.reload.user_id).to be_nil
     end
@@ -347,7 +396,8 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
         post_link("member:#{pick.id}")
 
         expect(response).to have_http_status(:unprocessable_content)
-        expect(response.body.scan(%(value="member:#{pick.id}")).size).to eq(1)
+        expect(stream_markup('replace', dialog_instance_id))
+          .to have_css("input[value='member:#{pick.id}']", count: 1, visible: :all)
       end
       expect(response.body).to include(I18n.t("#{pl}.suggestion"))
     end
@@ -383,7 +433,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
         post_link('', modal_token: bad)
 
         expect(response).to have_http_status(:unprocessable_content)
-        expect(response.body).to include("action=\"replace\" target=\"#{ActionView::RecordIdentifier.dom_id(meeting, :participants)}\"",
+        expect(response.body).to include("action=\"replace\" target=\"#{chips_id}\"",
                                          I18n.t('services.actors.link_meeting_participant.nothing_picked'))
         expect(response.body).not_to include('target="meeting-participant-link-modal-')
       end
@@ -395,7 +445,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       post_link("person:#{contact.id}", modal_token: '')
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("action=\"replace\" target=\"#{ActionView::RecordIdentifier.dom_id(meeting, :participants)}\"")
+      expect(response.body).to include("action=\"replace\" target=\"#{chips_id}\"")
       expect(response.body).not_to include('action="remove"')
     end
 
@@ -404,6 +454,17 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       expect { post_link('new', new_person_name: 'J. Weber') }.to change(Person, :count).by(1)
       expect(participant.reload.person.name).to eq('J. Weber')
+    end
+
+    it 'keeps the new person picked and the typed name after a refusal' do
+      sign_in writer('manage_people')
+
+      post_link('new', new_person_name: ' ')
+
+      expect(response).to have_http_status(:unprocessable_content)
+      dialog = stream_markup('replace', dialog_instance_id)
+      expect(dialog).to have_css('input[name=choice][value=new][checked]', visible: :all)
+      expect(dialog).to have_field('new_person_name', with: ' ')
     end
 
     it 'creates no person without manage_people' do
@@ -508,17 +569,14 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
     end
 
     it 'does not find the row of a member the writer may not see' do
-      hidden_member = member_with(create(:role, organisation: organisation), first_name: 'Hanna')
-      create(:project_permission, user: hidden_member, project: create(:project, organisation: organisation),
-                                  tickets_access: :read_only)
-      hidden_row = create(:person, organisation: organisation, name: 'Hanna Weber', user: hidden_member)
+      hidden_row = row_out_of_sight(organisation: organisation, name: 'Hanna Weber')
       sign_in writer('view_people')
 
       post_link("person:#{hidden_row.id}")
       expect(response).to have_http_status(:not_found)
       expect(response.body).to include(I18n.t('services.actors.link_meeting_participant.not_found'))
       expect(response.body).not_to include('Hanna Weber')
-      post_link("member:#{hidden_member.id}")
+      post_link("member:#{hidden_row.user_id}")
       expect(response).to have_http_status(:not_found)
       expect(response.body).not_to include('Hanna Weber')
       expect_unchanged
@@ -562,6 +620,63 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       expect(response).to have_http_status(:not_found)
       expect_unchanged
+    end
+  end
+
+  # A dialog or a panel left open while the meeting moved to another project: its
+  # next request finds nothing here. It says so where the dialog would be, instead
+  # of Turbo's "Content missing", and draws nothing of the meeting.
+  describe 'a meeting moved while its row was open' do
+    before do
+      meeting.update_columns(project_id: create(:project, organisation: organisation).id)
+      sign_in admin
+    end
+
+    let(:reason) { I18n.t('services.actors.link_meeting_participant.not_found') }
+
+    it 'answers the dialog frame with the reason' do
+      get new_link_path, headers: { 'Turbo-Frame' => "meeting-participant-link-modal-#{meeting.id}" }
+
+      expect(response).to have_http_status(:not_found)
+      expect(page_markup).to have_css("turbo-frame[id='meeting-participant-link-modal-#{meeting.id}']", text: reason)
+    end
+
+    it 'closes the dialog with the reason after a link' do
+      post_link("person:#{contact.id}")
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.body).to include(%(turbo-stream action="remove" target="#{dialog_instance_id}"), reason)
+      expect(response.body).not_to include('action="replace"')
+      expect(participant.reload.person_id).to be_nil
+    end
+  end
+
+  # The dialog always posts as a stream; a form without Turbo still gets an answer.
+  describe 'without Turbo (a plain form submit)' do
+    before { sign_in admin }
+
+    it 'goes back to the meeting with a notice after a link' do
+      post link_path, params: { choice: "person:#{contact.id}" }
+
+      expect(response).to redirect_to(organisation_project_meetings_path(organisation, project, meeting_id: meeting.id))
+      expect(response).to have_http_status(:see_other)
+      expect(flash[:notice]).to eq(I18n.t('flash.meeting_participant_links.linked'))
+    end
+
+    it 'goes back to the meeting with the reason after a refusal' do
+      post link_path, params: { choice: '' }
+
+      expect(response).to redirect_to(organisation_project_meetings_path(organisation, project, meeting_id: meeting.id))
+      expect(flash[:alert]).to eq(I18n.t('services.actors.link_meeting_participant.nothing_picked'))
+    end
+
+    it 'goes back to the meetings of the project when someone is out of reach' do
+      foreign = ActsAsTenant.with_tenant(create(:organisation)) { create(:person, name: 'Fremde Weber') }
+
+      post link_path, params: { choice: "person:#{foreign.id}" }
+
+      expect(response).to redirect_to(organisation_project_meetings_path(organisation, project))
+      expect(flash[:alert]).to eq(I18n.t('services.actors.link_meeting_participant.not_found'))
     end
   end
 

@@ -34,7 +34,7 @@
                     id: participant_link_trigger_id(participant),
                     class: 'meeting-participant__link inline-flex h-6 w-6 items-center justify-center rounded-full text-cream-600 hover:bg-cream-200 hover:text-ink',
                     title: action_label, aria: { label: action_label },
-                    data: { turbo_frame: participant_link_modal_id(meeting) } do %>
+                    data: { turbo_frame: participant_link_modal_id(meeting.id) } do %>
           <i class="bi <%= participant.person_id ? 'bi-pencil' : 'bi-link-45deg' %>" aria-hidden="true"></i>
         <% end %>
       <% end %>

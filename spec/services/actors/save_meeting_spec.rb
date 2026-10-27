@@ -215,9 +215,10 @@ RSpec.describe Actors::SaveMeeting do
     end
 
     # meeting_participants.person_id links a row to the people directory. The form
-    # never sends it: the edit keeps a row by its normalized name, so the link
-    # survives every save that keeps the name, and a new name is a new row without
-    # a link (accepted; the link dialog sets it again). Rebuilding the rows on save,
+    # never sends it: the edit keeps a row by its normalized name, or by its member
+    # under another name, so the link survives every save that keeps the
+    # participant, and a new name without the same member is a new row without a
+    # link (accepted; the link dialog sets it again). Rebuilding the rows on save,
     # or taking person_id from the payload, would drop every link on every save.
     describe 'person link (person_id)' do
       let(:person) { create(:person, organisation: organisation, name: 'Karl Krause') }
@@ -327,6 +328,38 @@ RSpec.describe Actors::SaveMeeting do
 
         rows = meeting.reload.meeting_participants.pluck(:id, :display_name, :user_id, :person_id)
         expect(rows).to eq([[row.id, 'Karl Krause-Meier', member.id, person.id]])
+      end
+
+      # Two members, one renamed and one removed in the same save: the renamed
+      # member takes its own row and link, never the other member's. Each member
+      # is the renamed one once, so the order the rows load in cannot hide it.
+      [0, 1].each do |renamed|
+        it "gives a member under a new name its own row, not another member's (member #{renamed + 1})" do
+          names = ['Karl Krause', 'Erika Muster']
+          members = [org_member, org_member]
+          meeting = described_class.call(
+            project: project,
+            params: valid_params.merge(participants: names.zip(members).map { |n, m| { display_name: n, user_id: m.id } }),
+            current_user: user
+          ).resource
+          # Setup only: one person per row, looked up per name (Prosopite would
+          # call the loop an N+1).
+          people = Prosopite.pause do
+            names.map do |n|
+              linked = create(:person, organisation: organisation, name: n)
+              meeting.meeting_participants.find_by!(normalized_name: MeetingParticipant.normalize_name(n))
+                     .update_column(:person_id, linked.id)
+              linked
+            end
+          end
+          kept = meeting.meeting_participants.find_by!(user_id: members[renamed].id)
+
+          save(meeting, valid_params.merge(participants: [{ display_name: "#{names[renamed]}-Neu",
+                                                            user_id: members[renamed].id }]))
+
+          rows = meeting.reload.meeting_participants.pluck(:id, :user_id, :person_id)
+          expect(rows).to eq([[kept.id, members[renamed].id, people[renamed].id]])
+        end
       end
 
       # A row whose name is sent keeps its name; matching by member comes second.

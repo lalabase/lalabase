@@ -37,6 +37,10 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   version of the release you checked out. Update with `git checkout <release>`, then
   `docker compose pull && docker compose up -d`. To keep building the image on your
   server, add `COMPOSE_FILE=compose.yml:compose.build.yml` to `.env`.
+- Leave `LALABASE_VERSION` out of `.env`. Set, it pins the image, and a release checked out
+  later keeps running the pinned version.
+- Unless you keep building the image, the image `lalabase:local` that earlier releases built
+  is no longer used: `docker image rm lalabase:local` removes it.
 
 ## [2026.10.1] - 2026-10-21
 

@@ -213,6 +213,192 @@ RSpec.describe Actors::SaveMeeting do
       result = described_class.call(project: project, params: params, current_user: user)
       expect(result.success).to be(false)
     end
+
+    # meeting_participants.person_id links a row to the people directory. The form
+    # never sends it: the edit keeps a row by its normalized name, or by its member
+    # under another name, so the link survives every save that keeps the
+    # participant, and a new name without the same member is a new row without a
+    # link (accepted; the link dialog sets it again). Rebuilding the rows on save,
+    # or taking person_id from the payload, would drop every link on every save.
+    describe 'person link (person_id)' do
+      let(:person) { create(:person, organisation: organisation, name: 'Karl Krause') }
+
+      # The meeting is created through the actor; the link is set directly, as the
+      # link dialog (a separate writer) will.
+      def meeting_with(*names)
+        described_class.call(
+          project: project, params: valid_params.merge(participants: names.map { |n| { display_name: n } }),
+          current_user: user
+        ).resource
+      end
+
+      def linked_row(meeting, name)
+        row = meeting.meeting_participants.find_by!(normalized_name: MeetingParticipant.normalize_name(name))
+        row.update_column(:person_id, person.id)
+        row
+      end
+
+      def save(meeting, params)
+        result = described_class.call(project: project, id: meeting.id, params: params, current_user: user)
+        expect(result.success).to be(true)
+        result
+      end
+
+      it 'keeps person_id and the row when the name stays and the rest of the meeting changes' do
+        meeting = meeting_with('Karl Krause', 'Anna Ananas')
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(title: 'Retro',
+                                         participants: [{ display_name: 'Karl Krause' }, { display_name: 'Bert Bauer' }]))
+
+        expect(meeting.reload.title).to eq('Retro')
+        expect(participants_of(meeting)).to eq(['bert bauer', 'karl krause'])
+        expect(MeetingParticipant.where(id: row.id).pluck(:person_id)).to eq([person.id])
+      end
+
+      it 'keeps person_id and takes the new spelling when the normalized name is the same' do
+        meeting = meeting_with('Karl Krause')
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: '  KARL   krause ' }]))
+
+        rows = meeting.reload.meeting_participants.pluck(:id, :display_name, :person_id)
+        expect(rows).to eq([[row.id, 'KARL krause', person.id]])
+      end
+
+      it 'keeps person_id when only the user_id of the participant changes' do
+        member = org_member
+        meeting = meeting_with('Karl Krause')
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id }]))
+        expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[member.id, person.id]])
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: '' }]))
+        expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[nil, person.id]])
+      end
+
+      it 'keeps person_id when no :participants key is sent' do
+        meeting = meeting_with('Karl Krause')
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, { title: 'Renamed', occurred_at: Time.current })
+
+        expect(MeetingParticipant.where(id: row.id).pluck(:person_id)).to eq([person.id])
+      end
+
+      it 'never takes person_id from the payload' do
+        other = create(:person, organisation: organisation, name: 'Erika Muster')
+        meeting = meeting_with('Karl Krause', 'Anna Ananas')
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause', person_id: other.id },
+                                                        { display_name: 'Anna Ananas', person_id: other.id }]))
+
+        expect(meeting.reload.meeting_participants.pluck(:id, :person_id))
+          .to contain_exactly([row.id, person.id], [anything, nil])
+      end
+
+      # The accepted rule (no rename in the form): a chip removed and a new one
+      # added is another participant. The old row goes, its link with it.
+      it 'drops the row and its link when the name is replaced by a new one' do
+        meeting = meeting_with('Karl Krause')
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Kraus' }]))
+
+        rows = meeting.reload.meeting_participants.pluck(:id, :normalized_name, :person_id)
+        expect(rows.size).to eq(1)
+        expect(rows.first).to match([satisfy { |id| id != row.id }, 'karl kraus', nil])
+        expect(Person.exists?(person.id)).to be(true)
+      end
+
+      # The form labels a member chip with the member's CURRENT profile name, not
+      # the stored one. After a change of name in the profile, an untouched save
+      # sends the same member under a new name: still the same participant.
+      it 'keeps the row and person_id when a member arrives under a new name' do
+        member = org_member
+        meeting = described_class.call(
+          project: project, params: valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id }]),
+          current_user: user
+        ).resource
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause-Meier', user_id: member.id }]))
+
+        rows = meeting.reload.meeting_participants.pluck(:id, :display_name, :user_id, :person_id)
+        expect(rows).to eq([[row.id, 'Karl Krause-Meier', member.id, person.id]])
+      end
+
+      # Two members, one renamed and one removed in the same save: the renamed
+      # member takes its own row and link, never the other member's. Each member
+      # is the renamed one once, so the order the rows load in cannot hide it.
+      [0, 1].each do |renamed|
+        it "gives a member under a new name its own row, not another member's (member #{renamed + 1})" do
+          names = ['Karl Krause', 'Erika Muster']
+          members = [org_member, org_member]
+          meeting = described_class.call(
+            project: project,
+            params: valid_params.merge(participants: names.zip(members).map { |n, m| { display_name: n, user_id: m.id } }),
+            current_user: user
+          ).resource
+          # Setup only: one person per row, looked up per name (Prosopite would
+          # call the loop an N+1).
+          people = Prosopite.pause do
+            names.map do |n|
+              linked = create(:person, organisation: organisation, name: n)
+              meeting.meeting_participants.find_by!(normalized_name: MeetingParticipant.normalize_name(n))
+                     .update_column(:person_id, linked.id)
+              linked
+            end
+          end
+          kept = meeting.meeting_participants.find_by!(user_id: members[renamed].id)
+
+          save(meeting, valid_params.merge(participants: [{ display_name: "#{names[renamed]}-Neu",
+                                                            user_id: members[renamed].id }]))
+
+          rows = meeting.reload.meeting_participants.pluck(:id, :user_id, :person_id)
+          expect(rows).to eq([[kept.id, members[renamed].id, people[renamed].id]])
+        end
+      end
+
+      # A row whose name is sent keeps its name; matching by member comes second.
+      # The member takes the row of its new name, and its old row goes.
+      it 'matches by name before it matches by member' do
+        member = org_member
+        meeting = described_class.call(
+          project: project,
+          params: valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id },
+                                                    { display_name: 'Karl Krause-Meier' }]),
+          current_user: user
+        ).resource
+        linked_row(meeting, 'Karl Krause')
+        named = meeting.meeting_participants.find_by!(normalized_name: 'karl krause-meier')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause-Meier', user_id: member.id }]))
+
+        rows = meeting.reload.meeting_participants.pluck(:id, :user_id, :person_id)
+        expect(rows).to eq([[named.id, member.id, nil]])
+      end
+
+      # The member's old name comes back as an external participant: that name
+      # claims the row, so the member cannot take it too and gets a new one.
+      it 'never gives a name and a member the same row' do
+        member = org_member
+        meeting = described_class.call(
+          project: project, params: valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id }]),
+          current_user: user
+        ).resource
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause' },
+                                                        { display_name: 'Karl Krause-Meier', user_id: member.id }]))
+
+        rows = meeting.reload.meeting_participants.order(:normalized_name).pluck(:id, :normalized_name, :user_id, :person_id)
+        expect(rows).to match([[row.id, 'karl krause', nil, person.id],
+                               [satisfy { |id| id != row.id }, 'karl krause-meier', member.id, nil]])
+      end
+    end
   end
 
   # Search & chat embedding wiring (Gespräche Slice 6): enqueue gating mirrors

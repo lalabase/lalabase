@@ -146,23 +146,48 @@ module Actors
       raise ActorError, @meeting.errors.full_messages if @meeting.errors.any?
     end
 
+    # Rows are matched and updated in place, never rebuilt. That is what keeps
+    # person_id (the link to the people directory): the form does not know it,
+    # and it never comes from the payload. A row survives every save that keeps
+    # the participant, with its link: the same normalized name in any spelling,
+    # or the same member under another name (the form labels a member chip with
+    # the member's current profile name, so a change of name in the profile
+    # comes back on the next save). A new name without such a member is a new
+    # row without a link: the form has no rename, a chip removed and another
+    # added is another participant, and the link dialog sets the link again.
     def reconcile_participants(desired)
-      keep = desired.map { |d| d[:normalized_name] }
-      # Remove participants no longer present (empty desired -> clears them all).
-      @meeting.meeting_participants.where.not(normalized_name: keep).destroy_all
+      # Load the rows once (no per-row SELECT / N+1) and upsert against them.
+      existing = @meeting.meeting_participants.to_a
+      rows = match_participant_rows(existing, desired)
+      # Remove participants no longer present (empty desired -> clears them all),
+      # through the association so the loaded rows drop them too.
+      @meeting.meeting_participants.destroy(*(existing - rows.compact))
 
-      # Load the survivors once (no per-row SELECT / N+1) and upsert against them.
-      existing = @meeting.meeting_participants.index_by(&:normalized_name)
       # Share the already-loaded org instance so the belongs_to :organisation
       # presence validation does not re-query it once per participant (N+1).
       org = @meeting.organisation
-      desired.each do |d|
-        participant = existing[d[:normalized_name]] || @meeting.meeting_participants.build
+      desired.zip(rows).each do |d, participant|
+        participant ||= @meeting.meeting_participants.build
         participant.organisation = org
         participant.display_name = d[:display_name]
         participant.user_id = d[:user_id]
         participant.save!
       end
+    end
+
+    # The existing row for each desired participant, or nil for a new one: the
+    # row of its normalized name first, else the row of its member that no name
+    # claimed. Name first, so the row of a name keeps its name and its link:
+    # a member whose new name is already an external row of this meeting takes
+    # that row and its link, and the member's old row goes (as before the
+    # member match existed). Only unclaimed rows count for a member, so a name
+    # and a member never get the same row. Each user_id occurs once in desired
+    # (guard_against_duplicates!), so a row is never matched twice.
+    def match_participant_rows(existing, desired)
+      by_name = existing.index_by(&:normalized_name)
+      rows = desired.map { |d| by_name[d[:normalized_name]] }
+      by_user = (existing - rows.compact).select(&:user_id).index_by(&:user_id)
+      desired.zip(rows).map { |d, row| row || by_user[d[:user_id]] }
     end
 
     # PII fail-safe (Gespräche Slice 6, plan §5/§7): a meeting that is NOT indexed

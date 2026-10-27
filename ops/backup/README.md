@@ -1,5 +1,14 @@
 # Backup und Log-Retention (Produktion)
 
+> **Self-hosting?** This directory is the backup setup of the servers behind lalabase.com
+> (two hosts, a Storage Box, systemd units), not a guide for your instance. To back up a
+> Docker Compose installation, see [Backups](https://lalabase.com/docs/en/self-hosting/operation/backups)
+> in the self-hosting docs.
+>
+> **Selbst betrieben?** Dieses Verzeichnis ist die Backup-Einrichtung der Server hinter
+> lalabase.com, keine Anleitung für deine Instanz. Wie du eine Installation mit Docker Compose
+> sicherst, steht unter [Backups](https://lalabase.com/docs/de/self-hosting/operation/backups).
+
 Eingerichtet am 04.08.2026. Vorher gab es **keine** Backup-Automatik und **keine** Rotation der
 Anwendungs-Logs; die einzige Sicherung war ein von Hand gezogener Dump vom 02.08.
 

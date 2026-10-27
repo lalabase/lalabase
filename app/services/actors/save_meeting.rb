@@ -146,6 +146,12 @@ module Actors
       raise ActorError, @meeting.errors.full_messages if @meeting.errors.any?
     end
 
+    # Rows are matched by normalized_name and updated in place, never rebuilt.
+    # That is what keeps person_id (the link to the people directory): the form
+    # does not know it, and it never comes from the payload. A row survives every
+    # save that keeps its name, in any spelling, with its link. A new name is a
+    # new row without a link: the form has no rename, a chip removed and another
+    # added is another participant, and the link dialog sets the link again.
     def reconcile_participants(desired)
       keep = desired.map { |d| d[:normalized_name] }
       # Remove participants no longer present (empty desired -> clears them all).

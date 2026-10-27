@@ -1,0 +1,43 @@
+<%# locals: (person: nil, member: nil, more_url:) %>
+<%# Variant A of S2a: "Letzter Kontakt" right under the identity, then the
+    newest meetings (three, then "Alle N anzeigen", which reloads the lane
+    with ?meetings=all). Only what the viewer may read (People::Contacts); a
+    row opens the meeting where "Alle Meetings" opens it. No badge per
+    meeting: attendance is the only kind there is (E2). %>
+<% summary = person_contacts(person: person, member: member) %>
+<% last = summary[:last] %>
+<% all_shown = params[:meetings] == 'all' %>
+<% total = summary[:meetings].count %>
+<% meetings = all_shown ? summary[:meetings].to_a : summary[:meetings].limit(Organisations::PeopleController::MEETINGS_SHOWN).to_a %>
+<p class="people-last">
+  <i class="bi bi-clock-history" aria-hidden="true"></i>
+  <span class="people-last__label"><%= t('views.organisations.people.show.last_contact') %></span>
+  <span class="people-last__text <%= 'people-last__text--none' unless last %>">
+    <%= last ? last_contact_text(last) : t('views.organisations.people.show.no_meeting') %>
+  </span>
+</p>
+
+<section class="people-meetings" aria-labelledby="people-meetings-title">
+  <h3 id="people-meetings-title" class="people-meetings__title"><%= t('views.organisations.people.show.meetings') %></h3>
+  <% if meetings.empty? %>
+    <p class="people-meetings__empty"><%= t('views.organisations.people.show.no_meeting') %></p>
+  <% else %>
+    <ul class="people-meetings__list">
+      <% meetings.each do |meeting| %>
+        <li>
+          <%= link_to organisation_meetings_path(@current_organisation, meeting_id: meeting.id), class: 'people-meetings__row',
+                                                                                                data: { turbo_frame: '_top' } do %>
+            <time class="people-meetings__date" datetime="<%= meeting.occurred_at.to_date.iso8601 %>"><%= l(meeting.occurred_at.to_date, format: :default) %></time>
+            <span class="people-meetings__text">
+              <span class="people-meetings__name"><%= meeting.title %></span>
+              <span class="people-meetings__project"><%= meeting.project.name %></span>
+            </span>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+    <% if !all_shown && total > meetings.size %>
+      <%= link_to t('views.organisations.people.show.all_meetings', count: total), more_url, class: 'people-text-action' %>
+    <% end %>
+  <% end %>
+</section>

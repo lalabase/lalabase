@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { readLaneParams, laneParamNames } from "lane/params"
-import { controlIndexPath, indexPaths } from "lane/filter_context"
+import { controlIndexPath, indexPaths, withLiveLane } from "lane/filter_context"
 import { escapeOwned } from "escape_owner"
 
 // The fixed-height list/detail grids (Tickets table, Knowledge, Meetings) fill the
@@ -306,7 +306,12 @@ export default class extends Controller {
       if (address.origin !== current.origin || !index) continue
 
       // List links intentionally change page, sort or view. Only explicit lane
-      // return links inherit the current list state at the index route.
+      // return links inherit the current list state at the index route; a list
+      // link marked data-lane-keep takes the lane open now (lib/lane/filter_context).
+      if (control.tagName === 'A' && path === index && control.matches('[data-lane-keep]')) {
+        control.setAttribute(attribute, withLiveLane(address, current, this.laneNames).toString())
+        continue
+      }
       if (control.tagName === 'A' && path === index && !control.matches('[data-lane-back], [data-form-lane-back], [data-lane-close]')) continue
 
       const previousInputs = new URLSearchParams()

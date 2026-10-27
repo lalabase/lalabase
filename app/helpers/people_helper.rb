@@ -187,4 +187,43 @@ module PeopleHelper
     label = t('views.organisations.people.form.former_member_option', name: person.name_in_database)
     [[label, stored_id]] + options
   end
+
+  # How long ago a last contact was, in calendar days (S2a): heute, gestern,
+  # vor n Tagen, Wochen, Monaten, Jahren. Not time_ago_in_words: that counts
+  # hours ("etwa 1 Stunde") and calls late yesterday evening "today".
+  def last_contact_age(at)
+    days = (Time.zone.today - at.in_time_zone.to_date).to_i
+    scope = 'views.organisations.people.age'
+    return t("#{scope}.today") if days <= 0
+    return t("#{scope}.yesterday") if days == 1
+    return t("#{scope}.days", count: days) if days < 7
+    return t("#{scope}.weeks", count: days / 7) if days < 30
+    return t("#{scope}.months", count: days / 30) if days < 365
+
+    t("#{scope}.years", count: days / 365)
+  end
+
+  # The words of a last contact (People::Contacts::LastContact): the last
+  # meeting with its date (with the year when it is not this year), or the
+  # ticket work with its age.
+  def last_contact_text(last)
+    scope = 'views.organisations.people.last_contact'
+    if last.kind == :meeting
+      date = last.at.to_date
+      t("#{scope}.meeting", title: last.meeting_title,
+                            date: l(date, format: date.year == Time.zone.today.year ? :short : :default))
+    else
+      t("#{scope}.ticket.#{last.action}", number: last.ticket_number, age: last_contact_age(last.at))
+    end
+  end
+
+  # The last contact and the readable meetings of one person or member in the
+  # lane. A member (the account, active) counts their ticket work too; a row
+  # of a former member only its meetings.
+  def person_contacts(person: nil, member: nil)
+    contacts = People::Contacts.new(viewer: current_user, organisation: current_organisation)
+    meetings = contacts.meetings_for(person: person, user: member).includes(:project)
+    { last: contacts.last_contacts([People::Contacts::Subject.for(person: person, member: member)]).first,
+      meetings: meetings }
+  end
 end

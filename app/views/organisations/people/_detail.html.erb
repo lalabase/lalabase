@@ -14,6 +14,8 @@
 
   <% status_icon, status = person_link_state(person, member) %>
   <%= render 'organisations/people/identity', name: name, user: member, status_icon: status_icon, status: status %>
+  <%= render 'organisations/people/contact_summary', person: person, member: member,
+                                                     more_url: organisation_person_path(@current_organisation, person, list_state.merge('meetings' => 'all')) %>
 
   <% duplicates = People::Directory.new(viewer: current_user, organisation: @current_organisation).duplicates_of(person) %>
   <% if duplicates.any? %>
@@ -54,6 +56,9 @@
     <p class="people-footer__created">
       <% if person.creator %>
         <%= t('views.organisations.people.show.created_by', name: person_actor_name(person.creator), date: l(person.created_at.to_date, format: :default)) %>
+      <% elsif member %>
+        <%# A member row nobody created by hand ("Angaben ergänzen" by a deleted account, a later import). %>
+        <%= t('views.organisations.people.show.from_account', date: l(person.created_at.to_date, format: :default)) %>
       <% else %>
         <%= t('views.organisations.people.show.created_at', date: l(person.created_at.to_date, format: :default)) %>
       <% end %>

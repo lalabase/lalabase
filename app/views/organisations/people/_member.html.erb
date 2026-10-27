@@ -9,6 +9,8 @@
                                                edit_link: add_link %>
   <%= render 'organisations/people/identity', name: viewer_display_name(member), user: member, status_icon: 'bi-person-check',
                                               status: t('views.organisations.people.show.linked_member', name: viewer_display_name(member)) %>
+  <%= render 'organisations/people/contact_summary', member: member,
+                                                     more_url: member_organisation_people_path(@current_organisation, member.id, list_state.merge('meetings' => 'all')) %>
   <%= render 'organisations/people/bare_hint', member: member, link: add_link %>
   <%= render 'organisations/people/fields', fields: person_fields(nil, member) %>
   <% membership = Membership.find_by(organisation: @current_organisation, user: member) %>

@@ -28,3 +28,17 @@ export function indexPaths(pageIndexUrl, laneIndexUrls, origin) {
   const paths = [pageIndexUrl, ...laneIndexUrls].filter(Boolean).map((url) => new URL(url, origin).pathname)
   return [...new Set(paths)]
 }
+
+// A list link that keeps the lane (data-lane-keep, the sort heads of the
+// people list) was rendered with the selection of the page request. A row
+// click changes the open object in the address only, so at click time the
+// link takes the lane part of the live address instead: the object open now,
+// or none once the lane was closed. Returns a new URL.
+export function withLiveLane(address, current, laneNames) {
+  const result = new URL(address.toString())
+  for (const name of laneNames) {
+    result.searchParams.delete(name)
+    for (const value of current.searchParams.getAll(name)) result.searchParams.append(name, value)
+  }
+  return result
+}

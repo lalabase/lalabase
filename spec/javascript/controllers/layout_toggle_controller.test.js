@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import { laneParamNames } from '../../../app/javascript/lib/lane/params.js'
-import { controlIndexPath, indexPaths } from '../../../app/javascript/lib/lane/filter_context.js'
+import { controlIndexPath, indexPaths, withLiveLane } from '../../../app/javascript/lib/lane/filter_context.js'
 import { escapeOwned } from '../../../app/javascript/lib/escape_owner.js'
 
 const source = readFileSync(new URL('../../../app/javascript/controllers/layout_toggle_controller.js', import.meta.url), 'utf8')
@@ -17,7 +17,7 @@ function controllerWith(document, { window = {}, groups = null, element = null }
     CustomEvent: class {
       constructor(type, options) { this.type = type; Object.assign(this, options) }
     },
-    readLaneParams: () => groups, laneParamNames, controlIndexPath, indexPaths, escapeOwned
+    readLaneParams: () => groups, laneParamNames, controlIndexPath, indexPaths, withLiveLane, escapeOwned
   })
   const controller = new Controller()
   controller.listFilterParamsValue = []
@@ -259,7 +259,8 @@ test('list navigation retains its destination while lane return links inherit cu
     tagName: 'A', href,
     getAttribute() { return this.href },
     setAttribute(_name, value) { this.href = value },
-    matches() { return lane }
+    // A return link answers to the lane return selectors, never to data-lane-keep.
+    matches(selector) { return lane && !selector.includes('data-lane-keep') }
   })
   const destinations = [
     '/meetings?page=4&meeting_id=M',
@@ -288,6 +289,31 @@ test('list navigation retains its destination while lane return links inherit cu
   }
 })
 
+// Review of PR #51: the sort heads of the people list are list links that
+// keep the lane (data-lane-keep). They were rendered with the person of the
+// page request; at click time they take the person open now, or none.
+test('a list link marked data-lane-keep takes the live selection and keeps its own list state', () => {
+  const link = {
+    tagName: 'A', href: '/org/o/people?q=an&sort=last&person_id=A',
+    getAttribute() { return this.href },
+    setAttribute(_name, value) { this.href = value },
+    matches(selector) { return selector === '[data-lane-keep]' }
+  }
+  const element = {
+    dataset: { indexUrl: '/org/o/people' },
+    querySelectorAll: selector => selector === '[data-lane-index-url]' ? [] : [link]
+  }
+  const groups = { selection: ['person_id', 'member_id'], preview: [], form: ['new', 'user_id'], ignore: ['viewport'] }
+  const controller = controllerWith({}, { element, groups })
+  controller.listFilterParamsValue = ['q', 'kind', 'sort']
+
+  controller.syncFilterContext(new URL('http://lalabase.test/org/o/people?q=an&member_id=M'))
+  assert.equal(new URL(link.href).search, '?q=an&sort=last&member_id=M')
+
+  controller.syncFilterContext(new URL('http://lalabase.test/org/o/people?q=an'))
+  assert.equal(new URL(link.href).search, '?q=an&sort=last')
+})
+
 // "Alle Meetings" shows a project's meeting in its lane (PR 3 of
 // doc/meetings_uebersicht_vereinheitlichen_plan.md): its controls live below the
 // project's meetings index, which the lane head names. They take the list state
@@ -298,7 +324,7 @@ test('a lane of another list takes the list state on the index its head names', 
     tagName, href, method: 'post',
     getAttribute() { return this.href },
     setAttribute(_name, value) { this.href = value },
-    matches() { return matched },
+    matches(selector) { return matched && !selector.includes('data-lane-keep') },
     querySelectorAll: () => [],
     append() {}
   })

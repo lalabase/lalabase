@@ -21,6 +21,7 @@
 #  updated_at      :datetime         not null
 #  meeting_id      :uuid             not null
 #  organisation_id :uuid             not null
+#  person_id       :uuid
 #  user_id         :uuid
 #
 # Indexes
@@ -28,15 +29,23 @@
 #  idx_on_organisation_id_normalized_name_5eadc4a5e5             (organisation_id,normalized_name)
 #  index_meeting_participants_on_meeting_id_and_normalized_name  (meeting_id,normalized_name) UNIQUE
 #  index_meeting_participants_on_meeting_id_and_user_id          (meeting_id,user_id) UNIQUE WHERE (user_id IS NOT NULL)
+#  index_meeting_participants_on_person_id                       (person_id)
 #  index_meeting_participants_on_user_id                         (user_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (meeting_id => meetings.id)
 #  fk_rails_...  (organisation_id => organisations.id)
+#  fk_rails_...  (person_id => people.id) ON DELETE => nullify
 #  fk_rails_...  (user_id => users.id) ON DELETE => nullify
 #
 class MeetingParticipant < ApplicationRecord
+  # The person row of the people directory this participant is (a contact
+  # without an account; a member is found through user_id). Declared BEFORE
+  # acts_as_tenant, which checks the tenant only of earlier references; the
+  # validation below holds it to the participant's organisation on top.
+  belongs_to :person, optional: true
+
   acts_as_tenant(:organisation)
 
   belongs_to :meeting
@@ -51,6 +60,7 @@ class MeetingParticipant < ApplicationRecord
   # rows are built directly (specs, console).
   validates :normalized_name, uniqueness: { scope: :meeting_id }, allow_blank: true
   validates :user_id, uniqueness: { scope: :meeting_id }, allow_nil: true
+  validate :person_in_same_organisation, if: -> { person_id.present? && will_save_change_to_person_id? }
 
   # External (name-only) participants in the given projects — the ONE definition of
   # "an external participation eligible to be claimed", shared by the claim matcher
@@ -88,5 +98,11 @@ class MeetingParticipant < ApplicationRecord
   def assign_normalized_name
     self.display_name = display_name.to_s.strip.gsub(/\s+/, ' ') if display_name.present?
     self.normalized_name = self.class.normalize_name(display_name)
+  end
+
+  def person_in_same_organisation
+    return if Person.where(id: person_id, organisation_id: organisation_id).exists?
+
+    errors.add(:person, :invalid)
   end
 end

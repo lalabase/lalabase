@@ -158,6 +158,12 @@ Verzeichnis-Übersicht (Auswahl):
   über `MembershipPolicy::Scope` (dieselbe Reichweite wie die Mitgliederseite), dazu die
   Zeilen ohne aktives Mitglied als Kontakte; Suche in Ruby über `PersonName.normalize`.
   Rechte nur über `PersonPolicy`, keine eigene Regel daneben.
+  `contacts.rb` (S2a, 26.10.2026): Meetings einer Person (`person_id` ODER `user_id` des
+  Mitglieds) und „Letzter Kontakt“ einer ganzen Liste in fester Abfragezahl. Lesbar nur über
+  `MeetingPolicy::Scope`, `TicketPolicy::Scope`, `Post.readable_by` und `Activity.feed`; bei
+  aktiven Mitgliedern zählt eigene Ticket-Arbeit (`TICKET_ACTIONS`: angelegt, geändert,
+  kommentiert), bei Kontakten nur Meetings. `Directory#entries` hängt den Kontakt an und
+  sortiert nach `name` oder `last`.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

@@ -29,7 +29,9 @@ module Organisations
     LIST_FRAME_ID = 'people_results'
     NEW_STATE = 'person'
     # The list state the lane's forms and links carry, so a save keeps it.
-    LIST_PARAMS = %w[q kind].freeze
+    LIST_PARAMS = %w[q kind sort].freeze
+    # The meetings the lane shows before "Alle N anzeigen".
+    MEETINGS_SHOWN = 3
 
     rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
 
@@ -150,7 +152,7 @@ module Organisations
 
     def directory
       @directory ||= People::Directory.new(viewer: current_user, organisation: current_organisation,
-                                           query: params[:q], kind: params[:kind])
+                                           query: params[:q], kind: params[:kind], sort: params[:sort])
     end
 
     def load_list
@@ -264,6 +266,7 @@ module Organisations
     def list_state
       given = request.query_parameters.merge(request.request_parameters)
       state = given.slice(*LIST_PARAMS).select { |_key, value| value.is_a?(String) && value.present? }
+      state.delete('sort') unless People::Directory::SORTS.include?(state['sort'])
       state['viewport'] = 'mobile' if given['viewport'] == 'mobile'
       state
     end

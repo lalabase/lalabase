@@ -226,6 +226,18 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       expect(response.body).to include('Anton Anders')
       expect(response.body).not_to include('Jonas Weber')
       expect(response.body).not_to include(I18n.t("#{pl}.suggestion"))
+      # Only the list frame, not the whole dialog around it.
+      expect(response.body).to include("id=\"meeting-participant-link-results-#{participant.id}\"")
+      expect(response.body).not_to include(I18n.t("#{pl}.title"), "meeting-participant-link-modal-#{meeting.id}")
+    end
+
+    it 'shows the line under a name: function of a row, email of a member' do
+      colleague = member_with(create(:role, organisation: organisation), first_name: 'Carl')
+      sign_in admin
+
+      get new_link_path
+
+      expect(response.body).to include('Jonas Weber', 'Hosting', 'Carl Beispiel', CGI.escapeHTML(colleague.email))
     end
 
     it 'does not name a linked person the viewer may not see' do
@@ -321,6 +333,25 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       expect(participant.reload.user_id).to be_nil
     end
 
+    # The pick of a refused save is put back into the list; it must not stand twice,
+    # whether the dialog lists it as a suggestion or among the others.
+    it 'lists a refused pick once, as a suggestion or among the others' do
+      suggested = create(:user, first_name: 'Karl', last_name: 'Weber')
+      listed = member_with(create(:role, organisation: organisation), first_name: 'Carl')
+      create(:membership, user: suggested, organisation: organisation, role: create(:role, organisation: organisation), active: true)
+      create(:meeting_participant, meeting: meeting, display_name: 'Karl Weber', user: suggested)
+      create(:meeting_participant, meeting: meeting, display_name: 'Carl Beispiel', user: listed)
+      sign_in admin
+
+      [suggested, listed].each do |pick|
+        post_link("member:#{pick.id}")
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body.scan(%(value="member:#{pick.id}")).size).to eq(1)
+      end
+      expect(response.body).to include(I18n.t("#{pl}.suggestion"))
+    end
+
     it 'refuses without a choice' do
       sign_in admin
 
@@ -328,6 +359,44 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(I18n.t('services.actors.link_meeting_participant.nothing_picked'))
+    end
+
+    it 'answers our own failure with a 500 and the dialog' do
+      failure = Actors::BaseActor::Result.new(success: false, errors: ['Interner Fehler'], code: :internal_error)
+      allow(Actors::LinkMeetingParticipant).to receive(:call).and_return(failure)
+      sign_in admin
+
+      post_link("person:#{contact.id}")
+
+      expect(response).to have_http_status(:internal_server_error)
+      expect(response.body).to include("action=\"replace\" target=\"meeting-participant-link-modal-#{meeting.id}-#{modal_token}\"",
+                                       'Interner Fehler')
+    end
+
+    # The token names one opening of the dialog in a stream target: only 16 hex
+    # characters count, anything else answers as if there were no dialog.
+    { 'a leading character' => '-0123456789abcdef', 'a trailing character' => '0123456789abcdef-',
+      'one character short' => '0123456789abcde', 'no hex at all' => 'not-a-token' }.each do |label, bad|
+      it "uses no token with #{label}" do
+        sign_in admin
+
+        post_link('', modal_token: bad)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include("action=\"replace\" target=\"#{ActionView::RecordIdentifier.dom_id(meeting, :participants)}\"",
+                                         I18n.t('services.actors.link_meeting_participant.nothing_picked'))
+        expect(response.body).not_to include('target="meeting-participant-link-modal-')
+      end
+    end
+
+    it 'removes no dialog after a link without a token' do
+      sign_in admin
+
+      post_link("person:#{contact.id}", modal_token: '')
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("action=\"replace\" target=\"#{ActionView::RecordIdentifier.dom_id(meeting, :participants)}\"")
+      expect(response.body).not_to include('action="remove"')
     end
 
     it 'creates a person and links it' do
@@ -384,6 +453,29 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       get new_link_path
       expect(response).to have_http_status(:found)
       expect_unchanged
+    end
+
+    # Unlinking reads nothing of the directory, so only the controller's checks hold it.
+    it 'refuses to unlink for a writer without view_people' do
+      participant.update!(person: contact)
+      sign_in writer
+
+      delete link_path, params: { modal_token: modal_token }, headers: stream
+
+      expect(response).to have_http_status(:found)
+      expect(participant.reload.person_id).to eq(contact.id)
+    end
+
+    it 'refuses to unlink for a reader of the meeting with view_people' do
+      participant.update!(person: contact)
+      reader = member_with(role_with('manage_people'), first_name: 'Rita')
+      create(:project_permission, user: reader, project: project, meetings_access: :read_only)
+      sign_in reader
+
+      delete link_path, params: { modal_token: modal_token }, headers: stream
+
+      expect(response).to have_http_status(:found)
+      expect(participant.reload.person_id).to eq(contact.id)
     end
 
     it 'refuses a member of another organisation' do

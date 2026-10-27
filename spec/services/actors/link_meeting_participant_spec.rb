@@ -117,6 +117,20 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
       expect(result.errors).to eq([I18n.t('services.actors.link_meeting_participant.member_name_taken')])
       expect(participant.reload.user_id).to be_nil
     end
+
+    # The claim writes without the meeting lock, so its row can land after both the
+    # actor's check and the model's uniqueness validation. The partial unique index on
+    # (meeting_id, user_id) then refuses, and the actor answers as the check would.
+    it 'turns the unique index into the same refusal when a write lands past both checks' do
+      create(:meeting_participant, meeting: meeting, display_name: 'Carl der Andere', user: colleague)
+      allow_any_instance_of(described_class).to receive(:taken_by_another?).and_return(false)
+      allow_any_instance_of(MeetingParticipant).to receive(:valid?).and_return(true)
+
+      result = link(member_id: colleague.id)
+
+      expect(result.code).to eq(:member_already_participant)
+      expect(participant.reload.user_id).to be_nil
+    end
   end
 
   describe 'a participant that is a member' do
@@ -170,6 +184,13 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
       expect(created.name).to eq('J. Weber')
       expect(created.creator).to eq(writer)
       expect(participant.reload.person_id).to eq(created.id)
+    end
+
+    # The dialog sends a name only; the rest of the row is the people page's.
+    it 'takes only the name from the new person' do
+      link(new_person: { name: 'J. Weber', email: 'jw@example.com', function: 'Hoster' })
+
+      expect(participant.reload.person).to have_attributes(name: 'J. Weber', email: nil, function: nil)
     end
 
     it 'creates nothing when the name is blank' do

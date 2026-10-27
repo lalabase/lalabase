@@ -1,0 +1,6 @@
+<%# locals: (meeting:) %>
+<%# The participant row of this meeting as it is now, wherever the page shows it (the
+    meeting's page or the panel beside a ticket). %>
+<%= turbo_stream.replace meeting_participants_row_id(meeting),
+                         partial: 'organisations/meetings/participants_row',
+                         locals: { meeting: meeting, participants: meeting.meeting_participants.order(:created_at).to_a } %>

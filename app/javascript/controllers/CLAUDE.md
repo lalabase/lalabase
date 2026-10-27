@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-10-17)
+# Karte: app/javascript/controllers (Stand: 2026-10-27)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -25,6 +25,8 @@ Konventionen:
   Öffnen, Schließen leert den Frame. Jede Öffnung trägt eine eigene ID (Token): Ablehnung und
   Speichern treffen nur sie, eine späte Antwort an ein geschlossenes Modal findet nichts. Das
   Fokus-Rücksprungziel liegt am Frame, nicht an der Instanz.
+  Ein weiteres Modal derselben Form erbt den Controller statt ihn zu kopieren
+  (`participant_link_modal_controller.js`, seit 27.10.2026: nur das erste Feld ist anders).
 * **Escape gehört dem Obersten** (`lib/escape_owner.js`, seit 17.10.2026): Jeder Controller, der
   auf Escape reagiert, beantwortet `ownsEscape()` (wahr, solange sein nächstes Escape etwas
   Eigenes schließt). Ein Overlay, das ein Skript außerhalb eines Controllers baut, trägt

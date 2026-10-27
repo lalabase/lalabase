@@ -793,6 +793,11 @@ Rails.application.routes.draw do
           get :move_preflight
           post :move
         end
+        # Linking a participant to the people directory (S2b): new renders the dialog into
+        # its frame (?q= searches), create links, destroy unlinks.
+        resources :participants, only: [] do
+          resource :link, only: %i[new create destroy], controller: 'meeting_participant_links'
+        end
         collection do
           # LLM participant detection (Slice 5): runs BEFORE save on the raw
           # transcript payload (scoping via @project, no persisted meeting);

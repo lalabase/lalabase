@@ -47,6 +47,12 @@ de:
         ticket_missing: "Eines der beiden Tickets gibt es nicht mehr."
       destroy_ticket_relation:
         not_found: "Die Beziehung wurde nicht gefunden."
+      link_meeting_participant:
+        not_found: "Teilnehmer oder Person wurden nicht gefunden. Lade die Seite neu."
+        nothing_picked: "Wähle eine Person aus oder lege eine neue an."
+        member_participant: "Dieser Teilnehmer ist ein Mitglied und über sein Konto verknüpft."
+        member_already_participant: "Dieses Mitglied nimmt schon an dem Meeting teil."
+        not_allowed: "Du darfst keine Personen anlegen."
       move_meeting:
         same_project: "Das Meeting liegt schon in diesem Projekt."
         forbidden_target: "In diesem Projekt darfst du keine Meetings anlegen."

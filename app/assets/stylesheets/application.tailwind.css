@@ -439,8 +439,10 @@
   .people-badge { @apply shrink-0 rounded-full border border-cream-300 bg-cream-100 px-1.5 text-[11px] text-cream-600; }
   /* Members keep the chip's own tone; contacts (no account) a lighter one.
      Scoped to the page so it wins over the chip's utility classes. */
-  .people-page .people-avatar { @apply font-mono font-normal; }
-  .people-page .people-avatar--contact { @apply border-cream-300 bg-surface-raised text-cream-600; }
+  .people-page .people-avatar,
+  .participant-link-modal .people-avatar { @apply font-mono font-normal; }
+  .people-page .people-avatar--contact,
+  .participant-link-modal .people-avatar--contact { @apply border-cream-300 bg-surface-raised text-cream-600; }
   .people-empty { @apply flex flex-col items-start gap-2.5 px-6 pt-8; }
   .people-empty__icon { @apply text-2xl text-cream-500; }
   .people-empty__title { @apply text-[15px] font-semibold text-heading; }

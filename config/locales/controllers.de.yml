@@ -243,6 +243,9 @@ de:
       removed: "Verknüpfung wurde entfernt."
       already_linked: "Diese Aufgabe ist bereits mit dem Meeting verknüpft."
       blank_selection: "Bitte zuerst eine Aufgabe auswählen."
+    meeting_participant_links:
+      linked: "Der Teilnehmer ist verknüpft."
+      unlinked: "Die Verknüpfung ist gelöst."
     ticket_relations:
       created: "Die Tickets sind verknüpft."
       removed: "Die Beziehung wurde entfernt."

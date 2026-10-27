@@ -38,6 +38,7 @@ module MeetingLockGuard
   }.freeze
 
   WRITERS = %w[
+    app/services/actors/link_meeting_participant.rb
     app/services/actors/move_meeting.rb
     app/services/actors/save_meeting.rb
     app/services/actors/save_meeting_analysis.rb
@@ -50,13 +51,14 @@ module MeetingLockGuard
   # or write no meeting that exists.
   CONTROLLERS = {
     'organisations/meetings' => 'app/controllers/organisations/meetings_controller.rb',
-    'organisations/meeting_ticket_links' => 'app/controllers/organisations/meeting_ticket_links_controller.rb'
+    'organisations/meeting_ticket_links' => 'app/controllers/organisations/meeting_ticket_links_controller.rb',
+    'organisations/meeting_participant_links' => 'app/controllers/organisations/meeting_participant_links_controller.rb'
   }.freeze
 
   CONTROLLER_LOCK = 'with_meeting_in_project'
 
   # Each one is in WRITERS (checked below).
-  LOCKING_ACTORS = %w[Actors::SaveMeeting Actors::MoveMeeting].freeze
+  LOCKING_ACTORS = %w[Actors::SaveMeeting Actors::MoveMeeting Actors::LinkMeetingParticipant].freeze
 
   # Only shrinks; every entry gives its reason.
   NO_MEETING_YET = {

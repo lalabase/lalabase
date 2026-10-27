@@ -132,6 +132,25 @@ de:
           remove: Verknüpfung entfernen
           picker_placeholder: Aufgabe suchen …
           deleted_badge: gelöscht
+        participant_links:
+          title: Mit Person verknüpfen
+          participant: "Teilnehmer „%{name}“"
+          close: Schließen
+          search_label: Person suchen
+          search_placeholder: Name, Firma oder E-Mail
+          suggestion: Vorschlag
+          none: Keine Person gefunden.
+          new_person: Neue Person anlegen
+          new_person_name: Name der neuen Person
+          submit: Verknüpfen
+          cancel: Abbrechen
+          linked_to: "Verknüpft mit %{name}"
+          linked: Mit einer Person verknüpft
+          unlink: Verknüpfung lösen
+          hint: Vorgeschlagen wird bei gleichem Namen oder Nachnamen; nichts wird ohne Klick verknüpft.
+          link: "%{name} mit Person verknüpfen"
+          change: "Verknüpfung von %{name} ändern"
+          open_person: "%{name}: Person öffnen"
         shared:
           duration_minutes: "%{count} Min"
           participant_type:

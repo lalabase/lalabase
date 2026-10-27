@@ -324,24 +324,26 @@ RSpec.describe Actors::SaveMeeting do
 
       # The form labels a member chip with the member's CURRENT profile name, not
       # the stored one. After a change of name in the profile, an untouched save
-      # sends the same member under a new name: still the same participant.
-      it 'keeps the row and person_id when a member arrives under a new name' do
+      # sends the same member under a new name: still the same participant, the
+      # same row. (A member row carries no person_id: one key per participant,
+      # so the row id is the mark that it stayed.)
+      it 'keeps the row when a member arrives under a new name' do
         member = org_member
         meeting = described_class.call(
           project: project, params: valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id }]),
           current_user: user
         ).resource
-        row = linked_row(meeting, 'Karl Krause')
+        row = meeting.meeting_participants.find_by!(user_id: member.id)
 
         save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause-Meier', user_id: member.id }]))
 
-        rows = meeting.reload.meeting_participants.pluck(:id, :display_name, :user_id, :person_id)
-        expect(rows).to eq([[row.id, 'Karl Krause-Meier', member.id, person.id]])
+        rows = meeting.reload.meeting_participants.pluck(:id, :display_name, :user_id)
+        expect(rows).to eq([[row.id, 'Karl Krause-Meier', member.id]])
       end
 
       # Two members, one renamed and one removed in the same save: the renamed
-      # member takes its own row and link, never the other member's. Each member
-      # is the renamed one once, so the order the rows load in cannot hide it.
+      # member takes its own row, never the other member's. Each member is the
+      # renamed one once, so the order the rows load in cannot hide it.
       [0, 1].each do |renamed|
         it "gives a member under a new name its own row, not another member's (member #{renamed + 1})" do
           names = ['Karl Krause', 'Erika Muster']
@@ -351,23 +353,13 @@ RSpec.describe Actors::SaveMeeting do
             params: valid_params.merge(participants: names.zip(members).map { |n, m| { display_name: n, user_id: m.id } }),
             current_user: user
           ).resource
-          # Setup only: one person per row, looked up per name (Prosopite would
-          # call the loop an N+1).
-          people = Prosopite.pause do
-            names.map do |n|
-              linked = create(:person, organisation: organisation, name: n)
-              meeting.meeting_participants.find_by!(normalized_name: MeetingParticipant.normalize_name(n))
-                     .update_column(:person_id, linked.id)
-              linked
-            end
-          end
           kept = meeting.meeting_participants.find_by!(user_id: members[renamed].id)
 
           save(meeting, valid_params.merge(participants: [{ display_name: "#{names[renamed]}-Neu",
                                                             user_id: members[renamed].id }]))
 
-          rows = meeting.reload.meeting_participants.pluck(:id, :user_id, :person_id)
-          expect(rows).to eq([[kept.id, members[renamed].id, people[renamed].id]])
+          rows = meeting.reload.meeting_participants.pluck(:id, :user_id)
+          expect(rows).to eq([[kept.id, members[renamed].id]])
         end
       end
 
@@ -381,13 +373,12 @@ RSpec.describe Actors::SaveMeeting do
                                                     { display_name: 'Karl Krause-Meier' }]),
           current_user: user
         ).resource
-        linked_row(meeting, 'Karl Krause')
         named = meeting.meeting_participants.find_by!(normalized_name: 'karl krause-meier')
 
         save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause-Meier', user_id: member.id }]))
 
-        rows = meeting.reload.meeting_participants.pluck(:id, :user_id, :person_id)
-        expect(rows).to eq([[named.id, member.id, nil]])
+        rows = meeting.reload.meeting_participants.pluck(:id, :user_id)
+        expect(rows).to eq([[named.id, member.id]])
       end
 
       # The member's old name comes back as an external participant: that name
@@ -398,14 +389,14 @@ RSpec.describe Actors::SaveMeeting do
           project: project, params: valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id }]),
           current_user: user
         ).resource
-        row = linked_row(meeting, 'Karl Krause')
+        row = meeting.meeting_participants.find_by!(user_id: member.id)
 
         save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause' },
                                                         { display_name: 'Karl Krause-Meier', user_id: member.id }]))
 
-        rows = meeting.reload.meeting_participants.order(:normalized_name).pluck(:id, :normalized_name, :user_id, :person_id)
-        expect(rows).to match([[row.id, 'karl krause', nil, person.id],
-                               [satisfy { |id| id != row.id }, 'karl krause-meier', member.id, nil]])
+        rows = meeting.reload.meeting_participants.order(:normalized_name).pluck(:id, :normalized_name, :user_id)
+        expect(rows).to match([[row.id, 'karl krause', nil],
+                               [satisfy { |id| id != row.id }, 'karl krause-meier', member.id]])
       end
     end
   end

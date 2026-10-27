@@ -26,7 +26,7 @@
         <span class="people-badge"><%= t('views.organisations.people.index.member_badge') %></span>
       <% end %>
     </span>
-    <% sub = [person&.function, person&.company].compact_blank.join(' · ').presence || (entry.user&.email if entry.member?) %>
+    <% sub = entry.detail %>
     <% if sub %>
       <span class="people-row__sub"><%= sub %></span>
     <% end %>

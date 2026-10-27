@@ -127,6 +127,8 @@ de:
           content_too_large: "ist zu groß (maximal 1 MB)"
           duplicate_participant_name: "Ein Teilnehmer wurde doppelt angegeben (gleicher Name)."
           duplicate_participant_user: "Dieselbe Person wurde mehrfach als Teilnehmer angegeben."
+        meeting_participant:
+          one_key: "Ein Teilnehmer ist entweder ein Mitglied oder ein Kontakt, nie beides."
         documentation_set:
           attributes:
             project_repository:

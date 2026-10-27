@@ -2,11 +2,11 @@
 
 module Actors
   # Tier 1 actor (BaseActor#call template): link a batch of EXTERNAL meeting
-  # participations to an org member (Nachtrag: Teilnehmer-Claim). It sets user_id on
-  # every external row (user_id and person_id nil, MeetingParticipant.external_in_projects) whose normalized_name matches the target, but
-  # only within meetings the ACTING user may WRITE (:meetings), and skipping meetings
-  # that already link this member — otherwise the partial unique index
-  # (meeting_id, user_id) would raise. display_name stays a snapshot (only user_id
+  # participations to an org member (Nachtrag: Teilnehmer-Claim). It sets user_id
+  # on every external row (no user_id and no person_id, MeetingParticipant.external)
+  # whose normalized_name matches the target, but only within meetings the ACTING
+  # user may WRITE (:meetings), and skipping meetings that already link this
+  # member — otherwise the partial unique index (meeting_id, user_id) would raise. display_name stays a snapshot (only user_id
   # changes), consistent with the model's snapshot principle.
   #
   # The read side (which names match which members) is Meetings::ParticipantClaimMatches;
@@ -49,9 +49,9 @@ module Actors
       # and this UPDATE — the RecordNotUnique rescue below turns that race into a
       # clean, retryable failure.
       # intentional bulk link; see comment above
-      # Read again in the write: the link dialog may have given one of these rows
-      # a contact (person_id) in between, and a row keeps one key.
-      @linked_count = MeetingParticipant.where(id: ids, user_id: nil, person_id: nil)
+      # Asks .external again in the write: the link dialog may have given one of
+      # these rows a contact (person_id) in between, and a row keeps one key.
+      @linked_count = MeetingParticipant.external.where(id: ids)
                                         .update_all(user_id: @user.id, updated_at: Time.current)
     rescue ActiveRecord::RecordNotUnique
       # Another write linked this member to a target meeting between the skip-check

@@ -323,6 +323,7 @@ jobs:
           spec/requests/organisations/people_last_contact_spec.rb
           spec/requests/organisations/meeting_participant_links_spec.rb
           spec/services/actors/link_meeting_participant_spec.rb
+          spec/services/meetings/account_participants_spec.rb
           spec/requests/organisations/note_editor_embed_spec.rb
           spec/requests/organisations/onboarding_banner_spec.rb
           spec/requests/organisations/panel_lane_markup_guard_spec.rb

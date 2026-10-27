@@ -16,7 +16,7 @@
     </span>
     <%= render 'organisations/meetings/participant_chips', meeting: meeting, participants: participants, people: people %>
     <% if people.can_link %>
-      <%= turbo_frame_tag participant_link_modal_id(meeting) %>
+      <%= turbo_frame_tag participant_link_modal_id(meeting.id) %>
     <% end %>
   </div>
 <% end %>

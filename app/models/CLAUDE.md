@@ -66,12 +66,18 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Seit S2b (27.10.2026) setzt `person_id` nur `Actors::LinkMeetingParticipant` (Dialog an
   den Teilnehmer-Chips, `MeetingParticipantLinksController`): EIN Schlüssel je Teilnehmer,
   ein Mitglied über `user_id`, ein Kontakt (auch die Zeile eines deaktivierten Mitglieds)
-  über `person_id`. Der Teilnehmer eines Mitglieds, dessen Mitgliedschaft entfernt ist, ist
-  wieder ein Name: der Dialog verknüpft ihn als Kontakt und leert die `user_id`. Der Actor sperrt das Meeting (`lock_in_project!`) und löst Person und Mitglied
-  nur über `People::Directory` des Schreibenden auf. Das Meeting-Formular kennt `person_id`
-  nicht; `SaveMeeting` behält die Zeile und damit den Link. Macht das Formular eine
-  Kontakt-Zeile zu der eines Mitglieds, fällt `person_id` weg (ein Schlüssel), und das
-  Zuordnen (`external_in_projects`) lässt Kontakt-Zeilen aus.
+  über `person_id`. Die Regel steht dreifach fest: Validierung `one_key`, Check-Constraint
+  `meeting_participants_one_key` (fängt auch `update_all`), und jeder Schreiber leert den
+  anderen Schlüssel selbst. Der Teilnehmer eines Mitglieds, dessen Mitgliedschaft entfernt
+  ist, ist wieder ein Name: der Dialog verknüpft ihn als Kontakt und leert die `user_id`.
+  Wer über ein Konto verknüpft ist, entscheidet EINE Stelle (`Meetings::AccountParticipants`):
+  Mitglied per `user_id` (aktiv oder nicht) oder Kontakt, dessen Zeile inzwischen einem
+  aktiven Mitglied gehört; den lässt der Dialog in Ruhe. Der Actor sperrt das Meeting
+  (`lock_in_project!`) und löst Person und Mitglied nur über `People::Directory` des
+  Schreibenden auf. Das Meeting-Formular kennt `person_id` nicht; `SaveMeeting` behält die
+  Zeile und damit den Link. Macht das Formular eine Kontakt-Zeile zu der eines Mitglieds,
+  fällt `person_id` weg, und das Zuordnen (Scope `external`) lässt Kontakt-Zeilen aus.
+  Reihenfolge der Chip-Zeile: Scope `in_row_order` (Seite, Panel und Neuzeichnen).
 * **Activity/Notifications**: `activity`, `user_activity`, `outbox_event`, `notification`,
   `notification_preference`, `notification_subscription`, `email_log` — Services dazu unter
   `app/services/notifications/` (eigene Karte dort)

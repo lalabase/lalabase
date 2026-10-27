@@ -7,6 +7,8 @@ require 'rails_helper'
 # the person and the member through what the writer may see in the directory.
 # One key per participant: a member is linked by user_id, a contact by person_id.
 RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
+  include PeopleVisibilityHelpers
+
   let(:organisation) { create(:organisation) }
 
   before { ActsAsTenant.current_tenant = organisation }
@@ -120,16 +122,66 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
 
     # The claim writes without the meeting lock, so its row can land after both the
     # actor's check and the model's uniqueness validation. The partial unique index on
-    # (meeting_id, user_id) then refuses, and the actor answers as the check would.
+    # (meeting_id, user_id) then refuses the write, and the actor answers as the check
+    # would. Simulated at the database seam, so the checks themselves stay real.
     it 'turns the unique index into the same refusal when a write lands past both checks' do
-      create(:meeting_participant, meeting: meeting, display_name: 'Carl der Andere', user: colleague)
-      allow_any_instance_of(described_class).to receive(:taken_by_another?).and_return(false)
-      allow_any_instance_of(MeetingParticipant).to receive(:valid?).and_return(true)
+      allow_any_instance_of(MeetingParticipant).to receive(:update!).and_raise(ActiveRecord::RecordNotUnique)
 
       result = link(member_id: colleague.id)
 
       expect(result.code).to eq(:member_already_participant)
       expect(participant.reload.user_id).to be_nil
+    end
+
+    # The meeting form shows a member under the profile name. A second member of the
+    # same profile name would make the form show one name twice, and every later save
+    # of the meeting would fail.
+    it 'refuses a member whose profile name another member participant shows' do
+      twin = member(first_name: colleague.first_name)
+      twin.update!(last_name: colleague.last_name)
+      create(:meeting_participant, meeting: meeting, display_name: 'C. B. (Vertrieb)', user: twin)
+
+      result = link(member_id: colleague.id)
+
+      expect(result.code).to eq(:member_name_taken)
+      expect(participant.reload.user_id).to be_nil
+    end
+  end
+
+  describe 'linking a contact that another participant has already' do
+    it 'refuses it, changing nothing' do
+      create(:meeting_participant, meeting: meeting, display_name: 'Jonas W.', person: contact)
+
+      result = link(person_id: contact.id)
+
+      expect(result.code).to eq(:person_already_participant)
+      expect(result.errors).to eq([I18n.t('services.actors.link_meeting_participant.person_already_participant')])
+      expect(participant.reload.person_id).to be_nil
+    end
+
+    it 'links the same contact in another meeting' do
+      other_meeting = create(:meeting, organisation: organisation, project: project)
+      create(:meeting_participant, meeting: other_meeting, display_name: 'Jonas W.', person: contact)
+
+      expect(link(person_id: contact.id)).to be_success
+    end
+  end
+
+  # The row was linked to a member after the participant was linked to it. The
+  # participant is that member now: the dialog may neither relink nor unlink it, also
+  # not for a writer who may not see that member.
+  describe 'a contact whose row belongs to a member now' do
+    before do
+      link(person_id: contact.id)
+      contact.update!(user: member(first_name: 'Jonas'))
+    end
+
+    it 'is neither relinked nor unlinked' do
+      other = create(:person, organisation: organisation, name: 'Jana Weber')
+
+      expect(link(person_id: other.id).code).to eq(:member_participant)
+      expect(link(unlink: true).code).to eq(:member_participant)
+      expect(participant.reload.person_id).to eq(contact.id)
     end
   end
 
@@ -202,6 +254,18 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
       expect(participant.reload.person_id).to be_nil
     end
 
+    # A stale or internal failure of SavePerson is no validation failure: its code
+    # comes through, so the controller can answer our own failure with a 500.
+    it 'passes the code of a failed SavePerson through' do
+      failure = Actors::BaseActor::Result.new(success: false, errors: ['Veraltet'], code: :stale_object)
+      allow(Actors::SavePerson).to receive(:call).and_return(failure)
+
+      result = link(new_person: { name: 'J. Weber' })
+
+      expect(result.code).to eq(:stale_object)
+      expect(result.errors).to eq(['Veraltet'])
+    end
+
     it 'creates nothing when the link fails afterwards (one transaction)' do
       allow_any_instance_of(MeetingParticipant).to receive(:update!).and_raise(Actors::ActorError, 'link failed')
 
@@ -245,16 +309,12 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
     end
 
     it 'does not find the row of a member the writer may not see' do
-      # Members see only colleagues of projects they share (MembershipPolicy::Scope).
       limited = member(role: role_with('view_people'))
-      hidden_member = member(first_name: 'Hanna')
       create(:project_permission, user: limited, project: project, meetings_access: :read_write)
-      create(:project_permission, user: hidden_member, project: create(:project, organisation: organisation),
-                                  tickets_access: :read_only)
-      row = create(:person, organisation: organisation, name: hidden_member.display_name, user: hidden_member)
+      row = row_out_of_sight(organisation: organisation, name: 'Hanna Beispiel')
 
       expect(link(user: limited, person_id: row.id).code).to eq(:not_found)
-      expect(link(user: limited, member_id: hidden_member.id).code).to eq(:not_found)
+      expect(link(user: limited, member_id: row.user_id).code).to eq(:not_found)
       expect(participant.reload.user_id).to be_nil
     end
 

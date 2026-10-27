@@ -7,11 +7,13 @@
 #
 # Rights, before anything is read or written:
 #   1. write on meetings in the project of the route: the area gate of
-#      ProjectController and authorize @meeting, :update?;
-#   2. view_people: authorize Person, :index? (the directory itself);
-#   3. creating a person needs manage_people, which the actor asks again.
+#      ProjectController;
+#   2. MeetingPolicy#link_participants?: the meeting write again, plus
+#      view_people (the dialog lists the directory). The participant row asks
+#      the same policy to show its link action;
+#   3. creating a person needs manage_people, which the actor asks.
 # The actor resolves every id (Actors::LinkMeetingParticipant) and takes the
-# meeting's row lock: a meeting moved out of this project meanwhile is a 404.
+# meeting's row lock: a meeting moved out of this project meanwhile is gone.
 module Organisations
   class MeetingParticipantLinksController < Organisations::BaseController
     include ProjectController
@@ -20,18 +22,16 @@ module Organisations
     MODAL_TOKEN = /\A\h{16}\z/
     # How many people the dialog lists besides the suggestions.
     LIST_LIMIT = 20
-    # A choice of the dialog: a person row, a member, or a new person.
-    CHOICE = /\A(?<kind>person|member):(?<id>\h{8}-\h{4}-\h{4}-\h{4}-\h{12})\z/
-    NEW_PERSON = 'new'
     INTERNAL_CODES = %i[internal_error].freeze
     NOT_FOUND_CODES = %i[not_found].freeze
 
+    # The token first: an answer for a meeting that is gone still closes the
+    # dialog instance that asked.
+    before_action :read_modal_token, only: %i[create destroy]
     before_action :set_meeting_and_participant
+    before_action :authorize_link
 
     def new
-      authorize @meeting, :update?
-      authorize Person, :index?
-
       @query = scalar_param(:q).to_s
       if request.headers['Turbo-Frame'] == helpers.participant_link_results_id(@participant)
         render partial: 'organisations/meeting_participant_links/results',
@@ -44,10 +44,6 @@ module Organisations
     end
 
     def create
-      authorize @meeting, :update?
-      authorize Person, :index?
-
-      @modal_token = scalar_param(:modal_token).to_s[MODAL_TOKEN]
       @choice = scalar_param(:choice)
       @new_person_name = scalar_param(:new_person_name)
       result = ::Actors::LinkMeetingParticipant.call(**actor_arguments, **choice_arguments)
@@ -57,10 +53,6 @@ module Organisations
     end
 
     def destroy
-      authorize @meeting, :update?
-      authorize Person, :index?
-
-      @modal_token = scalar_param(:modal_token).to_s[MODAL_TOKEN]
       result = ::Actors::LinkMeetingParticipant.call(**actor_arguments, unlink: true)
       return changed(t('flash.meeting_participant_links.unlinked')) if result.success?
 
@@ -75,24 +67,40 @@ module Organisations
       :meetings
     end
 
+    def read_modal_token
+      @modal_token = scalar_param(:modal_token).to_s[MODAL_TOKEN]
+    end
+
     # Scoped to the route's project: a meeting of another project or another
-    # organisation, or a participant of another meeting, is not found.
+    # organisation, or a participant of another meeting, is not found. That is
+    # also what a dialog or a panel left open meets when the meeting was moved
+    # or the participant removed meanwhile, so it gets an answer the dialog can
+    # show, not an error page inside the frame.
     def set_meeting_and_participant
-      @meeting = @project.meetings.find(params[:meeting_id])
-      @participant = @meeting.meeting_participants.find(params[:participant_id])
+      @meeting_id = params[:meeting_id].to_s
+      @meeting = @project.meetings.find_by(id: @meeting_id)
+      @participant = @meeting&.meeting_participants&.find_by(id: params[:participant_id])
+      gone([t('services.actors.link_meeting_participant.not_found')]) if @participant.nil?
+    end
+
+    def authorize_link
+      authorize @meeting, :link_participants?
     end
 
     def actor_arguments
       { meeting: @meeting, project: @project, participant_id: @participant.id, current_user: current_user }
     end
 
+    # What the actor gets from the pick. Anything that is no pick is nothing,
+    # and the actor answers "nothing picked".
     def choice_arguments
-      return { new_person: { name: @new_person_name.to_s } } if @choice == NEW_PERSON
-
-      match = CHOICE.match(@choice.to_s)
-      return {} unless match
-
-      match[:kind] == 'person' ? { person_id: match[:id] } : { member_id: match[:id] }
+      choice = ::Meetings::ParticipantLinkChoice.parse(@choice)
+      case choice&.kind
+      when :new_person then { new_person: { name: @new_person_name.to_s } }
+      when :person then { person_id: choice.id }
+      when :member then { member_id: choice.id }
+      else {}
+      end
     end
 
     # The row of this meeting's participants, the dialog closed, the flash.
@@ -111,9 +119,9 @@ module Organisations
     # meeting moved meanwhile, which the lock reloaded into its new project) closes
     # the dialog with the reason and draws nothing of the meeting again.
     def refused(result)
-      @errors = result.errors
-      return gone if NOT_FOUND_CODES.include?(result.code)
+      return gone(result.errors) if NOT_FOUND_CODES.include?(result.code)
 
+      @errors = result.errors
       status = INTERNAL_CODES.include?(result.code) ? :internal_server_error : :unprocessable_content
       respond_to do |format|
         format.turbo_stream { render 'organisations/meeting_participant_links/refused', status: status }
@@ -121,10 +129,21 @@ module Organisations
       end
     end
 
-    def gone
+    # Nothing of the meeting is drawn again: it may be in another project now.
+    # A stream closes the dialog with a flash; the frame of the dialog (new)
+    # shows the reason in place; a plain form submit goes back to the meetings.
+    def gone(errors)
+      @errors = errors
       respond_to do |format|
         format.turbo_stream { render 'organisations/meeting_participant_links/gone', status: :not_found }
-        format.html { redirect_to meeting_path, alert: @errors.to_sentence, status: :see_other }
+        format.html do
+          if action_name == 'new'
+            render 'organisations/meeting_participant_links/not_found', layout: false, status: :not_found
+          else
+            redirect_to organisation_project_meetings_path(current_organisation, @project),
+                        alert: @errors.to_sentence, status: :see_other
+          end
+        end
       end
     end
 

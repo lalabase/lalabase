@@ -605,6 +605,7 @@ jobs:
           spec/services/actors/move_meeting_spec.rb
           spec/services/actors/save_meeting_spec.rb
           spec/services/actors/claim_meeting_participants_spec.rb
+          spec/requests/organisations/meeting_participant_person_link_spec.rb
           spec/requests/organisations/meetings_overview_columns_spec.rb
           spec/requests/organisations/meetings_overview_lane_spec.rb
           spec/requests/organisations/meetings_overview_lane_access_spec.rb

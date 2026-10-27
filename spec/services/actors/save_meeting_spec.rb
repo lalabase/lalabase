@@ -311,6 +311,42 @@ RSpec.describe Actors::SaveMeeting do
         expect(rows.first).to match([satisfy { |id| id != row.id }, 'karl kraus', nil])
         expect(Person.exists?(person.id)).to be(true)
       end
+
+      # The form labels a member chip with the member's CURRENT profile name, not
+      # the stored one. After a change of name in the profile, an untouched save
+      # sends the same member under a new name: still the same participant.
+      it 'keeps the row and person_id when a member arrives under a new name' do
+        member = org_member
+        meeting = described_class.call(
+          project: project, params: valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id }]),
+          current_user: user
+        ).resource
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause-Meier', user_id: member.id }]))
+
+        rows = meeting.reload.meeting_participants.pluck(:id, :display_name, :user_id, :person_id)
+        expect(rows).to eq([[row.id, 'Karl Krause-Meier', member.id, person.id]])
+      end
+
+      # A row whose name is sent keeps its name; matching by member comes second,
+      # so the member's old row goes instead of colliding with it.
+      it 'matches by name before it matches by member' do
+        member = org_member
+        meeting = described_class.call(
+          project: project,
+          params: valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id },
+                                                    { display_name: 'Karl Krause-Meier' }]),
+          current_user: user
+        ).resource
+        linked_row(meeting, 'Karl Krause')
+        named = meeting.meeting_participants.find_by!(normalized_name: 'karl krause-meier')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause-Meier', user_id: member.id }]))
+
+        rows = meeting.reload.meeting_participants.pluck(:id, :user_id, :person_id)
+        expect(rows).to eq([[named.id, member.id, nil]])
+      end
     end
   end
 

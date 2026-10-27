@@ -26,16 +26,21 @@ RSpec.describe 'Organisations::TimeSessions index table', type: :request do
       create(:ticket, project: project, creator: user, title: 'Alpha-Aufgabe')
     end
   end
+  # Both rows today, in the month of the entry the create posts. The list
+  # shows the newest month first and sorts by subject only inside a month;
+  # the factory's occurred_on (now + n hours, n counting across the suite)
+  # put the two rows into two months near a month's end, and the row without
+  # a subject then came first (red on 27.10.2026 between 11 and 12 UTC).
   let!(:session_with_ticket) do
     ActsAsTenant.with_tenant(organisation) do
       create(:time_session, organisation: organisation, project: project, ticket: ticket,
-                            creator: user, duration: 60)
+                            creator: user, duration: 60, occurred_on: Date.current.noon)
     end
   end
   let!(:session_without_ticket) do
     ActsAsTenant.with_tenant(organisation) do
       create(:time_session, organisation: organisation, project: project, ticket: nil,
-                            creator: user, duration: 30)
+                            creator: user, duration: 30, occurred_on: Date.current.noon + 1.hour)
     end
   end
 

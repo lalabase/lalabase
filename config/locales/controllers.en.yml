@@ -239,6 +239,9 @@ en:
       removed: "Link was removed."
       already_linked: "This task is already linked to the meeting."
       blank_selection: "Please pick a task first."
+    meeting_participant_links:
+      linked: "The participant is linked."
+      unlinked: "The link was removed."
     ticket_relations:
       created: "The tickets are linked."
       removed: "The relation was removed."

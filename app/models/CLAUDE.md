@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-10-26)
+# Karte: app/models (Stand: 2026-10-27)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -63,6 +63,15 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Person) auf eine Zeile; `belongs_to :person` steht VOR `acts_as_tenant`, eine Validierung
   hält die Person in derselben Org. Ein Mitglied läuft weiter über `user_id`. Meetings und
   „Letzter Kontakt“ einer Person liest nur `People::Contacts` (`app/services/CLAUDE.md`).
+  Seit S2b (27.10.2026) setzt `person_id` nur `Actors::LinkMeetingParticipant` (Dialog an
+  den Teilnehmer-Chips, `MeetingParticipantLinksController`): EIN Schlüssel je Teilnehmer,
+  ein Mitglied über `user_id`, ein Kontakt (auch die Zeile eines deaktivierten Mitglieds)
+  über `person_id`. Der Teilnehmer eines Mitglieds, dessen Mitgliedschaft entfernt ist, ist
+  wieder ein Name: der Dialog verknüpft ihn als Kontakt und leert die `user_id`. Der Actor sperrt das Meeting (`lock_in_project!`) und löst Person und Mitglied
+  nur über `People::Directory` des Schreibenden auf. Das Meeting-Formular kennt `person_id`
+  nicht; `SaveMeeting` behält die Zeile und damit den Link. Macht das Formular eine
+  Kontakt-Zeile zu der eines Mitglieds, fällt `person_id` weg (ein Schlüssel), und das
+  Zuordnen (`external_in_projects`) lässt Kontakt-Zeilen aus.
 * **Activity/Notifications**: `activity`, `user_activity`, `outbox_event`, `notification`,
   `notification_preference`, `notification_subscription`, `email_log` — Services dazu unter
   `app/services/notifications/` (eigene Karte dort)

@@ -71,7 +71,8 @@ export default class extends Controller {
   }
 
   returnFocus(frame) {
-    if (frame.querySelector('[data-controller~="ticket-relation-modal"]')) return
+    // By identifier: a dialog built on this one (participant_link_modal) has its own.
+    if (frame.querySelector(`[data-controller~="${this.identifier}"]`)) return
 
     const id = frame.dataset.relationModalReturn
     delete frame.dataset.relationModalReturn

@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-10-26)
+# Karte: app/services (Stand: 2026-10-27)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -164,6 +164,10 @@ Verzeichnis-Übersicht (Auswahl):
   aktiven Mitgliedern zählt eigene Ticket-Arbeit (`TICKET_ACTIONS`: angelegt, geändert,
   kommentiert), bei Kontakten nur Meetings. `Directory#entries` hängt den Kontakt an und
   sortiert nach `name` oder `last`.
+  S2b (27.10.2026): `Directory#person_entry`, `#candidates` (Suche ohne Kontakt) und
+  `#suggestions_for` (gleicher Name vor gleichem Nachnamen, E6) speisen den Dialog
+  „Mit Person verknüpfen“; geschrieben wird über `Actors::LinkMeetingParticipant`, der
+  jede ID über das gesperrte Meeting und das Directory des Schreibenden auflöst.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

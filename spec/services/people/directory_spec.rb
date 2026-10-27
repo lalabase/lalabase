@@ -156,6 +156,48 @@ RSpec.describe People::Directory, :ci_guard do
     end
   end
 
+  describe 'the link dialog (S2b)' do
+    def directory(user = viewer, query: nil)
+      described_class.new(viewer: user, organisation: organisation, query: query)
+    end
+
+    it 'finds a person row by id only when the viewer sees it, a member row as the member' do
+      stranger_row = create(:person, organisation: organisation, user: stranger, name: 'Sven Fremd')
+      colleague_row = create(:person, organisation: organisation, user: colleague, name: 'Carl Kollege')
+
+      expect(directory.person_entry(contact.id).person).to eq(contact)
+      expect(directory.person_entry(stranger_row.id)).to be_nil
+      expect(directory(admin).person_entry(stranger_row.id)).to be_present
+      expect(directory.person_entry(colleague_row.id)).to be_member
+      expect(directory(colleague).person_entry(contact.id)).to be_nil
+    end
+
+    it 'lists candidates by search, without last contacts' do
+      expect(names(directory(query: 'hosting').candidates)).to eq(['Doris Dienstleister'])
+      expect(directory.candidates.map(&:last_contact)).to all(be_nil)
+      expect(names(directory.candidates)).to eq(['Carl Kollege', 'Doris Dienstleister', 'Vera Viewer'])
+    end
+
+    it 'suggests the same full name first, then the same surname, only what the viewer sees' do
+      same_surname = create(:person, organisation: organisation, name: 'Anton Dienstleister')
+      same_name = create(:person, organisation: organisation, name: 'doris dienstleister')
+      create(:person, organisation: organisation, user: stranger, name: 'Sven Dienstleister')
+
+      suggested = directory.suggestions_for('Doris Dienstleister').map(&:person)
+
+      expect(suggested.first(2)).to contain_exactly(contact, same_name)
+      expect(suggested.last).to eq(same_surname)
+      expect(suggested.size).to eq(3)
+    end
+
+    it 'reads the surname past initials and a note in brackets' do
+      expect(described_class.surname('J. Weber (Hoster)')).to eq('weber')
+      expect(described_class.surname('Jürgen Müller')).to eq('mueller')
+      expect(described_class.surname('J.')).to be_nil
+      expect(directory.suggestions_for(' ')).to eq([])
+    end
+  end
+
   it 'returns nothing without the right' do
     expect(entries(colleague)).to be_empty
   end

@@ -74,6 +74,44 @@ module People
       everyone.find { |entry| entry.member? && entry.user.id == user_id.to_s }
     end
 
+    # The entry of one person row, or nil when the viewer may not see it. A row
+    # of an active member the viewer sees is that member's entry.
+    def person_entry(person_id)
+      everyone.find { |entry| entry.person&.id == person_id.to_s }
+    end
+
+    # The contact entry of a former member: their row, which keeps the meetings
+    # they still carry by account (People::Contacts reads the row's user_id).
+    def former_member_entry(user_id)
+      everyone.find { |entry| !entry.member? && entry.person&.user_id == user_id.to_s }
+    end
+
+    # The entries matching the search, without last contacts: the list of the
+    # dialog that links a meeting participant (S2b).
+    def candidates
+      everyone.select { |entry| @query.blank? || matches?(entry) }
+    end
+
+    # The entries that may be the participant of this name (E6): the same full
+    # normalized name first, then the same surname. A suggestion only; nothing
+    # is linked without a click.
+    def suggestions_for(name)
+      full = PersonName.normalize(name)
+      surname = self.class.surname(name)
+      return [] if full.blank?
+
+      same_name = everyone.select { |entry| entry.sort_name == full }
+      same_surname = surname ? everyone.select { |entry| self.class.surname(entry.plain_name) == surname } : []
+      (same_name + same_surname).uniq
+    end
+
+    # The last word of a name, normalized, without a note in brackets and
+    # without initials: "J. Weber (Hoster)" -> "weber". Nil without one.
+    def self.surname(name)
+      words = PersonName.normalize(name).gsub(/\([^)]*\)/, ' ').scan(/[[:alpha:]][[:alpha:]'-]*/)
+      words.reverse.find { |word| word.length > 1 }
+    end
+
     # The other entries with the same normalized name as this person: rows and
     # members that may be the same person (the duplicate hint, read only).
     def duplicates_of(person)

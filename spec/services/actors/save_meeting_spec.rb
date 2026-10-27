@@ -266,15 +266,24 @@ RSpec.describe Actors::SaveMeeting do
         expect(rows).to eq([[row.id, 'KARL krause', person.id]])
       end
 
-      it 'keeps person_id when only the user_id of the participant changes' do
+      # One key per participant (people directory, S2b): a contact row the form
+      # makes a member's is that member now. It keeps the row, not the contact.
+      it 'drops the contact link when the form makes the row a member' do
         member = org_member
         meeting = meeting_with('Karl Krause')
         row = linked_row(meeting, 'Karl Krause')
 
         save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id }]))
-        expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[member.id, person.id]])
+
+        expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[member.id, nil]])
+      end
+
+      it 'keeps person_id when a save sends the row without a member, as before' do
+        meeting = meeting_with('Karl Krause')
+        row = linked_row(meeting, 'Karl Krause')
 
         save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: '' }]))
+
         expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[nil, person.id]])
       end
 

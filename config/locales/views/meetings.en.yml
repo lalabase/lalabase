@@ -131,6 +131,25 @@ en:
           remove: Remove link
           picker_placeholder: Search tasks …
           deleted_badge: deleted
+        participant_links:
+          title: Link to a person
+          participant: "Participant “%{name}”"
+          close: Close
+          search_label: Search people
+          search_placeholder: Name, company or email
+          suggestion: Suggestion
+          none: No person found.
+          new_person: Create a new person
+          new_person_name: Name of the new person
+          submit: Link
+          cancel: Cancel
+          linked_to: "Linked to %{name}"
+          linked: Linked to a person
+          unlink: Unlink
+          hint: Suggestions come from the same name or surname; nothing is linked without a click.
+          link: "Link %{name} to a person"
+          change: "Change the link of %{name}"
+          open_person: "%{name}: open person"
         shared:
           duration_minutes: "%{count} min"
           participant_type:

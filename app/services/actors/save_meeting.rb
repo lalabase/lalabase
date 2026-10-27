@@ -155,6 +155,8 @@ module Actors
     # comes back on the next save). A new name without such a member is a new
     # row without a link: the form has no rename, a chip removed and another
     # added is another participant, and the link dialog sets the link again.
+    # One key per participant: a row the form gives to another member is that
+    # member now and drops its contact link (person_id).
     def reconcile_participants(desired)
       # Load the rows once (no per-row SELECT / N+1) and upsert against them.
       existing = @meeting.meeting_participants.to_a
@@ -170,6 +172,7 @@ module Actors
         participant ||= @meeting.meeting_participants.build
         participant.organisation = org
         participant.display_name = d[:display_name]
+        participant.person_id = nil if d[:user_id] && d[:user_id] != participant.user_id
         participant.user_id = d[:user_id]
         participant.save!
       end
@@ -179,8 +182,8 @@ module Actors
     # row of its normalized name first, else the row of its member that no name
     # claimed. Name first, so the row of a name keeps its name and its link:
     # a member whose new name is already an external row of this meeting takes
-    # that row and its link, and the member's old row goes (as before the
-    # member match existed). Only unclaimed rows count for a member, so a name
+    # that row (a contact link on it goes, see reconcile_participants), and the
+    # member's old row goes (as before the member match existed). Only unclaimed rows count for a member, so a name
     # and a member never get the same row. Each user_id occurs once in desired
     # (guard_against_duplicates!), so a row is never matched twice.
     def match_participant_rows(existing, desired)

@@ -1,6 +1,7 @@
 # What the image build may not see. The image is built from the repository,
 # and the repository directory of a self-hoster also holds their .env and,
-# after a first run, nothing else of value: compose.yml keeps data in volumes.
+# after a first run, no data of its own: compose.yml keeps data in volumes.
+# Backups a self-hoster saves next to compose.yml are their data, though.
 #
 # This list names paths; it is not an allowlist. A developer checkout holds
 # more than a clone (files git ignores). An image that is published must be
@@ -18,6 +19,15 @@
 /config/credentials/
 /Gemfile.operator*
 /dump.rdb
+
+# Backups saved in the repository directory despite the guide, which keeps
+# them outside it: a dump holds every record in plain text, and an image
+# built with compose.build.yml would carry it.
+/backups/
+/storage-backup/
+/*.sql*
+/*.tar*
+/*.dump*
 
 # Rebuilt inside the image
 /node_modules/

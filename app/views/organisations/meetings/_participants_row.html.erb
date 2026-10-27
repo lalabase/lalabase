@@ -5,50 +5,16 @@
 
     S2b (people directory): a participant whose person the viewer may see is a link to that
     person; a free name stays text. With the meeting write and view_people, a name that is
-    no member gets the action "Mit Person verknüpfen" (a linked one: "Verknüpfung ändern"),
-    which loads the dialog into the frame at the end of the row. A link or an unlink
-    redraws the row (meeting_participants_row_id). %>
+    no member's gets the action "Mit Person verknüpfen" (a linked one: "Verknüpfung ändern"),
+    which loads the dialog into the frame at the end of the row. A link or an unlink redraws
+    the chips (_participant_chips), never the frame. %>
 <% if participants.any? %>
-  <% permitted_user_ids = meeting.project.permitted_user_ids.to_set %>
   <% people = meeting_participant_people(meeting, participants) %>
-  <% pl = 'views.organisations.meetings.participant_links' %>
-  <div id="<%= meeting_participants_row_id(meeting) %>" class="mt-3 flex min-w-0 flex-wrap items-start gap-2">
+  <div class="mt-3 flex min-w-0 flex-wrap items-start gap-2">
     <span class="pt-0.5 text-xs font-mono uppercase tracking-wider text-cream-600">
       <%= t('views.organisations.meetings.show.participants_heading') %>
     </span>
-    <div class="flex min-w-0 flex-1 flex-wrap gap-2">
-      <% participants.each do |participant| %>
-        <% chip_style = meeting_participant_chip_style(meeting_participant_type(participant, permitted_user_ids)) %>
-        <% path = people.path_for(participant) %>
-        <span class="meeting-participant inline-flex min-w-0 max-w-full items-center gap-0.5">
-          <% chip = render NeoTagComponent.new(
-                text: participant.display_name,
-                variant: chip_style[:variant],
-                icon: chip_style[:icon],
-                title: chip_style[:title],
-                size: :small,
-                class: 'max-w-full [&_.tag-text]:break-words [&_.tag-text]:[overflow-wrap:anywhere]'
-              ) %>
-          <% if path %>
-            <%= link_to chip, path, class: 'meeting-participant__person min-w-0 max-w-full rounded-full',
-                                    data: { turbo_frame: '_top' },
-                                    aria: { label: t("#{pl}.open_person", name: participant.display_name) } %>
-          <% else %>
-            <%= chip %>
-          <% end %>
-          <% if people.can_link && participant.user_id.nil? %>
-            <% action_label = participant.person_id ? t("#{pl}.change", name: participant.display_name) : t("#{pl}.link", name: participant.display_name) %>
-            <%= link_to new_organisation_project_meeting_participant_link_path(current_organisation, meeting.project, meeting, participant),
-                        id: participant_link_trigger_id(participant),
-                        class: 'meeting-participant__link inline-flex h-6 w-6 items-center justify-center rounded-full text-cream-600 hover:bg-cream-200 hover:text-ink',
-                        title: action_label, aria: { label: action_label },
-                        data: { turbo_frame: participant_link_modal_id(meeting) } do %>
-              <i class="bi <%= participant.person_id ? 'bi-pencil' : 'bi-link-45deg' %>" aria-hidden="true"></i>
-            <% end %>
-          <% end %>
-        </span>
-      <% end %>
-    </div>
+    <%= render 'organisations/meetings/participant_chips', meeting: meeting, participants: participants, people: people %>
     <% if people.can_link %>
       <%= turbo_frame_tag participant_link_modal_id(meeting) %>
     <% end %>

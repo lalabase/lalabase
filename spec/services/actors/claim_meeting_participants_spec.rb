@@ -80,6 +80,22 @@ RSpec.describe Actors::ClaimMeetingParticipants do
     expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[nil, person.id]])
   end
 
+  # A link set between the claim's read and its write (the link dialog takes
+  # the meeting lock, the claim does not) must not give the row a second key.
+  it 'skips a row linked to a contact between its read and its write' do
+    target = member
+    person = create(:person, organisation: organisation, name: 'Karl Krause')
+    row = external_row(writable_project, 'Karl Krause')
+    claim = described_class.new(user: target, normalized_name: 'Karl Krause', current_user: actor)
+    allow(claim).to receive(:linkable_participant_ids).and_wrap_original do |original|
+      original.call.tap { row.update_column(:person_id, person.id) }
+    end
+
+    claim.call
+
+    expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[nil, person.id]])
+  end
+
   it 'matches across umlaut spellings (member "Jörg Groß" ~ external "Joerg Gross")' do
     target = member(first: 'Jörg', last: 'Groß')
     row = external_row(writable_project, 'Joerg Gross')

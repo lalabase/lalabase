@@ -61,6 +61,27 @@ RSpec.describe 'Linking a meeting participant to a person', type: :system do
     expect(page).to have_css("##{trigger_id}:focus")
   end
 
+  # A refusal swaps the dialog for a new instance: the focus must still go back to the
+  # button that opened it, and a search in the refused dialog must still work.
+  it 'gives the focus back after a refusal, a search and Escape' do
+    visit organisation_project_meetings_path(organisation, project, meeting_id: meeting.id)
+    open_dialog
+
+    within('[role="dialog"]') { click_button I18n.t("#{pl}.submit") }
+    expect(page).to have_css('[role="dialog"]', text: I18n.t('services.actors.link_meeting_participant.nothing_picked'))
+    within('[role="dialog"]') do
+      fill_in I18n.t("#{pl}.search_label"), with: 'anders'
+      expect(page).to have_no_css('li', text: 'Jonas Weber')
+    end
+    find('[role="dialog"] input[type="search"]').send_keys(:escape)
+
+    expect(page).to have_no_css('[role="dialog"]')
+    expect(page).to have_css("##{trigger_id}:focus")
+
+    open_dialog
+    expect(page).to have_no_text(I18n.t('services.actors.link_meeting_participant.nothing_picked'))
+  end
+
   it 'closes on Escape without linking' do
     visit organisation_project_meetings_path(organisation, project, meeting_id: meeting.id)
     open_dialog

@@ -182,8 +182,8 @@ module Actors
     # row of its normalized name first, else the row of its member that no name
     # claimed. Name first, so the row of a name keeps its name and its link:
     # a member whose new name is already an external row of this meeting takes
-    # that row and its link, and the member's old row goes (as before the
-    # member match existed). Only unclaimed rows count for a member, so a name
+    # that row (a contact link on it goes, see reconcile_participants), and the
+    # member's old row goes (as before the member match existed). Only unclaimed rows count for a member, so a name
     # and a member never get the same row. Each user_id occurs once in desired
     # (guard_against_duplicates!), so a row is never matched twice.
     def match_participant_rows(existing, desired)

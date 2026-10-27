@@ -8,15 +8,21 @@ module MeetingParticipantLinksHelper
   # What the row may show the viewer: whether they may link, and for each
   # participant the address of its person, or nil. Read once per row, from the
   # viewer's own directory, so a person they may not see stays plain text.
-  ParticipantPeople = Struct.new(:can_link, :paths, keyword_init: true) do
+  # member_ids: the accounts among the participants with a membership here,
+  # active or not; their names are linked through the account, not the dialog.
+  ParticipantPeople = Struct.new(:can_link, :paths, :member_ids, keyword_init: true) do
     def path_for(participant)
       paths[participant.id]
     end
+
+    def linkable?(participant)
+      can_link && (participant.user_id.nil? || !member_ids.include?(participant.user_id))
+    end
   end
 
-  # The row of one meeting's participants (meeting page and the panel beside a
-  # ticket); a link or an unlink redraws it.
-  def meeting_participants_row_id(meeting)
+  # The chips of one meeting's participants (meeting page and the panel beside a
+  # ticket); a link or an unlink redraws them, never the dialog frame beside them.
+  def meeting_participant_chips_id(meeting)
     dom_id(meeting, :participants)
   end
 
@@ -42,14 +48,16 @@ module MeetingParticipantLinksHelper
   end
 
   def meeting_participant_people(meeting, participants)
-    return ParticipantPeople.new(can_link: false, paths: {}) unless PersonPolicy.view_allowed?(current_user, current_organisation)
+    return ParticipantPeople.new(can_link: false, paths: {}, member_ids: Set.new) unless PersonPolicy.view_allowed?(current_user, current_organisation)
 
     directory = People::Directory.new(viewer: current_user, organisation: current_organisation)
     paths = participants.each_with_object({}) do |participant, found|
       entry = participant_directory_entry(directory, participant)
       found[participant.id] = person_entry_path(entry) if entry
     end
-    ParticipantPeople.new(can_link: policy(meeting).update?, paths: paths)
+    member_ids = Membership.where(organisation: current_organisation, user_id: participants.filter_map(&:user_id))
+                           .pluck(:user_id).to_set
+    ParticipantPeople.new(can_link: policy(meeting).update?, paths: paths, member_ids: member_ids)
   end
 
   # The person page of a directory entry: its row, or a member without one.

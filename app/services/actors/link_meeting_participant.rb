@@ -8,8 +8,9 @@
 #
 # One key per participant: a member is linked by user_id (the path the meeting
 # form already uses), a contact by person_id. The row of a FORMER member is a
-# contact, as the directory shows it. A participant that is a member already
-# is linked through its account and is left alone.
+# contact, as the directory shows it. A participant of someone with a
+# membership here is linked through its account and is left alone; one whose
+# membership was removed may be linked as a contact.
 #
 # The caller authorizes the meeting write (MeetingPolicy#update?). This actor
 # resolves every id itself, so a raw id never reaches a column:
@@ -43,10 +44,12 @@ module Actors
     def perform
       refuse!(:not_found) unless @meeting.lock_in_project!(@project.id)
 
-      @participant = @meeting.meeting_participants.find_by(id: @participant_id)
+      # The row lock too: the claim (Actors::ClaimMeetingParticipants) writes
+      # participants without the meeting lock.
+      @participant = @meeting.meeting_participants.lock.find_by(id: @participant_id)
       refuse!(:not_found) if @participant.nil?
       # A member participant is linked by its account; the meeting form owns that.
-      refuse!(:member_participant) if @participant.user_id
+      refuse!(:member_participant) if member_participant?
 
       return @participant.update!(person_id: nil) if @unlink
 
@@ -75,12 +78,20 @@ module Actors
         refuse!(:member_name_taken) if name_taken_by_another?(entry.user.display_name)
         @participant.update!(user_id: entry.user.id, person_id: nil)
       else
-        @participant.update!(person_id: entry.person.id)
+        @participant.update!(person_id: entry.person.id, user_id: nil)
       end
     rescue ActiveRecord::RecordNotUnique
       # The meeting lock runs two links one after the other, so the check above
       # sees the first. A writer that skips the lock still meets the unique index.
       refuse!(:member_already_participant)
+    end
+
+    # A participant of someone with a membership here, active or not. One whose
+    # membership was removed is a name again (their row lost its account through
+    # PersonLinkRelease): it may be linked as a contact, and its account goes.
+    def member_participant?
+      @participant.user_id.present? &&
+        Membership.where(organisation: organisation, user_id: @participant.user_id).exists?
     end
 
     def taken_by_another?(user_id)

@@ -49,7 +49,9 @@ module Actors
       # and this UPDATE — the RecordNotUnique rescue below turns that race into a
       # clean, retryable failure.
       # intentional bulk link; see comment above
-      @linked_count = MeetingParticipant.where(id: ids)
+      # Read again in the write: the link dialog may have given one of these rows
+      # a contact (person_id) in between, and a row keeps one key.
+      @linked_count = MeetingParticipant.where(id: ids, user_id: nil, person_id: nil)
                                         .update_all(user_id: @user.id, updated_at: Time.current)
     rescue ActiveRecord::RecordNotUnique
       # Another write linked this member to a target meeting between the skip-check

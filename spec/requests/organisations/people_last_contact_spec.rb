@@ -98,6 +98,10 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
 
       head = response.body[%r{<div class="people-columns"[\s\S]*?</div>}]
       expect(head).to include(CGI.escapeHTML(organisation_people_path(organisation, sort: 'last', person_id: contact.id)))
+      # A row click changes the person in the address only: both heads take
+      # the live one at click time (layout_toggle#syncFilterContext,
+      # spec/system/people_sort_keeps_lane_spec.rb).
+      expect(head.scan('data-lane-keep="true"').size).to eq(2)
     end
 
     it 'drops an unknown sort from every link' do

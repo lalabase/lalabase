@@ -329,8 +329,8 @@ RSpec.describe Actors::SaveMeeting do
         expect(rows).to eq([[row.id, 'Karl Krause-Meier', member.id, person.id]])
       end
 
-      # A row whose name is sent keeps its name; matching by member comes second,
-      # so the member's old row goes instead of colliding with it.
+      # A row whose name is sent keeps its name; matching by member comes second.
+      # The member takes the row of its new name, and its old row goes.
       it 'matches by name before it matches by member' do
         member = org_member
         meeting = described_class.call(
@@ -346,6 +346,24 @@ RSpec.describe Actors::SaveMeeting do
 
         rows = meeting.reload.meeting_participants.pluck(:id, :user_id, :person_id)
         expect(rows).to eq([[named.id, member.id, nil]])
+      end
+
+      # The member's old name comes back as an external participant: that name
+      # claims the row, so the member cannot take it too and gets a new one.
+      it 'never gives a name and a member the same row' do
+        member = org_member
+        meeting = described_class.call(
+          project: project, params: valid_params.merge(participants: [{ display_name: 'Karl Krause', user_id: member.id }]),
+          current_user: user
+        ).resource
+        row = linked_row(meeting, 'Karl Krause')
+
+        save(meeting, valid_params.merge(participants: [{ display_name: 'Karl Krause' },
+                                                        { display_name: 'Karl Krause-Meier', user_id: member.id }]))
+
+        rows = meeting.reload.meeting_participants.order(:normalized_name).pluck(:id, :normalized_name, :user_id, :person_id)
+        expect(rows).to match([[row.id, 'karl krause', nil, person.id],
+                               [satisfy { |id| id != row.id }, 'karl krause-meier', member.id, nil]])
       end
     end
   end

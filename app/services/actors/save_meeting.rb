@@ -177,14 +177,17 @@ module Actors
 
     # The existing row for each desired participant, or nil for a new one: the
     # row of its normalized name first, else the row of its member that no name
-    # claimed. Name first, so a member's old row goes rather than collide with a
-    # row that keeps the new name. Each user_id occurs once in desired
+    # claimed. Name first, so the row of a name keeps its name and its link:
+    # a member whose new name is already an external row of this meeting takes
+    # that row and its link, and the member's old row goes (as before the
+    # member match existed). Only unclaimed rows count for a member, so a name
+    # and a member never get the same row. Each user_id occurs once in desired
     # (guard_against_duplicates!), so a row is never matched twice.
     def match_participant_rows(existing, desired)
       by_name = existing.index_by(&:normalized_name)
       rows = desired.map { |d| by_name[d[:normalized_name]] }
       by_user = (existing - rows.compact).select(&:user_id).index_by(&:user_id)
-      desired.zip(rows).map { |d, row| row || (d[:user_id] && by_user[d[:user_id]]) }
+      desired.zip(rows).map { |d, row| row || by_user[d[:user_id]] }
     end
 
     # PII fail-safe (Gespräche Slice 6, plan §5/§7): a meeting that is NOT indexed

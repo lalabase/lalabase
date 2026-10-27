@@ -98,6 +98,18 @@ RSpec.describe Actors::LinkMeetingParticipant, :ci_guard do
       expect(result.errors).to eq([I18n.t('services.actors.link_meeting_participant.member_already_participant')])
       expect(participant.reload.user_id).to be_nil
     end
+
+    # The meeting form labels a member chip with the member's profile name: a second
+    # participant of that name would make every later save of the meeting fail.
+    it 'refuses a member whose name another participant of the meeting carries' do
+      create(:meeting_participant, meeting: meeting, display_name: colleague.display_name)
+
+      result = link(member_id: colleague.id)
+
+      expect(result.code).to eq(:member_name_taken)
+      expect(result.errors).to eq([I18n.t('services.actors.link_meeting_participant.member_name_taken')])
+      expect(participant.reload.user_id).to be_nil
+    end
   end
 
   describe 'a participant that is a member' do

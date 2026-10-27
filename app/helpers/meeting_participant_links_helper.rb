@@ -89,7 +89,7 @@ module MeetingParticipantLinksHelper
 
   def participant_directory_entry(directory, participant)
     if participant.user_id
-      directory.member_entry(participant.user_id)
+      directory.member_entry(participant.user_id) || directory.former_member_entry(participant.user_id)
     elsif participant.person_id
       directory.person_entry(participant.person_id)
     end

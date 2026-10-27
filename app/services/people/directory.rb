@@ -80,6 +80,12 @@ module People
       everyone.find { |entry| entry.person&.id == person_id.to_s }
     end
 
+    # The contact entry of a former member: their row, which keeps the meetings
+    # they still carry by account (People::Contacts reads the row's user_id).
+    def former_member_entry(user_id)
+      everyone.find { |entry| !entry.member? && entry.person&.user_id == user_id.to_s }
+    end
+
     # The entries matching the search, without last contacts: the list of the
     # dialog that links a meeting participant (S2b).
     def candidates

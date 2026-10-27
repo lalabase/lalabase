@@ -65,9 +65,11 @@ class MeetingParticipant < ApplicationRecord
   # External (name-only) participants in the given projects — the ONE definition of
   # "an external participation eligible to be claimed", shared by the claim matcher
   # (counts them) and the claim actor (links them). Callers pass an already
-  # access-scoped project_ids list.
+  # access-scoped project_ids list. A name linked to a contact of the people
+  # directory (person_id) is that contact, not a free name: one key per
+  # participant, the link dialog relinks it.
   scope :external_in_projects, lambda { |project_ids|
-    where(user_id: nil).joins(:meeting).where(meetings: { project_id: project_ids })
+    where(user_id: nil, person_id: nil).joins(:meeting).where(meetings: { project_id: project_ids })
   }
 
   # Normalization contract: PersonName.normalize, the one normalizer shared

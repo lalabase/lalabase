@@ -56,7 +56,7 @@ RSpec.describe 'Linking a meeting participant to a person', type: :system do
     expect(page).to have_no_css('[role="dialog"]')
     expect(page).to have_link(I18n.t("#{pl}.open_person", name: 'J. Weber (Hoster)'))
     expect(participant.reload.person.name).to eq('Jonas Weber')
-    expect(page.evaluate_script('document.activeElement.id')).to eq(trigger_id)
+    expect(page).to have_css("##{trigger_id}:focus")
   end
 
   it 'closes on Escape without linking' do
@@ -65,8 +65,11 @@ RSpec.describe 'Linking a meeting participant to a person', type: :system do
 
     find('[role="dialog"] input[type="search"]').send_keys(:escape)
 
+    # The dialog owns that Escape: the meeting behind stays open, and the focus is back on
+    # the button that opened the dialog (the title alone also stands in the list row).
     expect(page).to have_no_css('[role="dialog"]')
-    expect(page).to have_text('Hosting-Abstimmung')
+    # Waits: the controller hands the focus back after the frame is emptied.
+    expect(page).to have_css("##{trigger_id}:focus")
     expect(participant.reload.person_id).to be_nil
   end
 end

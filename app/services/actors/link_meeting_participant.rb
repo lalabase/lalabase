@@ -72,6 +72,7 @@ module Actors
     def link_to_entry(entry)
       if entry.member?
         refuse!(:member_already_participant) if taken_by_another?(entry.user.id)
+        refuse!(:member_name_taken) if name_taken_by_another?(entry.user.display_name)
         @participant.update!(user_id: entry.user.id, person_id: nil)
       else
         @participant.update!(person_id: entry.person.id)
@@ -83,6 +84,15 @@ module Actors
 
     def taken_by_another?(user_id)
       @meeting.meeting_participants.where(user_id: user_id).where.not(id: @participant.id).exists?
+    end
+
+    # The meeting form labels a member chip with the member's profile name
+    # (MeetingsController#meeting_participant_options); a second participant of
+    # that name would make every later save of the meeting fail on its unique
+    # name (SaveMeeting#guard_against_duplicates!).
+    def name_taken_by_another?(name)
+      @meeting.meeting_participants.where(normalized_name: PersonName.normalize(name))
+              .where.not(id: @participant.id).exists?
     end
 
     def created_entry

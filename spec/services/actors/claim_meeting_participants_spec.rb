@@ -66,9 +66,10 @@ RSpec.describe Actors::ClaimMeetingParticipants do
     expect(row.display_name).to eq('karl krause')
   end
 
-  # The claim writes user_id only. A row linked to the people directory keeps
-  # its person_id (meeting_participants.person_id, set by the link dialog).
-  it 'leaves person_id untouched' do
+  # One key per participant (S2b): a row linked to a contact of the people
+  # directory (person_id, set by the link dialog) is that contact. The claim
+  # leaves it alone instead of giving it a second key; the dialog relinks it.
+  it 'leaves a row linked to a contact alone' do
     target = member
     person = create(:person, organisation: organisation, name: 'Karl Krause')
     row = external_row(writable_project, 'Karl Krause')
@@ -76,7 +77,7 @@ RSpec.describe Actors::ClaimMeetingParticipants do
 
     described_class.new(user: target, normalized_name: 'Karl Krause', current_user: actor).call
 
-    expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[target.id, person.id]])
+    expect(MeetingParticipant.where(id: row.id).pluck(:user_id, :person_id)).to eq([[nil, person.id]])
   end
 
   it 'matches across umlaut spellings (member "Jörg Groß" ~ external "Joerg Gross")' do

@@ -127,6 +127,16 @@ RSpec.describe Meetings::ParticipantClaimMatches do
     expect(matches).to be_empty
   end
 
+  # One key per participant (S2b): a name linked to a contact of the people
+  # directory is that contact, not a free name a member could claim.
+  it 'never matches a participant linked to a contact' do
+    named_member('Karl', 'Krause')
+    meeting = external_in(writable_project, 'Karl Krause')
+    meeting.meeting_participants.first.update!(person: create(:person, organisation: organisation, name: 'Karl Krause'))
+
+    expect(matches).to be_empty
+  end
+
   it 'returns one suggestion per member for real doppelgängers' do
     twin_a = named_member('Karl', 'Krause')
     twin_b = named_member('Karl', 'Krause')

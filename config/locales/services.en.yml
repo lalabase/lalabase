@@ -52,6 +52,7 @@ en:
         nothing_picked: "Pick a person or create a new one."
         member_participant: "This participant is a member and is linked through their account."
         member_already_participant: "This member already takes part in the meeting."
+        member_name_taken: "Another participant already carries the name of this member. Remove them from the meeting first."
         not_allowed: "You may not create people."
       move_meeting:
         same_project: "The meeting is already in this project."

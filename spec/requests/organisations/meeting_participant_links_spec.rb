@@ -109,6 +109,17 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       expect(response.body).to include(CGI.escapeHTML(organisation_people_path(organisation, person_id: row.id)))
     end
 
+    it 'links the chip of a former member to the row that keeps their meetings' do
+      former = member_with(create(:role, organisation: organisation), first_name: 'Fritz')
+      row = create(:person, organisation: organisation, name: 'Fritz Beispiel', user: former)
+      Membership.where(user: former, organisation: organisation).update_all(active: false)
+      create(:meeting_participant, meeting: meeting, display_name: 'Fritz Beispiel', user: former)
+      sign_in admin
+      show_meeting
+
+      expect(response.body).to include(CGI.escapeHTML(organisation_people_path(organisation, person_id: row.id)))
+    end
+
     it 'keeps a chip as text when its person is a row the viewer may not see' do
       hidden_member = member_with(create(:role, organisation: organisation), first_name: 'Hanna')
       create(:project_permission, user: hidden_member, project: create(:project, organisation: organisation),
@@ -212,7 +223,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       expect(response).to have_http_status(:ok)
       expect(participant.reload.person_id).to eq(contact.id)
       expect(response.body).to include("turbo-stream action=\"replace\" target=\"#{ActionView::RecordIdentifier.dom_id(meeting, :participants)}\"")
-      expect(response.body).to include('action="remove" target="meeting-participant-link-modal-')
+      expect(response.body).to include("action=\"remove\" target=\"meeting-participant-link-modal-#{meeting.id}-#{modal_token}\"")
       expect(response.body).to include(CGI.escapeHTML(organisation_people_path(organisation, person_id: contact.id)))
 
       get organisation_people_path(organisation, person_id: contact.id), headers: { 'Turbo-Frame' => Organisations::PeopleController::DETAIL_FRAME_ID }
@@ -237,7 +248,7 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       post_link("member:#{colleague.id}")
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include('action="replace" target="meeting-participant-link-modal-')
+      expect(response.body).to include("action=\"replace\" target=\"meeting-participant-link-modal-#{meeting.id}-#{modal_token}\"")
       expect(response.body).to include(I18n.t('services.actors.link_meeting_participant.member_already_participant'))
       expect(participant.reload.user_id).to be_nil
     end
@@ -388,15 +399,19 @@ RSpec.describe 'Organisations::MeetingParticipantLinks', :ci_guard, type: :reque
       expect(participant.reload.person_id).to eq(contact.id)
     end
 
-    it 'keeps a member link, which the form sends as user_id' do
+    # The form labels a member chip with the member's profile name, so the row is kept by
+    # its member, not by its name (SaveMeeting#match_participant_rows).
+    it 'keeps a member link, which the form sends as user_id under the profile name' do
       colleague = member_with(create(:role, organisation: organisation), first_name: 'Carl')
+      create(:project_permission, user: colleague, project: project, meetings_access: :read_only)
       sign_in admin
       post_link("member:#{colleague.id}")
 
-      edit_with(display_name: 'J. Weber (Hoster)', user_id: colleague.id)
+      edit_with(display_name: colleague.display_name, user_id: colleague.id)
 
       expect(response).to have_http_status(:ok)
       expect(participant.reload.user_id).to eq(colleague.id)
+      expect(meeting.meeting_participants.count).to eq(1)
     end
   end
 end

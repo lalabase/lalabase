@@ -52,6 +52,7 @@ de:
         nothing_picked: "Wähle eine Person aus oder lege eine neue an."
         member_participant: "Dieser Teilnehmer ist ein Mitglied und über sein Konto verknüpft."
         member_already_participant: "Dieses Mitglied nimmt schon an dem Meeting teil."
+        member_name_taken: "Ein anderer Teilnehmer trägt schon den Namen dieses Mitglieds. Entferne ihn zuerst aus dem Meeting."
         not_allowed: "Du darfst keine Personen anlegen."
       move_meeting:
         same_project: "Das Meeting liegt schon in diesem Projekt."

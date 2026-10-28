@@ -299,6 +299,38 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     end
   end
 
+  # Often only "Herr Müller" or "Frau Müller" is known. The salutation is free
+  # text; the form suggests the usual ones as a grey example only.
+  describe 'the salutation' do
+    before { sign_in manager }
+
+    it 'saves it from the form and shows it in the lane' do
+      patch organisation_person_path(organisation, person),
+            params: { person: { salutation: 'Frau Dr.', lock_version: person.lock_version } }
+      expect(person.reload.salutation).to eq('Frau Dr.')
+
+      get organisation_person_path(organisation, person), headers: frame_headers
+
+      expect(response.body).to include(Person.human_attribute_name(:salutation), 'Frau Dr.')
+    end
+
+    it 'offers a free text field with the suggestions as placeholder' do
+      get edit_organisation_person_path(organisation, person), headers: frame_headers
+
+      field = Nokogiri::HTML(response.body).at_css('input#person_salutation')
+      expect(field).to be_present
+      expect(field['type']).to eq('text')
+      expect(field['placeholder']).to eq(I18n.t('views.organisations.people.form.placeholders.salutation'))
+    end
+
+    it 'shows no salutation line for a person without one' do
+      get organisation_person_path(organisation, person), headers: frame_headers
+
+      expect(response.body).to include('Doris Dienstleister')
+      expect(response.body).not_to include(">#{Person.human_attribute_name(:salutation)}<")
+    end
+  end
+
   # Review round 1, finding 1: the form only offered ACTIVE members, so the row
   # of a deactivated member showed "Kein Mitglied" selected, and any save (only
   # the phone changed) dropped the link without anybody noticing.

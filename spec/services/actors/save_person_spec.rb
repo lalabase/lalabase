@@ -30,6 +30,15 @@ RSpec.describe Actors::SavePerson do
     expect([person.creator_id, person.updater_id]).to eq([writer.id, writer.id])
   end
 
+  it 'saves and clears the salutation' do
+    person = save(name: 'Müller', salutation: 'Frau Dr.').resource
+    expect(person.salutation).to eq('Frau Dr.')
+
+    save(salutation: '', lock_version: person.lock_version, id: person.id)
+
+    expect(person.reload.salutation).to be_nil
+  end
+
   it 'records the actor of the activity (Current.user from the actor)' do
     result = save(name: 'Erika Beispiel')
 

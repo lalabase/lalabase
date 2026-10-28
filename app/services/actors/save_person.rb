@@ -17,7 +17,7 @@
 # Tracking is PersonTrackable's: no personal data, no fanout.
 module Actors
   class SavePerson < BaseActor
-    ATTRIBUTES = %i[name function department company email phone notes lock_version].freeze
+    ATTRIBUTES = %i[name salutation function department company email phone notes lock_version].freeze
     # lock_version is an integer column (4 bytes).
     LOCK_VERSION_RANGE = (0..((2**31) - 1))
 

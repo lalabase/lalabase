@@ -110,6 +110,7 @@ en:
           no_member: "no member"
           former_member_option: "%{name} (former member)"
           placeholders:
+            salutation: "e.g. Mr, Ms, Dr (empty = none given)"
             name: "First and last name"
             function: "e.g. technical contact"
             department: "e.g. IT"

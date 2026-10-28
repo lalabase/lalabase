@@ -5,6 +5,7 @@ en:
       person:
         user: "Member"
         name: "Name"
+        salutation: "Salutation"
         function: "Function"
         department: "Department"
         company: "Company"

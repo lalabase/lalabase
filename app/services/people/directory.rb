@@ -16,7 +16,8 @@ module People
   # * Search: one normalized substring match (PersonName.normalize, so "Muller"
   #   finds nothing but "mueller" and "Müller" find each other) over name
   #   (with the salutation in front: "Frau Müller"), function, department,
-  #   company and email. In Ruby, because the member half
+  #   company, email and the values of the additional details (never their
+  #   labels, PersonDetail.search_values). In Ruby, because the member half
   #   reads its names from users; the list is sized for a few hundred rows per
   #   organisation. Pagination is a follow-up once an organisation passes that.
   class Directory
@@ -215,7 +216,8 @@ module People
     def matches?(entry)
       email = entry.member? ? entry.user.email : entry.person&.email
       addressed = [entry.person&.salutation, entry.plain_name].compact_blank.join(' ')
-      haystack = [addressed, entry.person&.function, entry.person&.department, entry.person&.company, email]
+      haystack = [addressed, entry.person&.function, entry.person&.department, entry.person&.company, email,
+                  *PersonDetail.search_values(entry.person&.additional_details)]
       haystack.any? { |value| value.present? && PersonName.normalize(value).include?(@query) }
     end
   end

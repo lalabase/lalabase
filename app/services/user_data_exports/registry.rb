@@ -221,7 +221,8 @@ module UserDataExports
       # content (as analysis_prompts); unlinked rows are data about third
       # parties, whose requests go through the organisation as controller.
       source(key: :people, model: 'Person', tenant_scoped: true,
-             attributes: %w[name salutation function department company email phone notes created_at updated_at],
+             attributes: %w[name salutation function department company email phone additional_details notes
+                            created_at updated_at],
              scope: ->(user) { Person.where(user_id: user.id) }),
       source(key: :notification_subscriptions, model: 'NotificationSubscription', tenant_scoped: true,
              attributes: %w[subscribable_type source created_at],

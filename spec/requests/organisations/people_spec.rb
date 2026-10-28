@@ -331,6 +331,163 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     end
   end
 
+  # Up to ten labelled details (PersonDetail). The form sends them as an
+  # indexed hash next to a marker; the lane shows them after the phone.
+  describe 'the additional details' do
+    before { sign_in manager }
+
+    def row(kind, value, label: '')
+      { kind: kind, label: label, value: value }
+    end
+
+    def details_params(*rows)
+      rows.each_with_index.to_h { |entry, index| [index.to_s, entry] }.merge(PersonDetail::FORM_MARKER => '1')
+    end
+
+    def patch_details(target, details, **extra)
+      patch organisation_person_path(organisation, target),
+            params: { person: { additional_details: details, lock_version: target.reload.lock_version, **extra } }
+    end
+
+    def lane_html(target = person)
+      get organisation_person_path(organisation, target), headers: frame_headers
+      expect(response).to have_http_status(:ok)
+      Nokogiri::HTML(response.body)
+    end
+
+    it 'saves them from the form and shows each kind in the lane' do
+      patch_details(person, details_params(row('phone', '+49 30 1234568', label: 'Fax'),
+                                           row('email', 'erika@example.com', label: 'Privat'),
+                                           row('url', 'https://example.com', label: 'Website'),
+                                           row('date', '1980-02-29', label: 'Geburtstag'),
+                                           row('address', "Musterstraße 1\r\n12345 Berlin", label: 'Büro'),
+                                           row('text', 'nur vormittags', label: 'Erreichbar')))
+      expect(response).to redirect_to(organisation_people_path(organisation, person_id: person.id))
+      expect(person.reload.additional_details.pluck('kind')).to eq(%w[phone email url date address text])
+
+      lane = lane_html
+      expect(lane.at_css('a[href="tel:+49301234568"]').text).to include('+49 30 1234568')
+      expect(lane.at_css('a[href="mailto:erika@example.com"]')).to be_present
+      web = lane.at_css('a[href="https://example.com"]')
+      expect([web['target'], web['rel']]).to eq(['_blank', 'noopener noreferrer'])
+      expect(lane.text).to include('Fax', 'Geburtstag', I18n.l(Date.new(1980, 2, 29), format: :long), 'nur vormittags')
+      expect(lane.to_html).to include('Musterstraße 1<br>12345 Berlin')
+    end
+
+    it 'formats the date in the reader\'s language' do
+      person.update!(additional_details: [row('date', '1980-02-29', label: 'Geburtstag')])
+      manager.update!(language_preference: 'en')
+
+      text = lane_html.text
+
+      expect(text).to include(I18n.l(Date.new(1980, 2, 29), format: :long, locale: :en))
+    end
+
+    it 'shows the details as tap targets on a phone, named by their label' do
+      person.update!(additional_details: [row('phone', '+49 170 1234567', label: 'Mobil')])
+
+      get organisation_people_path(organisation, person_id: person.id, viewport: 'mobile')
+
+      tap = Nokogiri::HTML(response.body).at_css('a.people-tap[href="tel:+491701234567"]')
+      expect(tap).to be_present
+      expect(tap.text).to include('+49 170 1234567', 'Mobil')
+    end
+
+    it 'shows no detail line for a person without details' do
+      fields = lane_html.css('.people-fields__row dt').map { |dt| dt.text.strip }
+
+      expect(fields).to eq(%i[function company email phone].map { |field| Person.human_attribute_name(field) })
+    end
+
+    it 'clears them when only the marker is sent (the last one removed)' do
+      person.update!(additional_details: [row('text', 'weg')])
+
+      patch_details(person, { PersonDetail::FORM_MARKER => '1' })
+
+      expect(response).to have_http_status(:see_other)
+      expect(person.reload.additional_details).to eq([])
+    end
+
+    it 'leaves them alone when a save does not name them' do
+      person.update!(additional_details: [row('text', 'bleibt')])
+
+      patch organisation_person_path(organisation, person),
+            params: { person: { function: 'IT', lock_version: person.lock_version } }
+
+      expect(person.reload.function).to eq('IT')
+      expect(person.additional_details).to eq([{ 'kind' => 'text', 'label' => '', 'value' => 'bleibt' }])
+    end
+
+    it 'refuses a javascript: url with the form and its reason, and saves nothing' do
+      patch_details(person, details_params(row('url', 'javascript:alert(1)', label: 'Web')), phone: '+49 30 0')
+
+      expect(response).to have_http_status(:unprocessable_content)
+      reason = I18n.t('activerecord.errors.models.person.attributes.additional_details.invalid_url', position: 1)
+      expect(response.body).to include('id="person_name"', CGI.escapeHTML(reason))
+      expect(person.reload.additional_details).to eq([])
+      expect(person.phone).to eq('+49 30 1234567')
+    end
+
+    it 'refuses an eleventh detail' do
+      patch_details(person, details_params(*Array.new(PersonDetail::MAX + 1) { row('text', 'x') }))
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(person.reload.additional_details).to eq([])
+    end
+
+    it 'escapes a script in a label or a value' do
+      person.update!(additional_details: [row('text', '<script>alert(1)</script>', label: '<script>alert(2)</script>'),
+                                          row('address', "<script>alert(3)</script>\nZeile")])
+
+      body = lane_html.to_html
+
+      expect(body).not_to include('<script>alert(')
+      expect(body).to include('&lt;script&gt;alert(1)&lt;/script&gt;', '&lt;script&gt;alert(2)&lt;/script&gt;',
+                              '&lt;script&gt;alert(3)&lt;/script&gt;<br>Zeile')
+    end
+
+    it 'never answers a hand-made shape with a 500, and keeps the stored details' do
+      person.update!(additional_details: [row('text', 'bleibt')])
+      shapes = [
+        'a string', %w[an array], { '0' => 'not a hash' }, { '0' => { 'kind' => { 'x' => 'y' }, 'value' => ['v'] } },
+        { 'abc' => row('text', 'not numeric') }, { '0' => { 'kind' => 'text', 'value' => 'ok', 'evil' => 'x' } }
+      ]
+
+      # One request per shape; the loop is not an N+1 of the page.
+      Prosopite.pause do
+        shapes.each do |shape|
+          patch organisation_person_path(organisation, person),
+                params: { person: { additional_details: shape, lock_version: person.reload.lock_version } }
+          expect(response.status).to be < 500, shape.inspect
+        end
+      end
+      expect(person.reload.additional_details).to eq([{ 'kind' => 'text', 'label' => '', 'value' => 'ok' }])
+    end
+
+    it 'writes "Weitere Angaben" into the history, without values' do
+      patch_details(person, details_params(row('phone', '+49 30 5550000', label: 'Fax geheim')))
+
+      I18n.with_locale(:de) do
+        history = lane_html.text
+
+        expect(history).to include('Weitere Angaben')
+        expect(history).not_to include('Fax geheim geändert')
+      end
+      expect(Activity.where(trackable: person).to_a.to_json).not_to include('5550000')
+    end
+
+    it 'answers 404 for the details of a person of another organisation and changes nothing' do
+      foreign = ActsAsTenant.with_tenant(other_organisation) { create(:person, organisation: other_organisation) }
+      sign_in admin
+
+      patch organisation_person_path(organisation, foreign),
+            params: { person: { additional_details: details_params(row('text', 'fremd')) } }
+
+      expect(response).to have_http_status(:not_found)
+      expect(Person.unscoped.find(foreign.id).additional_details).to eq([])
+    end
+  end
+
   # Review round 1, finding 1: the form only offered ACTIVE members, so the row
   # of a deactivated member showed "Kein Mitglied" selected, and any save (only
   # the phone changed) dropped the link without anybody noticing.

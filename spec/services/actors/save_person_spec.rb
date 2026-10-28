@@ -204,4 +204,76 @@ RSpec.describe Actors::SavePerson do
     expect(result).not_to be_success
     expect(result.code).to eq(:validation_failed)
   end
+
+  describe 'the additional details' do
+    def row(kind: 'phone', label: 'Fax', value: '+49 30 1234568')
+      { 'kind' => kind, 'label' => label, 'value' => value }
+    end
+
+    # The form sends the rows as an indexed hash next to the marker.
+    def form(*rows, marker: true)
+      list = rows.each_with_index.to_h { |entry, index| [index.to_s, entry] }
+      marker ? list.merge(PersonDetail::FORM_MARKER => '1') : list
+    end
+
+    let(:person) { save(name: 'Doris Dienstleister', additional_details: form(row, row(label: 'Mobil', value: '+49 170 1234567'))).resource }
+
+    it 'saves them in the order of the index' do
+      expect(person.additional_details).to eq([row, row(label: 'Mobil', value: '+49 170 1234567')])
+
+      result = save(additional_details: { '7' => row(label: 'Zweite'), '3' => row(label: 'Erste'), 'sent' => '1' },
+                    lock_version: person.lock_version, id: person.id)
+
+      expect(result).to be_success
+      expect(person.reload.additional_details.pluck('label')).to eq(%w[Erste Zweite])
+    end
+
+    it 'clears them when the form sends only the marker (the last one removed)' do
+      save(additional_details: form, lock_version: person.lock_version, id: person.id)
+
+      expect(person.reload.additional_details).to eq([])
+    end
+
+    it 'leaves them alone when the request does not name them' do
+      save(phone: '+49 30 7654321', lock_version: person.lock_version, id: person.id)
+
+      expect(person.reload.additional_details.size).to eq(2)
+      expect(person.phone).to eq('+49 30 7654321')
+    end
+
+    it 'refuses an eleventh and keeps the stored ones' do
+      result = save(additional_details: form(*Array.new(PersonDetail::MAX + 1) { row }),
+                    lock_version: person.lock_version, id: person.id)
+
+      expect(result.code).to eq(:validation_failed)
+      expect(person.reload.additional_details.size).to eq(2)
+    end
+
+    it 'refuses a javascript: url and stores nothing' do
+      result = save(additional_details: form(row(kind: 'url', label: 'Web', value: 'javascript:alert(1)')),
+                    lock_version: person.lock_version, id: person.id)
+
+      expect(result.code).to eq(:validation_failed)
+      expect(result.errors.join).to include('(Nr. 1)').or include('(no. 1)')
+      expect(person.reload.additional_details.size).to eq(2)
+    end
+
+    it 'refuses a stale save of the details with the stale code' do
+      stale_version = person.lock_version
+      save(phone: '1', lock_version: stale_version, id: person.id)
+
+      result = save(additional_details: form, lock_version: stale_version, id: person.id)
+
+      expect(result.code).to eq(:stale_object)
+      expect(person.reload.additional_details.size).to eq(2)
+    end
+
+    it 'takes details for the row of an active member' do
+      user = member
+      result = save(name: 'egal', user_id: user.id, additional_details: form(row))
+
+      expect(result).to be_success
+      expect(result.resource.additional_details).to eq([row])
+    end
+  end
 end

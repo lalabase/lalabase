@@ -11,6 +11,8 @@
 # (PersonLinkRelease). Tracking keeps no personal data (PersonTrackable).
 # salutation is free text ("Herr", "Frau Dr."): often only "Frau Müller" is
 # known, without a first name. Blank means none given and is stored as nil.
+# additional_details: up to ten labelled details (fax, mobile, website,
+# birthday) as a JSONB array; their rule belongs to PersonDetail alone.
 # lock_version: both sides edit the same row; a stale save raises
 # ActiveRecord::StaleObjectError.
 class Person < ApplicationRecord
@@ -31,6 +33,7 @@ class Person < ApplicationRecord
   TEXT_FIELDS = %i[name salutation function department company email phone].freeze
 
   before_validation :normalize_name_fields
+  before_validation :normalize_additional_details
 
   validates :name, presence: true
   validates :normalized_name, presence: true
@@ -38,6 +41,7 @@ class Person < ApplicationRecord
   validates :notes, length: { maximum: MAX_NOTES_LENGTH }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :user_id, uniqueness: { scope: :organisation_id }, allow_nil: true
+  validate :additional_details_valid
   validate :user_must_be_active_member, if: -> { user_id.present? && will_save_change_to_user_id? }
 
   scope :linked, -> { where.not(user_id: nil) }
@@ -63,6 +67,16 @@ class Person < ApplicationRecord
     self.name = name.to_s.strip.gsub(/\s+/, ' ') if name
     self.normalized_name = PersonName.normalize(name)
     self.salutation = salutation.to_s.squish.presence
+  end
+
+  def normalize_additional_details
+    self.additional_details = PersonDetail.normalize(additional_details)
+  end
+
+  def additional_details_valid
+    PersonDetail.problems(additional_details).each do |problem, options|
+      errors.add(:additional_details, problem, **options)
+    end
   end
 
   # Same rule as Actors::SaveMeeting for participants: only an active member of

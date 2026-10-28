@@ -15,6 +15,10 @@
 #   and a row created for a member takes no email of its own. A DEACTIVATED
 #   member's row keeps only its link (LINK_FIELDS): no other member, no
 #   contact, until the member is removed.
+# * the additional details (PersonDetail): the form sends them as an indexed
+#   hash, turned into a list in the order of the index. The form always sends
+#   PersonDetail::FORM_MARKER with them, so removing the last one clears the
+#   list; a request without the key leaves the list alone (like user_id).
 # * creator on create, updater on every save;
 # * a stale save (lock_version, both sides edit the same row) raises
 #   StaleObjectError, which BaseActor maps to code :stale_object; the
@@ -24,6 +28,8 @@
 module Actors
   class SavePerson < BaseActor
     ATTRIBUTES = %i[name salutation function department company email phone notes lock_version].freeze
+    # The list of PersonDetail entries, sent next to ATTRIBUTES.
+    DETAILS = :additional_details
     # What the account of an active member owns on its row.
     ACCOUNT_FIELDS = %i[name email user_id].freeze
     # What stays while the member is only deactivated: the row's own name and
@@ -52,6 +58,7 @@ module Actors
       @params = @params.except(:email) if @person.new_record? && @params[:user_id].present?
       attributes = @params.slice(*ATTRIBUTES)
       attributes.delete(:lock_version) if @person.new_record?
+      attributes[DETAILS] = PersonDetail.normalize(@params[DETAILS]) if @params.key?(DETAILS)
       @person.assign_attributes(attributes)
       assign_link if @params.key?(:user_id)
       @person.creator ||= @current_user if @person.new_record?

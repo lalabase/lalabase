@@ -6,6 +6,8 @@ module PeopleHelper
   # The two things a row can open in the lane: a person row, or a member who
   # has no row of their own yet. They exclude each other.
   SELECTION_PARAMS = %w[person_id member_id].freeze
+  # The icon of an additional detail that is a link (PersonDetail#href).
+  PERSON_DETAIL_ICONS = { 'phone' => 'bi-telephone', 'email' => 'bi-envelope', 'url' => 'bi-link-45deg' }.freeze
 
   # The page wrapper's data: the lane (layout-toggle, index-page) and the
   # desktop/mobile switch, the same controllers as "Alle Meetings"
@@ -104,12 +106,54 @@ module PeopleHelper
 
   # A member row with none of the details the directory is for yet.
   def person_bare?(person)
-    person.nil? || %i[salutation function department phone notes].all? { |field| person.public_send(field).blank? }
+    person.nil? ||
+      %i[salutation function department phone notes additional_details].all? { |field| person.public_send(field).blank? }
   end
 
   # The lines of the lane: label, value, and for email and phone the link. An
-  # active member's email is the account's (the form locks it).
+  # active member's email is the account's (the form locks it). The
+  # additional details follow the phone, in their stored order.
   def person_fields(person, member)
+    person_fixed_fields(person, member) + person_detail_fields(person)
+  end
+
+  # One line per additional detail (PersonDetail): the label, or the name of
+  # the kind without one. A phone, an email and an http(s) url are links (a
+  # url opens a new tab), a date is formatted for the reader, an address keeps
+  # its lines. On a phone a link is a tap target named by its label.
+  def person_detail_fields(person)
+    details = person&.additional_details
+    return [] unless details.is_a?(Array)
+
+    details.map do |entry|
+      detail = PersonDetail.new(entry)
+      label = detail.label.presence || person_detail_kind_name(detail.kind)
+      field = { label: label, value: person_detail_value(detail) }
+      href = detail.href
+      next field unless href
+
+      field.merge(href: href, icon: PERSON_DETAIL_ICONS[detail.kind], mono: detail.kind == 'phone',
+                  action: label, external: detail.kind == 'url')
+    end
+  end
+
+  def person_detail_kind_name(kind)
+    return kind.to_s unless PersonDetail::KINDS.include?(kind)
+
+    t("views.organisations.people.details.kinds.#{kind}")
+  end
+
+  # The value of a detail as the lane shows it.
+  def person_detail_value(detail)
+    date = detail.date
+    return l(date, format: :long) if date
+    return safe_join(detail.lines, tag.br) if detail.kind == 'address'
+
+    detail.value
+  end
+
+  # The fixed fields of the lane, in the order of the form.
+  def person_fixed_fields(person, member)
     email = member ? member.email : person&.email
     phone = person&.phone
     [

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_28_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1075,9 +1075,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_100000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "salutation"
+    t.jsonb "additional_details", default: [], null: false
     t.index ["organisation_id", "normalized_name"], name: "index_people_on_organisation_id_and_normalized_name"
     t.index ["organisation_id", "user_id"], name: "index_people_on_organisation_id_and_user_id", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["user_id"], name: "index_people_on_user_id"
+    t.check_constraint "jsonb_typeof(additional_details) = 'array'::text AND jsonb_array_length(additional_details) <= 10", name: "people_additional_details_shape"
   end
 
   create_table "permissions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

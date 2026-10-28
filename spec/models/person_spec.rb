@@ -61,6 +61,67 @@ RSpec.describe Person, type: :model do
     end
   end
 
+  describe 'the additional details' do
+    def detail(kind: 'phone', label: 'Fax', value: '+49 30 1234568')
+      { 'kind' => kind, 'label' => label, 'value' => value }
+    end
+
+    it 'starts with none' do
+      expect(create(:person, organisation: organisation).additional_details).to eq([])
+    end
+
+    it 'normalizes them through PersonDetail before the validation' do
+      person = create(:person, organisation: organisation,
+                               additional_details: { '1' => detail(value: ' +49  30 2 '), '0' => detail(label: ' Mobil ', value: '') })
+
+      expect(person.reload.additional_details).to eq([detail(value: '+49 30 2')])
+    end
+
+    it 'allows ten and refuses eleven' do
+      expect(build(:person, organisation: organisation, additional_details: Array.new(PersonDetail::MAX) { detail })).to be_valid
+
+      person = build(:person, organisation: organisation, additional_details: Array.new(PersonDetail::MAX + 1) { detail })
+      expect(person).not_to be_valid
+      expect(person.errors.details[:additional_details]).to eq([{ error: :too_many, count: PersonDetail::MAX }])
+      I18n.with_locale(:de) { expect(person.errors.full_messages).to eq(['Weitere Angaben (höchstens 10 erlaubt)']) }
+    end
+
+    it 'names the position of an invalid detail, in German and English' do
+      person = build(:person, organisation: organisation,
+                              additional_details: [detail, detail(kind: 'email', label: 'Privat', value: 'nope')])
+
+      expect(person).not_to be_valid
+      expect(person.errors.details[:additional_details]).to eq([{ error: :invalid_email, position: 2 }])
+      I18n.with_locale(:de) { expect(person.errors.full_messages).to eq(['Weitere Angaben (Nr. 2): keine gültige E-Mail-Adresse']) }
+      I18n.with_locale(:en) { expect(person.errors.full_messages).to eq(['Additional details (no. 2): not a valid email address']) }
+    end
+
+    it 'has a message for every problem PersonDetail can name, in both languages' do
+      problems = %i[not_a_list too_many unknown_kind value_missing label_too_long value_too_long] +
+                 PersonDetail::KINDS.map { |kind| :"invalid_#{kind}" } - %i[invalid_address invalid_text]
+      scope = 'activerecord.errors.models.person.attributes.additional_details'
+
+      %i[de en].each do |locale|
+        problems.each do |problem|
+          expect(I18n.exists?("#{scope}.#{problem}", locale)).to be(true), "#{locale}: #{problem}"
+        end
+      end
+    end
+
+    # Defense in depth: the check constraint holds where the validation is
+    # skipped (update_column, a console, a later API).
+    it 'refuses eleven details and a non-array in the database' do
+      person = create(:person, organisation: organisation)
+      # A savepoint per write: a refused statement aborts the test transaction.
+      write = ->(value) { Person.transaction(requires_new: true) { person.update_column(:additional_details, value) } }
+
+      expect { write.call(Array.new(PersonDetail::MAX + 1) { detail }) }
+        .to raise_error(ActiveRecord::StatementInvalid, /people_additional_details_shape/)
+      expect { write.call(detail) }.to raise_error(ActiveRecord::StatementInvalid, /people_additional_details_shape/)
+      expect { write.call(Array.new(PersonDetail::MAX) { detail }) }.not_to raise_error
+    end
+  end
+
   describe 'the member link' do
     it 'accepts an active member of the same organisation' do
       expect(build(:person, organisation: organisation, user: member_of(organisation))).to be_valid

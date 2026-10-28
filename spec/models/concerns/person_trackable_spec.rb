@@ -54,6 +54,25 @@ RSpec.describe PersonTrackable, type: :model do
     expect(serialized([activity])).not_to include('+49 40 1111111', 'Erika Neu')
   end
 
+  it 'records changed additional details by name only, never their values' do
+    person = create_person
+    person.update!(additional_details: [{ 'kind' => 'phone', 'label' => 'Fax geheim', 'value' => '+49 30 5550000' }])
+
+    activity = Activity.find_by!(trackable: person, action: 'updated')
+    expect(activity.attribute_changes).to eq('additional_details' => nil)
+    expect(serialized([activity])).not_to include('Fax geheim', '+49 30 5550000')
+  end
+
+  it 'records nothing when the same details are saved again' do
+    person = create_person
+    details = [{ 'kind' => 'text', 'label' => 'A', 'value' => 'b' }]
+    person.update!(additional_details: details)
+
+    updates = -> { Activity.where(trackable: person, action: 'updated').count }
+
+    expect { person.update!(additional_details: details.map(&:dup)) }.not_to(change(&updates))
+  end
+
   it 'does not record bookkeeping columns as changes' do
     person = create_person
     person.update!(phone: '1')

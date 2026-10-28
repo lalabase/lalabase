@@ -11,6 +11,7 @@ de:
         company: "Firma"
         email: "E-Mail"
         phone: "Telefon"
+        additional_details: "Weitere Angaben"
         notes: "Notiz"
       ticket_relation:
         source_ticket: "Quell-Ticket"
@@ -79,6 +80,17 @@ de:
       models:
         person:
           attributes:
+            additional_details:
+              not_a_list: "(keine Liste)"
+              too_many: "(höchstens %{count} erlaubt)"
+              unknown_kind: "(Nr. %{position}): unbekannte Art"
+              value_missing: "(Nr. %{position}): Wert fehlt"
+              label_too_long: "(Nr. %{position}): Bezeichnung zu lang (höchstens %{count} Zeichen)"
+              value_too_long: "(Nr. %{position}): Wert zu lang (höchstens %{count} Zeichen)"
+              invalid_phone: "(Nr. %{position}): Telefonnummer ohne Ziffern"
+              invalid_email: "(Nr. %{position}): keine gültige E-Mail-Adresse"
+              invalid_url: "(Nr. %{position}): keine Webadresse mit http:// oder https://"
+              invalid_date: "(Nr. %{position}): kein gültiges Datum"
             user:
               not_an_active_member: "muss ein aktives Mitglied dieser Organisation sein"
         beuser:

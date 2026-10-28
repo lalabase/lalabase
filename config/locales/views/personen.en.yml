@@ -103,6 +103,14 @@ en:
           delete_confirm: "%{name} will be deleted from the list. This cannot be undone."
           remove_details: "Remove added details"
           remove_details_confirm: "Function, department, phone and note of %{name} will be removed, the account stays. This cannot be undone."
+        details:
+          kinds:
+            phone: "Phone"
+            email: "Email"
+            url: "Web address"
+            date: "Date"
+            address: "Address"
+            text: "Text"
         form:
           new_title: "Add person"
           edit_title: "Edit %{name}"

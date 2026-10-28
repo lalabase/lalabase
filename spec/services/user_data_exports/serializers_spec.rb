@@ -131,4 +131,21 @@ RSpec.describe 'UserDataExports::Serializers' do
       expect(row['legacy_role']).to eq('legacy-admin')
     end
   end
+
+  # The person row linked to the account: the additional details are part of
+  # it, as stored (kind, label, value).
+  describe 'the people source' do
+    it 'exports the additional details of the own row' do
+      details = [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '+49 170 1234567' }]
+      ActsAsTenant.with_tenant(organisation) do
+        create(:membership, user: user, organisation: organisation, active: true)
+        create(:person, organisation: organisation, user: user, name: 'Erika Beispiel', additional_details: details)
+
+        source = UserDataExports::Registry::SOURCES.find { |entry| entry.key == :people }
+        row = UserDataExports::GenericSerializer.call(source, user).first
+
+        expect(row['additional_details']).to eq(details)
+      end
+    end
+  end
 end

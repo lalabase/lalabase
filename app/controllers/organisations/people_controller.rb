@@ -146,8 +146,12 @@ module Organisations
       result.resource || new_person
     end
 
+    # The additional details come as an indexed hash of any shape here;
+    # PersonDetail.normalize (through SavePerson) keeps only kind, label and
+    # value of the numbered rows. Anything but a hash drops the key, and the
+    # stored details stay.
     def person_params
-      params.require(:person).permit(*Actors::SavePerson::ATTRIBUTES, :user_id)
+      params.require(:person).permit(*Actors::SavePerson::ATTRIBUTES, :user_id, Actors::SavePerson::DETAILS => {})
     end
 
     def directory

@@ -56,16 +56,49 @@ RSpec.describe Actors::SavePerson do
     expect(result.resource.name).to eq(user.display_name)
   end
 
-  # The form shows the member select again once the member is no longer active.
-  it 'drops the link of a former member when user_id is blank' do
+  # Only a link without any membership behind it can be dropped. Removing a
+  # member releases the link by itself (PersonLinkRelease); delete_all skips
+  # that callback and leaves such a link behind.
+  it 'drops a link without a membership behind it when user_id is blank' do
     user = member
     person = save(name: 'x', user_id: user.id).resource
-    Membership.where(user: user, organisation: organisation).update_all(active: false)
+    Membership.where(user: user, organisation: organisation).delete_all
 
     save(user_id: '', lock_version: person.lock_version, id: person.id)
 
     expect(person.reload.user_id).to be_nil
     expect(person.name).to eq(user.display_name)
+  end
+
+  # Review of PR #64: deactivating can be undone, so the row is still that
+  # member's. A new link would carry their phone and notes over to another
+  # member, and an empty one would make the row a contact for every reader.
+  # The name and email stay the row's own (round 3: the row's name is the one
+  # shown).
+  describe 'the row of a deactivated member' do
+    let(:first_member) { member }
+    let!(:row) { save(name: 'egal', user_id: first_member.id, phone: '1', notes: 'n').resource }
+
+    before { Membership.where(user: first_member, organisation: organisation).update_all(active: false) }
+
+    it 'keeps the link against another member' do
+      result = save(user_id: member.id, lock_version: row.lock_version, id: row.id)
+
+      expect(result).to be_success
+      expect(row.reload.user_id).to eq(first_member.id)
+    end
+
+    it 'keeps the link against a blank user_id' do
+      save(user_id: '', lock_version: row.lock_version, id: row.id)
+
+      expect(row.reload.user_id).to eq(first_member.id)
+    end
+
+    it 'takes name and email from the request' do
+      save(name: 'Eigener Name', email: 'e@example.com', lock_version: row.lock_version, id: row.id)
+
+      expect([row.reload.name, row.email]).to eq(['Eigener Name', 'e@example.com'])
+    end
   end
 
   # Review of S1 (28.10.2026): the form locks name, email and the link of an

@@ -46,6 +46,15 @@ class Person < ApplicationRecord
     user_id.present?
   end
 
+  # The membership behind the STORED link (not an unsaved change). While there
+  # is one, the link stays (Actors::SavePerson, the form): deactivating can be
+  # undone. An active one also owns name and email. Nil for a contact and for a
+  # removed member (PersonLinkRelease).
+  def stored_membership
+    stored_id = user_id_in_database if persisted?
+    Membership.find_by(organisation_id: organisation_id, user_id: stored_id) if stored_id
+  end
+
   private
 
   def normalize_name_fields

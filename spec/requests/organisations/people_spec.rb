@@ -311,10 +311,14 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
       sign_in admin
     end
 
-    it 'keeps the member selected in the edit form' do
+    # Review of PR #64: the link of a deactivated member is fixed (SavePerson),
+    # so the form offers no select to change it.
+    it 'leaves the member select out of the edit form' do
       get edit_organisation_person_path(organisation, linked), headers: frame_headers
 
-      expect(response.body).to match(/<option selected="selected" value="#{former.id}">/)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Frieda Former')
+      expect(response.body).not_to include('name="person[user_id]"')
     end
 
     it 'keeps the link when the form is saved with its own values' do
@@ -480,9 +484,10 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
   # Review round 3, finding 1: the member select named the CURRENT account of
   # a deactivated member, also to a reader who may not see that member. Since
-  # the review of S1 (decision A) such a reader does not get the row at all;
-  # this pins the label for a reader who may see the deactivated member.
-  it 'labels the stored former member with the row name, not the account' do
+  # the review of S1 (decision A) such a reader does not get the row at all,
+  # and since the review of PR #64 the form has no select for this row. What
+  # stays: the form names the row, never the account.
+  it 'names the row of a deactivated member by its own name, not the account' do
     project = create(:project, organisation: organisation)
     create(:project_permission, user: manager, project: project, tickets_access: :read_only)
     hidden = member_with(role_with, first_name: 'Kopie')
@@ -494,8 +499,9 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
     get edit_organisation_person_path(organisation, row), headers: frame_headers
 
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include('Kopie Name')
     expect(response.body).not_to include('Neuname')
-    expect(response.body).to match(/<option selected="selected" value="#{hidden.id}">Kopie Name/)
   end
 
   # Review round 3, finding 2: the name of a former member's row is the only

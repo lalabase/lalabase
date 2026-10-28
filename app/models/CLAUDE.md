@@ -57,7 +57,9 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Mitgliederseite nicht sieht, bleibt versteckt, auch wenn die Mitgliedschaft nur deaktiviert ist
   (`PersonPolicy::Scope`). Erst nach dem Entfernen ist sie ein Kontakt für alle mit dem Recht.
   Name, E-Mail und Verknüpfung der Zeile eines aktiven Mitglieds gehören dem Konto: `SavePerson`
-  nimmt sie aus keiner Anfrage (`ACCOUNT_FIELDS`). „Bearbeiten schließt Ansehen ein“ steht einmal
+  nimmt sie aus keiner Anfrage (`ACCOUNT_FIELDS`). Bei einem deaktivierten Mitglied bleibt nur
+  die Verknüpfung fest (`LINK_FIELDS`, kein Mitglieder-Select im Formular), Name und E-Mail
+  der Zeile bleiben ihre eigenen. Beide fragen `Person#stored_membership`. „Bearbeiten schließt Ansehen ein“ steht einmal
   in `Permission::IMPLIED_BY` (gelesen von `PersonPolicy` und `RolePolicy#change_permission?`).
   ⚠️ `concerns/person_trackable.rb`: Aktivitäten tragen KEINE Personendaten (leere Parameter,
   bei Änderungen nur Feldnamen), `skip_notifications` immer; ein Löschen hinterlässt genau eine

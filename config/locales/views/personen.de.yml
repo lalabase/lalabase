@@ -102,7 +102,15 @@ de:
           delete: "Löschen"
           delete_confirm: "%{name} wird aus der Liste gelöscht. Das lässt sich nicht rückgängig machen."
           remove_details: "Ergänzte Angaben entfernen"
-          remove_details_confirm: "Funktion, Abteilung, Telefon und Notiz von %{name} werden entfernt, das Konto bleibt. Das lässt sich nicht rückgängig machen."
+          remove_details_confirm: "Alle ergänzten Angaben von %{name} werden entfernt (Anrede, Funktion, Abteilung, Firma, Telefon, Notiz und weitere Angaben), das Konto bleibt. Das lässt sich nicht rückgängig machen."
+        details:
+          kinds:
+            phone: "Telefon"
+            email: "E-Mail"
+            url: "Webadresse"
+            date: "Datum"
+            address: "Adresse"
+            text: "Text"
         form:
           new_title: "Person anlegen"
           edit_title: "%{name} bearbeiten"
@@ -117,6 +125,21 @@ de:
             email: "name@example.com"
             phone: "+49 30 1234567"
             notes: "Einfacher Text, z. B. Erreichbarkeit oder Zuständigkeit"
+          detail_kind: "Art"
+          detail_label: "Bezeichnung"
+          detail_label_placeholder: "Bezeichnung, z. B. Mobil"
+          detail_position: "Angabe %{position}"
+          detail_value: "Wert"
+          add_detail: "Angabe hinzufügen"
+          remove_detail: "Angabe entfernen"
+          details_limit: "Höchstens %{count} weitere Angaben je Person."
+          detail_suggestions:
+            phone: ["Mobil", "Festnetz", "Fax", "Zentrale", "Privat"]
+            email: ["Privat", "Büro"]
+            url: ["Website", "LinkedIn"]
+            date: ["Geburtstag", "Vertragsbeginn"]
+            address: ["Büro", "Rechnungsadresse"]
+            text: ["Erreichbarkeit", "Assistenz"]
           shared_hint: "Alle mit Zugriff auf Personen sehen diese Angaben, auch die Kundenseite."
           save: "Speichern"
           cancel: "Abbrechen"

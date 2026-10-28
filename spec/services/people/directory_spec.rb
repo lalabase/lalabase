@@ -129,6 +129,39 @@ RSpec.describe People::Directory, :ci_guard do
     expect(found.candidates.map(&:person)).to eq([frau])
   end
 
+  # D3: the values of the additional details are searched, never their labels
+  # ("Fax" would find everybody with a fax).
+  describe 'the additional details' do
+    let!(:with_details) do
+      create(:person, organisation: organisation, name: 'Gerd Gast', company: nil,
+                      additional_details: [{ 'kind' => 'phone', 'label' => 'Fax', 'value' => '+49 30 9876543' },
+                                           { 'kind' => 'address', 'label' => 'Büro', 'value' => "Hauptstraße 5\n12345 Köln" }])
+    end
+
+    def found(query)
+      described_class.new(viewer: admin, organisation: organisation, query: query)
+    end
+
+    it 'finds a person by a value, also umlaut-normalized' do
+      expect(found('9876543').entries.map(&:person)).to eq([with_details])
+      expect(found('hauptstrasse').entries.map(&:person)).to eq([with_details])
+      expect(found('Koeln').candidates.map(&:person)).to eq([with_details])
+    end
+
+    it 'does not find a person by a label alone' do
+      expect(found('Fax').entries).to be_empty
+      expect(found('Büro').entries).to be_empty
+      expect(found('Gast').entries.map(&:person)).to eq([with_details])
+    end
+
+    it 'finds the details of a member row' do
+      create(:person, organisation: organisation, user: colleague, name: 'Carl Kollege',
+                      additional_details: [{ 'kind' => 'url', 'label' => 'Web', 'value' => 'https://kollege.example.com' }])
+
+      expect(found('kollege.example').entries.map(&:user)).to eq([colleague])
+    end
+  end
+
   # External review of 26.10.2026: a linked member is compared by the name
   # the directory shows, not by the copy taken when the row was linked.
   it 'finds duplicates of a member by the current account name' do

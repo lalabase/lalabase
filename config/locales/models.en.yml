@@ -11,6 +11,7 @@ en:
         company: "Company"
         email: "Email"
         phone: "Phone"
+        additional_details: "Additional details"
         notes: "Note"
       ticket_relation:
         source_ticket: "Source ticket"
@@ -79,6 +80,17 @@ en:
       models:
         person:
           attributes:
+            additional_details:
+              not_a_list: "(not a list)"
+              too_many: "(at most %{count} allowed)"
+              unknown_kind: "(no. %{position}): unknown kind"
+              value_missing: "(no. %{position}): value missing"
+              label_too_long: "(no. %{position}): label too long (at most %{count} characters)"
+              value_too_long: "(no. %{position}): value too long (at most %{count} characters)"
+              invalid_phone: "(no. %{position}): phone number without digits"
+              invalid_email: "(no. %{position}): not a valid email address"
+              invalid_url: "(no. %{position}): not a web address with http:// or https://"
+              invalid_date: "(no. %{position}): not a valid date"
             user:
               not_an_active_member: "must be an active member of this organisation"
         beuser:

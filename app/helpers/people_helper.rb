@@ -6,6 +6,8 @@ module PeopleHelper
   # The two things a row can open in the lane: a person row, or a member who
   # has no row of their own yet. They exclude each other.
   SELECTION_PARAMS = %w[person_id member_id].freeze
+  # The icon of an additional detail that is a link (PersonDetail#href).
+  PERSON_DETAIL_ICONS = { 'phone' => 'bi-telephone', 'email' => 'bi-envelope', 'url' => 'bi-link-45deg' }.freeze
 
   # The page wrapper's data: the lane (layout-toggle, index-page) and the
   # desktop/mobile switch, the same controllers as "Alle Meetings"
@@ -104,12 +106,77 @@ module PeopleHelper
 
   # A member row with none of the details the directory is for yet.
   def person_bare?(person)
-    person.nil? || %i[salutation function department phone notes].all? { |field| person.public_send(field).blank? }
+    person.nil? ||
+      %i[salutation function department phone notes additional_details].all? { |field| person.public_send(field).blank? }
   end
 
   # The lines of the lane: label, value, and for email and phone the link. An
-  # active member's email is the account's (the form locks it).
+  # active member's email is the account's (the form locks it). The
+  # additional details follow the phone, in their stored order.
   def person_fields(person, member)
+    person_fixed_fields(person, member) + person_detail_fields(person)
+  end
+
+  # One line per additional detail (PersonDetail): the label, or the name of
+  # the kind without one. A phone, an email and an http(s) url are links (a
+  # url opens a new tab), a date is formatted for the reader, an address keeps
+  # its lines. On a phone a link is a tap target named by its label.
+  def person_detail_fields(person)
+    details = person&.additional_details
+    return [] unless details.is_a?(Array)
+
+    details.map do |entry|
+      detail = PersonDetail.new(entry)
+      label = detail.label.presence || person_detail_kind_name(detail.kind)
+      field = { label: label, value: person_detail_value(detail) }
+      href = detail.href
+      next field unless href
+
+      field.merge(href: href, icon: PERSON_DETAIL_ICONS[detail.kind], mono: detail.kind == 'phone',
+                  action: label, external: detail.kind == 'url')
+    end
+  end
+
+  def person_detail_kind_name(kind)
+    return kind.to_s unless PersonDetail::KINDS.include?(kind)
+
+    t("views.organisations.people.details.kinds.#{kind}")
+  end
+
+  # The kinds of the form's select: [name, kind], in PersonDetail's order.
+  def person_detail_kind_options
+    PersonDetail::KINDS.map { |kind| [person_detail_kind_name(kind), kind] }
+  end
+
+  # The value field and the label suggestions of a kind in the form. The same
+  # map goes to person_details_controller, which switches a row by it; an
+  # unknown kind (a hand-made request shown again) gets a plain text field.
+  def person_detail_field(kind)
+    kind = PersonDetail::KINDS.include?(kind) ? kind : 'text'
+    { input: PersonDetail::INPUT_TYPES.fetch(kind), maxlength: PersonDetail.max_value_length(kind),
+      list: ("person-detail-suggestions-#{kind}" if person_detail_suggestions(kind).any?) }
+  end
+
+  def person_detail_fields_config
+    PersonDetail::KINDS.index_with { |kind| person_detail_field(kind) }
+  end
+
+  # The label suggestions of a kind (a datalist each: "Mobil", "Fax", ...).
+  def person_detail_suggestions(kind)
+    Array(t("views.organisations.people.form.detail_suggestions.#{kind}", default: []))
+  end
+
+  # The value of a detail as the lane shows it.
+  def person_detail_value(detail)
+    date = detail.date
+    return l(date, format: :long) if date
+    return safe_join(detail.lines, tag.br) if detail.kind == 'address'
+
+    detail.value
+  end
+
+  # The fixed fields of the lane, in the order of the form.
+  def person_fixed_fields(person, member)
     email = member ? member.email : person&.email
     phone = person&.phone
     [
@@ -117,9 +184,11 @@ module PeopleHelper
       ({ label: Person.human_attribute_name(:function), value: person.function } if person&.function.present?),
       ({ label: Person.human_attribute_name(:department), value: person.department } if person&.department.present?),
       ({ label: Person.human_attribute_name(:company), value: person.company } if person&.company.present?),
+      # A member's email is the account's, checked by Devise only: linked as
+      # it is, not through PersonDetail's stricter rule.
       ({ label: Person.human_attribute_name(:email), value: email, href: "mailto:#{email}", icon: 'bi-envelope' } if email.present?),
       if phone.present?
-        { label: Person.human_attribute_name(:phone), value: phone, href: "tel:#{phone.gsub(/[^\d+]/, '')}",
+        { label: Person.human_attribute_name(:phone), value: phone, href: PersonDetail.new('kind' => 'phone', 'value' => phone).href,
           icon: 'bi-telephone', mono: true, action: t('views.organisations.people.show.call') }
       end
     ].compact

@@ -1,6 +1,7 @@
 <%# locals: (fields:) %>
 <%# Label and value per line; email and phone are links. On a phone they are
-    large tap targets instead ("anrufen"). %>
+    large tap targets instead ("anrufen"). An additional detail that is a
+    web address (external) opens in a new tab, without the opener. %>
 <% if @viewport_mode == 'mobile' %>
   <% plain, links = fields.partition { |field| field[:href].nil? } %>
   <% if plain.any? %>
@@ -11,7 +12,8 @@
     </dl>
   <% end %>
   <% links.each do |field| %>
-    <%= link_to field[:href], class: "people-tap #{'people-tap--mono' if field[:mono]}" do %>
+    <%= link_to field[:href], class: "people-tap #{'people-tap--mono' if field[:mono]}",
+                              **(field[:external] ? { target: '_blank', rel: 'noopener noreferrer' } : {}) do %>
       <i class="bi <%= field[:icon] %>" aria-hidden="true"></i><%= field[:value] %>
       <% if field[:action] %><span class="people-tap__hint"><%= field[:action] %></span><% end %>
     <% end %>
@@ -23,7 +25,8 @@
         <dt><%= field[:label] %></dt>
         <dd>
           <% if field[:href] %>
-            <%= link_to field[:href], class: "people-fields__link #{'people-fields__link--mono' if field[:mono]}" do %>
+            <%= link_to field[:href], class: "people-fields__link #{'people-fields__link--mono' if field[:mono]}",
+                                      **(field[:external] ? { target: '_blank', rel: 'noopener noreferrer' } : {}) do %>
               <i class="bi <%= field[:icon] %>" aria-hidden="true"></i><%= field[:value] %>
             <% end %>
           <% else %>

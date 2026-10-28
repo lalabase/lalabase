@@ -331,6 +331,270 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     end
   end
 
+  # Up to ten labelled details (PersonDetail). The form sends them as an
+  # indexed hash next to a marker; the lane shows them after the phone.
+  describe 'the additional details' do
+    before { sign_in manager }
+
+    def row(kind, value, label: '')
+      { kind: kind, label: label, value: value }
+    end
+
+    def details_params(*rows)
+      rows.each_with_index.to_h { |entry, index| [index.to_s, entry] }.merge(PersonDetail::FORM_MARKER => '1')
+    end
+
+    def patch_details(target, details, **extra)
+      patch organisation_person_path(organisation, target),
+            params: { person: { additional_details: details, lock_version: target.reload.lock_version, **extra } }
+    end
+
+    def lane_html(target = person)
+      get organisation_person_path(organisation, target), headers: frame_headers
+      expect(response).to have_http_status(:ok)
+      Nokogiri::HTML(response.body)
+    end
+
+    it 'saves them from the form and shows each kind in the lane' do
+      patch_details(person, details_params(row('phone', '+49 30 1234568', label: 'Fax'),
+                                           row('email', 'erika@example.com', label: 'Privat'),
+                                           row('url', 'https://example.com', label: 'Website'),
+                                           row('date', '1980-02-29', label: 'Geburtstag'),
+                                           row('address', "Musterstraße 1\r\n12345 Berlin", label: 'Büro'),
+                                           row('text', 'nur vormittags', label: 'Erreichbar')))
+      expect(response).to redirect_to(organisation_people_path(organisation, person_id: person.id))
+      expect(person.reload.additional_details.pluck('kind')).to eq(%w[phone email url date address text])
+
+      lane = lane_html
+      expect(lane.at_css('a[href="tel:+49301234568"]').text).to include('+49 30 1234568')
+      expect(lane.at_css('a[href="mailto:erika@example.com"]')).to be_present
+      web = lane.at_css('a[href="https://example.com"]')
+      expect([web['target'], web['rel']]).to eq(['_blank', 'noopener noreferrer'])
+      expect(lane.text).to include('Fax', 'Geburtstag', I18n.l(Date.new(1980, 2, 29), format: :long), 'nur vormittags')
+      expect(lane.to_html).to include('Musterstraße 1<br>12345 Berlin')
+    end
+
+    it 'formats the date in the reader\'s language' do
+      person.update!(additional_details: [row('date', '1980-02-29', label: 'Geburtstag')])
+      manager.update!(language_preference: 'en')
+
+      text = lane_html.text
+
+      expect(text).to include(I18n.l(Date.new(1980, 2, 29), format: :long, locale: :en))
+    end
+
+    it 'shows the details as tap targets on a phone, named by their label' do
+      person.update!(additional_details: [row('phone', '+49 170 1234567', label: 'Mobil')])
+
+      get organisation_people_path(organisation, person_id: person.id, viewport: 'mobile')
+
+      tap = Nokogiri::HTML(response.body).at_css('a.people-tap[href="tel:+491701234567"]')
+      expect(tap).to be_present
+      expect(tap.text).to include('+49 170 1234567', 'Mobil')
+    end
+
+    it 'opens a web address on a phone in a new tab without the opener' do
+      person.update!(additional_details: [row('url', 'https://example.com', label: 'Website')])
+
+      get organisation_people_path(organisation, person_id: person.id, viewport: 'mobile')
+
+      tap = Nokogiri::HTML(response.body).at_css('a.people-tap[href="https://example.com"]')
+      expect([tap['target'], tap['rel']]).to eq(['_blank', 'noopener noreferrer'])
+    end
+
+    it 'shows no detail line for a person without details' do
+      fields = lane_html.css('.people-fields__row dt').map { |dt| dt.text.strip }
+
+      expect(fields).to eq(%i[function company email phone].map { |field| Person.human_attribute_name(field) })
+    end
+
+    it 'clears them when only the marker is sent (the last one removed)' do
+      person.update!(additional_details: [row('text', 'weg')])
+
+      patch_details(person, { PersonDetail::FORM_MARKER => '1' })
+
+      expect(response).to have_http_status(:see_other)
+      expect(person.reload.additional_details).to eq([])
+    end
+
+    it 'leaves them alone when a save does not name them' do
+      person.update!(additional_details: [row('text', 'bleibt')])
+
+      patch organisation_person_path(organisation, person),
+            params: { person: { function: 'IT', lock_version: person.lock_version } }
+
+      expect(person.reload.function).to eq('IT')
+      expect(person.additional_details).to eq([{ 'kind' => 'text', 'label' => '', 'value' => 'bleibt' }])
+    end
+
+    it 'refuses a javascript: url with the form and its reason, and saves nothing' do
+      patch_details(person, details_params(row('url', 'javascript:alert(1)', label: 'Web')), phone: '+49 30 0')
+
+      expect(response).to have_http_status(:unprocessable_content)
+      reason = I18n.t('activerecord.errors.models.person.attributes.additional_details.invalid_url', position: 1)
+      expect(response.body).to include('id="person_name"', CGI.escapeHTML(reason))
+      expect(person.reload.additional_details).to eq([])
+      expect(person.phone).to eq('+49 30 1234567')
+    end
+
+    # Review round 2, finding 1: a kind switch in the browser can empty a value
+    # (a date field and "im Mai"). A row that keeps its label is named, not lost.
+    it 'refuses a row with a label but no value, with its position' do
+      person.update!(additional_details: [row('text', 'bleibt')])
+
+      patch_details(person, details_params(row('text', 'bleibt'), row('date', '', label: 'Geburtstag')))
+
+      expect(response).to have_http_status(:unprocessable_content)
+      reason = I18n.t('activerecord.errors.models.person.attributes.additional_details.value_missing', position: 2)
+      expect(response.body).to include(CGI.escapeHTML(reason))
+      expect(person.reload.additional_details).to eq([{ 'kind' => 'text', 'label' => '', 'value' => 'bleibt' }])
+    end
+
+    it 'shows a refused date that is no date in a text field, marked invalid in its numbered row' do
+      patch_details(person, details_params(row('text', 'ok'), row('date', 'im Mai', label: 'Geburtstag')))
+
+      expect(response).to have_http_status(:unprocessable_content)
+      rows = Nokogiri::HTML(response.body).css('[data-person-details-target="list"] [data-person-details-target="row"]')
+      value = rows[1].at_css('[data-person-details-value]')
+      expect([value['type'], value['value'], value['aria-invalid']]).to eq(['text', 'im Mai', 'true'])
+      expect(rows[0].at_css('[data-person-details-value]')['aria-invalid']).to be_nil
+      expect(rows.pluck('aria-label')).to eq([1, 2].map { |n| I18n.t('views.organisations.people.form.detail_position', position: n) })
+    end
+
+    it 'refuses an eleventh detail' do
+      patch_details(person, details_params(*Array.new(PersonDetail::MAX + 1) { row('text', 'x') }))
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(person.reload.additional_details).to eq([])
+    end
+
+    it 'escapes a script in a label or a value' do
+      person.update!(additional_details: [row('text', '<script>alert(1)</script>', label: '<script>alert(2)</script>'),
+                                          row('address', "<script>alert(3)</script>\nZeile")])
+
+      body = lane_html.to_html
+
+      expect(body).not_to include('<script>alert(')
+      expect(body).to include('&lt;script&gt;alert(1)&lt;/script&gt;', '&lt;script&gt;alert(2)&lt;/script&gt;',
+                              '&lt;script&gt;alert(3)&lt;/script&gt;<br>Zeile')
+    end
+
+    it 'never answers a hand-made shape with a 500, and keeps the stored details' do
+      person.update!(additional_details: [row('text', 'bleibt')])
+      shapes = [
+        'a string', %w[an array], { '0' => 'not a hash' }, { '0' => { 'kind' => { 'x' => 'y' }, 'value' => ['v'] } },
+        { 'abc' => row('text', 'not numeric') }, { '0' => { 'kind' => 'text', 'value' => 'ok', 'evil' => 'x' } }
+      ]
+
+      # One request per shape; the loop is not an N+1 of the page.
+      Prosopite.pause do
+        shapes.each do |shape|
+          patch organisation_person_path(organisation, person),
+                params: { person: { additional_details: shape, lock_version: person.reload.lock_version } }
+          expect(response.status).to be < 500, shape.inspect
+        end
+      end
+      expect(person.reload.additional_details).to eq([{ 'kind' => 'text', 'label' => '', 'value' => 'ok' }])
+    end
+
+    it 'writes "Weitere Angaben" into the history, without values' do
+      patch_details(person, details_params(row('phone', '+49 30 5550000', label: 'Fax geheim')))
+
+      I18n.with_locale(:de) do
+        history = lane_html.text
+
+        expect(history).to include('Weitere Angaben')
+        expect(history).not_to include('Fax geheim geändert')
+      end
+      expect(Activity.where(trackable: person).to_a.to_json).not_to include('5550000')
+    end
+
+    describe 'in the form' do
+      let(:stored) do
+        [{ 'kind' => 'phone', 'label' => 'Fax', 'value' => '+49 30 1234568' },
+         { 'kind' => 'date', 'label' => 'Geburtstag', 'value' => '1980-02-29' },
+         { 'kind' => 'address', 'label' => 'Büro', 'value' => "Musterstraße 1\n12345 Berlin" }]
+      end
+
+      def form_html
+        get edit_organisation_person_path(organisation, person), headers: frame_headers
+        expect(response).to have_http_status(:ok)
+        Nokogiri::HTML(response.body)
+      end
+
+      # The fields a browser without JavaScript sends: everything named in the
+      # form, outside the template, enabled.
+      def submitted_fields(html)
+        html.css('form.people-form input[name], form.people-form select[name], form.people-form textarea[name]')
+            .reject { |node| node.ancestors('template').any? || node['disabled'] || node['type'] == 'submit' }
+            .map { |node| [node['name'], node.name == 'select' ? node.at_css('option[selected]')&.[]('value') : (node['value'] || node.text)] }
+      end
+
+      before { person.update!(additional_details: stored) }
+
+      it 'renders the stored rows with the field of their kind, the marker and an empty template' do
+        html = form_html
+        rows = html.css('[data-person-details-target="list"] [data-person-details-target="row"]')
+
+        expect(rows.size).to eq(3)
+        expect(rows[0].at_css('select option[selected]')['value']).to eq('phone')
+        expect(rows[0].at_css('input[data-person-details-value]').attributes.slice('type', 'value').transform_values(&:value))
+          .to eq('type' => 'tel', 'value' => '+49 30 1234568')
+        expect(rows[0].at_css('input[data-person-details-label]')['list']).to eq('person-detail-suggestions-phone')
+        expect(rows[1].at_css('input[data-person-details-value]')['type']).to eq('date')
+        expect(rows[2].at_css('textarea[data-person-details-value]').text).to include("Musterstraße 1\n12345 Berlin")
+        expect(html.at_css("input[type=hidden][name='person[additional_details][#{PersonDetail::FORM_MARKER}]']")).to be_present
+        expect(html.at_css('template[data-person-details-target="template"]').inner_html).to include('person[additional_details][__INDEX__][kind]')
+      end
+
+      it 'hands the limit and the kinds to the controller from PersonDetail' do
+        section = form_html.at_css('[data-controller="person-details"]')
+        kinds = JSON.parse(section['data-person-details-kinds-value'])
+
+        expect(section['data-person-details-max-value']).to eq(PersonDetail::MAX.to_s)
+        expect(kinds.keys).to eq(PersonDetail::KINDS)
+        expect(kinds['address']).to include('input' => 'textarea', 'maxlength' => PersonDetail::MAX_ADDRESS_LENGTH)
+      end
+
+      it 'offers the label suggestions of every kind and a translated remove button' do
+        html = form_html
+
+        expect(html.css('datalist#person-detail-suggestions-phone option').pluck('value')).to include('Mobil', 'Fax')
+        expect(html.css('[data-person-details-target="list"] button[data-action="person-details#remove"]').pluck('aria-label').uniq)
+          .to eq([I18n.t('views.organisations.people.form.remove_detail')])
+      end
+
+      it 'saves the stored rows unchanged when sent as rendered (without JavaScript)' do
+        query = Rack::Utils.parse_nested_query(URI.encode_www_form(submitted_fields(form_html)))
+
+        patch organisation_person_path(organisation, person), params: query
+
+        expect(response).to have_http_status(:see_other)
+        expect(person.reload.additional_details).to eq(stored)
+      end
+
+      it 'shows the refused rows again, with the reason' do
+        patch_details(person, details_params(row('url', 'ftp://example.com', label: 'Server')))
+
+        expect(response).to have_http_status(:unprocessable_content)
+        value = Nokogiri::HTML(response.body).at_css('[data-person-details-target="list"] input[data-person-details-value]')
+        expect(value['value']).to eq('ftp://example.com')
+        expect(person.reload.additional_details).to eq(stored)
+      end
+    end
+
+    it 'answers 404 for the details of a person of another organisation and changes nothing' do
+      foreign = ActsAsTenant.with_tenant(other_organisation) { create(:person, organisation: other_organisation) }
+      sign_in admin
+
+      patch organisation_person_path(organisation, foreign),
+            params: { person: { additional_details: details_params(row('text', 'fremd')) } }
+
+      expect(response).to have_http_status(:not_found)
+      expect(Person.unscoped.find(foreign.id).additional_details).to eq([])
+    end
+  end
+
   # Review round 1, finding 1: the form only offered ACTIVE members, so the row
   # of a deactivated member showed "Kein Mitglied" selected, and any save (only
   # the phone changed) dropped the link without anybody noticing.
@@ -554,13 +818,21 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
   describe 'preselecting a member through the address' do
     before { sign_in admin }
 
+    # The member select is there, with nothing chosen (the kind selects of the
+    # additional details have a choice of their own).
+    def expect_no_member_preselected
+      select = Nokogiri::HTML(response.body).at_css('select[name="person[user_id]"]')
+      expect(select).to be_present
+      expect(select.css('option[selected]')).to be_empty
+    end
+
     it 'does not preselect a member who already has a row' do
       taken = member_with(role_with, first_name: 'Vergeben')
       create(:person, organisation: organisation, user: taken)
 
       get new_organisation_person_path(organisation, user_id: taken.id), headers: frame_headers
 
-      expect(response.body).not_to include('selected="selected"')
+      expect_no_member_preselected
       expect(response.body[/<input[^>]*id="person_name"[^>]*>/]).not_to include('readonly')
     end
 
@@ -570,7 +842,7 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
       get new_organisation_person_path(organisation, user_id: former.id), headers: frame_headers
 
-      expect(response.body).not_to include('selected="selected"')
+      expect_no_member_preselected
     end
   end
 
@@ -710,6 +982,12 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
       expect(response.body).to include(I18n.t('views.organisations.people.show.remove_details'))
       expect(response.body).not_to include(">#{I18n.t('views.organisations.people.show.delete')}<")
+      # Review round 2, finding 3: the confirmation names what goes, the
+      # additional details included.
+      confirm = I18n.t('views.organisations.people.show.remove_details_confirm', name: viewer.display_name)
+      expect(Nokogiri::HTML(response.body).css('[data-turbo-confirm]').pluck('data-turbo-confirm')).to include(confirm)
+      expect(confirm.downcase).to include(Person.human_attribute_name(:company).downcase,
+                                          Person.human_attribute_name(:additional_details).downcase)
     end
 
     it 'shows the email of the account, and locks name and email in the form' do

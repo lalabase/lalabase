@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-10-27)
+# Karte: app/services (Stand: 2026-10-28)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -28,8 +28,9 @@ Verzeichnis-Übersicht (Auswahl):
   `#bookable_projects` für die Schreibfrage `can_create_own`). Nutzer:
   `TimeSessionPolicy::Scope`, die org-weite Tür jeder Liste und jeder
   Dashboard-Kachel (seit 30.08.2026; davor eine zweite, handgeschriebene Kopie der Regel, die
-  abgeschaltete Mitgliedschaften nicht kannte), das Chat-Werkzeug
-  `lalabase/tools/summarize_time_sessions.rb`, `subject_time_summary_service.rb`
+  abgeschaltete Mitgliedschaften nicht kannte), das Werkzeug
+  `lalabase/tools/summarize_time_sessions.rb` (Assistent und seit MCP 0.12.0 auch
+  `/api/mcp` im Projektmodus, also eine Tür für jeden Token), `subject_time_summary_service.rb`
   (Stunden-Chip) und `time_sessions/open_hours.rb` (`GET /api/v1/time_sessions/open`, seit
   08.10.2026; davor sah die API auch Buchungen, die die Zeitliste im Web verbirgt). Wer eine
   weitere Auswertung über gebuchte Zeit baut, geht hier durch, statt die Rangfolge ein

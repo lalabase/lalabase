@@ -277,10 +277,6 @@ de:
       power_search:
         index:
           title: Suchergebnisse
-        power_search_results:
-          match_fulltext: Volltext Treffer
-          match_semantic: Semantischer Treffer
-          match_unknown: Unbekannter Treffer
       activities:
         shared:
           empty_title: Keine Aktivitäten gefunden

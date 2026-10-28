@@ -32,5 +32,13 @@ en:
           fulltext_match: Full-text match
           semantic_match: Semantic match
           unknown_match: Unknown match
-          similarity: 'Similarity:'
+          types:
+            note: Note
+            document: Document
+            documentation: Documentation
+            post: Comment
+            ticket: Ticket
+            meeting: Meeting
+            meeting_analysis: Analysis
+            unknown: Unknown
           no_results: No results found.

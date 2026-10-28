@@ -130,7 +130,7 @@ RSpec.describe PowerSearchService, type: :service do
         result = described_class.new('searchable', organisation, project.id, user).execute.first
 
         expect(result).to include(
-          type: 'Ticket',
+          type: :ticket,
           title: 'Search Target',
           similarity: 0.85,
           highlighted_content: '<mark>searchable</mark>',
@@ -140,7 +140,6 @@ RSpec.describe PowerSearchService, type: :service do
         expect(result[:project_name]).to eq(project.name)
         expect(result[:project_link]).to be_present
         expect(result[:match_types]).to be_an(Array)
-        expect(result[:match_type]).to be_a(String)
       end
 
       it 'passes the query and organisation to QueryEmbedding' do
@@ -317,49 +316,42 @@ RSpec.describe PowerSearchService, type: :service do
         stub_combined_search([fragment], similarity: 0.5)
         stub_highlights(fragment.id => '<mark>match</mark>')
         result = described_class.new('test', organisation).execute.first
-        expect(result[:match_types]).to eq(['Volltext Treffer'])
+        expect(result[:match_types]).to eq([:fulltext])
       end
 
       it 'detects semantic match when similarity >= threshold' do
         stub_combined_search([fragment], similarity: 0.75)
         stub_highlights({})
         result = described_class.new('test', organisation).execute.first
-        expect(result[:match_types]).to eq(['Semantischer Treffer'])
+        expect(result[:match_types]).to eq([:semantic])
       end
 
       it 'detects both match types when both conditions met' do
         stub_combined_search([fragment], similarity: 0.75)
         stub_highlights(fragment.id => '<mark>match</mark>')
         result = described_class.new('test', organisation).execute.first
-        expect(result[:match_types]).to contain_exactly('Volltext Treffer', 'Semantischer Treffer')
+        expect(result[:match_types]).to contain_exactly(:fulltext, :semantic)
       end
 
       it 'falls back to unknown when neither condition met' do
         stub_combined_search([fragment], similarity: 0.5)
         stub_highlights({})
         result = described_class.new('test', organisation).execute.first
-        expect(result[:match_types]).to eq(['Unbekannter Treffer'])
-      end
-
-      it 'sets match_type to first match_types entry for backwards compat' do
-        stub_combined_search([fragment], similarity: 0.75)
-        stub_highlights(fragment.id => '<mark>match</mark>')
-        result = described_class.new('test', organisation).execute.first
-        expect(result[:match_type]).to eq(result[:match_types].first)
+        expect(result[:match_types]).to eq([:unknown])
       end
 
       it 'detects semantic match at exact threshold boundary (0.7)' do
         stub_combined_search([fragment], similarity: 0.7)
         stub_highlights({})
         result = described_class.new('test', organisation).execute.first
-        expect(result[:match_types]).to include('Semantischer Treffer')
+        expect(result[:match_types]).to include(:semantic)
       end
 
       it 'does not detect semantic match just below threshold' do
         stub_combined_search([fragment], similarity: 0.6999)
         stub_highlights({})
         result = described_class.new('test', organisation).execute.first
-        expect(result[:match_types]).not_to include('Semantischer Treffer')
+        expect(result[:match_types]).not_to include(:semantic)
       end
     end
 
@@ -394,7 +386,7 @@ RSpec.describe PowerSearchService, type: :service do
         stub_highlights({})
 
         result = described_class.new('test', organisation).execute.first
-        expect(result[:type]).to eq('Note')
+        expect(result[:type]).to eq(:note)
         expect(result[:title]).to eq('Test Note')
       end
 
@@ -405,8 +397,34 @@ RSpec.describe PowerSearchService, type: :service do
         stub_highlights({})
 
         result = described_class.new('test', organisation).execute.first
-        expect(result[:type]).to eq('Ticket')
+        expect(result[:type]).to eq(:ticket)
         expect(result[:title]).to eq('Test Ticket')
+      end
+
+      # Creation, not the last change: a status change must not make an old
+      # ticket look fresh in the results.
+      it 'dates a ticket by its creation, not its last change' do
+        ticket = create(:ticket, project: project, organisation: organisation)
+        ticket.update_columns(created_at: Time.zone.local(2025, 3, 12, 10), updated_at: Time.zone.local(2026, 10, 1, 9))
+        fragment = create(:fragment, fragmentable: ticket, organisation: organisation)
+        stub_combined_search([fragment])
+        stub_highlights({})
+
+        result = described_class.new('test', organisation).execute.first
+        expect(result[:date].to_date).to eq(Date.new(2025, 3, 12))
+      end
+
+      it 'dates a comment by when it was written, not by its ticket' do
+        ticket = create(:ticket, project: project, organisation: organisation)
+        ticket.update_columns(created_at: Time.zone.local(2024, 1, 5, 10))
+        post_record = create(:post, ticket: ticket, user: user, organisation: organisation, create_embeddings: false)
+        post_record.update_columns(created_at: Time.zone.local(2025, 3, 12, 10))
+        fragment = create(:fragment, fragmentable: post_record, organisation: organisation)
+        stub_combined_search([fragment])
+        stub_highlights({})
+
+        result = described_class.new('test', organisation).execute.first
+        expect(result[:date].to_date).to eq(Date.new(2025, 3, 12))
       end
 
       it 'handles Post type' do
@@ -417,7 +435,7 @@ RSpec.describe PowerSearchService, type: :service do
         stub_highlights({})
 
         result = described_class.new('test', organisation).execute.first
-        expect(result[:type]).to eq('Post')
+        expect(result[:type]).to eq(:post)
         expect(result[:title]).to eq('Post Ticket')
       end
 
@@ -430,7 +448,7 @@ RSpec.describe PowerSearchService, type: :service do
         stub_highlights({})
 
         result = described_class.new('test', organisation).execute.first
-        expect(result[:type]).to eq('Dokument')
+        expect(result[:type]).to eq(:document)
         expect(result[:title]).to eq('Doc Title')
       end
 
@@ -441,7 +459,7 @@ RSpec.describe PowerSearchService, type: :service do
         stub_highlights({})
 
         result = described_class.new('test', organisation).execute.first
-        expect(result[:type]).to eq('Dokumentation')
+        expect(result[:type]).to eq(:documentation)
         expect(result[:title]).to eq('Deployment Guide')
       end
     end
@@ -498,13 +516,25 @@ RSpec.describe PowerSearchService, type: :service do
   describe '#result_type (private)' do
     subject(:service) { described_class.new('q', organisation) }
 
-    it('maps Note')              { expect(service.send(:result_type, 'Note')).to eq('Note') }
-    it('maps DocumentVersion')   { expect(service.send(:result_type, 'DocumentVersion')).to eq('Dokument') }
-    it('maps DocumentationPage') { expect(service.send(:result_type, 'DocumentationPage')).to eq('Dokumentation') }
-    it('maps Post')              { expect(service.send(:result_type, 'Post')).to eq('Post') }
-    it('maps Ticket')            { expect(service.send(:result_type, 'Ticket')).to eq('Ticket') }
-    it('maps MeetingAnalysis')   { expect(service.send(:result_type, 'MeetingAnalysis')).to eq('Analyse') }
-    it('maps unknown')           { expect(service.send(:result_type, 'FooBar')).to eq('Unknown') }
+    it('maps Note')              { expect(service.send(:result_type, 'Note')).to eq(:note) }
+    it('maps DocumentVersion')   { expect(service.send(:result_type, 'DocumentVersion')).to eq(:document) }
+    it('maps DocumentationPage') { expect(service.send(:result_type, 'DocumentationPage')).to eq(:documentation) }
+    it('maps Post')              { expect(service.send(:result_type, 'Post')).to eq(:post) }
+    it('maps Ticket')            { expect(service.send(:result_type, 'Ticket')).to eq(:ticket) }
+    it('maps Meeting')           { expect(service.send(:result_type, 'Meeting')).to eq(:meeting) }
+    it('maps MeetingAnalysis')   { expect(service.send(:result_type, 'MeetingAnalysis')).to eq(:meeting_analysis) }
+    it('maps unknown')           { expect(service.send(:result_type, 'FooBar')).to eq(:unknown) }
+
+    # Every type has a label in both languages; a new type without one would show
+    # "translation missing" in the results.
+    it 'has a label for every type in DE and EN' do
+      (described_class::RESULT_TYPES.values + [:unknown]).each do |type|
+        %i[de en].each do |locale|
+          key = "views.organisations.power_search.power_search_results.types.#{type}"
+          expect(I18n.exists?(key, locale)).to be(true), "#{key} missing in #{locale}"
+        end
+      end
+    end
   end
 
   describe '#result_title (private)' do
@@ -519,7 +549,7 @@ RSpec.describe PowerSearchService, type: :service do
 
       it 'returns fallback when fragmentable is nil' do
         fragment = double('fragment', fragmentable_type: 'Note', fragmentable: nil)
-        expect(service.send(:result_title, fragment)).to eq('Note (deleted)')
+        expect(service.send(:result_title, fragment)).to eq('Notiz (gelöscht)')
       end
     end
 
@@ -534,13 +564,13 @@ RSpec.describe PowerSearchService, type: :service do
 
       it 'returns fallback when fragmentable is nil' do
         fragment = double('fragment', fragmentable_type: 'DocumentVersion', fragmentable: nil)
-        expect(service.send(:result_title, fragment)).to eq('Document (deleted)')
+        expect(service.send(:result_title, fragment)).to eq('Dokument (gelöscht)')
       end
 
       it 'returns fallback when document is nil' do
         version = double('document_version', document: nil)
         fragment = double('fragment', fragmentable_type: 'DocumentVersion', fragmentable: version)
-        expect(service.send(:result_title, fragment)).to eq('Document (deleted)')
+        expect(service.send(:result_title, fragment)).to eq('Dokument (gelöscht)')
       end
     end
 
@@ -559,7 +589,7 @@ RSpec.describe PowerSearchService, type: :service do
 
       it 'returns fallback when fragmentable is nil' do
         fragment = double('fragment', fragmentable_type: 'DocumentationPage', fragmentable: nil)
-        expect(service.send(:result_title, fragment)).to eq('Dokumentation (deleted)')
+        expect(service.send(:result_title, fragment)).to eq('Dokumentation (gelöscht)')
       end
     end
 
@@ -573,13 +603,13 @@ RSpec.describe PowerSearchService, type: :service do
 
       it 'returns fallback when fragmentable is nil' do
         fragment = double('fragment', fragmentable_type: 'Post', fragmentable: nil)
-        expect(service.send(:result_title, fragment)).to eq('Ticket (deleted)')
+        expect(service.send(:result_title, fragment)).to eq('Ticket (gelöscht)')
       end
 
       it 'returns fallback when ticket is nil' do
         post_record = double('post', ticket: nil)
         fragment = double('fragment', fragmentable_type: 'Post', fragmentable: post_record)
-        expect(service.send(:result_title, fragment)).to eq('Ticket (deleted)')
+        expect(service.send(:result_title, fragment)).to eq('Ticket (gelöscht)')
       end
     end
 
@@ -592,7 +622,7 @@ RSpec.describe PowerSearchService, type: :service do
 
       it 'returns fallback when fragmentable is nil' do
         fragment = double('fragment', fragmentable_type: 'Ticket', fragmentable: nil)
-        expect(service.send(:result_title, fragment)).to eq('Ticket (deleted)')
+        expect(service.send(:result_title, fragment)).to eq('Ticket (gelöscht)')
       end
     end
 
@@ -606,14 +636,14 @@ RSpec.describe PowerSearchService, type: :service do
 
       it 'returns fallback when fragmentable is nil' do
         fragment = double('fragment', fragmentable_type: 'MeetingAnalysis', fragmentable: nil)
-        expect(service.send(:result_title, fragment)).to eq('Analyse (deleted)')
+        expect(service.send(:result_title, fragment)).to eq('Analyse (gelöscht)')
       end
     end
 
     context 'with unknown type' do
-      it 'returns Unknown' do
+      it 'returns Unbekannt' do
         fragment = double('fragment', fragmentable_type: 'Unknown')
-        expect(service.send(:result_title, fragment)).to eq('Unknown')
+        expect(service.send(:result_title, fragment)).to eq('Unbekannt')
       end
     end
   end
@@ -923,22 +953,22 @@ RSpec.describe PowerSearchService, type: :service do
 
     it 'returns fulltext when highlight exists' do
       expect(service.send(:determine_match_types, fragments, { fid => '<mark>x</mark>' }, { fid => 0.5 }))
-        .to eq(['Volltext Treffer'])
+        .to eq([:fulltext])
     end
 
     it 'returns semantic when similarity >= threshold' do
       expect(service.send(:determine_match_types, fragments, {}, { fid => 0.7 }))
-        .to eq(['Semantischer Treffer'])
+        .to eq([:semantic])
     end
 
     it 'returns both when both conditions met' do
       expect(service.send(:determine_match_types, fragments, { fid => '<mark>x</mark>' }, { fid => 0.8 }))
-        .to contain_exactly('Volltext Treffer', 'Semantischer Treffer')
+        .to contain_exactly(:fulltext, :semantic)
     end
 
     it 'returns unknown when neither condition met' do
       expect(service.send(:determine_match_types, fragments, {}, { fid => 0.3 }))
-        .to eq(['Unbekannter Treffer'])
+        .to eq([:unknown])
     end
   end
 
@@ -948,15 +978,15 @@ RSpec.describe PowerSearchService, type: :service do
     let!(:fragment) { create(:fragment, fragmentable: ticket, organisation: organisation) }
 
     it 'returns hash with all required keys' do
-      result = service.send(:build_result, fragment, 0.85, '<mark>x</mark>', ['Volltext Treffer'])
+      result = service.send(:build_result, fragment, 0.85, '<mark>x</mark>', [:fulltext])
       expect(result.keys).to contain_exactly(
-        :type, :title, :link, :project_name, :project_link, :content,
-        :highlighted_content, :similarity, :match_types, :match_type, :highlight
+        :type, :title, :link, :project_name, :project_link, :date, :content,
+        :highlighted_content, :similarity, :match_types, :highlight
       )
     end
 
     it 'includes project name and link' do
-      result = service.send(:build_result, fragment, 0.85, nil, ['Volltext Treffer'])
+      result = service.send(:build_result, fragment, 0.85, nil, [:fulltext])
       expect(result[:project_name]).to eq(project.name)
       expect(result[:project_link]).to eq(
         Rails.application.routes.url_helpers.organisation_project_path(organisation, project)
@@ -964,25 +994,20 @@ RSpec.describe PowerSearchService, type: :service do
     end
 
     it 'sets project keys to nil when project is missing' do
-      orphan = double('ticket', title: 'Orphan', project: nil, plain_text_version: '')
+      orphan = double('ticket', title: 'Orphan', project: nil, plain_text_version: '', created_at: Time.current)
       orphan_fragment = double('fragment', fragmentable_type: 'Ticket', fragmentable: orphan)
-      result = service.send(:build_result, orphan_fragment, 0.5, nil, ['Unbekannter Treffer'])
+      result = service.send(:build_result, orphan_fragment, 0.5, nil, [:unknown])
       expect(result[:project_name]).to be_nil
       expect(result[:project_link]).to be_nil
     end
 
     it 'sets highlight equal to highlighted_content' do
-      result = service.send(:build_result, fragment, 0.85, '<mark>x</mark>', ['Volltext Treffer'])
+      result = service.send(:build_result, fragment, 0.85, '<mark>x</mark>', [:fulltext])
       expect(result[:highlight]).to eq(result[:highlighted_content])
     end
 
-    it 'sets match_type to first element of match_types' do
-      result = service.send(:build_result, fragment, 0.85, nil, %w[A B])
-      expect(result[:match_type]).to eq('A')
-    end
-
     it 'handles nil highlighted_content' do
-      result = service.send(:build_result, fragment, 0.5, nil, ['Unbekannter Treffer'])
+      result = service.send(:build_result, fragment, 0.5, nil, [:unknown])
       expect(result[:highlighted_content]).to be_nil
       expect(result[:highlight]).to be_nil
     end
@@ -1074,10 +1099,16 @@ RSpec.describe PowerSearchService, type: :service do
 
       # 'Meeting', not 'Gespräch': the German UI term was settled as Meeting(s) and the search
       # result type follows the UI. This assertion kept the pre-rename wording.
-      expect(result).to include(type: 'Meeting', title: 'Kickoff-Gespräch')
+      expect(result).to include(type: :meeting, title: 'Kickoff-Gespräch')
       expect(result[:project_name]).to eq(project.name)
       expect(result[:link]).to include("/meetings/#{meeting.id}")
       expect(result[:content]).to include('Preisliste')
+    end
+
+    it 'dates a meeting by the day it took place, not by the day it was entered' do
+      meeting.update_columns(occurred_at: Time.zone.local(2025, 3, 12, 10), created_at: Time.zone.local(2026, 10, 1, 9))
+      result = described_class.new('Preisliste', organisation, project.id, user).execute.first
+      expect(result[:date].to_date).to eq(Date.new(2025, 3, 12))
     end
   end
 
@@ -1107,7 +1138,7 @@ RSpec.describe PowerSearchService, type: :service do
       result = described_class.new('q', organisation, project.id, user).execute.first
 
       expect(result[:similarity]).to be_within(1e-6).of(1.0)
-      expect(result[:match_types]).to include('Semantischer Treffer')
+      expect(result[:match_types]).to include(:semantic)
     end
 
     # The §2.8 repro: before the fix this org scored 0.0 across the board.
@@ -1125,7 +1156,7 @@ RSpec.describe PowerSearchService, type: :service do
       result = described_class.new('q', organisation, project.id, user).execute.first
 
       expect(result[:similarity]).to be_within(1e-6).of(1.0)
-      expect(result[:match_types]).to include('Semantischer Treffer')
+      expect(result[:match_types]).to include(:semantic)
     end
 
     # Fail-soft is UNCHANGED, only its source moved: a fragment without a row in the
@@ -1139,7 +1170,7 @@ RSpec.describe PowerSearchService, type: :service do
       result = described_class.new('q', organisation, project.id, user).execute.first
 
       expect(result[:similarity]).to eq(0.0)
-      expect(result[:match_types]).to eq(['Unbekannter Treffer'])
+      expect(result[:match_types]).to eq([:unknown])
     end
 
     # A row of the OLD space stays indexed: true until PR 6 retires it — it must not

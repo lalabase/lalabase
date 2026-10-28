@@ -86,6 +86,14 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Zeile und damit den Link. Macht das Formular eine Kontakt-Zeile zu der eines Mitglieds,
   fällt `person_id` weg, und das Zuordnen (Scope `external`) lässt Kontakt-Zeilen aus.
   Reihenfolge der Chip-Zeile: Scope `in_row_order` (Seite, Panel und Neuzeichnen).
+  Seit 28.10.2026 trägt eine Person bis zu 10 **weitere Angaben** (`people.additional_details`,
+  JSONB-Liste aus `kind`/`label`/`value`). Die Regel hat EINEN Besitzer: `person_detail`
+  (kein AR-Modell): Arten, Grenzen, Normalisierung, Prüfung, Link (`#href`, nur http(s)) und
+  Suchwerte (nur Werte, nie Bezeichnungen). Formular (Arten, Eingabetyp, `MAX`), Bahn, Suche und
+  Export fragen dort; der Stimulus-Controller bekommt Arten und Grenze als Values. Das Formular
+  schickt immer `person[additional_details][sent]` mit (`FORM_MARKER`): ohne ihn ließe das
+  Entfernen der letzten Angabe die Liste stehen. Fehlt der Key ganz, bleibt die Liste
+  unberührt. Check-Constraint `people_additional_details_shape` hält Liste und Grenze.
 * **Activity/Notifications**: `activity`, `user_activity`, `outbox_event`, `notification`,
   `notification_preference`, `notification_subscription`, `email_log` — Services dazu unter
   `app/services/notifications/` (eigene Karte dort)

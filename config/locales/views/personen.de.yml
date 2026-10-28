@@ -125,6 +125,20 @@ de:
             email: "name@example.com"
             phone: "+49 30 1234567"
             notes: "Einfacher Text, z. B. Erreichbarkeit oder Zuständigkeit"
+          detail_kind: "Art"
+          detail_label: "Bezeichnung"
+          detail_label_placeholder: "Bezeichnung, z. B. Mobil"
+          detail_value: "Wert"
+          add_detail: "Angabe hinzufügen"
+          remove_detail: "Angabe entfernen"
+          details_limit: "Höchstens %{count} weitere Angaben je Person."
+          detail_suggestions:
+            phone: ["Mobil", "Festnetz", "Fax", "Zentrale", "Privat"]
+            email: ["Privat", "Büro"]
+            url: ["Website", "LinkedIn"]
+            date: ["Geburtstag", "Vertragsbeginn"]
+            address: ["Büro", "Rechnungsadresse"]
+            text: ["Erreichbarkeit", "Assistenz"]
           shared_hint: "Alle mit Zugriff auf Personen sehen diese Angaben, auch die Kundenseite."
           save: "Speichern"
           cancel: "Abbrechen"

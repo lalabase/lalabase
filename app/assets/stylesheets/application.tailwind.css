@@ -502,5 +502,15 @@
   .people-input--area { @apply resize-y leading-normal; }
   .people-input--locked { @apply bg-cream-100 text-cream-700; }
   .people-form__actions { @apply flex items-center gap-4 pt-0.5; }
+  /* The additional details (PersonDetail): kind, label and remove button on
+     one line, the value below across the first two columns. */
+  .people-form__details { @apply m-0 flex min-w-0 flex-col gap-2 border-0 p-0; }
+  .people-form__details legend { @apply mb-1 p-0 text-xs text-muted; }
+  .people-form__detail-rows { @apply flex flex-col gap-2; }
+  .people-detail-row { grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr) auto; @apply grid items-center gap-x-2 gap-y-1.5 border-b border-cream-200 pb-2; }
+  .people-detail-row__value { grid-column: 1 / 3; }
+  .people-form__add-detail { @apply inline-flex items-center gap-1.5 self-start; }
+  .people-form__add-detail[hidden], .people-form__hint[hidden] { display: none; }
+  .people-form__hint { @apply text-xs text-muted; }
   .people-page :is(a, button, input, select, textarea, li[tabindex]):focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 2px; }
 }

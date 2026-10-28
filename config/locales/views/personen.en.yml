@@ -125,6 +125,20 @@ en:
             email: "name@example.com"
             phone: "+49 30 1234567"
             notes: "Plain text, e.g. availability or responsibility"
+          detail_kind: "Kind"
+          detail_label: "Label"
+          detail_label_placeholder: "Label, e.g. Mobile"
+          detail_value: "Value"
+          add_detail: "Add detail"
+          remove_detail: "Remove detail"
+          details_limit: "At most %{count} additional details per person."
+          detail_suggestions:
+            phone: ["Mobile", "Landline", "Fax", "Switchboard", "Private"]
+            email: ["Private", "Office"]
+            url: ["Website", "LinkedIn"]
+            date: ["Birthday", "Contract start"]
+            address: ["Office", "Billing address"]
+            text: ["Availability", "Assistant"]
           shared_hint: "Everyone with access to people sees these details, the customer's side too."
           save: "Save"
           cancel: "Cancel"

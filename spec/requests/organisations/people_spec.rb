@@ -476,6 +476,80 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
       expect(Activity.where(trackable: person).to_a.to_json).not_to include('5550000')
     end
 
+    describe 'in the form' do
+      let(:stored) do
+        [{ 'kind' => 'phone', 'label' => 'Fax', 'value' => '+49 30 1234568' },
+         { 'kind' => 'date', 'label' => 'Geburtstag', 'value' => '1980-02-29' },
+         { 'kind' => 'address', 'label' => 'Büro', 'value' => "Musterstraße 1\n12345 Berlin" }]
+      end
+
+      def form_html
+        get edit_organisation_person_path(organisation, person), headers: frame_headers
+        expect(response).to have_http_status(:ok)
+        Nokogiri::HTML(response.body)
+      end
+
+      # The fields a browser without JavaScript sends: everything named in the
+      # form, outside the template, enabled.
+      def submitted_fields(html)
+        html.css('form.people-form input[name], form.people-form select[name], form.people-form textarea[name]')
+            .reject { |node| node.ancestors('template').any? || node['disabled'] || node['type'] == 'submit' }
+            .map { |node| [node['name'], node.name == 'select' ? node.at_css('option[selected]')&.[]('value') : (node['value'] || node.text)] }
+      end
+
+      before { person.update!(additional_details: stored) }
+
+      it 'renders the stored rows with the field of their kind, the marker and an empty template' do
+        html = form_html
+        rows = html.css('[data-person-details-target="list"] [data-person-details-target="row"]')
+
+        expect(rows.size).to eq(3)
+        expect(rows[0].at_css('select option[selected]')['value']).to eq('phone')
+        expect(rows[0].at_css('input[data-person-details-value]').attributes.slice('type', 'value').transform_values(&:value))
+          .to eq('type' => 'tel', 'value' => '+49 30 1234568')
+        expect(rows[0].at_css('input[data-person-details-label]')['list']).to eq('person-detail-suggestions-phone')
+        expect(rows[1].at_css('input[data-person-details-value]')['type']).to eq('date')
+        expect(rows[2].at_css('textarea[data-person-details-value]').text).to include("Musterstraße 1\n12345 Berlin")
+        expect(html.at_css("input[type=hidden][name='person[additional_details][#{PersonDetail::FORM_MARKER}]']")).to be_present
+        expect(html.at_css('template[data-person-details-target="template"]').inner_html).to include('person[additional_details][__INDEX__][kind]')
+      end
+
+      it 'hands the limit and the kinds to the controller from PersonDetail' do
+        section = form_html.at_css('[data-controller="person-details"]')
+        kinds = JSON.parse(section['data-person-details-kinds-value'])
+
+        expect(section['data-person-details-max-value']).to eq(PersonDetail::MAX.to_s)
+        expect(kinds.keys).to eq(PersonDetail::KINDS)
+        expect(kinds['address']).to include('input' => 'textarea', 'maxlength' => PersonDetail::MAX_ADDRESS_LENGTH)
+      end
+
+      it 'offers the label suggestions of every kind and a translated remove button' do
+        html = form_html
+
+        expect(html.css('datalist#person-detail-suggestions-phone option').pluck('value')).to include('Mobil', 'Fax')
+        expect(html.css('[data-person-details-target="list"] button[data-action="person-details#remove"]').pluck('aria-label').uniq)
+          .to eq([I18n.t('views.organisations.people.form.remove_detail')])
+      end
+
+      it 'saves the stored rows unchanged when sent as rendered (without JavaScript)' do
+        query = Rack::Utils.parse_nested_query(URI.encode_www_form(submitted_fields(form_html)))
+
+        patch organisation_person_path(organisation, person), params: query
+
+        expect(response).to have_http_status(:see_other)
+        expect(person.reload.additional_details).to eq(stored)
+      end
+
+      it 'shows the refused rows again, with the reason' do
+        patch_details(person, details_params(row('url', 'ftp://example.com', label: 'Server')))
+
+        expect(response).to have_http_status(:unprocessable_content)
+        value = Nokogiri::HTML(response.body).at_css('[data-person-details-target="list"] input[data-person-details-value]')
+        expect(value['value']).to eq('ftp://example.com')
+        expect(person.reload.additional_details).to eq(stored)
+      end
+    end
+
     it 'answers 404 for the details of a person of another organisation and changes nothing' do
       foreign = ActsAsTenant.with_tenant(other_organisation) { create(:person, organisation: other_organisation) }
       sign_in admin
@@ -711,13 +785,21 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
   describe 'preselecting a member through the address' do
     before { sign_in admin }
 
+    # The member select is there, with nothing chosen (the kind selects of the
+    # additional details have a choice of their own).
+    def expect_no_member_preselected
+      select = Nokogiri::HTML(response.body).at_css('select[name="person[user_id]"]')
+      expect(select).to be_present
+      expect(select.css('option[selected]')).to be_empty
+    end
+
     it 'does not preselect a member who already has a row' do
       taken = member_with(role_with, first_name: 'Vergeben')
       create(:person, organisation: organisation, user: taken)
 
       get new_organisation_person_path(organisation, user_id: taken.id), headers: frame_headers
 
-      expect(response.body).not_to include('selected="selected"')
+      expect_no_member_preselected
       expect(response.body[/<input[^>]*id="person_name"[^>]*>/]).not_to include('readonly')
     end
 
@@ -727,7 +809,7 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
       get new_organisation_person_path(organisation, user_id: former.id), headers: frame_headers
 
-      expect(response.body).not_to include('selected="selected"')
+      expect_no_member_preselected
     end
   end
 

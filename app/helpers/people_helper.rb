@@ -143,6 +143,29 @@ module PeopleHelper
     t("views.organisations.people.details.kinds.#{kind}")
   end
 
+  # The kinds of the form's select: [name, kind], in PersonDetail's order.
+  def person_detail_kind_options
+    PersonDetail::KINDS.map { |kind| [person_detail_kind_name(kind), kind] }
+  end
+
+  # The value field and the label suggestions of a kind in the form. The same
+  # map goes to person_details_controller, which switches a row by it; an
+  # unknown kind (a hand-made request shown again) gets a plain text field.
+  def person_detail_field(kind)
+    kind = PersonDetail::KINDS.include?(kind) ? kind : 'text'
+    { input: PersonDetail::INPUT_TYPES.fetch(kind), maxlength: PersonDetail.max_value_length(kind),
+      list: ("person-detail-suggestions-#{kind}" if person_detail_suggestions(kind).any?) }
+  end
+
+  def person_detail_fields_config
+    PersonDetail::KINDS.index_with { |kind| person_detail_field(kind) }
+  end
+
+  # The label suggestions of a kind (a datalist each: "Mobil", "Fax", ...).
+  def person_detail_suggestions(kind)
+    Array(t("views.organisations.people.form.detail_suggestions.#{kind}", default: []))
+  end
+
   # The value of a detail as the lane shows it.
   def person_detail_value(detail)
     date = detail.date

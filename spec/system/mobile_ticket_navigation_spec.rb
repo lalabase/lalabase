@@ -17,6 +17,8 @@ RSpec.describe 'Mobile ticket navigation', type: :system do
     page.driver.browser.execute_cdp('Emulation.setDeviceMetricsOverride', width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
     visit organisation_project_tickets_path(organisation, project, viewport: 'mobile')
     expect(page).to have_css('.mobile-ticket-title', count: 2)
+    # The list is server-rendered; its buttons do nothing until mobile-shell listens.
+    wait_for_stimulus('.mobile-page-head', 'mobile-shell')
   end
 
   after do
@@ -82,8 +84,16 @@ RSpec.describe 'Mobile ticket navigation', type: :system do
                                                                    search: 'Navigation', search_mode: 'title_only',
                                                                    filter: { tag: [tag.name] }, sort: { column: 'title', direction: 'desc' })
     expect(page).to have_css('.mobile-ticket-title', count: 1, text: 'Navigation B')
+    # The list frame advances (data-turbo-action): Turbo writes the address, renders
+    # page 2, and only then starts a visit of its own for the snapshot, which cancels
+    # any visit already running. A click on a row between the render and that visit
+    # is lost. The page change is done when that visit ends with turbo:load.
+    page.execute_script("window.__pageLoaded = false; document.addEventListener('turbo:load', () => { window.__pageLoaded = true }, { once: true })")
     within('.mobile-pagination') { click_link I18n.t('mobile.next') }
     expect(page).to have_css('.mobile-ticket-title', count: 1, text: 'Navigation A')
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, 'the page change is not done yet' unless page.evaluate_script('window.__pageLoaded')
+    end
     click_link 'Navigation A'
     expect(page).to have_css('.mobile-ticket-detail')
     click_link I18n.t('mobile.back_tickets')

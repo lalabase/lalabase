@@ -124,6 +124,17 @@ RSpec.describe PersonDetail do
       end
     end
 
+    # Review round 3, finding 1: a date the browser's date field cannot hold
+    # (year 0, a Julian leap day) came back empty and was lost on the next save.
+    it 'refuses a date a date field cannot hold: year 0 and a Julian-only leap day' do
+      %w[0000-05-01 1500-02-29].each do |value|
+        expect(problems(detail(kind: 'date', value: value))).to eq([[:invalid_date, { position: 1 }]]), value
+        expect(described_class.new(detail(kind: 'date', value: value)).date).to be_nil
+      end
+      expect(problems(detail(kind: 'date', value: '0001-01-01'))).to eq([])
+      expect(problems(detail(kind: 'date', value: '1600-02-29'))).to eq([])
+    end
+
     it 'refuses an impossible date and the other ISO forms (week, ordinal, compact)' do
       %w[2026-02-30 2026-W44-3 2026-301 20261028 2026-10-28T10:00].each do |value|
         expect(problems(detail(kind: 'date', value: value))).to eq([[:invalid_date, { position: 1 }]]), value

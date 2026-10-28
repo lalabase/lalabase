@@ -125,11 +125,11 @@ RSpec.describe PeopleHelper, type: :helper do
       expect(fields_for(phone: 'nur Zentrale').first[:href]).to be_nil
     end
 
-    # Review round 2, finding 6: the fixed email links through the same rule.
-    it 'links the fixed email through PersonDetail, and not a malformed one' do
-      expect(helper.person_fields(Person.new(name: 'M', email: 'erika@example.com'), nil).first[:href])
-        .to eq('mailto:erika@example.com')
-      expect(helper.person_fields(Person.new(name: 'M', email: 'kaputt'), nil).first[:href]).to be_nil
+    # Review round 3, finding 3: the fixed email is the account's for a member,
+    # checked by Devise only; it keeps its link as before.
+    it 'links the fixed email as it is, also one only Devise accepts' do
+      expect(helper.person_fields(Person.new(name: 'M', email: 'jörg@example.com'), nil).first[:href])
+        .to eq('mailto:jörg@example.com')
     end
 
     it 'shows no line for a person without details' do

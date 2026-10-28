@@ -153,8 +153,14 @@ class PersonDetail
     end
   end
 
+  # The date of a date detail, or nil. The rule of a browser's date field:
+  # Gregorian, from year 1 (Ruby alone takes year 0 and Julian leap days
+  # before 1582, which the field would show empty and the next save lose).
   def date
-    Date.iso8601(value) if kind == 'date' && ISO_DATE.match?(value)
+    return unless kind == 'date' && ISO_DATE.match?(value)
+
+    parsed = Date.iso8601(value, Date::GREGORIAN)
+    parsed if parsed.year.positive?
   rescue Date::Error
     nil
   end

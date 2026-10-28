@@ -184,10 +184,9 @@ module PeopleHelper
       ({ label: Person.human_attribute_name(:function), value: person.function } if person&.function.present?),
       ({ label: Person.human_attribute_name(:department), value: person.department } if person&.department.present?),
       ({ label: Person.human_attribute_name(:company), value: person.company } if person&.company.present?),
-      if email.present?
-        { label: Person.human_attribute_name(:email), value: email,
-          href: PersonDetail.new('kind' => 'email', 'value' => email).href, icon: 'bi-envelope' }
-      end,
+      # A member's email is the account's, checked by Devise only: linked as
+      # it is, not through PersonDetail's stricter rule.
+      ({ label: Person.human_attribute_name(:email), value: email, href: "mailto:#{email}", icon: 'bi-envelope' } if email.present?),
       if phone.present?
         { label: Person.human_attribute_name(:phone), value: phone, href: PersonDetail.new('kind' => 'phone', 'value' => phone).href,
           icon: 'bi-telephone', mono: true, action: t('views.organisations.people.show.call') }

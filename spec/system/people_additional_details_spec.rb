@@ -148,6 +148,9 @@ RSpec.describe 'People additional details in the form', type: :system do
     open_form
     add_button.click
     add_button.click
+    # Review round 3, finding 2: the template's own number is 0-based.
+    expect(rows.map { |row| row['aria-label'] })
+      .to eq([1, 2].map { |n| I18n.t('views.organisations.people.form.detail_position', position: n) })
 
     expect(page.evaluate_script('document.activeElement === document.querySelectorAll("[data-person-details-target=list] select")[1]'))
       .to be(true)

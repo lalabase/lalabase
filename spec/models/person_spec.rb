@@ -72,7 +72,7 @@ RSpec.describe Person, type: :model do
 
     it 'normalizes them through PersonDetail before the validation' do
       person = create(:person, organisation: organisation,
-                               additional_details: { '1' => detail(value: ' +49  30 2 '), '0' => detail(label: ' Mobil ', value: '') })
+                               additional_details: { '1' => detail(value: ' +49  30 2 '), '0' => detail(label: '  ', value: '') })
 
       expect(person.reload.additional_details).to eq([detail(value: '+49 30 2')])
     end

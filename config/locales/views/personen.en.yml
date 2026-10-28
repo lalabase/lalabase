@@ -102,7 +102,7 @@ en:
           delete: "Delete"
           delete_confirm: "%{name} will be deleted from the list. This cannot be undone."
           remove_details: "Remove added details"
-          remove_details_confirm: "All added details of %{name} will be removed (salutation, function, department, phone, note and additional details), the account stays. This cannot be undone."
+          remove_details_confirm: "All added details of %{name} will be removed (salutation, function, department, company, phone, note and additional details), the account stays. This cannot be undone."
         details:
           kinds:
             phone: "Phone"
@@ -128,6 +128,7 @@ en:
           detail_kind: "Kind"
           detail_label: "Label"
           detail_label_placeholder: "Label, e.g. Mobile"
+          detail_position: "Detail %{position}"
           detail_value: "Value"
           add_detail: "Add detail"
           remove_detail: "Remove detail"

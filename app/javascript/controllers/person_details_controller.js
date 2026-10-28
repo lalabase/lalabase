@@ -6,11 +6,11 @@
 // Without JavaScript the stored rows still render and save; the add button
 // stays hidden, because only adding needs this controller.
 import { Controller } from "@hotwired/stimulus"
-import { nextIndex, fillIndex, canAdd, valueField } from "person_details"
+import { nextIndex, fillIndex, canAdd, valueField, singleLine } from "person_details"
 
 export default class extends Controller {
   static targets = ["list", "row", "template", "add", "limit"]
-  static values = { max: Number, kinds: Object }
+  static values = { max: Number, kinds: Object, positionLabel: String }
 
   connect() {
     this.update()
@@ -48,8 +48,17 @@ export default class extends Controller {
 
     const current = row.querySelector("[data-person-details-value]")
     if (!current) return
+    const value = field.tag === "textarea" ? current.value : singleLine(current.value)
     const next = current.tagName.toLowerCase() === field.tag ? current : this.rebuild(current, field.tag)
     if (field.type) next.type = field.type
+    next.value = value
+    // A field that cannot hold the value empties it (a date field and
+    // "im Mai"). The row keeps a text field with the value instead, and the
+    // server names the problem on save; nothing is lost behind a success.
+    if (value !== "" && next.value === "") {
+      next.type = "text"
+      next.value = value
+    }
     if (field.maxlength) next.maxLength = field.maxlength
   }
 
@@ -68,6 +77,9 @@ export default class extends Controller {
   }
 
   update() {
+    this.rowTargets.forEach((row, index) => {
+      row.setAttribute("aria-label", this.positionLabelValue.replace("%{position}", String(index + 1)))
+    })
     const room = canAdd(this.rowTargets.length, this.maxValue)
     this.addTarget.hidden = !room
     this.limitTarget.hidden = room

@@ -5,7 +5,7 @@
 //   kind must not break a row.
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { nextIndex, fillIndex, canAdd, valueField } from "../../../app/javascript/lib/person_details.js"
+import { nextIndex, fillIndex, canAdd, valueField, singleLine } from "../../../app/javascript/lib/person_details.js"
 
 test("a new row takes the index above the highest present one", () => {
   assert.equal(nextIndex([]), 0)
@@ -47,4 +47,13 @@ test("gives an unknown kind a plain text input, also for inherited names", () =>
   assert.deepEqual(valueField(KINDS, "fax"), { tag: "input", type: "text", maxlength: null, list: null })
   assert.deepEqual(valueField(KINDS, "constructor"), { tag: "input", type: "text", maxlength: null, list: null })
   assert.deepEqual(valueField(undefined, "phone"), { tag: "input", type: "text", maxlength: null, list: null })
+})
+
+// Review round 2, finding 1: an address switched to a single-line kind lost
+// its line breaks without a separator ("Musterstraße 112345 Berlin").
+test("joins the lines of a multi-line value for a single-line field", () => {
+  assert.equal(singleLine("Musterstraße 1\n12345 Berlin"), "Musterstraße 1, 12345 Berlin")
+  assert.equal(singleLine(" A \r\n\r\n B \r C "), "A, B, C")
+  assert.equal(singleLine("eine Zeile"), "eine Zeile")
+  assert.equal(singleLine(""), "")
 })

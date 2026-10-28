@@ -30,10 +30,16 @@ RSpec.describe PersonDetail do
       expect(described_class.normalize(raw).first).to include('label' => 'Büro Zentrale', 'value' => '+49 30 1234567')
     end
 
-    it 'drops a row without a value (an empty row of the form is no detail)' do
-      raw = [detail(value: '   '), detail(value: nil), detail(kind: 'phone', label: 'Fax', value: '1')]
+    it 'drops a row without a label and a value (an empty row of the form is no detail)' do
+      raw = [detail(label: '', value: '   '), detail(label: ' ', value: nil), detail(kind: 'phone', label: 'Fax', value: '1')]
 
       expect(described_class.normalize(raw)).to eq([detail(kind: 'phone', label: 'Fax', value: '1')])
+    end
+
+    # Review round 2, finding 1: a row whose value the browser emptied (a
+    # kind switch) kept its label; dropping it lost the row behind a success.
+    it 'keeps a row with a label but no value, for the validation to name it' do
+      expect(described_class.normalize([detail(label: 'Geburtstag', value: '  ')])).to eq([detail(label: 'Geburtstag', value: '')])
     end
 
     it 'keeps an empty label as an empty string' do
@@ -133,8 +139,12 @@ RSpec.describe PersonDetail do
       end
     end
 
-    it 'still refuses spaces and control characters next to an umlaut' do
-      ['https://exa mple.com/Köln', "https://example.com/Köln\u0000", "java\tscript:alert('ö')"].each do |value|
+    # Review round 2, finding 2: escaping the umlauts must not let invisible
+    # and control characters through (bidi overrides turn the shown text).
+    it 'still refuses spaces, control and format characters next to an umlaut' do
+      ['https://exa mple.com/Köln', "https://example.com/Köln\u0000", "java\tscript:alert('ö')",
+       "https://\u202Emoc.elpmaxe", "https://ex\u0080ample.com", "https://exa\u200Bmple.com",
+       "https://exa\u00ADmple.com"].each do |value|
         expect(problems(detail(kind: 'url', value: value))).to eq([[:invalid_url, { position: 1 }]]), value.inspect
       end
     end
@@ -152,8 +162,10 @@ RSpec.describe PersonDetail do
       expect(problems(detail(kind: nil))).to eq([[:unknown_kind, { position: 1 }]])
     end
 
-    it 'refuses a detail without a value (written around the normalisation)' do
+    it 'refuses a detail without a value' do
       expect(problems(detail(value: ''))).to eq([[:value_missing, { position: 1 }]])
+      expect(described_class.problems(described_class.normalize([detail(label: 'Fax', value: '')])))
+        .to eq([[:value_missing, { position: 1 }]])
     end
 
     it 'refuses an entry that is no hash' do

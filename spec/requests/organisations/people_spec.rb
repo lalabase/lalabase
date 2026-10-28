@@ -437,6 +437,30 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
       expect(person.phone).to eq('+49 30 1234567')
     end
 
+    # Review round 2, finding 1: a kind switch in the browser can empty a value
+    # (a date field and "im Mai"). A row that keeps its label is named, not lost.
+    it 'refuses a row with a label but no value, with its position' do
+      person.update!(additional_details: [row('text', 'bleibt')])
+
+      patch_details(person, details_params(row('text', 'bleibt'), row('date', '', label: 'Geburtstag')))
+
+      expect(response).to have_http_status(:unprocessable_content)
+      reason = I18n.t('activerecord.errors.models.person.attributes.additional_details.value_missing', position: 2)
+      expect(response.body).to include(CGI.escapeHTML(reason))
+      expect(person.reload.additional_details).to eq([{ 'kind' => 'text', 'label' => '', 'value' => 'bleibt' }])
+    end
+
+    it 'shows a refused date that is no date in a text field, marked invalid in its numbered row' do
+      patch_details(person, details_params(row('text', 'ok'), row('date', 'im Mai', label: 'Geburtstag')))
+
+      expect(response).to have_http_status(:unprocessable_content)
+      rows = Nokogiri::HTML(response.body).css('[data-person-details-target="list"] [data-person-details-target="row"]')
+      value = rows[1].at_css('[data-person-details-value]')
+      expect([value['type'], value['value'], value['aria-invalid']]).to eq(['text', 'im Mai', 'true'])
+      expect(rows[0].at_css('[data-person-details-value]')['aria-invalid']).to be_nil
+      expect(rows.pluck('aria-label')).to eq([1, 2].map { |n| I18n.t('views.organisations.people.form.detail_position', position: n) })
+    end
+
     it 'refuses an eleventh detail' do
       patch_details(person, details_params(*Array.new(PersonDetail::MAX + 1) { row('text', 'x') }))
 
@@ -958,6 +982,12 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
       expect(response.body).to include(I18n.t('views.organisations.people.show.remove_details'))
       expect(response.body).not_to include(">#{I18n.t('views.organisations.people.show.delete')}<")
+      # Review round 2, finding 3: the confirmation names what goes, the
+      # additional details included.
+      confirm = I18n.t('views.organisations.people.show.remove_details_confirm', name: viewer.display_name)
+      expect(Nokogiri::HTML(response.body).css('[data-turbo-confirm]').pluck('data-turbo-confirm')).to include(confirm)
+      expect(confirm.downcase).to include(Person.human_attribute_name(:company).downcase,
+                                          Person.human_attribute_name(:additional_details).downcase)
     end
 
     it 'shows the email of the account, and locks name and email in the form' do

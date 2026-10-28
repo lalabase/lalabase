@@ -119,6 +119,45 @@ RSpec.describe 'People additional details in the form', type: :system do
     expect(person.reload.additional_details.pluck('value')).to eq(['zwei', 'drei', '+49 30 4'])
   end
 
+  # Review round 2, finding 1: a kind switch emptied a date and lost the line
+  # breaks of an address, and the save then dropped the row behind a success.
+  it 'keeps what was typed when the kind changes, and names a value that does not fit' do
+    person.update!(additional_details: [{ 'kind' => 'address', 'label' => 'Büro', 'value' => "Musterstraße 1\n12345 Berlin" },
+                                        { 'kind' => 'text', 'label' => 'Geburtstag', 'value' => 'im Mai' }])
+    open_form
+
+    within(rows[0]) do
+      find('select').select(kind_name('text'))
+      expect(find('input[data-person-details-value]').value).to eq('Musterstraße 1, 12345 Berlin')
+    end
+    within(rows[1]) do
+      find('select').select(kind_name('date'))
+      expect(find('[data-person-details-value]').value).to eq('im Mai')
+    end
+    click_button I18n.t('views.organisations.people.form.save')
+
+    reason = I18n.t('activerecord.errors.models.person.attributes.additional_details.invalid_date', position: 2)
+    expect(page).to have_text(reason)
+    expect(rows[1].find('[data-person-details-value]').value).to eq('im Mai')
+    expect(person.reload.additional_details.pluck('value')).to eq(["Musterstraße 1\n12345 Berlin", 'im Mai'])
+  end
+
+  # Review round 2, findings 4 and 5: focus after adding and removing, and the
+  # rows named by their position after a removal.
+  it 'moves the focus to the new row and back to the add button, and renumbers the rows' do
+    open_form
+    add_button.click
+    add_button.click
+
+    expect(page.evaluate_script('document.activeElement === document.querySelectorAll("[data-person-details-target=list] select")[1]'))
+      .to be(true)
+    within(rows[0]) { click_button remove_label }
+
+    expect(page.evaluate_script('document.activeElement.dataset.personDetailsTarget')).to eq('add')
+    expect(rows.map { |row| row['aria-label'] })
+      .to eq([I18n.t('views.organisations.people.form.detail_position', position: 1)])
+  end
+
   it 'hides the add button at ten with a note, and shows it again after a remove' do
     open_form
     hint = I18n.t('views.organisations.people.form.details_limit', count: PersonDetail::MAX)

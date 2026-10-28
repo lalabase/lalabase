@@ -35,13 +35,16 @@ class PersonDetail
   ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
   LINE_BREAK = /\r\n|\r|\n/
   NON_ASCII = /[^\x00-\x7F]/
+  INVISIBLE = /[\p{Cc}\p{Cf}]/
 
   attr_reader :kind, :label, :value
 
   # Raw input in, a list of clean entries out: an array of hashes, or the
   # indexed hash of the form ({"0" => {...}, "3" => {...}}, ordered by index).
   # Only the three keys, as strings; label and value squeezed (an address keeps
-  # its lines); a row without a value is dropped. An unknown kind is kept for
+  # its lines); a row without label and value is dropped (an empty row of the
+  # form). A row with a label but no value stays, so the validation names it
+  # instead of losing it behind a success (a value the browser emptied). An unknown kind is kept for
   # the validation. Junk from a hand-made request is skipped, never raised on.
   def self.normalize(raw)
     rows(raw).filter_map { |row| clean(row) }
@@ -88,9 +91,10 @@ class PersonDetail
     kind = string_in(row, 'kind')&.squish
     value = string_in(row, 'value').to_s
     value = kind == 'address' ? address_lines(value).join("\n") : value.squish
-    return if value.empty?
+    label = string_in(row, 'label').to_s.squish
+    return if value.empty? && label.empty?
 
-    { 'kind' => kind, 'label' => string_in(row, 'label').to_s.squish, 'value' => value }
+    { 'kind' => kind, 'label' => label, 'value' => value }
   end
   private_class_method :clean
 
@@ -173,9 +177,12 @@ class PersonDetail
 
   # A web address may carry umlauts ("https://example.com/wiki/Köln", an
   # umlaut domain), which a browser accepts and URI.parse does not: they are
-  # escaped for the check only, the stored value stays as written. Control
-  # characters and spaces are ASCII and still refused.
+  # escaped for the check only, the stored value stays as written. Control and
+  # format characters (bidi overrides, zero-width, soft hyphen) are refused
+  # first: they would change what the link shows, or break its host.
   def http_url?
+    return false if value.match?(INVISIBLE)
+
     uri = URI.parse(value.gsub(NON_ASCII) { |char| CGI.escape(char) })
     URL_SCHEMES.include?(uri.scheme.to_s.downcase) && uri.host.present?
   rescue URI::Error

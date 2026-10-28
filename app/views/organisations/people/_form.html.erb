@@ -86,14 +86,17 @@
                                     placeholder: t('views.organisations.people.form.placeholders.phone') %>
     </div>
 
+    <% invalid_positions = person.errors.details[:additional_details].filter_map { |error| error[:position] } %>
     <fieldset class="people-form__details" data-controller="person-details"
               data-person-details-max-value="<%= PersonDetail::MAX %>"
+              data-person-details-position-label-value="<%= t('views.organisations.people.form.detail_position', position: '%{position}') %>"
               data-person-details-kinds-value="<%= person_detail_fields_config.to_json %>">
       <legend><%= Person.human_attribute_name(:additional_details) %></legend>
       <%= hidden_field_tag "person[additional_details][#{PersonDetail::FORM_MARKER}]", '1', id: nil %>
       <div class="people-form__detail-rows" data-person-details-target="list">
         <% person.additional_details.each_with_index do |entry, index| %>
-          <%= render 'organisations/people/detail_row', index: index, detail: PersonDetail.new(entry) %>
+          <%= render 'organisations/people/detail_row', index: index, detail: PersonDetail.new(entry),
+                                                        invalid: invalid_positions.include?(index + 1) %>
         <% end %>
       </div>
       <template data-person-details-target="template">

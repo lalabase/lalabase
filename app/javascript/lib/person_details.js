@@ -38,3 +38,13 @@ export function valueField(kinds, kind) {
     list: config.list || null
   }
 }
+
+// A multi-line value (an address) for a single-line field: its lines, trimmed,
+// joined with ", ", so a kind switch keeps what was typed readable.
+export function singleLine(value) {
+  return String(value)
+    .split(/\r\n|\r|\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .join(", ")
+}

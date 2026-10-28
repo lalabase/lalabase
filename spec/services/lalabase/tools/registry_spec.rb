@@ -79,8 +79,10 @@ RSpec.describe Lalabase::Tools::Registry do
       end
     end
 
-    it 'the time report stays out of :mcp (wire order pinned)' do
-      expect(described_class.for(:mcp)).not_to include(t::SummarizeTimeSessions)
+    # Terminal client S6: the booked time of a ticket. Appended LAST, so the
+    # pinned wire order of every tool before it stays intact.
+    it 'offers the time report on :mcp as the last tool (wire order pinned)' do
+      expect(described_class.for(:mcp).last).to eq(t::SummarizeTimeSessions)
     end
 
     it 'no chat set carries search_knowledge (deliberate omission)' do
@@ -97,7 +99,7 @@ RSpec.describe Lalabase::Tools::Registry do
         t::SearchCodeSymbols, t::ListCapabilities, t::GetProjectVision,
         t::GetCapabilityDetails, t::GetSymbolDetails, t::ListTickets,
         t::GetTicket, t::SearchKnowledge, t::CreateTicket, t::PostComment, t::ListNotifications,
-        t::CreateTimeSession, t::MarkNotificationRead, t::UpdateTicket
+        t::CreateTimeSession, t::MarkNotificationRead, t::UpdateTicket, t::SummarizeTimeSessions
       )
     end
 
@@ -202,7 +204,7 @@ RSpec.describe Lalabase::Tools::Registry do
         get_capability_details get_symbol_details list_tickets
         get_ticket search_knowledge create_ticket post_comment
         list_notifications create_time_session mark_notification_read
-        update_ticket
+        update_ticket summarize_time_sessions
       ]
     end
 

@@ -1,4 +1,4 @@
-# Karte: app/services/lalabase (Stand: 2026-10-26)
+# Karte: app/services/lalabase (Stand: 2026-10-28)
 
 AI/RAG-Domäne (Produktname „Lalabase"): alles rund um LLM-Aufrufe, Embeddings und
 Codebase-Verständnis.
@@ -51,7 +51,13 @@ Codebase-Verständnis.
   zitieren die Auswertung (`summarize_time_sessions`, Zitationstyp `time_report`). Ein
   Report prüft seine Rechte SELBST, wo die Area zu grob ist: Zeiten gehen durch
   `TimeSessions::ViewingScope` (eigene/alle), die Area `time_sessions` bleibt nur für den
-  Riegel gesetzt (Plan `doc/persoenlicher_assistent_plan.md` §6.4, §13-9). Org-weite
+  Riegel gesetzt (Plan `doc/persoenlicher_assistent_plan.md` §6.4, §13-9).
+  `summarize_time_sessions` ist seit MCP 0.12.0 (Terminal-Client S6) auch im `:mcp`-Set,
+  als letztes Werkzeug: Projektmodus (`project_id` Pflicht, die Naht prüft Projekt und
+  Token-Reichweite), Rechte über `ViewingScope` im Werkzeug, Lesewerkzeug (auch für
+  Nur-Lese-Token), keine Zitationen in der MCP-Antwort. Das org-weite Feld `project` steht
+  dort mit im Schema, wird auf dem Projektpfad aber ignoriert. Spec:
+  `spec/requests/api/mcp_time_report_spec.rb`. Org-weite
   Reichweite (S3a T3): `Context#scope` (`tools/scope.rb`, je Area über
   `accessible_project_ids`) ADDITIV zu `project` (R-M5, MCP unberührt), `Result#coverage`
   ist das L7-Deckungs-Vertragsfeld, mehrdeutige Ticketnummern antworten mit der geteilten

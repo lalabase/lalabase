@@ -22,7 +22,11 @@ module Api
     # same token already received, nothing it has not seen; a new key goes
     # through every check. Keys do not expire. A retry must send the same bytes:
     # the fingerprint sorts only the top-level keys, so another encoding of the
-    # same request is a mismatch (safe: it writes nothing).
+    # same request is a mismatch (safe: it writes nothing). With a key the body is
+    # parsed even where the action ignores it, so malformed JSON answers 400 there.
+    # A multipart body is never repeatable (the upload's temp path is in the
+    # fingerprint); reduce files to name, size and digest when an upload endpoint
+    # arrives.
     module Idempotent
       extend ActiveSupport::Concern
 
@@ -53,7 +57,7 @@ module Api
       def with_idempotency_key
         key = request.headers[HEADER].to_s.strip.presence
         return yield unless key
-        return render_invalid_idempotency_key if key.bytesize > MAX_KEY_LENGTH
+        return render_invalid_idempotency_key unless storable_key?(key)
 
         store = Mcp::IdempotencyStore.new(token: current_token, tool_name: "rest:#{controller_path}##{action_name}",
                                           key: key, args: idempotency_fingerprint_args)
@@ -63,6 +67,13 @@ module Api
 
         yield
         store.remember({ status: response.status, body: response.body }.to_json) if response.successful?
+      end
+
+      # Within the index (bytes) and storable in a PostgreSQL text column: valid
+      # UTF-8 without NUL, which the database refuses with an error otherwise.
+      def storable_key?(key)
+        utf8 = key.dup.force_encoding(Encoding::UTF_8)
+        key.bytesize <= MAX_KEY_LENGTH && utf8.valid_encoding? && !utf8.include?("\0")
       end
 
       def idempotency_fingerprint_args
@@ -82,7 +93,8 @@ module Api
       def render_invalid_idempotency_key
         skip_authorization
         render_error(error: INVALID_KEY, code: 'invalid_input',
-                     message: "#{HEADER} is longer than #{MAX_KEY_LENGTH} bytes", status: :unprocessable_entity)
+                     message: "#{HEADER} must be valid UTF-8 without NUL, at most #{MAX_KEY_LENGTH} bytes",
+                     status: :unprocessable_entity)
       end
 
       def render_idempotency_mismatch

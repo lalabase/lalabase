@@ -167,6 +167,29 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
       expect(response.parsed_body).to include('error' => 'invalid_idempotency_key', 'code' => 'invalid_input')
     end
 
+    # Bytes, not characters: 128 umlauts are 256 bytes.
+    it 'counts the limit in bytes' do
+      expect { comment('Hallo', key: 'ä' * 128) }.not_to(change { posts_count })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect { comment('Hallo', key: "#{'ä' * 127}k") }.to change { posts_count }.by(1)
+    end
+
+    # PostgreSQL refuses both in a text column; they used to answer a 500.
+    def expect_invalid_key
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body).to include('error' => 'invalid_idempotency_key', 'code' => 'invalid_input')
+    end
+
+    it 'refuses a key that is not valid UTF-8, writing nothing' do
+      expect { comment('Hallo', key: "k\xFFx".b) }.not_to(change { posts_count })
+      expect_invalid_key
+    end
+
+    it 'refuses a key with a NUL byte, writing nothing' do
+      expect { comment('Hallo', key: "k\u0000x") }.not_to(change { posts_count })
+      expect_invalid_key
+    end
+
     it 'accepts a key of exactly the limit' do
       key = 'k' * Api::V1::Idempotent::MAX_KEY_LENGTH
       expect { 2.times { comment('Hallo', key: key) } }.to change { posts_count }.by(1)

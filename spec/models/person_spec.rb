@@ -42,6 +42,25 @@ RSpec.describe Person, type: :model do
     expect(build(:person, organisation: organisation, email: '')).to be_valid
   end
 
+  describe 'the salutation' do
+    it 'keeps free text as written, squeezed' do
+      person = create(:person, organisation: organisation, salutation: '  Frau   Dr. ')
+
+      expect(person.salutation).to eq('Frau Dr.')
+    end
+
+    it 'stores a blank salutation as none' do
+      expect(create(:person, organisation: organisation, salutation: '   ').salutation).to be_nil
+    end
+
+    it 'refuses a salutation longer than a field' do
+      person = build(:person, organisation: organisation, salutation: 'x' * (Person::MAX_FIELD_LENGTH + 1))
+
+      expect(person).not_to be_valid
+      expect(person.errors[:salutation]).to be_present
+    end
+  end
+
   describe 'the member link' do
     it 'accepts an active member of the same organisation' do
       expect(build(:person, organisation: organisation, user: member_of(organisation))).to be_valid

@@ -14,8 +14,9 @@ module People
   # * Contact half: rows without a link, and rows linked to someone who is no
   #   longer an active member (name from the row itself).
   # * Search: one normalized substring match (PersonName.normalize, so "Muller"
-  #   finds nothing but "mueller" and "Müller" find each other) over name,
-  #   function, department, company and email. In Ruby, because the member half
+  #   finds nothing but "mueller" and "Müller" find each other) over name
+  #   (with the salutation in front: "Frau Müller"), function, department,
+  #   company and email. In Ruby, because the member half
   #   reads its names from users; the list is sized for a few hundred rows per
   #   organisation. Pagination is a follow-up once an organisation passes that.
   class Directory
@@ -38,12 +39,13 @@ module People
       end
 
       # The line under the name, in the list and in the link dialog: function
-      # and company of the row, else a member's email. A contact without
-      # either has none (nil). A contact never shows an email here: the row's
-      # own email is a field of its page, not a label.
+      # and company of the row, else a member's email, else the salutation
+      # (two contacts called "Müller" are "Frau" and "Herr"). A contact without
+      # any has none (nil). A contact never shows an email here: the row's own
+      # email is a field of its page, not a label.
       def detail
         [person&.function, person&.company].compact_blank.join(' · ').presence ||
-          (user&.email if member?)
+          (user&.email if member?) || person&.salutation
       end
     end
 
@@ -209,7 +211,8 @@ module People
     end
 
     def matches?(entry)
-      haystack = [entry.plain_name, entry.person&.function, entry.person&.department, entry.person&.company,
+      addressed = [entry.person&.salutation, entry.plain_name].compact_blank.join(' ')
+      haystack = [addressed, entry.person&.function, entry.person&.department, entry.person&.company,
                   entry.person&.email, entry.user&.email]
       haystack.any? { |value| value.present? && PersonName.normalize(value).include?(@query) }
     end

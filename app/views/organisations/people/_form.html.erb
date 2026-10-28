@@ -39,6 +39,12 @@
     <% end %>
 
     <div class="people-form__field">
+      <%= f.label :salutation %>
+      <%= f.text_field :salutation, class: 'people-input', maxlength: Person::MAX_FIELD_LENGTH,
+                                    placeholder: t('views.organisations.people.form.placeholders.salutation') %>
+    </div>
+
+    <div class="people-form__field">
       <%= f.label :name do %>
         <%= Person.human_attribute_name(:name) %><span class="people-form__required" aria-hidden="true"> *</span>
       <% end %>

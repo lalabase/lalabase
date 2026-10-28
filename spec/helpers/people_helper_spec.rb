@@ -33,6 +33,16 @@ RSpec.describe PeopleHelper, type: :helper do
     end
   end
 
+  # A member row with only a salutation has details: no "add details" hint.
+  describe '#person_bare?' do
+    it 'counts a salutation as a detail' do
+      ActsAsTenant.with_tenant(create(:organisation)) do
+        expect(helper.person_bare?(Person.new(name: 'Müller'))).to be(true)
+        expect(helper.person_bare?(Person.new(name: 'Müller', salutation: 'Frau'))).to be(false)
+      end
+    end
+  end
+
   # Review round 1: the date of the last meeting names its year when it is
   # not this year.
   describe '#last_contact_text' do

@@ -109,6 +109,7 @@ en:
           link_label: "Link to a member (optional)"
           no_member: "no member"
           placeholders:
+            salutation: "e.g. Mr, Ms, Dr (empty = none given)"
             name: "First and last name"
             function: "e.g. technical contact"
             department: "e.g. IT"

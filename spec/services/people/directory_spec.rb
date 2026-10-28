@@ -117,6 +117,18 @@ RSpec.describe People::Directory, :ci_guard do
     end
   end
 
+  # Often only "Frau Müller" is known: the name is "Müller", the salutation
+  # "Frau". A search for what one would say finds her, and only her.
+  it 'finds a person by salutation and name together' do
+    frau = create(:person, organisation: organisation, name: 'Müller', salutation: 'Frau', company: nil)
+    create(:person, organisation: organisation, name: 'Müller', salutation: 'Herr', company: nil)
+
+    found = described_class.new(viewer: admin, organisation: organisation, query: 'Frau Müller')
+
+    expect(found.entries.map(&:person)).to eq([frau])
+    expect(found.candidates.map(&:person)).to eq([frau])
+  end
+
   # External review of 26.10.2026: a linked member is compared by the name
   # the directory shows, not by the copy taken when the row was linked.
   it 'finds duplicates of a member by the current account name' do
@@ -283,6 +295,18 @@ RSpec.describe People::Directory, :ci_guard do
         expect(entry(kind: :member, user: user, person: build(:person, **bare)).detail).to eq('carl@example.com')
         expect(entry(kind: :member, user: user).detail).to eq('carl@example.com')
         expect(entry(kind: :contact, person: build(:person, email: 'doris@example.com', **bare)).detail).to be_nil
+      end
+
+      # Two contacts named "Müller" without function or company: the salutation
+      # tells them apart in the list and in the link dialog.
+      it 'is the salutation of a row without function and company' do
+        bare = { function: nil, company: nil }
+
+        expect(entry(kind: :contact, person: build(:person, salutation: 'Frau', **bare)).detail).to eq('Frau')
+        expect(entry(kind: :contact, person: build(:person, salutation: 'Frau', function: 'CTO', company: nil)).detail)
+          .to eq('CTO')
+        expect(entry(kind: :member, user: build(:user, email: 'carl@example.com'),
+                     person: build(:person, salutation: 'Herr', **bare)).detail).to eq('carl@example.com')
       end
     end
   end

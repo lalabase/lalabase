@@ -7,6 +7,18 @@ class PowerSearchService
   SEMANTIC_THRESHOLD = 0.7
   LIMIT = 15
 
+  # Stable keys, not labels: the results view translates them
+  # (views.organisations.power_search.power_search_results.types.*).
+  RESULT_TYPES = {
+    'Note' => :note,
+    'DocumentVersion' => :document,
+    'DocumentationPage' => :documentation,
+    'Post' => :post,
+    'Ticket' => :ticket,
+    'Meeting' => :meeting,
+    'MeetingAnalysis' => :meeting_analysis
+  }.freeze
+
   def initialize(query, organisation, project_id = nil, current_user = nil)
     @query        = query
     @organisation = organisation
@@ -210,56 +222,54 @@ class PowerSearchService
       link: result_link(result),
       project_name: project&.name,
       project_link: project && Rails.application.routes.url_helpers.organisation_project_path(@organisation, project),
+      date: result_date(result),
       content: result_content(result),
       highlighted_content: highlighted_content,
       similarity: similarity,
       match_types: match_types,
-      match_type: match_types.first, # For backwards compatibility
       highlight: highlighted_content
     }
   end
 
   def result_type(fragmentable_type)
-    case fragmentable_type
-    when 'Note'
-      'Note'
-    when 'DocumentVersion'
-      'Dokument'
-    when 'DocumentationPage'
-      'Dokumentation'
-    when 'Post'
-      'Post'
-    when 'Ticket'
-      'Ticket'
-    when 'Meeting'
-      'Meeting'
-    when 'MeetingAnalysis'
-      'Analyse'
-    else
-      'Unknown'
-    end
+    RESULT_TYPES.fetch(fragmentable_type, :unknown)
+  end
+
+  # When the information came into being, the date the results show next to the
+  # type. A meeting counts from the day it took place, not from the day somebody
+  # entered it; everything else from its creation. Not updated_at: a status change
+  # would make an old ticket look fresh.
+  def result_date(result)
+    record = result.fragmentable
+    return unless record
+
+    result.fragmentable_type == 'Meeting' ? record.occurred_at : record.created_at
   end
 
   def result_title(result)
     case result.fragmentable_type
     when 'Note'
-      result.fragmentable&.title || 'Note (deleted)'
+      result.fragmentable&.title || deleted_title(:note)
     when 'DocumentVersion'
-      result.fragmentable&.document&.title || 'Document (deleted)'
+      result.fragmentable&.document&.title || deleted_title(:document)
     when 'DocumentationPage'
       page = result.fragmentable
-      page&.title.presence || page&.path || 'Dokumentation (deleted)'
+      page&.title.presence || page&.path || deleted_title(:documentation)
     when 'Post'
-      result.fragmentable&.ticket&.title || 'Ticket (deleted)'
+      result.fragmentable&.ticket&.title || deleted_title(:ticket)
     when 'Ticket'
-      result.fragmentable&.title || 'Ticket (deleted)'
+      result.fragmentable&.title || deleted_title(:ticket)
     when 'Meeting'
-      result.fragmentable&.title || 'Meeting (deleted)'
+      result.fragmentable&.title || deleted_title(:meeting)
     when 'MeetingAnalysis'
-      result.fragmentable&.prompt_title || 'Analyse (deleted)'
+      result.fragmentable&.prompt_title || deleted_title(:meeting_analysis)
     else
-      'Unknown'
+      deleted_title(:unknown)
     end
+  end
+
+  def deleted_title(type)
+    I18n.t("services.power_search.deleted_titles.#{type}")
   end
 
   def result_project(result)
@@ -280,9 +290,9 @@ class PowerSearchService
 
   def determine_match_types(fragments, highlight_map, similarities)
     match_types = []
-    match_types << 'Volltext Treffer' if fragments.any? { |f| highlight_map[f.id].present? }
-    match_types << 'Semantischer Treffer' if fragments.any? { |f| similarities[f.id] >= SEMANTIC_THRESHOLD }
-    match_types << 'Unbekannter Treffer' if match_types.empty?
+    match_types << :fulltext if fragments.any? { |f| highlight_map[f.id].present? }
+    match_types << :semantic if fragments.any? { |f| similarities[f.id] >= SEMANTIC_THRESHOLD }
+    match_types << :unknown if match_types.empty?
     match_types
   end
 

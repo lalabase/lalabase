@@ -23,7 +23,7 @@
 # Tracking is PersonTrackable's: no personal data, no fanout.
 module Actors
   class SavePerson < BaseActor
-    ATTRIBUTES = %i[name function department company email phone notes lock_version].freeze
+    ATTRIBUTES = %i[name salutation function department company email phone notes lock_version].freeze
     # What the account of an active member owns on its row.
     ACCOUNT_FIELDS = %i[name email user_id].freeze
     # What stays while the member is only deactivated: the row's own name and

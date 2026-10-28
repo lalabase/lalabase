@@ -269,10 +269,6 @@ en:
       power_search:
         index:
           title: Search results
-        power_search_results:
-          match_fulltext: Full-text match
-          match_semantic: Semantic match
-          match_unknown: Unknown match
       activities:
         shared:
           empty_title: No activities found

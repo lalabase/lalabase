@@ -9,6 +9,8 @@
 # name is always filled, also for a linked row (copied at link time by
 # Actors::SavePerson), so removing the membership loses nothing
 # (PersonLinkRelease). Tracking keeps no personal data (PersonTrackable).
+# salutation is free text ("Herr", "Frau Dr."): often only "Frau Müller" is
+# known, without a first name. Blank means none given and is stored as nil.
 # lock_version: both sides edit the same row; a stale save raises
 # ActiveRecord::StaleObjectError.
 class Person < ApplicationRecord
@@ -26,7 +28,7 @@ class Person < ApplicationRecord
 
   MAX_NOTES_LENGTH = 10_000
   MAX_FIELD_LENGTH = 255
-  TEXT_FIELDS = %i[name function department company email phone].freeze
+  TEXT_FIELDS = %i[name salutation function department company email phone].freeze
 
   before_validation :normalize_name_fields
 
@@ -60,6 +62,7 @@ class Person < ApplicationRecord
   def normalize_name_fields
     self.name = name.to_s.strip.gsub(/\s+/, ' ') if name
     self.normalized_name = PersonName.normalize(name)
+    self.salutation = salutation.to_s.squish.presence
   end
 
   # Same rule as Actors::SaveMeeting for participants: only an active member of

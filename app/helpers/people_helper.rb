@@ -104,7 +104,7 @@ module PeopleHelper
 
   # A member row with none of the details the directory is for yet.
   def person_bare?(person)
-    person.nil? || %i[function department phone notes].all? { |field| person.public_send(field).blank? }
+    person.nil? || %i[salutation function department phone notes].all? { |field| person.public_send(field).blank? }
   end
 
   # The lines of the lane: label, value, and for email and phone the link. An
@@ -113,6 +113,7 @@ module PeopleHelper
     email = member ? member.email : person&.email
     phone = person&.phone
     [
+      ({ label: Person.human_attribute_name(:salutation), value: person.salutation } if person&.salutation.present?),
       ({ label: Person.human_attribute_name(:function), value: person.function } if person&.function.present?),
       ({ label: Person.human_attribute_name(:department), value: person.department } if person&.department.present?),
       ({ label: Person.human_attribute_name(:company), value: person.company } if person&.company.present?),

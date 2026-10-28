@@ -2492,17 +2492,14 @@ de:
         project_announcement: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Wichtige Projektankündigungen\n• Release-Informationen\n• Deadline-Änderungen\n• Team-Meeting Einladungen\n\n⚙️ WICHTIG:\n• Meist zeitkritische Informationen\n• Betrifft alle Projektmitglieder\n\n💡 TIPP: Diese sollten Sie nicht deaktivieren, da sie oft wichtige organisatorische Informationen enthalten."
         system_message: "🔔 WANN SIE BENACHRICHTIGT WERDEN:\n• Geplante Wartungsarbeiten\n• Neue Features und Updates\n• Wichtige Systemänderungen\n• Sicherheitsupdates\n\n⚙️ HÄUFIGKEIT:\n• Sehr selten (1-2x pro Monat)\n• Nur wirklich wichtige Informationen\n\n💡 TIPP: Sollte aktiv bleiben, da diese Nachrichten Ihre Arbeit beeinflussen können."
     power_search:
-      match_types:
-        fulltext: Volltext Treffer
-        semantic: Semantischer Treffer
-        unknown: Unbekannter Treffer
-      object_types:
-        document: Dokument
-        document_deleted: Dokument (gelöscht)
-        note: Notiz
-        note_deleted: Notiz (gelöscht)
-        post: Post
-        ticket: Ticket
+      # Title of a hit whose record is gone (PowerSearchService#result_title).
+      deleted_titles:
+        note: Notiz (gelöscht)
+        document: Dokument (gelöscht)
+        documentation: Dokumentation (gelöscht)
+        ticket: Ticket (gelöscht)
+        meeting: Meeting (gelöscht)
+        meeting_analysis: Analyse (gelöscht)
         unknown: Unbekannt
   settings:
     # Tab-Label des KI-Bereichs (S2). Die Seitennamen des Bereichs stehen unter

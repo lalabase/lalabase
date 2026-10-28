@@ -56,7 +56,7 @@ RSpec.describe PowerSearchService, type: :service do
           results = service.execute
 
           # Filter only post results
-          post_results = results.select { |result| result[:type] == 'Post' }
+          post_results = results.select { |result| result[:type] == :post }
 
           # User1 should see public posts and their own private posts
           expect(post_results.map { |r| r[:title] }).to include(ticket.title) # public post
@@ -82,7 +82,7 @@ RSpec.describe PowerSearchService, type: :service do
           results = service.execute
 
           # Filter only post results
-          post_results = results.select { |result| result[:type] == 'Post' }
+          post_results = results.select { |result| result[:type] == :post }
 
           # User2 should see public posts and their own private posts
           expect(post_results.map { |r| r[:title] }).to include(ticket.title) # public post
@@ -99,7 +99,7 @@ RSpec.describe PowerSearchService, type: :service do
           service1 = described_class.new('privater geheimer inhalt von user1', organisation, project.id, user1)
           results1 = service1.execute
 
-          post_results1 = results1.select { |result| result[:type] == 'Post' }
+          post_results1 = results1.select { |result| result[:type] == :post }
           expect(post_results1.size).to be > 0
           expect(post_results1.map { |r| r[:content] }.join).to include('privater geheimer inhalt von user1')
 
@@ -107,7 +107,7 @@ RSpec.describe PowerSearchService, type: :service do
           service2 = described_class.new('privater geheimer inhalt von user2', organisation, project.id, user2)
           results2 = service2.execute
 
-          post_results2 = results2.select { |result| result[:type] == 'Post' }
+          post_results2 = results2.select { |result| result[:type] == :post }
           expect(post_results2.size).to be > 0
           expect(post_results2.map { |r| r[:content] }.join).to include('privater geheimer inhalt von user2')
         end
@@ -119,7 +119,7 @@ RSpec.describe PowerSearchService, type: :service do
           service = described_class.new('privater geheimer inhalt von user2', organisation, project.id, user1)
           results = service.execute
 
-          post_results = results.select { |result| result[:type] == 'Post' }
+          post_results = results.select { |result| result[:type] == :post }
 
           # No post results should be found that contain user2's private content
           post_contents = post_results.map { |r| r[:content] }
@@ -132,7 +132,7 @@ RSpec.describe PowerSearchService, type: :service do
           service = described_class.new('geheimer', organisation, project.id, nil)
           results = service.execute
 
-          post_results = results.select { |result| result[:type] == 'Post' }
+          post_results = results.select { |result| result[:type] == :post }
 
           # Without an authenticated user there is no project access -> no hits
           # (more restrictive than before; PowerSearch requires auth anyway).
@@ -148,7 +148,7 @@ RSpec.describe PowerSearchService, type: :service do
           service = described_class.new('geheimer', organisation, nil, user1)
           results = service.execute
 
-          post_results = results.select { |result| result[:type] == 'Post' }
+          post_results = results.select { |result| result[:type] == :post }
           post_contents = post_results.map { |r| r[:content] }
           combined_content = post_contents.join
 
@@ -172,7 +172,7 @@ RSpec.describe PowerSearchService, type: :service do
           service = described_class.new('geheimer', organisation, project.id, user3)
           results = service.execute
 
-          post_results = results.select { |result| result[:type] == 'Post' }
+          post_results = results.select { |result| result[:type] == :post }
           post_contents = post_results.map { |r| r[:content] }
           combined_content = post_contents.join
 

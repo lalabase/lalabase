@@ -15,6 +15,8 @@ module Api
       skip_after_action :verify_authorized
       skip_after_action :verify_policy_scoped
 
+      idempotent :mark_as_read, :archive, :mark_all_as_read
+
       rescue_from Notifications::InboxQuery::InvalidArgument, with: :bad_request
       # Declared after InvalidArgument (its parent) so it wins: a project or an
       # organisation outside the reach is a 404 here, like every other out-of-scope project.

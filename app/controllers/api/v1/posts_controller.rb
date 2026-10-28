@@ -5,6 +5,8 @@ module Api
     class PostsController < BaseController
       include Api::V1::ReadableTicket
 
+      idempotent :create
+
       # POST /api/v1/tickets/:ticket_id/posts
       #
       # The web form's write (Actors::SavePost), so an API comment carries the same
@@ -19,8 +21,7 @@ module Api
           if result.success?
             render json: { data: serialize(actor.record) }, status: :created
           else
-            render json: { error: 'validation_failed', errors: result.errors },
-                   status: :unprocessable_entity
+            render_error(error: 'validation_failed', errors: result.errors, status: :unprocessable_entity)
           end
         end
       end

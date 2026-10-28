@@ -49,7 +49,7 @@ module Api
       # unconfirmed past the grace period, system account): Devise's own
       # sign-in rule, so a token never reaches further than a password would.
       if pat.nil? || !pat.user&.active_for_authentication?
-        render json: { error: 'unauthorized' }, status: :unauthorized
+        render_unauthorized
         return
       end
 
@@ -64,6 +64,12 @@ module Api
       return if pat.last_used_at && pat.last_used_at > LAST_USED_THROTTLE.ago
 
       pat.update_column(:last_used_at, Time.current)
+    end
+
+    # The 401 body. Api::V1::BaseController overrides it to add the error code;
+    # /api/mcp keeps this one.
+    def render_unauthorized
+      render json: { error: 'unauthorized' }, status: :unauthorized
     end
 
     def current_token

@@ -15,7 +15,12 @@ module Api
           data: {
             user: serialize_user(current_user),
             token: serialize_token(current_token),
-            scoped_organisations: serialize_scoped_organisations(current_token)
+            scoped_organisations: serialize_scoped_organisations(current_token),
+            # What this server offers, so a client enables a feature only where it
+            # exists (cli_rest_plan D4). The same list for every token: whether a
+            # write is refused is token.read_only.
+            api_version: Api::V1::Capabilities::API_VERSION,
+            capabilities: Api::V1::Capabilities.names
           }
         }
       end

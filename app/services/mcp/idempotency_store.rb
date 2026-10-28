@@ -2,7 +2,9 @@
 
 module Mcp
   # Durable idempotency for MCP write tools (D9), backed by the
-  # mcp_idempotency_keys table. Extracted from Mcp::ToolCall so the ToolCall stays
+  # mcp_idempotency_keys table. The /api/v1 writes share it (Api::V1::Idempotent,
+  # cli_rest_plan D7): one key space per token, so a key used on one surface
+  # can never replay an answer on the other (their fingerprints differ). Extracted from Mcp::ToolCall so the ToolCall stays
   # focused on "run one tool call safely" and this concern can be unit-tested on
   # its own (no HTTP/dispatcher needed).
   #
@@ -53,11 +55,22 @@ module Mcp
     #   stored response, or a mismatch error), or nil when the key is unseen and
     #   the caller should execute the write.
     def replay
-      record = find
-      return nil unless record
-      return mismatch_result unless record.request_fingerprint == @fingerprint
+      record = lookup
+      return nil if record.nil?
+      return mismatch_result if record == :mismatch
 
       Lalabase::Tools::Result.new(content: record.response_content)
+    end
+
+    # The stored row for this key, :mismatch when the key was used with another
+    # request, or nil when it is unseen. The REST surface (Api::V1::Idempotent)
+    # replays from here with its own answer shape; #replay is the MCP one.
+    def lookup
+      record = find
+      return nil unless record
+      return :mismatch unless record.request_fingerprint == @fingerprint
+
+      record
     end
 
     # Records a successful write's response so a later retry replays it.

@@ -777,13 +777,31 @@ Drei Namensräume unter `/api`, und sie unterscheiden sich darin, **wer** ruft:
 
 For the seven REST ticket member routes, `Api::V1::ReadableTicket` resolves tickets
 through the token's effective organisation/project reach and `TicketPolicy::Scope`:
-missing and unreadable tickets return 404 with `{"error":"not_found"}`. Denied actions
-on readable tickets remain 403; read-only tokens reject writes with 403 before any
-ticket lookup, including missing IDs. Status and body are equal for missing and
+missing and unreadable tickets return 404 with `{"error":"not_found","code":"not_found"}`.
+Denied actions on readable tickets remain 403; read-only tokens reject writes with 403
+(`"code":"read_only"`) before any ticket lookup, including missing IDs. Status and body are equal for missing and
 unreadable tickets, but queries are not: discovering the unknown tenant reads only
 `organisation_id` and `project_id` first. Ticket IDs are random UUIDs, not sequential
 numbers; this deliberately accepts query asymmetry instead of searching every
 organisation the token reaches. It makes no constant-time guarantee.
+
+**`/api/v1` for programs** (REST R0, 2026-10-28; the terminal client moves from MCP to REST
+feature by feature):
+
+* **Error bodies** keep `error` and the HTTP status as they always were and add `code`, the
+  MCP vocabulary (`invalid_input`, `read_only`, `forbidden`, `not_found`, `refused`, plus
+  `unauthorized`); an unmapped actor code is `refused` with the old value as `reason`. Every
+  body comes from `Api::V1::ErrorBody` through `BaseController#render_error`; guard
+  `spec/architecture/api_v1_error_body_guard_spec.rb`. The 401 of `/api/mcp` (same concern,
+  `render_unauthorized`) keeps its old body.
+* **`Idempotency-Key`** on every write (`idempotent :create` in the controller,
+  `Api::V1::Idempotent`): the same key and request replays the first 2xx answer (status and
+  body), another request answers 422 `idempotency_key_reused`. Same table and store as MCP
+  (`Mcp::IdempotencyStore`); the REST fingerprint includes method and path, so a key never
+  crosses surfaces. Runs inside authentication and the read-only gate.
+* **`GET /api/v1/me`** names `api_version` and `capabilities` from `Api::V1::Capabilities`,
+  pinned against the routes both ways (`spec/requests/api/v1/capabilities_spec.rb`): a new
+  endpoint adds its line there. Additive changes bump the minor.
 
 `GET /api/v1/time_sessions/open` lists the person's own open hours within the token's
 reach, organisations AND projects, and only the rows the web time list shows them

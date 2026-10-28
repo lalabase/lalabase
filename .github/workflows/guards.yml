@@ -288,6 +288,9 @@ jobs:
           spec/requests/api/v1/ticket_existence_spec.rb
           spec/requests/api/v1/time_sessions_open_access_spec.rb
           spec/requests/api/v1/write_endpoints_spec.rb
+          spec/requests/api/v1/error_codes_spec.rb
+          spec/requests/api/v1/idempotency_spec.rb
+          spec/requests/api/v1/capabilities_spec.rb
           spec/models/codebase_import_mapping_spec.rb
           spec/services/codebase_import/time_session_importer_spec.rb
           spec/services/codebase_import/duplicate_prevention_spec.rb

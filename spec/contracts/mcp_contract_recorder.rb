@@ -465,9 +465,7 @@ module McpContract
         'GET /api/v1/tickets/:id/attachments' => attachment_calls,
         # REST R0 (cli_rest_plan D6, D7), appended last for the same reason: one
         # answer per error code, then a write with an Idempotency-Key, its replay
-        # and the key reused with another body. `refused` has no case: no
-        # endpoint reaches an actor refusal deterministically (pinned with a
-        # stubbed actor in spec/requests/api/v1/error_codes_spec.rb).
+        # and the key reused with another body.
         'errors' => rest_error_calls,
         'idempotency' => rest_idempotency_calls
       }
@@ -483,8 +481,33 @@ module McpContract
         'not_found' => rest_get(:read, "/api/v1/tickets/#{id(:missing)}"),
         'invalid_input' => rest_send(:post, :write, login_posts, params: {}),
         'invalid_input_validation' => rest_send(:post, :write, "/api/v1/projects/#{id(:website)}/tickets",
-                                                params: { ticket: { title: '' } })
+                                                params: { ticket: { title: '' } }),
+        # Provoked: no endpoint reaches an actor refusal deterministically today
+        # (tickets have no lock_version). The answer is the real one on the wire,
+        # status, `error`, `code` and `reason` as the controller renders them.
+        'refused' => refusing_ticket_writes do
+          rest_send(:patch, :write, "/api/v1/tickets/#{id(:login_ticket)}", params: { ticket: { status: 'new' } })
+        end
       }
+    end
+
+    # While the block runs, Actors::SaveTicket answers the failure BaseActor
+    # builds for a lost optimistic lock, in the request's own locale.
+    module RefuseTicketWrites
+      def call(...)
+        return super unless Thread.current[:mcp_contract_refuse_ticket_writes]
+
+        Actors::BaseActor::Result.new(success: false, errors: [I18n.t('services.actors.stale_object')],
+                                      code: :stale_object)
+      end
+    end
+
+    def refusing_ticket_writes
+      Actors::SaveTicket.singleton_class.prepend(RefuseTicketWrites) unless Actors::SaveTicket.singleton_class < RefuseTicketWrites
+      Thread.current[:mcp_contract_refuse_ticket_writes] = true
+      yield
+    ensure
+      Thread.current[:mcp_contract_refuse_ticket_writes] = nil
     end
 
     def rest_idempotency_calls

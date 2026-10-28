@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "de411024f1483e7c7601855a7c9b46954dc9b7ec",
+    "core_commit": "5efde7ed1c730d059eb559e15fab95ef35ccf129",
     "core_dirty": true,
-    "contract_sha256": "605a4d53ca32608b71308f622a65f119e1ddbdaa8029849c802fa6a11754e39f"
+    "contract_sha256": "3fcc755d77e87d2762e975e0d111d8d5065f461277229f1a83d7bac370a672fb"
   },
   "contract": {
     "mcp": {
@@ -3477,6 +3477,29 @@
               "code": "invalid_input",
               "errors": [
                 "Titel darf nicht leer sein"
+              ]
+            }
+          }
+        },
+        "refused": {
+          "token": "write",
+          "request": {
+            "method": "PATCH",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041",
+            "params": {
+              "ticket": {
+                "status": "new"
+              }
+            }
+          },
+          "response": {
+            "status": 409,
+            "body": {
+              "error": "stale_object",
+              "code": "refused",
+              "reason": "stale_object",
+              "errors": [
+                "Der Datensatz wurde zwischenzeitlich von jemand anderem geändert. Bitte neu laden und erneut speichern."
               ]
             }
           }

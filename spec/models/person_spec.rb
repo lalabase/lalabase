@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe Person, type: :model do
+RSpec.describe Person, :ci_guard, type: :model do
   let(:organisation) { create(:organisation) }
   let(:other_organisation) { create(:organisation) }
 

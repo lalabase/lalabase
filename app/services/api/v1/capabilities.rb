@@ -1,15 +1,17 @@
 # frozen_string_literal: true
 
+# What this server's REST API offers, for a client that decides from it which
+# features to show (cli_rest_plan D4), the way the terminal client reads MCP
+# tools/list today. GET /api/v1/me hands it out with API_VERSION.
+#
+# ONE list. spec/requests/api/v1/capabilities_spec.rb pins it against the
+# routes both ways: every endpoint capability has its route, every /api/v1
+# route is named here. A new endpoint therefore adds its line here or turns
+# that spec red.
+#
+# Entry point: names
 module Api
   module V1
-    # What this server's REST API offers, for a client that decides from it which
-    # features to show (cli_rest_plan D4), the way the terminal client reads MCP
-    # tools/list today. GET /api/v1/me hands it out with API_VERSION.
-    #
-    # ONE list. spec/requests/api/v1/capabilities_spec.rb pins it against the
-    # routes both ways: every endpoint capability has its route, every /api/v1
-    # route is named here. A new endpoint therefore adds its line here or turns
-    # that spec red.
     module Capabilities
       # Minor for an additive change (a new endpoint, field or capability), major
       # never: an existing name, field or meaning does not change.

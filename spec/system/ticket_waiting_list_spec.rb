@@ -98,13 +98,7 @@ RSpec.describe 'Waiting state in the list, on the board and on a phone', type: :
   # way). So wait for the controller itself, then click once.
   def open_column_picker
     expect(page).to have_css('table[data-fit]', wait: 5)
-    connected = <<~JS
-      (() => {
-        const el = document.querySelector('[data-controller~="column-picker"]')
-        return !!(el && window.Stimulus && window.Stimulus.getControllerForElementAndIdentifier(el, 'column-picker'))
-      })()
-    JS
-    Timeout.timeout(Capybara.default_max_wait_time) { sleep 0.05 until page.evaluate_script(connected) }
+    wait_for_stimulus('[data-controller~="column-picker"]', 'column-picker')
     find('[data-column-picker-trigger]').click
     expect(page).to have_css('#column-picker', visible: :visible, wait: 5)
   end

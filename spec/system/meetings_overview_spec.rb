@@ -472,12 +472,7 @@ RSpec.describe 'Meetings overview', type: :system do
 
     # The lane decides on connect: a check before that sees only the server's markup.
     def wait_for_layout_toggle
-      page.document.synchronize do
-        connected = page.evaluate_script(<<~JS)
-          Boolean(window.Stimulus?.getControllerForElementAndIdentifier(document.querySelector('.labor-layout-view'), 'layout-toggle'))
-        JS
-        raise Capybara::ExpectationNotMet, 'layout-toggle is not connected yet' unless connected
-      end
+      wait_for_stimulus('.labor-layout-view', 'layout-toggle')
     end
 
     before do

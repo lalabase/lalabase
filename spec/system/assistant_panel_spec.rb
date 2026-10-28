@@ -1338,19 +1338,10 @@ RSpec.describe 'Assistant companion panel', type: :system do
     # connects a tick later — and everything below is about what the controller
     # adds. Clicking in that window opened the note with no listeners attached and
     # made this group flake at roughly one run in five.
-    def controller_connected?
-      page.evaluate_script(<<~JS)
-        !!window.Stimulus?.getControllerForElementAndIdentifier(
-          document.querySelector('#assistant_panel details[data-controller="neo-ai-disclosure"]'),
-          'neo-ai-disclosure'
-        )
-      JS
-    end
-
     before do
       open_panel
       expect(page).to have_css('#assistant_panel details[data-controller="neo-ai-disclosure"]', visible: :all)
-      eventually('the disclosure controller connected') { controller_connected? }
+      wait_for_stimulus('#assistant_panel details[data-controller="neo-ai-disclosure"]', 'neo-ai-disclosure')
     end
 
     it 'unfolds on the summary and folds back on it' do

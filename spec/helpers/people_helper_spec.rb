@@ -110,6 +110,21 @@ RSpec.describe PeopleHelper, type: :helper do
       expect(field[:value]).to eq('javascript:alert(1)')
     end
 
+    # Review round 1, finding 4: an entry written around the validation.
+    it 'names an unknown kind as stored and gives it a plain text field in the form' do
+      field = fields_for(detail('fax', '+49 30 1'), phone: nil).first
+
+      expect(field).to eq(label: 'fax', value: '+49 30 1')
+      expect(helper.person_detail_field('fax')).to eq(helper.person_detail_field('text'))
+      expect(helper.person_detail_field('fax')[:input]).to eq('text')
+    end
+
+    # Review round 1, finding 8: the fixed phone links through the same rule.
+    it 'links the fixed phone through PersonDetail, and not at all without digits' do
+      expect(fields_for(phone: '+49 (30) 123-4567').first[:href]).to eq('tel:+49301234567')
+      expect(fields_for(phone: 'nur Zentrale').first[:href]).to be_nil
+    end
+
     it 'shows no line for a person without details' do
       expect(fields_for(phone: nil)).to eq([])
     end

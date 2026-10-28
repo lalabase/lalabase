@@ -186,7 +186,7 @@ module PeopleHelper
       ({ label: Person.human_attribute_name(:company), value: person.company } if person&.company.present?),
       ({ label: Person.human_attribute_name(:email), value: email, href: "mailto:#{email}", icon: 'bi-envelope' } if email.present?),
       if phone.present?
-        { label: Person.human_attribute_name(:phone), value: phone, href: "tel:#{phone.gsub(/[^\d+]/, '')}",
+        { label: Person.human_attribute_name(:phone), value: phone, href: PersonDetail.new('kind' => 'phone', 'value' => phone).href,
           icon: 'bi-telephone', mono: true, action: t('views.organisations.people.show.call') }
       end
     ].compact

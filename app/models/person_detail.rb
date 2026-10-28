@@ -34,6 +34,7 @@ class PersonDetail
   INDEX_KEY = /\A\d{1,9}\z/
   ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
   LINE_BREAK = /\r\n|\r|\n/
+  NON_ASCII = /[^\x00-\x7F]/
 
   attr_reader :kind, :label, :value
 
@@ -108,6 +109,10 @@ class PersonDetail
 
   # A stored entry, read without trusting it: written around the validation
   # (a console, update_column) it still renders, and nothing here raises.
+  # The form cannot show such an entry faithfully (an unknown kind falls back
+  # to the first option, a malformed date to an empty date field), so the next
+  # save through the form may refuse or drop it. Only writes around the
+  # validation can store one.
   def initialize(entry)
     entry = {} unless entry.is_a?(Hash)
     @kind = self.class.string_in(entry, 'kind')
@@ -166,8 +171,12 @@ class PersonDetail
     end
   end
 
+  # A web address may carry umlauts ("https://example.com/wiki/Köln", an
+  # umlaut domain), which a browser accepts and URI.parse does not: they are
+  # escaped for the check only, the stored value stays as written. Control
+  # characters and spaces are ASCII and still refused.
   def http_url?
-    uri = URI.parse(value)
+    uri = URI.parse(value.gsub(NON_ASCII) { |char| CGI.escape(char) })
     URL_SCHEMES.include?(uri.scheme.to_s.downcase) && uri.host.present?
   rescue URI::Error
     false

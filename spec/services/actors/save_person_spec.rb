@@ -268,6 +268,22 @@ RSpec.describe Actors::SavePerson do
       expect(person.reload.additional_details.size).to eq(2)
     end
 
+    # Review round 1, finding 1: the account owns name, email and link of a
+    # member's row (ACCOUNT_FIELDS, LINK_FIELDS), never its details.
+    [true, false].each do |active|
+      it "changes the details of a saved row of a member (active: #{active})" do
+        user = member
+        stored = save(name: 'egal', user_id: user.id, additional_details: form(row)).resource
+        expect(stored.additional_details).to eq([row])
+        Membership.find_by(user: user, organisation: organisation).update!(active: active)
+
+        result = save(additional_details: form(row(label: 'Mobil')), lock_version: stored.lock_version, id: stored.id)
+
+        expect(result).to be_success
+        expect(stored.reload.additional_details).to eq([row(label: 'Mobil')])
+      end
+    end
+
     it 'takes details for the row of an active member' do
       user = member
       result = save(name: 'egal', user_id: user.id, additional_details: form(row))

@@ -39,7 +39,9 @@ RSpec.describe 'People additional details in the form', type: :system do
   # browser keeps painting the old page until its animations end).
   def screenshot(name)
     page.execute_script('document.getAnimations().forEach((animation) => animation.finish())')
-    page.driver.browser.save_screenshot(Rails.root.join("tmp/screenshots/#{name}.png").to_s)
+    directory = Rails.root.join('tmp/screenshots')
+    FileUtils.mkdir_p(directory)
+    page.driver.browser.save_screenshot(directory.join("#{name}.png").to_s)
   end
 
   def rows
@@ -72,7 +74,7 @@ RSpec.describe 'People additional details in the form', type: :system do
     add_button.click
     within(rows[1]) do
       find('select').select(kind_name('address'))
-      expect(page).to have_css('textarea[data-person-details-value]')
+      expect(page).to have_css("textarea[data-person-details-value][maxlength='#{PersonDetail::MAX_ADDRESS_LENGTH}']")
       expect(page).to have_css('input[data-person-details-label][list="person-detail-suggestions-address"]')
       find('input[data-person-details-label]').fill_in(with: 'Büro')
       find('textarea[data-person-details-value]').fill_in(with: "Musterstraße 1\n12345 Berlin")
@@ -80,8 +82,9 @@ RSpec.describe 'People additional details in the form', type: :system do
 
     add_button.click
     within(rows[2]) do
+      find('select').select(kind_name('address'))
       find('select').select(kind_name('url'))
-      expect(page).to have_css('input[data-person-details-value][type="url"]')
+      expect(page).to have_css("input[data-person-details-value][type='url'][maxlength='#{PersonDetail::MAX_VALUE_LENGTH}']")
       find('input[data-person-details-value]').fill_in(with: 'https://example.com')
       click_button remove_label
     end
@@ -98,6 +101,22 @@ RSpec.describe 'People additional details in the form', type: :system do
     expect(page).to have_no_css('[data-controller="person-details"]')
     screenshot('people_additional_details_lane')
     expect(person.reload.additional_details.pluck('label')).to eq(%w[Fax Büro])
+  end
+
+  # Review round 1, finding 2: a row added after a removal in the middle
+  # needs an index no other row has, or the server merges two rows into one.
+  it 'keeps every row when one in the middle was removed before adding' do
+    person.update!(additional_details: %w[eins zwei drei].map { |value| { 'kind' => 'text', 'label' => '', 'value' => value } })
+    open_form
+
+    within(rows[0]) { click_button remove_label }
+    expect(rows.size).to eq(2)
+    add_button.click
+    within(rows.last) { find('input[data-person-details-value]').fill_in(with: '+49 30 4') }
+    click_button I18n.t('views.organisations.people.form.save')
+
+    expect(page).to have_text(I18n.t('controllers.people.update.success'))
+    expect(person.reload.additional_details.pluck('value')).to eq(['zwei', 'drei', '+49 30 4'])
   end
 
   it 'hides the add button at ten with a note, and shows it again after a remove' do

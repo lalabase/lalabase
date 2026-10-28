@@ -102,7 +102,7 @@ en:
           delete: "Delete"
           delete_confirm: "%{name} will be deleted from the list. This cannot be undone."
           remove_details: "Remove added details"
-          remove_details_confirm: "Function, department, phone and note of %{name} will be removed, the account stays. This cannot be undone."
+          remove_details_confirm: "All added details of %{name} will be removed (salutation, function, department, phone, note and additional details), the account stays. This cannot be undone."
         details:
           kinds:
             phone: "Phone"

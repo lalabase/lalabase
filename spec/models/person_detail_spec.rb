@@ -124,6 +124,21 @@ RSpec.describe PersonDetail do
       end
     end
 
+    # Review round 1, finding 6: a browser accepts umlauts in a web address,
+    # URI.parse does not; they must not read as "no http(s)".
+    it 'accepts umlauts in the path and in the host' do
+      %w[https://example.com/wiki/Köln http://ä.example.com https://example.com/straße?q=ü].each do |value|
+        expect(problems(detail(kind: 'url', value: value))).to eq([]), value
+        expect(described_class.new(detail(kind: 'url', value: value)).href).to eq(value)
+      end
+    end
+
+    it 'still refuses spaces and control characters next to an umlaut' do
+      ['https://exa mple.com/Köln', "https://example.com/Köln\u0000", "java\tscript:alert('ö')"].each do |value|
+        expect(problems(detail(kind: 'url', value: value))).to eq([[:invalid_url, { position: 1 }]]), value.inspect
+      end
+    end
+
     it 'refuses every scheme but http and https, and a url without a host' do
       ['javascript:alert(1)', 'JavaScript:alert(1)', 'data:text/html,<b>x</b>', 'ftp://example.com',
        'mailto:erika@example.com', 'https://', '//example.com', 'https://exa mple.com',

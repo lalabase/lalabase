@@ -102,7 +102,7 @@ de:
           delete: "Löschen"
           delete_confirm: "%{name} wird aus der Liste gelöscht. Das lässt sich nicht rückgängig machen."
           remove_details: "Ergänzte Angaben entfernen"
-          remove_details_confirm: "Funktion, Abteilung, Telefon und Notiz von %{name} werden entfernt, das Konto bleibt. Das lässt sich nicht rückgängig machen."
+          remove_details_confirm: "Alle ergänzten Angaben von %{name} werden entfernt (Anrede, Funktion, Abteilung, Telefon, Notiz und weitere Angaben), das Konto bleibt. Das lässt sich nicht rückgängig machen."
         details:
           kinds:
             phone: "Telefon"

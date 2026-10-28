@@ -393,6 +393,15 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
       expect(tap.text).to include('+49 170 1234567', 'Mobil')
     end
 
+    it 'opens a web address on a phone in a new tab without the opener' do
+      person.update!(additional_details: [row('url', 'https://example.com', label: 'Website')])
+
+      get organisation_people_path(organisation, person_id: person.id, viewport: 'mobile')
+
+      tap = Nokogiri::HTML(response.body).at_css('a.people-tap[href="https://example.com"]')
+      expect([tap['target'], tap['rel']]).to eq(['_blank', 'noopener noreferrer'])
+    end
+
     it 'shows no detail line for a person without details' do
       fields = lane_html.css('.people-fields__row dt').map { |dt| dt.text.strip }
 

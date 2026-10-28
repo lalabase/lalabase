@@ -30,13 +30,7 @@ RSpec.describe 'Smart folder reference security', type: :system do
   # operators never arrive. Until 2026-09-30 a large deferred script in the layout (the
   # editor removed with #946) held the load event back long enough to hide the race.
   def wait_for_form_controller
-    page.document.synchronize do
-      connected = page.evaluate_script(<<~JS)
-        Boolean(window.Stimulus?.getControllerForElementAndIdentifier(
-          document.querySelector('[data-controller~="smart-folder-form"]'), 'smart-folder-form'))
-      JS
-      raise Capybara::ExpectationNotMet, 'the smart folder form controller is not connected yet' unless connected
-    end
+    wait_for_stimulus('[data-controller~="smart-folder-form"]', 'smart-folder-form')
   end
 
   def choose(field, operator)

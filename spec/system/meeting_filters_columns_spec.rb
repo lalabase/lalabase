@@ -166,12 +166,7 @@ RSpec.describe 'Meeting filters and columns', type: :system do
     page.driver.browser.manage.window.resize_to(1440, 1000)
     visit path
     # The rows show before their scripts listen: a click before that opens nothing.
-    page.document.synchronize do
-      connected = page.evaluate_script(<<~JS)
-        Boolean(window.Stimulus?.getControllerForElementAndIdentifier(document.querySelector('tr[data-meeting-id]'), 'list-row'))
-      JS
-      raise Capybara::ExpectationNotMet, 'the row controller is not connected yet' unless connected
-    end
+    wait_for_stimulus('tr[data-meeting-id]', 'list-row')
     find("tr[data-meeting-id='#{meetings.first.id}']").click
     expect(page).to have_css('#meeting-header', text: 'Alpha')
 
@@ -211,12 +206,7 @@ RSpec.describe 'Meeting filters and columns', type: :system do
     page.driver.browser.manage.window.resize_to(1440, 1000)
     visit path(search: 'a', search_mode: 'title_only')
     # The rows show before their scripts listen: a click before that opens nothing.
-    page.document.synchronize do
-      connected = page.evaluate_script(<<~JS)
-        Boolean(window.Stimulus?.getControllerForElementAndIdentifier(document.querySelector('tr[data-meeting-id]'), 'list-row'))
-      JS
-      raise Capybara::ExpectationNotMet, 'the row controller is not connected yet' unless connected
-    end
+    wait_for_stimulus('tr[data-meeting-id]', 'list-row')
     find("tr[data-meeting-id='#{meetings.second.id}']").click
     expect(page).to have_css('tr.selected-row', text: 'Beta', wait: 5)
     expect(page).to have_css('#meeting-header', text: 'Beta', wait: 5)

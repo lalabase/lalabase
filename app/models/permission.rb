@@ -96,13 +96,27 @@ class Permission < ApplicationRecord
     # The shared people directory of the organisation (Person). Its own category
     # for the same reason as :assistant: customer roles are billable: false and
     # must be able to keep the list, which an action under :projects would
-    # forbid. manage_people (create, edit, delete, link) implies view_people in
-    # PersonPolicy. No role gets either automatically; account admins need none.
+    # forbid. manage_people (create, edit, delete, link) implies view_people
+    # (IMPLIED_BY). No role gets either automatically; account admins need none.
     people: %w[
       view_people
       manage_people
     ]
   }.freeze
+
+  # A right that another right includes: [category, action] => the actions of
+  # the same category that grant it too. Asked by PersonPolicy (who may view)
+  # and RolePolicy#change_permission? (who may grant it), so the two cannot
+  # disagree.
+  IMPLIED_BY = {
+    %w[people view_people] => %w[manage_people]
+  }.freeze
+
+  # The actions of a category that grant [category, action]: itself and every
+  # action that includes it.
+  def self.granting_actions(category, action)
+    [action, *IMPLIED_BY.fetch([category.to_s, action.to_s], [])]
+  end
 
   validates :category, inclusion: { in: CATEGORIES.keys.map(&:to_s) }
   validate :validate_action_for_category

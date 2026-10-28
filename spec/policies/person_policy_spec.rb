@@ -114,11 +114,32 @@ RSpec.describe PersonPolicy, :ci_guard, type: :policy do
       expect([policy.update?, policy.destroy?]).to eq([false, false])
     end
 
-    it 'shows a row linked to a former member as a contact' do
-      former_row = create(:person, organisation: organisation, user: stranger)
+    # Deactivating can be undone: until then, the row stays as hidden as the
+    # member was (review of S1, decision A, 28.10.2026). It is the same person.
+    it 'keeps the row of a deactivated member hidden from a viewer who cannot see them' do
+      stranger_row = create(:person, organisation: organisation, user: stranger)
       Membership.find_by(user: stranger, organisation: organisation).update!(active: false)
 
-      expect(rows(viewer)).to include(former_row)
+      expect(rows(viewer)).not_to include(stranger_row)
+      expect(rows(admin)).to include(stranger_row)
+      expect(described_class.new(User.find(viewer.id), stranger_row).show?).to be(false)
+    end
+
+    it 'shows the row of a deactivated member to a viewer who can see them' do
+      colleague_row = create(:person, organisation: organisation, user: colleague)
+      Membership.find_by(user: colleague, organisation: organisation).update!(active: false)
+
+      expect(rows(viewer)).to include(colleague_row)
+    end
+
+    # Removed from the organisation, the row lost its account (PersonLinkRelease)
+    # and is a contact of the organisation like any other.
+    it 'shows the row of a removed member as a contact' do
+      stranger_row = create(:person, organisation: organisation, user: stranger)
+      Membership.find_by(user: stranger, organisation: organisation).destroy!
+
+      expect(stranger_row.reload.user_id).to be_nil
+      expect(rows(viewer)).to include(stranger_row)
     end
 
     it 'returns nothing without the right' do

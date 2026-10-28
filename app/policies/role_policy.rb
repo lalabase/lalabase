@@ -40,7 +40,7 @@ class RolePolicy < ApplicationPolicy
   # too: a manager must not strip other roles of rights beyond their own reach.
   # Enforced by Actors::SaveRole for every right the form actually changes.
   def change_permission?(category, action)
-    account_admin? || has_permission?(category, action)
+    account_admin? || Permission.granting_actions(category, action).any? { |granting| has_permission?(category, granting) }
   end
 
   def destroy?

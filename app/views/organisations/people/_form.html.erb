@@ -7,8 +7,9 @@
 
     A row of an active member takes name and email from the account: both are
     shown, locked, and not sent. Its link is fixed, so the member select is
-    left out (no user_id sent: SavePerson keeps the link). A new row and a
-    contact may be linked. %>
+    left out (no user_id sent: SavePerson keeps the link). A deactivated
+    member's row keeps its link too, but its own name and email stay editable.
+    A new row and a contact may be linked. %>
 <% member = person_form_member(person) %>
 <% url = person.persisted? ? organisation_person_path(@current_organisation, person) : organisation_people_path(@current_organisation) %>
 <% title = person.persisted? || member ? t('views.organisations.people.form.edit_title', name: person_display_name(person: person, user: member)) : t('views.organisations.people.form.new_title') %>
@@ -87,7 +88,7 @@
                               placeholder: t('views.organisations.people.form.placeholders.notes') %>
     </div>
 
-    <% unless member %>
+    <% if member.nil? && person_link_choosable?(person) %>
       <div class="people-form__field">
         <%= f.label :user_id, t('views.organisations.people.form.link_label') %>
         <%= f.select :user_id, member_options_for(person), { include_blank: t('views.organisations.people.form.no_member') },

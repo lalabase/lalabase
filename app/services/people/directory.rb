@@ -210,10 +210,12 @@ module People
       @people ||= PersonPolicy::Scope.new(@viewer, Person).resolve
     end
 
+    # A member's email is the account's; an email left on a member row is not
+    # shown, so it is not searched either.
     def matches?(entry)
+      email = entry.member? ? entry.user.email : entry.person&.email
       addressed = [entry.person&.salutation, entry.plain_name].compact_blank.join(' ')
-      haystack = [addressed, entry.person&.function, entry.person&.department, entry.person&.company,
-                  entry.person&.email, entry.user&.email]
+      haystack = [addressed, entry.person&.function, entry.person&.department, entry.person&.company, email]
       haystack.any? { |value| value.present? && PersonName.normalize(value).include?(@query) }
     end
   end

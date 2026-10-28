@@ -108,7 +108,6 @@ en:
           edit_title: "Edit %{name}"
           link_label: "Link to a member (optional)"
           no_member: "no member"
-          former_member_option: "%{name} (former member)"
           placeholders:
             salutation: "e.g. Mr, Ms, Dr (empty = none given)"
             name: "First and last name"

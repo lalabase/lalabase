@@ -306,4 +306,35 @@ RSpec.describe RolePolicy, :ci_guard, type: :policy do
       expect(described_class.new(user, target_role).update_billable?).to be false
     end
   end
+
+  # Review of S1 (28.10.2026): manage_people includes view_people
+  # (Permission::IMPLIED_BY), so a role editor holding it may grant both.
+  describe '#change_permission?' do
+    def editor_with(*rights)
+      role = create(:role, organisation: organisation)
+      create(:permission, role: role, category: 'accounts', action: 'add_edit_delete_roles', allowed: true)
+      rights.each { |category, action| create(:permission, role: role, category: category, action: action, allowed: true) }
+      user = create(:user)
+      create(:membership, user: user, organisation: organisation, role: role)
+      User.find(user.id)
+    end
+
+    def may_change?(user, category, action)
+      ActsAsTenant.with_tenant(organisation) { described_class.new(user, regular_role).change_permission?(category, action) }
+    end
+
+    it 'lets an editor with manage_people change view_people too' do
+      editor = editor_with(%w[people manage_people])
+
+      expect(may_change?(editor, 'people', 'view_people')).to be(true)
+      expect(may_change?(editor, 'people', 'manage_people')).to be(true)
+    end
+
+    it 'does not turn view_people into manage_people' do
+      editor = editor_with(%w[people view_people])
+
+      expect(may_change?(editor, 'people', 'view_people')).to be(true)
+      expect(may_change?(editor, 'people', 'manage_people')).to be(false)
+    end
+  end
 end

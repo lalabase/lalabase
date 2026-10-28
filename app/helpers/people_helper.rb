@@ -92,11 +92,14 @@ module PeopleHelper
     return if person.errors.include?(:user_id) || person.errors.include?(:user)
     return person_member_user(person) unless person.persisted?
 
-    stored_id = person.user_id_in_database
-    return unless stored_id
+    membership = person.stored_membership
+    membership.user if membership&.active?
+  end
 
-    active = Membership.where(organisation: current_organisation, user_id: stored_id, active: true).exists?
-    User.find_by(id: stored_id) if active
+  # Whether the form offers the member select: not while a membership stands
+  # behind the stored link, active or deactivated (SavePerson keeps it).
+  def person_link_choosable?(person)
+    !person.persisted? || person.stored_membership.nil?
   end
 
   # A member row with none of the details the directory is for yet.
@@ -172,21 +175,14 @@ module PeopleHelper
 
   # The options of the member select: the active members the reader may link
   # (visible on the members page, without a row of their own yet), labelled
-  # through the viewer's name display setting. The member a stored row is
-  # linked to always stays an option, also once deactivated: without it the
-  # select shows "no member" and every save drops the link (review round 1).
-  # A stored member the reader cannot link now (deactivated, out of sight) is
-  # labelled with the row's own name, never with the account (review round 3).
+  # through the viewer's name display setting. A row whose stored link has a
+  # membership behind it gets no select (person_link_choosable?), so no stored
+  # member needs an option of its own here (review of PR #64).
   def member_options_for(person)
     taken = Person.where(organisation: current_organisation).linked.where.not(id: person.id).select(:user_id)
     member_ids = policy_scope(Membership).where(organisation: current_organisation, active: true).select(:user_id)
     members = User.where(id: member_ids).where.not(id: taken).to_a
-    options = members.map { |user| [viewer_display_name(user), user.id] }.sort_by { |label, _id| label.downcase }
-    stored_id = person.user_id_in_database if person.persisted?
-    return options if stored_id.nil? || members.any? { |user| user.id == stored_id }
-
-    label = t('views.organisations.people.form.former_member_option', name: person.name_in_database)
-    [[label, stored_id]] + options
+    members.map { |user| [viewer_display_name(user), user.id] }.sort_by { |label, _id| label.downcase }
   end
 
   # How long ago a last contact was, in calendar days (S2a): heute, gestern,

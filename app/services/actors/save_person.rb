@@ -9,6 +9,12 @@
 #   members the writer may see (MembershipPolicy::Scope, active only), never
 #   assigned as given. Linking copies the member's name into the row, so the
 #   row keeps a name when the link goes (PersonLinkRelease).
+# * the fields the account owns: a row linked to an ACTIVE member takes name,
+#   email and its link from the account, as the form shows them (locked, not
+#   sent). A hand-made request does not write them either (ACCOUNT_FIELDS),
+#   and a row created for a member takes no email of its own. A DEACTIVATED
+#   member's row keeps only its link (LINK_FIELDS): no other member, no
+#   contact, until the member is removed.
 # * creator on create, updater on every save;
 # * a stale save (lock_version, both sides edit the same row) raises
 #   StaleObjectError, which BaseActor maps to code :stale_object; the
@@ -18,6 +24,11 @@
 module Actors
   class SavePerson < BaseActor
     ATTRIBUTES = %i[name salutation function department company email phone notes lock_version].freeze
+    # What the account of an active member owns on its row.
+    ACCOUNT_FIELDS = %i[name email user_id].freeze
+    # What stays while the member is only deactivated: the row's own name and
+    # email are the ones shown then, so they stay editable.
+    LINK_FIELDS = %i[user_id].freeze
     # lock_version is an integer column (4 bytes).
     LOCK_VERSION_RANGE = (0..((2**31) - 1))
 
@@ -37,6 +48,8 @@ module Actors
       raise ActorError.new(I18n.t('controllers.people.not_found'), code: :not_found) if @person.nil?
 
       check_lock_version
+      drop_account_fields
+      @params = @params.except(:email) if @person.new_record? && @params[:user_id].present?
       attributes = @params.slice(*ATTRIBUTES)
       attributes.delete(:lock_version) if @person.new_record?
       @person.assign_attributes(attributes)
@@ -67,6 +80,15 @@ module Actors
     rescue ActiveRecord::RecordNotUnique
       @person.errors.add(:user_id, :taken)
       raise ActorError.new(I18n.t('controllers.people.link_not_allowed'), code: :validation_failed)
+    end
+
+    # A saved row with a membership behind its link keeps that link; an active
+    # member's account also owns name and email (Person#stored_membership).
+    def drop_account_fields
+      membership = @person.stored_membership
+      return unless membership
+
+      @params = @params.except(*(membership.active? ? ACCOUNT_FIELDS : LINK_FIELDS))
     end
 
     # Tenant-bound lookup: an id of another organisation is no person at all.

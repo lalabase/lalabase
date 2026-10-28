@@ -165,6 +165,12 @@ RSpec.describe Lalabase::Tools::GetPerson, :ci_guard do
       expect_not_found("member:#{stranger.id}")
     end
 
+    # The format admits capital hex digits; the directory compares ids as they are stored, so
+    # a capitalised id answers like an unknown one, as on the people page (review of #73).
+    it 'answers a capitalised id like an unknown one' do
+      expect_not_found("person:#{contact.id.upcase}")
+    end
+
     it 'answers a deactivated member by the account the same' do
       Membership.find_by(user: colleague, organisation: organisation).update!(active: false)
 
@@ -173,7 +179,8 @@ RSpec.describe Lalabase::Tools::GetPerson, :ci_guard do
   end
 
   describe 'an id that is no id' do
-    %w[abc person:abc member: 12345].each do |id|
+    # "new" is the link dialog's third value (a person created in the same step): no id.
+    %w[abc person:abc member: 12345 new].each do |id|
       it "refuses #{id.inspect} as invalid input" do
         result = run(id)
 

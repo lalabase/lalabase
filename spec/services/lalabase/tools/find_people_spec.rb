@@ -72,8 +72,19 @@ RSpec.describe Lalabase::Tools::FindPeople, :ci_guard do
     # The first run with a real model (28.10.2026) searched "Technik" among members only,
     # found nobody and said so, while the person stood there as a contact.
     it 'tells the model how to search and where the contact details are' do
-      expect(described_class.description).to include('"techn"', 'company name', 'function and department',
+      expect(described_class.description).to include('"techn"', 'company name',
+                                                     'Function and department are where responsibility is written down',
                                                      'Leave kind out', 'never guess a person', 'get_person')
+    end
+
+    # What the description promises about the match has to be what PersonName.normalize
+    # does: umlauts are written out (Müller = Mueller), not dropped (Muller finds nothing).
+    # And a very short stem is a part of many words ("it" is in "Leitung" and "Schmitt"),
+    # so the list it gives can be cut at twenty before the right person (review of #73).
+    it 'describes the match as it is' do
+      expect(described_class.description).to include('ä, ö, ü and ß match ae, oe, ue and ss')
+      expect(described_class.description).to include('A very short stem matches many people')
+      expect(described_class.description).not_to include('ignoring case and umlauts')
     end
 
     it 'lists at most twenty people' do
@@ -101,6 +112,15 @@ RSpec.describe Lalabase::Tools::FindPeople, :ci_guard do
       create(:person, organisation: organisation, name: 'Jürgen Müller', function: nil, department: nil, company: nil)
 
       expect(names(run(query: 'mueller'))).to eq(['Jürgen Müller'])
+    end
+
+    it 'does not drop an umlaut, it writes it out' do
+      create(:person, organisation: organisation, name: 'Jürgen Müller', function: nil, department: nil, company: nil)
+
+      result = run(query: 'muller')
+
+      expect(payload(result)['total']).to eq(0)
+      expect(names(result)).to eq([])
     end
 
     it 'finds a member by the account name' do
@@ -246,6 +266,21 @@ RSpec.describe Lalabase::Tools::FindPeople, :ci_guard do
 
     # E3: date and kind only, no meeting title. A meeting in a project the viewer may not
     # read never counts, even when it is the newer one (People::Contacts).
+    # A member's own work on a readable ticket counts too (People::Contacts): the kind is
+    # "ticket", and neither the ticket's number nor its title goes along (review of #73).
+    it 'is the date and kind ticket for a member\'s own work on a readable ticket' do
+      ticket = create(:ticket, organisation: organisation, project: project, title: 'Geheimes Ticket')
+      worked_at = 2.days.ago
+      Activity.create!(actor: colleague, trackable: ticket, organisation: organisation, action: 'created',
+                       parameters: { 'skip_notifications' => true }, created_at: worked_at)
+
+      result = run(query: 'kollege')
+
+      expect(payload(result)['data'].first['last_contact'])
+        .to eq('on' => worked_at.in_time_zone.to_date.iso8601, 'kind' => 'ticket')
+      expect(result.content).not_to include('Geheimes Ticket', 'ticket_number', '"number"')
+    end
+
     it 'is the date and kind of the last readable meeting, nothing else' do
       readable_at = 8.days.ago
       meeting(project, at: readable_at, person: contact)
@@ -262,12 +297,14 @@ RSpec.describe Lalabase::Tools::FindPeople, :ci_guard do
   describe 'citations' do
     # Without a citation an answer drawn only on the list would carry no area: it would count
     # as content-free and reach a non-owner and the broadcast unredacted.
-    it 'cites the first people it lists, each with the people area' do
+    # Five, written out: the constant compared with itself held any value (review of #73).
+    it 'cites the first five people it lists, each with the people area' do
       create_list(:person, 6, organisation: organisation)
 
       result = run
 
-      expect(result.citations.size).to eq(described_class::MAX_CITATIONS)
+      expect(described_class::MAX_CITATIONS).to eq(5)
+      expect(result.citations.size).to eq(5)
       expect(result.citations).to all(include(type: 'person', area: 'people'))
       carl = { type: 'person', area: 'people', id: colleague.id, member_id: colleague.id, name: 'Carl Kollege' }
       doris = { type: 'person', area: 'people', id: contact.id, name: 'Doris Dienstleister' }

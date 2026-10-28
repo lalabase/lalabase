@@ -123,6 +123,67 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
     end
   end
 
+  describe 'the request the key belongs to' do
+    let(:other_ticket) { create(:ticket, project: project, organisation: organisation, creator: user) }
+
+    # The ticket is in the path only: without the path in the fingerprint the
+    # comment on the second ticket would get the first ticket's answer and never land.
+    it 'refuses the key on another ticket with the same body, writing nothing there' do
+      comment('Hallo', key: 'p-1')
+      expect do
+        post "/api/v1/tickets/#{other_ticket.id}/posts", params: { post: { body: 'Hallo' } }, headers: headers('p-1')
+      end.not_to(change { Post.where(ticket: other_ticket).count })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body).to include('error' => 'idempotency_key_reused', 'code' => 'invalid_input')
+    end
+
+    it 'refuses the key on another method to the same path' do
+      patch "/api/v1/tickets/#{ticket.id}", params: { ticket: { status: 'new' } }, headers: headers('p-2')
+      put "/api/v1/tickets/#{ticket.id}", params: { ticket: { status: 'new' } }, headers: headers('p-2')
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body).to include('error' => 'idempotency_key_reused')
+    end
+  end
+
+  # Deliberate: a replay checks no rights. It hands the token the answer that
+  # very token already received, nothing new; a fresh key gets the rights check.
+  it 'replays to the same token after its project rights are gone, while a new key is refused' do
+    comment('Hallo', key: 'r-1')
+    first = snapshot
+    ProjectPermission.find_by!(user: user, project: project).destroy!
+    comment('Hallo', key: 'r-1')
+    expect(snapshot).to eq(first)
+    expect { comment('Hallo', key: 'r-2') }.not_to(change { posts_count })
+    expect(response).to have_http_status(:not_found)
+  end
+
+  describe 'a key the store cannot hold' do
+    # The unique index on (token, key) holds about 2.7 KB; a longer key used to
+    # write, fail to be stored with a 500, and write again on every retry.
+    it 'refuses a key longer than the limit before writing' do
+      long = 'k' * (Api::V1::Idempotent::MAX_KEY_LENGTH + 1)
+      expect { comment('Hallo', key: long) }.not_to(change { posts_count })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body).to include('error' => 'invalid_idempotency_key', 'code' => 'invalid_input')
+    end
+
+    it 'accepts a key of exactly the limit' do
+      key = 'k' * Api::V1::Idempotent::MAX_KEY_LENGTH
+      expect { 2.times { comment('Hallo', key: key) } }.to change { posts_count }.by(1)
+    end
+  end
+
+  # A malformed JSON body answers like any bad request, with a code, whether
+  # or not the request carries a key.
+  it 'answers an unreadable JSON body with a key as invalid_input, writing nothing' do
+    expect do
+      post "/api/v1/tickets/#{ticket.id}/posts", params: '{bad',
+                                                 headers: headers('j-1').merge('CONTENT_TYPE' => 'application/json')
+    end.not_to(change { posts_count })
+    expect(response).to have_http_status(:bad_request)
+    expect(response.parsed_body).to include('error' => 'bad_request', 'code' => 'invalid_input')
+  end
+
   describe 'the other writes' do
     before do
       create(:time_session_permission, user: user, project: project)

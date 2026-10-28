@@ -17,14 +17,33 @@ module Api
     # Api::V1::BaseController: a read-only token is refused before any replay,
     # and a replay goes to the token that stored it. Only a 2xx answer is
     # remembered; a refused write leaves the key free for the corrected retry.
+    #
+    # A replay checks no rights, deliberately: it hands the token the answer that
+    # same token already received, nothing it has not seen; a new key goes
+    # through every check. Keys do not expire. A retry must send the same bytes:
+    # the fingerprint sorts only the top-level keys, so another encoding of the
+    # same request is a mismatch (safe: it writes nothing).
     module Idempotent
       extend ActiveSupport::Concern
 
       HEADER = 'Idempotency-Key'
       MISMATCH = 'idempotency_key_reused'
+      INVALID_KEY = 'invalid_idempotency_key'
+      # Bytes. The unique index on (token, key) holds about 2.7 KB, and the key is
+      # stored only AFTER the write: a longer key wrote, failed to be stored with
+      # a 500, and wrote again on every retry. Refused before anything runs.
+      MAX_KEY_LENGTH = 255
+
+      included do
+        # The actions this controller declared, read by
+        # spec/architecture/api_v1_writes_idempotent_guard_spec.rb: every write
+        # route must be here, as /api/v1/me promises.
+        class_attribute :idempotent_actions, instance_writer: false, default: [].freeze
+      end
 
       class_methods do
         def idempotent(*actions)
+          self.idempotent_actions = (idempotent_actions + actions).uniq.freeze
           around_action :with_idempotency_key, only: actions
         end
       end
@@ -34,6 +53,7 @@ module Api
       def with_idempotency_key
         key = request.headers[HEADER].to_s.strip.presence
         return yield unless key
+        return render_invalid_idempotency_key if key.bytesize > MAX_KEY_LENGTH
 
         store = Mcp::IdempotencyStore.new(token: current_token, tool_name: "rest:#{controller_path}##{action_name}",
                                           key: key, args: idempotency_fingerprint_args)
@@ -57,6 +77,12 @@ module Api
         answer = JSON.parse(record.response_content)
         skip_authorization
         render json: answer.fetch('body'), status: answer.fetch('status')
+      end
+
+      def render_invalid_idempotency_key
+        skip_authorization
+        render_error(error: INVALID_KEY, code: 'invalid_input',
+                     message: "#{HEADER} is longer than #{MAX_KEY_LENGTH} bytes", status: :unprocessable_entity)
       end
 
       def render_idempotency_mismatch

@@ -792,13 +792,18 @@ feature by feature):
   MCP vocabulary (`invalid_input`, `read_only`, `forbidden`, `not_found`, `refused`, plus
   `unauthorized`); an unmapped actor code is `refused` with the old value as `reason`. Every
   body comes from `Api::V1::ErrorBody` through `BaseController#render_error`; guard
-  `spec/architecture/api_v1_error_body_guard_spec.rb`. The 401 of `/api/mcp` (same concern,
+  `spec/architecture/api_v1_error_body_guard_spec.rb`. Answers outside the controllers carry
+  no `code`: the Rack::Attack 429 (plain text) and a 500 from the exceptions app. The 401 of `/api/mcp` (same concern,
   `render_unauthorized`) keeps its old body.
 * **`Idempotency-Key`** on every write (`idempotent :create` in the controller,
   `Api::V1::Idempotent`): the same key and request replays the first 2xx answer (status and
   body), another request answers 422 `idempotency_key_reused`. Same table and store as MCP
   (`Mcp::IdempotencyStore`); the REST fingerprint includes method and path, so a key never
-  crosses surfaces. Runs inside authentication and the read-only gate.
+  crosses surfaces. Runs inside authentication and the read-only gate. A key is at most 255
+  bytes (longer: 422 `invalid_idempotency_key`, nothing written). A replay checks no rights
+  (it repeats what the same token already got; keys do not expire), and a retry must send
+  the same bytes. Every write route must be `idempotent`
+  (`spec/architecture/api_v1_writes_idempotent_guard_spec.rb`).
 * **`GET /api/v1/me`** names `api_version` and `capabilities` from `Api::V1::Capabilities`,
   pinned against the routes both ways (`spec/requests/api/v1/capabilities_spec.rb`): a new
   endpoint adds its line there. Additive changes bump the minor.

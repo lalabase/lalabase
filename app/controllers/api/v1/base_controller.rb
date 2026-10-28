@@ -27,6 +27,9 @@ module Api
       rescue_from Pundit::NotAuthorizedError, with: :forbidden
       rescue_from ActiveRecord::RecordNotFound, with: :not_found
       rescue_from ActionController::ParameterMissing, with: :bad_request
+      # A body that is not the JSON it claims to be. Without a key Rails parses it
+      # lazily and some actions never ask; with one the fingerprint reads it first.
+      rescue_from ActionDispatch::Http::Parameters::ParseError, with: :bad_request
 
       # Pundit tripwire (pattern: Organisations::BaseController): Every action must
       # authorize explicitly — authorize or policy_scope in index. A new

@@ -13,8 +13,18 @@ module ApiV1ErrorBodyGuard
   GLOBS = %w[app/controllers/api/v1/**/*.rb app/controllers/concerns/api/v1/**/*.rb].freeze
   OWNER = 'app/controllers/concerns/api/v1/error_body.rb'
 
-  # A render with an `error` key or an `errors` key, on one line or wrapped.
-  HAND_BUILT = /render\s*\(?\s*json:\s*\{[^}]*\berrors?:/m
+  ERROR_STATUS = 'bad_request|unauthorized|forbidden|not_found|unprocessable_entity|unprocessable_content|' \
+                 'conflict|internal_server_error|[45]\\d\\d'
+
+  # Any of: a render with an `error`/`errors` key (one line or wrapped), a
+  # string `"error" =>` key, a bodyless `head` with an error status, or a plain
+  # `render` (not `render_error`) that sets an error status on its own line.
+  HAND_BUILT = Regexp.union(
+    /render\s*\(?\s*json:\s*\{[^}]*\berrors?:/m,
+    /["']errors?["']\s*=>/,
+    /\bhead\s*\(?\s*:?(?:#{ERROR_STATUS})\b/,
+    /\brender(?!_)\b[^\n]*\bstatus:\s*:?(?:#{ERROR_STATUS})\b/
+  )
 
   def self.offences
     GLOBS.flat_map { |glob| Rails.root.glob(glob) }.filter_map do |path|
@@ -36,7 +46,13 @@ RSpec.describe 'API V1 error body guard', :ci_guard do
     expect("render json: { error: 'forbidden' }, status: :forbidden").to match(ApiV1ErrorBodyGuard::HAND_BUILT)
     expect("render json: { data: x, errors: e },\n  status: :ok").to match(ApiV1ErrorBodyGuard::HAND_BUILT)
     expect("render json: {\n  error: result.code\n}").to match(ApiV1ErrorBodyGuard::HAND_BUILT)
+    expect("render json: { 'error' => 'x' }").to match(ApiV1ErrorBodyGuard::HAND_BUILT)
+    expect('render status: :not_found, json: body').to match(ApiV1ErrorBodyGuard::HAND_BUILT)
+    expect('render json: body, status: 422').to match(ApiV1ErrorBodyGuard::HAND_BUILT)
+    expect('head :forbidden').to match(ApiV1ErrorBodyGuard::HAND_BUILT)
     expect('render json: { data: rows }').not_to match(ApiV1ErrorBodyGuard::HAND_BUILT)
+    expect('render json: { data: row }, status: :created').not_to match(ApiV1ErrorBodyGuard::HAND_BUILT)
+    expect('head :ok').not_to match(ApiV1ErrorBodyGuard::HAND_BUILT)
     expect("render_error(error: 'forbidden', status: :forbidden)").not_to match(ApiV1ErrorBodyGuard::HAND_BUILT)
   end
 

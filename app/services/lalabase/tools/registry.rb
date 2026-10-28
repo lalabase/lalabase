@@ -37,7 +37,8 @@ module Lalabase
       #
       # summarize_time_sessions (S2) is a REPORT tool: numbers, no rows. It decides
       # own-vs-all itself (TimeSessions::ViewingScope) because the :time_sessions
-      # area gate cannot. The MCP wire order is pinned separately.
+      # area gate cannot. Since MCP 0.12.0 it is in :mcp too, appended last there
+      # (that wire order is pinned separately).
       #
       # recent_activity (§13-11) is here and ONLY here. Its rows span areas and
       # only the ticket ones can carry a citation, so a shared thread's render
@@ -119,7 +120,13 @@ module Lalabase
         MarkNotificationRead,
         # Terminal client S2: status, assignees and title of one ticket, through
         # the board's write paths. Appended for the same reason.
-        UpdateTicket
+        UpdateTicket,
+        # Terminal client S6: the booked time of a ticket, for the meta bar of the
+        # client's ticket view. A read in project mode: the seam gates the project,
+        # the tool narrows through TimeSessions::ViewingScope itself; its org-wide
+        # `project` filter is ignored on this path. Appended so the pinned wire
+        # order stays intact.
+        SummarizeTimeSessions
       ].freeze
 
       # Sets whose tools reach the LLM tool loop. The guard-spec enforces the

@@ -311,8 +311,47 @@ module McpContract
         # world, so every answer above stays as it was.
         'update_ticket' => update_ticket_calls(website, foreign),
         # S2b runs after all existing calls, without advancing the clock.
-        'post_comment_formats' => post_comment_format_calls(website)
+        'post_comment_formats' => post_comment_format_calls(website),
+        # Terminal client S6, appended last for the same reason: its bookings
+        # and time rights are made right before it, without advancing the clock.
+        'summarize_time_sessions' => time_report_calls(website, foreign)
       }
+    end
+
+    # The booked time of the login ticket: Anna 30 minutes, Ben 45, plus 20 of
+    # Ben's on the export ticket. The client has not settled on own time or the
+    # ticket's total yet, so both answers are recorded, and the "own" tier once
+    # Anna's right is narrowed to it.
+    def time_report_calls(website, foreign)
+      login = id(:login_ticket)
+      in_org do
+        create(:time_session_permission, user: @anna, project: @website, can_view_own: true, can_view_all: true)
+        { @anna => [30, @login], @ben => [45, @login] }.each { |user, (minutes, ticket)| booking(user, minutes, ticket) }
+        booking(@ben, 20, @export)
+      end
+      {
+        'ok_own' => tool_call(:read, 'summarize_time_sessions', project_id: website, ticket: login, creator: 'me'),
+        'ok_total' => tool_call(:read, 'summarize_time_sessions', project_id: website, ticket: login),
+        'empty' => tool_call(:read, 'summarize_time_sessions', project_id: website, ticket: id(:missing)),
+        # Notes only in the handbook, no time permission row: refused, no numbers.
+        'refused' => tool_call(:read, 'summarize_time_sessions', project_id: id(:handbook), ticket: id(:hidden_ticket)),
+        'not_found' => tool_call(:read, 'summarize_time_sessions', project_id: foreign, ticket: login),
+        # The tool refuses a malformed date without a code, which MCP answers as refused.
+        'invalid_date' => tool_call(:read, 'summarize_time_sessions', project_id: website, start_date: '05.01.2026'),
+        'ok_own_tier' => with_own_time_only(@anna, on: @website) do
+          tool_call(:read, 'summarize_time_sessions', project_id: website, ticket: login)
+        end
+      }
+    end
+
+    def booking(user, minutes, ticket)
+      create(:time_session, project: ticket.project, organisation: @organisation, creator: user, ticket: ticket,
+                            duration: minutes, occurred_on: START + 1.hour, description: 'Vertrag')
+    end
+
+    def with_own_time_only(user, on:)
+      in_org { TimeSessionPermission.find_by!(user: user, project: on).update!(can_view_all: false) }
+      yield
     end
 
     def post_comment_format_calls(project)

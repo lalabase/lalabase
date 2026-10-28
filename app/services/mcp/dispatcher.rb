@@ -43,7 +43,9 @@ module Mcp
     # create_ticket takes the same title (one line, at most 255 characters,
     # anything else is invalid_input instead of being stored).
     # 0.11 = post_comment takes format: "plain" (terminal client S2b).
-    SERVER_VERSION = '0.11.0'
+    # 0.12 = summarize_time_sessions (terminal client S6: the booked time of a
+    # ticket).
+    SERVER_VERSION = '0.12.0'
 
     # MCP surface — sourced from the single tool registry (D6): the :mcp set is the
     # ONE definition of this surface, so a registry refactor can't drift it (R3);

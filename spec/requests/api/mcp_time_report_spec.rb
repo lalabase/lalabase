@@ -226,8 +226,20 @@ RSpec.describe 'MCP summarize_time_sessions', :ci_guard, type: :request do
       expect_no_numbers(result)
     end
 
-    it 'answers a ticket number of another project like a missing one' do
-      result = call(project_id: project.id, ticket: "##{other_ticket.number + 100}")
+    # The number is a second road to the same ticket: it must go through the
+    # same read scope, or the echoed filter hands out the title (and the
+    # minutes) of a ticket the owner may not open.
+    it 'answers the number of a ticket the owner may not read like an unknown number' do
+      unknown = call(project_id: time_only_project.id, ticket: "##{unreadable_ticket.number + 100}")
+      result = call(project_id: time_only_project.id, ticket: "##{unreadable_ticket.number}")
+      expect(result['_meta']).to eq('lalabase/kind' => 'empty')
+      expect_no_numbers(result)
+      expect(result.to_json).not_to include(unreadable_ticket.title)
+      expect(result['content'].first['text'].sub(/\d+/, 'N')).to eq(unknown['content'].first['text'].sub(/\d+/, 'N'))
+    end
+
+    it 'answers an unknown ticket number as empty' do
+      result = call(project_id: project.id, ticket: "##{ticket.number + 100}")
       expect(result['_meta']).to eq('lalabase/kind' => 'empty')
     end
   end
@@ -275,11 +287,20 @@ RSpec.describe 'MCP summarize_time_sessions', :ci_guard, type: :request do
     end
   end
 
-  it 'refuses a malformed date without numbers, as the tool reports it (refused)' do
-    grant_time(project, view_all: true)
-    result = call(project_id: project.id, start_date: '31.08.2026')
-    expect(result['isError']).to be(true)
-    expect(result['_meta']).to eq('lalabase/code' => 'refused')
-    expect_no_numbers(result)
+  # The tool refuses its malformed filters without an error code, so over MCP
+  # they read as refused, not invalid_input. Pinned so a client that branches
+  # on `_meta` relies on recorded behaviour.
+  {
+    'a malformed date' => { start_date: '31.08.2026' },
+    'a malformed creator' => { creator: 'somebody' },
+    'a malformed ticket' => { ticket: 'abc' }
+  }.each do |label, arguments|
+    it "refuses #{label} without numbers, as the tool reports it (refused)" do
+      grant_time(project, view_all: true)
+      result = call(project_id: project.id, **arguments)
+      expect(result['isError']).to be(true)
+      expect(result['_meta']).to eq('lalabase/code' => 'refused')
+      expect_no_numbers(result)
+    end
   end
 end

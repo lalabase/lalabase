@@ -11,20 +11,22 @@
 # membership.active (same reason as ChatPolicy.assistant_gate_open?).
 class PersonPolicy < ApplicationPolicy
   class Scope < ApplicationPolicy::Scope
-    # The rows of this organisation, minus the rows linked to an active member
-    # the viewer may not see on the members page (MembershipPolicy::Scope). A
-    # row linked to a former or deactivated member is shown, as a contact: its
-    # data is the row's own. Nothing without the right.
+    # The rows of this organisation, minus the rows linked to a member the
+    # viewer may not see on the members page (MembershipPolicy::Scope). That
+    # holds for a deactivated member too: deactivating can be undone, and until
+    # then the row stays as hidden as the member was (review of S1, 28.10.2026).
+    # A row whose member was removed lost its account (PersonLinkRelease) and is
+    # a contact of the organisation. Nothing without the right.
     def resolve
       return scope.none unless organisation && PersonPolicy.view_allowed?(user, organisation)
 
       people = scope.where(organisation: organisation)
       return people if user.account_admin_in?(organisation)
 
-      active_member_ids = Membership.where(organisation: organisation, active: true).select(:user_id)
+      member_ids = Membership.where(organisation: organisation).select(:user_id)
       visible_member_ids = MembershipPolicy::Scope.new(user, Membership).resolve.select(:user_id)
       people.where(user_id: nil)
-            .or(people.where.not(user_id: active_member_ids))
+            .or(people.where.not(user_id: member_ids))
             .or(people.where(user_id: visible_member_ids))
     end
   end
@@ -33,8 +35,9 @@ class PersonPolicy < ApplicationPolicy
     return false unless user.active_member_of_organisation?(organisation)
 
     user.account_admin_in?(organisation) ||
-      user.has_permission_in_organisation?(organisation, 'people', 'view_people') ||
-      user.has_permission_in_organisation?(organisation, 'people', 'manage_people')
+      Permission.granting_actions('people', 'view_people').any? do |action|
+        user.has_permission_in_organisation?(organisation, 'people', action)
+      end
   end
 
   def self.manage_allowed?(user, organisation)

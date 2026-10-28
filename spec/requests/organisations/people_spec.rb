@@ -479,13 +479,14 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
   end
 
   # Review round 3, finding 1: the member select named the CURRENT account of
-  # a deactivated member, also to a reader who may not see that member.
+  # a deactivated member, also to a reader who may not see that member. Since
+  # the review of S1 (decision A) such a reader does not get the row at all;
+  # this pins the label for a reader who may see the deactivated member.
   it 'labels the stored former member with the row name, not the account' do
     project = create(:project, organisation: organisation)
     create(:project_permission, user: manager, project: project, tickets_access: :read_only)
     hidden = member_with(role_with, first_name: 'Kopie')
-    create(:project_permission, user: hidden, project: create(:project, organisation: organisation),
-                                tickets_access: :read_only)
+    create(:project_permission, user: hidden, project: project, tickets_access: :read_only)
     row = create(:person, organisation: organisation, user: hidden, name: 'Kopie Name')
     Membership.find_by(user: hidden, organisation: organisation).update!(active: false)
     hidden.update!(first_name: 'Geheim', last_name: 'Neuname')
@@ -846,6 +847,65 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
 
     expect(response.body).to include(viewer.email)
     expect(response.body).not_to include('alt@example.com')
+  end
+
+  # Review of S1 (28.10.2026).
+  describe 'review of S1' do
+    let(:project) { create(:project, organisation: organisation) }
+
+    it 'names a visible creator and the reader themselves' do
+      create(:project_permission, user: manager, project: project, tickets_access: :read_only)
+      colleague = member_with(role_with('manage_people'), first_name: 'Sichtbar')
+      create(:project_permission, user: colleague, project: project, tickets_access: :read_only)
+      row = Current.set(user: colleague) { create(:person, organisation: organisation, creator: colleague) }
+      Current.set(user: manager) { row.update!(phone: '1') }
+      sign_in manager
+
+      get organisation_person_path(organisation, row), headers: frame_headers
+
+      expect(response.body).to include('Sichtbar')
+      expect(response.body).to include(I18n.t('views.organisations.people.history.updated',
+                                              actor: User.find(manager.id).display_name, fields: Person.human_attribute_name(:phone)))
+    end
+
+    # Decision A: deactivating keeps a row as hidden as the member was.
+    it 'keeps the row of a deactivated member the reader cannot see out of list and lane' do
+      create(:project_permission, user: viewer, project: project, tickets_access: :read_only)
+      hidden = member_with(role_with, first_name: 'Versteckt')
+      create(:project_permission, user: hidden, project: create(:project, organisation: organisation), tickets_access: :read_only)
+      row = create(:person, organisation: organisation, user: hidden, name: 'Versteckt Mitglied', notes: 'GEHEIMNOTIZ')
+      Membership.where(user: hidden, organisation: organisation).update_all(active: false)
+      sign_in viewer
+
+      get organisation_people_path(organisation)
+      expect(response.body).to include('Doris Dienstleister')
+      expect(response.body).not_to include('Versteckt Mitglied')
+
+      # Only the status: the test 404 page shows the spec source, which names the note.
+      get organisation_person_path(organisation, row), headers: frame_headers
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'answers a lane request with ?member_id= of a member with a row by that row, as a full visit does' do
+      create(:person, organisation: organisation, user: viewer, phone: '+49 30 7654321')
+      sign_in admin
+
+      get organisation_people_path(organisation, member_id: viewer.id), headers: frame_headers
+
+      expect(response.body).to include('+49 30 7654321')
+    end
+
+    it 'opens the row of a member who has one for ?new=person&user_id=, in the lane and on a full visit' do
+      row = create(:person, organisation: organisation, user: viewer, phone: '+49 30 7654321')
+      sign_in admin
+
+      get organisation_people_path(organisation, new: 'person', user_id: viewer.id), headers: frame_headers
+      expect(response.body).to include('+49 30 7654321')
+      expect(response.body).not_to include('id="person_name"')
+
+      get organisation_people_path(organisation, new: 'person', user_id: viewer.id)
+      expect(response).to redirect_to(organisation_people_path(organisation, person_id: row.id))
+    end
   end
 
   it 'has no missing translation on the page' do

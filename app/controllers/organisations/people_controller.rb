@@ -164,10 +164,15 @@ module Organisations
       entry.person ? { person_id: entry.person.id } : { member_id: entry.user.id }
     end
 
-    # ?member_id= of a member who has a row by now: the row is the address.
+    # A member who has a row by now, named by ?member_id= or by the form for a
+    # new row (?new=person&user_id=): the row is the address, in the lane and on
+    # a full visit alike (review of S1, 28.10.2026: Back after "Angaben
+    # ergänzen" asked the lane for the old address and got an empty form).
     def member_with_row
-      id = params[:member_id]
-      return unless id.is_a?(String) && id.present? && params[:person_id].blank?
+      return if params[:person_id].present?
+
+      id = params[:member_id].presence || (params[:user_id] if params[:new] == NEW_STATE)
+      return unless id.is_a?(String) && id.present?
 
       directory.member_entry(id)&.person
     end
@@ -214,7 +219,7 @@ module Organisations
 
     # The lane alone, as a full visit of the same address shows it.
     def render_lane_frame
-      person = selected_person
+      person = selected_person || member_with_row
       member = selected_member unless person
       if person
         render_frame(:detail, person: person)

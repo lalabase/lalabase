@@ -56,14 +56,48 @@ RSpec.describe Actors::SavePerson do
     expect(result.resource.name).to eq(user.display_name)
   end
 
-  it 'drops a link when user_id is blank' do
+  # The form shows the member select again once the member is no longer active.
+  it 'drops the link of a former member when user_id is blank' do
     user = member
     person = save(name: 'x', user_id: user.id).resource
+    Membership.where(user: user, organisation: organisation).update_all(active: false)
 
     save(user_id: '', lock_version: person.lock_version, id: person.id)
 
     expect(person.reload.user_id).to be_nil
     expect(person.name).to eq(user.display_name)
+  end
+
+  # Review of S1 (28.10.2026): the form locks name, email and the link of an
+  # active member's row and does not send them. A hand-made request must not
+  # write them either: the name would surface once the member leaves, and a new
+  # user_id would carry the first member's phone and notes over to another.
+  describe 'the row of an active member' do
+    let(:first_member) { member }
+    let(:second_member) { member }
+    let!(:row) { save(name: 'egal', user_id: first_member.id, phone: '1').resource }
+
+    it 'keeps name, email and link against a hand-made request' do
+      result = save(name: 'Gefaelscht', email: 'x@example.com', user_id: second_member.id, phone: '2',
+                    lock_version: row.lock_version, id: row.id)
+
+      expect(result).to be_success
+      row.reload
+      expect([row.name, row.email, row.user_id, row.phone]).to eq([first_member.display_name, nil, first_member.id, '2'])
+    end
+
+    it 'keeps the link against a blank user_id' do
+      save(user_id: '', lock_version: row.lock_version, id: row.id)
+
+      expect(row.reload.user_id).to eq(first_member.id)
+    end
+
+    it 'takes no email when the row is created for the member' do
+      other = member
+      created = save(name: 'egal', email: 'y@example.com', user_id: other.id).resource
+
+      expect(created.email).to be_nil
+    end
   end
 
   it 'refuses a raw user_id the writer may not link (another organisation)' do

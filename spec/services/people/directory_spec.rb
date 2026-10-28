@@ -70,6 +70,27 @@ RSpec.describe People::Directory, :ci_guard do
     expect(list.count { |item| item.user == colleague }).to eq(0)
   end
 
+  # Review of S1 (28.10.2026): a contact row keeps the name it was saved with.
+  # Search and order read that name, never the account's current one, so the
+  # search cannot tell which account a former member's row belonged to.
+  it 'searches and sorts the row of a deactivated member by the row name, not the account name' do
+    row = create(:person, organisation: organisation, user: colleague, name: 'Carl Kollege')
+    Membership.find_by(user: colleague, organisation: organisation).update!(active: false)
+    colleague.update!(first_name: 'Zacharias', last_name: 'Umbenannt')
+
+    expect(names(entries(query: 'zacharias'))).to eq([])
+    expect(entries(query: 'kollege').map(&:person)).to eq([row])
+    expect(names(entries)).to eq(['Carl Kollege', 'Doris Dienstleister', 'Vera Viewer'])
+  end
+
+  # The email of a member is the account's; a row email left on a member row is
+  # not shown, so it must not be searchable either.
+  it 'does not search the row email of a member row' do
+    create(:person, organisation: organisation, user: colleague, email: 'versteckt@example.com')
+
+    expect(names(entries(query: 'versteckt'))).to eq([])
+  end
+
   # One directory per example: each call resolves the viewer's reach once, and
   # Prosopite would read a second call as an N+1.
   {

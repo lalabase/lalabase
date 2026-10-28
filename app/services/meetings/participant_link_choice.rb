@@ -5,7 +5,9 @@
 # without a row), "new" for a person created in the same step. The dialog
 # writes it (value_for), the controller reads it, and so does the dialog when
 # it draws a refused pick again (parse). The format lives here once, so the
-# writer and the two readers cannot drift apart.
+# writer and the two readers cannot drift apart. The assistant addresses a
+# directory entry the same way (People S3): find_people hands out value_for,
+# get_person parses it and refuses "new".
 #
 # Entry point: parse
 module Meetings

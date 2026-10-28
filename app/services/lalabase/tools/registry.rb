@@ -52,6 +52,12 @@ module Lalabase
       # by title and id only (Bezugs-Sammlung E5), and these three are the only
       # road from that id to the text.
       #
+      # find_people and get_person (People S3) read the organisation's people directory. Like
+      # the help tools they take no project and report no coverage, but they ask a right of
+      # their own (the people right, inside the tool, before anything is read) and cite with
+      # the people area, so an answer drawn on them stays with the asker. Not in :mcp: the
+      # terminal client gets them in a step of its own, with a contract.
+      #
       # search_help, help_contents and get_help_page (doc/product_knowledge_plan.md, S2) read
       # Lalabase's OWN help, the one thing here that is not the organisation's. It is the same
       # for every organisation and has no rights of its own, so they take no project, report no
@@ -65,6 +71,8 @@ module Lalabase
         GetMeeting,
         SummarizeTimeSessions,
         RecentActivity,
+        FindPeople,
+        GetPerson,
         SearchHelp,
         HelpContents,
         GetHelpPage

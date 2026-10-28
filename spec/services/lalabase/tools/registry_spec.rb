@@ -32,9 +32,11 @@ RSpec.describe Lalabase::Tools::Registry do
       # search_knowledge for authoring links and no reference collection.
       # search_help / help_contents / get_help_page (doc/product_knowledge_plan.md, S2):
       # Lalabase's own help, the same for every organisation. Not in :mcp (pinned below).
+      # find_people / get_person (People S3): the people directory, under the asker's
+      # people right. Not in :mcp either (pinned below).
       expect(described_class.for(:assistant)).to contain_exactly(
         t::ListTickets, t::GetTicket, t::GetNote, t::GetDocument, t::GetMeeting, t::SummarizeTimeSessions, t::RecentActivity,
-        t::SearchHelp, t::HelpContents, t::GetHelpPage
+        t::FindPeople, t::GetPerson, t::SearchHelp, t::HelpContents, t::GetHelpPage
       )
       expect(described_class.for(:assistant)).to be_frozen
     end
@@ -42,7 +44,7 @@ RSpec.describe Lalabase::Tools::Registry do
     it ':assistant_with_code is exactly :assistant plus the five code tools' do
       expect(described_class.for(:assistant_with_code)).to contain_exactly(
         t::ListTickets, t::GetTicket, t::GetNote, t::GetDocument, t::GetMeeting, t::SummarizeTimeSessions, t::RecentActivity,
-        t::SearchHelp, t::HelpContents, t::GetHelpPage,
+        t::FindPeople, t::GetPerson, t::SearchHelp, t::HelpContents, t::GetHelpPage,
         t::SearchCodeSymbols, t::GetProjectVision, t::ListCapabilities,
         t::GetCapabilityDetails, t::GetSymbolDetails
       )
@@ -81,6 +83,15 @@ RSpec.describe Lalabase::Tools::Registry do
 
     # Terminal client S6: the booked time of a ticket. Appended LAST, so the
     # pinned wire order of every tool before it stays intact.
+    # People S3: the people tools are the assistant's only. The terminal client gets them in
+    # a step of its own, with a contract and a SERVER_VERSION (plan section 7).
+    it 'keeps the people tools out of :mcp' do
+      [t::FindPeople, t::GetPerson].each do |tool|
+        expect(described_class.for(:mcp)).not_to include(tool), tool.tool_name
+        expect(described_class.by_name(tool.tool_name, set: :mcp)).to be_nil
+      end
+    end
+
     it 'offers the time report on :mcp as the last tool (wire order pinned)' do
       expect(described_class.for(:mcp).last).to eq(t::SummarizeTimeSessions)
     end

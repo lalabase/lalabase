@@ -220,6 +220,21 @@ RSpec.describe People::Directory, :ci_guard do
       expect(names(entries(sort: 'last')).first).to eq('Doris Dienstleister')
       expect(names(entries(admin, sort: 'last')).first).to eq('Carl Kollege')
     end
+
+    # People S3: the assistant's card (get_person) asks for ONE entry's last contact, the
+    # way the list asks for all of them, under the same rights.
+    it 'answers the last contact of the entries asked about, in their order, only what the viewer reads' do
+      meeting(project, at: 3.days.ago, person: contact)
+      meeting(hidden_project, at: 1.day.ago, user: colleague)
+      directory = described_class.new(viewer: viewer, organisation: organisation)
+
+      lasts = directory.last_contacts_for([directory.member_entry(colleague.id), directory.person_entry(contact.id)])
+
+      expect(lasts.size).to eq(2)
+      expect(lasts.first).to be_nil
+      expect(lasts.last.kind).to eq(:meeting)
+      expect(directory.last_contacts_for([])).to eq([])
+    end
   end
 
   describe 'the link dialog (S2b)' do

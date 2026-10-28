@@ -344,7 +344,9 @@ RSpec.describe Lalabase::Citations do
         .to match_array(described_class::TYPES)
       expect(described_class::CODE_TYPES).to contain_exactly('vision', 'capability', 'symbol')
       expect(described_class::PRODUCT_TYPES).to contain_exactly('help_page')
-      expect(described_class::CONTENT_TYPES).to include('ticket', 'note', 'time_report')
+      # person (People S3) is content WITHOUT a project: the area gates it and it has a page,
+      # so every content guard applies to it. A fourth kind would excuse it from all of them.
+      expect(described_class::CONTENT_TYPES).to include('ticket', 'note', 'time_report', 'person')
     end
 
     it 'name only types the shapes actually know' do
@@ -455,6 +457,61 @@ RSpec.describe Lalabase::Citations do
 
       expect(described_class.target_of(cite)).to eq(type: 'help_page', id: 'guides/features/time-tracking')
       expect(described_class.source_key_of(cite)).to eq(%w[help_page guides/features/time-tracking])
+    end
+  end
+
+  # A person of the people directory (People S3): content of the organisation without a
+  # project. A contact is cited by its row, a member by the account, the two addresses the
+  # people page opens (?person_id=, ?member_id=).
+  describe '.person' do
+    let(:row) { instance_double(Person, id: 'pe-1', name: 'Doris Dienstleister') }
+    let(:account) { instance_double(User, id: 'u-1', display_name: 'Carl Kollege') }
+    let(:contact) { People::Directory::Entry.new(kind: :contact, user: nil, person: row) }
+    let(:member) { People::Directory::Entry.new(kind: :member, user: account, person: nil) }
+    let(:member_with_row) do
+      People::Directory::Entry.new(kind: :member, user: account,
+                                   person: instance_double(Person, id: 'pe-2', name: 'C. Kollege (alt)'))
+    end
+
+    it 'cites a contact by its row, with the people area and the name' do
+      expect(described_class.person(contact)).to eq(type: 'person', area: 'people', id: 'pe-1',
+                                                    name: 'Doris Dienstleister')
+    end
+
+    it 'cites a member by the account, with the name from the account' do
+      expect(described_class.person(member)).to eq(type: 'person', area: 'people', id: 'u-1', member_id: 'u-1',
+                                                   name: 'Carl Kollege')
+    end
+
+    # A member's page follows the account whether or not the member has a row: the people
+    # page sends ?member_id= on to the row. Cited by the row instead, the source would read
+    # "no longer there" once the row is deleted, while the member still is.
+    it 'cites a member with a row of their own by the account too, named from the account' do
+      expect(described_class.person(member_with_row)).to eq(type: 'person', area: 'people', id: 'u-1',
+                                                            member_id: 'u-1', name: 'Carl Kollege')
+    end
+
+    # The area is the right that gates the directory (Permission::CATEGORIES[:people]), and
+    # what makes an answer drawn on it content-bearing: MessageComponent#redacted? then shows
+    # it to the asker only.
+    it 'carries the people area, which makes an answer drawn on it content-bearing' do
+      expect(Permission::CATEGORIES).to have_key(:people)
+      expect(described_class.areas_of([described_class.person(contact).deep_stringify_keys])).to eq([:people])
+    end
+
+    it 'points a contact at its row and a member at the account' do
+      expect(described_class.target_of(described_class.person(contact).deep_stringify_keys))
+        .to eq(type: 'person', id: 'pe-1')
+      expect(described_class.target_of(described_class.person(member).deep_stringify_keys))
+        .to eq(type: 'member', id: 'u-1')
+    end
+
+    it 'groups two citations of one person into one source' do
+      cite = described_class.person(member).deep_stringify_keys
+
+      expect(described_class.source_key_of(cite)).to eq(described_class.source_key_of(cite.dup))
+      expect(described_class.source_key_of(cite))
+        .not_to eq(described_class.source_key_of(described_class.person(contact).deep_stringify_keys))
     end
   end
 end

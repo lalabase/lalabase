@@ -133,6 +133,30 @@ RSpec.describe Lalabase::CitationLink do
     end
   end
 
+  # People S3: the directory belongs to the organisation, not to a project, so the project
+  # fallback must neither give a person its link nor take it away.
+  describe 'a person' do
+    let(:contact) { { 'type' => 'person', 'area' => 'people', 'id' => 'pid', 'name' => 'Doris Dienstleister' } }
+    let(:member) { { 'type' => 'person', 'area' => 'people', 'id' => 'uid', 'member_id' => 'uid', 'name' => 'Carl' } }
+
+    it 'opens a contact on the people page by its row' do
+      expect(path(contact)).to eq(routes.organisation_people_path(organisation, person_id: 'pid'))
+    end
+
+    it 'opens a member on the people page by the account' do
+      expect(path(member)).to eq(routes.organisation_people_path(organisation, member_id: 'uid'))
+    end
+
+    it 'needs no project and ignores one the caller offers' do
+      expect(path(contact, project_fallback: project))
+        .to eq(routes.organisation_people_path(organisation, person_id: 'pid'))
+    end
+
+    it 'gives none without an id' do
+      expect(path(contact.merge('id' => ''))).to be_nil
+    end
+  end
+
   it 'points a note, a document and a meeting at their own pages' do
     { 'note' => :organisation_project_note_path,
       'document' => :organisation_project_document_path,

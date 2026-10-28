@@ -11,18 +11,21 @@ module Lalabase
     # the PRODUCER (ProjectRag::Retriever::CITATION_TYPES) and the RENDERER
     # (Neo::Chat::CitationListComponent::KNOWN_TYPES), so the two whitelists cannot drift.
     # Code citations (vision/capability/symbol) + content citations
-    # (ticket/note/document/post/documentation/meeting/meeting_analysis) + Lalabase's own texts
-    # (help_page, doc/product_knowledge_plan.md S2: no organisation, no project, no area). Adding a
-    # type touches: a shape method below, this list, the component's ICON_MAP + label/link branch,
-    # and (for content) the ContentAreaRegistry (see its header for the full cross-cutting checklist).
+    # (ticket/note/document/post/documentation/meeting/meeting_analysis/time_report/person) +
+    # Lalabase's own texts (help_page, doc/product_knowledge_plan.md S2: no organisation, no
+    # project, no area). Adding a type touches: a shape method below, this list, the component's
+    # ICON_MAP + label/link branch, and (for content embedded from fragments) the
+    # ContentAreaRegistry (see its header for the full cross-cutting checklist).
     TYPES = %w[vision capability symbol ticket note document post documentation meeting meeting_analysis
-               time_report help_page].freeze
+               time_report help_page person].freeze
 
     # The three kinds inside that list, so a guard iterates the right one instead of keeping a
     # hand-written table of its own (five specs did; built 12.09.2026):
     #   CODE    — the project's code layer: no area, no record behind it, no link.
     #   PRODUCT — Lalabase's own texts: no area and no organisation, but a page of their own.
-    #   CONTENT — the organisation's records: an area that gates them, a project, a link.
+    #   CONTENT — the organisation's records: an area that gates them and a link. Most also sit
+    #             in a project; a person (People S3) does not, the directory belongs to the
+    #             organisation, and CitationLink answers it before it looks for a project.
     # CONTENT is derived, so a new type joins it, and its guards, unless it is named above.
     CODE_TYPES = %w[vision capability symbol].freeze
     PRODUCT_TYPES = %w[help_page].freeze
@@ -73,7 +76,14 @@ module Lalabase
       when 'time_report'      then target('project', fetch(citation, :project_id))
       # A help page points at itself, by slug: it is no record of the organisation.
       when 'help_page'        then target('help_page', fetch(citation, :id))
+      when 'person'           then person_target(citation)
       end
+    end
+
+    # A member is cited by the account, a contact by the row (see .person).
+    def person_target(citation)
+      member_id = fetch(citation, :member_id)
+      member_id.present? ? target('member', member_id) : target('person', fetch(citation, :id))
     end
 
     # Types whose citation addresses a SLICE of its target rather than the target
@@ -119,7 +129,7 @@ module Lalabase
 
     # Internal helpers, not part of the module's API: `Citations.fetch` in particular
     # is far too generic a name to hand out.
-    private_class_method :target, :fetch
+    private_class_method :target, :fetch, :person_target
 
     def vision(vision)
       { type: 'vision', id: vision.id }
@@ -261,6 +271,25 @@ module Lalabase
     # ProductKnowledgeEntry or a ProductKnowledge::Search::Hit, which answer the same four.
     def help_page(page)
       { type: 'help_page', source: page.source, id: page.slug, locale: page.locale, title: page.title }
+    end
+
+    # A person of the people directory (People S3), from a People::Directory::Entry. area
+    # 'people' is the right that gates the directory (Permission::CATEGORIES[:people]) and what
+    # makes an answer drawn on it content-bearing: MessageComponent#redacted? then shows it to
+    # the asker only. No project: the directory belongs to the organisation.
+    #
+    # A contact is cited by its row, a member by the account (member_id), the two addresses the
+    # people page opens (?person_id=, ?member_id=). Also a member WITH a row: the page sends
+    # ?member_id= on to the row, and a source keyed by the row would read "no longer there"
+    # once the row is deleted while the member still is. name is the name the tools hand the
+    # model (Entry#plain_name: the account's for a member, the row's for a contact), frozen like
+    # every title here.
+    def person(entry)
+      if entry.member?
+        { type: 'person', area: 'people', id: entry.user.id, member_id: entry.user.id, name: entry.plain_name }
+      else
+        { type: 'person', area: 'people', id: entry.person.id, name: entry.plain_name }
+      end
     end
   end
 end

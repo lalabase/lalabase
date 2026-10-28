@@ -39,6 +39,24 @@ RSpec.describe Assistant::AnalysisSources do
     expect(readable(citation)).to be false
   end
 
+  # People S3: an answer drawn on the people directory is the asker's alone. Saved as a
+  # meeting analysis it would reach every reader of the meeting, who need not see the
+  # directory. So a person is never a certified source here, not even for an asker who may
+  # open the directory: an unknown type fails closed, and this pins that it stays unknown.
+  it 'never certifies a person of the people directory as a source' do
+    role = Membership.find_by(user: user, organisation: organisation).role
+    create(:permission, role: role, category: 'people', action: 'view_people', allowed: true)
+    entry = People::Directory::Entry.new(kind: :contact, user: nil, person: create(:person, organisation: organisation))
+    meeting_cite = Lalabase::Citations.meeting(meeting)
+    person_cite = Lalabase::Citations.person(entry)
+
+    expect(PersonPolicy.view_allowed?(user, organisation)).to be true
+    expect(readable(meeting_cite)).to be true
+    expect(readable(meeting_cite, person_cite)).to be false
+    context = { 'provenance' => [meeting_cite, person_cite].map(&:deep_stringify_keys) }
+    expect(described_class.publishable?(context: context, meeting: meeting)).to be false
+  end
+
   it 'rejects incomplete time-report provenance' do
     expect(readable(Lalabase::Citations.time_report(project).merge(scope: 'all'))).to be false
   end

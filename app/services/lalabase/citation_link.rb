@@ -24,6 +24,8 @@ module Lalabase
       # Lalabase's own texts live outside every organisation and project (/hilfe), so the
       # project fallback below must not decide whether they get a link.
       return product_path(citation) if citation['type'] == 'help_page'
+      # Nor for a person (People S3): the directory belongs to the organisation.
+      return person_path(citation, organisation) if citation['type'] == 'person'
 
       target_project = citation['project_id'].presence || project
       return nil if target_project.nil?
@@ -48,6 +50,17 @@ module Lalabase
         # at two different addresses.
         Docs::HelpLink.url(slug: slug, locale: Docs::Contract.locale_or_default(citation['locale']))
       end
+    end
+
+    # The people page with the person in its lane: a member by the account (?member_id=, the
+    # page sends it on to the member's row when there is one), a contact by its row
+    # (?person_id=). See Citations.person for why a member is not addressed by the row.
+    def person_path(citation, organisation)
+      member_id = citation['member_id'].presence
+      return helpers.organisation_people_path(organisation, member_id: member_id) if member_id
+
+      person_id = citation['id'].presence
+      helpers.organisation_people_path(organisation, person_id: person_id) if person_id
     end
 
     # Route helpers without a view context: this runs in the streaming broadcast
@@ -97,6 +110,6 @@ module Lalabase
       helpers.organisation_project_documentation_index_path(organisation, project, set_id: set_id, page: page)
     end
 
-    private_class_method :product_path, :helpers, :build, :record_path, :documentation_path
+    private_class_method :product_path, :person_path, :helpers, :build, :record_path, :documentation_path
   end
 end

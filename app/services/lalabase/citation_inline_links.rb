@@ -34,6 +34,10 @@ module Lalabase
     # the sentences of an org-wide answer, and it has a panel rather than a page.
     TITLE_TYPES = %w[note document documentation meeting meeting_analysis].freeze
 
+    # Types matched by their name, the same way (People S3): a person has a name rather
+    # than a title, and the answer names the person it found.
+    NAME_TYPES = %w[person].freeze
+
     module_function
 
     # @param html [String] sanitised answer html
@@ -129,6 +133,7 @@ module Lalabase
       case citation['type']
       when 'ticket' then number_pattern(citation['number'])
       when 'post'   then number_pattern(citation['ticket_number'])
+      when *NAME_TYPES then title_pattern(citation['name'])
       else
         return nil unless TITLE_TYPES.include?(citation['type'])
 

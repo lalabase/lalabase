@@ -803,6 +803,7 @@ de:
           meeting_analysis: 'Analyse: %{title}'
           time_report: 'Zeiten: %{title}'
           help_page: 'Hilfe: %{title}'
+          person: 'Person: %{name}'
           hits: "%{count} Fundstellen"
           gone: nicht mehr vorhanden
         composer:

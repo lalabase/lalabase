@@ -795,9 +795,10 @@ feature by feature):
   `spec/architecture/api_v1_error_body_guard_spec.rb`. Answers outside the controllers carry
   no `code`: the Rack::Attack 429 (plain text), a 500 from the exceptions app, a 400 for a
   query string Rack cannot decode (`?x=%`; raised in middleware before any controller), and a
-  400 for a body parameter that is no valid UTF-8, form or JSON (Rails raises
+  400 for a body parameter of raw bytes that are no valid UTF-8, form or JSON (Rails raises
   `ActionController::BadRequest` when it first reads the parameters, in its params wrapper or
-  its request log, before any callback or `rescue_from` of `BaseController` runs). The 401 of `/api/mcp` (same concern,
+  its request log, before any callback or `rescue_from` of `BaseController` runs; a JSON escape
+  of a lone surrogate is a parse error instead, answered as 400 `bad_request` with `code`). The 401 of `/api/mcp` (same concern,
   `render_unauthorized`) keeps its old body.
 * **`Idempotency-Key`** on every write (`idempotent :create` in the controller,
   `Api::V1::Idempotent`): the same key and request replays the first 2xx answer (status and
@@ -839,7 +840,7 @@ back to html), NUL in a plain body and a plain body that converts to nothing ans
 `validation_failed`/`invalid_input` with a text from `services.post_comment.*`, checked inside
 the read gate. Without `format` the answer stays byte for byte: an empty body is the model's
 refusal, after the write check, with every model message (the contract case `html_empty` was
-recorded before R3a). Invalid UTF-8 never reaches the rule over REST (the 400 above); MCP
+recorded before R3a), and a JSON `false` as body counts as none, as before. Invalid UTF-8 never reaches the rule over REST (the 400 above); MCP
 refuses it. An unexpected actor failure (`internal_error`) answers 500 without the exception's
 text, every other failure 422 `validation_failed` as before; MCP answers `comment failed:
 unexpected error`. Capability `posts.plain`. Guards:

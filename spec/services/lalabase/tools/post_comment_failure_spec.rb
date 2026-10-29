@@ -2,12 +2,15 @@
 
 require 'rails_helper'
 
-# What: how post_comment words a save that failed (REST R3a). Beside
-#       post_comment_spec.rb, which stays as it was: every answer it pins is
-#       the tool's answer before the rule moved into Posts::Comment.
-# Why:  BaseActor answers an unexpected exception as :internal_error with the
-#       exception's text where it does not re-raise (production). That text may
-#       name the database and reached the client through "comment failed: ...".
+# What: what post_comment_spec.rb does not pin (REST R3a), beside it, so that
+#       file stays as it was: every answer it pins is the tool's answer before
+#       the rule moved into Posts::Comment. Here: the rule answers before the
+#       ticket is looked up, and how a failed save is worded.
+# Why:  The tool always refused unusable input before its lookup, so a missing
+#       or hidden ticket with broken input answers invalid_input, not "No ticket
+#       found". BaseActor answers an unexpected exception as :internal_error with
+#       the exception's text where it does not re-raise (production); that text
+#       may name the database and reached the client through "comment failed: ...".
 RSpec.describe Lalabase::Tools::PostComment, :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }
@@ -33,6 +36,27 @@ RSpec.describe Lalabase::Tools::PostComment, :ci_guard do
   def failing_save(code, errors)
     allow_any_instance_of(Actors::SavePost).to receive(:call)
       .and_return(Actors::BaseActor::Result.new(success: false, errors: errors, code: code))
+  end
+
+  describe 'before the ticket lookup' do
+    it 'refuses an unknown format for a missing ticket' do
+      result = execute(ticket_id: SecureRandom.uuid, format: 'markdown')
+      expect(result.error_code).to eq(:invalid_input)
+      expect(result.error).to eq('format must be html or plain')
+    end
+
+    it 'refuses an empty body for a missing ticket' do
+      result = execute(ticket_id: SecureRandom.uuid, body: ' ')
+      expect(result.error_code).to eq(:invalid_input)
+      expect(result.error).to eq('body is required')
+    end
+
+    it 'refuses a NUL byte for a ticket the caller may not read' do
+      ProjectPermission.find_by!(user: user, project: project).update!(tickets_access: :no_access)
+      result = execute(body: "a#{0.chr}b")
+      expect(result.error_code).to eq(:invalid_input)
+      expect(result.error).to eq('body must not contain NUL bytes')
+    end
   end
 
   it 'answers an unexpected failure with a fixed text, never the exception text' do

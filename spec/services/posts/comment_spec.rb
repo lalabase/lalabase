@@ -50,6 +50,8 @@ RSpec.describe Posts::Comment, :ci_guard do
       'an empty format' => [{ format: '' }, :format_unknown],
       'invalid UTF-8 in an html body' => [{ body: -> { invalid_utf8 } }, :body_invalid_utf8],
       'invalid UTF-8 in a plain body' => [{ format: 'plain', body: -> { invalid_utf8 } }, :body_invalid_utf8],
+      # A binary string is always valid_encoding?: the rule reads it as UTF-8.
+      'invalid bytes in a binary body' => [{ format: 'plain', body: -> { "a#{255.chr}b".b } }, :body_invalid_utf8],
       'a NUL byte in a plain body' => [{ format: 'plain', body: "a#{0.chr}b" }, :body_nul],
       'an empty plain body' => [{ format: 'plain', body: '' }, :body_empty],
       'a plain body of blank lines' => [{ format: 'plain', body: " \n\t\r\n " }, :body_empty],

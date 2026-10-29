@@ -209,15 +209,8 @@ RSpec.describe 'Meetings overview', type: :system do
       expect(page).to have_css('#meetings_overview_results tr.selected-row', text: 'Beta Retro', wait: 5)
       expect(page).to have_css('#meeting_display_frame h2', text: 'Beta Retro', wait: 5)
 
-      # The lane opens with a width transition (layout.css, --panel-width), and
-      # the "+" moves with the list column until it ends: a click during it
-      # landed beside the "+" (1 run in 10).
-      page.document.synchronize(5) do
-        left = -> { page.evaluate_script("document.querySelector(\"#{plus}\").getBoundingClientRect().left") }
-        before = left.call
-        sleep 0.15
-        raise Capybara::ExpectationNotMet, 'the "+" is still moving' unless left.call == before
-      end
+      # The "+" moves with the list column while the lane opens.
+      wait_until_still(plus)
       open_new_meeting
 
       expect(page).to have_no_css('#meetings_overview_results tr.selected-row')

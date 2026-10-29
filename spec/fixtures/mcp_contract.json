@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "ac4a327109ba1c2002d9d11de87ca8c1afbbc175",
+    "core_commit": "8da6fd8e1a6e30aec8fa2620118017cf36b68d97",
     "core_dirty": true,
-    "contract_sha256": "769d6cf508f18e725ff509b17209895f01d536703266190ebdb9c2742905a4d7"
+    "contract_sha256": "1ef1b7500cbe132f2917f4943c225aa9de71903b821aab523484bc6a032ac7a7"
   },
   "contract": {
     "mcp": {
@@ -3654,7 +3654,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.3.0",
+                "api_version": "1.4.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -3667,12 +3667,15 @@
                   "people.list",
                   "people.show",
                   "posts.create",
+                  "posts.show",
                   "projects.list",
                   "projects.ticket_attribute_definitions",
                   "tickets.activities",
                   "tickets.attachments",
+                  "tickets.by_number",
                   "tickets.create",
                   "tickets.list",
+                  "tickets.paging",
                   "tickets.show",
                   "tickets.update",
                   "time_sessions.book",
@@ -3714,7 +3717,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.3.0",
+                "api_version": "1.4.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -3727,12 +3730,15 @@
                   "people.list",
                   "people.show",
                   "posts.create",
+                  "posts.show",
                   "projects.list",
                   "projects.ticket_attribute_definitions",
                   "tickets.activities",
                   "tickets.attachments",
+                  "tickets.by_number",
                   "tickets.create",
                   "tickets.list",
+                  "tickets.paging",
                   "tickets.show",
                   "tickets.update",
                   "time_sessions.book",
@@ -4597,6 +4603,405 @@
           }
         }
       },
+      "ticket_view": {
+        "list": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/projects/00000000-0000-4000-8000-000000000031/tickets?assignee=00000000-0000-4000-8000-000000000012"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000041",
+                  "number": 1,
+                  "title": "Login bricht ab",
+                  "status": "in_progress",
+                  "status_functions": [
+                    "is_in_progress"
+                  ],
+                  "ticket_type": "support",
+                  "parent_id": null,
+                  "assignees": [
+                    {
+                      "id": "00000000-0000-4000-8000-000000000011",
+                      "name": "Anna Albers"
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000012",
+                      "name": "Ben Berger"
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000013",
+                      "name": "Carla Conrad"
+                    }
+                  ],
+                  "creator": {
+                    "id": "00000000-0000-4000-8000-000000000011",
+                    "name": "Anna Albers"
+                  },
+                  "created_at": "2026-01-05T09:21:00Z",
+                  "updated_at": "2026-01-05T09:36:00Z"
+                }
+              ],
+              "meta": {
+                "page": 1,
+                "per_page": 25,
+                "total": 1,
+                "available_statuses": [
+                  "new",
+                  "in_progress",
+                  "resolved",
+                  "closed",
+                  "backlog"
+                ]
+              }
+            }
+          }
+        },
+        "show": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000042"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": {
+                "id": "00000000-0000-4000-8000-000000000042",
+                "number": 2,
+                "title": "Export als CSV und XLSX",
+                "status": "in_progress",
+                "status_functions": [
+                  "is_in_progress"
+                ],
+                "ticket_type": "support",
+                "parent_id": null,
+                "assignees": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000011",
+                    "name": "Anna Albers"
+                  }
+                ],
+                "creator": {
+                  "id": "00000000-0000-4000-8000-000000000012",
+                  "name": "Ben Berger"
+                },
+                "created_at": "2026-01-05T09:22:00Z",
+                "updated_at": "2026-01-05T09:36:00Z",
+                "summary": null,
+                "description_html": "Spalten wie in der Liste.",
+                "description_text": "Spalten wie in der Liste.",
+                "custom_attributes": {
+                  "status": "in_progress",
+                  "priority": "normal"
+                },
+                "project": {
+                  "id": "00000000-0000-4000-8000-000000000031",
+                  "name": "Website-Relaunch"
+                },
+                "posts": []
+              },
+              "permissions": {
+                "is_account_admin": false,
+                "tickets": {
+                  "read": true,
+                  "write": true
+                },
+                "documents": {
+                  "read": false,
+                  "write": false
+                },
+                "posts": {
+                  "can_create": true,
+                  "can_update_own": true,
+                  "can_destroy_own": true
+                },
+                "time_sessions": {
+                  "can_view_own": true,
+                  "can_view_all": false,
+                  "can_create_own": true,
+                  "can_edit_own": true,
+                  "can_edit_all": false,
+                  "can_delete_own": true,
+                  "can_delete_all": false
+                },
+                "activities": {
+                  "read": true
+                }
+              }
+            }
+          }
+        },
+        "show_paged": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041?posts_per_page=1&posts_page=2&attachments_page=1"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": {
+                "id": "00000000-0000-4000-8000-000000000041",
+                "number": 1,
+                "title": "Login bricht ab",
+                "status": "in_progress",
+                "status_functions": [
+                  "is_in_progress"
+                ],
+                "ticket_type": "support",
+                "parent_id": null,
+                "assignees": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000011",
+                    "name": "Anna Albers"
+                  },
+                  {
+                    "id": "00000000-0000-4000-8000-000000000012",
+                    "name": "Ben Berger"
+                  },
+                  {
+                    "id": "00000000-0000-4000-8000-000000000013",
+                    "name": "Carla Conrad"
+                  }
+                ],
+                "creator": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "created_at": "2026-01-05T09:21:00Z",
+                "updated_at": "2026-01-05T09:36:00Z",
+                "summary": null,
+                "description_html": "Nach dem Absenden bleibt die Seite weiß.",
+                "description_text": "Nach dem Absenden bleibt die Seite weiß.",
+                "custom_attributes": {
+                  "status": "in_progress",
+                  "priority": "high"
+                },
+                "project": {
+                  "id": "00000000-0000-4000-8000-000000000031",
+                  "name": "Website-Relaunch"
+                },
+                "posts": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000052",
+                    "author": {
+                      "id": "00000000-0000-4000-8000-000000000011",
+                      "name": "Anna Albers"
+                    },
+                    "body_html": "Ich schaue es mir an.",
+                    "body_text": "Ich schaue es mir an.",
+                    "is_private": false,
+                    "attachments_count": 0,
+                    "created_at": "2026-01-05T09:26:00Z",
+                    "updated_at": "2026-01-05T09:26:00Z"
+                  }
+                ],
+                "posts_total": 7,
+                "posts_truncated": true,
+                "posts_page": 2,
+                "posts_per_page": 1,
+                "posts_pages": 7,
+                "posts_order": "oldest",
+                "attachments": [
+                  {
+                    "id": "<generated-id-8>",
+                    "filename": "test_document.pdf",
+                    "content_type": "application/pdf",
+                    "byte_size": 452,
+                    "text": null,
+                    "text_status": "unavailable"
+                  }
+                ],
+                "attachments_total": 1,
+                "attachments_truncated": false,
+                "attachments_page": 1,
+                "attachments_pages": 1
+              },
+              "permissions": {
+                "is_account_admin": false,
+                "tickets": {
+                  "read": true,
+                  "write": true
+                },
+                "documents": {
+                  "read": false,
+                  "write": false
+                },
+                "posts": {
+                  "can_create": true,
+                  "can_update_own": true,
+                  "can_destroy_own": true
+                },
+                "time_sessions": {
+                  "can_view_own": true,
+                  "can_view_all": false,
+                  "can_create_own": true,
+                  "can_edit_own": true,
+                  "can_edit_all": false,
+                  "can_delete_own": true,
+                  "can_delete_all": false
+                },
+                "activities": {
+                  "read": true
+                }
+              }
+            }
+          }
+        },
+        "show_invalid_paging": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041?posts_order=random"
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "invalid_input",
+              "code": "invalid_input",
+              "message": "invalid posts_order \"random\" (oldest or newest)"
+            }
+          }
+        },
+        "by_number": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/projects/00000000-0000-4000-8000-000000000031/tickets/number/2"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": {
+                "id": "00000000-0000-4000-8000-000000000042",
+                "number": 2,
+                "title": "Export als CSV und XLSX",
+                "status": "in_progress",
+                "status_functions": [
+                  "is_in_progress"
+                ],
+                "ticket_type": "support",
+                "parent_id": null,
+                "assignees": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000011",
+                    "name": "Anna Albers"
+                  }
+                ],
+                "creator": {
+                  "id": "00000000-0000-4000-8000-000000000012",
+                  "name": "Ben Berger"
+                },
+                "created_at": "2026-01-05T09:22:00Z",
+                "updated_at": "2026-01-05T09:36:00Z",
+                "summary": null,
+                "description_html": "Spalten wie in der Liste.",
+                "description_text": "Spalten wie in der Liste.",
+                "custom_attributes": {
+                  "status": "in_progress",
+                  "priority": "normal"
+                },
+                "project": {
+                  "id": "00000000-0000-4000-8000-000000000031",
+                  "name": "Website-Relaunch"
+                },
+                "posts": []
+              },
+              "permissions": {
+                "is_account_admin": false,
+                "tickets": {
+                  "read": true,
+                  "write": true
+                },
+                "documents": {
+                  "read": false,
+                  "write": false
+                },
+                "posts": {
+                  "can_create": true,
+                  "can_update_own": true,
+                  "can_destroy_own": true
+                },
+                "time_sessions": {
+                  "can_view_own": true,
+                  "can_view_all": false,
+                  "can_create_own": true,
+                  "can_edit_own": true,
+                  "can_edit_all": false,
+                  "can_delete_own": true,
+                  "can_delete_all": false
+                },
+                "activities": {
+                  "read": true
+                }
+              }
+            }
+          }
+        },
+        "by_number_not_found": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/projects/00000000-0000-4000-8000-000000000031/tickets/number/999"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "by_number_hidden": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/projects/00000000-0000-4000-8000-000000000033/tickets/number/1"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "post": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts/00000000-0000-4000-8000-000000000051"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": {
+                "id": "00000000-0000-4000-8000-000000000051",
+                "author": {
+                  "id": "00000000-0000-4000-8000-000000000012",
+                  "name": "Ben Berger"
+                },
+                "body_html": "Tritt nur in Safari auf.",
+                "body_text": "Tritt nur in Safari auf.",
+                "is_private": false,
+                "attachments_count": 1,
+                "created_at": "2026-01-05T09:25:00Z",
+                "updated_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "post_not_found": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts/00000000-0000-4000-8000-000000000999"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        }
+      },
       "POST /api/v1/tickets/:ticket_id/time_sessions": {
         "ok_minutes_text": {
           "token": "write",
@@ -4613,7 +5018,7 @@
             "status": 201,
             "body": {
               "data": {
-                "id": "<generated-id-8>",
+                "id": "<generated-id-9>",
                 "ticket_id": "00000000-0000-4000-8000-000000000041",
                 "creator": {
                   "id": "00000000-0000-4000-8000-000000000011",
@@ -4647,7 +5052,7 @@
             "status": 201,
             "body": {
               "data": {
-                "id": "<generated-id-9>",
+                "id": "<generated-id-10>",
                 "ticket_id": "00000000-0000-4000-8000-000000000041",
                 "creator": {
                   "id": "00000000-0000-4000-8000-000000000011",
@@ -4679,7 +5084,7 @@
             "status": 201,
             "body": {
               "data": {
-                "id": "<generated-id-10>",
+                "id": "<generated-id-11>",
                 "ticket_id": "00000000-0000-4000-8000-000000000041",
                 "creator": {
                   "id": "00000000-0000-4000-8000-000000000011",
@@ -4879,7 +5284,7 @@
             "status": 201,
             "body": {
               "data": {
-                "id": "<generated-id-11>",
+                "id": "<generated-id-12>",
                 "ticket_id": "00000000-0000-4000-8000-000000000041",
                 "creator": {
                   "id": "00000000-0000-4000-8000-000000000011",
@@ -4913,7 +5318,7 @@
             "status": 201,
             "body": {
               "data": {
-                "id": "<generated-id-11>",
+                "id": "<generated-id-12>",
                 "ticket_id": "00000000-0000-4000-8000-000000000041",
                 "creator": {
                   "id": "00000000-0000-4000-8000-000000000011",

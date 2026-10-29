@@ -26,6 +26,22 @@ module Api
         end
       end
 
+      # GET /api/v1/tickets/:ticket_id/posts/:id
+      #
+      # One comment, whole, in the shape the ticket view lists it. Out of the
+      # reader's readable comments of THIS ticket (Tickets::Reading#post): a
+      # hidden private comment, a comment of another ticket and a missing one
+      # answer the same 404 as an unreadable ticket.
+      def show
+        with_readable_ticket(params[:ticket_id]) do |ticket|
+          post = Tickets::Reading.new(serializer: Tickets::Serializer.new(current_user: current_user))
+                                 .post(ticket, params[:id])
+          raise ActiveRecord::RecordNotFound if post.nil?
+
+          render json: { data: post }
+        end
+      end
+
       private
 
       def post_attributes

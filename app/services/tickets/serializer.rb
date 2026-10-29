@@ -77,10 +77,11 @@ module Tickets
     # upload time (ExtractPlainTextProcessingService).
     #
     # Its OWN method rather than a key in #full, because the two surfaces want
-    # opposite things: the HTTP API renders #full on every show and builds its own
-    # attachment list with signed URLs, so a body of PDF text in there would be
+    # opposite things: the plain HTTP show renders #full and the attachments route
+    # builds its own list with signed URLs, so a body of PDF text in there would be
     # payload nobody asked for. The MCP read tool wants exactly that text and can do
-    # nothing with a URL it cannot open.
+    # nothing with a URL it cannot open; the REST ticket view hands it out only on
+    # request, in pages of ten (Tickets::Reading, REST R1), uncut.
     #
     # Ordered oldest first, like the posts: the caller bounds the list, and which
     # files survive that bound must not depend on the order the database felt like.

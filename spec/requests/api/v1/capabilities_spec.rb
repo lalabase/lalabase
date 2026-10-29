@@ -33,7 +33,7 @@ RSpec.describe 'API V1 capabilities', :ci_guard, type: :request do
 
   it 'names the API version and the capabilities beside the existing fields' do
     data = me(token(read_only: false))
-    expect(data['api_version']).to eq('1.1.0')
+    expect(data['api_version']).to eq('1.2.0')
     expect(data['capabilities']).to eq(Api::V1::Capabilities.names)
     expect(data.keys).to include('user', 'token', 'scoped_organisations')
   end
@@ -46,7 +46,7 @@ RSpec.describe 'API V1 capabilities', :ci_guard, type: :request do
     expect(Api::V1::Capabilities.names).to include(
       'me.show', 'organisations.list', 'projects.list', 'tickets.list', 'tickets.create', 'tickets.show',
       'tickets.update', 'tickets.attachments', 'posts.create', 'time_sessions.create',
-      'notifications.list', 'notifications.mark_as_read', 'idempotency', 'error_codes'
+      'notifications.list', 'notifications.mark_as_read', 'people.list', 'people.show', 'idempotency', 'error_codes'
     )
   end
 

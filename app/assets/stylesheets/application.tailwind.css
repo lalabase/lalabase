@@ -40,7 +40,7 @@
   .members-row:focus-within, .members-invitation-row:focus-within { @apply bg-cream-200/70; }
   .members-row--selected, .members-row--selected:focus-within { @apply bg-cream-200; }
   .members-row--selected:hover { background-color: rgb(var(--selected-row-hover)); }
-  .dark .more-menu__danger { color: var(--wash-danger-text); }
+  .dark .members-danger { color: var(--wash-danger-text); }
   /* The list is capped (layout.css, "Page widths"); open, the lane docks at the
      cap and adds its 24 px gap and its 400 px. */
   @media (min-width: 1100px) {
@@ -402,7 +402,8 @@
    the rebuilt tickets. Tokens only, so all three themes follow. */
 @layer components {
   .people-head { @apply flex items-center gap-4 px-6 pt-5; }
-  .people-head > * { @apply min-w-0 flex-1; }
+  /* The title box takes the width; the phone's square "+" keeps its size. */
+  .people-head > :not(.people-head__action) { @apply min-w-0 flex-1; }
   .people-head__action { margin-inline-start: auto; }
   .people-tools { @apply flex flex-wrap items-center gap-2 px-6 pb-3 pt-4; }
   .people-search { width: 260px; max-width: 100%; }

@@ -539,7 +539,10 @@ module McpContract
         'idempotency' => rest_idempotency_calls,
         # People S3b, appended last: the directory of people_world, made before the MCP calls.
         'GET /api/v1/organisations/:organisation_id/people' => rest_people_list_calls,
-        'GET /api/v1/organisations/:organisation_id/people/:id' => rest_people_show_calls
+        'GET /api/v1/organisations/:organisation_id/people/:id' => rest_people_show_calls,
+        # REST R3a (cli_rest_plan R3 a), appended last: its comments land on the
+        # login ticket after every answer above, without advancing the clock.
+        'POST /api/v1/tickets/:ticket_id/posts' => rest_comment_calls
       }
     end
 
@@ -576,6 +579,19 @@ module McpContract
         'forbidden' => rest_get(:dora, "#{path}/#{doris}"),
         'not_found_organisation' => rest_get(:read, "/api/v1/organisations/#{id(:other_organisation)}/people/#{doris}"),
         'not_found_project_token' => rest_get(:limited, "#{path}/#{doris}")
+      }
+    end
+
+    # Each request from its own line (Prosopite). The answers without `format`
+    # (and with `format: html`) were recorded before R3a and must stay as
+    # they were: existing callers send no format.
+    def rest_comment_calls
+      login = "/api/v1/tickets/#{id(:login_ticket)}/posts"
+      {
+        'html' => rest_send(:post, :write, login, params: { post: { body: '<p>Ein <b>fetter</b> Satz &amp; mehr</p>' } }),
+        'html_named' => rest_send(:post, :write, login, params: { post: { format: 'html', body: '<p>Noch ein <i>Satz</i></p>' } }),
+        # The model refuses an empty body, with its own message.
+        'html_empty' => rest_send(:post, :write, login, params: { post: { body: '' } })
       }
     end
 

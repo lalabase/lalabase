@@ -2776,13 +2776,21 @@ en:
           description: Enable this option to use the global format everywhere
           label: Use global format for all areas
       display:
-        intro: "The profile picture is always shown next to comments, lists and assignments. Here you additionally choose how names are spelled for you. Both only affect your own view."
+        intro: "Others in your organisations see your profile picture and your email. How names are spelled only affects your own view."
         avatar:
           label: Profile picture
           hint: PNG, JPEG or WebP, up to %{max_megabytes} MB. Always shown next to your name, e.g. on comments and in lists; without a picture your initials appear there.
           remove: Remove profile picture
           crop_hint: "Frame the picture: drag to move, the slider zooms. The visible framing is what gets saved."
           zoom_label: Zoom
+        email_visibility:
+          label: Email shown to others
+          login: "My login address (%{email})"
+          contact: Another address
+          none: Show no email
+          contact_label: Other address
+          contact_hint: Not confirmed, and Lalabase sends no mail to it.
+          description: "Others see this email in all your organisations: in the people directory, on the members page, in the assistant and through the APIs. Signing in and mail from Lalabase still use your login address."
         name_display:
           label: Name spelling
           full: Full name

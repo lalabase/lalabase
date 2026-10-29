@@ -3023,13 +3023,21 @@ de:
             zu verwenden
           label: Globales Format für alle Bereiche verwenden
       display:
-        intro: "Das Profilbild wird bei Kommentaren, Listen und Zuweisungen immer angezeigt. Hier wählst du zusätzlich, wie Namen für dich geschrieben werden. Beides gilt nur für deine eigene Ansicht."
+        intro: "Profilbild und E-Mail sehen auch andere in deinen Organisationen. Wie Namen geschrieben werden, gilt nur für deine eigene Ansicht."
         avatar:
           label: Profilbild
           hint: PNG, JPEG oder WebP, maximal %{max_megabytes} MB. Wird immer neben deinem Namen angezeigt, z. B. bei Kommentaren und in Listen; ohne Bild stehen dort deine Initialen.
           remove: Profilbild entfernen
           crop_hint: "Ausschnitt wählen: Bild mit der Maus verschieben, Regler zoomt. Gespeichert wird der sichtbare Ausschnitt."
           zoom_label: Zoom
+        email_visibility:
+          label: E-Mail für andere
+          login: "Meine Login-Adresse (%{email})"
+          contact: Eine andere Adresse
+          none: Keine E-Mail zeigen
+          contact_label: Andere Adresse
+          contact_hint: Wird nicht bestätigt und bekommt keine Mails von Lalabase.
+          description: "Diese E-Mail sehen andere in allen deinen Organisationen: im Personen-Verzeichnis, auf der Mitglieder-Seite, beim Assistenten und über die Schnittstellen. Anmelden und Mails von Lalabase laufen weiter über deine Login-Adresse."
         name_display:
           label: Schreibweise von Benutzernamen
           full: Voller Name

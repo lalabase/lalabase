@@ -42,6 +42,9 @@ class UserPreferencesController < ApplicationController
     # submit can carry both; a failed picture keeps the section rendered with
     # the model's own error message.
     return if section == 'display' && user_param_hash? && !apply_avatar_update
+    # Which email the others see (User::EmailDisplay): a column on users, saved
+    # here and not in the Devise profile for the same reason as the picture.
+    return if section == 'display' && user_param_hash? && !apply_email_visibility_update
 
     # Handle language preference separately
     if section == 'language' && user_param_hash? && params[:user].key?(:language_preference)
@@ -104,6 +107,23 @@ class UserPreferencesController < ApplicationController
     permitted[:avatar] = UserAvatars::CropUpload.call(upload: permitted[:avatar], crop: crop) if permitted[:avatar].present?
     return true if current_user.update(permitted)
 
+    render_display_errors
+  end
+
+  # Which email the others see (User::EmailDisplay). Only these two columns: the
+  # login address and the password stay behind the Devise profile's
+  # current-password gate. Returns true when the rest of the update may proceed.
+  def apply_email_visibility_update
+    permitted = params.require(:user).permit(:email_visibility, :contact_email)
+    return true if permitted.empty?
+    return true if current_user.update(permitted)
+
+    render_display_errors
+  end
+
+  # The display section again, with the model's own error messages (422).
+  # Returns false, the answer of a refused update.
+  def render_display_errors
     # respond_to, not a bare render: this controller answers JSON too (see the
     # preferences branch above), and `render 'display'` on a JSON request looks
     # for display.json and raises MissingTemplate — a 500 exactly where the

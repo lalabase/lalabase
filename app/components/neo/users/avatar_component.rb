@@ -26,6 +26,9 @@ module Neo
     #
     # A block renders INSIDE the chip (e.g. the presence dot on the team page).
     #
+    # title: replaces the tooltip (the user's name by default) where the name
+    # stands next to the chip anyway; the people list names the kind there.
+    #
     # Lists rendering many chips must preload `user: { avatar_attachment: :blob }`
     # or the attached? check below is an N+1.
     class AvatarComponent < ViewComponent::Base
@@ -54,7 +57,7 @@ module Neo
         picture = avatar_image
         initials = picture ? tag.span(letters, hidden: true, data: { avatar_fallback_target: 'initials' }) : letters
         tag.span(safe_join([initials, picture, content].compact),
-                 class: classes, title: user&.display_name, data: { controller: 'avatar-fallback' })
+                 class: classes, title: @options.fetch(:title) { user&.display_name }, data: { controller: 'avatar-fallback' })
       end
 
       private

@@ -16,16 +16,6 @@ de:
       people:
         index:
           title: "Personen"
-          count_line: "%{people} · %{members}, %{contacts}"
-          count_people:
-            one: "%{count} Person"
-            other: "%{count} Personen"
-          count_members:
-            one: "%{count} Mitglied"
-            other: "%{count} Mitglieder"
-          count_contacts:
-            one: "%{count} Kontakt"
-            other: "%{count} Kontakte"
           new_person: "Person anlegen"
           search_label: "Personen durchsuchen"
           search_placeholder: "Name, Funktion oder Firma"
@@ -47,7 +37,6 @@ de:
           no_hits_text: "Gesucht wird in Name, Funktion, Abteilung, Firma und E-Mail."
           clear_search: "Suche zurücksetzen"
           back_to_list: "Personen"
-          never: "noch nie"
           columns:
             name: "Name"
             last: "Zuletzt"
@@ -74,7 +63,6 @@ de:
             changed: "Hat Ticket #%{number} geändert, %{age}"
             commented: "Hat Ticket #%{number} kommentiert, %{age}"
         show:
-          last_contact: "Letzter Kontakt"
           no_meeting: "Noch kein Meeting."
           meetings: "Meetings"
           all_meetings:
@@ -83,11 +71,10 @@ de:
           kind:
             member: "Mitglied"
             contact: "Kontakt"
+            former_member: "Früheres Mitglied"
+          more_actions: "Weitere Aktionen"
           close: "Schließen"
           edit: "Bearbeiten"
-          linked_member: "Mitglied: %{name}"
-          no_account: "Kein Konto"
-          former_member: "Früheres Mitglied"
           contact_label: "Kontakt"
           duplicate_prefix: "Gleicher Name:"
           duplicate_link: "Verknüpfen …"
@@ -145,6 +132,9 @@ de:
           cancel: "Abbrechen"
         history:
           title: "Verlauf"
+          changes:
+            one: "%{count} Änderung"
+            other: "%{count} Änderungen"
           created: "%{actor} hat die Person angelegt"
           updated: "%{actor} hat %{fields} geändert"
           other: "%{actor} hat die Person geändert"

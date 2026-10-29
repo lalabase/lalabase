@@ -810,7 +810,7 @@ feature by feature):
   pinned against the routes both ways (`spec/requests/api/v1/capabilities_spec.rb`): a new
   endpoint adds its line there. Additive changes bump the minor.
 
-**Ticket view** (REST R1, 2026-10-29, API 1.2.0):
+**Ticket view** (REST R1, 2026-10-29, API 1.3.0):
 
 * `GET /projects/:project_id/tickets` names `meta.available_statuses`, the project's status
   keys from the same source as MCP `list_tickets`.
@@ -836,6 +836,18 @@ reach, organisations AND projects, and only the rows the web time list shows the
 (`TimeSessions::ViewingScope`). A booking on a ticket they cannot read keeps its row and
 its minutes, with `ticket: null`. Owner: `TimeSessions::OpenHours`; guard:
 `spec/requests/api/v1/time_sessions_open_access_spec.rb`.
+
+`GET /api/v1/organisations/:organisation_id/people` and `.../people/:id` (People S3b) read
+the people directory through `People::Lookup`, the object the assistant's `find_people` /
+`get_person` and their MCP twins read as well: one rights question (the people right, 403
+without it), one search, one field selection (a list row never carries contact details or
+notes; the card carries the notes, MCP and the assistant never do). Only a token that
+reaches every project of the organisation reads its directory: a token limited to some
+projects, an organisation outside the token (a deactivated membership included) and a
+missing one answer the same 404, as do a missing and an invisible person. The list pages
+by 50, at most 100; a value outside is a 400, never cut. Guards:
+`spec/requests/api/v1/people_spec.rb`, `spec/requests/api/mcp_people_spec.rb`,
+`spec/requests/api/people_parity_spec.rb` (REST and MCP answer the same rows).
 
 ## Admin: Betreiber-Teile kommen nur über Schlitze
 

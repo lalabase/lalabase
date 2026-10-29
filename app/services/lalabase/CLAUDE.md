@@ -19,21 +19,34 @@ Codebase-Verständnis.
   `GoogleVertexProvider` schickt so ein Werkzeug ohne `parameters`, weil Gemini ein OBJECT mit
   leeren `properties` ablehnt (Spec prüft jedes Chat-Werkzeug). Plan `doc/product_knowledge_plan.md`.
   Two read the people directory (`find_people`, `get_person`, parent class `PeopleTool`,
-  `:assistant` and `:assistant_with_code` only, People S3): no project and no coverage like
+  `:assistant` and `:assistant_with_code`, People S3): no project and no coverage like
   the help, but a right of their own. `PersonPolicy.view_allowed?` is asked inside the tool
   BEFORE anything is read, else `refused` (a deactivated member too). They read through
-  `People::Directory` only, never `Person.where`/`find`. The id is the format of
-  `Meetings::ParticipantLinkChoice` (`person:<uuid>` for a contact, `member:<uuid>` for a
-  member); unknown, foreign and invisible ids give the same `not_found`. Which fields reach
-  the provider is decided only in `PeopleTool.row`/`.card` (never `notes`, E2; the last
-  contact as date and kind, E3). Both cite type `person` (area `people`, no project, a content
+  `People::Lookup` only (over `People::Directory`), never `Person.where`/`find`. The id is the
+  format of `Meetings::ParticipantLinkChoice` (`person:<uuid>` for a contact, `member:<uuid>`
+  for a member); unknown, foreign and invisible ids give the same `not_found`. Which fields
+  reach the provider is decided only in `People::Lookup.row`/`.card` (never `notes`, E2; the
+  last contact as date and kind, E3). Both cite type `person` (area `people`, no project, a content
   type): a contact by its row, a member by the account (`member_id`, the page sends it on to
   the row). `find_people` cites its first five rows, or an answer drawn on the list alone
   would carry no area and stay unredacted for others.
+  On `:mcp` the same two names are twins (`McpFindPeople`, `McpGetPerson`, People S3b, MCP
+  0.13.0), own classes because their schema requires `organisation_id` (E3). `scope_mode
+  :token`; `PeopleTool.with_token_lookup` is their gate: only an organisation whose every
+  project the token reaches (`People::Lookup.for_token`, `Reach#project_ids_for(id).nil?`, E1),
+  else `not_found` with `list_notifications`' wording, for a project-limited token, an
+  organisation outside the token and a deactivated member alike (the token no longer reaches
+  it); then the call runs under that organisation's tenant, asks the people right (`refused`)
+  and marks `authorize!(context, Person, :index?)`, which reads the tenant: a twin run without
+  it is refused, not served. Same JSON as the assistant (`FindPeople.list`, `GetPerson.read`),
+  no citations, never the notes (E2: only the REST card carries them). A person that is not
+  there is `kind: empty` (the MCP rule for one record, like `get_ticket`); the assistant keeps
+  its `not_found`. The SDK refuses an unknown `kind` before the tool runs (schema enum).
   Reichweite je Werkzeug (`Base.scope_mode`): `:project` (Default, Dispatcher injiziert
   `project_id` als Pflicht, ToolCall gated das Projekt) oder `:token` (Inbox-Arbeitsfluss:
   kein Projekt-Gate, `Context#reach` = `PersonalAccessToken::Reach`, läuft OHNE Tenant, nur
-  im `:mcp`-Set, record-mode; `list_notifications`, `mark_notification_read`). Die Inbox-
+  im `:mcp`-Set, record-mode; `list_notifications`, `mark_notification_read`, und die
+  Personen-Zwillinge, die sich den Tenant ihrer Organisation selbst setzen). Die Inbox-
   Zeilen kommen aus `Notifications::InboxQuery` + `Serializer`, geteilt mit der HTTP-API.
   Schreibende Werkzeuge gibt es nur im `:mcp`-Set: `create_ticket`, `post_comment`,
   `create_time_session`, `mark_notification_read`, `update_ticket`. `post_comment` schreibt

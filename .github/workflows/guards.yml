@@ -265,6 +265,7 @@ jobs:
           spec/requests/api/mcp_update_ticket_spec.rb
           spec/requests/api/mcp_plain_comment_spec.rb
           spec/requests/api/mcp_time_report_spec.rb
+          spec/requests/api/mcp_people_spec.rb
           spec/services/posts/plain_text_body_spec.rb
           spec/services/lalabase/tools/post_comment_spec.rb
           spec/requests/api/inbox_organisation_filter_spec.rb
@@ -292,6 +293,8 @@ jobs:
           spec/requests/api/v1/idempotency_spec.rb
           spec/requests/api/v1/capabilities_spec.rb
           spec/requests/api/v1/ticket_view_spec.rb
+          spec/requests/api/v1/people_spec.rb
+          spec/requests/api/people_parity_spec.rb
           spec/models/codebase_import_mapping_spec.rb
           spec/services/codebase_import/time_session_importer_spec.rb
           spec/services/codebase_import/duplicate_prevention_spec.rb
@@ -326,6 +329,7 @@ jobs:
           spec/requests/organisations/people_spec.rb
           spec/services/people/directory_spec.rb
           spec/services/people/contacts_spec.rb
+          spec/services/people/lookup_spec.rb
           spec/requests/organisations/people_last_contact_spec.rb
           spec/services/lalabase/tools/find_people_spec.rb
           spec/services/lalabase/tools/get_person_spec.rb
@@ -660,6 +664,7 @@ jobs:
           spec/system/ticket_list_unread_dot_spec.rb
           spec/system/ticket_relations_spec.rb
           spec/system/meeting_participant_link_spec.rb
+          spec/system/people_review_74_spec.rb
           spec/system/ticket_meeting_panel_spec.rb
           spec/system/ticket_meeting_panel_stages_spec.rb
           spec/system/ticket_meeting_panel_assistant_spec.rb

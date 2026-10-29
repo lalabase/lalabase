@@ -4,7 +4,8 @@ require 'rails_helper'
 
 # What:  The "?" contextual-help trigger (doc/kontexthilfe_plan.md) wired into the
 #        phase-1 areas (Tickets, Wissen, Chat, Inbox, Übersicht) plus the phase-2
-#        areas Zeiten (time_sessions), Abrechnungen (billing) and Meetings.
+#        areas Zeiten (time_sessions), Abrechnungen (billing), Meetings and
+#        Personen (people).
 # Type:  Request specs against the real controller actions (full stack).
 # Why:   Docs::ContextualHelp + the guard spec already prove the DATA is correct
 #        (spec/services/docs/contextual_help_spec.rb); this proves the trigger is
@@ -114,6 +115,13 @@ RSpec.describe 'Contextual help menu', type: :request do
 
     expect(response).to have_http_status(:ok)
     expect_contextual_help_trigger(response.body, :meetings)
+  end
+
+  it 'Personen: renders the trigger with the people questions' do
+    get organisation_people_path(organisation)
+
+    expect(response).to have_http_status(:ok)
+    expect_contextual_help_trigger(response.body, :people)
   end
 
   it 'Dokumentation: renders the trigger with the documentation questions' do

@@ -1,7 +1,7 @@
 <%# locals: (entries:, counts:, selected: nil, member: nil) %>
-<%# The rows of the directory (People::Directory): name with a "Mitglied"
-    badge, function and company below, the age of the last contact on the
-    right. Every row opens the lane: a person row through person_id, a member
+<%# The rows of the directory (People::Directory): the chip (filled for a
+    member, an outline for a contact), the name, function and company below,
+    the age of the last contact on the right, empty without one. Every row opens the lane: a person row through person_id, a member
     without a row through member_id. The two column heads sort the list
     (?sort=last, E5), a full visit that keeps search, filter and the open
     person. The person is rendered from this request; a row click changes it

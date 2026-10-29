@@ -14,13 +14,16 @@ module Api
   module V1
     module Capabilities
       # Minor for an additive change (a new endpoint, field or capability), major
-      # never: an existing name, field or meaning does not change.
-      API_VERSION = '1.2.0'
+      # never: an existing name, field or meaning does not change. 1.2.0 added
+      # the People API; 1.3.0 adds the REST ticket view (R1).
+      API_VERSION = '1.3.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
         'me.show' => ['GET', '/api/v1/me'],
         'organisations.list' => ['GET', '/api/v1/organisations'],
+        'people.list' => ['GET', '/api/v1/organisations/:organisation_id/people'],
+        'people.show' => ['GET', '/api/v1/organisations/:organisation_id/people/:id'],
         'projects.list' => ['GET', '/api/v1/projects'],
         'projects.ticket_attribute_definitions' => ['GET', '/api/v1/projects/:id/ticket_attribute_definitions'],
         'tickets.list' => ['GET', '/api/v1/projects/:project_id/tickets'],

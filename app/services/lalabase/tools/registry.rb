@@ -55,8 +55,9 @@ module Lalabase
       # find_people and get_person (People S3) read the organisation's people directory. Like
       # the help tools they take no project and report no coverage, but they ask a right of
       # their own (the people right, inside the tool, before anything is read) and cite with
-      # the people area, so an answer drawn on them stays with the asker. Not in :mcp: the
-      # terminal client gets them in a step of its own, with a contract.
+      # the people area, so an answer drawn on them stays with the asker. :mcp has twins of
+      # them under the same names (McpFindPeople, McpGetPerson, People S3b), which name the
+      # organisation and cite nothing.
       #
       # search_help, help_contents and get_help_page (doc/product_knowledge_plan.md, S2) read
       # Lalabase's OWN help, the one thing here that is not the organisation's. It is the same
@@ -134,7 +135,13 @@ module Lalabase
         # the tool narrows through TimeSessions::ViewingScope itself; its org-wide
         # `project` filter is ignored on this path. Appended so the pinned wire
         # order stays intact.
-        SummarizeTimeSessions
+        SummarizeTimeSessions,
+        # People S3b: the people directory for agents, the assistant's two tools with an
+        # organisation_id. Token-scoped reads: only a token that reaches every project of
+        # the organisation reads its directory (E1), never the notes (E2). Appended for the
+        # same reason.
+        McpFindPeople,
+        McpGetPerson
       ].freeze
 
       # Sets whose tools reach the LLM tool loop. The guard-spec enforces the

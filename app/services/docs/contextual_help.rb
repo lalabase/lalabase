@@ -97,6 +97,19 @@ module Docs
           slug: 'guides/meetings/ki-analysen',
           anchor: { de: 'im-assistenten-analysieren', en: 'analyse-in-the-assistant' } }
       ],
+      people: [
+        { label_key: 'docs.contextual_help.people.what_is_it',
+          slug: 'guides/people/directory',
+          anchor: { de: 'wozu-der-bereich-da-ist', en: 'what-the-area-is-for' } },
+        { label_key: 'docs.contextual_help.people.meetings',
+          slug: 'guides/people/directory',
+          anchor: { de: 'personen-und-meetings', en: 'people-and-meetings' } },
+        { label_key: 'docs.contextual_help.people.link_participant',
+          slug: 'guides/people/meeting-participants' },
+        { label_key: 'docs.contextual_help.people.who_sees',
+          slug: 'guides/people/directory',
+          anchor: { de: 'wer-das-verzeichnis-sieht', en: 'who-sees-the-directory' } }
+      ],
       documentation: [
         { label_key: 'docs.contextual_help.documentation.what_is_it',
           slug: 'guides/documentation/write-and-sync' },

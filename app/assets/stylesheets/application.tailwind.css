@@ -25,16 +25,11 @@
   .members-state { @apply inline-flex shrink-0 items-center gap-1 text-[11px] text-muted; }
   .members-status-dot { width: 5px; height: 5px; @apply rounded-full bg-cream-500; }
   .members-presence { background: #6E9A3E; @apply absolute -bottom-0.5 -end-0.5 w-2 h-2 rounded-full border border-cream-50; }
-  .members-more { @apply inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded text-cream-500 hover:bg-cream-200; list-style: none; }
-  .members-more::-webkit-details-marker { display: none; }
-  .members-menu { position: relative; }
-  .members-menu[open] { z-index: 30; }
-  .members-menu-items { @apply absolute right-0 top-full z-30 mt-1 w-64 rounded-lg border border-cream-300 bg-surface-raised py-1 shadow-md; }
-  .members-menu-items a, .members-menu-items button { @apply block w-full px-4 py-2 text-left text-sm text-heading hover:bg-cream-100; }
-  .members-danger, .members-menu-items .members-danger { color: #B63426; }
+  .members-more { @apply inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded text-cream-500 hover:bg-cream-200; }
+  .members-danger { color: #B63426; }
   .members-role-select { @apply w-full cursor-pointer rounded border-0 bg-transparent py-1 pl-1 pr-6 text-[13px] text-heading hover:bg-cream-200; background-size: 12px; background-position: right 4px center; }
   .members-invitation-row { @apply flex items-center gap-4 border-b border-cream-200 py-3; }
-  .members-invitation-row .members-menu { margin-inline-start: auto; }
+  .members-invitation-row .more-menu { margin-inline-start: auto; }
   .members-panel { @apply rounded-xl border border-cream-300 bg-surface-raised p-5; position: sticky; top: 16px; }
   .members-panel .members-role-select { @apply border border-cream-400 px-2 pr-6; width: auto; max-width: 190px; }
   .members-setting { @apply flex items-center justify-between gap-4 border-b border-cream-200 py-4; }
@@ -386,15 +381,29 @@
 .bg-btn-primary, .mobile-primary, .bg-lime-200, .bg-lime-300, .bg-lime-400, .bg-lime-500,
 [class*="bg-lime-200"], [class*="bg-lime-300"], [class*="bg-lime-400"] { color: #14110c; }
 
+/* "···": the rarer actions of a row or a lane behind one button (members
+   page, people lane). A <details>, so it opens without a script; whoever
+   closes it on an outside click or Escape is the page's controller
+   (details-autoclose, or membership-workspace). A destructive item is red. */
+@layer components {
+  .more-menu { position: relative; }
+  .more-menu[open] { z-index: 30; }
+  .more-menu__trigger { @apply inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded text-cream-500 hover:bg-cream-200 hover:text-heading; list-style: none; }
+  .more-menu__trigger::-webkit-details-marker { display: none; }
+  .more-menu__items { @apply absolute right-0 top-full z-30 mt-1 w-64 rounded-lg border border-cream-300 bg-surface-raised py-1 shadow-md; }
+  .more-menu__items a, .more-menu__items button { @apply block w-full px-4 py-2 text-left text-sm text-heading hover:bg-cream-100; }
+  .more-menu__items .more-menu__danger { color: #B63426; }
+  .dark .more-menu__items .more-menu__danger { color: var(--wash-danger-text); }
+}
+
 /* Personen: the shared people directory (organisations/people). One column
    of rows, the person in the lane. Hairlines everywhere; only the main action
    (the primary Neo button) carries the hard edge and the offset shadow, as on
    the rebuilt tickets. Tokens only, so all three themes follow. */
 @layer components {
-  .people-head { @apply flex items-start gap-4 px-6 pt-5; }
-  .people-head__title { @apply flex min-w-0 flex-col gap-1; }
-  .people-head__h1 { @apply text-[22px] font-bold leading-tight tracking-tight text-heading; }
-  .people-head__count { @apply text-[13px] text-muted; }
+  .people-head { @apply flex items-center gap-4 px-6 pt-5; }
+  /* The title box takes the width; the phone's square "+" keeps its size. */
+  .people-head > :not(.people-head__action) { @apply min-w-0 flex-1; }
   .people-head__action { margin-inline-start: auto; }
   .people-tools { @apply flex flex-wrap items-center gap-2 px-6 pb-3 pt-4; }
   .people-search { width: 260px; max-width: 100%; }
@@ -402,39 +411,35 @@
   .people-search__field input { @apply min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] text-heading outline-none focus:ring-0; }
   .people-search__field:focus-within { border-color: rgb(var(--ink)); }
   .people-filters { @apply flex flex-wrap items-center gap-2; }
-  .people-pill { @apply inline-flex items-baseline gap-1.5 rounded-full border border-cream-300 bg-surface-raised px-3 py-1 text-[13px] text-heading no-underline hover:bg-cream-200; }
-  .people-pill--active { @apply border-cream-600 font-semibold; background-color: rgb(var(--selected-row)); }
-  .people-pill__count { @apply font-mono text-[11px] font-normal text-muted; }
+  .people-pill { @apply inline-flex items-baseline gap-1.5 rounded-full px-3 py-1 text-[13px] text-heading no-underline hover:bg-cream-100; }
+  .people-pill--active { @apply font-semibold; background-color: rgb(var(--selected-row)); }
+  .people-pill--active:hover { background-color: rgb(var(--selected-row-hover)); }
+  .people-pill__count { @apply text-[11px] font-normal tabular-nums text-muted; }
   .people-list { @apply mx-6 mb-6 border-t border-ink; }
   .people-row { @apply -mx-2 flex cursor-pointer items-center gap-3 border-b border-cream-200 px-2 py-2.5 outline-none hover:bg-cream-100 focus-visible:bg-cream-100; }
   .people-row.selected-row { background-color: rgb(var(--selected-row)); }
-  .people-row.selected-row .people-row__name { @apply font-semibold; }
   .people-row__text { @apply flex min-w-0 flex-1 flex-col gap-0.5; }
-  .people-row__line { @apply flex min-w-0 items-baseline gap-2; }
   .people-row__name { @apply truncate text-sm font-medium text-heading; }
   .people-row__sub { @apply truncate text-xs text-muted; }
-  /* S2a: the column heads (NAME, ZULETZT) sort the list; the ink line moves
-     from the list to the heads. */
+  /* S2a: the column heads (Name, Zuletzt) sort the list; the ink line moves
+     from the list to the heads. Two plain words, the active one in ink. */
   .people-columns { @apply mx-6 flex items-center gap-3 border-b border-ink pb-1.5; }
   .people-columns + .people-list { border-top-width: 0; }
   .people-columns__head--name { @apply min-w-0 flex-1; padding-inline-start: 42px; }
   .people-columns__head--last { @apply w-[120px] flex-none text-end; }
-  .people-columns__link { @apply inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.08em] text-muted no-underline hover:text-heading; }
+  .people-columns__link { @apply inline-flex items-center gap-1 text-xs text-muted no-underline hover:text-heading; }
   .people-columns__link--active { @apply text-heading; }
-  .people-row__last { @apply w-[120px] flex-none whitespace-nowrap text-end text-xs text-cream-700; }
-  .people-row__last--none { @apply text-cream-500; }
-  .people-last { @apply flex items-baseline gap-2.5 rounded-lg bg-cream-50 px-3 py-2.5 text-[13px]; }
-  .people-last i, .people-last__label { @apply flex-none text-muted; }
-  .people-last__text { @apply min-w-0 flex-1 text-heading; }
-  .people-last__text--none { @apply text-muted; }
-  .people-meetings { @apply flex flex-col; }
-  .people-meetings__title { @apply pb-1.5 text-sm font-semibold text-heading; }
-  .people-meetings__empty { @apply py-1.5 text-[13px] text-muted; }
-  .people-meetings__row { @apply -mx-2 flex items-baseline gap-3 rounded-md border-t border-cream-200 px-2 py-2 text-heading no-underline hover:bg-cream-100; }
-  .people-meetings__date { @apply w-[88px] flex-none font-mono text-xs text-muted; }
-  .people-meetings__text { @apply flex min-w-0 flex-1 flex-col gap-px; }
-  .people-meetings__name { @apply truncate text-sm; }
-  .people-meetings__project { @apply text-xs text-muted; }
+  .people-row__last { @apply w-[120px] flex-none whitespace-nowrap text-end text-xs tabular-nums text-muted; }
+  /* The meetings: one line each, date and title. Without one the title and
+     "Noch kein Meeting." share a line. */
+  .people-meetings { @apply flex flex-col border-t border-cream-200 pt-4; }
+  .people-meetings--empty { @apply flex-row items-baseline gap-2.5; }
+  .people-meetings__title { @apply pb-1 text-sm font-semibold text-heading; }
+  .people-meetings--empty .people-meetings__title { @apply pb-0; }
+  .people-meetings__empty { @apply text-[13px] text-muted; }
+  .people-meetings__row { @apply -mx-2 flex items-baseline gap-3 rounded-md px-2 py-1.5 text-heading no-underline hover:bg-cream-100; }
+  .people-meetings__date { @apply w-[76px] flex-none font-mono text-xs text-muted; }
+  .people-meetings__name { @apply min-w-0 flex-1 truncate text-sm; }
   .people-meetings .people-text-action { @apply mt-1 self-start; }
   .people-badge { @apply shrink-0 rounded-full border border-cream-300 bg-cream-100 px-1.5 text-[11px] text-cream-600; }
   /* Members keep the chip's own tone; contacts (no account) a lighter one.
@@ -452,18 +457,15 @@
   .people-ghost-action { @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-cream-600 no-underline hover:bg-cream-200 hover:text-heading; }
   .people-icon-action { @apply inline-grid h-[30px] w-[30px] place-items-center rounded-md text-[13px] text-cream-500 hover:bg-cream-200 hover:text-heading; }
   .people-secondary-action { @apply inline-flex items-center gap-1.5 rounded-lg border border-cream-400 bg-surface-raised px-3 py-1.5 text-[13px] text-heading no-underline hover:border-cream-600; }
-  .people-danger-action { color: #A03227; margin-inline-start: -8px; @apply self-start; }
-  .dark .people-danger-action { color: var(--wash-danger-text); }
   .people-lane { @apply flex flex-col gap-4; }
   .people-detail, .people-form-wrap { @apply flex flex-col gap-4; }
-  .people-lane__head { @apply flex items-center gap-1; }
-  .people-lane__kind { @apply mr-auto text-xs text-muted; }
+  .people-detail__body { @apply flex flex-col gap-5; }
+  .people-lane__head { @apply flex items-center justify-end gap-1; }
   .people-lane__divider { @apply mx-1 h-4 w-px bg-cream-200; }
   .people-identity { @apply flex items-center gap-3.5; }
   .people-identity__text { @apply flex min-w-0 flex-col gap-1; }
   .people-identity__name { @apply text-[22px] font-semibold leading-tight tracking-tight text-heading; }
-  .people-identity__status { @apply inline-flex items-center gap-2 text-[13px] text-cream-700; }
-  .people-identity__status i { @apply text-muted; }
+  .people-identity__line { @apply text-[13px] text-muted; }
   .people-callout { @apply flex items-baseline gap-2.5 rounded-lg border border-cream-300 bg-cream-50 px-3 py-2.5 text-[13px] leading-normal text-heading; }
   .people-callout__body { @apply flex min-w-0 flex-1 flex-col items-start gap-2; }
   .people-callout--quiet { @apply border-transparent; }
@@ -471,27 +473,28 @@
   .people-callout--warning > i { color: #C08A3E; }
   .people-callout--danger { @apply border-red-200 bg-red-50 text-red-800; }
   .people-callout__name { @apply font-semibold text-heading; }
-  .people-fields { @apply flex flex-col border-t border-cream-200; }
-  .people-fields__row { @apply flex items-baseline gap-3.5 border-b border-cream-200 py-2; }
+  .people-fields { @apply flex flex-col gap-1.5; }
+  .people-fields__row { @apply flex items-baseline gap-3.5; }
   .people-fields__row dt { @apply w-24 shrink-0 text-[13px] text-muted; }
-  .people-fields__row dd { @apply min-w-0 break-words text-sm text-heading; }
+  .people-fields__row dd { @apply min-w-0 break-words text-sm tabular-nums text-heading; }
   .people-fields__row--stacked { @apply flex-col gap-0.5; }
   .people-fields__row--stacked dt { @apply w-auto text-xs; }
-  .people-fields__link { color: rgb(var(--text-action)); @apply inline-flex items-center gap-2 hover:underline; }
-  .people-fields__link i { @apply text-xs; }
-  .people-fields__link--mono { @apply font-mono; }
-  .people-tap { min-height: 52px; @apply flex items-center gap-3 rounded-[10px] border border-cream-300 bg-cream-50 px-3.5 text-[15px] text-heading no-underline; }
-  .people-tap--mono { @apply font-mono; }
-  .people-tap__hint { margin-inline-start: auto; @apply font-sans text-xs text-muted; }
-  .people-note h3 { @apply mb-1.5 text-[13px] font-normal text-muted; }
-  .people-note p { @apply whitespace-pre-line text-sm leading-relaxed text-cream-700; }
-  .people-footer { @apply flex flex-col gap-2 border-t border-cream-200 pt-3.5; }
-  .people-footer__created { @apply text-xs text-muted; }
+  .people-fields__link { color: rgb(var(--text-action)); @apply hover:underline; }
+  .people-tap { min-height: 52px; @apply flex items-center gap-3 rounded-[10px] border border-cream-300 bg-cream-50 px-3.5 text-[15px] tabular-nums text-heading no-underline; }
+  .people-tap__hint { margin-inline-start: auto; @apply text-xs text-muted; }
+  .people-note { @apply whitespace-pre-line text-sm leading-relaxed text-heading; }
+  .people-footer { @apply flex flex-col gap-2 border-t border-cream-200 pt-4; }
   .people-footer__readonly { @apply text-xs text-muted; }
-  .people-history { @apply flex flex-col gap-1.5; }
-  .people-history li { @apply flex items-baseline gap-2.5 text-[13px] text-cream-600; }
-  .people-history li span { @apply min-w-0 flex-1; }
-  .people-history time { @apply shrink-0 font-mono text-xs text-muted; }
+  /* The history folds into one line: who created it, how many changes. */
+  .people-history__line { @apply text-[13px] text-muted; }
+  summary.people-history__line { @apply inline-flex cursor-pointer items-center gap-1.5 hover:text-heading; list-style: none; }
+  summary.people-history__line::-webkit-details-marker { display: none; }
+  .people-history__chevron { @apply text-[10px] transition-transform; }
+  .people-history[open] .people-history__chevron { transform: rotate(180deg); }
+  .people-history__list { @apply mt-2.5 flex flex-col gap-1.5; }
+  .people-history__list li { @apply flex items-baseline gap-2.5 text-[13px] text-cream-600; }
+  .people-history__list li span { @apply min-w-0 flex-1; }
+  .people-history__list time { @apply shrink-0 font-mono text-xs text-muted; }
   .people-form { @apply flex flex-col gap-3.5; }
   .people-form__title { @apply mr-auto text-[17px] font-semibold text-heading; }
   .people-form__field { @apply flex flex-col gap-1; }

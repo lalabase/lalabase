@@ -19,8 +19,6 @@ module Lalabase
       # every reader unredacted.
       MAX_CITATIONS = 5
 
-      KINDS_TEXT = People::Directory::KINDS.join(', ')
-
       # What an empty list says next, the way search_help names its second route. Measured
       # with a real model (28.10.2026): asked for the technical contact at a company, it
       # searched "Technik" among members only, found nobody and said so, while the person
@@ -71,20 +69,24 @@ module Lalabase
       end
 
       def self.execute(args:, context:)
-        refused = refusal(context)
-        return refused if refused
+        list(lookup(context), symbolized(args), cite: true)
+      end
 
-        args = symbolized(args)
-        kind = args[:kind].presence&.to_s || 'all'
-        # The page reads an unknown kind as "all"; for the model that would be a filter it
-        # believes it set and did not.
-        return Result.invalid_input("kind must be one of: #{KINDS_TEXT}") unless People::Directory::KINDS.include?(kind)
-
-        entries = directory(context, query: args[:query].to_s.strip, kind: kind).entries
-        shown = entries.first(MAX_ENTRIES)
-        payload = { total: entries.size, truncated: entries.size > MAX_ENTRIES, data: shown.map { |entry| row(entry) } }
-        payload[:next_step] = NO_MATCH_NEXT_STEP if entries.empty?
-        json_result(payload, citations: shown.first(MAX_CITATIONS).map { |entry| Lalabase::Citations.person(entry) })
+      # The answer for a directory, shared with the MCP twin (McpFindPeople), which cites
+      # nothing. People::Lookup asks the right before anything else and refuses a kind it does
+      # not know: the page reads one as "all", and for the model that would be a filter it
+      # believes it set and did not.
+      def self.list(people, args, cite:)
+        page = people.find(query: args[:query].to_s.strip, kind: args[:kind], limit: MAX_ENTRIES)
+        payload = { total: page.total, truncated: page.total > MAX_ENTRIES,
+                    data: page.entries.map { |entry| People::Lookup.row(entry) } }
+        payload[:next_step] = NO_MATCH_NEXT_STEP if page.total.zero?
+        citations = cite ? page.entries.first(MAX_CITATIONS).map { |entry| Lalabase::Citations.person(entry) } : []
+        json_result(payload, citations: citations)
+      rescue People::Lookup::Refused
+        refused
+      rescue People::Lookup::InvalidArgument => e
+        Result.invalid_input(e.message)
       end
     end
   end

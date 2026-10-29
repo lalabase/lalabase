@@ -174,7 +174,7 @@ en:
     post_comment:
       format_not_string: "Give the format (post[format]) as text: html or plain."
       format_unknown: "The format (post[format]) must be html or plain."
-      body_invalid_utf8: "The comment (post[body]) is not valid UTF-8."
+      body_invalid_utf8: "The comment (post[body]) cannot be read as UTF-8."
       body_nul: "A plain comment (post[body]) must not contain NUL bytes."
       body_empty: "The comment (post[body]) has no text."
     default_smart_folder:

@@ -307,6 +307,16 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       expect(body.dig('data', 'body_html')).to eq("<p>#{a_umlaut_b}<br>&lt;b&gt;</p>")
     end
 
+    # 0x81 has no character in Windows-1252: the part cannot be transcoded. The
+    # client declared no UTF-8, so the text names what failed, the reading.
+    it 'refuses a plain part whose charset does not transcode, writing nothing' do
+      expect { comment_multipart('format' => [nil, 'plain'], 'body' => ['text/plain; charset=windows-1252', "a#{0x81.chr}b"]) }
+        .not_to(change { posts_count })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(body).to eq(refusal(:body_invalid_utf8))
+      expect(body['errors']).to eq(['The comment (post[body]) cannot be read as UTF-8.'])
+    end
+
     it 'refuses a plain part declared binary that holds no UTF-8, writing nothing' do
       expect { comment_multipart('format' => [nil, 'plain'], 'body' => ['text/plain; charset=binary', "a#{0xFF.chr}b"]) }
         .not_to(change { posts_count })

@@ -103,6 +103,8 @@ module Lalabase
       # wrong, and create_ticket and create_time_session answer a refused save
       # the same way. An unexpected failure (BaseActor's :internal_error where it
       # does not re-raise) gets a fixed text: its message may name the database.
+      # Only a failure before the commit gets here: a comment already written
+      # counts as saved (Posts::Comment#save).
       def self.comment_failure(outcome)
         return 'comment failed: unexpected error' if outcome.code == :internal_error
 

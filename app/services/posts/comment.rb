@@ -67,10 +67,21 @@ module Posts
     # => Actors::BaseActor::Result. A model refusal (an empty content, an
     # addressee outside the organisation) comes back as :validation_failed,
     # nothing written.
+    #
+    # A failure after the commit (an after_commit callback or a job enqueue
+    # that raised) leaves the comment written, yet BaseActor answers it as
+    # :internal_error where it does not re-raise, having logged it. It counts
+    # as saved here: answered as a failure, it would be retried, and a retry
+    # with the same Idempotency-Key, whose store keeps only successes, would
+    # write the comment a second time. A rollback marks the post new again, so
+    # a persisted post was committed.
     def save
       raise ArgumentError, 'build the comment before saving it' if @actor.nil?
 
-      @actor.call
+      result = @actor.call
+      return result if result.success? || !@actor.record.persisted?
+
+      Actors::BaseActor::Result.new(success: true, resource: @actor.record)
     end
 
     private

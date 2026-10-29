@@ -880,9 +880,15 @@ part can name a charset of its own (`text/plain; charset=...`): `html` hands it 
 it came, as before (a Latin-1 comment keeps its letters), `plain` transcodes it to UTF-8, and a
 `plain` part declared binary must hold UTF-8. An unexpected actor failure (`internal_error`) answers 500 without the exception's
 text, every other failure 422 `validation_failed` as before; MCP answers `comment failed:
-unexpected error`. Capability `posts.plain`. Guards:
+unexpected error`. ⚠️ A failure after the commit (an after_commit callback or a job enqueue
+that raised) leaves the comment written: `Posts::Comment#save` counts it as saved, so REST
+answers 201 and keeps its Idempotency-Key, and MCP returns the comment. Answered as an error,
+a retry with the same key wrote it twice, because the key keeps only successes. Capability
+`posts.plain`. Guards:
 `spec/requests/api/v1/post_comment_format_spec.rb`, `spec/services/posts/comment_spec.rb`,
-`spec/requests/api/mcp_plain_comment_spec.rb`.
+`spec/requests/api/mcp_plain_comment_spec.rb`, `spec/locales/token_rule_refusal_texts_spec.rb`
+(the refusals of `Posts::Comment` and `TimeSessions::Booking`, the MCP texts and the de and en
+keys are three lists kept by hand; the guard holds them together).
 
 ## Admin: Betreiber-Teile kommen nur über Schlitze
 

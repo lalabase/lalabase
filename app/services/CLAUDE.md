@@ -202,7 +202,11 @@ Verzeichnis-Übersicht (Auswahl):
   a token: the MCP tool `post_comment` and `POST /api/v1/tickets/:ticket_id/posts` call it.
   `parse` (format `html`/`plain`, valid UTF-8, no NUL in plain, `plain_text_body.rb`, empty
   after conversion), `build` (the unsaved post through `Actors::SavePost`, for the caller's
-  `:create?`), `save`; rights and wording stay with the callers. ⚠️ An empty html body is
+  `:create?`), `save` (a comment written before a failure after the commit counts as saved,
+  else a retry with the same Idempotency-Key writes it twice); rights and wording stay with
+  the callers. The refusals (`REFUSALS`), the tool's `REFUSAL_TEXT` and the
+  `services.post_comment` keys in de and en are held together by
+  `spec/locales/token_rule_refusal_texts_spec.rb`. ⚠️ An empty html body is
   answered differently on purpose: MCP refuses it before the ticket lookup (`body is
   required`, as always), REST leaves it to the model after the write check (its answer
   without `format` stays byte for byte). Not a second rule: do not align them in one hull.

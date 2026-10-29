@@ -74,7 +74,8 @@ Codebase-Verständnis.
   is decided on the converted text (a body of Unicode whitespace only is `body is
   required`). The tool keeps its own texts (`REFUSAL_TEXT`) and checks before the ticket
   lookup; model save failures stay `refused`, an unexpected one (`internal_error`) is
-  `comment failed: unexpected error`, never the exception's text.
+  `comment failed: unexpected error`, never the exception's text, unless it came after
+  the commit: then the comment is written and the tool returns it.
   Zwei Formen: `record`-Werkzeuge liefern
   Zeilen und zitieren jede (Ticket-Werkzeuge), `report`-Werkzeuge liefern nur Zahlen und
   zitieren die Auswertung (`summarize_time_sessions`, Zitationstyp `time_report`). Ein

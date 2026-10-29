@@ -228,5 +228,41 @@ RSpec.describe Posts::Comment, :ci_guard do
     it 'refuses to save a comment that was not built' do
       expect { described_class.parse(body: 'x').save }.to raise_error(ArgumentError)
     end
+
+    # BaseActor answers an unexpected exception as :internal_error only where it
+    # does not re-raise (production); development and test re-raise.
+    def without_reraise
+      original = Rails.application.config.x.actors.reraise_unexpected
+      Rails.application.config.x.actors.reraise_unexpected = false
+      yield
+    ensure
+      Rails.application.config.x.actors.reraise_unexpected = original
+    end
+
+    # The author's subscription runs after the commit (Post after_create_commit).
+    it 'counts a comment written before a failure after the commit as saved' do
+      comment = described_class.parse(body: 'x', format: 'plain')
+      post = comment.build(ticket: ticket, current_user: user)
+      allow(NotificationSubscription).to receive(:system_subscribe).and_raise(ActiveRecord::ConnectionNotEstablished, 'gone')
+
+      result = nil
+      expect { without_reraise { result = comment.save } }.to change(Post, :count).by(1)
+      expect(result).to be_success
+      expect(result.resource).to eq(post)
+    end
+
+    # The post_added activity is written inside the transaction: a failure there
+    # rolls the post back, and it must not count as saved.
+    it 'answers a failure before the commit as a failure, writing nothing' do
+      comment = described_class.parse(body: 'x', format: 'plain')
+      post = comment.build(ticket: ticket, current_user: user)
+      allow_any_instance_of(Ticket).to receive(:track_post_added).and_raise(ActiveRecord::ConnectionNotEstablished, 'gone')
+
+      result = nil
+      expect { without_reraise { result = comment.save } }.not_to change(Post, :count)
+      expect(result).not_to be_success
+      expect(result.code).to eq(:internal_error)
+      expect(post).not_to be_persisted
+    end
   end
 end

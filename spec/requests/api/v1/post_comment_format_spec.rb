@@ -546,6 +546,29 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       expect(body).to eq('error' => 'validation_failed', 'code' => 'invalid_input',
                          'errors' => ['Visible to user must be a member of the organisation'])
     end
+
+    def without_reraise
+      original = Rails.application.config.x.actors.reraise_unexpected
+      Rails.application.config.x.actors.reraise_unexpected = false
+      yield
+    ensure
+      Rails.application.config.x.actors.reraise_unexpected = original
+    end
+
+    # The author's subscription runs after the commit (Post after_create_commit).
+    # Answered as a 500, the comment stood all the same, and a retry with the
+    # same key wrote it a second time: the key keeps only successes.
+    it 'answers a comment written before a failure after the commit as written, so a keyed retry replays it' do
+      ticket
+      allow(NotificationSubscription).to receive(:system_subscribe).and_raise(ActiveRecord::ConnectionNotEstablished, 'gone')
+
+      expect { without_reraise { comment(key: 'r3a-after-commit', format: 'plain', body: 'x') } }.to change { posts_count }.by(1)
+      expect(response).to have_http_status(:created)
+      first = response.body
+      expect { without_reraise { comment(key: 'r3a-after-commit', format: 'plain', body: 'x') } }.not_to(change { posts_count })
+      expect(response).to have_http_status(:created)
+      expect(response.body).to eq(first)
+    end
   end
 
   describe 'Idempotency-Key' do

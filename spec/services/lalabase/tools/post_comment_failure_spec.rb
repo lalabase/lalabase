@@ -100,6 +100,23 @@ RSpec.describe Lalabase::Tools::PostComment, :ci_guard do
     expect(result.error_code).to eq(:refused)
   end
 
+  # The author's subscription runs after the commit (Post after_create_commit).
+  # The comment stands, so the tool answers it: an error would invite a retry
+  # that writes it a second time.
+  it 'answers a comment written before a failure after the commit with the comment' do
+    ticket
+    allow(NotificationSubscription).to receive(:system_subscribe).and_raise(ActiveRecord::ConnectionNotEstablished, 'gone')
+    original = Rails.application.config.x.actors.reraise_unexpected
+    Rails.application.config.x.actors.reraise_unexpected = false
+
+    result = nil
+    expect { result = execute }.to change(Post, :count).by(1)
+    expect(result).to be_success
+    expect(Post.find(JSON.parse(result.content).fetch('id'))).to be_persisted
+  ensure
+    Rails.application.config.x.actors.reraise_unexpected = original
+  end
+
   it 'still names the reason of any other failure, as before' do
     failing_save(:validation_failed, ['Content darf nicht leer sein'])
     result = execute

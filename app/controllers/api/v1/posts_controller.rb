@@ -66,8 +66,9 @@ module Api
 
       # A failure the actor did not expect (BaseActor answers :internal_error
       # where it does not re-raise) is no refusal of the input: a 500 without the
-      # exception's text, which may name the database. Every other failure
-      # answers as it always did.
+      # exception's text, which may name the database. Only a failure before the
+      # commit gets here: a comment already written counts as saved
+      # (Posts::Comment#save). Every other failure answers as it always did.
       def render_comment_failure(result)
         return render_error(error: 'internal_error', status: :internal_server_error) if result.code == :internal_error
 

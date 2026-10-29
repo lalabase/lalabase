@@ -5,7 +5,7 @@ module Lalabase
     # Reads one person of the organisation's directory as JSON (People S3), the counterpart of
     # get_ticket for the directory, addressed by the id find_people hands out. The card is where
     # the contact details are: email, phone and the additional details, for the one person the
-    # model chose (PeopleTool.card).
+    # model chose (People::Lookup.card).
     #
     # The id resolves through the asker's directory (People::Lookup#entry) and nowhere else
     # (never Person.find), so the id of another organisation, of a person the asker may not see

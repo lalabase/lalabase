@@ -70,7 +70,8 @@ module Lalabase
       # token reaches (E1, People::Lookup.for_token), else not found like an organisation
       # outside it; the call runs under that organisation's tenant; the people right comes
       # next (refused); and the decision is marked for the D7 tripwire. PersonPolicy#index?
-      # reads the tenant, so a call that ran without it would be refused, not served.
+      # reads the tenant, so a call that ran without it would be turned away (forbidden), not
+      # served.
       def self.with_token_lookup(args, context)
         return Result.new(error: 'token context missing') unless token_wide?(context)
 

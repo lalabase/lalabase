@@ -161,6 +161,14 @@ RSpec.describe Lalabase::Tools::CreateTimeSession do
     expect(run(duration_minutes: true).error).to eq('duration_minutes must be a whole number of minutes')
   end
 
+  # BaseActor answers :internal_error where it does not re-raise (production);
+  # its message may name the database, so the agent gets a fixed text.
+  it 'answers an unexpected failure without the exception text' do
+    allow(Actors::SaveTimeSession).to receive(:call)
+      .and_return(Actors::BaseActor::Result.new(success: false, errors: ['PG::Error: secret'], code: :internal_error))
+    expect(run(duration: '30').error).to eq('booking failed: unexpected error')
+  end
+
   it 'refuses a call without any duration, writing nothing' do
     result = nil
     expect { result = run({}) }.not_to change(TimeSession, :count)

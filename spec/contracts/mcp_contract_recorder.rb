@@ -504,7 +504,8 @@ module McpContract
         'idempotency_first' => rest_send(:post, :write, login, params: once, key: key),
         'idempotency_replay' => rest_send(:post, :write, login, params: once, key: key),
         'idempotency_mismatch' => rest_send(:post, :write, login, params: { time_session: { duration_string: '0:20' } },
-                                                                  key: key)
+                                                                  key: key),
+        'invalid_input_minutes' => rest_send(:post, :write, login, params: { time_session: { duration_minutes: '1.5' } })
       }
     end
 

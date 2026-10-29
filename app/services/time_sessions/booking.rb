@@ -28,7 +28,7 @@ module TimeSessions
     REFUSALS = %i[duration_missing both_durations duration_minutes_invalid occurred_on_invalid].freeze
 
     PLAIN_DATE = /\A\d{4}-\d{2}-\d{2}\z/
-    WHOLE_MINUTES = /\A\s*\d+\s*\z/
+    WHOLE_MINUTES = /\A\s*[+-]?\d+\s*\z/
 
     attr_reader :refusal
 
@@ -96,10 +96,11 @@ module TimeSessions
       :occurred_on_invalid if @day.nil?
     end
 
-    # A whole number of minutes, as a number or as digits. A fraction would be
-    # cut to the minute below ("1.5" booked as 1, while duration_string "1.5"
-    # is 90 minutes); anything else is no number. Zero and negative numbers pass
-    # here and are refused by the model (duration > 0).
+    # A whole number of minutes, as a number or as digits with an optional
+    # sign. A fraction would be cut to the minute below ("1.5" booked as 1,
+    # while duration_string "1.5" is 90 minutes); anything else is no number.
+    # Zero and negative numbers pass here, in either form, and the model refuses
+    # them (duration > 0) with its own message.
     def whole_minutes?(value)
       value.is_a?(Integer) || (value.is_a?(String) && value.match?(WHOLE_MINUTES))
     end

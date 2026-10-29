@@ -46,7 +46,7 @@ RSpec.describe TimeSessions::Booking do
     end
 
     it 'takes whole minutes as a number or as digits' do
-      [45, '45', ' 45 ', 0, -5].each do |minutes|
+      [45, '45', ' 45 ', '+45', 0, -5, '-5'].each do |minutes|
         expect(parse(duration_minutes: minutes).refused?).to be(false), minutes.inspect
       end
     end

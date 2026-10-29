@@ -97,10 +97,20 @@ module Lalabase
         authorize!(context, session, :create?)
 
         result = booking.save(session)
-        return Result.new(error: "booking failed: #{Array(result.errors).join(', ')}") unless result.success?
+        return Result.new(error: booking_failure(result)) unless result.success?
 
         json_result(TimeSessions::Serializer.row(result.resource))
       end
+
+      # A refusal of the booking names its reason; an unexpected failure
+      # (BaseActor's :internal_error where it does not re-raise) gets a fixed
+      # text, its message may name the database.
+      def self.booking_failure(result)
+        return 'booking failed: unexpected error' if result.code == :internal_error
+
+        "booking failed: #{Array(result.errors).join(', ')}"
+      end
+      private_class_method :booking_failure
     end
   end
 end

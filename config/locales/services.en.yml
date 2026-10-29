@@ -96,6 +96,13 @@ en:
       generic_error: "The time session could not be saved. Please try again later."
       meeting_moved: "The meeting is in another project now. Please book the time there."
       moved_meanwhile: "The time session is in another project now. Please reload the page."
+    # The refusals of a time booking through a token (TimeSessions::Booking),
+    # as the HTTP API answers them; the MCP tool keeps its own English texts.
+    time_session_booking:
+      duration_missing: "Give a duration (duration_string or duration_minutes)."
+      both_durations: "Give the duration either as duration_string or as duration_minutes, not both."
+      duration_minutes_invalid: "Give duration_minutes as a whole number of minutes."
+      occurred_on_invalid: "The date (occurred_on) is no ISO 8601 date or timestamp."
     bulk_customer_description_generator:
       empty_result: "Time session %{id}: The AI returned no description."
     embedding_reprocessing:

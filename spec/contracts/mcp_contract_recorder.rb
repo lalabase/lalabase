@@ -541,7 +541,43 @@ module McpContract
         'GET /api/v1/organisations/:organisation_id/people' => rest_people_list_calls,
         'GET /api/v1/organisations/:organisation_id/people/:id' => rest_people_show_calls,
         # REST R1: the ticket view without MCP.
-        'ticket_view' => rest_ticket_view_calls
+        'ticket_view' => rest_ticket_view_calls,
+        # REST R6 runs after the reads above, so its bookings do not change their answers.
+        'POST /api/v1/tickets/:ticket_id/time_sessions' => rest_booking_calls
+      }
+    end
+
+    def rest_booking_calls
+      # Spelled out, not a loop: each request from its own line (Prosopite).
+      path = ->(ticket) { "/api/v1/tickets/#{id(ticket)}/time_sessions" }
+      login = path.call(:login_ticket)
+      once = { time_session: { duration_string: '0:15', description: 'Per REST, einmal.' } }
+      key = 'contract-rest-book-1'
+      {
+        'ok_minutes_text' => rest_send(:post, :write, login, params: { time_session: { duration_string: '30' } }),
+        'ok_hours_text' => rest_send(:post, :write, login,
+                                     params: { time_session: { duration_string: '1:30', occurred_on: '2026-01-04',
+                                                               description: 'Vertrag' } }),
+        'ok_minutes' => rest_send(:post, :write, login, params: { time_session: { duration_minutes: 45 } }),
+        'invalid_input_no_duration' => rest_send(:post, :write, login, params: { time_session: { description: 'x' } }),
+        'invalid_input_both_durations' => rest_send(:post, :write, login,
+                                                    params: { time_session: { duration_string: '30',
+                                                                              duration_minutes: 30 } }),
+        'invalid_input_date' => rest_send(:post, :write, login,
+                                          params: { time_session: { duration_string: '30', occurred_on: '05.01.2026' } }),
+        'invalid_input_over_a_day' => rest_send(:post, :write, login, params: { time_session: { duration_string: '24:01' } }),
+        'not_found' => rest_send(:post, :write, path.call(:missing), params: { time_session: { duration_string: '30' } }),
+        # No read access to the ticket: answered like a missing one.
+        'hidden' => rest_send(:post, :write, path.call(:hidden_ticket), params: { time_session: { duration_string: '30' } }),
+        # Anna reads the archive's tickets but has no time right there.
+        'forbidden' => rest_send(:post, :write, path.call(:archived_ticket),
+                                 params: { time_session: { duration_string: '30' } }),
+        'read_only' => rest_send(:post, :read, login, params: { time_session: { duration_string: '30' } }),
+        'idempotency_first' => rest_send(:post, :write, login, params: once, key: key),
+        'idempotency_replay' => rest_send(:post, :write, login, params: once, key: key),
+        'idempotency_mismatch' => rest_send(:post, :write, login, params: { time_session: { duration_string: '0:20' } },
+                                                                  key: key),
+        'invalid_input_minutes' => rest_send(:post, :write, login, params: { time_session: { duration_minutes: '1.5' } })
       }
     end
 

@@ -37,7 +37,12 @@ Verzeichnis-Übersicht (Auswahl):
   sechstes Mal von Hand zu schreiben. `bucket_totals.rb` ist der
   zweite Besitzer daneben: die Aggregation in die drei Abrechnungs-Töpfe, in EINER Query,
   geteilt von `SummarizeTimeSessions` und dem Report-Panel des Assistenten — die
-  Einordnung selbst bleibt `TimeSession.billing_bucket_for`. `date_bound.rb` ist der
+  Einordnung selbst bleibt `TimeSession.billing_bucket_for`. `booking.rb` (seit 29.10.2026,
+  REST R6) ist die EINE Regel einer Zeitbuchung per Token: das MCP-Werkzeug
+  `create_time_session` und `POST /api/v1/tickets/:ticket_id/time_sessions` buchen beide
+  hier durch (Dauer Pflicht und nur eine, `occurred_on` als Kalendertag in der Profilzone,
+  Schreiben über `Actors::SaveTimeSession`); Rechte prüfen die Hüllen zwischen `parse`,
+  `build` und `save`, die Texte der Ablehnungen auch. `date_bound.rb` ist der
   dritte: die EINE Antwort auf „ist das eine Datumsgrenze, die ich der Datenbank geben
   darf". `empty_reason.rb` ist der vierte: WARUM die Zeitenliste leer ist. Drop-one, ein
   `EXISTS` je aktivem Filter und nur, wenn die Liste schon leer ist; „aktiv" fragt es am

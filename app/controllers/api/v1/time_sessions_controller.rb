@@ -57,55 +57,59 @@ module Api
       end
 
       # POST /api/v1/tickets/:ticket_id/time_sessions
+      # Books by the rule the MCP tool create_time_session books by
+      # (TimeSessions::Booking): the day in the token owner's zone, one duration,
+      # the write through Actors::SaveTimeSession. The input is checked inside
+      # the read gate, so a refusal of it only ever answers for a ticket the
+      # token can read and tells nothing the 404 does not.
       def create
-        with_readable_ticket(params[:ticket_id]) do |ticket, project|
-          session = build_session(ticket, project)
+        with_readable_ticket(params[:ticket_id]) do |ticket, _project|
+          booking = TimeSessions::Booking.parse(actor: current_user, **session_params)
+          next render_booking_refusal(booking.refusal) if booking.refused?
+
+          session = booking.build(ticket: ticket)
           authorize session, :create?
 
-          if session.save
-            render json: { data: TimeSessions::Serializer.row(session) }, status: :created
+          result = booking.save(session)
+          if result.success?
+            render json: { data: TimeSessions::Serializer.row(result.resource) }, status: :created
           else
-            render_error(error: 'validation_failed', errors: session.errors.full_messages, status: :unprocessable_entity)
+            render_booking_failure(result)
           end
         end
       end
 
       private
 
-      def build_session(ticket, project)
-        ts = TimeSession.new(
-          ticket: ticket,
-          project: project,
-          organisation: project.organisation,
-          creator: current_user,
-          occurred_on: parsed_occurred_on,
-          description: session_params[:description],
-          customer_description: session_params[:customer_description]
-        )
+      def render_booking_refusal(refusal)
+        render_error(error: 'validation_failed', errors: [I18n.t("services.time_session_booking.#{refusal}")],
+                     status: :unprocessable_entity)
+      end
 
-        if session_params[:duration_string].present?
-          ts.duration_string = session_params[:duration_string]
-        elsif session_params[:duration_minutes].present?
-          ts.duration = session_params[:duration_minutes].to_i
+      # A failure the actor did not expect (BaseActor answers :internal_error
+      # where it does not re-raise) is no refusal of the input: a 500 without the
+      # exception's text, which may name the database.
+      def render_booking_failure(result)
+        if result.code == :internal_error
+          render_error(error: 'internal_error', status: :internal_server_error)
+        else
+          render_error(error: result.code, errors: result.errors, status: :unprocessable_entity)
         end
-
-        ts
       end
 
       def session_params
-        params.require(:time_session).permit(
+        input = params.require(:time_session)
+        permitted = input.permit(
           :occurred_on, :duration_minutes, :duration_string,
           :description, :customer_description
         )
-      end
-
-      def parsed_occurred_on
-        raw = session_params[:occurred_on]
-        return Time.current if raw.blank?
-
-        Time.zone.parse(raw.to_s) || Time.current
-      rescue ArgumentError
-        Time.current
+        # Booking must see supplied arrays/objects too: scalar permit drops them,
+        # turning an invalid date into today or hiding a second duration. Only
+        # these three explicit inputs bypass filtering; Booking validates them.
+        permitted.to_h.symbolize_keys.merge(
+          occurred_on: input[:occurred_on], duration_minutes: input[:duration_minutes],
+          duration_string: input[:duration_string]
+        )
       end
 
       def paginate(relation)

@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "ce61484a85f94780cb44905b9389cdc6ef12b8c4",
+    "core_commit": "8da6fd8e1a6e30aec8fa2620118017cf36b68d97",
     "core_dirty": true,
-    "contract_sha256": "02d0ae3f56e787d7af48dc78b2fd116d45481737e099fe433e071c6ef51f3316"
+    "contract_sha256": "1ef1b7500cbe132f2917f4943c225aa9de71903b821aab523484bc6a032ac7a7"
   },
   "contract": {
     "mcp": {
@@ -3654,7 +3654,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.3.0",
+                "api_version": "1.4.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -3678,6 +3678,7 @@
                   "tickets.paging",
                   "tickets.show",
                   "tickets.update",
+                  "time_sessions.book",
                   "time_sessions.create",
                   "time_sessions.list",
                   "time_sessions.open"
@@ -3716,7 +3717,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.3.0",
+                "api_version": "1.4.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -3740,6 +3741,7 @@
                   "tickets.paging",
                   "tickets.show",
                   "tickets.update",
+                  "time_sessions.book",
                   "time_sessions.create",
                   "time_sessions.list",
                   "time_sessions.open"
@@ -4996,6 +4998,383 @@
             "body": {
               "error": "not_found",
               "code": "not_found"
+            }
+          }
+        }
+      },
+      "POST /api/v1/tickets/:ticket_id/time_sessions": {
+        "ok_minutes_text": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "30"
+              }
+            }
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-9>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "creator": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "occurred_on": "2026-01-05T00:00:00Z",
+                "duration_minutes": 30,
+                "description": null,
+                "customer_description": null,
+                "billed": false,
+                "billed_at": null,
+                "created_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "ok_hours_text": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "1:30",
+                "occurred_on": "2026-01-04",
+                "description": "Vertrag"
+              }
+            }
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-10>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "creator": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "occurred_on": "2026-01-04T00:00:00Z",
+                "duration_minutes": 90,
+                "description": "Vertrag",
+                "customer_description": null,
+                "billed": false,
+                "billed_at": null,
+                "created_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "ok_minutes": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_minutes": 45
+              }
+            }
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-11>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "creator": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "occurred_on": "2026-01-05T00:00:00Z",
+                "duration_minutes": 45,
+                "description": null,
+                "customer_description": null,
+                "billed": false,
+                "billed_at": null,
+                "created_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "invalid_input_no_duration": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "description": "x"
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Bitte geben Sie eine Dauer an (duration_string oder duration_minutes)."
+              ]
+            }
+          }
+        },
+        "invalid_input_both_durations": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "30",
+                "duration_minutes": 30
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Bitte geben Sie die Dauer entweder als duration_string oder als duration_minutes an, nicht beides."
+              ]
+            }
+          }
+        },
+        "invalid_input_date": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "30",
+                "occurred_on": "05.01.2026"
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Das Datum (occurred_on) ist kein ISO-8601-Datum und kein ISO-8601-Zeitstempel."
+              ]
+            }
+          }
+        },
+        "invalid_input_over_a_day": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "24:01"
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Dauer darf höchstens 1440 Minuten (24 Stunden) betragen"
+              ]
+            }
+          }
+        },
+        "not_found": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000999/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "30"
+              }
+            }
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "hidden": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000043/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "30"
+              }
+            }
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "forbidden": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000044/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "30"
+              }
+            }
+          },
+          "response": {
+            "status": 403,
+            "body": {
+              "error": "forbidden",
+              "code": "forbidden"
+            }
+          }
+        },
+        "read_only": {
+          "token": "read",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "30"
+              }
+            }
+          },
+          "response": {
+            "status": 403,
+            "body": {
+              "error": "forbidden",
+              "code": "read_only"
+            }
+          }
+        },
+        "idempotency_first": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "0:15",
+                "description": "Per REST, einmal."
+              }
+            },
+            "idempotency_key": "contract-rest-book-1"
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-12>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "creator": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "occurred_on": "2026-01-05T00:00:00Z",
+                "duration_minutes": 15,
+                "description": "Per REST, einmal.",
+                "customer_description": null,
+                "billed": false,
+                "billed_at": null,
+                "created_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "idempotency_replay": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "0:15",
+                "description": "Per REST, einmal."
+              }
+            },
+            "idempotency_key": "contract-rest-book-1"
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-12>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "creator": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "occurred_on": "2026-01-05T00:00:00Z",
+                "duration_minutes": 15,
+                "description": "Per REST, einmal.",
+                "customer_description": null,
+                "billed": false,
+                "billed_at": null,
+                "created_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "idempotency_mismatch": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_string": "0:20"
+              }
+            },
+            "idempotency_key": "contract-rest-book-1"
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "idempotency_key_reused",
+              "code": "invalid_input",
+              "message": "idempotency_key already used with different parameters"
+            }
+          }
+        },
+        "invalid_input_minutes": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/time_sessions",
+            "params": {
+              "time_session": {
+                "duration_minutes": "1.5"
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Bitte geben Sie duration_minutes als ganze Zahl von Minuten an."
+              ]
             }
           }
         }

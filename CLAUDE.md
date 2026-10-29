@@ -811,7 +811,8 @@ feature by feature):
   crosses surfaces. Runs inside authentication and the read-only gate. A key is at most 255
   bytes of valid UTF-8 without NUL (else: 422 `invalid_idempotency_key`, nothing written).
   One rule for both surfaces, `Mcp::IdempotencyStore.client_key` (strip, blank is no key) and
-  `.storable_key?`: since MCP 0.13.1 a write tool refuses such an `idempotency_key` as
+  `.storable_key?` (`IdempotencyStore.new` raises on any other key, before the write, so a
+  third caller cannot skip it): since MCP 0.13.1 a write tool refuses such an `idempotency_key` as
   `invalid_input` before it runs, after the project and read-only gates (guard
   `spec/requests/api/mcp_idempotency_key_bound_spec.rb`; it used to write, fail to remember
   the key with -32603 and write again on every retry). A replay checks no rights

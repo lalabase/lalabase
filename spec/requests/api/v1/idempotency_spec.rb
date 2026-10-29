@@ -194,6 +194,25 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
       key = 'k' * Mcp::IdempotencyStore::MAX_KEY_LENGTH
       expect { 2.times { comment('Hallo', key: key) } }.to change { posts_count }.by(1)
     end
+
+    # The header is read by the rule the MCP argument is read by
+    # (Mcp::IdempotencyStore.client_key): surrounding whitespace goes before the
+    # key is counted or stored, so the bare key replays the first answer.
+    it 'drops surrounding whitespace before it counts, as MCP does' do
+      key = 'k' * Mcp::IdempotencyStore::MAX_KEY_LENGTH
+      expect { comment('Hallo', key: " #{key}\t") }.to change { posts_count }.by(1)
+      first = snapshot
+      expect(first.first).to eq(201)
+
+      expect { comment('Hallo', key: key) }.not_to(change { posts_count })
+      expect(snapshot).to eq(first)
+    end
+
+    it 'names the header and the bound in its refusal' do
+      comment('Hallo', key: 'k' * (Mcp::IdempotencyStore::MAX_KEY_LENGTH + 1))
+      expect(response.parsed_body).to eq('error' => 'invalid_idempotency_key', 'code' => 'invalid_input',
+                                         'message' => 'Idempotency-Key must be valid UTF-8 without NUL, at most 255 bytes')
+    end
   end
 
   # A malformed JSON body answers like any bad request, with a code, whether

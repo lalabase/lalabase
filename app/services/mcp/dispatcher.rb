@@ -48,6 +48,9 @@ module Mcp
     # for a token that reaches every project of the organisation named).
     # 0.13.1 = a key the store cannot hold (more than 255 bytes, no valid UTF-8,
     # a NUL) is refused as invalid_input before the write, as REST does since R0.
+    # It narrows an existing argument on purpose, released as a fix: a key of 256
+    # bytes up to about 2.6 KB used to be stored and replayed (one stored before
+    # is refused now, not replayed), a longer one wrote again on every retry.
     SERVER_VERSION = '0.13.1'
 
     # MCP surface — sourced from the single tool registry (D6): the :mcp set is the

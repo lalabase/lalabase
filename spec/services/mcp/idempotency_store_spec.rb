@@ -99,6 +99,16 @@ RSpec.describe Mcp::IdempotencyStore, :ci_guard do
     it 'strips a binary header like any other key' do
       expect(described_class.client_key(' k-1 '.b)).to eq('k-1'.b)
     end
+
+    # Blank is Rails' blank? in the key's own encoding, as before on both
+    # surfaces: in UTF-8 (an MCP argument) a Unicode space is blank, so the call
+    # has no key; in binary (a REST header from Puma) only an ASCII space is, so
+    # the same bytes are a key there, and the model, which sees the same binary
+    # string, stores it.
+    it 'reads Unicode spaces alone as no key in UTF-8 and as a key in binary' do
+      expect(described_class.client_key("\u00A0")).to be_nil
+      expect(described_class.client_key("\xC2\xA0".b)).to eq("\xC2\xA0".b)
+    end
   end
 
   describe '.storable_key?' do
@@ -125,6 +135,24 @@ RSpec.describe Mcp::IdempotencyStore, :ci_guard do
 
     it 'holds a binary key whose bytes are valid UTF-8' do
       expect(described_class.storable_key?('schlüssel'.b)).to be(true)
+    end
+
+    # The model refuses a blank key (presence), after the write: blank in the
+    # key's own encoding, as the model sees it.
+    it 'refuses a blank key, holding Unicode spaces only in binary' do
+      expect(['', " \t", "\u00A0"].map { |key| described_class.storable_key?(key) }).to all(be(false))
+      expect(described_class.storable_key?("\xC2\xA0".b)).to be(true)
+    end
+  end
+
+  describe '.new' do
+    # Both surfaces refuse such a key before the write. One that forgot would
+    # otherwise fail only in #remember, after the write, and its retry would
+    # write again: the store refuses it before anything runs.
+    it 'refuses a key the store cannot hold' do
+      ['k' * 256, "k\0x", "k\xFFx".b, ''].each do |key|
+        expect { store(key: key, args: { a: 1 }) }.to raise_error(ArgumentError, /cannot hold/)
+      end
     end
   end
 

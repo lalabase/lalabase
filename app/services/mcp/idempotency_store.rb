@@ -59,11 +59,13 @@ module Mcp
     end
 
     # Within the index (bytes) and storable in a PostgreSQL text column: valid
-    # UTF-8 without NUL, which the database refuses with an error otherwise.
-    # Takes a key from .client_key; a binary one is read as the UTF-8 it claims.
+    # UTF-8 without NUL, which the database refuses with an error otherwise; and
+    # not blank, which the model refuses (blank? in the key's own encoding, the
+    # one the model sees). Takes a key from .client_key, which is never blank; a
+    # binary one is read as the UTF-8 it claims.
     def self.storable_key?(key)
       utf8 = key.dup.force_encoding(Encoding::UTF_8)
-      key.bytesize <= MAX_KEY_LENGTH && utf8.valid_encoding? && !utf8.include?("\0")
+      key.bytesize <= MAX_KEY_LENGTH && utf8.valid_encoding? && !utf8.include?("\0") && key.present?
     end
 
     # The refusal of a key outside .storable_key?, naming the field the surface
@@ -79,6 +81,11 @@ module Mcp
     # @param args [Hash] the request args the key dedupes (already minus the key);
     #   its fingerprint detects a key reused with a DIFFERENT payload.
     def initialize(token:, tool_name:, key:, args:)
+      # Both surfaces refuse such a key before the write. A caller that forgot
+      # would fail only in #remember, after the write, and its retry would write
+      # again: refused here, before anything runs.
+      raise ArgumentError, 'the store cannot hold this idempotency key' unless self.class.storable_key?(key)
+
       @token = token
       @tool_name = tool_name
       @key = key

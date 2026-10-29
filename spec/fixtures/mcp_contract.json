@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "d65653e2f2f97830d0a0bd7eeec32e61ee04710a",
+    "core_commit": "14fb8dae1789251791aa467a40e561067042e4c5",
     "core_dirty": true,
-    "contract_sha256": "74378fb5a0725c5d4d72633c74372240663e936e2e0b126d48b769d9e094fbf5"
+    "contract_sha256": "3b3dedf189048147ae11c6f632eba01cbe0f4bf444bda60a588e3265c2b3280a"
   },
   "contract": {
     "mcp": {
@@ -3658,15 +3658,15 @@
         "show": {
           "token": "read",
           "request": {
-            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041"
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000042"
           },
           "response": {
             "status": 200,
             "body": {
               "data": {
-                "id": "00000000-0000-4000-8000-000000000041",
-                "number": 1,
-                "title": "Login bricht ab",
+                "id": "00000000-0000-4000-8000-000000000042",
+                "number": 2,
+                "title": "Export als CSV und XLSX",
                 "status": "in_progress",
                 "status_functions": [
                   "is_in_progress"
@@ -3677,126 +3677,26 @@
                   {
                     "id": "00000000-0000-4000-8000-000000000011",
                     "name": "Anna Albers"
-                  },
-                  {
-                    "id": "00000000-0000-4000-8000-000000000012",
-                    "name": "Ben Berger"
-                  },
-                  {
-                    "id": "00000000-0000-4000-8000-000000000013",
-                    "name": "Carla Conrad"
                   }
                 ],
                 "creator": {
-                  "id": "00000000-0000-4000-8000-000000000011",
-                  "name": "Anna Albers"
+                  "id": "00000000-0000-4000-8000-000000000012",
+                  "name": "Ben Berger"
                 },
-                "created_at": "2026-01-05T09:21:00Z",
+                "created_at": "2026-01-05T09:22:00Z",
                 "updated_at": "2026-01-05T09:36:00Z",
                 "summary": null,
-                "description_html": "Nach dem Absenden bleibt die Seite weiß.",
-                "description_text": "Nach dem Absenden bleibt die Seite weiß.",
+                "description_html": "Spalten wie in der Liste.",
+                "description_text": "Spalten wie in der Liste.",
                 "custom_attributes": {
                   "status": "in_progress",
-                  "priority": "high"
+                  "priority": "normal"
                 },
                 "project": {
                   "id": "00000000-0000-4000-8000-000000000031",
                   "name": "Website-Relaunch"
                 },
-                "posts": [
-                  {
-                    "id": "00000000-0000-4000-8000-000000000051",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000012",
-                      "name": "Ben Berger"
-                    },
-                    "body_html": "Tritt nur in Safari auf.",
-                    "body_text": "Tritt nur in Safari auf.",
-                    "is_private": false,
-                    "attachments_count": 1,
-                    "created_at": "2026-01-05T09:25:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "00000000-0000-4000-8000-000000000052",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "Ich schaue es mir an.",
-                    "body_text": "Ich schaue es mir an.",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:26:00Z",
-                    "updated_at": "2026-01-05T09:26:00Z"
-                  },
-                  {
-                    "id": "<generated-id-1>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "Behoben in 2.4.1.",
-                    "body_text": "Behoben in 2.4.1.",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "<generated-id-2>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "<p>line one<br>line two</p><p>see &lt;file.txt&gt; &amp;lt;tag&amp;gt;</p>",
-                    "body_text": "line one\nline two\n\nsee <file.txt> &lt;tag&gt;",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "<generated-id-3>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "<p><b>bold</b></p>",
-                    "body_text": "bold",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "<generated-id-4>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "<p>&lt;private&gt;</p>",
-                    "body_text": "<private>",
-                    "is_private": true,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "<generated-id-7>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "Per REST, einmal.",
-                    "body_text": "Per REST, einmal.",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  }
-                ]
+                "posts": []
               },
               "permissions": {
                 "is_account_admin": false,
@@ -3962,15 +3862,15 @@
         "by_number": {
           "token": "read",
           "request": {
-            "path": "/api/v1/projects/00000000-0000-4000-8000-000000000031/tickets/number/1"
+            "path": "/api/v1/projects/00000000-0000-4000-8000-000000000031/tickets/number/2"
           },
           "response": {
             "status": 200,
             "body": {
               "data": {
-                "id": "00000000-0000-4000-8000-000000000041",
-                "number": 1,
-                "title": "Login bricht ab",
+                "id": "00000000-0000-4000-8000-000000000042",
+                "number": 2,
+                "title": "Export als CSV und XLSX",
                 "status": "in_progress",
                 "status_functions": [
                   "is_in_progress"
@@ -3981,126 +3881,26 @@
                   {
                     "id": "00000000-0000-4000-8000-000000000011",
                     "name": "Anna Albers"
-                  },
-                  {
-                    "id": "00000000-0000-4000-8000-000000000012",
-                    "name": "Ben Berger"
-                  },
-                  {
-                    "id": "00000000-0000-4000-8000-000000000013",
-                    "name": "Carla Conrad"
                   }
                 ],
                 "creator": {
-                  "id": "00000000-0000-4000-8000-000000000011",
-                  "name": "Anna Albers"
+                  "id": "00000000-0000-4000-8000-000000000012",
+                  "name": "Ben Berger"
                 },
-                "created_at": "2026-01-05T09:21:00Z",
+                "created_at": "2026-01-05T09:22:00Z",
                 "updated_at": "2026-01-05T09:36:00Z",
                 "summary": null,
-                "description_html": "Nach dem Absenden bleibt die Seite weiß.",
-                "description_text": "Nach dem Absenden bleibt die Seite weiß.",
+                "description_html": "Spalten wie in der Liste.",
+                "description_text": "Spalten wie in der Liste.",
                 "custom_attributes": {
                   "status": "in_progress",
-                  "priority": "high"
+                  "priority": "normal"
                 },
                 "project": {
                   "id": "00000000-0000-4000-8000-000000000031",
                   "name": "Website-Relaunch"
                 },
-                "posts": [
-                  {
-                    "id": "00000000-0000-4000-8000-000000000051",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000012",
-                      "name": "Ben Berger"
-                    },
-                    "body_html": "Tritt nur in Safari auf.",
-                    "body_text": "Tritt nur in Safari auf.",
-                    "is_private": false,
-                    "attachments_count": 1,
-                    "created_at": "2026-01-05T09:25:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "00000000-0000-4000-8000-000000000052",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "Ich schaue es mir an.",
-                    "body_text": "Ich schaue es mir an.",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:26:00Z",
-                    "updated_at": "2026-01-05T09:26:00Z"
-                  },
-                  {
-                    "id": "<generated-id-1>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "Behoben in 2.4.1.",
-                    "body_text": "Behoben in 2.4.1.",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "<generated-id-2>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "<p>line one<br>line two</p><p>see &lt;file.txt&gt; &amp;lt;tag&amp;gt;</p>",
-                    "body_text": "line one\nline two\n\nsee <file.txt> &lt;tag&gt;",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "<generated-id-3>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "<p><b>bold</b></p>",
-                    "body_text": "bold",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "<generated-id-4>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "<p>&lt;private&gt;</p>",
-                    "body_text": "<private>",
-                    "is_private": true,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  },
-                  {
-                    "id": "<generated-id-7>",
-                    "author": {
-                      "id": "00000000-0000-4000-8000-000000000011",
-                      "name": "Anna Albers"
-                    },
-                    "body_html": "Per REST, einmal.",
-                    "body_text": "Per REST, einmal.",
-                    "is_private": false,
-                    "attachments_count": 0,
-                    "created_at": "2026-01-05T09:36:00Z",
-                    "updated_at": "2026-01-05T09:36:00Z"
-                  }
-                ]
+                "posts": []
               },
               "permissions": {
                 "is_account_admin": false,

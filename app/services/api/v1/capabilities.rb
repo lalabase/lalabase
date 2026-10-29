@@ -1,0 +1,51 @@
+# frozen_string_literal: true
+
+# What this server's REST API offers, for a client that decides from it which
+# features to show (cli_rest_plan D4), the way the terminal client reads MCP
+# tools/list today. GET /api/v1/me hands it out with API_VERSION.
+#
+# ONE list. spec/requests/api/v1/capabilities_spec.rb pins it against the
+# routes both ways: every endpoint capability has its route, every /api/v1
+# route is named here. A new endpoint therefore adds its line here or turns
+# that spec red.
+#
+# Entry point: names
+module Api
+  module V1
+    module Capabilities
+      # Minor for an additive change (a new endpoint, field or capability), major
+      # never: an existing name, field or meaning does not change.
+      API_VERSION = '1.1.0'
+
+      # name => [verb, path as the router spells it]
+      ENDPOINTS = {
+        'me.show' => ['GET', '/api/v1/me'],
+        'organisations.list' => ['GET', '/api/v1/organisations'],
+        'projects.list' => ['GET', '/api/v1/projects'],
+        'projects.ticket_attribute_definitions' => ['GET', '/api/v1/projects/:id/ticket_attribute_definitions'],
+        'tickets.list' => ['GET', '/api/v1/projects/:project_id/tickets'],
+        'tickets.create' => ['POST', '/api/v1/projects/:project_id/tickets'],
+        'tickets.show' => ['GET', '/api/v1/tickets/:id'],
+        'tickets.update' => ['PATCH', '/api/v1/tickets/:id'],
+        'tickets.activities' => ['GET', '/api/v1/tickets/:id/activities'],
+        'tickets.attachments' => ['GET', '/api/v1/tickets/:id/attachments'],
+        'posts.create' => ['POST', '/api/v1/tickets/:ticket_id/posts'],
+        'time_sessions.list' => ['GET', '/api/v1/tickets/:ticket_id/time_sessions'],
+        'time_sessions.create' => ['POST', '/api/v1/tickets/:ticket_id/time_sessions'],
+        'time_sessions.open' => ['GET', '/api/v1/time_sessions/open'],
+        'notifications.list' => ['GET', '/api/v1/notifications'],
+        'notifications.mark_as_read' => ['POST', '/api/v1/notifications/:id/mark_as_read'],
+        'notifications.archive' => ['POST', '/api/v1/notifications/:id/archive'],
+        'notifications.mark_all_as_read' => ['POST', '/api/v1/notifications/mark_all_as_read']
+      }.freeze
+
+      # Abilities that are not one endpoint: `idempotency` (the Idempotency-Key
+      # header on every write, D7) and `error_codes` (`code` on every error body, D6).
+      FEATURES = %w[idempotency error_codes].freeze
+
+      def self.names
+        (ENDPOINTS.keys + FEATURES).sort
+      end
+    end
+  end
+end

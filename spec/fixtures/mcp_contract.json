@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "fd599cb693f019c491228e081a54e59380d50b7d",
+    "core_commit": "5efde7ed1c730d059eb559e15fab95ef35ccf129",
     "core_dirty": true,
-    "contract_sha256": "5bcc5e85d196623f5d95be207275d2f8493062b988703534cfc0e0633d84d8bc"
+    "contract_sha256": "3fcc755d77e87d2762e975e0d111d8d5065f461277229f1a83d7bac370a672fb"
   },
   "contract": {
     "mcp": {
@@ -2991,6 +2991,29 @@
                     "name": "Nordlicht GmbH",
                     "all_projects": true
                   }
+                ],
+                "api_version": "1.1.0",
+                "capabilities": [
+                  "error_codes",
+                  "idempotency",
+                  "me.show",
+                  "notifications.archive",
+                  "notifications.list",
+                  "notifications.mark_all_as_read",
+                  "notifications.mark_as_read",
+                  "organisations.list",
+                  "posts.create",
+                  "projects.list",
+                  "projects.ticket_attribute_definitions",
+                  "tickets.activities",
+                  "tickets.attachments",
+                  "tickets.create",
+                  "tickets.list",
+                  "tickets.show",
+                  "tickets.update",
+                  "time_sessions.create",
+                  "time_sessions.list",
+                  "time_sessions.open"
                 ]
               }
             }
@@ -3025,6 +3048,29 @@
                     "name": "Nordlicht GmbH",
                     "all_projects": true
                   }
+                ],
+                "api_version": "1.1.0",
+                "capabilities": [
+                  "error_codes",
+                  "idempotency",
+                  "me.show",
+                  "notifications.archive",
+                  "notifications.list",
+                  "notifications.mark_all_as_read",
+                  "notifications.mark_as_read",
+                  "organisations.list",
+                  "posts.create",
+                  "projects.list",
+                  "projects.ticket_attribute_definitions",
+                  "tickets.activities",
+                  "tickets.attachments",
+                  "tickets.create",
+                  "tickets.list",
+                  "tickets.show",
+                  "tickets.update",
+                  "time_sessions.create",
+                  "time_sessions.list",
+                  "time_sessions.open"
                 ]
               }
             }
@@ -3038,7 +3084,8 @@
           "response": {
             "status": 401,
             "body": {
-              "error": "unauthorized"
+              "error": "unauthorized",
+              "code": "unauthorized"
             }
           }
         }
@@ -3083,7 +3130,8 @@
           "response": {
             "status": 401,
             "body": {
-              "error": "unauthorized"
+              "error": "unauthorized",
+              "code": "unauthorized"
             }
           }
         }
@@ -3231,7 +3279,8 @@
           "response": {
             "status": 401,
             "body": {
-              "error": "unauthorized"
+              "error": "unauthorized",
+              "code": "unauthorized"
             }
           }
         }
@@ -3323,7 +3372,8 @@
           "response": {
             "status": 404,
             "body": {
-              "error": "not_found"
+              "error": "not_found",
+              "code": "not_found"
             }
           }
         },
@@ -3335,7 +3385,209 @@
           "response": {
             "status": 404,
             "body": {
-              "error": "not_found"
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        }
+      },
+      "errors": {
+        "read_only": {
+          "token": "read",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "body": "Hallo"
+              }
+            }
+          },
+          "response": {
+            "status": 403,
+            "body": {
+              "error": "forbidden",
+              "code": "read_only"
+            }
+          }
+        },
+        "forbidden": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000044/posts",
+            "params": {
+              "post": {
+                "body": "Hallo"
+              }
+            }
+          },
+          "response": {
+            "status": 403,
+            "body": {
+              "error": "forbidden",
+              "code": "forbidden"
+            }
+          }
+        },
+        "not_found": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000999"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "invalid_input": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {}
+          },
+          "response": {
+            "status": 400,
+            "body": {
+              "error": "bad_request",
+              "code": "invalid_input",
+              "message": "param is missing or the value is empty or invalid: post"
+            }
+          }
+        },
+        "invalid_input_validation": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/projects/00000000-0000-4000-8000-000000000031/tickets",
+            "params": {
+              "ticket": {
+                "title": ""
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Titel darf nicht leer sein"
+              ]
+            }
+          }
+        },
+        "refused": {
+          "token": "write",
+          "request": {
+            "method": "PATCH",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041",
+            "params": {
+              "ticket": {
+                "status": "new"
+              }
+            }
+          },
+          "response": {
+            "status": 409,
+            "body": {
+              "error": "stale_object",
+              "code": "refused",
+              "reason": "stale_object",
+              "errors": [
+                "Der Datensatz wurde zwischenzeitlich von jemand anderem geändert. Bitte neu laden und erneut speichern."
+              ]
+            }
+          }
+        }
+      },
+      "idempotency": {
+        "first": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "body": "Per REST, einmal."
+              }
+            },
+            "idempotency_key": "contract-rest-1"
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-7>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "author": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "body_html": "Per REST, einmal.",
+                "body_text": "Per REST, einmal.",
+                "is_private": false,
+                "visible_to_user_id": null,
+                "created_at": "2026-01-05T09:36:00Z",
+                "updated_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "replay": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "body": "Per REST, einmal."
+              }
+            },
+            "idempotency_key": "contract-rest-1"
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-7>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "author": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "body_html": "Per REST, einmal.",
+                "body_text": "Per REST, einmal.",
+                "is_private": false,
+                "visible_to_user_id": null,
+                "created_at": "2026-01-05T09:36:00Z",
+                "updated_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "mismatch": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "body": "Anderer Text"
+              }
+            },
+            "idempotency_key": "contract-rest-1"
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "idempotency_key_reused",
+              "code": "invalid_input",
+              "message": "idempotency_key already used with different parameters"
             }
           }
         }

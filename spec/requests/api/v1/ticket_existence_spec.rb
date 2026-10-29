@@ -52,12 +52,12 @@ RSpec.describe 'REST ticket existence', :ci_guard, type: :request do
     end
   end
 
-  def expect_refusal(verb, suffix, payload, id:, status: :not_found, error: 'not_found')
+  def expect_refusal(verb, suffix, payload, id:, status: :not_found, error: 'not_found', code: 'not_found')
     before = domain_state
     request_ticket(verb, suffix, payload, id: id)
     expect(domain_state).to eq(before)
     expect(response).to have_http_status(status)
-    expect(response.body).to eq({ error: error }.to_json)
+    expect(response.body).to eq({ error: error, code: code }.to_json)
   end
 
   def member_of(org, admin: false)
@@ -185,13 +185,13 @@ RSpec.describe 'REST ticket existence', :ci_guard, type: :request do
           else
             expect(Ticket).not_to receive(:where)
             expect(Ticket).not_to receive(:includes)
-            expect_refusal(verb, suffix, payload, id: ticket.id, status: :forbidden, error: 'forbidden')
+            expect_refusal(verb, suffix, payload, id: ticket.id, status: :forbidden, error: 'forbidden', code: 'read_only')
           end
         end
 
         it 'returns the same answer for a missing UUID' do
-          status, error = verb == :get ? [:not_found, 'not_found'] : [:forbidden, 'forbidden']
-          expect_refusal(verb, suffix, payload, id: SecureRandom.uuid, status: status, error: error)
+          status, error, code = verb == :get ? [:not_found, 'not_found', 'not_found'] : [:forbidden, 'forbidden', 'read_only']
+          expect_refusal(verb, suffix, payload, id: SecureRandom.uuid, status: status, error: error, code: code)
         end
 
         context 'with a readable and writable ticket' do
@@ -202,7 +202,8 @@ RSpec.describe 'REST ticket existence', :ci_guard, type: :request do
               request_ticket(verb, suffix, payload)
               expect(response).to have_http_status(:ok)
             else
-              expect_refusal(verb, suffix, payload, id: ticket.id, status: :forbidden, error: 'forbidden')
+              expect_refusal(verb, suffix, payload, id: ticket.id, status: :forbidden, error: 'forbidden',
+                                                    code: 'read_only')
             end
           end
         end
@@ -250,7 +251,7 @@ RSpec.describe 'REST ticket existence', :ci_guard, type: :request do
 
     routes.reject { |verb,| verb == :get }.each do |verb, suffix, payload|
       it "keeps action refusal at 403 for #{verb.upcase} #{suffix.presence || 'ticket'}" do
-        expect_refusal(verb, suffix, payload, id: ticket.id, status: :forbidden, error: 'forbidden')
+        expect_refusal(verb, suffix, payload, id: ticket.id, status: :forbidden, error: 'forbidden', code: 'forbidden')
       end
     end
 

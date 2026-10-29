@@ -5,6 +5,8 @@ module Api
     class TicketsController < BaseController
       include Api::V1::ReadableTicket
 
+      idempotent :create, :update
+
       MAX_PER_PAGE = 100
       DEFAULT_PER_PAGE = 25
 
@@ -118,10 +120,11 @@ module Api
 
       # Renders an actor failure Result. The machine-readable code becomes both
       # the `error` field and (via ACTOR_ERROR_STATUS) the HTTP status, so a
-      # client can distinguish validation (422) from a conflict (409) etc.
+      # client can distinguish validation (422) from a conflict (409) etc.;
+      # Api::V1::ErrorBody adds the class (`code`) and, for a refusal, `reason`.
       def render_actor_failure(result)
-        render json: { error: result.code, errors: result.errors },
-               status: ACTOR_ERROR_STATUS.fetch(result.code, :unprocessable_entity)
+        render_error(error: result.code, errors: result.errors,
+                     status: ACTOR_ERROR_STATUS.fetch(result.code, :unprocessable_entity))
       end
 
       # --- Create helpers --------------------------------------------------

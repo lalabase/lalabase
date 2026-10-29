@@ -462,7 +462,64 @@ module McpContract
         },
         # Terminal client S5, appended last: its files are made right before it,
         # so every answer above stays as it was.
-        'GET /api/v1/tickets/:id/attachments' => attachment_calls
+        'GET /api/v1/tickets/:id/attachments' => attachment_calls,
+        # REST R0 (cli_rest_plan D6, D7), appended last for the same reason: one
+        # answer per error code, then a write with an Idempotency-Key, its replay
+        # and the key reused with another body.
+        'errors' => rest_error_calls,
+        'idempotency' => rest_idempotency_calls
+      }
+    end
+
+    def rest_error_calls
+      login_posts = "/api/v1/tickets/#{id(:login_ticket)}/posts"
+      {
+        'read_only' => rest_send(:post, :read, login_posts, params: { post: { body: 'Hallo' } }),
+        # Anna may read the archive's tickets, not write them.
+        'forbidden' => rest_send(:post, :write, "/api/v1/tickets/#{id(:archived_ticket)}/posts",
+                                 params: { post: { body: 'Hallo' } }),
+        'not_found' => rest_get(:read, "/api/v1/tickets/#{id(:missing)}"),
+        'invalid_input' => rest_send(:post, :write, login_posts, params: {}),
+        'invalid_input_validation' => rest_send(:post, :write, "/api/v1/projects/#{id(:website)}/tickets",
+                                                params: { ticket: { title: '' } }),
+        # Provoked: no endpoint reaches an actor refusal deterministically today
+        # (tickets have no lock_version). The answer is the real one on the wire,
+        # status, `error`, `code` and `reason` as the controller renders them.
+        'refused' => refusing_ticket_writes do
+          rest_send(:patch, :write, "/api/v1/tickets/#{id(:login_ticket)}", params: { ticket: { status: 'new' } })
+        end
+      }
+    end
+
+    # While the block runs, Actors::SaveTicket answers the failure BaseActor
+    # builds for a lost optimistic lock, in the request's own locale.
+    module RefuseTicketWrites
+      def call(...)
+        return super unless Thread.current[:mcp_contract_refuse_ticket_writes]
+
+        Actors::BaseActor::Result.new(success: false, errors: [I18n.t('services.actors.stale_object')],
+                                      code: :stale_object)
+      end
+    end
+
+    def refusing_ticket_writes
+      Actors::SaveTicket.singleton_class.prepend(RefuseTicketWrites) unless Actors::SaveTicket.singleton_class < RefuseTicketWrites
+      Thread.current[:mcp_contract_refuse_ticket_writes] = true
+      yield
+    ensure
+      Thread.current[:mcp_contract_refuse_ticket_writes] = nil
+    end
+
+    def rest_idempotency_calls
+      # Spelled out, not a loop: each request from its own line, as everywhere
+      # here (Prosopite reads one call site asked three times as an N+1).
+      path = "/api/v1/tickets/#{id(:login_ticket)}/posts"
+      once = { post: { body: 'Per REST, einmal.' } }
+      key = 'contract-rest-1'
+      {
+        'first' => rest_send(:post, :write, path, params: once, key: key),
+        'replay' => rest_send(:post, :write, path, params: once, key: key),
+        'mismatch' => rest_send(:post, :write, path, params: { post: { body: 'Anderer Text' } }, key: key)
       }
     end
 
@@ -517,6 +574,14 @@ module McpContract
         file['url'] = "#{match[:before]}#{SIGNED_PART}#{match[:after]}"
       end
       answer
+    end
+
+    def rest_send(verb, token_name, path, params:, key: nil)
+      extra = key ? { 'Idempotency-Key' => key } : {}
+      session.public_send(verb, path, params: params, headers: headers(token_for(token_name)).merge(extra))
+      request = { 'method' => verb.to_s.upcase, 'path' => path, 'params' => params }
+      request['idempotency_key'] = key if key
+      { 'token' => token_name.to_s, 'request' => request, 'response' => response }
     end
 
     def rest_get(token_name, path)

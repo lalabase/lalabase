@@ -667,7 +667,8 @@ RSpec.describe 'API V1 Write Endpoints', :ci_guard, type: :request do
         end)
 
         expect(response).to have_http_status(:forbidden)
-        expect(response.parsed_body).to eq('error' => 'forbidden')
+        # `error` as it always was, `code` naming the token as the reason (D6).
+        expect(response.parsed_body).to eq('error' => 'forbidden', 'code' => 'read_only')
         expect(ticket.reload.attributes).to eq(ticket_state)
         expect(notification.reload).to have_attributes(read_at: nil, archived_at: nil)
       end

@@ -15,6 +15,8 @@ module Api
       # endpoint is the one that calls it, and its only test used to cover the EMPTY
       # list, so a 500 on every ticket that actually had a file stayed invisible.
       include ActiveStorage::SetCurrent
+      # Idempotency-Key on writes (D7); each controller names its writes with `idempotent`.
+      include Api::V1::Idempotent
 
       # A read-only token (the default) may not write through any endpoint. Enforced
       # here, once, like Mcp::ToolCall#write_blocked? on the MCP seam, so a new write
@@ -25,6 +27,9 @@ module Api
       rescue_from Pundit::NotAuthorizedError, with: :forbidden
       rescue_from ActiveRecord::RecordNotFound, with: :not_found
       rescue_from ActionController::ParameterMissing, with: :bad_request
+      # A body that is not the JSON it claims to be. Without a key Rails parses it
+      # lazily and some actions never ask; with one the fingerprint reads it first.
+      rescue_from ActionDispatch::Http::Parameters::ParseError, with: :bad_request
 
       # Pundit tripwire (pattern: Organisations::BaseController): Every action must
       # authorize explicitly — authorize or policy_scope in index. A new
@@ -44,19 +49,32 @@ module Api
       private
 
       def refuse_write_with_read_only_token
-        forbidden if current_token.read_only? && !(request.get? || request.head?)
+        return unless current_token.read_only? && !(request.get? || request.head?)
+
+        render_error(error: 'forbidden', code: 'read_only', status: :forbidden)
       end
 
       def forbidden
-        render json: { error: 'forbidden' }, status: :forbidden
+        render_error(error: 'forbidden', status: :forbidden)
       end
 
       def not_found
-        render json: { error: 'not_found' }, status: :not_found
+        render_error(error: 'not_found', status: :not_found)
       end
 
       def bad_request(exception)
-        render json: { error: 'bad_request', message: exception.message }, status: :bad_request
+        render_error(error: 'bad_request', message: exception.message, status: :bad_request)
+      end
+
+      # Every error body of /api/v1 goes through here (Api::V1::ErrorBody, D6).
+      def render_error(error:, status:, code: nil, **extra)
+        render json: Api::V1::ErrorBody.build(error: error, code: code, **extra), status: status
+      end
+
+      # Api::TokenAuthenticatable's 401 hook: the same body plus `code`. /api/mcp
+      # shares the concern and keeps its own body.
+      def render_unauthorized
+        render_error(error: 'unauthorized', status: :unauthorized)
       end
 
       def reset_current_attributes

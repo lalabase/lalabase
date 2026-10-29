@@ -5,6 +5,8 @@ module Api
     class TimeSessionsController < BaseController
       include Api::V1::ReadableTicket
 
+      idempotent :create
+
       # Deliberate opt-out for #open: it reads across organisations without a
       # tenant, so there is no single record to authorize. What it shows is
       # decided in TimeSessions::OpenHours: own bookings (creator_id), the
@@ -63,8 +65,7 @@ module Api
           if session.save
             render json: { data: TimeSessions::Serializer.row(session) }, status: :created
           else
-            render json: { error: 'validation_failed', errors: session.errors.full_messages },
-                   status: :unprocessable_entity
+            render_error(error: 'validation_failed', errors: session.errors.full_messages, status: :unprocessable_entity)
           end
         end
       end

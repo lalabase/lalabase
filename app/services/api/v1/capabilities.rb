@@ -15,7 +15,7 @@ module Api
     module Capabilities
       # Minor for an additive change (a new endpoint, field or capability), major
       # never: an existing name, field or meaning does not change.
-      API_VERSION = '1.1.0'
+      API_VERSION = '1.2.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
@@ -40,8 +40,11 @@ module Api
       }.freeze
 
       # Abilities that are not one endpoint: `idempotency` (the Idempotency-Key
-      # header on every write, D7) and `error_codes` (`code` on every error body, D6).
-      FEATURES = %w[idempotency error_codes].freeze
+      # header on every write, D7), `error_codes` (`code` on every error body, D6)
+      # and `time_sessions.book` (time_sessions.create books by the rule the MCP
+      # tool books by, TimeSessions::Booking: the day in the owner's zone, one
+      # duration, unusable input refused; R6).
+      FEATURES = %w[idempotency error_codes time_sessions.book].freeze
 
       def self.names
         (ENDPOINTS.keys + FEATURES).sort

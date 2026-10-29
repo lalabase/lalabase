@@ -809,6 +809,16 @@ feature by feature):
   pinned against the routes both ways (`spec/requests/api/v1/capabilities_spec.rb`): a new
   endpoint adds its line there. Additive changes bump the minor.
 
+`POST /api/v1/tickets/:ticket_id/time_sessions` books by the rule the MCP tool
+`create_time_session` books by (REST R6, 2026-10-29; feature `time_sessions.book` in
+`/me`): `TimeSessions::Booking` refuses no duration, both `duration_string` and
+`duration_minutes`, and an `occurred_on` that is no ISO 8601 date or timestamp (422
+`validation_failed`/`invalid_input`, inside the read gate), dates the booking as the
+calendar day in the token owner's profile zone (stored as midnight; absent = today there),
+and writes through `Actors::SaveTimeSession`. Rights stay in the controller. A booking
+writes no activity and no notification; it touches the ticket's `updated_at`. Guard:
+`spec/requests/api/v1/time_session_booking_spec.rb`.
+
 `GET /api/v1/time_sessions/open` lists the person's own open hours within the token's
 reach, organisations AND projects, and only the rows the web time list shows them
 (`TimeSessions::ViewingScope`). A booking on a ticket they cannot read keeps its row and

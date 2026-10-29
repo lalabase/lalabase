@@ -2,9 +2,10 @@
 
 module Lalabase
   module Tools
-    # Books time on a ticket through Actors::SaveTimeSession, the write seam the
-    # web form uses (billed guards, one transaction), and answers the row the
-    # HTTP API answers (TimeSessions::Serializer, D4). Inbox workflow S2.
+    # Books time on a ticket by the rule the HTTP API books by
+    # (TimeSessions::Booking: the duration, the day, the write through
+    # Actors::SaveTimeSession) and answers the row the HTTP API answers
+    # (TimeSessions::Serializer, D4). Inbox workflow S2.
     #
     # Mutating (D3): blocked for a read-only PAT. Record-mode (D7): authorizes
     # the ticket (:show?) and the session (:create?, TimeSessionPolicy: the
@@ -12,13 +13,8 @@ module Lalabase
     # duration takes the form the web form takes ("1:30", "90", "1.5") or plain
     # minutes.
     #
-    # occurred_on is a calendar DATE for billing: the web form stores midnight of
-    # the picked date and every list and report buckets by that date, so a
-    # booking is dated in the actor's profile time zone (User#time_zone) and
-    # stored as that date's midnight, like the form. Absent means today in that
-    # zone; a timestamp is read as the date it falls on there (a call at 00:30
-    # Berlin belongs to that Berlin day, not to the UTC day before), its time
-    # of day is dropped.
+    # occurred_on is a calendar DATE for billing, dated in the actor's profile
+    # time zone; the rule is TimeSessions::Booking's.
     class CreateTimeSession < Base
       def self.requires_actor?
         true
@@ -63,6 +59,14 @@ module Lalabase
         }
       end
 
+      # Refusal texts of this surface (TimeSessions::Booking::REFUSALS), unchanged
+      # since the tool's first answer.
+      REFUSAL_TEXT = {
+        duration_missing: 'duration or duration_minutes is required',
+        both_durations: 'give either duration or duration_minutes, not both',
+        occurred_on_invalid: 'invalid occurred_on (expected an ISO 8601 date or timestamp)'
+      }.freeze
+
       def self.execute(args:, context:)
         return Result.new(error: 'project context missing') if context.project.nil?
 
@@ -70,11 +74,15 @@ module Lalabase
         ticket_id = args[:ticket_id].to_s.strip
         return Result.invalid_input('ticket_id is required') if ticket_id.empty?
         return Result.invalid_input('invalid ticket_id format') unless ticket_id.match?(UUID_FORMAT)
-        return Result.invalid_input('duration or duration_minutes is required') unless duration_given?(args)
-        return Result.invalid_input('give either duration or duration_minutes, not both') if both_durations?(args)
 
-        occurred_on = occurred_on_for(args, context.actor)
-        return Result.invalid_input('invalid occurred_on (expected an ISO 8601 date or timestamp)') if occurred_on.nil?
+        # The booking rule is shared with the HTTP API (TimeSessions::Booking);
+        # it refuses unusable input before the ticket is touched.
+        booking = TimeSessions::Booking.parse(
+          actor: context.actor, duration_string: args[:duration], duration_minutes: args[:duration_minutes],
+          occurred_on: args[:occurred_on], description: args[:description],
+          customer_description: args[:customer_description]
+        )
+        return Result.invalid_input(REFUSAL_TEXT.fetch(booking.refusal)) if booking.refused?
 
         # Inside the read scope: a ticket the caller may not read answers like a
         # missing one (Base.readable_tickets).
@@ -84,57 +92,14 @@ module Lalabase
         # Two checks, as in post_comment: :show? proves the actor may see the
         # ticket at all, :create? proves the time permission in the project.
         authorize!(context, ticket, :show?)
-        session = build_session(ticket, context, args, occurred_on)
+        session = booking.build(ticket: ticket)
         authorize!(context, session, :create?)
 
-        result = Actors::SaveTimeSession.call(
-          time_session: session, attributes: {},
-          group_change: { requested: false, group: nil }, current_user: context.actor
-        )
+        result = booking.save(session)
         return Result.new(error: "booking failed: #{Array(result.errors).join(', ')}") unless result.success?
 
         json_result(TimeSessions::Serializer.row(result.resource))
       end
-
-      def self.duration_given?(args)
-        args[:duration].to_s.strip.present? || args[:duration_minutes].present?
-      end
-      private_class_method :duration_given?
-
-      # Two durations would mean one silently wins; refused instead.
-      def self.both_durations?(args)
-        args[:duration].to_s.strip.present? && args[:duration_minutes].present?
-      end
-      private_class_method :both_durations?
-
-      # The booking date as midnight in the app zone (the form's spelling,
-      # Organisations::TimeSessionsController#ensure_valid_occurred_on): absent
-      # means today in the actor's zone; a timestamp is the date it falls on
-      # there; unusable means nil, which the caller refuses.
-      def self.occurred_on_for(args, actor)
-        zone = actor.time_zone
-        raw = args[:occurred_on].to_s.strip
-        return zone.today.in_time_zone if raw.empty?
-
-        Lalabase::IsoTimestamp.parse(raw)&.in_time_zone(zone)&.to_date&.in_time_zone
-      end
-      private_class_method :occurred_on_for
-
-      def self.build_session(ticket, context, args, occurred_on)
-        session = TimeSession.new(
-          ticket: ticket, project: context.project, organisation: context.organisation,
-          creator: context.actor, occurred_on: occurred_on,
-          description: args[:description].to_s.presence,
-          customer_description: args[:customer_description].to_s.presence
-        )
-        if args[:duration].to_s.strip.present?
-          session.duration_string = args[:duration].to_s
-        else
-          session.duration = args[:duration_minutes].to_i
-        end
-        session
-      end
-      private_class_method :build_session
     end
   end
 end

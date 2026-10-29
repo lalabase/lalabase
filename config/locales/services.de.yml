@@ -96,6 +96,12 @@ de:
       generic_error: "Die Zeit-Session konnte nicht gespeichert werden. Bitte versuchen Sie es später erneut."
       meeting_moved: "Das Meeting liegt inzwischen in einem anderen Projekt. Bitte buchen Sie die Zeit dort."
       moved_meanwhile: "Die Zeit-Session liegt inzwischen in einem anderen Projekt. Bitte laden Sie die Seite neu."
+    # The refusals of a time booking through a token (TimeSessions::Booking),
+    # as the HTTP API answers them; the MCP tool keeps its own English texts.
+    time_session_booking:
+      duration_missing: "Bitte geben Sie eine Dauer an (duration_string oder duration_minutes)."
+      both_durations: "Bitte geben Sie die Dauer entweder als duration_string oder als duration_minutes an, nicht beides."
+      occurred_on_invalid: "Das Datum (occurred_on) ist kein ISO-8601-Datum und kein ISO-8601-Zeitstempel."
     bulk_customer_description_generator:
       empty_result: "Zeit-Session %{id}: Die KI hat keine Beschreibung geliefert."
     embedding_reprocessing:

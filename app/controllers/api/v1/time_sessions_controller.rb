@@ -57,39 +57,33 @@ module Api
       end
 
       # POST /api/v1/tickets/:ticket_id/time_sessions
+      # Books by the rule the MCP tool create_time_session books by
+      # (TimeSessions::Booking): the day in the token owner's zone, one duration,
+      # the write through Actors::SaveTimeSession. The input is checked inside
+      # the read gate, so a refusal of it only ever answers for a ticket the
+      # token can read and tells nothing the 404 does not.
       def create
-        with_readable_ticket(params[:ticket_id]) do |ticket, project|
-          session = build_session(ticket, project)
+        with_readable_ticket(params[:ticket_id]) do |ticket, _project|
+          booking = TimeSessions::Booking.parse(actor: current_user, **session_params.to_h.symbolize_keys)
+          next render_booking_refusal(booking.refusal) if booking.refused?
+
+          session = booking.build(ticket: ticket)
           authorize session, :create?
 
-          if session.save
-            render json: { data: TimeSessions::Serializer.row(session) }, status: :created
+          result = booking.save(session)
+          if result.success?
+            render json: { data: TimeSessions::Serializer.row(result.resource) }, status: :created
           else
-            render_error(error: 'validation_failed', errors: session.errors.full_messages, status: :unprocessable_entity)
+            render_error(error: result.code, errors: result.errors, status: :unprocessable_entity)
           end
         end
       end
 
       private
 
-      def build_session(ticket, project)
-        ts = TimeSession.new(
-          ticket: ticket,
-          project: project,
-          organisation: project.organisation,
-          creator: current_user,
-          occurred_on: parsed_occurred_on,
-          description: session_params[:description],
-          customer_description: session_params[:customer_description]
-        )
-
-        if session_params[:duration_string].present?
-          ts.duration_string = session_params[:duration_string]
-        elsif session_params[:duration_minutes].present?
-          ts.duration = session_params[:duration_minutes].to_i
-        end
-
-        ts
+      def render_booking_refusal(refusal)
+        render_error(error: 'validation_failed', errors: [I18n.t("services.time_session_booking.#{refusal}")],
+                     status: :unprocessable_entity)
       end
 
       def session_params
@@ -97,15 +91,6 @@ module Api
           :occurred_on, :duration_minutes, :duration_string,
           :description, :customer_description
         )
-      end
-
-      def parsed_occurred_on
-        raw = session_params[:occurred_on]
-        return Time.current if raw.blank?
-
-        Time.zone.parse(raw.to_s) || Time.current
-      rescue ArgumentError
-        Time.current
       end
 
       def paginate(relation)

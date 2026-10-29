@@ -26,6 +26,8 @@ module Api
       # A list parameter the endpoint cannot take (q, page, per_page).
       class InvalidParameter < StandardError; end
 
+      # Pundit asks the people right first (with_directory); this answers the same right taken
+      # away between that check and the lookup's own.
       rescue_from People::Lookup::Refused, with: :forbidden
       rescue_from People::Lookup::InvalidArgument, InvalidParameter, with: :bad_request
 

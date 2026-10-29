@@ -340,6 +340,30 @@ RSpec.describe 'API V1 people', :ci_guard, type: :request do
       expect(body).to eq('error' => 'forbidden', 'code' => 'forbidden')
     end
 
+    # Pundit asks the people right first (authorize Person, :index?) and People::Lookup asks it
+    # again before it reads. A right taken away between the two is a 403 as well, never another
+    # status: the first answer of view_allowed? lets Pundit pass, the second one is the
+    # lookup's, and it refuses before the directory would ask a third time.
+    describe 'a right lost between the two checks' do
+      before { allow(PersonPolicy).to receive(:view_allowed?).and_return(true, false) }
+
+      it 'answers the list with 403 forbidden' do
+        list
+
+        expect(response).to have_http_status(:forbidden)
+        expect(body).to eq('error' => 'forbidden', 'code' => 'forbidden')
+        expect(PersonPolicy).to have_received(:view_allowed?).twice
+      end
+
+      it 'answers the card with 403 forbidden' do
+        show("person:#{contact.id}")
+
+        expect(response).to have_http_status(:forbidden)
+        expect(body).to eq('error' => 'forbidden', 'code' => 'forbidden')
+        expect(PersonPolicy).to have_received(:view_allowed?).twice
+      end
+    end
+
     it 'asks the right before it looks at the parameters' do
       plain = token(owner: colleague)
 

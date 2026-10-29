@@ -37,6 +37,17 @@ export default class extends Controller {
         panelMax: number("--panel-max"),
         gap: number("--lane-gap")
       }
+      // The link just clicked to open the panel sits in the ticket and keeps the focus
+      // (Safari focuses no clicked link: then nothing needs excusing). Until the focus
+      // leaves that link, nobody is working in the ticket (workingInTicket); whoever
+      // comes back to it later is moving through the ticket. Only a link that loads
+      // this frame: any other focus in the ticket is somebody's work, however the
+      // panel came.
+      const active = document.activeElement
+      const frameId = this.element.closest("turbo-frame")?.id
+      const link = frameId && active?.matches?.(`a[data-turbo-frame="${CSS.escape(frameId)}"]`) ? active : null
+      this.openingLink = link
+      link?.addEventListener("blur", () => { if (this.openingLink === link) this.openingLink = null }, { once: true })
       // Before the lane opens, so its first frame already has the right stage.
       this.select("meeting")
       this.updateStage(this.grid.getBoundingClientRect().width)
@@ -60,6 +71,7 @@ export default class extends Controller {
     document.removeEventListener("keydown", this.boundCloseOnEscape)
     this.laneObserver?.disconnect()
     this.resizeObserver?.disconnect()
+    this.openingLink = null
     // A tab of the panel replaces this content and connects a new instance in the
     // same task, which writes both again before anything is painted.
     delete this.grid?.dataset.meetingPanelStage
@@ -78,13 +90,16 @@ export default class extends Controller {
     // Unless the panel was already open and somebody is working in the ticket (the
     // focus is in it): the grid narrows under their hands (a window or the assistant
     // dragged), and hiding the field they type into would send the next keys
-    // nowhere. Not on opening: the link just clicked sits in the ticket, too.
-    if (stage === "narrow") this.select(previous && this.ticketHasFocus() ? "ticket" : "meeting")
+    // nowhere. Not on opening: the link just clicked sits in the ticket, too. And the
+    // opening is not one moment: the assistant pushes the page aside in a transition
+    // of <main>, so a panel opened during it sees the grid narrow a few frames later.
+    if (stage === "narrow") this.select(previous && this.workingInTicket() ? "ticket" : "meeting")
   }
 
-  ticketHasFocus() {
+  workingInTicket() {
     const active = document.activeElement
-    return Boolean(active && active !== document.body && this.grid.querySelector(":scope > .column.content")?.contains(active))
+    if (!active || active === document.body || active === this.openingLink) return false
+    return Boolean(this.grid.querySelector(":scope > .column.content")?.contains(active))
   }
 
   showTicket() {

@@ -14,9 +14,10 @@ module Api
   module V1
     module Capabilities
       # Minor for an additive change (a new endpoint, field or capability), major
-      # never: an existing name, field or meaning does not change. 1.2.0: people.list and
-      # people.show (People S3b). 1.3.0: posts.plain (REST R3a).
-      API_VERSION = '1.3.0'
+      # never: an existing name, field or meaning does not change. 1.2.0 added
+      # the People API; 1.3.0 added the REST ticket view (R1); 1.4.0 adds
+      # time_sessions.book (R6); 1.5.0 adds posts.plain (R3a).
+      API_VERSION = '1.5.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
@@ -28,11 +29,13 @@ module Api
         'projects.ticket_attribute_definitions' => ['GET', '/api/v1/projects/:id/ticket_attribute_definitions'],
         'tickets.list' => ['GET', '/api/v1/projects/:project_id/tickets'],
         'tickets.create' => ['POST', '/api/v1/projects/:project_id/tickets'],
+        'tickets.by_number' => ['GET', '/api/v1/projects/:project_id/tickets/number/:number'],
         'tickets.show' => ['GET', '/api/v1/tickets/:id'],
         'tickets.update' => ['PATCH', '/api/v1/tickets/:id'],
         'tickets.activities' => ['GET', '/api/v1/tickets/:id/activities'],
         'tickets.attachments' => ['GET', '/api/v1/tickets/:id/attachments'],
         'posts.create' => ['POST', '/api/v1/tickets/:ticket_id/posts'],
+        'posts.show' => ['GET', '/api/v1/tickets/:ticket_id/posts/:id'],
         'time_sessions.list' => ['GET', '/api/v1/tickets/:ticket_id/time_sessions'],
         'time_sessions.create' => ['POST', '/api/v1/tickets/:ticket_id/time_sessions'],
         'time_sessions.open' => ['GET', '/api/v1/time_sessions/open'],
@@ -43,10 +46,13 @@ module Api
       }.freeze
 
       # Abilities that are not one endpoint: `idempotency` (the Idempotency-Key
-      # header on every write, D7), `error_codes` (`code` on every error body, D6)
-      # and `posts.plain` (posts.create takes post[format] html or plain, by the
+      # header on every write, D7), `error_codes` (`code` on every error body, D6),
+      # `tickets.paging` (the opt-in pages of comments and attachments on
+      # tickets.show and tickets.by_number, R1), `time_sessions.book`
+      # (shared duration/date validation and actor-backed booking, R6), and
+      # `posts.plain` (posts.create takes post[format] html or plain, by the
       # rule the MCP tool post_comment writes by, Posts::Comment; R3a).
-      FEATURES = %w[idempotency error_codes posts.plain].freeze
+      FEATURES = %w[idempotency error_codes tickets.paging time_sessions.book posts.plain].freeze
 
       def self.names
         (ENDPOINTS.keys + FEATURES).sort

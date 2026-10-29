@@ -204,10 +204,10 @@ RSpec.describe 'API V1 Write Endpoints', :ci_guard, type: :request do
       user.update!(language_preference: 'de')
       I18n.locale = :en
       post "/api/v1/tickets/#{ticket.id}/time_sessions",
-           params: { time_session: { occurred_on: '2026-05-20T10:00:00Z' } },
+           params: { time_session: { occurred_on: '2026-05-20T10:00:00Z', duration_minutes: 0 } },
            headers: auth_headers
       expect(response).to have_http_status(:unprocessable_content)
-      expect(JSON.parse(response.body)['errors'].join).to include('muss ausgefüllt werden')
+      expect(JSON.parse(response.body)['errors'].join).to include('muss größer als 0 sein')
       expect(I18n.locale).to eq(:en)
     ensure
       I18n.locale = I18n.default_locale

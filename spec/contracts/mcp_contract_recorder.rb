@@ -540,9 +540,78 @@ module McpContract
         # People S3b, appended last: the directory of people_world, made before the MCP calls.
         'GET /api/v1/organisations/:organisation_id/people' => rest_people_list_calls,
         'GET /api/v1/organisations/:organisation_id/people/:id' => rest_people_show_calls,
+        # REST R1: the ticket view without MCP.
+        'ticket_view' => rest_ticket_view_calls,
+        # REST R6 runs after the reads above, so its bookings do not change their answers.
+        'POST /api/v1/tickets/:ticket_id/time_sessions' => rest_booking_calls,
         # REST R3a (cli_rest_plan R3 a), appended last: its comments land on the
         # login ticket after every answer above, without advancing the clock.
         'POST /api/v1/tickets/:ticket_id/posts' => rest_comment_calls
+      }
+    end
+
+    def rest_booking_calls
+      # Spelled out, not a loop: each request from its own line (Prosopite).
+      path = ->(ticket) { "/api/v1/tickets/#{id(ticket)}/time_sessions" }
+      login = path.call(:login_ticket)
+      once = { time_session: { duration_string: '0:15', description: 'Per REST, einmal.' } }
+      key = 'contract-rest-book-1'
+      {
+        'ok_minutes_text' => rest_send(:post, :write, login, params: { time_session: { duration_string: '30' } }),
+        'ok_hours_text' => rest_send(:post, :write, login,
+                                     params: { time_session: { duration_string: '1:30', occurred_on: '2026-01-04',
+                                                               description: 'Vertrag' } }),
+        'ok_minutes' => rest_send(:post, :write, login, params: { time_session: { duration_minutes: 45 } }),
+        'invalid_input_no_duration' => rest_send(:post, :write, login, params: { time_session: { description: 'x' } }),
+        'invalid_input_both_durations' => rest_send(:post, :write, login,
+                                                    params: { time_session: { duration_string: '30',
+                                                                              duration_minutes: 30 } }),
+        'invalid_input_date' => rest_send(:post, :write, login,
+                                          params: { time_session: { duration_string: '30', occurred_on: '05.01.2026' } }),
+        'invalid_input_over_a_day' => rest_send(:post, :write, login, params: { time_session: { duration_string: '24:01' } }),
+        'not_found' => rest_send(:post, :write, path.call(:missing), params: { time_session: { duration_string: '30' } }),
+        # No read access to the ticket: answered like a missing one.
+        'hidden' => rest_send(:post, :write, path.call(:hidden_ticket), params: { time_session: { duration_string: '30' } }),
+        # Anna reads the archive's tickets but has no time right there.
+        'forbidden' => rest_send(:post, :write, path.call(:archived_ticket),
+                                 params: { time_session: { duration_string: '30' } }),
+        'read_only' => rest_send(:post, :read, login, params: { time_session: { duration_string: '30' } }),
+        'idempotency_first' => rest_send(:post, :write, login, params: once, key: key),
+        'idempotency_replay' => rest_send(:post, :write, login, params: once, key: key),
+        'idempotency_mismatch' => rest_send(:post, :write, login, params: { time_session: { duration_string: '0:20' } },
+                                                                  key: key),
+        'invalid_input_minutes' => rest_send(:post, :write, login, params: { time_session: { duration_minutes: '1.5' } })
+      }
+    end
+
+    # Each request from its own line (Prosopite). `show` is the ticket without
+    # paging parameters: its body must stay what gboyke/lalabase-mcp reads. It
+    # shows the export ticket: that body lists every comment by created_at only,
+    # and the writes above left several comments on the login ticket in the same
+    # second.
+    # The answers after `show` are the R1 additions: a page, a refused option,
+    # the ticket by number (and a number that is not there or not readable),
+    # one comment and a missing one.
+    def rest_ticket_view_calls
+      login = "/api/v1/tickets/#{id(:login_ticket)}"
+      export = "/api/v1/tickets/#{id(:export_ticket)}"
+      by_number = ->(project, number) { "/api/v1/projects/#{id(project)}/tickets/number/#{number}" }
+      {
+        # Filtered to Ben's one ticket: the writes above left both website
+        # tickets with the same updated_at, and the list has no second sort key.
+        'list' => rest_get(:read, "/api/v1/projects/#{id(:website)}/tickets?assignee=#{id(:ben)}"),
+        'show' => rest_get(:read, export),
+        # Oldest first: the second comment was made with its own clock tick, while
+        # the comments the recorded writes added share one second and would be
+        # ordered by their random ids.
+        'show_paged' => rest_get(:read, "#{login}?posts_per_page=1&posts_page=2&attachments_page=1"),
+        'show_invalid_paging' => rest_get(:read, "#{login}?posts_order=random"),
+        'by_number' => rest_get(:read, by_number.call(:website, 2)),
+        'by_number_not_found' => rest_get(:read, by_number.call(:website, 999)),
+        # No read access to the handbook's tickets: answered like a missing number.
+        'by_number_hidden' => rest_get(:read, by_number.call(:handbook, 1)),
+        'post' => rest_get(:read, "#{login}/posts/#{id(:first_post)}"),
+        'post_not_found' => rest_get(:read, "#{login}/posts/#{id(:missing)}")
       }
     end
 

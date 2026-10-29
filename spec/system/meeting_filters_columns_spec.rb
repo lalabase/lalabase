@@ -170,6 +170,8 @@ RSpec.describe 'Meeting filters and columns', type: :system do
     find("tr[data-meeting-id='#{meetings.first.id}']").click
     expect(page).to have_css('#meeting-header', text: 'Alpha')
 
+    # The filter button moves with the list column while the lane opens.
+    wait_until_still('[data-filter-bar-target="filterButton"]')
     find('[data-filter-bar-target="filterButton"]').click
     find('[role="menuitem"][data-category="participant"]').click
     expect(page).to have_css('[data-filter-bar-target="valueMenu"]:not(.hidden)', wait: 3)
@@ -212,14 +214,8 @@ RSpec.describe 'Meeting filters and columns', type: :system do
     expect(page).to have_css('#meeting-header', text: 'Beta', wait: 5)
 
     plus = "a[title='#{I18n.t('views.organisations.meetings.index.new_meeting')}']"
-    # The lane opens with a width transition (layout.css, --panel-width), and
-    # the "+" moves with the list column until it ends.
-    page.document.synchronize(5) do
-      left = -> { page.evaluate_script("document.querySelector(\"#{plus}\").getBoundingClientRect().left") }
-      before = left.call
-      sleep 0.15
-      raise Capybara::ExpectationNotMet, 'the "+" is still moving' unless left.call == before
-    end
+    # The "+" moves with the list column while the lane opens.
+    wait_until_still(plus)
     # A full visit of the href would show the same state: the marker proves
     # the lane opened the form in place.
     page.execute_script('window.laneStayed = true')

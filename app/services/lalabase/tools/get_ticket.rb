@@ -23,8 +23,12 @@ module Lalabase
     # bounded, and so are the attachments in both directions (how many, and how much
     # text each). Signed attachment download URLs are deliberately NOT included (the
     # serializer omits them); use the HTTP API when a real download URL is needed.
+    #
+    # Options and pages come from Tickets::Reading, shared with the REST ticket
+    # view (cli_rest_plan D5); only the caps, full_text, post_id and the
+    # citations are this tool's own.
     class GetTicket < Base
-      MAX_POSTS = 50
+      MAX_POSTS = Tickets::Reading::MAX_POSTS
       MAX_BODY_CHARS = 8_000
       # MCP keeps the terminal client's full-text allowance (S1 c). The assistant
       # gets a smaller prefix for full_text and post_id, selected by its chat
@@ -32,17 +36,14 @@ module Lalabase
       # allowance; Base.cap_text adds the truncation marker outside that allowance.
       MAX_FULL_TEXT_CHARS = 100_000
       MAX_ASSISTANT_FULL_TEXT_CHARS = 16_000
-      # Far beyond any real ticket, close enough to keep the OFFSET in range
-      # (the same reasoning as Notifications::InboxQuery::MAX_PAGE).
-      MAX_PAGE = 100_000
-      POST_ORDERS = %w[oldest newest].freeze
+      MAX_PAGE = Tickets::Reading::MAX_PAGE
+      POST_ORDERS = Tickets::Reading::POST_ORDERS
 
-      # The paging and full-text arguments, parsed once, refused when unusable
+      # The paging arguments (Tickets::Reading.options) plus this tool's own
+      # full_text and post_id, parsed once, refused when unusable
       # (Notifications::InboxQuery's rule: no silent default for a value that
       # cannot be read).
-      Options = Struct.new(:posts_page, :posts_per_page, :newest, :attachments_page, :full_text, :post_id,
-                           keyword_init: true)
-      class InvalidOption < ArgumentError; end
+      Options = Struct.new(:paging, :full_text, :post_id, keyword_init: true)
 
       # Attachments are bounded twice: how MANY files answer, and how much text each
       # one contributes.
@@ -56,7 +57,7 @@ module Lalabase
       # characters, plus markers and JSON. This does not guarantee room inside
       # Runner::DEFAULT_MAX_TOOL_RESULT_CHARS: ordinary comment pages, uncapped
       # metadata and escaping can still take a whole result past that budget.
-      MAX_ATTACHMENTS = 10
+      MAX_ATTACHMENTS = Tickets::Reading::MAX_ATTACHMENTS
       MAX_ATTACHMENT_TEXT_CHARS = 4_000
 
       # Bounds the candidate list of an ambiguous number. Within one project a
@@ -148,7 +149,7 @@ module Lalabase
         # its reach. Set centrally so no branch can forget it.
         result.coverage ||= coverage_for(context, area: :tickets, only_project: chosen)
         result
-      rescue InvalidOption => e
+      rescue Tickets::Reading::InvalidOption => e
         Result.invalid_input(e.message)
       end
 
@@ -232,13 +233,14 @@ module Lalabase
 
         full_text_limit = context.chat ? MAX_ASSISTANT_FULL_TEXT_CHARS : MAX_FULL_TEXT_CHARS
         serializer = Tickets::Serializer.new(current_user: context.actor)
-        comments = options.post_id ? one_post(serializer, ticket, options, limit: full_text_limit) : post_page(serializer, ticket, options)
+        reading = Tickets::Reading.new(serializer: serializer)
+        comments = options.post_id ? one_post(reading, ticket, options, limit: full_text_limit) : post_page(reading, ticket, options)
         return comments if comments.is_a?(Result)
 
         description_cap = options.full_text ? full_text_limit : MAX_BODY_CHARS
         payload = cap_description(serializer.full(ticket, posts: false), description_cap)
                   .merge(comments)
-                  .merge(attachment_page(serializer, ticket, options.attachments_page))
+                  .merge(attachment_page(reading, ticket, options.paging.attachments_page))
         # Cite the ticket: the citation's area ('tickets') is what makes the answer
         # rights-gated for OTHER readers of the shared chat, not only for the asker.
         # Keep the ids of comments actually handed to the model, including private
@@ -248,34 +250,21 @@ module Lalabase
       end
       private_class_method :serve
 
-      # One page out of the reader's readable comments; posts_total is their count,
-      # posts_truncated says the page is a part of them.
-      def self.post_page(serializer, ticket, options)
-        per_page = options.posts_per_page
-        entries, total = serializer.posts_page(ticket, page: options.posts_page, per_page: per_page,
-                                                       newest: options.newest)
-        {
-          posts: entries.map { |post| cap_post(post, MAX_BODY_CHARS) },
-          posts_total: total,
-          posts_truncated: total > entries.size,
-          posts_page: options.posts_page,
-          posts_per_page: per_page,
-          posts_pages: (total + per_page - 1) / per_page,
-          posts_order: options.newest ? 'newest' : 'oldest'
-        }
+      # Tickets::Reading#post_page with each comment capped.
+      def self.post_page(reading, ticket, options)
+        page = reading.post_page(ticket, options.paging)
+        page.merge(posts: page[:posts].map { |post| cap_post(post, MAX_BODY_CHARS) })
       end
       private_class_method :post_page
 
       # The one comment of post_id, within the surface's full-text limit, picked
       # from the reader's readable comments of THIS ticket. Hidden, foreign and
       # missing comments all answer "No comment found".
-      def self.one_post(serializer, ticket, options, limit:)
-        post = serializer.readable_post(ticket, options.post_id)
-        return no_match("No comment found for #{options.post_id}.") if post.nil?
+      def self.one_post(reading, ticket, options, limit:)
+        page = reading.one_post(ticket, options.post_id)
+        return no_match("No comment found for #{options.post_id}.") if page.nil?
 
-        total = serializer.readable_posts_count(ticket)
-        { posts: [cap_post(post, limit)], posts_total: total, posts_truncated: total > 1,
-          post_id: options.post_id }
+        page.merge(posts: page[:posts].map { |post| cap_post(post, limit) }, post_id: options.post_id)
       end
       private_class_method :one_post
 
@@ -283,19 +272,11 @@ module Lalabase
       # come from their own serializer method, because #full is shared with the HTTP
       # API and must not grow a body of file text there.
       #
-      # A page of MAX_ATTACHMENTS, bounded IN the query; attachments_total is the
-      # separate COUNT, attachments_truncated says the page is a part: a list that
-      # was silently cut is a list the model reads as complete.
-      def self.attachment_page(serializer, ticket, page)
-        files = serializer.attachments(ticket, limit: MAX_ATTACHMENTS, offset: (page - 1) * MAX_ATTACHMENTS)
-        total = serializer.attachments_total(ticket)
-        {
-          attachments: files.map { |file| cap_attachment(file) },
-          attachments_total: total,
-          attachments_truncated: total > files.size,
-          attachments_page: page,
-          attachments_pages: (total + MAX_ATTACHMENTS - 1) / MAX_ATTACHMENTS
-        }
+      # Tickets::Reading#attachment_page (bounded in the query, with the honest
+      # total) with each file's text capped.
+      def self.attachment_page(reading, ticket, page)
+        files = reading.attachment_page(ticket, page)
+        files.merge(attachments: files[:attachments].map { |file| cap_attachment(file) })
       end
       private_class_method :attachment_page
 
@@ -352,55 +333,16 @@ module Lalabase
       end
       private_class_method :cap_post
 
-      # Strict like Notifications::InboxQuery: a value that cannot be read is
-      # refused, never quietly replaced by a default.
+      # Paging is Tickets::Reading's (MCP clamps posts_per_page, as it always
+      # did); full_text and post_id belong to this tool.
       def self.parse_options(args)
         Options.new(
-          posts_page: page_arg(args[:posts_page], 'posts_page'),
-          posts_per_page: per_page_arg(args[:posts_per_page]),
-          newest: order_arg(args[:posts_order]),
-          attachments_page: page_arg(args[:attachments_page], 'attachments_page'),
+          paging: Tickets::Reading.options(args, over_max: :clamp),
           full_text: full_text_arg(args[:full_text]),
           post_id: post_id_arg(args[:post_id])
         )
       end
       private_class_method :parse_options
-
-      def self.integer_arg(value, name)
-        return nil if value.nil? || (value.is_a?(String) && value.strip.empty?)
-        return value if value.is_a?(Integer)
-
-        (value.is_a?(String) && Integer(value.strip, 10, exception: false)) ||
-          raise(InvalidOption, "invalid #{name} #{value.inspect} (expected a whole number)")
-      end
-      private_class_method :integer_arg
-
-      def self.page_arg(value, name)
-        number = integer_arg(value, name)
-        return 1 if number.nil?
-        return number if number.between?(1, MAX_PAGE)
-
-        raise InvalidOption, "invalid #{name} #{value.inspect} (1 to #{MAX_PAGE})"
-      end
-      private_class_method :page_arg
-
-      def self.per_page_arg(value)
-        number = integer_arg(value, 'posts_per_page')
-        return MAX_POSTS if number.nil?
-        raise InvalidOption, "invalid posts_per_page #{value.inspect} (at least 1)" if number < 1
-
-        [number, MAX_POSTS].min
-      end
-      private_class_method :per_page_arg
-
-      def self.order_arg(value)
-        raw = value.to_s.strip
-        return false if raw.empty?
-        raise InvalidOption, "invalid posts_order #{value.inspect} (oldest or newest)" unless POST_ORDERS.include?(raw)
-
-        raw == 'newest'
-      end
-      private_class_method :order_arg
 
       # A boolean, as the MCP schema declares it: the in-app assistant calls the
       # tool without that schema check, and a "true" there must not read as false.
@@ -408,14 +350,14 @@ module Lalabase
         return false if value.nil? || value == '' || value == false
         return true if value == true
 
-        raise InvalidOption, "invalid full_text #{value.inspect} (true or false)"
+        raise Tickets::Reading::InvalidOption, "invalid full_text #{value.inspect} (true or false)"
       end
       private_class_method :full_text_arg
 
       def self.post_id_arg(value)
         raw = value.to_s.strip
         return nil if raw.empty?
-        raise InvalidOption, 'invalid post_id format' unless raw.match?(UUID_FORMAT)
+        raise Tickets::Reading::InvalidOption, 'invalid post_id format' unless raw.match?(UUID_FORMAT)
 
         raw
       end

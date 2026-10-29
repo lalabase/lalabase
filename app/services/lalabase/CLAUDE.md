@@ -49,7 +49,9 @@ Codebase-Verständnis.
   Personen-Zwillinge, die sich den Tenant ihrer Organisation selbst setzen). Die Inbox-
   Zeilen kommen aus `Notifications::InboxQuery` + `Serializer`, geteilt mit der HTTP-API.
   Schreibende Werkzeuge gibt es nur im `:mcp`-Set: `create_ticket`, `post_comment`,
-  `create_time_session`, `mark_notification_read`, `update_ticket`. `post_comment` schreibt
+  `create_time_session`, `mark_notification_read`, `update_ticket`. `create_time_session`
+  bucht über `TimeSessions::Booking`, dieselbe Regel wie die HTTP-API (seit 29.10.2026,
+  REST R6); im Werkzeug bleiben nur Argumente, Rechte und die Texte. `post_comment` schreibt
   über `Actors::SavePost` wie das Web-Formular (Activity `post_added`, Benachrichtigungen,
   Embedding); ein nacktes `Post#save` löste bis zum 10.10.2026 nichts davon aus, in
   `Api::V1::PostsController` ebenso. `update_ticket`
@@ -89,6 +91,13 @@ Codebase-Verständnis.
   `accessible_project_ids`) ADDITIV zu `project` (R-M5, MCP unberührt), `Result#coverage`
   ist das L7-Deckungs-Vertragsfeld, mehrdeutige Ticketnummern antworten mit der geteilten
   Kandidatenliste (`tools/ticket_candidates.rb`, §9.2).
+  `get_ticket` liest Seiten-Optionen und baut Kommentar-, Anhang- und Einzelseiten über
+  `Tickets::Reading` (`app/services/tickets/reading.rb`, REST R1), denselben Service wie die
+  REST-Ticketansicht. Im Werkzeug bleiben nur die MCP-Eigenheiten: Kappungen
+  (`MAX_BODY_CHARS`, `MAX_FULL_TEXT_CHARS`, `MAX_ATTACHMENT_TEXT_CHARS`, Assistenten-Grenze),
+  `full_text`, `post_id`, Zitationen. `posts_per_page` über 50 klemmt MCP auf 50
+  (`over_max: :clamp`), REST lehnt mit 422 ab. Eine neue Seiten-Regel gehört in den Service,
+  nicht in eine der beiden Hüllen.
   Fehler eines Werkzeugs tragen eine Klasse: `Result.invalid_input(msg)` oder
   `Result.refused(msg, reason:)`; ohne Code gilt `refused`, auch für ein abgelehntes Speichern
   (Modellvalidierung, Actor-Fehler): das beweist keine falsche Eingabe. Spec je Fehlerstelle:

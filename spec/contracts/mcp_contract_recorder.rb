@@ -586,12 +586,34 @@ module McpContract
     # (and with `format: html`) were recorded before R3a and must stay as
     # they were: existing callers send no format.
     def rest_comment_calls
-      login = "/api/v1/tickets/#{id(:login_ticket)}/posts"
+      path = ->(ticket) { "/api/v1/tickets/#{id(ticket)}/posts" }
+      login = path.call(:login_ticket)
+      plain = { format: 'plain', body: "Zeile 1\nZeile 2\n\nAbsatz <b>&" }
+      once = { post: { format: 'plain', body: 'Per REST, einmal, als Text.' } }
+      key = 'contract-rest-comment-1'
       {
         'html' => rest_send(:post, :write, login, params: { post: { body: '<p>Ein <b>fetter</b> Satz &amp; mehr</p>' } }),
         'html_named' => rest_send(:post, :write, login, params: { post: { format: 'html', body: '<p>Noch ein <i>Satz</i></p>' } }),
         # The model refuses an empty body, with its own message.
-        'html_empty' => rest_send(:post, :write, login, params: { post: { body: '' } })
+        'html_empty' => rest_send(:post, :write, login, params: { post: { body: '' } }),
+        # R3a: literal text, escaped, in paragraphs and line breaks.
+        'plain' => rest_send(:post, :write, login, params: { post: plain }),
+        'plain_private' => rest_send(:post, :write, login, params: { post: { format: 'plain', is_private: true, body: '<privat>' } }),
+        'invalid_input_format' => rest_send(:post, :write, login, params: { post: { format: 'markdown', body: 'x' } }),
+        'invalid_input_empty' => rest_send(:post, :write, login, params: { post: { format: 'plain', body: '' } }),
+        # Unicode whitespace alone is no text, although String#strip keeps it.
+        'invalid_input_whitespace' => rest_send(:post, :write, login,
+                                                params: { post: { format: 'plain', body: " \n#{0xA0.chr(Encoding::UTF_8)}" } }),
+        'invalid_input_nul' => rest_send(:post, :write, login, params: { post: { format: 'plain', body: "a#{0.chr}b" } }),
+        'not_found' => rest_send(:post, :write, path.call(:missing), params: { post: plain }),
+        # No read access to the ticket: answered like a missing one.
+        'hidden' => rest_send(:post, :write, path.call(:hidden_ticket), params: { post: plain }),
+        # Anna reads the archive's tickets, she may not write them.
+        'forbidden' => rest_send(:post, :write, path.call(:archived_ticket), params: { post: plain }),
+        'read_only' => rest_send(:post, :read, login, params: { post: plain }),
+        'idempotency_first' => rest_send(:post, :write, login, params: once, key: key),
+        'idempotency_replay' => rest_send(:post, :write, login, params: once, key: key),
+        'idempotency_mismatch' => rest_send(:post, :write, login, params: { post: { format: 'plain', body: 'Anderer Text' } }, key: key)
       }
     end
 

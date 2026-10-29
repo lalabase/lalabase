@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "f21d59e33e5dbbe4f15365c6b7d6b429f11184f7",
+    "core_commit": "fa34b08abd15cca2628402543c953cd075a26c77",
     "core_dirty": true,
-    "contract_sha256": "ef502440d07806d550dca180a6bc947ab361a9f85a8155c19e26843f3875b230"
+    "contract_sha256": "a4c77ae287c11f6984df3d0451d379150f5af5e1c7322fff9b0e55213b2ad865"
   },
   "contract": {
     "mcp": {
@@ -3654,7 +3654,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.2.0",
+                "api_version": "1.3.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -3667,6 +3667,7 @@
                   "people.list",
                   "people.show",
                   "posts.create",
+                  "posts.plain",
                   "projects.list",
                   "projects.ticket_attribute_definitions",
                   "tickets.activities",
@@ -3713,7 +3714,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.2.0",
+                "api_version": "1.3.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -3726,6 +3727,7 @@
                   "people.list",
                   "people.show",
                   "posts.create",
+                  "posts.plain",
                   "projects.list",
                   "projects.ticket_attribute_definitions",
                   "tickets.activities",
@@ -4678,6 +4680,331 @@
               "errors": [
                 "Content darf nicht leer sein"
               ]
+            }
+          }
+        },
+        "plain": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "Zeile 1\nZeile 2\n\nAbsatz <b>&"
+              }
+            }
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-10>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "author": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "body_html": "<p>Zeile 1<br>Zeile 2</p><p>Absatz &lt;b&gt;&amp;</p>",
+                "body_text": "Zeile 1\nZeile 2\n\nAbsatz <b>&",
+                "is_private": false,
+                "visible_to_user_id": null,
+                "created_at": "2026-01-05T09:36:00Z",
+                "updated_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "plain_private": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "is_private": true,
+                "body": "<privat>"
+              }
+            }
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-11>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "author": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "body_html": "<p>&lt;privat&gt;</p>",
+                "body_text": "<privat>",
+                "is_private": true,
+                "visible_to_user_id": "00000000-0000-4000-8000-000000000011",
+                "created_at": "2026-01-05T09:36:00Z",
+                "updated_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "invalid_input_format": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "markdown",
+                "body": "x"
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Das Format (post[format]) muss html oder plain sein."
+              ]
+            }
+          }
+        },
+        "invalid_input_empty": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": ""
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Bitte geben Sie einen Kommentartext (post[body]) an."
+              ]
+            }
+          }
+        },
+        "invalid_input_whitespace": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": " \n "
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Bitte geben Sie einen Kommentartext (post[body]) an."
+              ]
+            }
+          }
+        },
+        "invalid_input_nul": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "a\u0000b"
+              }
+            }
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "validation_failed",
+              "code": "invalid_input",
+              "errors": [
+                "Ein Kommentar im Format plain (post[body]) darf keine NUL-Bytes enthalten."
+              ]
+            }
+          }
+        },
+        "not_found": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000999/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "Zeile 1\nZeile 2\n\nAbsatz <b>&"
+              }
+            }
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "hidden": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000043/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "Zeile 1\nZeile 2\n\nAbsatz <b>&"
+              }
+            }
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "forbidden": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000044/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "Zeile 1\nZeile 2\n\nAbsatz <b>&"
+              }
+            }
+          },
+          "response": {
+            "status": 403,
+            "body": {
+              "error": "forbidden",
+              "code": "forbidden"
+            }
+          }
+        },
+        "read_only": {
+          "token": "read",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "Zeile 1\nZeile 2\n\nAbsatz <b>&"
+              }
+            }
+          },
+          "response": {
+            "status": 403,
+            "body": {
+              "error": "forbidden",
+              "code": "read_only"
+            }
+          }
+        },
+        "idempotency_first": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "Per REST, einmal, als Text."
+              }
+            },
+            "idempotency_key": "contract-rest-comment-1"
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-12>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "author": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "body_html": "<p>Per REST, einmal, als Text.</p>",
+                "body_text": "Per REST, einmal, als Text.",
+                "is_private": false,
+                "visible_to_user_id": null,
+                "created_at": "2026-01-05T09:36:00Z",
+                "updated_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "idempotency_replay": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "Per REST, einmal, als Text."
+              }
+            },
+            "idempotency_key": "contract-rest-comment-1"
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "data": {
+                "id": "<generated-id-12>",
+                "ticket_id": "00000000-0000-4000-8000-000000000041",
+                "author": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers"
+                },
+                "body_html": "<p>Per REST, einmal, als Text.</p>",
+                "body_text": "Per REST, einmal, als Text.",
+                "is_private": false,
+                "visible_to_user_id": null,
+                "created_at": "2026-01-05T09:36:00Z",
+                "updated_at": "2026-01-05T09:36:00Z"
+              }
+            }
+          }
+        },
+        "idempotency_mismatch": {
+          "token": "write",
+          "request": {
+            "method": "POST",
+            "path": "/api/v1/tickets/00000000-0000-4000-8000-000000000041/posts",
+            "params": {
+              "post": {
+                "format": "plain",
+                "body": "Anderer Text"
+              }
+            },
+            "idempotency_key": "contract-rest-comment-1"
+          },
+          "response": {
+            "status": 422,
+            "body": {
+              "error": "idempotency_key_reused",
+              "code": "invalid_input",
+              "message": "idempotency_key already used with different parameters"
             }
           }
         }

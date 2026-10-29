@@ -8,7 +8,7 @@ require 'rails_helper'
 # Why:  BaseActor answers an unexpected exception as :internal_error with the
 #       exception's text where it does not re-raise (production). That text may
 #       name the database and reached the client through "comment failed: ...".
-RSpec.describe Lalabase::Tools::PostComment do
+RSpec.describe Lalabase::Tools::PostComment, :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }
   let(:project) { create(:project, organisation: organisation) }

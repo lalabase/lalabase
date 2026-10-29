@@ -8,7 +8,7 @@ require 'rails_helper'
 #       body as HTML without checking its encoding or NUL bytes. The surfaces word
 #       a refusal each their own way; what is refused, and what is stored, is
 #       decided here once.
-RSpec.describe Posts::Comment do
+RSpec.describe Posts::Comment, :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }
   let(:project) { create(:project, organisation: organisation) }

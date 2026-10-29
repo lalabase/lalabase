@@ -161,6 +161,15 @@ de:
         request_refused_own_access: "Der KI-Anbieter hat die Anfrage abgelehnt. Diese Organisation nutzt einen eigenen Zugang: Ein Administrator kann in den KI-Einstellungen prüfen, ob das Modell verfügbar ist und Guthaben besteht."
     post_update:
       unexpected_error: "Unerwarteter Fehler: %{error}"
+    # The refusals of a comment written through a token (Posts::Comment), as
+    # the HTTP API answers them; the MCP tool post_comment keeps its own
+    # English texts.
+    post_comment:
+      format_not_string: "Bitte geben Sie das Format (post[format]) als Text an: html oder plain."
+      format_unknown: "Das Format (post[format]) muss html oder plain sein."
+      body_invalid_utf8: "Der Kommentar (post[body]) ist kein gültiges UTF-8."
+      body_nul: "Ein Kommentar im Format plain (post[body]) darf keine NUL-Bytes enthalten."
+      body_empty: "Bitte geben Sie einen Kommentartext (post[body]) an."
     default_smart_folder:
       my_tasks: "Meine Aufgaben"
       high_priority: "Hohe Priorität"

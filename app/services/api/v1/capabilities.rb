@@ -15,8 +15,8 @@ module Api
     module Capabilities
       # Minor for an additive change (a new endpoint, field or capability), major
       # never: an existing name, field or meaning does not change. 1.2.0: people.list and
-      # people.show (People S3b).
-      API_VERSION = '1.2.0'
+      # people.show (People S3b). 1.3.0: posts.plain (REST R3a).
+      API_VERSION = '1.3.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
@@ -43,8 +43,10 @@ module Api
       }.freeze
 
       # Abilities that are not one endpoint: `idempotency` (the Idempotency-Key
-      # header on every write, D7) and `error_codes` (`code` on every error body, D6).
-      FEATURES = %w[idempotency error_codes].freeze
+      # header on every write, D7), `error_codes` (`code` on every error body, D6)
+      # and `posts.plain` (posts.create takes post[format] html or plain, by the
+      # rule the MCP tool post_comment writes by, Posts::Comment; R3a).
+      FEATURES = %w[idempotency error_codes posts.plain].freeze
 
       def self.names
         (ENDPOINTS.keys + FEATURES).sort

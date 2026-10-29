@@ -58,15 +58,35 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
     Prosopite.resume
   end
 
-  def open_at(window_width)
+  def visit_ticket_at(window_width)
     page.driver.browser.manage.window.resize_to(window_width, 900)
     visit organisation_project_tickets_path(organisation, project, ticket_id: ticket.id)
+    expect(page).to have_css("#ticket-content-#{ticket.id}")
+  end
+
+  def open_at(window_width)
+    visit_ticket_at(window_width)
     open_panel
   end
 
   def open_panel
     within("#meeting-references-#{ticket.id}") { click_link 'Planning call' }
     expect(page).to have_css('aside.column.panel h2', text: 'Planning call')
+  end
+
+  # The panel's frame loads it, without a click on a link: the focus stays where it is.
+  def load_panel(meeting_id)
+    url = organisation_project_ticket_meeting_panel_path(organisation, project, ticket, meeting_id: meeting_id)
+    page.execute_script("document.getElementById('ticket_meeting_panel').src = #{url.to_json}")
+  end
+
+  # A control of the ticket the reader has moved on to, the first VISIBLE one: the first
+  # in the markup is the phone's back button, hidden here. Until 2026-10-29 the focus test
+  # focused that one, which did nothing, and the focus stayed on the link that opened the
+  # panel: the test ran on the opening, not on work in the ticket.
+  def focus_ticket_control
+    find('#ticket-header').first('a[href], button').execute_script('this.focus()')
+    expect(page).to have_css('#ticket-header :focus')
   end
 
   def stage = find('.layout')['data-meeting-panel-stage']
@@ -200,11 +220,8 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
     end
 
     it 'offers the way back to the ticket when the meeting is not available on a narrow grid' do
-      page.driver.browser.manage.window.resize_to(1024, 900)
-      visit organisation_project_tickets_path(organisation, project, ticket_id: ticket.id)
-      expect(page).to have_css("#ticket-content-#{ticket.id}")
-      url = organisation_project_ticket_meeting_panel_path(organisation, project, ticket, meeting_id: SecureRandom.uuid)
-      page.execute_script("document.getElementById('ticket_meeting_panel').src = #{url.to_json}")
+      visit_ticket_at(1024)
+      load_panel(SecureRandom.uuid)
 
       expect(page).to have_css('.layout[data-meeting-panel-stage="narrow"]:not(.hide-panel)')
       expect(page).to have_text(I18n.t('views.organisations.tickets.meeting_panel.unavailable'))
@@ -215,7 +232,7 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
     it 'keeps the ticket in front when the grid narrows while the ticket has the focus' do
       open_at(1200)
       expect(page).to have_css('.layout[data-meeting-panel-stage="medium"]')
-      page.execute_script("document.querySelector('#ticket-header a[href], #ticket-header button').focus()")
+      focus_ticket_control
       focused = page.evaluate_script('document.activeElement.outerHTML')
 
       page.driver.browser.manage.window.resize_to(1024, 900)
@@ -224,6 +241,39 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
       expect(stage_tab("Ticket ##{ticket.number}")['aria-pressed']).to eq('true')
       expect(page).to have_css("#ticket-content-#{ticket.id}", visible: :visible)
       expect(page.evaluate_script('document.activeElement.outerHTML')).to eq(focused)
+    end
+
+    # The opening is excused for the link that loads the panel, and for nothing else: a
+    # panel that arrives while the focus is on another control of the ticket (loaded
+    # here without a click) leaves the ticket in front when the grid narrows.
+    it 'keeps the ticket in front when the focus was in the ticket before the panel came' do
+      visit_ticket_at(1200)
+      focus_ticket_control
+      load_panel(meeting.id)
+      expect(page).to have_css('.layout[data-meeting-panel-stage="medium"]:not(.hide-panel)')
+      expect(page).to have_css('#ticket-header :focus')
+
+      page.driver.browser.manage.window.resize_to(1024, 900)
+
+      expect(page).to have_css('.layout[data-meeting-panel-stage="narrow"]')
+      expect(stage_tab("Ticket ##{ticket.number}")['aria-pressed']).to eq('true')
+    end
+
+    # And the excuse ends when the focus leaves that link: whoever comes back to it
+    # later, by keyboard, is moving through the ticket.
+    it 'keeps the ticket in front when the focus has left the opening link and come back' do
+      open_at(1200)
+      expect(page).to have_css('.layout[data-meeting-panel-stage="medium"]')
+      link = "#meeting-references-#{ticket.id} a.meeting-reference--panel"
+      expect(page).to have_css("#{link}:focus")
+      focus_ticket_control
+      find(link).execute_script('this.focus()')
+      expect(page).to have_css("#{link}:focus")
+
+      page.driver.browser.manage.window.resize_to(1024, 900)
+
+      expect(page).to have_css('.layout[data-meeting-panel-stage="narrow"]')
+      expect(stage_tab("Ticket ##{ticket.number}")['aria-pressed']).to eq('true')
     end
   end
 
@@ -269,8 +319,7 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
     end
 
     it 'shows the tabs on a grid the assistant has made narrow' do
-      page.driver.browser.manage.window.resize_to(1280, 900)
-      visit organisation_project_tickets_path(organisation, project, ticket_id: ticket.id)
+      visit_ticket_at(1280)
       find('#assistant-panel-trigger').click
       expect(page).to have_css('body.assistant-panel-open')
       open_panel
@@ -279,6 +328,31 @@ RSpec.describe 'Meeting beside the ticket, by the width of the grid', type: :sys
       expect(page).to have_css('.ticket-meeting-panel__stage-tabs', visible: :visible)
       expect(stage_tab('Meeting')['aria-pressed']).to eq('true')
       expect(assistant_open?).to be(true)
+    end
+
+    # The assistant pushes the page aside in a transition of <main> (half a second), so
+    # a meeting opened right after it opens on a grid that is still medium and turns
+    # narrow under it. The focus is then still on the link just clicked, in the ticket:
+    # that is opening the meeting, not working in the ticket, and the meeting stays in
+    # front (F6). Until 2026-10-29 the ticket came to the front in about one CI run in
+    # four. Here the transition is held at its start while the panel opens and then
+    # finished at once, so no clock decides the race.
+    it 'keeps the meeting in front when the grid narrows while the panel is still opening' do
+      visit_ticket_at(1280)
+      main = "document.querySelector('.mobile-app-screen > main')"
+      page.execute_script("#{main}.style.transitionDuration = '600s'")
+      find('#assistant-panel-trigger').click
+      # The composer takes the focus once its frame has loaded, and nothing moves it after that.
+      expect(page).to have_css('#assistant_panel [data-neo-chat-composer-target="field"]:focus')
+      within("#meeting-references-#{ticket.id}") { click_link 'Planning call' }
+      expect(page).to have_css('.layout[data-meeting-panel-stage="medium"]:not(.hide-panel)')
+      expect(page).to have_css("#meeting-references-#{ticket.id} a.meeting-reference--panel:focus")
+
+      page.execute_script("#{main}.getAnimations().forEach((animation) => animation.finish())")
+
+      expect(page).to have_css('.layout[data-meeting-panel-stage="narrow"]')
+      expect(stage_tab('Meeting')['aria-pressed']).to eq('true')
+      expect(page).to have_css('aside.column.panel h2', text: 'Planning call', visible: :visible)
     end
   end
 

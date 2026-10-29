@@ -231,6 +231,19 @@ RSpec.describe 'MCP writes and an idempotency_key the store cannot hold', :ci_gu
       expect(remembered_keys).to be_empty
     end
 
+    # The argument arrives as UTF-8, where Unicode spaces are blank: no key, as
+    # before. (A REST header arrives as binary, where the same bytes are a key;
+    # pinned in the store spec.)
+    it 'reads a key of Unicode spaces only as none' do
+      before = reading_of('post_comment')
+      first = call_tool(write_pat, 'post_comment', comment.merge(idempotency_key: "\u00A0"))
+      second = call_tool(write_pat, 'post_comment', comment.merge(idempotency_key: "\u00A0\u3000"))
+
+      expect([first, second].map { |result| result['_meta'] }).to all(eq(ok))
+      expect(reading_of('post_comment')).to eq(before + 2)
+      expect(remembered_keys).to be_empty
+    end
+
     # The failure the bound exists for: a random key of 4 KB does not fit the
     # unique index. It used to write, fail to be remembered with -32603 and
     # write again on the retry.

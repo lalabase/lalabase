@@ -58,7 +58,7 @@ RSpec.describe SmartFolderHelper, type: :helper do
       end
 
       ids = helper.available_reference_options('assignee', organisation, project: project_a,
-                                                                        accessible_project_ids: [project_a.id]).map { |o| o[:value] }
+                                                                         accessible_project_ids: [project_a.id]).map { |o| o[:value] }
 
       expect(ids.index(zora.id)).to be < ids.index(anna.id)
     end

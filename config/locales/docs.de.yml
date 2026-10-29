@@ -52,6 +52,11 @@ de:
         external_participant: "Was heißt „externer Teilnehmer\"?"
         what_is_linking: "Was passiert beim Verknüpfen?"
         analyses: "Wie erstelle ich eine KI-Analyse?"
+      people:
+        what_is_it: "Wozu ist der Bereich Personen da?"
+        meetings: "Wie hängen Personen und Meetings zusammen?"
+        link_participant: "Wie verknüpfe ich einen Meeting-Teilnehmer mit einer Person?"
+        who_sees: "Wer sieht die Personen?"
       documentation:
         what_is_it: "Was ist eine Dokumentation – und was nicht?"
         stays_current: "Wie bleibt die Dokumentation aktuell?"

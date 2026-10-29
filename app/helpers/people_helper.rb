@@ -8,6 +8,9 @@ module PeopleHelper
   SELECTION_PARAMS = %w[person_id member_id].freeze
   # The icon of an additional detail that is a link (PersonDetail#href).
   PERSON_DETAIL_ICONS = { 'phone' => 'bi-telephone', 'email' => 'bi-envelope', 'url' => 'bi-link-45deg' }.freeze
+  # The kinds of additional detail that say how to reach a person: they join
+  # email and phone at the top of the lane (person_fields).
+  PERSON_REACH_KINDS = %w[phone email].freeze
 
   # The page wrapper's data: the lane (layout-toggle, index-page) and the
   # desktop/mobile switch, the same controllers as "Alle Meetings"
@@ -74,16 +77,15 @@ module PeopleHelper
     person.user if active
   end
 
-  # The link state under the name: [icon, words]. A member, a row whose member
-  # left (shown as a contact, without the account's name), or no account.
-  def person_link_state(person, member)
-    if member
-      ['bi-person-check', t('views.organisations.people.show.linked_member', name: viewer_display_name(member))]
-    elsif person&.user_id
-      ['bi-person-dash', t('views.organisations.people.show.former_member')]
-    else
-      ['bi-person-dash', t('views.organisations.people.show.no_account')]
-    end
+  # The one line under the name in the lane: what the person is, and the
+  # company when there is one ("Kontakt · campsys GmbH"). A row whose member
+  # left reads as a former member; it is shown as a contact everywhere else.
+  def person_kind_line(person, member)
+    kind = if member then 'member'
+           elsif person&.user_id then 'former_member'
+           else 'contact'
+           end
+    [t("views.organisations.people.show.kind.#{kind}"), person&.company.presence].compact.join(' · ')
   end
 
   # The member whose account fills (and locks) name and email in the form: the
@@ -111,10 +113,13 @@ module PeopleHelper
   end
 
   # The lines of the lane: label, value, and for email and phone the link. An
-  # active member's email is the account's (the form locks it). The
-  # additional details follow the phone, in their stored order.
+  # active member's email is the account's (the form locks it). The ways to
+  # reach the person come first (email, phone, then the additional phones and
+  # emails), because that is what the lane is opened for; the rest follows in
+  # the order of the form. The company is not a line: it stands under the
+  # name (person_kind_line).
   def person_fields(person, member)
-    person_fixed_fields(person, member) + person_detail_fields(person)
+    (person_fixed_fields(person, member) + person_detail_fields(person)).partition { |field| field[:reach] }.flatten
   end
 
   # One line per additional detail (PersonDetail): the label, or the name of
@@ -129,11 +134,11 @@ module PeopleHelper
       detail = PersonDetail.new(entry)
       label = detail.label.presence || person_detail_kind_name(detail.kind)
       field = { label: label, value: person_detail_value(detail) }
+      field[:reach] = true if PERSON_REACH_KINDS.include?(detail.kind)
       href = detail.href
       next field unless href
 
-      field.merge(href: href, icon: PERSON_DETAIL_ICONS[detail.kind], mono: detail.kind == 'phone',
-                  action: label, external: detail.kind == 'url')
+      field.merge(href: href, icon: PERSON_DETAIL_ICONS[detail.kind], action: label, external: detail.kind == 'url')
     end
   end
 
@@ -175,7 +180,8 @@ module PeopleHelper
     detail.value
   end
 
-  # The fixed fields of the lane, in the order of the form.
+  # The fixed fields of the lane, in the order of the form, without the
+  # company (person_kind_line).
   def person_fixed_fields(person, member)
     email = member ? member.email : person&.email
     phone = person&.phone
@@ -183,13 +189,12 @@ module PeopleHelper
       ({ label: Person.human_attribute_name(:salutation), value: person.salutation } if person&.salutation.present?),
       ({ label: Person.human_attribute_name(:function), value: person.function } if person&.function.present?),
       ({ label: Person.human_attribute_name(:department), value: person.department } if person&.department.present?),
-      ({ label: Person.human_attribute_name(:company), value: person.company } if person&.company.present?),
       # A member's email is the account's, checked by Devise only: linked as
       # it is, not through PersonDetail's stricter rule.
-      ({ label: Person.human_attribute_name(:email), value: email, href: "mailto:#{email}", icon: 'bi-envelope' } if email.present?),
+      ({ label: Person.human_attribute_name(:email), value: email, href: "mailto:#{email}", icon: 'bi-envelope', reach: true } if email.present?),
       if phone.present?
         { label: Person.human_attribute_name(:phone), value: phone, href: PersonDetail.new('kind' => 'phone', 'value' => phone).href,
-          icon: 'bi-telephone', mono: true, action: t('views.organisations.people.show.call') }
+          icon: 'bi-telephone', action: t('views.organisations.people.show.call'), reach: true }
       end
     ].compact
   end
@@ -275,21 +280,40 @@ module PeopleHelper
   def last_contact_text(last)
     scope = 'views.organisations.people.last_contact'
     if last.kind == :meeting
-      date = last.at.to_date
-      t("#{scope}.meeting", title: last.meeting_title,
-                            date: l(date, format: date.year == Time.zone.today.year ? :short : :default))
+      t("#{scope}.meeting", title: last.meeting_title, date: person_short_date(last.at.to_date))
     else
       t("#{scope}.ticket.#{last.action}", number: last.ticket_number, age: last_contact_age(last.at))
     end
   end
 
-  # The last contact and the readable meetings of one person or member in the
-  # lane. A member (the account, active) counts their ticket work too; a row
-  # of a former member only its meetings.
-  def person_contacts(person: nil, member: nil)
-    contacts = People::Contacts.new(viewer: current_user, organisation: current_organisation)
-    meetings = contacts.meetings_for(person: person, user: member).includes(:project)
-    { last: contacts.last_contacts([People::Contacts::Subject.for(person: person, member: member)]).first,
-      meetings: meetings }
+  # A date of this year without the year (28.10.), an older one with it.
+  def person_short_date(date)
+    l(date, format: date.year == Time.zone.today.year ? :short : :default)
+  end
+
+  # The readable meetings of one person or member in the lane, newest first.
+  # A member's count through the account (People::Contacts). The last contact
+  # is not shown there: the row of the list carries it.
+  def person_meetings(person: nil, member: nil)
+    People::Contacts.new(viewer: current_user, organisation: current_organisation)
+                    .meetings_for(person: person, user: member)
+  end
+
+  # Who created a row and when: the first line of the folded history. A
+  # member row nobody created by hand ("Angaben ergänzen" by a deleted
+  # account, a later import) came from the account.
+  def person_created_line(person, member)
+    date = l(person.created_at.to_date, format: :default)
+    scope = 'views.organisations.people.show'
+    if person.creator then t("#{scope}.created_by", name: person_actor_name(person.creator), date: date)
+    elsif member then t("#{scope}.from_account", date: date)
+    else t("#{scope}.created_at", date: date)
+    end
+  end
+
+  # How often a person row was changed after it was created: the number the
+  # folded history names ("2 Änderungen").
+  def person_change_count(person)
+    person.activities.where.not(action: 'created').count
   end
 end

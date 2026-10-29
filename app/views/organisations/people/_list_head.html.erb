@@ -1,9 +1,9 @@
 <%# locals: (counts:) %>
-<%# The head of the list: the title with the count line, the main action, the
-    search and the three filters with their counts. A search or a filter is a
-    full visit of the index; the open person travels along. Only the main
-    action carries the hard edge and the offset shadow, everything else is a
-    hairline (the rule of the rebuilt tickets). %>
+<%# The head of the list: the title, the main action, the search and the
+    three filters with their counts (the only place the counts stand). A
+    search or a filter is a full visit of the index; the open person travels
+    along. Only the "+" carries the hard edge and the offset shadow;
+    the active filter is a tint, the others are words. %>
 <% frame_id = Organisations::PeopleController::DETAIL_FRAME_ID %>
 <% mobile = @viewport_mode == 'mobile' %>
 <% add_url = organisation_people_path(@current_organisation, list_state.merge('new' => Organisations::PeopleController::NEW_STATE)) %>
@@ -16,28 +16,28 @@
      lane_link_remove_value: %w[person_id member_id user_id].to_json,
      lane_link_focus_value: '#person_name'
    } %>
-<%# On a phone the shell already names the page; the head keeps the count and
-    a square "+". %>
+<%# The head on a desktop is the shared title box with the square primary
+    "+" as its title action and the "?" of the contextual help, as on "Alle
+    Meetings" and "Zeiten". On a phone the shell already names the page; the
+    head keeps a larger square "+". %>
 <div class="people-head">
-  <div class="people-head__title">
-    <% unless mobile %>
-      <h1 class="people-head__h1"><%= t('views.organisations.people.index.title') %></h1>
+  <% if mobile %>
+    <% if policy(Person).create? %>
+      <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: :large, url: add_url,
+                                                       title: t('views.organisations.people.index.new_person'),
+                                                       class: 'people-head__action', data: add_data) %>
     <% end %>
-    <p class="people-head__count">
-      <%= t('views.organisations.people.index.count_line',
-            people: t('views.organisations.people.index.count_people', count: counts['all']),
-            members: t('views.organisations.people.index.count_members', count: counts['members']),
-            contacts: t('views.organisations.people.index.count_contacts', count: counts['contacts'])) %>
-    </p>
-  </div>
-  <% if policy(Person).create? && mobile %>
-    <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: :large, url: add_url,
-                                                     title: t('views.organisations.people.index.new_person'),
-                                                     class: 'people-head__action', data: add_data) %>
-  <% elsif policy(Person).create? %>
-    <%= render Neo::Buttons::ButtonComponent.new(variant: :primary, size: :medium, icon: 'plus-lg', url: add_url,
-                                                 class: 'people-head__action', data: add_data) do %>
-      <%= t('views.organisations.people.index.new_person') %>
+  <% else %>
+    <%= render NeoTitleBoxComponent.new(title: t('views.organisations.people.index.title'), margin_bottom: nil) do |box| %>
+      <% if policy(Person).create? %>
+        <% box.with_title_action do %>
+          <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: :medium, url: add_url,
+                                                           title: t('views.organisations.people.index.new_person'), data: add_data) %>
+        <% end %>
+      <% end %>
+      <% box.with_right_content do %>
+        <%= render 'common/contextual_help_menu', context: :people %>
+      <% end %>
     <% end %>
   <% end %>
 </div>

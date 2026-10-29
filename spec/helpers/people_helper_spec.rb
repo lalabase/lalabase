@@ -77,7 +77,7 @@ RSpec.describe PeopleHelper, type: :helper do
                                      detail('email', 'erika@example.com'),
                                      detail('url', 'https://example.com'), phone: nil)
 
-      expect(phone).to include(href: 'tel:+491701234567', mono: true, value: '+49 (170) 123-4567', action: 'Mobil')
+      expect(phone).to include(href: 'tel:+491701234567', value: '+49 (170) 123-4567', action: 'Mobil', reach: true)
       expect(email).to include(href: 'mailto:erika@example.com', value: 'erika@example.com')
       expect(url).to include(href: 'https://example.com', external: true)
     end

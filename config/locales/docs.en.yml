@@ -51,6 +51,11 @@ en:
         external_participant: "What does \"external participant\" mean?"
         what_is_linking: "What happens when I link?"
         analyses: "How do I create an AI analysis?"
+      people:
+        what_is_it: "What is the people area for?"
+        meetings: "How are people and meetings connected?"
+        link_participant: "How do I link a meeting participant to a person?"
+        who_sees: "Who sees the people?"
       documentation:
         what_is_it: "What is documentation — and what is it not?"
         stays_current: "How does the documentation stay up to date?"

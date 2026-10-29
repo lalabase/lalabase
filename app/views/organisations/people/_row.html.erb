@@ -16,23 +16,19 @@
                 list_row_url_value: url, list_row_id_value: id, list_row_param_value: param,
                 list_row_params_value: PeopleHelper::SELECTION_PARAMS.to_json,
                 list_row_frame_value: Organisations::PeopleController::DETAIL_FRAME_ID } %>
+<% kind_word = entry.member? ? t('views.organisations.people.show.kind.member') : t('views.organisations.people.show.kind.contact') %>
 <%= tag.li data: row_data, tabindex: 0, class: "people-row #{'selected-row' if open}" do %>
-  <%= render Neo::Users::AvatarComponent.new(user: entry.user, size: :small, fallback_initials: person_initials(name),
+  <%# The chip says member or contact: filled or an outline, the word in its
+      tooltip and for a screen reader after the name. %>
+  <%= render Neo::Users::AvatarComponent.new(user: entry.user, size: :small, fallback_initials: person_initials(name), title: kind_word,
                                               class: "people-avatar #{'people-avatar--contact' unless entry.member?}") %>
   <span class="people-row__text">
-    <span class="people-row__line">
-      <span class="people-row__name"><%= name %></span>
-      <% if entry.member? %>
-        <span class="people-badge"><%= t('views.organisations.people.index.member_badge') %></span>
-      <% end %>
-    </span>
+    <span class="people-row__name"><%= name %><span class="sr-only">, <%= kind_word %></span></span>
     <% sub = entry.detail %>
     <% if sub %>
       <span class="people-row__sub"><%= sub %></span>
     <% end %>
   </span>
   <% last = entry.last_contact %>
-  <%= tag.span(last ? last_contact_age(last.at) : t('views.organisations.people.index.never'),
-               class: "people-row__last #{'people-row__last--none' unless last}",
-               title: last ? last_contact_text(last) : t('views.organisations.people.show.no_meeting')) %>
+  <%= tag.span(last ? last_contact_age(last.at) : '', class: 'people-row__last', title: (last_contact_text(last) if last)) %>
 <% end %>

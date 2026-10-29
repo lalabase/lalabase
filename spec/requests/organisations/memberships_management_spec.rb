@@ -49,7 +49,7 @@ RSpec.describe 'Membership management', :ci_guard, type: :request do
     get organisation_memberships_path(organisation)
 
     expect(response).to have_http_status(:ok)
-    expect(workspace.css('select, .members-menu, .members-invite, .members-text-action, #pending-invitations')).to be_empty
+    expect(workspace.css('select, .more-menu, .members-invite, .members-text-action, #pending-invitations')).to be_empty
     expect(response.body).not_to include(invitation.email, invitation.token)
   end
 

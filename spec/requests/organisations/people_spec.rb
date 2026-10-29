@@ -88,6 +88,7 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
       expect(response.body).to include('Doris Dienstleister', '+49 30 1234567')
       expect(response.body).not_to include(new_organisation_person_path(organisation))
       expect(response.body).not_to include(edit_organisation_person_path(organisation, person))
+      expect(Nokogiri::HTML(response.body).css('.people-lane__head .more-menu')).to be_empty
     end
 
     it 'shows the person in the lane frame' do
@@ -291,6 +292,44 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
       expect(response.body).to include(I18n.t('views.organisations.people.history.title'))
     end
 
+    # The redesign of 29.10.2026: the history folds into the line of who
+    # created the row, with the number of changes in its own plural.
+    it 'folds the history into one line that counts the changes' do
+      created = I18n.t('views.organisations.people.show.created_at', date: I18n.l(person.created_at.to_date, format: :default))
+
+      get organisation_person_path(organisation, person), headers: frame_headers
+      lane = Nokogiri::HTML(response.body)
+      expect(lane.at_css('.people-footer').text).to include(created)
+      expect(lane.at_css('details.people-history')).to be_nil
+
+      patch organisation_person_path(organisation, person), params: { person: { phone: '0', lock_version: person.reload.lock_version } }
+      get organisation_person_path(organisation, person), headers: frame_headers
+      summary = Nokogiri::HTML(response.body).at_css('details.people-history > summary').text.squish
+      expect(summary).to include(created, I18n.t('views.organisations.people.history.changes', count: 1))
+      expect(I18n.t('views.organisations.people.history.changes', count: 1)).not_to eq(I18n.t('views.organisations.people.history.changes', count: 2))
+    end
+
+    it 'puts delete behind the "···" menu, with its confirmation' do
+      get organisation_person_path(organisation, person), headers: frame_headers
+
+      menu = Nokogiri::HTML(response.body).at_css('.people-lane__head details.more-menu')
+      button = menu.at_css('button.more-menu__danger')
+      expect(button.text.strip).to eq(I18n.t('views.organisations.people.show.delete'))
+      expect(button.ancestors('form').first['data-turbo-confirm'])
+        .to eq(I18n.t('views.organisations.people.show.delete_confirm', name: 'Doris Dienstleister'))
+    end
+
+    it 'names what the person is and the company under the name, not as a line' do
+      person.update!(company: 'Hoster GmbH')
+
+      get organisation_person_path(organisation, person), headers: frame_headers
+      lane = Nokogiri::HTML(response.body)
+
+      expect(lane.at_css('.people-identity__line').text.strip)
+        .to eq("#{I18n.t('views.organisations.people.show.kind.contact')} · Hoster GmbH")
+      expect(lane.css('.people-fields__row dt').map { |dt| dt.text.strip }).not_to include(Person.human_attribute_name(:company))
+    end
+
     it 'filters and searches the list' do
       get organisation_people_path(organisation, kind: 'contacts', q: 'dienst')
 
@@ -405,7 +444,20 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     it 'shows no detail line for a person without details' do
       fields = lane_html.css('.people-fields__row dt').map { |dt| dt.text.strip }
 
-      expect(fields).to eq(%i[function company email phone].map { |field| Person.human_attribute_name(field) })
+      expect(fields).to eq(%i[email phone function].map { |field| Person.human_attribute_name(field) })
+    end
+
+    # The redesign of 29.10.2026: the ways to reach a person come first, an
+    # added phone or email among them; the label names the value, no icon.
+    it 'puts the ways to reach the person first, without icons' do
+      person.update!(additional_details: [row('text', 'nur vormittags', label: 'Erreichbar'), row('phone', '+49 30 1234568', label: 'Fax')])
+
+      lane = lane_html
+      fields = lane.css('.people-fields__row dt').map { |dt| dt.text.strip }
+
+      expect(fields).to eq([Person.human_attribute_name(:email), Person.human_attribute_name(:phone), 'Fax',
+                            Person.human_attribute_name(:function), 'Erreichbar'])
+      expect(lane.css('.people-fields i')).to be_empty
     end
 
     it 'clears them when only the marker is sent (the last one removed)' do
@@ -958,18 +1010,30 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     end
   end
 
-  it 'counts all people, members and contacts in the head and the filters' do
+  # 29.10.2026: the "+" of the people page is the square primary button of
+  # "Alle Meetings" and "Zeiten", in the shared title box, not a text button.
+  it 'offers "Person anlegen" as the square "+" of the title box' do
+    sign_in admin
+
+    get organisation_people_path(organisation)
+
+    add = Nokogiri::HTML(response.body).at_css(".people-head a[title='#{I18n.t('views.organisations.people.index.new_person')}']")
+    expect(add.at_css('svg')).to be_present
+    expect(add.text.strip).to be_empty
+    expect(add['data-lane-link-url-value']).to eq(new_organisation_person_path(organisation))
+  end
+
+  it 'counts all people, members and contacts at the filters only' do
     sign_in admin
     admin
 
     get organisation_people_path(organisation, kind: 'contacts')
 
     members = Membership.where(organisation: organisation, active: true).count
-    scope = 'views.organisations.people.index'
-    line = I18n.t("#{scope}.count_line", people: I18n.t("#{scope}.count_people", count: members + 1),
-                                         members: I18n.t("#{scope}.count_members", count: members),
-                                         contacts: I18n.t("#{scope}.count_contacts", count: 1))
-    expect(response.body).to include(line)
+    page = Nokogiri::HTML(response.body)
+    counts = page.css('.people-filters .people-pill__count').map { |count| count.text.strip }
+    expect(counts).to eq([(members + 1).to_s, members.to_s, '1'])
+    expect(page.css('.people-head p')).to be_empty
   end
 
   describe 'the row of an active member' do
@@ -1096,14 +1160,6 @@ RSpec.describe 'Organisations::People', :ci_guard, type: :request do
     get organisation_person_path(organisation, person, viewport: 'mobile'), headers: frame_headers
 
     expect(response.body).not_to include('data-lane-close')
-  end
-
-  it 'counts with the right singular and plural forms' do
-    sign_in admin
-    get organisation_people_path(organisation)
-
-    expect(response.body).to match(/1 Kontakt(?!e)/)
-    expect(response.body).not_to include('1 Kontakte')
   end
 
   it 'names the member of the hint through the name display setting' do

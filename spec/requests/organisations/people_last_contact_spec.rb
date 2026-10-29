@@ -2,8 +2,9 @@
 
 require 'rails_helper'
 
-# The people page, S2a: the column "Zuletzt" with its sort, and in the lane
-# "Letzter Kontakt" and the meetings of a person. Only what the viewer may
+# The people page, S2a: the column "Zuletzt" with its sort (the row carries
+# the last contact, its words in the tooltip), and in the lane the meetings
+# of a person. Only what the viewer may
 # read counts; every negative claim below stands next to proof that the page
 # itself was rendered.
 RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request do
@@ -68,14 +69,33 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
       expect(response.body.index('Carl Beispiel')).to be < response.body.index('Doris Dienstleister')
     end
 
-    it 'shows the age of the last contact and "noch nie" without one' do
+    it 'shows the age of the last contact and nothing without one' do
       meeting(readable, at: 1.day.ago, title: 'Status', person: contact)
       sign_in viewer
 
       get organisation_people_path(organisation)
 
       expect(row_of(response.body, 'Doris Dienstleister')).to include('gestern', 'Letztes Meeting: Status')
-      expect(row_of(response.body, 'Carl Beispiel')).to include('noch nie')
+      last = Nokogiri::HTML(row_of(response.body, 'Carl Beispiel')).at_css('.people-row__last')
+      expect(last.text).to be_empty
+      expect(last['title']).to be_nil
+    end
+
+    # The redesign of 29.10.2026: no "Mitglied" badge. The chip says it,
+    # filled or an outline, the word in its tooltip and for a screen reader.
+    it 'names member and contact through the chip, without a badge' do
+      sign_in viewer
+
+      get organisation_people_path(organisation)
+
+      rows = Nokogiri::HTML(response.body).css('li.people-row')
+      member = rows.find { |row| row.at_css('.people-row__name').text.include?('Carl Beispiel') }
+      contact_row = rows.find { |row| row.at_css('.people-row__name').text.include?('Doris Dienstleister') }
+      expect(member.at_css('.neo-user-avatar')['title']).to eq(I18n.t('views.organisations.people.show.kind.member'))
+      expect(member.at_css('.people-row__name .sr-only').text).to include(I18n.t('views.organisations.people.show.kind.member'))
+      expect(contact_row.at_css('.neo-user-avatar')['title']).to eq(I18n.t('views.organisations.people.show.kind.contact'))
+      expect(contact_row.at_css('.neo-user-avatar')['class']).to include('people-avatar--contact')
+      expect(response.body).not_to include('people-badge')
     end
 
     it 'sorts by ?sort=last, newest first, and keeps the sort in search, filter and selection links' do
@@ -129,15 +149,14 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
   end
 
   describe 'the lane' do
-    it 'shows the last contact and the three newest meetings of a contact, then "Alle N anzeigen"' do
+    it 'shows the three newest meetings of a contact, then "Alle N anzeigen", without their project' do
       meetings = Array.new(4) { |index| meeting(readable, at: (index + 1).days.ago, title: "Runde #{index}", person: contact) }
       sign_in viewer
 
       get organisation_person_path(organisation, contact), headers: frame_headers
 
-      expect(response.body).to include(I18n.t('views.organisations.people.show.last_contact'), 'Letztes Meeting: Runde 0')
-      expect(response.body).to include('Runde 0', 'Runde 1', 'Runde 2', 'Relaunch')
-      expect(response.body).not_to include('Runde 3')
+      expect(response.body).to include('Runde 0', 'Runde 1', 'Runde 2')
+      expect(response.body).not_to include('Runde 3', 'Relaunch')
       expect(response.body).to include(I18n.t('views.organisations.people.show.all_meetings', count: 4))
       expect(response.body).to include(organisation_meetings_path(organisation, meeting_id: meetings.first.id))
     end
@@ -162,7 +181,10 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
       expect(response.body).to include('Runde 0')
       expect(response.body).not_to include('Geheimrunde')
       expect(response.body).not_to include(I18n.t('views.organisations.people.show.all_meetings', count: 4))
-      expect(response.body).to include('Letztes Meeting: Runde 0')
+
+      get organisation_people_path(organisation)
+      expect(row_of(response.body, 'Doris Dienstleister')).to include('Letztes Meeting: Runde 0')
+      expect(response.body).not_to include('Geheimrunde')
 
       sign_in admin
       get organisation_person_path(organisation, contact), headers: frame_headers
@@ -181,7 +203,7 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
     describe 'a member (E3)' do
       let(:ticket) { create(:ticket, organisation: organisation, project: readable) }
 
-      it 'shows their newer ticket work as the last contact, in the lane of a member without a row' do
+      it 'shows their newer ticket work as the last contact in the row, and the meeting in the lane' do
         meeting(readable, at: 4.days.ago, title: 'Planung', user: colleague)
         post = create(:post, ticket: ticket, user: colleague, organisation: organisation)
         Activity.create!(actor: colleague, trackable: ticket, organisation: organisation, action: 'post_added',
@@ -189,8 +211,10 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
         sign_in viewer
 
         get member_organisation_people_path(organisation, colleague.id), headers: frame_headers
+        expect(response.body).to include('Planung')
 
-        expect(response.body).to include("Hat Ticket ##{ticket.number} kommentiert, gestern", 'Planung')
+        get organisation_people_path(organisation)
+        expect(row_of(response.body, 'Carl Beispiel')).to include("Hat Ticket ##{ticket.number} kommentiert, gestern")
       end
 
       it 'does not count a comment the viewer may not read' do
@@ -201,9 +225,9 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
                          secondary: post, parameters: { 'skip_notifications' => true }, created_at: 1.day.ago)
         sign_in viewer
 
-        get member_organisation_people_path(organisation, colleague.id), headers: frame_headers
+        get organisation_people_path(organisation)
 
-        expect(response.body).to include('Letztes Meeting: Planung')
+        expect(row_of(response.body, 'Carl Beispiel')).to include('Letztes Meeting: Planung')
         expect(response.body).not_to include('kommentiert')
       end
 
@@ -214,7 +238,7 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
 
         get organisation_person_path(organisation, row), headers: frame_headers
 
-        expect(response.body).to include('Planung', 'Letztes Meeting: Planung')
+        expect(response.body).to include('Planung')
       end
     end
 
@@ -254,18 +278,18 @@ RSpec.describe 'Organisations::People last contact', :ci_guard, type: :request d
     it 'shows the meeting and not the ticket work in the lane' do
       get organisation_person_path(organisation, former_row), headers: frame_headers
 
-      expect(response.body).to include('Letztes Meeting: Altrunde', 'Altrunde')
+      expect(response.body).to include('Altrunde')
       expect(response.body).not_to include("Hat Ticket ##{ticket.number}")
     end
   end
 
-  it 'shows the last contact and the meetings on a phone' do
+  it 'shows the meetings on a phone' do
     meeting(readable, at: 1.day.ago, title: 'Status', person: contact)
     sign_in viewer
 
     get organisation_people_path(organisation, person_id: contact.id, viewport: 'mobile')
 
-    expect(response.body).to include('people-mobile-grid', I18n.t('views.organisations.people.show.last_contact'), 'Status')
+    expect(response.body).to include('people-mobile-grid', I18n.t('views.organisations.people.show.meetings'), 'Status')
   end
 
   it 'asks the database as often for a list of two people as for a list of eight' do

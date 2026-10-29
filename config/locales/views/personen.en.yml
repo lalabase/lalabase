@@ -16,16 +16,6 @@ en:
       people:
         index:
           title: "People"
-          count_line: "%{people} · %{members}, %{contacts}"
-          count_people:
-            one: "%{count} person"
-            other: "%{count} people"
-          count_members:
-            one: "%{count} member"
-            other: "%{count} members"
-          count_contacts:
-            one: "%{count} contact"
-            other: "%{count} contacts"
           new_person: "Add person"
           search_label: "Search people"
           search_placeholder: "Name, function or company"
@@ -47,7 +37,6 @@ en:
           no_hits_text: "The search looks at name, function, department, company and email."
           clear_search: "Clear search"
           back_to_list: "People"
-          never: "never"
           columns:
             name: "Name"
             last: "Last"
@@ -74,7 +63,6 @@ en:
             changed: "Changed ticket #%{number}, %{age}"
             commented: "Commented on ticket #%{number}, %{age}"
         show:
-          last_contact: "Last contact"
           no_meeting: "No meeting yet."
           meetings: "Meetings"
           all_meetings:
@@ -83,11 +71,10 @@ en:
           kind:
             member: "Member"
             contact: "Contact"
+            former_member: "Former member"
+          more_actions: "More actions"
           close: "Close"
           edit: "Edit"
-          linked_member: "Member: %{name}"
-          no_account: "No account"
-          former_member: "Former member"
           contact_label: "Contact"
           duplicate_prefix: "Same name:"
           duplicate_link: "Link …"
@@ -145,6 +132,9 @@ en:
           cancel: "Cancel"
         history:
           title: "History"
+          changes:
+            one: "%{count} change"
+            other: "%{count} changes"
           created: "%{actor} added the person"
           updated: "%{actor} changed %{fields}"
           other: "%{actor} changed the person"

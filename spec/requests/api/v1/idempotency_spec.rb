@@ -161,7 +161,7 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
     # The unique index on (token, key) holds about 2.7 KB; a longer key used to
     # write, fail to be stored with a 500, and write again on every retry.
     it 'refuses a key longer than the limit before writing' do
-      long = 'k' * (Api::V1::Idempotent::MAX_KEY_LENGTH + 1)
+      long = 'k' * (Mcp::IdempotencyStore::MAX_KEY_LENGTH + 1)
       expect { comment('Hallo', key: long) }.not_to(change { posts_count })
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body).to include('error' => 'invalid_idempotency_key', 'code' => 'invalid_input')
@@ -191,8 +191,27 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
     end
 
     it 'accepts a key of exactly the limit' do
-      key = 'k' * Api::V1::Idempotent::MAX_KEY_LENGTH
+      key = 'k' * Mcp::IdempotencyStore::MAX_KEY_LENGTH
       expect { 2.times { comment('Hallo', key: key) } }.to change { posts_count }.by(1)
+    end
+
+    # The header is read by the rule the MCP argument is read by
+    # (Mcp::IdempotencyStore.client_key): surrounding whitespace goes before the
+    # key is counted or stored, so the bare key replays the first answer.
+    it 'drops surrounding whitespace before it counts, as MCP does' do
+      key = 'k' * Mcp::IdempotencyStore::MAX_KEY_LENGTH
+      expect { comment('Hallo', key: " #{key}\t") }.to change { posts_count }.by(1)
+      first = snapshot
+      expect(first.first).to eq(201)
+
+      expect { comment('Hallo', key: key) }.not_to(change { posts_count })
+      expect(snapshot).to eq(first)
+    end
+
+    it 'names the header and the bound in its refusal' do
+      comment('Hallo', key: 'k' * (Mcp::IdempotencyStore::MAX_KEY_LENGTH + 1))
+      expect(response.parsed_body).to eq('error' => 'invalid_idempotency_key', 'code' => 'invalid_input',
+                                         'message' => 'Idempotency-Key must be valid UTF-8 without NUL, at most 255 bytes')
     end
   end
 

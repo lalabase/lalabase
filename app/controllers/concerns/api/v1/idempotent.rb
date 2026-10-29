@@ -33,10 +33,6 @@ module Api
       HEADER = 'Idempotency-Key'
       MISMATCH = 'idempotency_key_reused'
       INVALID_KEY = 'invalid_idempotency_key'
-      # Bytes. The unique index on (token, key) holds about 2.7 KB, and the key is
-      # stored only AFTER the write: a longer key wrote, failed to be stored with
-      # a 500, and wrote again on every retry. Refused before anything runs.
-      MAX_KEY_LENGTH = 255
 
       included do
         # The actions this controller declared, read by
@@ -54,10 +50,14 @@ module Api
 
       private
 
+      # A key the store cannot hold (Mcp::IdempotencyStore.storable_key?, the rule
+      # the MCP writes ask too) is refused before anything runs: the key is stored
+      # only AFTER the write, so a key too long for the index wrote, failed to be
+      # stored with a 500, and wrote again on every retry.
       def with_idempotency_key
-        key = request.headers[HEADER].to_s.strip.presence
+        key = Mcp::IdempotencyStore.client_key(request.headers[HEADER])
         return yield unless key
-        return render_invalid_idempotency_key unless storable_key?(key)
+        return render_invalid_idempotency_key unless Mcp::IdempotencyStore.storable_key?(key)
 
         store = Mcp::IdempotencyStore.new(token: current_token, tool_name: "rest:#{controller_path}##{action_name}",
                                           key: key, args: idempotency_fingerprint_args)
@@ -67,13 +67,6 @@ module Api
 
         yield
         store.remember({ status: response.status, body: response.body }.to_json) if response.successful?
-      end
-
-      # Within the index (bytes) and storable in a PostgreSQL text column: valid
-      # UTF-8 without NUL, which the database refuses with an error otherwise.
-      def storable_key?(key)
-        utf8 = key.dup.force_encoding(Encoding::UTF_8)
-        key.bytesize <= MAX_KEY_LENGTH && utf8.valid_encoding? && !utf8.include?("\0")
       end
 
       def idempotency_fingerprint_args
@@ -93,7 +86,7 @@ module Api
       def render_invalid_idempotency_key
         skip_authorization
         render_error(error: INVALID_KEY, code: 'invalid_input',
-                     message: "#{HEADER} must be valid UTF-8 without NUL, at most #{MAX_KEY_LENGTH} bytes",
+                     message: Mcp::IdempotencyStore.unstorable_key_message(HEADER),
                      status: :unprocessable_entity)
       end
 

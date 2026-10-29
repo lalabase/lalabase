@@ -123,8 +123,6 @@ module ServiceConventionDetectors
     app/services/lalabase/tools.rb
     app/services/markdown_to_action_text_service.rb
     app/services/mcp/dispatcher.rb
-    app/services/mcp/idempotency_store.rb
-    app/services/mcp/tool_call.rb
     app/services/meetings/participant_claim_matches.rb
     app/services/notifications/broadcast_service.rb
     app/services/notifications/fanout_service.rb

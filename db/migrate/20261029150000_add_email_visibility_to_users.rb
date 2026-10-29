@@ -7,9 +7,10 @@
 # so the users table is not rewritten.
 class AddEmailVisibilityToUsers < ActiveRecord::Migration[8.1]
   def change
-    add_column :users, :email_visibility, :string, null: false, default: 'login'
-    add_column :users, :contact_email, :string
-    add_check_constraint :users, "email_visibility IN ('login', 'contact', 'none')",
-                         name: 'users_email_visibility_known'
+    change_table :users, bulk: true do |t|
+      t.string :email_visibility, null: false, default: 'login'
+      t.string :contact_email
+      t.check_constraint "email_visibility IN ('login', 'contact', 'none')", name: 'users_email_visibility_known'
+    end
   end
 end

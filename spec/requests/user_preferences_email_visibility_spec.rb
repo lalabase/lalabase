@@ -23,7 +23,7 @@ RSpec.describe 'User preferences: the email the others see', :ci_guard, type: :r
     User::EmailDisplay::EMAIL_VISIBILITIES.each do |choice|
       expect(response.body).to include(%(value="#{choice}"))
       expect(response.body).to include(CGI.escapeHTML(I18n.t("user_preferences.edit.display.email_visibility.#{choice}",
-                                                              email: 'login@example.com')))
+                                                             email: 'login@example.com')))
     end
     expect(response.body).to include('name="user[contact_email]"')
     expect(response.body).to include('value="login" checked="checked"')

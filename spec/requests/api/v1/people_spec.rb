@@ -164,6 +164,23 @@ RSpec.describe 'API V1 people', :ci_guard, type: :request do
       expect(body['meta']).to eq('page' => 2, 'per_page' => 1, 'total' => 3)
     end
 
+    # A form or a client that sends the parameter empty means "not set".
+    it 'reads a blank page and per_page as the defaults' do
+      list(page: '', per_page: '')
+
+      expect(response).to have_http_status(:ok)
+      expect(body['meta']).to eq('page' => 1, 'per_page' => 50, 'total' => 3)
+    end
+
+    # The message names the refused value, but does not mirror any amount of input back.
+    it 'quotes a refused value only in part' do
+      list(per_page: '9' * 5000)
+
+      expect(response).to have_http_status(:bad_request)
+      expect(body['message']).to start_with('invalid per_page "999')
+      expect(body['message'].length).to be < 100
+    end
+
     it 'answers a page past the end with no rows and the total' do
       list(page: 2)
 

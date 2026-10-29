@@ -19,6 +19,9 @@ module Api
       MAX_PER_PAGE = 100
       # Far beyond any directory, so an absurd page number is refused rather than skipped to.
       MAX_PAGE = 100_000
+      # How much of a refused value an error message quotes back: enough to recognise it, not
+      # a mirror for any amount of input.
+      QUOTED_LENGTH = 20
 
       # A list parameter the endpoint cannot take (q, page, per_page).
       class InvalidParameter < StandardError; end
@@ -76,7 +79,8 @@ module Api
       end
 
       # A whole number from 1 to max; absent or blank is the default. A refused value is quoted
-      # back only when it is text: a list or a nested value would show Ruby's insides.
+      # back only when it is text, and only its start: a list or a nested value would show
+      # Ruby's insides.
       def whole_number(name, default:, max:)
         raw = params[name]
         return default if raw.nil? || raw == ''
@@ -84,7 +88,7 @@ module Api
         number = Integer(raw, 10) if raw.is_a?(String) && raw.match?(/\A\d+\z/)
         return number if number&.between?(1, max)
 
-        shown = raw.is_a?(String) ? " #{raw.inspect}" : ''
+        shown = raw.is_a?(String) ? " #{raw.truncate(QUOTED_LENGTH).inspect}" : ''
         raise InvalidParameter, "invalid #{name}#{shown} (expected a whole number from 1 to #{max})"
       end
     end

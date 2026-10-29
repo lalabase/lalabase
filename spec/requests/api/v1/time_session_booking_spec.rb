@@ -45,6 +45,11 @@ RSpec.describe 'API V1 time booking', :ci_guard, type: :request do
     JSON.parse(response.body)
   end
 
+  def book_json(**time_session)
+    post "/api/v1/tickets/#{ticket.id}/time_sessions", params: { time_session: time_session },
+                                                       headers: { 'Authorization' => "Bearer #{pat.token}" }, as: :json
+  end
+
   def bookings
     ActsAsTenant.without_tenant { TimeSession.where(ticket_id: ticket.id).count }
   end
@@ -104,6 +109,32 @@ RSpec.describe 'API V1 time booking', :ci_guard, type: :request do
       user.update!(language_preference: 'de')
       book(duration_string: '1:30', duration_minutes: 45)
       expect(body['errors']).to eq([I18n.t('services.time_session_booking.both_durations', locale: :de)])
+    end
+  end
+
+  describe 'structured booking input' do
+    # Scalar strong parameters used to drop these values before Booking could
+    # refuse them, turning an invalid date into today or hiding a second duration.
+    [[], {}, ['30'], { value: '30' }].each do |value|
+      {
+        'invalid date' => [{ duration_minutes: 30, occurred_on: value }, :occurred_on_invalid],
+        'invalid minutes' => [{ duration_minutes: value }, :duration_minutes_invalid],
+        'second duration as minutes' => [{ duration_string: '30', duration_minutes: value }, :both_durations],
+        'second duration as text' => [{ duration_minutes: 30, duration_string: value }, :both_durations]
+      }.each do |name, (input, refusal)|
+        it "refuses #{name} #{value.inspect}, writing nothing" do
+          expect { book_json(**input) }.not_to(change { bookings })
+          expect(response).to have_http_status(:unprocessable_content)
+          expect(body).to eq('error' => 'validation_failed', 'code' => 'invalid_input',
+                             'errors' => [I18n.t("services.time_session_booking.#{refusal}", locale: :en)])
+        end
+      end
+    end
+
+    it 'still ignores attributes outside the booking allowlist' do
+      book_json(duration_minutes: 30, creator_id: SecureRandom.uuid, project_id: SecureRandom.uuid, billed: true)
+      expect(response).to have_http_status(:created)
+      expect(booked).to have_attributes(creator_id: user.id, project_id: project.id, billed: false)
     end
   end
 

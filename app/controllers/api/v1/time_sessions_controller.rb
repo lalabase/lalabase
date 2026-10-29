@@ -64,7 +64,7 @@ module Api
       # token can read and tells nothing the 404 does not.
       def create
         with_readable_ticket(params[:ticket_id]) do |ticket, _project|
-          booking = TimeSessions::Booking.parse(actor: current_user, **session_params.to_h.symbolize_keys)
+          booking = TimeSessions::Booking.parse(actor: current_user, **session_params)
           next render_booking_refusal(booking.refusal) if booking.refused?
 
           session = booking.build(ticket: ticket)
@@ -98,9 +98,17 @@ module Api
       end
 
       def session_params
-        params.require(:time_session).permit(
+        input = params.require(:time_session)
+        permitted = input.permit(
           :occurred_on, :duration_minutes, :duration_string,
           :description, :customer_description
+        )
+        # Booking must see supplied arrays/objects too: scalar permit drops them,
+        # turning an invalid date into today or hiding a second duration. Only
+        # these three explicit inputs bypass filtering; Booking validates them.
+        permitted.to_h.symbolize_keys.merge(
+          occurred_on: input[:occurred_on], duration_minutes: input[:duration_minutes],
+          duration_string: input[:duration_string]
         )
       end
 

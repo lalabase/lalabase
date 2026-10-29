@@ -10,7 +10,8 @@ require 'rails_helper'
 # light red, 2.7:1 against the dark surface instead of 8.9:1.
 #
 # P3: .people-head > * stretched every child of the head, the phone's square
-# "+" too (327 x 40 instead of 40 x 40).
+# "+" too (327 x 40 instead of 40 x 40). Measured at a phone's width: a
+# desktop window leaves the phone layout after 200 ms (second review).
 RSpec.describe 'People page, review of PR #74', type: :system do
   let(:organisation) { create(:organisation) }
   let(:admin) { create(:user, first_name: 'Anna', last_name: 'Admin') }
@@ -54,12 +55,20 @@ RSpec.describe 'People page, review of PR #74', type: :system do
     expect(colors['actual']).to eq(colors['expected'])
   end
 
+  # On a phone for real: with the desktop window the viewport controller
+  # switches the page to desktop after 200 ms and the phone's "+" is gone
+  # (review of #74). The emulation is the one of mobile_shell_regressions_spec.
   it 'keeps the phone\'s "+" square' do
-    visit organisation_people_path(organisation, viewport: 'mobile')
+    page.driver.browser.execute_cdp('Emulation.setDeviceMetricsOverride', width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    visit organisation_people_path(organisation)
 
-    add = find('.people-head__action')
+    expect(page).to have_css('.people-mobile-grid .people-head__action')
+    sleep 0.4 # past the viewport controller's 200 ms: the phone layout must still stand
+    add = find('.people-mobile-grid .people-head__action')
     size = page.evaluate_script('(function (e) { const r = e.getBoundingClientRect(); return [r.width, r.height] })(arguments[0])',
                                 add.native)
     expect(size[0]).to be_within(1).of(size[1])
+  ensure
+    page.driver.browser.execute_cdp('Emulation.clearDeviceMetricsOverride')
   end
 end

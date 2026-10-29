@@ -291,6 +291,8 @@ module Admin
         remember_created_at: nil,
         unconfirmed_email: nil,
         confirmation_token: nil,
+        contact_email: nil,
+        email_visibility: 'none',
         unlock_token: nil,
         locked_at: nil,
         failed_attempts: 0

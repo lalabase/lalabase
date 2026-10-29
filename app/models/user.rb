@@ -82,6 +82,10 @@ class User < ApplicationRecord
   # methods, no Devise interplay, so the include position is not load-bearing.
   include User::NameDisplay
 
+  # Which email the others see (login address, contact address or none) --
+  # the single owner, see User::EmailDisplay.
+  include User::EmailDisplay
+
   # Allowed per-user session-timeout values (minutes). DELIBERATELY defined on
   # the User class, NOT inside User::Authenticatable: it is referenced externally
   # as User::ALLOWED_SESSION_TIMEOUTS (app/views/user_preferences/session.html.erb).

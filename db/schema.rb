@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_28_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_29_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1935,6 +1935,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_120000) do
     t.datetime "confirmed_at"
     t.datetime "confirmation_sent_at"
     t.string "unconfirmed_email"
+    t.string "email_visibility", default: "login", null: false
+    t.string "contact_email"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["deletion_recommended"], name: "index_users_on_deletion_recommended"
@@ -1947,6 +1949,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_120000) do
     t.index ["scheduled_deletion_at"], name: "index_users_on_scheduled_deletion_at"
     t.index ["timezone"], name: "index_users_on_timezone"
     t.index ["unlock_token"], name: "index_users_on_unlock_token", unique: true
+    t.check_constraint "email_visibility::text = ANY (ARRAY['login'::character varying, 'contact'::character varying, 'none'::character varying]::text[])", name: "users_email_visibility_known"
   end
 
   create_table "view_configurations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

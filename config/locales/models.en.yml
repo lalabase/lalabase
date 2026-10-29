@@ -516,3 +516,6 @@ en:
         status:
           active: "Active"
           inactive: "Inactive"
+  users:
+    # A member with neither a name nor a shown email (User::NameDisplay).
+    unnamed: "Member without a name"

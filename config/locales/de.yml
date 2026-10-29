@@ -131,10 +131,12 @@ de:
       user:
         active: Aktiv
         avatar: Profilbild
+        contact_email: Kontakt-E-Mail
         created_at: Erstellt am
         current_password: Aktuelles Passwort
         display_name: Anzeigename
         email: E-Mail
+        email_visibility: Sichtbare E-Mail
         first_name: Vorname
         is_ai: KI-Benutzer
         items_per_page_preference: Einträge pro Seite

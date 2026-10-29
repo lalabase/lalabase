@@ -125,10 +125,12 @@ en:
       user:
         active: Active
         avatar: Profile picture
+        contact_email: Contact email
         created_at: Created at
         current_password: Current password
         display_name: Display name
         email: Email
+        email_visibility: Visible email
         first_name: First name
         is_ai: AI User
         items_per_page_preference: Items per page

@@ -95,6 +95,14 @@ RSpec.describe People::Lookup, :ci_guard do
       expect(names(lookup.find(query: 'techn', limit: 10))).to eq(['Doris Dienstleister'])
     end
 
+    # The notes go out on the REST card only (S3b E2). A search that read them would answer
+    # "who has this word in the notes" on every path, MCP and the assistant included. The same
+    # person is found by a field first, so the empty answer is not an empty directory.
+    it 'never searches the notes' do
+      expect(names(lookup.find(query: 'leitung', limit: 10))).to eq(['Doris Dienstleister'])
+      expect(lookup.find(query: 'vormittags', limit: 10).total).to eq(0)
+    end
+
     it 'filters by kind' do
       expect(names(lookup.find(kind: 'members', limit: 10))).to eq(['Carl Kollege', 'Vera Viewer'])
       expect(names(lookup.find(kind: 'contacts', limit: 10))).to eq(['Doris Dienstleister'])

@@ -58,15 +58,16 @@ module Api
         render_error(error: 'validation_failed', errors: result.errors, status: :unprocessable_entity)
       end
 
-      # The format is read raw, not through permit: strong parameters drop a
-      # list or an object, which would have written the comment as html. Given,
-      # it goes to the rule as it came (null included); absent, it is html.
+      # The format goes to the rule raw, not through permit: strong parameters
+      # drop a list or an object, which would have written the comment as html.
+      # Given, it goes as it came (null included); absent, it is html. It is
+      # permitted all the same, so a plain comment logs no unpermitted parameter.
       def comment_input
         input = params.require(:post)
         # A post that is no object (post=text) answers like a missing one.
         raise ActionController::ParameterMissing, :post unless input.is_a?(ActionController::Parameters)
 
-        permitted = input.permit(:body, :is_private, :visible_to_user_id)
+        permitted = input.permit(:body, :format, :is_private, :visible_to_user_id)
         fields = { body: permitted[:body], is_private: permitted[:is_private],
                    visible_to_user_id: permitted[:visible_to_user_id] }
         fields[:format] = input[:format] if input.key?(:format)

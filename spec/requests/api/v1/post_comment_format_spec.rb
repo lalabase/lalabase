@@ -102,6 +102,18 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       comment(format: 'plain', body: 'x')
       expect(body['data'].keys).to eq(%w[id ticket_id author body_html body_text is_private visible_to_user_id created_at updated_at])
     end
+
+    # Otherwise every comment the client sends logs format as an unpermitted
+    # parameter; the rule reads the raw value either way.
+    it 'does not report format as an unpermitted parameter' do
+      unpermitted = []
+      collect = ->(*, payload) { unpermitted.concat(payload[:keys]) }
+      ActiveSupport::Notifications.subscribed(collect, 'unpermitted_parameters.action_controller') do
+        comment(format: 'plain', body: 'x')
+      end
+      expect(response).to have_http_status(:created)
+      expect(unpermitted).to be_empty
+    end
   end
 
   # Existing callers (gboyke/lalabase-mcp among them) send no format. Their

@@ -70,12 +70,13 @@ module Api
       def query
         value = params[:q]
         return nil if value.nil?
-        raise InvalidParameter, "invalid q #{value.inspect} (expected text)" unless value.is_a?(String)
+        raise InvalidParameter, 'invalid q (expected text)' unless value.is_a?(String)
 
         value.strip
       end
 
-      # A whole number from 1 to max; absent or blank is the default.
+      # A whole number from 1 to max; absent or blank is the default. A refused value is quoted
+      # back only when it is text: a list or a nested value would show Ruby's insides.
       def whole_number(name, default:, max:)
         raw = params[name]
         return default if raw.nil? || raw == ''
@@ -83,7 +84,8 @@ module Api
         number = Integer(raw, 10) if raw.is_a?(String) && raw.match?(/\A\d+\z/)
         return number if number&.between?(1, max)
 
-        raise InvalidParameter, "invalid #{name} #{raw.inspect} (expected a whole number from 1 to #{max})"
+        shown = raw.is_a?(String) ? " #{raw.inspect}" : ''
+        raise InvalidParameter, "invalid #{name}#{shown} (expected a whole number from 1 to #{max})"
       end
     end
   end

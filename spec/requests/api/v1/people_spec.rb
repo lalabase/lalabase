@@ -194,6 +194,22 @@ RSpec.describe 'API V1 people', :ci_guard, type: :request do
         end
       end
     end
+
+    # A list or a nested value is no number and no text either: 400, never a 500 from code that
+    # expected a string, and the message names the parameter without Ruby's insides.
+    { page: [['2'], { 'a' => '1' }], per_page: [['2'], { 'a' => '1' }], q: [['doris'], { 'a' => 'x' }] }
+      .each do |name, values|
+        values.each do |value|
+          it "refuses #{name} given as a #{value.class.name.downcase} with invalid_input" do
+            list(name => value)
+
+            expect(response).to have_http_status(:bad_request)
+            expect(body).to include('error' => 'bad_request', 'code' => 'invalid_input')
+            expect(body['message']).to start_with("invalid #{name} ")
+            expect(body['message']).not_to include('ActionController', 'Parameters', '[')
+          end
+        end
+      end
   end
 
   describe 'the card' do

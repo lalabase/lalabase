@@ -856,6 +856,19 @@ reach, organisations AND projects, and only the rows the web time list shows the
 its minutes, with `ticket: null`. Owner: `TimeSessions::OpenHours`; guard:
 `spec/requests/api/v1/time_sessions_open_access_spec.rb`.
 
+`GET /api/v1/projects/:project_id/knowledge` (REST R2, 2026-10-29, API 1.6.0, capability
+`knowledge.search`) lists a project's notes and documents by title through `Knowledge::Lookup`,
+the read the MCP tool `search_knowledge` uses: the same rows, order (`updated_at` newest first,
+then id), fields (`type`, `id`, `title`, `updated_at`, `link`) and `total` for the same search.
+Rows only through the per-type policy scope: no title and no count of a type the reader may not
+read; a reader who may open the project but read no knowledge gets an empty list. Without `q`
+(or blank) REST lists every readable row; MCP keeps `q` required. `type` other than `note` or
+`document`, and `page`/`per_page` that are no whole number from 1 to the maximum (`per_page` at
+most 100, where MCP clamps) answer 422 `invalid_input`, checked before the project. The project
+gate is MCP's (token reach and `ProjectAccessService`): missing, malformed, beyond the reach,
+not openable (an archived project for a non-admin included) and foreign answer the same 404.
+Guards: `spec/requests/api/v1/knowledge_spec.rb`, `spec/services/knowledge/lookup_spec.rb`.
+
 `GET /api/v1/organisations/:organisation_id/people` and `.../people/:id` (People S3b) read
 the people directory through `People::Lookup`, the object the assistant's `find_people` /
 `get_person` and their MCP twins read as well: one rights question (the people right, 403

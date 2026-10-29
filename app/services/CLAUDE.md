@@ -14,6 +14,15 @@ Ausgenommene Subtrees mit eigenem Vertrag: `actors/`, `lalabase/tools/`).
 Einzel-`update!` ohne Side-Effects bleibt im Controller.
 
 Verzeichnis-Übersicht (Auswahl):
+* `knowledge/` — `lookup.rb` (`Knowledge::Lookup`, REST R2, 29.10.2026) ist das EINE Lesen
+  des Wissens eines Projekts (Notizen, Dokumente) nach Titel, für das MCP-Werkzeug
+  `search_knowledge` und `GET /api/v1/projects/:project_id/knowledge`: Rechte je Typ über
+  `Pundit.policy_scope!` (kein Titel und keine Zählung eines Typs ohne Leserecht), Merge-Seite
+  über zwei Tabellen (`updated_at DESC, id ASC`, derselbe Tiebreak in SQL und Ruby), Gesamtzahl,
+  Serialisierung mit dem Link aus `Documentation::KnowledgeLink`. Ohne Suchwort listet es
+  alles Lesbare (nur REST nutzt das, MCP verlangt `q`). `.options(args, strict:)`: MCP liest
+  Unlesbares als Standard und klemmt `per_page`, REST (`strict: true`) lehnt ab
+  (`InvalidOption`, 422). Eine neue Such- oder Seitenregel gehört hierher, nicht in eine Hülle.
 * `time_sessions/` — Lese-Objekte der Zeitdomäne. `viewing_scope.rb` ist der EINE Besitzer der
   Regel „eigene oder alle Zeiten" (`:all`/`:own`/`:none` plus `#apply(relation)`), die
   `ProjectPolicy#area_access?(:time_sessions)` nicht ausdrücken kann (`can_view_own ||

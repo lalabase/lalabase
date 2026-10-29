@@ -183,6 +183,17 @@ Verzeichnis-Übersicht (Auswahl):
   directory (`#entries`, `#person_entry`, `#member_entry`); `#last_contacts_for` gives the
   card of one entry the last contact the list attaches to every row. Map:
   `lalabase/CLAUDE.md`.
+  S3b (29.10.2026): `lookup.rb` (`People::Lookup`) is the ONE read of the directory outside
+  the page, for three adapters: the assistant's two tools, their MCP twins and
+  `Api::V1::PeopleController`. It owns the rights question (`#allowed?`, asked again by
+  `#find` and `#entry` before anything is read: `Refused`), the search (the Directory's, with
+  `kind` checked instead of read as `all`: `InvalidArgument`), the id format and the ONE field
+  selection (`.row`, `.card(entry, notes:)`; `notes: true` only on the REST card, S3b E2), and
+  `.for_token` (E1: only an organisation whose every project the token reaches,
+  `Reach#project_ids_for(id).nil?`; else nil, so a project-limited token, an organisation
+  outside the token and a missing one look alike). The caller sets the tenant (the MCP twins
+  and the controller do, before `authorize Person, :index?`); paging is the REST
+  controller's (50, at most 100, a value outside refused).
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

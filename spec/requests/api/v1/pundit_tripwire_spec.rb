@@ -26,7 +26,8 @@ RSpec.describe 'Api::V1 Pundit-Tripwire' do
       Api::V1::TicketsController,
       Api::V1::ProjectsController,
       Api::V1::PostsController,
-      Api::V1::TimeSessionsController
+      Api::V1::TimeSessionsController,
+      Api::V1::PeopleController
     ].each do |controller|
       expect(after_action_filters(controller))
         .to include(:verify_authorized, :verify_policy_scoped),

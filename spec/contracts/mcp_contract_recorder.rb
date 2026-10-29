@@ -102,14 +102,15 @@ module McpContract
 
     IDS = {
       organisation: 1, other_organisation: 2,
-      anna: 11, ben: 12, carla: 13,
-      role: 21, other_role: 22,
+      anna: 11, ben: 12, carla: 13, dora: 14,
+      role: 21, other_role: 22, guest_role: 23,
       website: 31, internal: 32, handbook: 33, foreign_project: 34, archive: 35,
       login_ticket: 41, export_ticket: 42, hidden_ticket: 43, archived_ticket: 44, internal_ticket: 45,
       first_post: 51, second_post: 52,
       deploy_note: 61,
       unread_notification: 71, read_notification: 72, archived_notification: 73,
-      write_token: 81, read_token: 82, deactivated_token: 83,
+      write_token: 81, read_token: 82, deactivated_token: 83, limited_token: 84, dora_token: 85,
+      doris_person: 91, ben_person: 92,
       missing: 999
     }.transform_values { |n| format('00000000-0000-4000-8000-%012d', n) }.freeze
 
@@ -222,12 +223,41 @@ module McpContract
     end
 
     def token(name, user, read_only:, prefix:)
-      record do
-        pat = create(:personal_access_token, id: id(name), user: user, organisations: [@organisation],
-                                             read_only: read_only, name: "Vertrag #{name}")
-        # The prefix is the only random field a response shows.
-        pat.update_column(:token_prefix, prefix)
-        pat.token
+      record { mint_token(name, user, read_only: read_only, prefix: prefix) }
+    end
+
+    def mint_token(name, user, read_only:, prefix:, project_scopes: {})
+      pat = create(:personal_access_token, id: id(name), user: user, organisations: [@organisation],
+                                           project_scopes: project_scopes, read_only: read_only, name: "Vertrag #{name}")
+      # The prefix is the only random field a response shows.
+      pat.update_column(:token_prefix, prefix)
+      pat.token
+    end
+
+    # People S3b: the directory the people answers read. Made once, right before the first of
+    # them, without `record`: no clock moves for anything recorded later. Anna sees the
+    # directory (the people right on the role she shares with Ben and Carla); Dora is a member
+    # without that right and without a project, refused there and invisible to Anna; one more
+    # token of Anna's is limited to the website project, which the directory does not open (E1).
+    def people_world
+      @people_world ||= begin
+        in_org do
+          create(:permission, role: Role.find(id(:role)), category: 'people', action: 'view_people', allowed: true)
+          guest = create(:role, id: id(:guest_role), organisation: @organisation, title: 'Gast')
+          @dora = create(:user, id: id(:dora), email: 'dora@example.com', first_name: 'Dora', last_name: 'Dorn')
+          create(:membership, user: @dora, organisation: @organisation, role: guest, active: true)
+          create(:person, id: id(:doris_person), organisation: @organisation, name: 'Doris Dienstleister',
+                          salutation: 'Frau', function: 'Technische Ansprechpartnerin', department: 'Technik',
+                          company: 'Hosting AG', email: 'doris@example.com', phone: '+49 30 1234567',
+                          notes: 'Nur vormittags anrufen.',
+                          additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '+49 170 1234567' }])
+          create(:person, id: id(:ben_person), organisation: @organisation, user: @ben, name: 'Ben Berger',
+                          function: 'Entwicklung', company: nil, email: nil, phone: '+49 30 7654321')
+        end
+        @limited_token = mint_token(:limited_token, @anna, read_only: true, prefix: 'lalab_pat_Lm',
+                                                           project_scopes: { @organisation => [@website] })
+        @dora_token = mint_token(:dora_token, @dora, read_only: true, prefix: 'lalab_pat_Do')
+        true
       end
     end
 
@@ -314,7 +344,45 @@ module McpContract
         'post_comment_formats' => post_comment_format_calls(website),
         # Terminal client S6, appended last for the same reason: its bookings
         # and time rights are made right before it, without advancing the clock.
-        'summarize_time_sessions' => time_report_calls(website, foreign)
+        'summarize_time_sessions' => time_report_calls(website, foreign),
+        # People S3b, appended last for the same reason (people_world).
+        'find_people' => find_people_calls,
+        'get_person' => get_person_calls
+      }
+    end
+
+    def find_people_calls
+      people_world
+      nordlicht = id(:organisation)
+      {
+        'ok' => tool_call(:read, 'find_people', organisation_id: nordlicht),
+        'ok_query' => tool_call(:read, 'find_people', organisation_id: nordlicht, query: 'techn'),
+        'ok_kind' => tool_call(:read, 'find_people', organisation_id: nordlicht, kind: 'members'),
+        'empty' => tool_call(:read, 'find_people', organisation_id: nordlicht, query: 'Gibt es nicht'),
+        'invalid_input' => tool_call(:read, 'find_people', organisation_id: 'oops'),
+        'invalid_input_kind' => tool_call(:read, 'find_people', organisation_id: nordlicht, kind: 'member'),
+        'invalid_input_missing_argument' => tool_call(:read, 'find_people'),
+        # Anna is no member there: outside the token, like a missing organisation.
+        'not_found' => tool_call(:read, 'find_people', organisation_id: id(:other_organisation)),
+        'not_found_project_token' => tool_call(:limited, 'find_people', organisation_id: nordlicht),
+        'refused' => tool_call(:dora, 'find_people', organisation_id: nordlicht)
+      }
+    end
+
+    def get_person_calls
+      people_world
+      nordlicht = id(:organisation)
+      doris = "person:#{id(:doris_person)}"
+      {
+        'ok' => tool_call(:read, 'get_person', organisation_id: nordlicht, id: doris),
+        'ok_member' => tool_call(:read, 'get_person', organisation_id: nordlicht, id: "member:#{id(:ben)}"),
+        'empty' => tool_call(:read, 'get_person', organisation_id: nordlicht, id: "person:#{id(:missing)}"),
+        # Dora is a member Anna does not see: answered like a missing person.
+        'hidden' => tool_call(:read, 'get_person', organisation_id: nordlicht, id: "member:#{id(:dora)}"),
+        'invalid_input' => tool_call(:read, 'get_person', organisation_id: nordlicht, id: 'abc'),
+        'not_found' => tool_call(:read, 'get_person', organisation_id: id(:other_organisation), id: doris),
+        'not_found_project_token' => tool_call(:limited, 'get_person', organisation_id: nordlicht, id: doris),
+        'refused' => tool_call(:dora, 'get_person', organisation_id: nordlicht, id: doris)
       }
     end
 
@@ -431,7 +499,8 @@ module McpContract
     end
 
     def token_for(name)
-      { read: @read_token, write: @write_token, deactivated: @deactivated_token }.fetch(name)
+      { read: @read_token, write: @write_token, deactivated: @deactivated_token, limited: @limited_token,
+        dora: @dora_token }.fetch(name)
     end
 
     def rpc(token, method, params)
@@ -468,9 +537,10 @@ module McpContract
         # and the key reused with another body.
         'errors' => rest_error_calls,
         'idempotency' => rest_idempotency_calls,
-        # REST R6, appended last: its bookings land on the login ticket after
-        # every answer above, without advancing the clock. Anna's time right on
-        # the website comes from time_report_calls; the archive has none.
+        # People S3b: the directory of people_world, made before the MCP calls.
+        'GET /api/v1/organisations/:organisation_id/people' => rest_people_list_calls,
+        'GET /api/v1/organisations/:organisation_id/people/:id' => rest_people_show_calls,
+        # REST R6 runs after the reads above, so its bookings do not change their answers.
         'POST /api/v1/tickets/:ticket_id/time_sessions' => rest_booking_calls
       }
     end
@@ -506,6 +576,42 @@ module McpContract
         'idempotency_mismatch' => rest_send(:post, :write, login, params: { time_session: { duration_string: '0:20' } },
                                                                   key: key),
         'invalid_input_minutes' => rest_send(:post, :write, login, params: { time_session: { duration_minutes: '1.5' } })
+      }
+    end
+
+    def rest_people_list_calls
+      people_world
+      path = "/api/v1/organisations/#{id(:organisation)}/people"
+      {
+        'ok' => rest_get(:read, path),
+        'ok_query' => rest_get(:read, "#{path}?q=techn"),
+        'ok_paged' => rest_get(:read, "#{path}?kind=members&per_page=1&page=2"),
+        'empty' => rest_get(:read, "#{path}?q=niemand"),
+        'invalid_input' => rest_get(:read, "#{path}?per_page=101"),
+        'invalid_input_kind' => rest_get(:read, "#{path}?kind=member"),
+        # Dora is a member without the people right.
+        'forbidden' => rest_get(:dora, path),
+        # Anna is no member there: outside the token, like a missing organisation.
+        'not_found' => rest_get(:read, "/api/v1/organisations/#{id(:other_organisation)}/people"),
+        'not_found_project_token' => rest_get(:limited, path),
+        'unauthorized' => rest_get(nil, path)
+      }
+    end
+
+    def rest_people_show_calls
+      people_world
+      path = "/api/v1/organisations/#{id(:organisation)}/people"
+      doris = "person:#{id(:doris_person)}"
+      {
+        'ok' => rest_get(:read, "#{path}/#{doris}"),
+        'ok_member' => rest_get(:read, "#{path}/member:#{id(:ben)}"),
+        'not_found' => rest_get(:read, "#{path}/person:#{id(:missing)}"),
+        # Dora is a member Anna does not see: answered like a missing person.
+        'hidden' => rest_get(:read, "#{path}/member:#{id(:dora)}"),
+        'invalid_input' => rest_get(:read, "#{path}/abc"),
+        'forbidden' => rest_get(:dora, "#{path}/#{doris}"),
+        'not_found_organisation' => rest_get(:read, "/api/v1/organisations/#{id(:other_organisation)}/people/#{doris}"),
+        'not_found_project_token' => rest_get(:limited, "#{path}/#{doris}")
       }
     end
 

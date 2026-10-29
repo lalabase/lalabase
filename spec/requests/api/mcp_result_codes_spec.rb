@@ -153,6 +153,16 @@ RSpec.describe 'MCP answers carry a machine field', :ci_guard, type: :request do
       expect(result['_meta']).to eq('lalabase/code' => 'refused', 'lalabase/reason' => 'archived')
       expect(notification.reload.state).to eq('archived')
     end
+
+    # People S3b: an owner without the people right.
+    it 'names the reason when the owner may not see the people directory' do
+      listed = call_tool(read_pat, 'find_people', { organisation_id: organisation.id })
+      read = call_tool(read_pat, 'get_person', { organisation_id: organisation.id, id: "person:#{SecureRandom.uuid}" })
+
+      [listed, read].each do |result|
+        expect(result['_meta']).to eq('lalabase/code' => 'refused', 'lalabase/reason' => 'people_directory')
+      end
+    end
   end
 
   # The field must not tell "missing" from "not yours". The whole answer is
@@ -190,6 +200,15 @@ RSpec.describe 'MCP answers carry a machine field', :ci_guard, type: :request do
     it 'answers an inbox filter on a foreign project exactly like a missing one' do
       missing = call_tool(read_pat, 'list_notifications', { project_id: SecureRandom.uuid })
       foreign = call_tool(read_pat, 'list_notifications', { project_id: foreign_project.id })
+
+      expect(foreign).to eq(missing)
+      expect(foreign['_meta']).to eq('lalabase/code' => 'not_found')
+    end
+
+    # People S3b: the organisation of a people tool, outside the token or missing.
+    it 'answers a people tool on a foreign organisation exactly like on a missing one' do
+      missing = call_tool(read_pat, 'find_people', { organisation_id: SecureRandom.uuid })
+      foreign = call_tool(read_pat, 'find_people', { organisation_id: other_organisation.id })
 
       expect(foreign).to eq(missing)
       expect(foreign['_meta']).to eq('lalabase/code' => 'not_found')
@@ -270,11 +289,13 @@ RSpec.describe 'MCP answers carry a machine field', :ci_guard, type: :request do
       end
     end
 
-    # The code tools check the repository rights before their own arguments.
+    # The code tools check the repository rights before their own arguments, the
+    # people tools the people right.
     before do
       ActsAsTenant.with_tenant(organisation) do
         create(:project_repository, project: project)
         project_permission.update!(chats_access: :read_only)
+        create(:permission, role: role, category: 'people', action: 'view_people', allowed: true)
       end
     end
 
@@ -322,7 +343,13 @@ RSpec.describe 'MCP answers carry a machine field', :ci_guard, type: :request do
       ['update_ticket', -> { { project_id: project.id, ticket_id: ticket.id, add_assignee_ids: ['me'], remove_assignee_ids: ['me'] } },
        /name the same user/],
       ['update_ticket', -> { { project_id: project.id, ticket_id: ticket.id, add_assignee_ids: Array.new(51) { SecureRandom.uuid } } },
-       /at most 50 user ids per list/]
+       /at most 50 user ids per list/],
+      ['find_people', -> { { organisation_id: ' ' } }, /organisation_id is required/],
+      ['find_people', -> { { organisation_id: 'oops' } }, /invalid organisation_id/],
+      ['find_people', -> { { organisation_id: organisation.id, kind: 'member' } }, /kind must be one of/, :direct],
+      ['get_person', -> { { organisation_id: 'oops', id: 'person:x' } }, /invalid organisation_id/],
+      ['get_person', -> { { organisation_id: organisation.id, id: ' ' } }, /id is required/],
+      ['get_person', -> { { organisation_id: organisation.id, id: 'abc' } }, /invalid id/]
     ]
 
     error_sites.each do |tool, arguments, text, mode|

@@ -925,7 +925,10 @@ Rails.application.routes.draw do
           post :mark_all_as_read
         end
       end
-      resources :organisations, only: %i[index]
+      resources :organisations, only: %i[index] do
+        # People S3b: the people directory of one organisation, read only.
+        resources :people, only: %i[index show]
+      end
       get 'time_sessions/open', to: 'time_sessions#open'
       resources :projects, only: %i[index] do
         resources :tickets, only: %i[index create]

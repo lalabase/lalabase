@@ -346,8 +346,9 @@ class Organisations::SmartFoldersController < Organisations::BaseController
   def share
     authorize @smart_folder
 
-    @users_for_sharing = shareable_users.order(:email)
-    @existing_shares = @smart_folder.smart_folder_shares.includes(:user).order('users.email')
+    # By name: the login address is no label here (User::EmailDisplay).
+    @users_for_sharing = shareable_users.order(:last_name, :first_name, :id)
+    @existing_shares = @smart_folder.smart_folder_shares.includes(:user).order('users.last_name', 'users.first_name', 'users.id')
 
     respond_to do |format|
       format.html

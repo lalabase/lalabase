@@ -14,7 +14,8 @@
         <% if membership.user_id == current_user.id %><span class="members-state"><%= t('member_management.you') %></span><% end %>
         <% unless membership.active? %><span class="members-state"><span class="members-status-dot"></span><%= t('member_management.blocked') %></span><% end %>
       </div>
-      <p class="truncate text-xs text-muted"><%= membership.user.email %></p>
+      <%# The email the member shows to others (User::EmailDisplay), also to an admin; none when they show none. %>
+      <% if (shown_email = membership.user.shown_email) %><p class="truncate text-xs text-muted"><%= shown_email %></p><% end %>
     </div>
   </div></td>
   <td class="members-col-role">

@@ -104,14 +104,15 @@ module People
       }
     end
 
-    # The card of one person: the row plus how to reach them. A member's email is the
-    # account's, as on the people page; phone, details and notes come from the row. The notes
+    # The card of one person: the row plus how to reach them. A member's email is the one
+    # they show to others (User#shown_email, nil when none), as on the people page; phone,
+    # details and notes come from the row. The notes
     # as stored, nil when blank or when a member has no row.
     def self.card(entry, notes: false)
       person = entry.person
       card = row(entry).merge(
         salutation: person&.salutation,
-        email: entry.member? ? entry.user.email : person&.email,
+        email: entry.member? ? entry.user.shown_email : person&.email,
         phone: person&.phone,
         additional_details: details(person)
       )

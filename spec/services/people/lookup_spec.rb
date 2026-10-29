@@ -250,6 +250,15 @@ RSpec.describe People::Lookup, :ci_guard do
       expect(card).to include(id: "member:#{colleague.id}", name: 'Carl Kollege', email: 'carl@example.com',
                               notes: 'Bevorzugt Mail.')
     end
+
+    # One card for the assistant, MCP and REST: each answers the email the member shows.
+    it 'carries the email a member shows to others, nil when they show none' do
+      colleague.update!(email_visibility: 'contact', contact_email: 'carl.team@example.com')
+      expect(described_class.card(lookup.entry("member:#{colleague.id}"))[:email]).to eq('carl.team@example.com')
+
+      colleague.update!(email_visibility: 'none')
+      expect(described_class.card(lookup.entry("member:#{colleague.id}"))[:email]).to be_nil
+    end
   end
 
   # E1 of S3b: the directory and the last contact read across the whole organisation, so only

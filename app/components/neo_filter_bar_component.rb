@@ -573,7 +573,7 @@ class NeoFilterBarComponent < ViewComponent::Base
     return '{}' if ids.empty?
 
     organisation.users.where(id: ids)
-                .each_with_object({}) { |u, map| map[u.id] = u.display_name.presence || u.email }
+                .each_with_object({}) { |u, map| map[u.id] = u.display_name }
                 .to_json
   end
 

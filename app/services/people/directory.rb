@@ -40,13 +40,14 @@ module People
       end
 
       # The line under the name, in the list and in the link dialog: function
-      # and company of the row, else a member's email, else the salutation
-      # (two contacts called "Müller" are "Frau" and "Herr"). A contact without
-      # any has none (nil). A contact never shows an email here: the row's own
+      # and company of the row, else the email a member shows to others
+      # (User#shown_email, nil when they show none), else the salutation (two
+      # contacts called "Müller" are "Frau" and "Herr"). A contact without any
+      # has none (nil). A contact never shows an email here: the row's own
       # email is a field of its page, not a label.
       def detail
         [person&.function, person&.company].compact_blank.join(' · ').presence ||
-          (user&.email if member?) || person&.salutation
+          (user&.shown_email if member?) || person&.salutation
       end
     end
 
@@ -217,10 +218,12 @@ module People
       @people ||= PersonPolicy::Scope.new(@viewer, Person).resolve
     end
 
-    # A member's email is the account's; an email left on a member row is not
-    # shown, so it is not searched either.
+    # A member's email is the one they show to others (User#shown_email); a
+    # hidden login address and an email left on a member row are not shown, so
+    # they are not searched either: a search must not confirm that an address
+    # belongs to a member.
     def matches?(entry)
-      email = entry.member? ? entry.user.email : entry.person&.email
+      email = entry.member? ? entry.user.shown_email : entry.person&.email
       addressed = [entry.person&.salutation, entry.plain_name].compact_blank.join(' ')
       haystack = [addressed, entry.person&.function, entry.person&.department, entry.person&.company, email,
                   *PersonDetail.search_values(entry.person&.additional_details)]

@@ -1,0 +1,191 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+# A member chooses which email the others see (User::EmailDisplay): the login
+# address, a contact address, or none. Every page inside an organisation that
+# shows or searches a member's email follows that choice, also for an
+# organisation admin. Each check proves the page rendered (a positive anchor)
+# before it claims that the login address is absent.
+RSpec.describe 'The email a member shows to others', :ci_guard, type: :request do
+  let(:organisation) { create(:organisation) }
+  let(:project) { ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation) } }
+
+  before { ActsAsTenant.current_tenant = organisation }
+  after { ActsAsTenant.current_tenant = nil }
+
+  let(:account_admin_role) do
+    ActsAsTenant.with_tenant(organisation) { create(:role, organisation: organisation, title: Role::ACCOUNT_ADMIN_TITLE) }
+  end
+
+  def member(first_name, email, **choice)
+    user = create(:user, first_name: first_name, last_name: 'Beispiel', email: email, **choice)
+    create(:membership, user: user, organisation: organisation, role: account_admin_role, active: true)
+    user
+  end
+
+  let!(:admin) { member('Adele', 'adele@example.com') }
+  let!(:lena) { member('Lena', 'lena-login@example.com', email_visibility: 'contact', contact_email: 'lena.team@example.com') }
+  let!(:nina) { member('Nina', 'nina-login@example.com', email_visibility: 'none') }
+
+  before { sign_in admin }
+
+  def expect_no_hidden_login_address(body)
+    expect(body).not_to include('lena-login')
+    expect(body).not_to include('nina-login')
+  end
+
+  describe 'the people page' do
+    it 'lists a member with the chosen email, and nothing for one who shows none' do
+      get organisation_people_path(organisation)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Lena', 'Nina', 'lena.team@example.com')
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'links the chosen email in the lane of a member' do
+      get organisation_people_path(organisation, member_id: lena.id),
+          headers: { 'Turbo-Frame' => Organisations::PeopleController::DETAIL_FRAME_ID }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('mailto:lena.team@example.com')
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'shows no email in the lane of a member who shows none' do
+      get organisation_people_path(organisation, member_id: nina.id),
+          headers: { 'Turbo-Frame' => Organisations::PeopleController::DETAIL_FRAME_ID }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Nina')
+      expect(response.body).not_to include('mailto:')
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'finds a member by the shown email, never by a hidden login address' do
+      get organisation_people_path(organisation, q: 'lena.team')
+      expect(response.body).to include('lena.team@example.com')
+
+      get organisation_people_path(organisation, q: 'lena-login')
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include('lena.team@example.com')
+
+      get organisation_people_path(organisation, q: 'nina-login')
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include('Nina Beispiel')
+    end
+  end
+
+  describe 'the members page' do
+    it 'shows the chosen email in the rows, to an admin too' do
+      get organisation_memberships_path(organisation)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Lena', 'Nina', 'lena.team@example.com', 'adele@example.com')
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'shows the chosen email in the side panel of a member' do
+      membership = Membership.find_by!(user: lena, organisation: organisation)
+      get organisation_memberships_path(organisation, membership_id: membership.id)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('lena.team@example.com')
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'finds a member by the shown email, never by a hidden login address' do
+      get organisation_memberships_path(organisation, q: 'lena.team')
+      expect(response.body).to include('lena.team@example.com')
+
+      get organisation_memberships_path(organisation, q: 'lena-login')
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include('lena.team@example.com')
+    end
+  end
+
+  describe 'sharing a smart folder' do
+    let(:folder) do
+      ActsAsTenant.with_tenant(organisation) do
+        create(:smart_folder, user: admin, organisation: organisation, project: project, target_object_type: 'Ticket')
+      end
+    end
+
+    before do
+      [admin, lena, nina].each { |user| create(:project_permission, user: user, project: project, tickets_access: 'read_write') }
+    end
+
+    it 'offers the members by name and shown email' do
+      get share_organisation_smart_folder_path(organisation, folder)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Lena Beispiel', 'Nina Beispiel')
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'names the members a folder is shared with without a hidden login address' do
+      ActsAsTenant.with_tenant(organisation) do
+        create(:smart_folder_share, smart_folder: folder, user: lena)
+        create(:smart_folder_share, smart_folder: folder, user: nina)
+      end
+
+      get share_organisation_smart_folder_path(organisation, folder)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('lena.team@example.com')
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'names the owner of a shared folder without a hidden login address' do
+      foreign = ActsAsTenant.with_tenant(organisation) do
+        create(:smart_folder, user: lena, organisation: organisation, project: project, target_object_type: 'Ticket').tap do |f|
+          create(:smart_folder_share, smart_folder: f, user: admin)
+        end
+      end
+
+      get organisation_smart_folder_path(organisation, foreign)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(foreign.name)
+      expect_no_hidden_login_address(response.body)
+    end
+  end
+
+  describe 'the subscriber picker of a ticket' do
+    let(:ticket) { ActsAsTenant.with_tenant(organisation) { create(:ticket, project: project, creator: admin) } }
+    let(:path) { available_users_organisation_project_ticket_subscription_path(organisation, project, ticket) }
+
+    it 'answers the shown email, null for a member who shows none' do
+      get path, as: :json
+
+      expect(response).to have_http_status(:ok)
+      rows = response.parsed_body.index_by { |row| row['id'] }
+      expect(rows.fetch(lena.id)['email']).to eq('lena.team@example.com')
+      expect(rows.fetch(nina.id)['email']).to be_nil
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'searches the shown email, never a hidden login address' do
+      get path, params: { q: 'lena.team' }, as: :json
+      expect(response.parsed_body.pluck('id')).to include(lena.id)
+
+      get path, params: { q: 'lena-login' }, as: :json
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq([])
+
+      get path, params: { q: 'nina-login' }, as: :json
+      expect(response.parsed_body).to eq([])
+    end
+  end
+
+  describe 'the activity page of a member' do
+    it 'shows the chosen email under the name' do
+      get organisation_user_activities_path(organisation, user_id: lena.id)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('lena.team@example.com')
+      expect_no_hidden_login_address(response.body)
+    end
+  end
+end

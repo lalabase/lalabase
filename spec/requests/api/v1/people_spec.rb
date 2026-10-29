@@ -255,6 +255,17 @@ RSpec.describe 'API V1 people', :ci_guard, type: :request do
                                       'email' => 'carl@example.com', 'notes' => 'Bevorzugt Mail.')
     end
 
+    it 'answers the email a member shows to others, never a hidden login address' do
+      colleague.update!(email_visibility: 'contact', contact_email: 'carl.team@example.com')
+      show("member:#{colleague.id}")
+      expect(body['data']).to include('name' => 'Carl Kollege', 'email' => 'carl.team@example.com')
+
+      colleague.update!(email_visibility: 'none')
+      show("member:#{colleague.id}")
+      expect(body['data']).to include('name' => 'Carl Kollege', 'email' => nil)
+      expect(response.body).not_to include('carl@example.com')
+    end
+
     it 'answers a missing, a foreign and an invisible person with the same 404' do
       ids = ["person:#{SecureRandom.uuid}", "member:#{SecureRandom.uuid}", "person:#{foreign_contact.id}",
              "person:#{hidden_row.id}", "member:#{stranger.id}"]

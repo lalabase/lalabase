@@ -183,14 +183,15 @@ module PeopleHelper
   # The fixed fields of the lane, in the order of the form, without the
   # company (person_kind_line).
   def person_fixed_fields(person, member)
-    email = member ? member.email : person&.email
+    email = member ? member.shown_email : person&.email
     phone = person&.phone
     [
       ({ label: Person.human_attribute_name(:salutation), value: person.salutation } if person&.salutation.present?),
       ({ label: Person.human_attribute_name(:function), value: person.function } if person&.function.present?),
       ({ label: Person.human_attribute_name(:department), value: person.department } if person&.department.present?),
-      # A member's email is the account's, checked by Devise only: linked as
-      # it is, not through PersonDetail's stricter rule.
+      # A member's email is the one they show to others (User#shown_email),
+      # checked by the account's own validation: linked as it is, not through
+      # PersonDetail's stricter rule.
       ({ label: Person.human_attribute_name(:email), value: email, href: "mailto:#{email}", icon: 'bi-envelope', reach: true } if email.present?),
       if phone.present?
         { label: Person.human_attribute_name(:phone), value: phone, href: PersonDetail.new('kind' => 'phone', 'value' => phone).href,

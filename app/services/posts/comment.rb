@@ -18,8 +18,10 @@
 # The body arrives as ActionText HTML (format html, the default, stored as
 # sent) or as literal text (format plain): Posts::PlainTextBody escapes it and
 # turns line breaks into paragraphs and <br>, so body_text comes back as the
-# client sent it. A body that is no string is taken as its text (`to_s`), as
-# both surfaces always did.
+# client sent it, up to its blank lines: line endings become LF, blank lines at
+# the edges are dropped, and a run of blank lines inside (a line of only spaces
+# and tabs counts as blank) comes back as one. A body that is no string is
+# taken as its text (`to_s`), as both surfaces always did.
 module Posts
   class Comment
     # The body formats a client may name.
@@ -96,9 +98,9 @@ module Posts
       body = readable(body)
       return :body_invalid_utf8 unless body&.valid_encoding?
 
-      # plain promises body_text == body, so a byte that cannot round-trip is
-      # refused rather than cleaned. html keeps its legacy behaviour: the HTML
-      # parser drops a NUL byte on its own.
+      # plain promises body_text as sent (up to its blank lines), so a byte
+      # that cannot round-trip is refused rather than cleaned. html keeps its
+      # legacy behaviour: the HTML parser drops a NUL byte on its own.
       return :body_nul if plain? && body.include?("\0")
 
       # Decided on what would be stored: a plain body of Unicode whitespace

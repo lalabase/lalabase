@@ -791,7 +791,10 @@ feature by feature):
 
 * **Error bodies** keep `error` and the HTTP status as they always were and add `code`, the
   MCP vocabulary (`invalid_input`, `read_only`, `forbidden`, `not_found`, `refused`, plus
-  `unauthorized`); an unmapped actor code is `refused` with the old value as `reason`. Every
+  `unauthorized`); an unmapped actor code is `refused` with the old value as `reason`. One
+  status changed on purpose: an unexpected actor failure (`internal_error`) on
+  `time_sessions.create` (R6) and `posts.create` (R3a) answers 500 without the exception's
+  text, where it was a 422 that carried it. Every
   body comes from `Api::V1::ErrorBody` through `BaseController#render_error`; guard
   `spec/architecture/api_v1_error_body_guard_spec.rb`. Answers outside the controllers carry
   no `code`: the Rack::Attack 429 (plain text), a 500 from the exceptions app, a 400 for a

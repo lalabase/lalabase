@@ -864,9 +864,10 @@ Rows only through the per-type policy scope: no title and no count of a type the
 read; a reader who may open the project but read no knowledge gets an empty list. Without `q`
 (or blank) REST lists every readable row; MCP keeps `q` required. `type` other than `note` or
 `document`, and `page`/`per_page` that are no whole number from 1 to the maximum (`per_page` at
-most 100, where MCP clamps) answer 422 `invalid_input`, checked before the project. The project
-gate is MCP's (token reach and `ProjectAccessService`): missing, malformed, beyond the reach,
-not openable (an archived project for a non-admin included) and foreign answer the same 404.
+most 100, where MCP clamps) and a NUL in `q` or `type` answer 422 `invalid_input`, checked
+before the project; an absent or empty `page`/`per_page` is the default. A page beyond the total
+reads no rows. The project gate is MCP's (token reach and `ProjectAccessService`): missing,
+malformed, beyond the reach, not openable (an archived project for a non-admin included) and foreign answer the same 404.
 Guards: `spec/requests/api/v1/knowledge_spec.rb`, `spec/services/knowledge/lookup_spec.rb`.
 
 `GET /api/v1/organisations/:organisation_id/people` and `.../people/:id` (People S3b) read

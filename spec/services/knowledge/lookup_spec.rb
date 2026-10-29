@@ -34,14 +34,14 @@ RSpec.describe Knowledge::Lookup, :ci_guard do
     create(:project_permission, { user: reader, project: project }.merge(areas))
   end
 
-  def note(title, at: nil)
-    record = create(:note, project: project, organisation: organisation, title: title)
+  def note(title, at: nil, id: nil)
+    record = create(:note, { project: project, organisation: organisation, title: title, id: id }.compact)
     record.update_columns(updated_at: at) if at
     record
   end
 
-  def document(title, at: nil)
-    doc = create(:document, project: project, organisation: organisation)
+  def document(title, at: nil, id: nil)
+    doc = create(:document, { project: project, organisation: organisation, id: id }.compact)
     version = create(:document_version, document: doc, organisation: organisation, title: title)
     doc.update!(current_version: version)
     doc.update_columns(updated_at: at) if at
@@ -98,6 +98,18 @@ RSpec.describe Knowledge::Lookup, :ci_guard do
           expect { strict(per_page: value) }.to raise_error(described_class::InvalidOption, /per_page/),
                                                 "per_page #{value.inspect}"
         end
+      end
+
+      it 'caps page at 100,000 (it bounds the LIMIT of each arm)' do
+        expect(described_class::MAX_PAGE).to eq(100_000)
+        expect(strict(page: '100000').page).to eq(100_000)
+      end
+
+      it 'refuses a NUL in q or type, also at the edges where strip would drop it' do
+        ["a\0b", "\0", "a\0"].each do |value|
+          expect { strict(q: value) }.to raise_error(described_class::InvalidOption, /q/), "q #{value.inspect}"
+        end
+        expect { strict(type: "note\0") }.to raise_error(described_class::InvalidOption, /type/)
       end
 
       it 'refuses a page beyond MAX_PAGE' do
@@ -157,21 +169,62 @@ RSpec.describe Knowledge::Lookup, :ci_guard do
         expect(titles(lookup.page(options(q: 'back\\slash')))).to eq(['back\\slash'])
       end
 
-      # Five rows share one updated_at and straddle the page boundary of a merge over two
-      # tables. Walking the pages must hand out every row exactly once, in id order.
+      # Five rows share one updated_at across both tables, with fixed ids so that the id order
+      # interleaves the types (d1 n2 d3 n4 n5) and the notes are inserted against it. A per-arm
+      # LIMIT without the SQL id tiebreak returns n5, n4 first; a Ruby merge without the id
+      # tiebreak puts the note arm before the document arm. Either way page 1 is no longer d1, n2.
       it 'neither repeats nor loses a row at a page boundary with equal updated_at' do
         at = 1.day.ago.change(usec: 0)
-        # Setup only: five records from one line read as an N+1 to Prosopite.
-        rows = Prosopite.pause do
-          [note('t1', at: at), document('t2', at: at), note('t3', at: at), document('t4', at: at), note('t5', at: at)]
+        ids = (1..5).index_with { |n| format('00000000-0000-4000-8000-%012d', n) }
+        # Setup only: several records from one block read as an N+1 to Prosopite.
+        Prosopite.pause do
+          note('n5', at: at, id: ids[5])
+          note('n4', at: at, id: ids[4])
+          note('n2', at: at, id: ids[2])
+          document('d3', at: at, id: ids[3])
+          document('d1', at: at, id: ids[1])
         end
 
         first = lookup.page(options(page: 1, per_page: 2))
         second = lookup.page(options(page: 2, per_page: 2))
         third = lookup.page(options(page: 3, per_page: 2))
 
-        expect((first.records + second.records + third.records).map(&:id)).to eq(rows.map(&:id).sort)
+        expect(titles(first)).to eq(%w[d1 n2])
+        expect(titles(second)).to eq(%w[d3 n4])
+        expect(titles(third)).to eq(%w[n5])
         expect(third.total).to eq(5)
+      end
+
+      # Rows one microsecond apart in one second: SQL orders them by the microseconds, so the
+      # merge has to as well. Ids run against the time order, so a merge that compared whole
+      # seconds and fell back to the id would turn the order round.
+      it 'orders rows within one second by their microseconds' do
+        base = 1.day.ago.change(usec: 0)
+        Prosopite.pause do
+          note('oldest', at: base + 0.000001, id: '00000000-0000-4000-8000-000000000001')
+          note('middle', at: base + 0.000002, id: '00000000-0000-4000-8000-000000000002')
+          document('newest', at: base + 0.000003, id: '00000000-0000-4000-8000-000000000003')
+        end
+
+        first = lookup.page(options(page: 1, per_page: 1))
+        second = lookup.page(options(page: 2, per_page: 1))
+        third = lookup.page(options(page: 3, per_page: 1))
+
+        expect(titles(first) + titles(second) + titles(third)).to eq(%w[newest middle oldest])
+      end
+
+      it 'reads no rows for a page beyond the total, only the counts' do
+        note('Only')
+        statements = []
+        callback = ->(*, payload) { statements << payload[:sql] }
+
+        result = ActiveSupport::Notifications.subscribed(callback, 'sql.active_record') do
+          lookup.page(options(page: 50, per_page: 10))
+        end
+
+        expect(result.records).to eq([])
+        expect(result.total).to eq(1)
+        expect(statements.grep(/\ASELECT "(notes|documents)"\.\*/)).to be_empty
       end
 
       it 'returns an empty page beyond the last one, with the full total' do

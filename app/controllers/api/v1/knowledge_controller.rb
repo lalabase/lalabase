@@ -10,8 +10,9 @@ module Api
     #   knowledge area without a search term. MCP keeps `q` required.
     # * Paging: a page or per_page that is no whole number from 1 to the maximum is refused
     #   with 422, where MCP clamps: a program would get fewer rows than it asked for without
-    #   being told. Absent or blank means the default. Checked before the project is looked up,
-    #   so the 422 does not depend on whether the project exists.
+    #   being told. An absent or empty value means the default; a NUL in q or type is refused.
+    #   Checked before the project is looked up, so the 422 does not depend on whether the
+    #   project exists.
     # * The project gate is the one of MCP (Mcp::ToolCall#authorized_project): the token's reach
     #   and the owner's access to the project. A missing project, a malformed id, a project
     #   beyond the reach, one the owner cannot open and one of another organisation answer the

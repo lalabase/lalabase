@@ -42,7 +42,7 @@ module Knowledge
     # Reads the options of a lookup. An unknown type is refused on both surfaces. Page and
     # per_page differ by surface: MCP has always read garbage as the default and clamped a
     # large per_page (`strict: false`); REST refuses what it cannot read (`strict: true`),
-    # where absent or blank still means the default.
+    # where an absent or empty value still means the default.
     #
     # @param args [Hash] symbol keys q, type, page, per_page
     # @raise [InvalidOption] with a message naming the argument
@@ -76,12 +76,18 @@ module Knowledge
     # @param options [Options] blank query = every readable row
     # @return [Result]
     def page(options)
-      Result.new(records: page_records(options), page: options.page, per_page: options.per_page,
-                 total: total(options))
+      total = total(options)
+      Result.new(records: page_records(options, total), page: options.page, per_page: options.per_page,
+                 total: total)
     end
 
+    # A NUL is refused before strip, which would drop one at the edges: inside the text it
+    # reaches the database adapter, which raises (a 500 instead of a 422).
     def self.text_arg(value, name, strict)
-      raise InvalidOption, "#{name} must be text" if strict && !value.nil? && !value.is_a?(String)
+      if strict && !value.nil?
+        raise InvalidOption, "#{name} must be text" unless value.is_a?(String)
+        raise InvalidOption, "#{name} must not contain NUL" if value.include?("\0")
+      end
 
       value.to_s.strip
     end
@@ -140,7 +146,13 @@ module Knowledge
     # MATCHES the Ruby merge below, so rows with an identical updated_at are cut by the LIMIT
     # in the order the merge expects; without it a tie across a page boundary could drop or
     # repeat a row.
-    def page_records(options)
+    #
+    # A page beyond the total reads no rows: each arm's LIMIT grows with the page, and a large
+    # page would otherwise load the whole readable knowledge of the project to slice off nothing.
+    def page_records(options, total)
+      offset = (options.page - 1) * options.per_page
+      return [] if offset >= total
+
       limit = options.page * options.per_page
       records = type_keys(options).flat_map do |key|
         scope = arm(key, options.query)
@@ -148,7 +160,7 @@ module Knowledge
         scope.reorder(table[:updated_at].desc, table[:id].asc).limit(limit).to_a
       end
       page_records = records.sort_by { |record| [-record.updated_at.to_f, record.id] }
-                            .slice((options.page - 1) * options.per_page, options.per_page) || []
+                            .slice(offset, options.per_page) || []
       preload_titles(page_records)
       page_records
     end

@@ -33,20 +33,20 @@ RSpec.describe 'REST knowledge', :ci_guard, type: :request do
 
   let(:reader) { member }
 
-  def note(title, at:)
+  def note(title, at:, id: nil)
     Prosopite.pause do
       ActsAsTenant.with_tenant(organisation) do
-        record = create(:note, project: project, organisation: organisation, title: title)
+        record = create(:note, { project: project, organisation: organisation, title: title, id: id }.compact)
         record.update_columns(updated_at: at)
         record
       end
     end
   end
 
-  def document(title, at:)
+  def document(title, at:, id: nil)
     Prosopite.pause do
       ActsAsTenant.with_tenant(organisation) do
-        doc = create(:document, project: project, organisation: organisation)
+        doc = create(:document, { project: project, organisation: organisation, id: id }.compact)
         version = create(:document_version, document: doc, organisation: organisation, title: title)
         doc.update!(current_version: version)
         doc.update_columns(updated_at: at)
@@ -137,16 +137,24 @@ RSpec.describe 'REST knowledge', :ci_guard, type: :request do
       expect(get_json(reader, q: '  ')['meta']['total']).to eq(3)
     end
 
+    # The tied rows are the newest, so they fill the first pages. Fixed ids interleave the types
+    # (d1 n2 d3 n4 n5) and the notes are inserted against that order: without the id tiebreak
+    # in SQL or in the merge, page 1 is no longer d1, n2.
     it 'pages across both types without repeating or losing a row of equal updated_at' do
-      at = 5.days.ago.change(usec: 0)
-      tied = [note('Tie 1', at: at), document('Tie 2', at: at), note('Tie 3', at: at)]
+      at = 1.hour.ago.change(usec: 0)
+      ids = (1..5).index_with { |n| format('00000000-0000-4000-8000-%012d', n) }
+      note('n5', at: at, id: ids[5])
+      note('n4', at: at, id: ids[4])
+      note('n2', at: at, id: ids[2])
+      document('d3', at: at, id: ids[3])
+      document('d1', at: at, id: ids[1])
       token = token_for(reader)
 
-      second = get_json(reader, { page: 2, per_page: 2 }, token: token)['data'].pluck('id')
-      third = get_json(reader, { page: 3, per_page: 2 }, token: token)['data'].pluck('id')
+      first = get_json(reader, { page: 1, per_page: 2 }, token: token)['data'].pluck('title')
+      second = get_json(reader, { page: 2, per_page: 2 }, token: token)['data'].pluck('title')
+      third = get_json(reader, { page: 3, per_page: 2 }, token: token)['data'].pluck('title')
 
-      # Pages 1 holds minutes and the checklist; the runbook, then the three ties in id order.
-      expect(second + third).to eq([runbook.id] + tied.map(&:id).sort)
+      expect([first, second, third]).to eq([%w[d1 n2], %w[d3 n4], ['n5', minutes.title]])
     end
   end
 
@@ -263,6 +271,11 @@ RSpec.describe 'REST knowledge', :ci_guard, type: :request do
       expect_invalid_input(/page/)
       get_json(reader, { per_page: 'abc' }, token: token)
       expect_invalid_input(/per_page/)
+    end
+
+    it 'refuses a NUL in q, which would otherwise reach the database' do
+      get "/api/v1/projects/#{project.id}/knowledge?q=a%00b", headers: { 'Authorization' => "Bearer #{token_for(reader)}" }
+      expect_invalid_input(/q/)
     end
 
     it 'refuses a q given as a list' do

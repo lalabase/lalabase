@@ -78,6 +78,17 @@ RSpec.describe Lalabase::CitationInlineLinks do
         .not_to include('</a>')
     end
 
+    # People S3: a person has a name rather than a title, and the answer names the person
+    # it found ("Ansprechpartnerin ist Doris Dienstleister").
+    it 'links the name of a cited person to the people page' do
+      cite = { 'type' => 'person', 'area' => 'people', 'id' => 'pid', 'name' => 'Doris Dienstleister' }
+      result = apply('<p>Ansprechpartnerin ist Doris Dienstleister.</p>', [cite])
+
+      href = Rails.application.routes.url_helpers.organisation_people_path(organisation, person_id: 'pid')
+      expect(result).to include(%(href="#{href}"))
+      expect(result).to include('>Doris Dienstleister</a>')
+    end
+
     # Category 3: n-1 / n / n+1 at MIN_TITLE_LENGTH, driven from the constant.
     # A test with a three-character title against a seventeen-character title
     # survives any shift of the boundary; only these three examples die when
@@ -378,12 +389,14 @@ RSpec.describe Lalabase::CitationInlineLinks do
   end
 
   describe 'the type table' do
-    it 'looks for titles only among types the citation shapes actually know' do
+    it 'looks for titles and names only among types the citation shapes actually know' do
       expect(described_class::TITLE_TYPES - Lalabase::Citations::TYPES).to be_empty
+      expect(described_class::NAME_TYPES - Lalabase::Citations::TYPES).to be_empty
     end
 
     it 'holds its tables frozen, so nothing can widen them at runtime' do
       expect(described_class::TITLE_TYPES).to be_frozen
+      expect(described_class::NAME_TYPES).to be_frozen
       expect(described_class::SKIP_ANCESTORS).to be_frozen
     end
 
@@ -396,8 +409,10 @@ RSpec.describe Lalabase::CitationInlineLinks do
       expect(described_class::SKIP_ANCESTORS).to include('a', 'code', 'pre')
     end
 
-    it 'has a decision for EVERY content type: by number, by title, or deliberately not at all' do
+    it 'has a decision for EVERY content type: by number, by title, by name, or deliberately not at all' do
       by_number = %w[ticket post]
+      # person (People S3): the name, which is what an answer calls a person.
+      by_name = described_class::NAME_TYPES
       # time_report: its title is the project name, and it has a panel. help_page: help titles
       # are everyday words in an answer ("Zeiterfassung", "Aktivitäten"); the source row links it.
       deliberately_unlinked = %w[time_report help_page]
@@ -405,7 +420,7 @@ RSpec.describe Lalabase::CitationInlineLinks do
 
       content_types.each do |type|
         decided = by_number.include?(type) || described_class::TITLE_TYPES.include?(type) ||
-                  deliberately_unlinked.include?(type)
+                  by_name.include?(type) || deliberately_unlinked.include?(type)
         expect(decided).to be(true), "#{type} is matched by nothing and excluded by nobody"
       end
     end

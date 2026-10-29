@@ -29,13 +29,19 @@ module Lalabase
     # Deliberately without help_page: a help page belongs to no organisation, so it is never
     # asked for and never called gone. A page a later release removes keeps its link, and
     # /hilfe answers that with its own designed not-found page (HelpController#show).
+    #
+    # Deliberately without 'member' too (People S3): a member is cited by the account, and an
+    # account has no organisation_id to scope the question by. A member who has left keeps the
+    # link, and the people page shows its plain list for a member_id it cannot resolve
+    # (PeopleHelper#people_unresolved_lane_params). A contact is a row, asked like any other.
     MODEL_NAMES = {
       'ticket' => 'Ticket',
       'note' => 'Note',
       'document' => 'Document',
       'documentation' => 'DocumentationPage',
       'meeting' => 'Meeting',
-      'project' => 'Project'
+      'project' => 'Project',
+      'person' => 'Person'
     }.freeze
 
     EMPTY = Set.new.freeze

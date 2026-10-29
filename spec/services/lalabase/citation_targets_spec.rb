@@ -121,6 +121,30 @@ RSpec.describe Lalabase::CitationTargets do
       expect(resolver([deleted_project]).gone?(deleted_project)).to be(true)
     end
 
+    # People S3: a contact points at its row, so a deleted row is gone like a deleted ticket.
+    it 'follows a contact to its person row' do
+      person = create(:person, organisation: organisation)
+      cite = { 'type' => 'person', 'area' => 'people', 'id' => person.id, 'name' => person.name }
+
+      expect(resolver([cite]).gone?(cite)).to be(false)
+
+      person.destroy!
+
+      expect(resolver([cite]).gone?(cite)).to be(true)
+    end
+
+    # A member points at the account, and an account has no organisation to scope it by.
+    # Never asked, so never gone: a member who has left opens the plain people list, which
+    # drops a member_id it cannot resolve (PeopleHelper#people_unresolved_lane_params).
+    it 'never asks for a member, so a member is never called gone' do
+      user_id = SecureRandom.uuid
+      cite = { 'type' => 'person', 'area' => 'people', 'id' => user_id, 'member_id' => user_id, 'name' => 'X' }
+
+      expect(Lalabase::Citations.target_of(cite)).to eq(type: 'member', id: user_id)
+      expect(described_class::MODEL_NAMES).not_to have_key('member')
+      expect(resolver([cite]).gone?(cite)).to be(false)
+    end
+
     it 'never calls the code layer gone — it points at no record' do
       Lalabase::Citations::CODE_TYPES.each do |type|
         cite = { 'type' => type, 'id' => SecureRandom.uuid }

@@ -8,8 +8,9 @@ module Neo
     # Citation shapes — ONE source of truth: Lalabase::Citations. Source data comes from
     # PG JSONB → keys are STRINGS, not symbols. Code citations (vision/capability/symbol)
     # carry no link; content citations (ticket/note/document/post) carry the frozen fields
-    # needed to build a link WITHOUT a DB hit (id/project_id/number/ticket_id…). Lalabase's
-    # own texts (help_page) are a third kind: no area, no project, a link to /hilfe/<slug>.
+    # needed to build a link WITHOUT a DB hit (id/project_id/number/ticket_id…), a person
+    # (People S3) the same without a project. Lalabase's own texts (help_page) are a third
+    # kind: no area, no project, a link to /hilfe/<slug>.
     # Unknown types render with a generic label + no link, so a future type rollout never
     # crashes an old worker rendering newer data.
     #
@@ -41,7 +42,9 @@ module Neo
         'time_report' => 'bi-stopwatch',
         # A page of Lalabase's own help (product knowledge S2): the icon the help wears in the
         # navigation and in the contextual help drawer.
-        'help_page' => 'bi-question-circle'
+        'help_page' => 'bi-question-circle',
+        # A person of the people directory (People S3).
+        'person' => 'bi-person'
       }.freeze
       FALLBACK_ICON = 'bi-bookmark'
 
@@ -144,6 +147,7 @@ module Neo
           t('views.organisations.chats.citations.meeting_analysis', title: citation['title'].to_s)
         when 'time_report' then t('views.organisations.chats.citations.time_report', title: citation['title'].to_s)
         when 'help_page' then t('views.organisations.chats.citations.help_page', title: citation['title'].to_s)
+        when 'person' then t('views.organisations.chats.citations.person', name: citation['name'].to_s)
         else t('views.organisations.chats.citations.unknown')
         end
       end

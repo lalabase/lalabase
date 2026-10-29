@@ -129,7 +129,7 @@ RSpec.describe Lalabase::ProjectRag::Retriever do
     it {
       expect(described_class::CITATION_TYPES)
         .to contain_exactly('vision', 'capability', 'symbol', 'ticket', 'note', 'document', 'post', 'documentation',
-                            'meeting', 'meeting_analysis', 'time_report', 'help_page')
+                            'meeting', 'meeting_analysis', 'time_report', 'help_page', 'person')
     }
     it { expect(described_class::CITATION_TYPES).to be_frozen }
   end

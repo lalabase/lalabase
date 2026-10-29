@@ -802,6 +802,7 @@ en:
           meeting_analysis: 'Analysis: %{title}'
           time_report: 'Time: %{title}'
           help_page: 'Help: %{title}'
+          person: 'Person: %{name}'
           hits: "%{count} passages"
           gone: no longer available
         composer:

@@ -212,7 +212,7 @@ RSpec.describe Neo::Chat::CitationListComponent, type: :component do
     it {
       expect(described_class::KNOWN_TYPES)
         .to contain_exactly('vision', 'capability', 'symbol', 'ticket', 'note', 'document', 'post', 'documentation', 'meeting', 'meeting_analysis',
-                            'time_report', 'help_page')
+                            'time_report', 'help_page', 'person')
     }
     it { expect(described_class::KNOWN_TYPES).to be_frozen }
     it { expect(described_class::ICON_MAP).to be_frozen }
@@ -270,7 +270,8 @@ RSpec.describe Neo::Chat::CitationListComponent, type: :component do
       'meeting' => 'bi-chat-quote',
       'meeting_analysis' => 'bi-magic',
       'time_report' => 'bi-stopwatch',
-      'help_page' => 'bi-question-circle'
+      'help_page' => 'bi-question-circle',
+      'person' => 'bi-person'
     }.each do |type, icon|
       it "renders the literal icon #{icon} for a #{type} citation" do
         render_with([{ 'type' => type, 'id' => 'x' }])
@@ -303,6 +304,61 @@ RSpec.describe Neo::Chat::CitationListComponent, type: :component do
       I18n.with_locale(:en) { render_inline(described_class.new(citations: [help_cite], organisation: help_org)) }
 
       expect(page.find('li a').text).to eq('Help: Zeiterfassung')
+    end
+  end
+
+  # People S3: a person of the directory. No project; the link opens the people page with
+  # the person in the lane, a contact by its row, a member by the account.
+  describe 'a person of the people directory (People S3)' do
+    let(:person_org) { create(:organisation) }
+
+    before { ActsAsTenant.current_tenant = person_org }
+    after  { ActsAsTenant.current_tenant = nil }
+
+    def render_person(cite)
+      render_inline(described_class.new(citations: [cite], organisation: person_org))
+    end
+
+    def people_path(**lane)
+      Rails.application.routes.url_helpers.organisation_people_path(person_org, **lane)
+    end
+
+    it 'names a contact and links its row, out of the chat frame' do
+      person = create(:person, organisation: person_org, name: 'Doris Dienstleister')
+      I18n.with_locale(:de) { render_person({ 'type' => 'person', 'area' => 'people', 'id' => person.id, 'name' => person.name }) }
+
+      link = page.find('li a')
+      expect(link[:href]).to eq(people_path(person_id: person.id))
+      expect(link[:'data-turbo-frame']).to eq('_top')
+      expect(link.text).to eq('Person: Doris Dienstleister')
+      expect(page).to have_css('li .bi-person')
+    end
+
+    it 'links a member by the account' do
+      user_id = SecureRandom.uuid
+      render_person({ 'type' => 'person', 'area' => 'people', 'id' => user_id, 'member_id' => user_id, 'name' => 'Carl Kollege' })
+
+      expect(page.find('li a')[:href]).to eq(people_path(member_id: user_id))
+    end
+
+    it 'keeps the name of a deleted contact, without a link' do
+      person = create(:person, organisation: person_org, name: 'Doris Dienstleister')
+      cite = { 'type' => 'person', 'area' => 'people', 'id' => person.id, 'name' => person.name }
+      person.destroy!
+      render_person(cite)
+
+      expect(page).to have_no_css('li a')
+      expect(page).to have_text('Doris Dienstleister')
+      expect(page).to have_css('[data-testid="citation-gone"]')
+    end
+
+    # Both languages read "Person: ...", so a rendered check cannot tell a missing English
+    # key from a present one (i18n.rb falls back to German). Asked without the fallback.
+    it 'has the label in both languages' do
+      %i[de en].each do |locale|
+        label = I18n.t('views.organisations.chats.citations.person', locale: locale, fallback: false, name: 'Doris')
+        expect(label).to eq('Person: Doris'), "#{locale}: #{label}"
+      end
     end
   end
 

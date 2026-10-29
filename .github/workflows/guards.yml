@@ -326,6 +326,9 @@ jobs:
           spec/services/people/directory_spec.rb
           spec/services/people/contacts_spec.rb
           spec/requests/organisations/people_last_contact_spec.rb
+          spec/services/lalabase/tools/find_people_spec.rb
+          spec/services/lalabase/tools/get_person_spec.rb
+          spec/services/lalabase/tools/people_tools_runner_spec.rb
           spec/requests/organisations/meeting_participant_links_spec.rb
           spec/services/actors/link_meeting_participant_spec.rb
           spec/services/meetings/account_participants_spec.rb

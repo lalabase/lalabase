@@ -72,6 +72,18 @@ module People
       People::Contacts::Subject.for(person: entry.person, member: (entry.user if entry.member?))
     end
 
+    # The last contact of each entry, in the order given (People::Contacts, only
+    # what the viewer may read; nil: none). The list asks for all its rows at
+    # once (#entries), the assistant's get_person for one (People S3).
+    def last_contacts_for(list)
+      return [] if list.empty?
+
+      contacts = People::Contacts.new(viewer: @viewer, organisation: @organisation)
+      ActsAsTenant.with_tenant(@organisation) do
+        contacts.last_contacts(list.map { |entry| self.class.contact_subject(entry) })
+      end
+    end
+
     # How many people the page holds, before search and filter: the head line
     # and the three filters (all, members, contacts) count the same list.
     def counts
@@ -152,13 +164,7 @@ module People
     private
 
     def attach_last_contacts(list)
-      return if list.empty?
-
-      contacts = People::Contacts.new(viewer: @viewer, organisation: @organisation)
-      ActsAsTenant.with_tenant(@organisation) do
-        contacts.last_contacts(list.map { |entry| self.class.contact_subject(entry) })
-                .each_with_index { |last, index| list[index].last_contact = last }
-      end
+      last_contacts_for(list).each_with_index { |last, index| list[index].last_contact = last }
     end
 
     # Newest first, without a contact last; the name order breaks ties.

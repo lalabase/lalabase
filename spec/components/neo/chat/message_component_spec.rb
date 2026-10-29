@@ -697,6 +697,54 @@ RSpec.describe Neo::Chat::MessageComponent, type: :component do
       expect(page).to have_css('[data-testid="redacted-notice"] .bi-shield-lock')
       expect(page).not_to have_css('.prose')
     end
+
+    # People S3: an answer drawn on the people directory carries the people area. The
+    # citation comes from the producer itself (Citations.person), so the gate reads what the
+    # tools emit: without the area the answer would count as content-free and reach every
+    # reader, the broadcast included. The asker sees it, nobody else, not even someone who
+    # may open the directory.
+    describe 'an answer about a person of the people directory (People S3)' do
+      let(:person) { create(:person, organisation: organisation, name: 'Doris Dienstleister', phone: '+49 30 1234567') }
+      let(:person_answer) do
+        entry = People::Directory::Entry.new(kind: :contact, user: nil, person: person)
+        chat.chatposts.create!(
+          organisation: organisation, role: 'assistant', model_used: 'gpt-x',
+          content: 'Doris Dienstleister erreichst du unter +49 30 1234567.',
+          source_citations: [Lalabase::Citations.person(entry).deep_stringify_keys]
+        )
+      end
+
+      def directory_reader
+        role = create(:role, organisation: organisation)
+        create(:permission, role: role, category: 'people', action: 'view_people', allowed: true)
+        reader = create(:user)
+        create(:membership, user: reader, organisation: organisation, role: role, active: true)
+        reader
+      end
+
+      it 'shows the answer and its person to the owner of the thread' do
+        render_for(chat.user, post: person_answer)
+
+        expect(rendered_content).to include('+49 30 1234567')
+        expect(rendered_content).to include('Person: Doris Dienstleister')
+      end
+
+      it 'redacts it for a non-owner, even one who may open the directory' do
+        render_for(directory_reader, post: person_answer)
+
+        expect(rendered_content).to include(I18n.t('views.organisations.chats.message.redacted'))
+        expect(rendered_content).not_to include('+49 30 1234567')
+        expect(rendered_content).not_to include('Doris Dienstleister')
+      end
+
+      it 'redacts it in the broadcast, which renders without a viewer' do
+        render_inline(described_class.new(chatpost: person_answer))
+
+        expect(rendered_content).to include(I18n.t('views.organisations.chats.message.redacted'))
+        expect(rendered_content).not_to include('+49 30 1234567')
+        expect(rendered_content).not_to include('Doris Dienstleister')
+      end
+    end
   end
 
   # Source attribution (chat_quellen_attribution_plan.md §6.3/§7). Slice 1 wires the

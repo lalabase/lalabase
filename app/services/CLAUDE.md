@@ -174,6 +174,10 @@ Verzeichnis-Übersicht (Auswahl):
   Namen ist `Directory::Entry#detail` (Liste und Dialog). Geschrieben wird über
   `Actors::LinkMeetingParticipant`, der jede ID über das gesperrte Meeting und das
   Directory des Schreibenden auflöst.
+  S3 (28.10.2026): the assistant's `find_people`/`get_person` read only through this
+  directory (`#entries`, `#person_entry`, `#member_entry`); `#last_contacts_for` gives the
+  card of one entry the last contact the list attaches to every row. Map:
+  `lalabase/CLAUDE.md`.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

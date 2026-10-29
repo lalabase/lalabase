@@ -18,6 +18,18 @@ Codebase-Verständnis.
   Tabelle = Fehler „nicht verfügbar", nie „keine Seite". `help_contents` hat keine Argumente:
   `GoogleVertexProvider` schickt so ein Werkzeug ohne `parameters`, weil Gemini ein OBJECT mit
   leeren `properties` ablehnt (Spec prüft jedes Chat-Werkzeug). Plan `doc/product_knowledge_plan.md`.
+  Two read the people directory (`find_people`, `get_person`, parent class `PeopleTool`,
+  `:assistant` and `:assistant_with_code` only, People S3): no project and no coverage like
+  the help, but a right of their own. `PersonPolicy.view_allowed?` is asked inside the tool
+  BEFORE anything is read, else `refused` (a deactivated member too). They read through
+  `People::Directory` only, never `Person.where`/`find`. The id is the format of
+  `Meetings::ParticipantLinkChoice` (`person:<uuid>` for a contact, `member:<uuid>` for a
+  member); unknown, foreign and invisible ids give the same `not_found`. Which fields reach
+  the provider is decided only in `PeopleTool.row`/`.card` (never `notes`, E2; the last
+  contact as date and kind, E3). Both cite type `person` (area `people`, no project, a content
+  type): a contact by its row, a member by the account (`member_id`, the page sends it on to
+  the row). `find_people` cites its first five rows, or an answer drawn on the list alone
+  would carry no area and stay unredacted for others.
   Reichweite je Werkzeug (`Base.scope_mode`): `:project` (Default, Dispatcher injiziert
   `project_id` als Pflicht, ToolCall gated das Projekt) oder `:token` (Inbox-Arbeitsfluss:
   kein Projekt-Gate, `Context#reach` = `PersonalAccessToken::Reach`, läuft OHNE Tenant, nur

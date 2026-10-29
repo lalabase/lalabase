@@ -819,7 +819,10 @@ feature by feature):
   switches the answer to the paged fields of MCP `get_ticket` (`posts_total`,
   `posts_truncated`, `attachments`, ...). **Without them the body stays byte-equal** (the
   contract records it; gboyke/lalabase-mcp reads it). Invalid values: 422 `invalid_input`,
-  checked before the ticket is looked up. REST does not truncate bodies.
+  checked before the ticket is looked up. A key without a value switches too. REST does not
+  truncate bodies, nor the extracted `text` of attachments (up to 10 per page). These
+  `attachments` are the ticket's own files only, with text and without URL (`attachments_total`
+  counts those); `GET /tickets/:id/attachments` lists ticket and comment files with signed URLs.
 * `GET /projects/:project_id/tickets/number/:number` answers what `GET /tickets/:id` answers,
   paging included. Missing, malformed (`abc`, `0`), unreadable, out of reach or foreign: the
   same 404. The number is looked up only inside that project.

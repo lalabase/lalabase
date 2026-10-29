@@ -114,7 +114,7 @@ RSpec.describe 'REST ticket view', :ci_guard, type: :request do
 
   describe 'GET /tickets/:id with paging parameters' do
     # One example per reader: Prosopite watches each request on its own.
-    { other: 5, addressee: 7, admin: 7 }.each do |reader, total|
+    { other: 5, addressee: 7, author: 7, admin: 7 }.each do |reader, total|
       it "pages and counts what the #{reader} may read, like MCP get_ticket" do
         user = public_send(reader)
         body = get_json(user, ticket_path, { posts_per_page: '3', posts_order: 'newest' })
@@ -207,6 +207,16 @@ RSpec.describe 'REST ticket view', :ci_guard, type: :request do
         expect(body['attachments'].size).to eq(1)
         expect(response.body).not_to include('geheim.txt')
       end
+
+      it 'hands out the text of a file whole where MCP cuts it' do
+        Prosopite.pause do
+          ActsAsTenant.with_tenant(organisation) { files.first.update_column(:plain_text_version, long_text) }
+        end
+        body = get_json(other, ticket_path, { attachments_page: 1 })['data']
+        expect(body.dig('attachments', 0, 'text')).to eq(long_text)
+        mcp = mcp_answer(other, :GetTicket, ticket_id: ticket.id)
+        expect(mcp.dig('attachments', 0, 'text').length).to be < long_text.length
+      end
     end
   end
 
@@ -226,6 +236,10 @@ RSpec.describe 'REST ticket view', :ci_guard, type: :request do
     it 'serves a private comment to its addressee' do
       body = get_json(addressee, post_path(private_post.id))
       expect(body.dig('data', 'id')).to eq(private_post.id)
+    end
+
+    it 'serves a private comment to its author' do
+      expect(get_json(author, post_path(private_post.id)).dig('data', 'id')).to eq(private_post.id)
     end
 
     it 'serves a private comment to an account admin' do
@@ -332,6 +346,35 @@ RSpec.describe 'REST ticket view', :ci_guard, type: :request do
         end
       end
       get_json(notes_only, number_path(ticket.number))
+      expect_not_found
+    end
+
+    it 'treats an empty selected-project list as no reach' do
+      token = token_for(admin, project_scopes: { organisation => [] })
+      get_json(admin, number_path(ticket.number), {}, token: token)
+      expect_not_found
+    end
+
+    it 'hides an organisation the token excludes although the reader still belongs to it' do
+      other_org = Prosopite.pause { create(:organisation) }
+      Prosopite.pause do
+        ActsAsTenant.with_tenant(other_org) do
+          create(:membership, user: admin, organisation: other_org, role: create(:admin_role, organisation: other_org), active: true)
+        end
+      end
+      token = Prosopite.pause { create(:personal_access_token, user: admin, organisations: [other_org]).token }
+      get_json(admin, number_path(ticket.number), {}, token: token)
+      expect_not_found
+      get_json(admin, "/api/v1/tickets/#{ticket.id}/posts/#{posts[1].id}", {}, token: token)
+      expect_not_found
+    end
+
+    it 'follows the current membership, not the token, once it was deactivated' do
+      token = token_for(admin)
+      Prosopite.pause { Membership.unscoped.find_by!(user: admin, organisation: organisation).update!(active: false) }
+      get_json(admin, number_path(ticket.number), {}, token: token)
+      expect_not_found
+      get_json(admin, "/api/v1/tickets/#{ticket.id}/posts/#{posts[1].id}", {}, token: token)
       expect_not_found
     end
 

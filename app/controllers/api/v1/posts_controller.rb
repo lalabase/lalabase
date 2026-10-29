@@ -68,8 +68,11 @@ module Api
         raise ActionController::ParameterMissing, :post unless input.is_a?(ActionController::Parameters)
 
         permitted = input.permit(:body, :format, :is_private, :visible_to_user_id)
-        fields = { body: permitted[:body], is_private: permitted[:is_private],
-                   visible_to_user_id: permitted[:visible_to_user_id] }
+        body = permitted[:body]
+        # A JSON false was no body before R3a (the old gate was body.present?),
+        # while true and numbers were their text; the rule would write "false".
+        body = nil if body == false
+        fields = { body: body, is_private: permitted[:is_private], visible_to_user_id: permitted[:visible_to_user_id] }
         fields[:format] = input[:format] if input.key?(:format)
         fields
       end

@@ -150,6 +150,13 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       expect(body.dig('data', 'body_html')).to eq('true')
     end
 
+    # The old gate was body.present?: false was no body, while true and numbers
+    # were their text.
+    it 'takes a JSON false as no body, as before' do
+      expect { comment_json({ body: false }) }.not_to(change { posts_count })
+      expect(response.body).to eq('{"error":"validation_failed","code":"invalid_input","errors":["Content can\'t be blank"]}')
+    end
+
     it 'leaves an empty body to the model, which refuses it with its own message' do
       expect { comment(body: '') }.not_to(change { posts_count })
       expect(response).to have_http_status(:unprocessable_content)
@@ -212,6 +219,11 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       expect(body).to eq(refusal(:body_empty))
     end
 
+    it 'refuses a JSON false as a plain body as empty' do
+      expect { comment_json({ format: 'plain', body: false }) }.not_to(change { posts_count })
+      expect(body).to eq(refusal(:body_empty))
+    end
+
     it 'answers the refusal in the token owner language' do
       user.update!(language_preference: 'de')
       comment(format: 'markdown', body: 'x')
@@ -234,6 +246,16 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       expect { post "/api/v1/tickets/#{ticket.id}/posts", params: raw, headers: headers(json: true) }
         .not_to(change { posts_count })
       expect(response).to have_http_status(:bad_request)
+    end
+
+    # An escaped lone surrogate is no JSON the parser takes: the 400 of a body
+    # that is no JSON, which BaseController answers with code.
+    it 'answers an escaped lone surrogate in JSON as a body that is no JSON' do
+      raw = "{\"post\":{\"format\":\"plain\",\"body\":\"a#{92.chr}ud800b\"}}"
+      expect { post "/api/v1/tickets/#{ticket.id}/posts", params: raw, headers: headers(json: true) }
+        .not_to(change { posts_count })
+      expect(response).to have_http_status(:bad_request)
+      expect(body).to include('error' => 'bad_request', 'code' => 'invalid_input')
     end
 
     it 'answers a post that is no object like a missing one, never a crash' do

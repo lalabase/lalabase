@@ -54,6 +54,13 @@ RSpec.describe Posts::Comment, :ci_guard do
       'invalid bytes in a binary body' => [{ format: 'plain', body: -> { "a#{255.chr}b".b } }, :body_invalid_utf8],
       'a plain body that does not transcode' => [{ format: 'plain', body: -> { "a#{0x82.chr}".force_encoding(Encoding::SHIFT_JIS) } },
                                                  :body_invalid_utf8],
+      # What a plain multipart part can bring past Rails' encoding check, which
+      # refuses only bytes invalid in their own charset: a byte its charset has
+      # no character for, and a charset Ruby cannot convert at all.
+      'a plain body with a byte its charset has no character for' =>
+        [{ format: 'plain', body: -> { "a#{0x81.chr}b".force_encoding(Encoding::Windows_1252) } }, :body_invalid_utf8],
+      'a plain body in a charset Ruby cannot convert' =>
+        [{ format: 'plain', body: -> { 'abc'.dup.force_encoding(Encoding::UTF_7) } }, :body_invalid_utf8],
       'a NUL byte in a plain body' => [{ format: 'plain', body: "a#{0.chr}b" }, :body_nul],
       'an empty plain body' => [{ format: 'plain', body: '' }, :body_empty],
       'a plain body of blank lines' => [{ format: 'plain', body: " \n\t\r\n " }, :body_empty],

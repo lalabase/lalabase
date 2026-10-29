@@ -57,6 +57,30 @@ RSpec.describe Lalabase::Tools::PostComment, :ci_guard do
       expect(result.error_code).to eq(:invalid_input)
       expect(result.error).to eq('body must not contain NUL bytes')
     end
+
+    # An empty html body too: REST leaves it to the model after the write
+    # check, MCP refuses it here, as it always did (app/services/CLAUDE.md).
+    { 'format html' => { format: 'html' }, 'no format' => {} }.each do |label, format|
+      it "refuses an empty html body for a missing ticket (#{label})" do
+        result = described_class.execute(args: { ticket_id: SecureRandom.uuid, body: ' ' }.merge(format), context: context)
+        expect(result.error_code).to eq(:invalid_input)
+        expect(result.error).to eq('body is required')
+      end
+    end
+
+    it 'refuses an empty html body for a ticket the caller may not read' do
+      ProjectPermission.find_by!(user: user, project: project).update!(tickets_access: :no_access)
+      result = described_class.execute(args: { ticket_id: ticket.id, body: ' ' }, context: context)
+      expect(result.error_code).to eq(:invalid_input)
+      expect(result.error).to eq('body is required')
+    end
+  end
+
+  it 'enqueues the embedding of the comment, as the web form does' do
+    allow(EmbeddingProcessingJob).to receive(:perform_later)
+    result = execute
+    expect(EmbeddingProcessingJob).to have_received(:perform_later)
+      .with(record_class: Post, record_id: JSON.parse(result.content).fetch('id'), fragment_association: :fragments)
   end
 
   # The rule holds the reading of is_private (a JSON true or the string

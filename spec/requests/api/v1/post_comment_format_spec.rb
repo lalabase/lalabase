@@ -74,8 +74,21 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
 
   def saved = ActsAsTenant.without_tenant { Post.find(body.dig('data', 'id')) }
 
+  # Written out, not read through I18n.t as the controller reads them: a missing
+  # or misspelt key would be compared with itself, and an English key that is
+  # missing falls back to the German text on both sides.
   def refusal(key, locale: :en)
-    { 'error' => 'validation_failed', 'code' => 'invalid_input', 'errors' => [I18n.t("services.post_comment.#{key}", locale: locale)] }
+    text = {
+      en: {
+        format_not_string: 'Give the format (post[format]) as text: html or plain.',
+        format_unknown: 'The format (post[format]) must be html or plain.',
+        body_invalid_utf8: 'The comment (post[body]) cannot be read as UTF-8.',
+        body_nul: 'A plain comment (post[body]) must not contain NUL bytes.',
+        body_empty: 'The comment (post[body]) has no text.'
+      },
+      de: { format_unknown: 'Das Format (post[format]) muss html oder plain sein.' }
+    }.fetch(locale).fetch(key)
+    { 'error' => 'validation_failed', 'code' => 'invalid_input', 'errors' => [text] }
   end
 
   def nbsp = 0xA0.chr(Encoding::UTF_8)
@@ -421,6 +434,28 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       expect(Actors::SavePost).to receive(:new).and_call_original
       comment(format: 'plain', body: 'Hallo')
       expect(response).to have_http_status(:created)
+    end
+
+    # Every other example comments on a ticket the token owner created, where
+    # the owner and the creator are the same person.
+    it 'writes as the token owner on a ticket somebody else created' do
+      creator = create(:user)
+      foreign = ActsAsTenant.with_tenant(organisation) do
+        create(:membership, user: creator, organisation: organisation, role: role, active: true)
+        create(:ticket, project: project, organisation: organisation, creator: creator)
+      end
+      comment(ticket_id: foreign.id, format: 'plain', body: 'Hallo')
+      expect(response).to have_http_status(:created)
+      expect(body.dig('data', 'author', 'id')).to eq(user.id)
+      expect(saved.user_id).to eq(user.id)
+      ActsAsTenant.with_tenant(organisation) { expect(activity_for(saved).actor).to eq(user) }
+    end
+
+    it 'enqueues the embedding of the comment' do
+      allow(EmbeddingProcessingJob).to receive(:perform_later)
+      comment(format: 'plain', body: 'Hallo')
+      expect(EmbeddingProcessingJob).to have_received(:perform_later)
+        .with(record_class: Post, record_id: body.dig('data', 'id'), fragment_association: :fragments)
     end
 
     it 'records a post_added activity with the excerpt of the text' do

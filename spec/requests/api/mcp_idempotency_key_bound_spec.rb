@@ -72,6 +72,8 @@ RSpec.describe 'MCP writes and an idempotency_key the store cannot hold', :ci_gu
 
   let(:refusal) { 'idempotency_key must be valid UTF-8 without NUL, at most 255 bytes' }
   let(:invalid_input) { { 'lalabase/code' => 'invalid_input' } }
+  # A tool's own answer: a protocol error (-32603) carries no `_meta` at all.
+  let(:ok) { { 'lalabase/kind' => 'ok' } }
 
   write_tools = Lalabase::Tools::Registry::MCP.select(&:mutating?)
 
@@ -189,12 +191,13 @@ RSpec.describe 'MCP writes and an idempotency_key the store cannot hold', :ci_gu
         before = reading_of(tool.tool_name)
 
         first = call_tool(write_pat, tool.tool_name, arguments.merge(idempotency_key: key))
-        expect(first['isError']).to be_falsey
+        expect(first['_meta']).to eq(ok)
         expect(reading_of(tool.tool_name)).not_to eq(before)
         expect(remembered_keys).to eq([key])
 
         expect(tool).not_to receive(:execute)
         again = call_tool(write_pat, tool.tool_name, arguments.merge(idempotency_key: key))
+        expect(again['_meta']).to eq(ok)
         expect(text_of(again)).to eq(text_of(first))
         expect(remembered_keys).to eq([key])
       end
@@ -209,10 +212,11 @@ RSpec.describe 'MCP writes and an idempotency_key the store cannot hold', :ci_gu
       before = reading_of('post_comment')
 
       first = call_tool(write_pat, 'post_comment', comment.merge(idempotency_key: " #{key}\t"))
-      expect(first['isError']).to be_falsey
+      expect(first['_meta']).to eq(ok)
       expect(remembered_keys).to eq([key])
 
       again = call_tool(write_pat, 'post_comment', comment.merge(idempotency_key: key))
+      expect(again['_meta']).to eq(ok)
       expect(text_of(again)).to eq(text_of(first))
       expect(reading_of('post_comment')).to eq(before + 1)
     end
@@ -222,7 +226,7 @@ RSpec.describe 'MCP writes and an idempotency_key the store cannot hold', :ci_gu
       first = call_tool(write_pat, 'post_comment', comment.merge(idempotency_key: '   '))
       second = call_tool(write_pat, 'post_comment', comment.merge(idempotency_key: ''))
 
-      expect([first['isError'], second['isError']]).to all(be_falsey)
+      expect([first, second].map { |result| result['_meta'] }).to all(eq(ok))
       expect(reading_of('post_comment')).to eq(before + 2)
       expect(remembered_keys).to be_empty
     end
@@ -313,13 +317,13 @@ RSpec.describe 'MCP writes and an idempotency_key the store cannot hold', :ci_gu
     it 'ignores a key of 256 bytes' do
       result = call_tool(read_pat, 'list_tickets', { project_id: project.id, idempotency_key: 'k' * 256 })
 
-      expect(result['_meta']).to eq('lalabase/kind' => 'ok')
+      expect(result['_meta']).to eq(ok)
     end
 
     it 'ignores a key with bytes that are no UTF-8' do
       result = call_tool_with_raw_key(read_pat, 'list_tickets', { project_id: project.id }, "k\xFFx".b)
 
-      expect(result['_meta']).to eq('lalabase/kind' => 'ok')
+      expect(result['_meta']).to eq(ok)
     end
   end
 end

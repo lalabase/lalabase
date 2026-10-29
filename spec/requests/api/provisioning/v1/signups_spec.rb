@@ -136,8 +136,11 @@ RSpec.describe 'POST /api/provisioning/v1/signups' do
         .to eq(User.find_by!(email: signup[:email]))
     end
 
+    # The mail goes out through deliver_later, and the test environment runs Active Job on
+    # Solid Queue: with_delivered_mails sets the test adapter for the block. A bare
+    # perform_enqueued_jobs passed only when an earlier spec had left that adapter behind.
     it 'sends the confirmation mail in the language the visitor signed up in' do
-      perform_enqueued_jobs { post_signup(payload: signup.merge(language: 'de')) }
+      with_delivered_mails { post_signup(payload: signup.merge(language: 'de')) }
 
       expect(ActionMailer::Base.deliveries.last.subject).to eq(
         I18n.t('devise.mailer.confirmation_instructions.subject', locale: :de)

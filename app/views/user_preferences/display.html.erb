@@ -80,7 +80,7 @@
             <% User::EmailDisplay::EMAIL_VISIBILITIES.each do |choice| %>
               <label class="flex items-center gap-3 rounded border border-cream-300 bg-surface-raised px-4 py-3 cursor-pointer hover:border-ink transition-all">
                 <%= radio_button_tag 'user[email_visibility]', choice, @user.email_visibility == choice %>
-                <span class="text-sm text-cream-900"><%= t("user_preferences.edit.display.email_visibility.#{choice}", email: @user.email) %></span>
+                <span class="text-sm text-cream-900"><%= t("user_preferences.edit.display.email_visibility.#{choice}", email: current_user.email) %></span>
               </label>
             <% end %>
           </div>

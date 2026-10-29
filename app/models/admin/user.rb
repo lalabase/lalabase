@@ -148,6 +148,12 @@ module Admin
     # it), while the concern's stays the raw unstripped pair.
     include ::User::NameDisplay
 
+    # Which email the others see (twin-parity with ::User, same guard). The
+    # admin backend itself keeps showing the login address; the concern keeps
+    # the validations and the check-constraint values the same on both sides,
+    # so an admin save cannot store a choice the app would refuse.
+    include ::User::EmailDisplay
+
     # Display methods
     def full_name
       return email.split('@').first if first_name.blank? && last_name.blank?

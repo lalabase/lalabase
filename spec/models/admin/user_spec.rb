@@ -305,6 +305,24 @@ RSpec.describe Admin::User, type: :model do
         user = build(:admin_user, first_name: '', last_name: '', email: 'test@example.com')
         expect(user.display_name).to eq('test')
       end
+
+      # The admin backend keeps the login address, whatever a member shows to
+      # others (User::EmailDisplay); the admin full_name shadow decides it.
+      it 'keeps the login address prefix for a nameless member who hides it' do
+        user = build(:admin_user, first_name: '', last_name: '', email: 'test@example.com', email_visibility: 'none')
+        expect(user.display_name).to eq('test')
+      end
+    end
+
+    describe 'which email the others see (twin of ::User)' do
+      it 'answers shown_email like ::User and refuses the same values' do
+        user = build(:admin_user, email: 'login@example.com', email_visibility: 'contact', contact_email: 'team@example.com')
+        expect(user.shown_email).to eq('team@example.com')
+
+        user.email_visibility = 'public'
+        expect(user).not_to be_valid
+        expect(user.errors.details[:email_visibility]).to include(a_hash_including(error: :inclusion))
+      end
     end
 
     describe '#status_text' do

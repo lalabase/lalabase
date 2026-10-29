@@ -13,7 +13,7 @@ class Organisations::DocumentsController < Organisations::BaseController
 
   # Configure the Sortable functionality
   setup_sortable Document, 'documents.created_at'
-  add_sortable_columns 'document_versions.title', 'users.email'
+  add_sortable_columns 'document_versions.title'
 
   # Configure the Pageable functionality
   setup_pagination 5

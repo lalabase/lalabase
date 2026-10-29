@@ -45,8 +45,6 @@ module ShownEmailGuard
       'the exact match of an import finds the account by its login address; the preview shows the shown email',
     ['app/services/codebase_import/ticket_update_importer.rb', 'new_assignee'] =>
       'a debug log line on the server, never rendered',
-    ['app/controllers/organisations/documents_controller.rb', 'users'] =>
-      'a whitelisted SQL sort column name, not a value shown to anyone',
     ['app/services/notifications/score_calculator.rb', '@recipient'] =>
       "compares the recipient's own address with a rule value, nothing is shown",
     ['app/javascript/controllers/subscriber_picker_controller.js', 'user'] =>

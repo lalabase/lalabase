@@ -793,8 +793,10 @@ feature by feature):
   `unauthorized`); an unmapped actor code is `refused` with the old value as `reason`. Every
   body comes from `Api::V1::ErrorBody` through `BaseController#render_error`; guard
   `spec/architecture/api_v1_error_body_guard_spec.rb`. Answers outside the controllers carry
-  no `code`: the Rack::Attack 429 (plain text), a 500 from the exceptions app, and a 400 for a
-  query string Rack cannot decode (`?x=%`; raised in middleware before any controller). The 401 of `/api/mcp` (same concern,
+  no `code`: the Rack::Attack 429 (plain text), a 500 from the exceptions app, a 400 for a
+  query string Rack cannot decode (`?x=%`; raised in middleware before any controller), and a
+  400 for a parameter that is no valid UTF-8 (Rails raises `ActionController::BadRequest` while
+  it parses the parameters, which `BaseController` does not rescue). The 401 of `/api/mcp` (same concern,
   `render_unauthorized`) keeps its old body.
 * **`Idempotency-Key`** on every write (`idempotent :create` in the controller,
   `Api::V1::Idempotent`): the same key and request replays the first 2xx answer (status and
@@ -826,6 +828,22 @@ missing one answer the same 404, as do a missing and an invisible person. The li
 by 50, at most 100; a value outside is a 400, never cut. Guards:
 `spec/requests/api/v1/people_spec.rb`, `spec/requests/api/mcp_people_spec.rb`,
 `spec/requests/api/people_parity_spec.rb` (REST and MCP answer the same rows).
+
+`POST /api/v1/tickets/:ticket_id/posts` (REST R3a) writes by the rule the MCP tool
+`post_comment` writes by, `Posts::Comment`, through `Actors::SavePost` like the web form:
+`post[format]` `html` (the default, the body stored as sent) or `plain` (literal text through
+`Posts::PlainTextBody`: escaped, blank lines into paragraphs, single breaks into `<br>`). An
+unknown format, one that is no string (read raw: strong parameters would drop a list and fall
+back to html), NUL in a plain body and a plain body that converts to nothing answer 422
+`validation_failed`/`invalid_input` with a text from `services.post_comment.*`, checked inside
+the read gate. Without `format` the answer stays byte for byte: an empty body is the model's
+refusal, after the write check, with every model message (the contract case `html_empty` was
+recorded before R3a). Invalid UTF-8 never reaches the rule over REST (the 400 above); MCP
+refuses it. An unexpected actor failure (`internal_error`) answers 500 without the exception's
+text, every other failure 422 `validation_failed` as before; MCP answers `comment failed:
+unexpected error`. Capability `posts.plain`. Guards:
+`spec/requests/api/v1/post_comment_format_spec.rb`, `spec/services/posts/comment_spec.rb`,
+`spec/requests/api/mcp_plain_comment_spec.rb`.
 
 ## Admin: Betreiber-Teile kommen nur über Schlitze
 

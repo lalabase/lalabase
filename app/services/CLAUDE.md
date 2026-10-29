@@ -193,6 +193,14 @@ Verzeichnis-Übersicht (Auswahl):
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem
   MCP-Werkzeug `list_notifications`
+* `posts/` — `comment.rb` (REST R3a, 29.10.2026) is the ONE rule of a comment written through
+  a token: the MCP tool `post_comment` and `POST /api/v1/tickets/:ticket_id/posts` call it.
+  `parse` (format `html`/`plain`, valid UTF-8, no NUL in plain, `plain_text_body.rb`, empty
+  after conversion), `build` (the unsaved post through `Actors::SavePost`, for the caller's
+  `:create?`), `save`; rights and wording stay with the callers. ⚠️ An empty html body is
+  answered differently on purpose: MCP refuses it before the ticket lookup (`body is
+  required`, as always), REST leaves it to the model after the write check (its answer
+  without `format` stays byte for byte). Not a second rule: do not align them in one hull.
 * `lalabase/` — AI/RAG-Domäne (eigene Karte im Ordner)
 * `access_check/` — Projekt-Zugriffslogik, 5 Objekte mit überlappenden Prädikaten —
   **vor Neubau erst hier prüfen**. `project_access_service.rb` ist der EINE Besitzer der

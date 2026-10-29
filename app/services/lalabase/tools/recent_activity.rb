@@ -28,8 +28,9 @@ module Lalabase
       #   * `post_excerpt` (ticket.post_added) is comment CONTENT, and a comment
       #     carries its own privacy (visible_to_user_id) that the :tickets area
       #     does not express -- exactly the gap issue #267 describes,
-      #   * `user_email` (project.member_added) is personal data the answer does
-      #     not need to be useful.
+      #   * `user_email` (project.member_added, only on rows written before
+      #     2026-10-29) is a login address the member may hide from others
+      #     (User::EmailDisplay).
       # Everything else that is not listed here is simply left out.
       SUBJECT_FIELDS = %w[display_name note_title document_title meeting_title ticket_title user_name].freeze
 

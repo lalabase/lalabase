@@ -28,10 +28,9 @@ module Inbox
       actor = @notification.actor
       return I18n.t('views.organisations.notifications.item.system_actor', default: 'System') unless actor
 
-      actor.try(:full_name).presence ||
-        [actor.try(:first_name), actor.try(:last_name)].compact.join(' ').presence ||
-        actor.try(:email) ||
-        'Unbekannt'
+      # The one name rule (User#display_name): a member without a name is named
+      # by the email they show to others, never by a hidden login address.
+      actor.display_name
     end
 
     def time_ago

@@ -39,7 +39,11 @@ module Lalabase
       # (ProjectDeletionJob until 2026-10-08) go: a row without a project passes
       # the inbox rule as a system message. A row with a mail log stays (bounces).
       # Idempotent, and it may stay: it only deletes rows whose subject is gone.
-      'notifications:purge_project_leftovers'
+      'notifications:purge_project_leftovers',
+      # member_added activities written before 2026-10-29 lose the login address
+      # they stored (`user_email`); a member chooses which email the others see.
+      # Idempotent, and it may go once no installation is older than that.
+      'activities:drop_member_emails'
     ].freeze
   end
 end

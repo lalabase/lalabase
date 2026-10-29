@@ -95,6 +95,19 @@ RSpec.describe 'The email a member shows to others', :ci_guard, type: :request d
       expect_no_hidden_login_address(response.body)
     end
 
+    # Ties in the name break on the SHOWN email: the order must not leak the
+    # alphabetical position of a hidden login address.
+    it 'sorts two members of the same name by the shown email, not the login address' do
+      member('Max', 'a-login@example.com', email_visibility: 'contact', contact_email: 'z-team@example.com')
+      member('Max', 'z-login@example.com', email_visibility: 'contact', contact_email: 'a-team@example.com')
+
+      get organisation_memberships_path(organisation)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body.index('a-team@example.com')).to be < response.body.index('z-team@example.com')
+      expect(response.body).not_to include('a-login@example.com', 'z-login@example.com')
+    end
+
     it 'finds a member by the shown email, never by a hidden login address' do
       get organisation_memberships_path(organisation, q: 'lena.team')
       expect(response.body).to include('lena.team@example.com')
@@ -102,6 +115,76 @@ RSpec.describe 'The email a member shows to others', :ci_guard, type: :request d
       get organisation_memberships_path(organisation, q: 'lena-login')
       expect(response).to have_http_status(:ok)
       expect(response.body).not_to include('lena.team@example.com')
+    end
+  end
+
+  describe 'the person form of a member' do
+    it 'shows the chosen email in the locked field, and nothing for one who shows none' do
+      lena_row = create(:person, organisation: organisation, user: lena, name: 'Lena Beispiel')
+      nina_row = create(:person, organisation: organisation, user: nina, name: 'Nina Beispiel')
+      frame = { 'Turbo-Frame' => Organisations::PeopleController::DETAIL_FRAME_ID }
+
+      get edit_organisation_person_path(organisation, lena_row), headers: frame
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('value="lena.team@example.com"')
+      expect_no_hidden_login_address(response.body)
+
+      get edit_organisation_person_path(organisation, nina_row), headers: frame
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('person_email_locked')
+      expect_no_hidden_login_address(response.body)
+    end
+  end
+
+  describe 'the activity search of a project' do
+    # project.member_added belongs to the members area (Activities::AreaRegistry).
+    before { create(:project_permission, user: admin, project: project, tickets_access: 'read_write', members_access: 'read_only') }
+
+    # Rows written before this change still carry the login address in their
+    # parameters; the search must not read it there either.
+    it 'never confirms a hidden login address, also from an older member_added row' do
+      ActsAsTenant.with_tenant(organisation) do
+        create(:activity, trackable: project, organisation: organisation, actor: admin, secondary: nina,
+                          key: 'project.member_added', action: 'member_added',
+                          parameters: { 'user_name' => 'Zugang Nordlicht', 'user_email' => 'nina-login@example.com' })
+      end
+      path = ->(q) { organisation_project_activities_path(organisation_id: organisation.id, project_id: project.id, q: q) }
+      # The row reads "<event>: <member>"; the event label and the member name
+      # also stand alone in the page's filters, the pair only in the row.
+      row = 'Mitglied hinzugefügt: Nina Beispiel'
+
+      get path.call('Zugang Nord')
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(row)
+
+      get path.call('nina-login@example.com')
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include(row)
+    end
+
+    it 'stores no login address when a member joins a project' do
+      activity = ActsAsTenant.with_tenant(organisation) do
+        Current.set(user: admin) { project.track_member_added(nina) }
+        Activity.where(trackable: project, action: 'member_added').order(:created_at).last
+      end
+
+      expect(activity.parameters).to include('user_name')
+      expect(activity.parameters.to_json).not_to include('nina-login')
+    end
+  end
+
+  describe 'the codebase import preview' do
+    it 'names a same-domain member by name and shown email, never by a hidden login address' do
+      organisation.update!(data_import_enabled: true)
+      file = ActsAsTenant.with_tenant(organisation) do
+        create(:codebase_import_file, :with_valid_users_xml, organisation: organisation, user: admin)
+      end
+
+      get preview_import_organisation_codebase_import_file_path(organisation, file)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Lena Beispiel', 'lena.team@example.com')
+      expect_no_hidden_login_address(response.body)
     end
   end
 
@@ -134,6 +217,19 @@ RSpec.describe 'The email a member shows to others', :ci_guard, type: :request d
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('lena.team@example.com')
+      expect_no_hidden_login_address(response.body)
+    end
+
+    it 'names the owner of a shared folder in the list by name' do
+      ActsAsTenant.with_tenant(organisation) do
+        create(:smart_folder, user: nina, organisation: organisation, project: project, target_object_type: 'Ticket',
+                              name: 'Ninas Ordner').tap { |f| create(:smart_folder_share, smart_folder: f, user: admin) }
+      end
+
+      get organisation_smart_folders_path(organisation)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Ninas Ordner', 'Nina Beispiel')
       expect_no_hidden_login_address(response.body)
     end
 

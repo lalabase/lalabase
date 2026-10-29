@@ -163,7 +163,7 @@ class Organisations::Projects::ActivitiesController < Organisations::BaseControl
       <<~SQL.squish,
         activities.action ILIKE :pattern OR
         activities.key ILIKE :pattern OR
-        CAST(activities.parameters AS TEXT) ILIKE :pattern OR
+        CAST(activities.parameters - 'user_email' AS TEXT) ILIKE :pattern OR
         (activities.trackable_type = 'Ticket' AND activities.trackable_id IN (:ticket_ids)) OR
         (activities.secondary_type = 'Ticket' AND activities.secondary_id IN (:ticket_ids))
       SQL

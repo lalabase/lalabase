@@ -200,12 +200,6 @@ class Activity < ApplicationRecord
     secondary&.full_name || I18n.t('activities.deleted_user')
   end
 
-  def assignee_email
-    return nil unless %w[assigned unassigned].include?(action)
-
-    secondary&.email || nil
-  end
-
   def subscriber_display_name
     return nil unless %w[subscriber_added subscriber_removed].include?(action)
 

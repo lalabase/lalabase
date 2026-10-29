@@ -11,16 +11,22 @@ require 'rails_helper'
 #   picker, the activity page and the import preview. A choice that each of
 #   those has to remember is not a choice, so the bare read is refused here.
 #
-# A tripwire, not a proof: it reads `<receiver>.email` / `<receiver>&.email` in
-# Ruby, ERB and JavaScript. It does not see an email reached through `send`,
-# `[:email]`, `pluck(:email)`, `as_json` of a whole user, or a SQL fragment.
+# A tripwire, not a proof: it reads `<receiver>.email`, `<receiver>&.email`,
+# `try(:email)` and `send(:email)` in Ruby, ERB and JavaScript, and refuses an
+# email key in the parameters an activity stores (activities are shown and
+# searched by everyone who reads the project). It does not see `[:email]`,
+# `pluck(:email)`, `as_json` of a whole user, or a SQL fragment.
 module ShownEmailGuard
-  ROOTS = %w[app/controllers app/services app/views app/helpers app/components app/javascript].freeze
+  ROOTS = %w[app/controllers app/services app/views app/helpers app/components app/javascript
+             app/presenters app/models app/jobs app/queries].freeze
 
-  # The account owner's own view, Lalabase's own mail, Devise and the instance
-  # admin area keep the login address on purpose (User::EmailDisplay header).
-  EXCLUDED = %r{\Aapp/(?:views|controllers|services)/admin/|\Aapp/views/devise/|\Aapp/controllers/users/|
-                mailers?/|_mailer|\Aapp/views/user_data_exports/|\Aapp/services/user_data_exports/}x
+  # The account owner's own view, Lalabase's own mail, Devise, the data export
+  # and the instance admin area keep the login address on purpose
+  # (User::EmailDisplay header). Anchored, so a file elsewhere whose name only
+  # contains one of these words is still read.
+  EXCLUDED = %r{\Aapp/(?:views|controllers|services|models)/admin/|\Aapp/views/devise/|\Aapp/controllers/users/|
+                \Aapp/mailers/|\Aapp/views/[a-z_]+_mailer/|\Aapp/views/layouts/[a-z_]*mailer|
+                \Aapp/views/user_data_exports/|\Aapp/services/user_data_exports/}x
 
   # Receivers whose `.email` is not a member's login address shown to others.
   SAFE_RECEIVERS = {
@@ -44,10 +50,31 @@ module ShownEmailGuard
     ['app/services/notifications/score_calculator.rb', '@recipient'] =>
       "compares the recipient's own address with a rule value, nothing is shown",
     ['app/javascript/controllers/subscriber_picker_controller.js', 'user'] =>
-      'reads the JSON field `email`, which the server fills with User#shown_email'
+      'reads the JSON field `email`, which the server fills with User#shown_email',
+    ['app/jobs/email_delivery_job.rb', 'recipient'] =>
+      "Lalabase's own mail goes to the login address of its recipient",
+    ['app/jobs/email_webhook_processor_job.rb', 'recipient'] =>
+      'a server log line about a bounced or complained mail, never rendered',
+    ['app/models/email_log.rb', 'recipient'] =>
+      "the address Lalabase's own mail was sent to",
+    ['app/models/user/deletion_lifecycle.rb', 'self'] =>
+      'writes the tombstone address of an erased account',
+    ['app/models/user/email_display.rb', 'users'] =>
+      'the owner itself: the SQL branch for members who show their login address',
+    ['app/models/user_activity.rb', 'user'] =>
+      'a server security log line about the account itself, never rendered',
+    ['app/models/user_deletion.rb', 'deleted_user'] =>
+      'the deletion audit record of the instance admin area'
   }.freeze
 
-  CALL = /(?<receiver>@?[A-Za-z_]\w*)(?:\.|&\.)email\b(?![\w?!=])/
+  CALL = /(?<receiver>@?[A-Za-z_]\w*)(?:(?:\.|&\.)email\b(?![\w?!=])|(?:\.|&\.)(?:try|send|public_send)\(:email\))/
+
+  # Where activities are written: an email key there is stored for every reader
+  # of the project's history, and the activity search reads the whole JSON.
+  # (UserTrackable writes the account's own security log, UserActivity, which is
+  # not the project history; it is not listed here.)
+  ACTIVITY_WRITERS = '{app/models/concerns/trackable.rb,app/models/concerns/{project,ticket,person}_trackable.rb}'
+  EMAIL_KEY = /\b\w*email\w*:\s|['"]\w*email\w*['"]\s*=>/
 
   def self.files
     ROOTS.flat_map { |root| Dir[Rails.root.join(root, '**', '*.{rb,erb,js}')] }
@@ -80,6 +107,19 @@ RSpec.describe ShownEmailGuard, :ci_guard do
     }
   end
 
+  it 'stores no email in the parameters of an activity' do
+    findings = Dir[Rails.root.join(described_class::ACTIVITY_WRITERS)].sort.flat_map do |path|
+      File.readlines(path).each_with_index.filter_map do |line, index|
+        next if line.match?(/\A\s*#/) || !line.match?(described_class::EMAIL_KEY)
+
+        "#{Pathname(path).relative_path_from(Rails.root)}:#{index + 1}: #{line.strip}"
+      end
+    end
+
+    expect(Dir[Rails.root.join(described_class::ACTIVITY_WRITERS)]).not_to be_empty
+    expect(findings).to be_empty, "An activity is read by everyone in the project; store no email:\n#{findings.join("\n")}"
+  end
+
   it 'keeps no allow-list entry without a finding' do
     found = described_class.findings.to_set { |file, receiver, *| [file, receiver] }
     stale = described_class::ALLOWED.keys.reject { |key| found.include?(key) }
@@ -92,8 +132,9 @@ RSpec.describe ShownEmailGuard, :ci_guard do
 
     expect(files).to include('app/views/organisations/memberships/_member.html.erb',
                              'app/services/people/directory.rb', 'app/services/people/lookup.rb',
-                             'app/javascript/controllers/subscriber_picker_controller.js')
-    expect(files).not_to include('app/views/devise/registrations/edit.html.erb')
+                             'app/javascript/controllers/subscriber_picker_controller.js',
+                             'app/presenters/inbox/activity_line.rb', 'app/models/activity.rb')
+    expect(files).not_to include('app/views/devise/registrations/edit.html.erb', 'app/mailers/notification_mailer.rb')
   end
 
   it 'sees a bare read in Ruby, ERB and JavaScript, and lets the shown email pass' do
@@ -105,5 +146,10 @@ RSpec.describe ShownEmailGuard, :ci_guard do
     expect(probe.call('membership.user.shown_email')).to eq([])
     expect(probe.call('user.email_visibility')).to eq([])
     expect(probe.call('user.email?')).to eq([])
+    expect(probe.call('actor.try(:email)')).to eq(['actor'])
+    expect(probe.call('user.send(:email)')).to eq(['user'])
+    expect('user_email: user.email,').to match(described_class::EMAIL_KEY)
+    expect("'user_email' => x").to match(described_class::EMAIL_KEY)
+    expect('user_name: user.full_name,').not_to match(described_class::EMAIL_KEY)
   end
 end

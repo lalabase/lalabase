@@ -112,7 +112,7 @@ class CodebaseImportFile < ApplicationRecord
   end
 
   def uploaded_by_name
-    user.full_name || user.email
+    user.display_name
   end
 
   # Progress tracking for import jobs

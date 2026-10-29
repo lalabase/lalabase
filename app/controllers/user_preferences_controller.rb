@@ -41,10 +41,10 @@ class UserPreferencesController < ApplicationController
     # change (user decision 04.09.2026). Applied BEFORE the JSONB prefs so one
     # submit can carry both; a failed picture keeps the section rendered with
     # the model's own error message.
-    return if section == 'display' && user_param_hash? && !apply_avatar_update
-    # Which email the others see (User::EmailDisplay): a column on users, saved
-    # here and not in the Devise profile for the same reason as the picture.
-    return if section == 'display' && user_param_hash? && !apply_email_visibility_update
+    # The picture and which email the others see (User::EmailDisplay) are
+    # columns and an attachment on users, saved here in ONE update, so a
+    # refused part leaves nothing half saved.
+    return if section == 'display' && user_param_hash? && !apply_display_update
 
     # Handle language preference separately
     if section == 'language' && user_param_hash? && params[:user].key?(:language_preference)
@@ -90,35 +90,30 @@ class UserPreferencesController < ApplicationController
     params.require(:user).permit(:language_preference, :session_timeout_minutes)
   end
 
-  # Attach/remove the profile picture from the display section. Returns true
-  # when the rest of the update may proceed; renders the section itself (422)
-  # on a validation failure. Mass assignment through current_user.update on
-  # purpose: only that staged path runs the acceptable_avatar validation -
-  # a direct avatar.attach on a persisted record would bypass it.
-  def apply_avatar_update
+  # The display section's own columns: the profile picture and which email the
+  # others see. Returns true when the rest of the update may proceed; renders
+  # the section itself (422) on a validation failure. Mass assignment through
+  # current_user.update on purpose: only that staged path runs the
+  # acceptable_avatar validation - a direct avatar.attach on a persisted record
+  # would bypass it. Login address and password stay behind the Devise
+  # profile's current-password gate.
+  def apply_display_update
+    permitted = avatar_changes.merge(params.require(:user).permit(:email_visibility, :contact_email).to_h)
+    return true if permitted.empty?
+    return true if current_user.update(permitted)
+
+    render_display_errors
+  end
+
+  def avatar_changes
     permitted = params.require(:user).permit(:avatar, :remove_avatar, :avatar_crop_x, :avatar_crop_y, :avatar_crop_size)
     crop = { x: permitted.delete(:avatar_crop_x), y: permitted.delete(:avatar_crop_y),
              size: permitted.delete(:avatar_crop_size) }
     # An untouched file field submits "", and the has_one_attached writer
     # treats an empty string as DELETE - blank means "no change".
     permitted.delete(:avatar) if permitted[:avatar].blank?
-    return true if permitted.empty?
-
     permitted[:avatar] = UserAvatars::CropUpload.call(upload: permitted[:avatar], crop: crop) if permitted[:avatar].present?
-    return true if current_user.update(permitted)
-
-    render_display_errors
-  end
-
-  # Which email the others see (User::EmailDisplay). Only these two columns: the
-  # login address and the password stay behind the Devise profile's
-  # current-password gate. Returns true when the rest of the update may proceed.
-  def apply_email_visibility_update
-    permitted = params.require(:user).permit(:email_visibility, :contact_email)
-    return true if permitted.empty?
-    return true if current_user.update(permitted)
-
-    render_display_errors
+    permitted.to_h
   end
 
   # The display section again, with the model's own error messages (422).

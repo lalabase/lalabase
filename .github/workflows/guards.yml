@@ -199,6 +199,8 @@ jobs:
           spec/lib/tasks/chats_purge_legacy_threads_spec.rb
           spec/lib/tasks/chats_scope_project_cleanup_spec.rb
           spec/lib/tasks/data_backfills_spec.rb
+          spec/lib/tasks/activities_drop_member_emails_spec.rb
+          spec/presenters/inbox/activity_line_spec.rb
           spec/mailers/
           spec/middleware/active_storage_tenant_bypass_spec.rb
           spec/migrations/remove_ticket_id_from_chats_spec.rb

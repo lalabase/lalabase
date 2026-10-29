@@ -76,6 +76,19 @@ RSpec.describe 'User preferences: the email the others see', :ci_guard, type: :r
     expect(user.email_visibility).to eq('none')
   end
 
+  # One save for the picture and the choice: a refused choice must not leave a
+  # new picture behind under a 422 that says nothing was saved.
+  it 'keeps the old picture when the email choice in the same submit is refused' do
+    patch user_preferences_path, params: {
+      current_section: 'display',
+      user: { avatar: fixture_file_upload('test_avatar.png', 'image/png'), email_visibility: 'contact', contact_email: '' }
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(user.reload.avatar).not_to be_attached
+    expect(user.email_visibility).to eq('login')
+  end
+
   it 'leaves the choice alone when the section is saved without it' do
     user.update!(email_visibility: 'none')
 

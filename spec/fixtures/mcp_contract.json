@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "aaddafbae770235d4978fe1e74050971bce2b6f0",
+    "core_commit": "c56a11b8820f9cb5f8d664fc9f0c433aedd30018",
     "core_dirty": true,
-    "contract_sha256": "f02188653864371cac510aa771011dd50f166e391741e7d945ea305b7033a256"
+    "contract_sha256": "463a72a9a78b957137b04184d6d5a5cc2c2a549412257495d5a72ae7ada865ac"
   },
   "contract": {
     "mcp": {
@@ -3654,7 +3654,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.1.0",
+                "api_version": "1.2.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -3664,6 +3664,8 @@
                   "notifications.mark_all_as_read",
                   "notifications.mark_as_read",
                   "organisations.list",
+                  "people.list",
+                  "people.show",
                   "posts.create",
                   "projects.list",
                   "projects.ticket_attribute_definitions",
@@ -3711,7 +3713,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.1.0",
+                "api_version": "1.2.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -3721,6 +3723,8 @@
                   "notifications.mark_all_as_read",
                   "notifications.mark_as_read",
                   "organisations.list",
+                  "people.list",
+                  "people.show",
                   "posts.create",
                   "projects.list",
                   "projects.ticket_attribute_definitions",
@@ -4250,6 +4254,343 @@
               "error": "idempotency_key_reused",
               "code": "invalid_input",
               "message": "idempotency_key already used with different parameters"
+            }
+          }
+        }
+      },
+      "GET /api/v1/organisations/:organisation_id/people": {
+        "ok": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": [
+                {
+                  "id": "member:00000000-0000-4000-8000-000000000011",
+                  "name": "Anna Albers",
+                  "kind": "member",
+                  "function": null,
+                  "department": null,
+                  "company": null,
+                  "last_contact": {
+                    "on": "2026-01-05",
+                    "kind": "ticket"
+                  }
+                },
+                {
+                  "id": "member:00000000-0000-4000-8000-000000000012",
+                  "name": "Ben Berger",
+                  "kind": "member",
+                  "function": "Entwicklung",
+                  "department": null,
+                  "company": null,
+                  "last_contact": null
+                },
+                {
+                  "id": "person:00000000-0000-4000-8000-000000000091",
+                  "name": "Doris Dienstleister",
+                  "kind": "contact",
+                  "function": "Technische Ansprechpartnerin",
+                  "department": "Technik",
+                  "company": "Hosting AG",
+                  "last_contact": null
+                }
+              ],
+              "meta": {
+                "page": 1,
+                "per_page": 50,
+                "total": 3
+              }
+            }
+          }
+        },
+        "ok_query": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people?q=techn"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": [
+                {
+                  "id": "person:00000000-0000-4000-8000-000000000091",
+                  "name": "Doris Dienstleister",
+                  "kind": "contact",
+                  "function": "Technische Ansprechpartnerin",
+                  "department": "Technik",
+                  "company": "Hosting AG",
+                  "last_contact": null
+                }
+              ],
+              "meta": {
+                "page": 1,
+                "per_page": 50,
+                "total": 1
+              }
+            }
+          }
+        },
+        "ok_paged": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people?kind=members&per_page=1&page=2"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": [
+                {
+                  "id": "member:00000000-0000-4000-8000-000000000012",
+                  "name": "Ben Berger",
+                  "kind": "member",
+                  "function": "Entwicklung",
+                  "department": null,
+                  "company": null,
+                  "last_contact": null
+                }
+              ],
+              "meta": {
+                "page": 2,
+                "per_page": 1,
+                "total": 2
+              }
+            }
+          }
+        },
+        "empty": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people?q=niemand"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": [],
+              "meta": {
+                "page": 1,
+                "per_page": 50,
+                "total": 0
+              }
+            }
+          }
+        },
+        "invalid_input": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people?per_page=101"
+          },
+          "response": {
+            "status": 400,
+            "body": {
+              "error": "bad_request",
+              "code": "invalid_input",
+              "message": "invalid per_page \"101\" (expected a whole number from 1 to 100)"
+            }
+          }
+        },
+        "invalid_input_kind": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people?kind=member"
+          },
+          "response": {
+            "status": 400,
+            "body": {
+              "error": "bad_request",
+              "code": "invalid_input",
+              "message": "kind must be one of: all, members, contacts"
+            }
+          }
+        },
+        "forbidden": {
+          "token": "dora",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people"
+          },
+          "response": {
+            "status": 403,
+            "body": {
+              "error": "forbidden",
+              "code": "forbidden"
+            }
+          }
+        },
+        "not_found": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000002/people"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "not_found_project_token": {
+          "token": "limited",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "unauthorized": {
+          "token": "invalid",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people"
+          },
+          "response": {
+            "status": 401,
+            "body": {
+              "error": "unauthorized",
+              "code": "unauthorized"
+            }
+          }
+        }
+      },
+      "GET /api/v1/organisations/:organisation_id/people/:id": {
+        "ok": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people/person:00000000-0000-4000-8000-000000000091"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": {
+                "id": "person:00000000-0000-4000-8000-000000000091",
+                "name": "Doris Dienstleister",
+                "kind": "contact",
+                "function": "Technische Ansprechpartnerin",
+                "department": "Technik",
+                "company": "Hosting AG",
+                "last_contact": null,
+                "salutation": "Frau",
+                "email": "doris@example.com",
+                "phone": "+49 30 1234567",
+                "additional_details": [
+                  {
+                    "label": "Mobil",
+                    "value": "+49 170 1234567"
+                  }
+                ],
+                "notes": "Nur vormittags anrufen."
+              }
+            }
+          }
+        },
+        "ok_member": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people/member:00000000-0000-4000-8000-000000000012"
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "data": {
+                "id": "member:00000000-0000-4000-8000-000000000012",
+                "name": "Ben Berger",
+                "kind": "member",
+                "function": "Entwicklung",
+                "department": null,
+                "company": null,
+                "last_contact": null,
+                "salutation": null,
+                "email": "ben@example.com",
+                "phone": "+49 30 7654321",
+                "additional_details": [],
+                "notes": null
+              }
+            }
+          }
+        },
+        "not_found": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people/person:00000000-0000-4000-8000-000000000999"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "hidden": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people/member:00000000-0000-4000-8000-000000000014"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "invalid_input": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people/abc"
+          },
+          "response": {
+            "status": 400,
+            "body": {
+              "error": "bad_request",
+              "code": "invalid_input",
+              "message": "invalid id (expected \"person:<uuid>\" or \"member:<uuid>\")"
+            }
+          }
+        },
+        "forbidden": {
+          "token": "dora",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people/person:00000000-0000-4000-8000-000000000091"
+          },
+          "response": {
+            "status": 403,
+            "body": {
+              "error": "forbidden",
+              "code": "forbidden"
+            }
+          }
+        },
+        "not_found_organisation": {
+          "token": "read",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000002/people/person:00000000-0000-4000-8000-000000000091"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
+            }
+          }
+        },
+        "not_found_project_token": {
+          "token": "limited",
+          "request": {
+            "path": "/api/v1/organisations/00000000-0000-4000-8000-000000000001/people/person:00000000-0000-4000-8000-000000000091"
+          },
+          "response": {
+            "status": 404,
+            "body": {
+              "error": "not_found",
+              "code": "not_found"
             }
           }
         }

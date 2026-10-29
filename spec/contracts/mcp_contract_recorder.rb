@@ -536,7 +536,46 @@ module McpContract
         # answer per error code, then a write with an Idempotency-Key, its replay
         # and the key reused with another body.
         'errors' => rest_error_calls,
-        'idempotency' => rest_idempotency_calls
+        'idempotency' => rest_idempotency_calls,
+        # People S3b, appended last: the directory of people_world, made before the MCP calls.
+        'GET /api/v1/organisations/:organisation_id/people' => rest_people_list_calls,
+        'GET /api/v1/organisations/:organisation_id/people/:id' => rest_people_show_calls
+      }
+    end
+
+    def rest_people_list_calls
+      people_world
+      path = "/api/v1/organisations/#{id(:organisation)}/people"
+      {
+        'ok' => rest_get(:read, path),
+        'ok_query' => rest_get(:read, "#{path}?q=techn"),
+        'ok_paged' => rest_get(:read, "#{path}?kind=members&per_page=1&page=2"),
+        'empty' => rest_get(:read, "#{path}?q=niemand"),
+        'invalid_input' => rest_get(:read, "#{path}?per_page=101"),
+        'invalid_input_kind' => rest_get(:read, "#{path}?kind=member"),
+        # Dora is a member without the people right.
+        'forbidden' => rest_get(:dora, path),
+        # Anna is no member there: outside the token, like a missing organisation.
+        'not_found' => rest_get(:read, "/api/v1/organisations/#{id(:other_organisation)}/people"),
+        'not_found_project_token' => rest_get(:limited, path),
+        'unauthorized' => rest_get(nil, path)
+      }
+    end
+
+    def rest_people_show_calls
+      people_world
+      path = "/api/v1/organisations/#{id(:organisation)}/people"
+      doris = "person:#{id(:doris_person)}"
+      {
+        'ok' => rest_get(:read, "#{path}/#{doris}"),
+        'ok_member' => rest_get(:read, "#{path}/member:#{id(:ben)}"),
+        'not_found' => rest_get(:read, "#{path}/person:#{id(:missing)}"),
+        # Dora is a member Anna does not see: answered like a missing person.
+        'hidden' => rest_get(:read, "#{path}/member:#{id(:dora)}"),
+        'invalid_input' => rest_get(:read, "#{path}/abc"),
+        'forbidden' => rest_get(:dora, "#{path}/#{doris}"),
+        'not_found_organisation' => rest_get(:read, "/api/v1/organisations/#{id(:other_organisation)}/people/#{doris}"),
+        'not_found_project_token' => rest_get(:limited, "#{path}/#{doris}")
       }
     end
 

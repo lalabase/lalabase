@@ -292,6 +292,8 @@ jobs:
           spec/requests/api/v1/error_codes_spec.rb
           spec/requests/api/v1/idempotency_spec.rb
           spec/requests/api/v1/capabilities_spec.rb
+          spec/requests/api/v1/people_spec.rb
+          spec/requests/api/people_parity_spec.rb
           spec/models/codebase_import_mapping_spec.rb
           spec/services/codebase_import/time_session_importer_spec.rb
           spec/services/codebase_import/duplicate_prevention_spec.rb

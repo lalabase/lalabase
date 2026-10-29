@@ -85,6 +85,21 @@ RSpec.describe 'API V1 time booking', :ci_guard, type: :request do
       end
     end
 
+    it 'refuses minutes that are no whole number instead of cutting them, writing nothing' do
+      expect { book(duration_minutes: '1.5') }.not_to(change { bookings })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(body).to eq('error' => 'validation_failed', 'code' => 'invalid_input',
+                         'errors' => [I18n.t('services.time_session_booking.duration_minutes_invalid', locale: :en)])
+    end
+
+    it 'refuses minutes that are no number at all as input, not as a crash' do
+      post "/api/v1/tickets/#{ticket.id}/time_sessions",
+           params: { time_session: { duration_minutes: true } }.to_json,
+           headers: { 'Authorization' => "Bearer #{pat.token}", 'Content-Type' => 'application/json' }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(body).to include('error' => 'validation_failed', 'code' => 'invalid_input')
+    end
+
     it 'answers the refusal in the token owner language' do
       user.update!(language_preference: 'de')
       book(duration_string: '1:30', duration_minutes: 45)
@@ -114,6 +129,12 @@ RSpec.describe 'API V1 time booking', :ci_guard, type: :request do
       expect(booked.occurred_on).to eq(Time.zone.parse('2026-08-20 00:00'))
     end
 
+    it 'takes a plain date as that day in a zone west of UTC too' do
+      user.update!(timezone: 'America/New_York')
+      book(duration_minutes: 30, occurred_on: '2026-08-20')
+      expect(booked.occurred_on).to eq(Time.zone.parse('2026-08-20 00:00'))
+    end
+
     %w[gestern 05.01.2026 2026-02-30].push('2026-10-29 10:00').each do |raw|
       it "refuses the unreadable date #{raw.inspect} instead of booking now, writing nothing" do
         expect { book(duration_minutes: 30, occurred_on: raw) }.not_to(change { bookings })
@@ -136,6 +157,19 @@ RSpec.describe 'API V1 time booking', :ci_guard, type: :request do
     book(duration_minutes: 30)
     expect(response).to have_http_status(:unprocessable_content)
     expect(body).to eq('error' => 'group_billed', 'code' => 'refused', 'reason' => 'group_billed', 'errors' => ['nope'])
+  end
+
+  # A failure the server did not expect (BaseActor's :internal_error in
+  # production, where it does not re-raise) is no refusal of the input: a 500
+  # without the exception's text, so a client may retry and learns nothing of
+  # the database.
+  it 'answers an unexpected actor failure as a server error without its text' do
+    allow(Actors::SaveTimeSession).to receive(:call)
+      .and_return(Actors::BaseActor::Result.new(success: false, errors: ['PG::Error: secret'], code: :internal_error))
+    book(duration_minutes: 30)
+    expect(response).to have_http_status(:internal_server_error)
+    expect(response.body).not_to include('secret')
+    expect(body).to include('error' => 'internal_error')
   end
 
   it 'books the same row the MCP tool books for the same input' do

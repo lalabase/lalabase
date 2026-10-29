@@ -36,6 +36,21 @@ RSpec.describe TimeSessions::Booking do
       expect(parse(duration_string: '1:30', duration_minutes: '45').refusal).to eq(:both_durations)
     end
 
+    # Minutes are a whole number: a fraction would be cut to the minute below
+    # ("1.5" booked as 1, while duration_string "1.5" is 90), and a value
+    # that is no number at all must not reach the model as a crash.
+    it 'refuses minutes that are no whole number' do
+      [1.5, '1.5', true, false, '1e2', [30], { a: 1 }].each do |minutes|
+        expect(parse(duration_minutes: minutes).refusal).to eq(:duration_minutes_invalid), minutes.inspect
+      end
+    end
+
+    it 'takes whole minutes as a number or as digits' do
+      [45, '45', ' 45 ', 0, -5].each do |minutes|
+        expect(parse(duration_minutes: minutes).refused?).to be(false), minutes.inspect
+      end
+    end
+
     it 'refuses an occurred_on it cannot read' do
       %w[gestern 05.01.2026 2026-02-30 10000-01-01].push('2026-10-29 10:00').each do |raw|
         expect(parse(duration_string: '30', occurred_on: raw).refusal).to eq(:occurred_on_invalid), raw

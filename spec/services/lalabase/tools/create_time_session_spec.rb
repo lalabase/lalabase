@@ -103,6 +103,14 @@ RSpec.describe Lalabase::Tools::CreateTimeSession do
       expect(payload['occurred_on']).to eq(Time.zone.parse('2026-09-01 00:00:00').iso8601)
     end
 
+    # A plain date names the day itself; read as UTC midnight and moved into a
+    # zone west of UTC it would land on the day before.
+    it 'takes a plain date as that date in a zone west of UTC too' do
+      actor.update!(timezone: 'America/New_York')
+      payload = JSON.parse(run(duration: '30', occurred_on: '2026-08-20').content)
+      expect(payload['occurred_on']).to eq(Time.zone.parse('2026-08-20 00:00:00').iso8601)
+    end
+
     it 'refuses an offset no clock has instead of reading the time as UTC, writing nothing' do
       expect { expect(run(duration: '30', occurred_on: '2026-08-20T10:00+99:99').error).to match(/occurred_on/) }
         .not_to change(TimeSession, :count)
@@ -144,6 +152,13 @@ RSpec.describe Lalabase::Tools::CreateTimeSession do
     result = nil
     expect { result = run(duration: '1:30', duration_minutes: 45) }.not_to change(TimeSession, :count)
     expect(result.error).to match(/not both/)
+  end
+
+  it 'refuses minutes that are no whole number instead of cutting them, writing nothing' do
+    result = nil
+    expect { result = run(duration_minutes: 1.5) }.not_to change(TimeSession, :count)
+    expect(result.error).to eq('duration_minutes must be a whole number of minutes')
+    expect(run(duration_minutes: true).error).to eq('duration_minutes must be a whole number of minutes')
   end
 
   it 'refuses a call without any duration, writing nothing' do

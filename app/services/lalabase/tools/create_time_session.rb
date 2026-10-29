@@ -64,6 +64,7 @@ module Lalabase
       REFUSAL_TEXT = {
         duration_missing: 'duration or duration_minutes is required',
         both_durations: 'give either duration or duration_minutes, not both',
+        duration_minutes_invalid: 'duration_minutes must be a whole number of minutes',
         occurred_on_invalid: 'invalid occurred_on (expected an ISO 8601 date or timestamp)'
       }.freeze
 

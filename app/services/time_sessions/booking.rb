@@ -8,7 +8,8 @@
 # Entry point: parse
 #
 # Three steps, because the callers authorize in between: `parse` refuses
-# unusable input before any ticket is touched, `build` makes the unsaved
+# unusable input before the caller builds or authorizes the booking (MCP
+# before its ticket lookup, REST inside its read gate), `build` makes the unsaved
 # booking on a ticket the caller has found readable, and `save` writes it
 # through Actors::SaveTimeSession (billed guards, one transaction) once the
 # caller has authorized the booking itself (:create?, the project's time
@@ -24,16 +25,17 @@
 module TimeSessions
   class Booking
     # Why `parse` turns an input away. Each caller words it for its surface.
-    REFUSALS = %i[duration_missing both_durations occurred_on_invalid].freeze
+    REFUSALS = %i[duration_missing both_durations duration_minutes_invalid occurred_on_invalid].freeze
 
     PLAIN_DATE = /\A\d{4}-\d{2}-\d{2}\z/
+    WHOLE_MINUTES = /\A\s*\d+\s*\z/
 
     attr_reader :refusal
 
     def self.parse(actor:, duration_string: nil, duration_minutes: nil, occurred_on: nil,
                    description: nil, customer_description: nil)
       new(actor: actor, duration_string: duration_string.to_s.strip.presence,
-          duration_minutes: duration_minutes.presence, occurred_on: occurred_on,
+          duration_minutes: absent?(duration_minutes) ? nil : duration_minutes, occurred_on: occurred_on,
           description: description, customer_description: customer_description)
     end
 
@@ -45,6 +47,12 @@ module TimeSessions
       @customer_description = customer_description.to_s.strip.presence && customer_description.to_s
       @refusal = refusal_for(occurred_on)
     end
+
+    # Absent is nil or blank text; false, 0 and other values are given.
+    def self.absent?(value)
+      value.nil? || (value.is_a?(String) && value.strip.empty?)
+    end
+    private_class_method :absent?
 
     def refused?
       !@refusal.nil?
@@ -81,10 +89,19 @@ module TimeSessions
     # The duration first, then the date, the order the MCP tool always answered in.
     def refusal_for(occurred_on)
       return :duration_missing if @duration_string.nil? && @duration_minutes.nil?
-      return :both_durations if @duration_string && @duration_minutes
+      return :both_durations if @duration_string && !@duration_minutes.nil?
+      return :duration_minutes_invalid unless @duration_minutes.nil? || whole_minutes?(@duration_minutes)
 
       @day = day_for(occurred_on)
       :occurred_on_invalid if @day.nil?
+    end
+
+    # A whole number of minutes, as a number or as digits. A fraction would be
+    # cut to the minute below ("1.5" booked as 1, while duration_string "1.5"
+    # is 90 minutes); anything else is no number. Zero and negative numbers pass
+    # here and are refused by the model (duration > 0).
+    def whole_minutes?(value)
+      value.is_a?(Integer) || (value.is_a?(String) && value.match?(WHOLE_MINUTES))
     end
 
     # Midnight (app zone) of the booking's day, or nil for input that is no date.

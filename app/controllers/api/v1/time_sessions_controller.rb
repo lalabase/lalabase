@@ -74,7 +74,7 @@ module Api
           if result.success?
             render json: { data: TimeSessions::Serializer.row(result.resource) }, status: :created
           else
-            render_error(error: result.code, errors: result.errors, status: :unprocessable_entity)
+            render_booking_failure(result)
           end
         end
       end
@@ -84,6 +84,17 @@ module Api
       def render_booking_refusal(refusal)
         render_error(error: 'validation_failed', errors: [I18n.t("services.time_session_booking.#{refusal}")],
                      status: :unprocessable_entity)
+      end
+
+      # A failure the actor did not expect (BaseActor answers :internal_error
+      # where it does not re-raise) is no refusal of the input: a 500 without the
+      # exception's text, which may name the database.
+      def render_booking_failure(result)
+        if result.code == :internal_error
+          render_error(error: 'internal_error', status: :internal_server_error)
+        else
+          render_error(error: result.code, errors: result.errors, status: :unprocessable_entity)
+        end
       end
 
       def session_params

@@ -123,7 +123,12 @@ RSpec.describe User::EmailDisplay, :ci_guard, type: :model do
   describe '.matching_shown_email' do
     let!(:plain) { create(:user, email: 'plain@example.com') }
     let!(:contact) { create(:user, email: 'secret-login@example.com', email_visibility: 'contact', contact_email: 'shown@example.com') }
-    let!(:hidden) { create(:user, email: 'hidden-login@example.com', email_visibility: 'none') }
+    let!(:hidden) do
+      create(:user, email: 'hidden-login@example.com', email_visibility: 'none', contact_email: 'kept-contact@example.com')
+    end
+    let!(:back_to_login) do
+      create(:user, email: 'back-login@example.com', email_visibility: 'login', contact_email: 'old-contact@example.com')
+    end
 
     it 'finds the login address of a member who shows it' do
       expect(User.matching_shown_email('plain@')).to contain_exactly(plain)
@@ -131,6 +136,14 @@ RSpec.describe User::EmailDisplay, :ci_guard, type: :model do
 
     it 'finds the contact address, case-insensitive' do
       expect(User.matching_shown_email('SHOWN@')).to contain_exactly(contact)
+    end
+
+    # A stored contact address stays when the member switches away from it; it
+    # is not shown then, so it must not be found either.
+    it 'never finds a stored contact address the member does not show' do
+      expect(User.matching_shown_email('kept-contact')).to be_empty
+      expect(User.matching_shown_email('old-contact')).to be_empty
+      expect(User.matching_shown_email('back-login')).to contain_exactly(back_to_login)
     end
 
     it 'never finds a hidden login address' do

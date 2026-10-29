@@ -162,6 +162,23 @@ RSpec.describe 'The email a member shows to others', :ci_guard, type: :request d
       expect(response.body).not_to include(row)
     end
 
+    it 'never confirms a hidden login address from an older assignee key' do
+      ticket = ActsAsTenant.with_tenant(organisation) { create(:ticket, project: project, title: 'Kanbanfreigabe') }
+      ActsAsTenant.with_tenant(organisation) do
+        create(:activity, trackable: ticket, organisation: organisation, actor: admin, secondary: nina,
+                          key: 'ticket.assigned', action: 'assigned', parameters: { 'assignee_email' => 'nina-login@example.com' })
+      end
+      path = ->(q) { organisation_project_activities_path(organisation_id: organisation.id, project_id: project.id, q: q) }
+
+      get path.call('Kanbanfrei')
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Kanbanfreigabe')
+
+      get path.call('nina-login@example.com')
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include('Kanbanfreigabe')
+    end
+
     it 'stores no login address when a member joins a project' do
       activity = ActsAsTenant.with_tenant(organisation) do
         Current.set(user: admin) { project.track_member_added(nina) }
@@ -260,6 +277,18 @@ RSpec.describe 'The email a member shows to others', :ci_guard, type: :request d
       expect(rows.fetch(lena.id)['email']).to eq('lena.team@example.com')
       expect(rows.fetch(nina.id)['email']).to be_nil
       expect_no_hidden_login_address(response.body)
+    end
+
+    it 'names a member without a name like everywhere else' do
+      ghost = member(nil, 'ghost-login@example.com', email_visibility: 'none')
+      ghost.update_columns(last_name: nil)
+      create(:project_permission, user: ghost, project: project, tickets_access: 'read_write')
+
+      get path, as: :json
+
+      row = response.parsed_body.find { |entry| entry['id'] == ghost.id }
+      expect(row).to include('name' => I18n.t('users.unnamed'), 'email' => nil)
+      expect(response.body).not_to include('ghost-login')
     end
 
     it 'searches the shown email, never a hidden login address' do

@@ -29,6 +29,31 @@ RSpec.describe 'User preferences: the email the others see', :ci_guard, type: :r
     expect(response.body).to include('value="login" checked="checked"')
   end
 
+  # The form sends the choice with every save of the section; a wrong
+  # preselection would reset a hidden address on the next name spelling change.
+  %w[contact none].each do |choice|
+    it "preselects #{choice} when the member chose it" do
+      user.update!(email_visibility: choice, contact_email: 'team@example.com')
+
+      get display_user_preferences_path
+
+      expect(response.body).to include(%(value="#{choice}" checked="checked"))
+      expect(response.body).not_to include('value="login" checked')
+    end
+  end
+
+  it 'keeps none when the section is saved again with its preselected form values' do
+    user.update!(email_visibility: 'none')
+    get display_user_preferences_path
+    form = Nokogiri::HTML(response.body)
+    chosen = form.at_css('input[name="user[email_visibility]"][checked]')['value']
+
+    patch user_preferences_path, params: { current_section: 'display', user: { email_visibility: chosen, contact_email: '' },
+                                           preferences: { name_display: 'first_last_initial' } }
+
+    expect(user.reload.email_visibility).to eq('none')
+  end
+
   it 'saves a contact address without the current password' do
     save(email_visibility: 'contact', contact_email: 'team@example.com')
 

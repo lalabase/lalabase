@@ -164,6 +164,15 @@ class Activity < ApplicationRecord
   # stopped recording them.
   NOISE_CHANGE_ATTRIBUTES = %w[updater_id].freeze
 
+  # Parameter keys under which older activities stored a member's login address:
+  # project.member_added (user_email, until 2026-10-29), ticket.assigned and
+  # ticket.unassigned (assignee_email, unassignee_email, before they read the
+  # user from `secondary`). Nothing writes them any more (shown_email guard). The
+  # project activity search leaves them out and `activities:drop_stored_emails`
+  # removes them, with their copies in notifications and outbox events: a
+  # member chooses which email the others see (User::EmailDisplay).
+  STORED_EMAIL_KEYS = %w[user_email assignee_email unassignee_email].freeze
+
   # Checks whether the activity contains changes worth showing
   def has_changes?
     formatted_changes.any?

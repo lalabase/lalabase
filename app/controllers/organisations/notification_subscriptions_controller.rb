@@ -122,7 +122,7 @@ module Organisations
         users = by_name.or(users.merge(User.matching_shown_email(params[:q])))
       end
 
-      render json: users.limit(20).map { |u| { id: u.id, name: u.full_name, email: u.shown_email } }
+      render json: users.limit(20).map { |u| { id: u.id, name: u.display_name, email: u.shown_email } }
     end
 
     private

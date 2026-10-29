@@ -50,8 +50,10 @@ RSpec.describe Posts::Comment, :ci_guard do
       'an empty format' => [{ format: '' }, :format_unknown],
       'invalid UTF-8 in an html body' => [{ body: -> { invalid_utf8 } }, :body_invalid_utf8],
       'invalid UTF-8 in a plain body' => [{ format: 'plain', body: -> { invalid_utf8 } }, :body_invalid_utf8],
-      # A binary string is always valid_encoding?: the rule reads it as UTF-8.
+      # A binary string is always valid_encoding?: plain reads it as UTF-8.
       'invalid bytes in a binary body' => [{ format: 'plain', body: -> { "a#{255.chr}b".b } }, :body_invalid_utf8],
+      'a plain body that does not transcode' => [{ format: 'plain', body: -> { "a#{0x82.chr}".force_encoding(Encoding::SHIFT_JIS) } },
+                                                 :body_invalid_utf8],
       'a NUL byte in a plain body' => [{ format: 'plain', body: "a#{0.chr}b" }, :body_nul],
       'an empty plain body' => [{ format: 'plain', body: '' }, :body_empty],
       'a plain body of blank lines' => [{ format: 'plain', body: " \n\t\r\n " }, :body_empty],
@@ -88,6 +90,14 @@ RSpec.describe Posts::Comment, :ci_guard do
       expect(described_class.parse(body: "a#{0.chr}b")).not_to be_refused
     end
 
+    # A multipart part (REST) may name a charset of its own; JSON and forms
+    # always give UTF-8.
+    it 'keeps an html body in an encoding of its own as it came, for ActionText to read as before' do
+      latin1 = "a#{0xE4.chr}b".force_encoding(Encoding::ISO_8859_1)
+      expect(described_class.parse(body: latin1)).not_to be_refused
+      expect(described_class.parse(body: "a#{0xFF.chr}b".b)).not_to be_refused
+    end
+
     # html takes a no-break space as text, as it always did; the model then
     # decides on the stored plain text.
     it 'leaves an html body of a no-break space to the model' do
@@ -119,6 +129,21 @@ RSpec.describe Posts::Comment, :ci_guard do
       expect(Posts::PlainTextBody).to receive(:call).with(body: body).and_call_original
       expect(build(body: body, format: 'plain').content.body.to_html)
         .to eq('<p>Zeile 1<br>Zeile 2</p><p>Absatz &lt;b&gt;&amp;</p>')
+    end
+
+    it 'transcodes a plain body in an encoding of its own to UTF-8' do
+      latin1 = "a#{0xE4.chr}<b".force_encoding(Encoding::ISO_8859_1)
+      expect(build(body: latin1, format: 'plain').content.body.to_html).to eq("<p>a#{0xE4.chr(Encoding::UTF_8)}&lt;b</p>")
+    end
+
+    it 'reads a plain body in binary as UTF-8' do
+      binary = "a#{0xC3.chr}#{0xA4.chr}b".b
+      expect(build(body: binary, format: 'plain').content.body.to_html).to eq("<p>a#{0xE4.chr(Encoding::UTF_8)}b</p>")
+    end
+
+    it 'hands an html body in an encoding of its own to ActionText as it came' do
+      latin1 = "<p>a#{0xE4.chr}b</p>".force_encoding(Encoding::ISO_8859_1)
+      expect(build(body: latin1).content.body.to_html).to eq("<p>a#{0xE4.chr(Encoding::UTF_8)}b</p>")
     end
 
     it 'escapes markup in a plain body, so it lands as text' do

@@ -840,8 +840,11 @@ back to html), NUL in a plain body and a plain body that converts to nothing ans
 `validation_failed`/`invalid_input` with a text from `services.post_comment.*`, checked inside
 the read gate. Without `format` the answer stays byte for byte: an empty body is the model's
 refusal, after the write check, with every model message (the contract case `html_empty` was
-recorded before R3a), and a JSON `false` as body counts as none, as before. Invalid UTF-8 never reaches the rule over REST (the 400 above); MCP
-refuses it. An unexpected actor failure (`internal_error`) answers 500 without the exception's
+recorded before R3a), and a JSON `false` as body counts as none, as before. Raw invalid bytes
+in a form or JSON body never reach the rule (the 400 above); MCP refuses them. Only a multipart
+part can name a charset of its own (`text/plain; charset=...`): `html` hands it to ActionText as
+it came, as before (a Latin-1 comment keeps its letters), `plain` transcodes it to UTF-8, and a
+`plain` part declared binary must hold UTF-8. An unexpected actor failure (`internal_error`) answers 500 without the exception's
 text, every other failure 422 `validation_failed` as before; MCP answers `comment failed:
 unexpected error`. Capability `posts.plain`. Guards:
 `spec/requests/api/v1/post_comment_format_spec.rb`, `spec/services/posts/comment_spec.rb`,

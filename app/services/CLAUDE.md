@@ -201,6 +201,8 @@ Verzeichnis-Übersicht (Auswahl):
   answered differently on purpose: MCP refuses it before the ticket lookup (`body is
   required`, as always), REST leaves it to the model after the write check (its answer
   without `format` stays byte for byte). Not a second rule: do not align them in one hull.
+  Encodings: JSON and forms always give UTF-8; a multipart part may name its own charset,
+  which an html body keeps (ActionText reads it, as before) and a plain body transcodes.
 * `lalabase/` — AI/RAG-Domäne (eigene Karte im Ordner)
 * `access_check/` — Projekt-Zugriffslogik, 5 Objekte mit überlappenden Prädikaten —
   **vor Neubau erst hier prüfen**. `project_access_service.rb` ist der EINE Besitzer der

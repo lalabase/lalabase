@@ -53,6 +53,21 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
     post "/api/v1/tickets/#{ticket_id}/posts", params: { post: fields }.to_json, headers: headers(json: true)
   end
 
+  # Multipart, where a text part may name a charset of its own (Rack tags the
+  # string with it); JSON and forms always arrive as UTF-8.
+  def comment_multipart(parts)
+    boundary = 'r3a-boundary'
+    raw = ''.b
+    parts.each do |name, (type, bytes)|
+      raw << "--#{boundary}\r\nContent-Disposition: form-data; name=\"post[#{name}]\"\r\n".b
+      raw << "Content-Type: #{type}\r\n".b if type
+      raw << "\r\n".b << bytes.b << "\r\n".b
+    end
+    raw << "--#{boundary}--\r\n".b
+    post "/api/v1/tickets/#{ticket.id}/posts", params: raw,
+                                               headers: headers.merge('Content-Type' => "multipart/form-data; boundary=#{boundary}")
+  end
+
   def body = response.parsed_body
 
   def posts_count = ActsAsTenant.without_tenant { Post.count }
@@ -231,8 +246,9 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
     end
 
     # Rails refuses a parameter that is no valid UTF-8 while it parses the
-    # request, before any of this endpoint's code runs: the rule's
-    # body_invalid_utf8 is reached over MCP only.
+    # request, before any of this endpoint's code runs: over REST the rule's
+    # body_invalid_utf8 is reached only by a plain multipart part declared
+    # binary (below); MCP reaches it with invalid bytes in a JSON string.
     it 'never lets invalid UTF-8 reach the rule: Rails answers 400 first' do
       expect do
         post "/api/v1/tickets/#{ticket.id}/posts", params: 'post[format]=plain&post[body]=a%FFb',
@@ -264,6 +280,38 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       expect { comment_json('abc') }.not_to(change { posts_count })
       expect([response.status, response.body]).to eq(missing)
       expect(missing.first).to eq(400)
+    end
+  end
+
+  # Only a multipart part can carry another encoding (text/plain; charset=...).
+  describe 'a multipart part in an encoding of its own' do
+    def latin1 = "a#{0xE4.chr}b"
+    def a_umlaut_b = "a#{0xE4.chr(Encoding::UTF_8)}b"
+
+    it 'keeps an html part as it came, as before: a Latin-1 comment keeps its letters' do
+      comment_multipart('body' => ['text/plain; charset=iso-8859-1', latin1])
+      expect(response).to have_http_status(:created)
+      expect(body.dig('data', 'body_text')).to eq(a_umlaut_b)
+    end
+
+    it 'keeps an html part declared binary as it came, as before (ActionText reads it)' do
+      comment_multipart('body' => ['text/plain; charset=binary', "a#{0xFF.chr}b"])
+      expect(response).to have_http_status(:created)
+      expect(body.dig('data', 'body_text')).to eq("a#{0xFF.chr(Encoding::UTF_8)}b")
+    end
+
+    it 'transcodes a plain part to UTF-8' do
+      comment_multipart('format' => [nil, 'plain'], 'body' => ['text/plain; charset=iso-8859-1', "#{latin1}\n<b>"])
+      expect(response).to have_http_status(:created)
+      expect(body.dig('data', 'body_text')).to eq("#{a_umlaut_b}\n<b>")
+      expect(body.dig('data', 'body_html')).to eq("<p>#{a_umlaut_b}<br>&lt;b&gt;</p>")
+    end
+
+    it 'refuses a plain part declared binary that holds no UTF-8, writing nothing' do
+      expect { comment_multipart('format' => [nil, 'plain'], 'body' => ['text/plain; charset=binary', "a#{0xFF.chr}b"]) }
+        .not_to(change { posts_count })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(body).to eq(refusal(:body_invalid_utf8))
     end
   end
 

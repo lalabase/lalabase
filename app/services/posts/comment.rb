@@ -82,8 +82,8 @@ module Posts
       # The JSON parser lets invalid UTF-8 through inside a string, and
       # String#strip raises on it: refused for both formats before any string
       # method runs on the body.
-      body = body.dup.force_encoding(Encoding::UTF_8)
-      return :body_invalid_utf8 unless body.valid_encoding?
+      body = readable(body)
+      return :body_invalid_utf8 unless body&.valid_encoding?
 
       # plain promises body_text == body, so a byte that cannot round-trip is
       # refused rather than cleaned. html keeps its legacy behaviour: the HTML
@@ -94,6 +94,22 @@ module Posts
       # only converts to nothing (String#strip knows ASCII whitespace only).
       @content = plain? ? Posts::PlainTextBody.call(body: body) : body
       :body_empty if @content.strip.empty?
+    end
+
+    # The body in the encoding the rule reads it in, nil when it has none.
+    # JSON and forms give UTF-8 on both surfaces. Only a multipart part (REST)
+    # can name a charset of its own: html, stored as sent, keeps it, and
+    # ActionText reads it as it always did (a Latin-1 comment keeps its
+    # letters); plain transcodes it. A binary part names no charset, so plain
+    # reads its bytes as UTF-8.
+    def readable(body)
+      return body.dup.force_encoding(Encoding::UTF_8) if body.encoding == Encoding::UTF_8
+      return body unless plain?
+      return body.dup.force_encoding(Encoding::UTF_8) if body.encoding == Encoding::BINARY
+
+      body.encode(Encoding::UTF_8)
+    rescue EncodingError
+      nil
     end
   end
 end

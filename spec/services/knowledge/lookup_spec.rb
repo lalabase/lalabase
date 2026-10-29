@@ -227,6 +227,20 @@ RSpec.describe Knowledge::Lookup, :ci_guard do
         expect(statements.grep(/\ASELECT "(notes|documents)"\.\*/)).to be_empty
       end
 
+      # The page right after the last one starts exactly at the total (offset == total).
+      it 'reads no rows for the page right after the last one either' do
+        note('Only')
+        statements = []
+        callback = ->(*, payload) { statements << payload[:sql] }
+
+        result = ActiveSupport::Notifications.subscribed(callback, 'sql.active_record') do
+          lookup.page(options(page: 2, per_page: 1))
+        end
+
+        expect(result.records).to eq([])
+        expect(statements.grep(/\ASELECT "(notes|documents)"\.\*/)).to be_empty
+      end
+
       it 'returns an empty page beyond the last one, with the full total' do
         note('Only')
 

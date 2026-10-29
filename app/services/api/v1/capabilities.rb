@@ -16,8 +16,8 @@ module Api
       # Minor for an additive change (a new endpoint, field or capability), major
       # never: an existing name, field or meaning does not change. 1.2.0 added
       # the People API; 1.3.0 added the REST ticket view (R1); 1.4.0 adds
-      # time_sessions.book (R6).
-      API_VERSION = '1.4.0'
+      # time_sessions.book (R6); 1.5.0 adds posts.plain (R3a).
+      API_VERSION = '1.5.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
@@ -46,11 +46,13 @@ module Api
       }.freeze
 
       # Abilities that are not one endpoint: `idempotency` (the Idempotency-Key
-      # header on every write, D7), `error_codes` (`code` on every error body, D6)
-      # and `tickets.paging` (the opt-in pages of comments and attachments on
-      # tickets.show and tickets.by_number, R1), and `time_sessions.book`
-      # (shared duration/date validation and actor-backed booking, R6).
-      FEATURES = %w[idempotency error_codes tickets.paging time_sessions.book].freeze
+      # header on every write, D7), `error_codes` (`code` on every error body, D6),
+      # `tickets.paging` (the opt-in pages of comments and attachments on
+      # tickets.show and tickets.by_number, R1), `time_sessions.book`
+      # (shared duration/date validation and actor-backed booking, R6), and
+      # `posts.plain` (posts.create takes post[format] html or plain, by the
+      # rule the MCP tool post_comment writes by, Posts::Comment; R3a).
+      FEATURES = %w[idempotency error_codes tickets.paging time_sessions.book posts.plain].freeze
 
       def self.names
         (ENDPOINTS.keys + FEATURES).sort

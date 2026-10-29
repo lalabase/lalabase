@@ -8,18 +8,23 @@ module Lalabase
     # marks read, the embedding. Returns the created post as JSON.
     #
     # The body arrives as ActionText HTML (format html, the default, stored as
-    # sent) or as literal text (format plain, MCP 0.11): Posts::PlainTextBody
-    # escapes it and turns line breaks into paragraphs and <br>, so body_text
-    # comes back as the client sent it. Format, encoding and emptiness of the
-    # body are checked before the ticket lookup.
+    # sent) or as literal text (format plain, MCP 0.11). The rule is
+    # Posts::Comment's, shared with POST /api/v1/tickets/:ticket_id/posts (REST
+    # R3a); format, encoding and emptiness of the body are checked before the
+    # ticket lookup.
     #
     # Mutating (D3): blocked for a read-only PAT. Record-mode (D7): authorizes the
     # ticket (:show?) and the post (:create?) before saving, or the tripwire fires.
     class PostComment < Base
-      # The body formats a client may name, read by the schema and the check.
-      FORMATS = %w[html plain].freeze
-      DEFAULT_FORMAT = 'html'
-      PLAIN_FORMAT = 'plain'
+      # The refusal texts of this surface (Posts::Comment::REFUSALS), unchanged
+      # since the tool's first answer.
+      REFUSAL_TEXT = {
+        format_not_string: 'format must be a string',
+        format_unknown: "format must be #{Posts::Comment::FORMATS.join(' or ')}",
+        body_invalid_utf8: 'body must be valid UTF-8',
+        body_nul: 'body must not contain NUL bytes',
+        body_empty: 'body is required'
+      }.freeze
 
       # Writes on behalf of context.actor. No chat set may ever carry a mutating
       # tool, so the Runner's bar can never fire here — the declaration is kept
@@ -53,7 +58,7 @@ module Lalabase
           properties: {
             ticket_id: { type: 'string', description: 'UUID of the ticket to comment on.' },
             body: { type: 'string', description: 'Comment body (required). HTML unless format is plain.' },
-            format: { type: 'string', enum: FORMATS,
+            format: { type: 'string', enum: Posts::Comment::FORMATS,
                       description: 'Body format: html (default) or plain. Plain escapes literal text, turns blank lines ' \
                                    'into paragraphs and single line breaks into <br>; line endings are normalized, ' \
                                    'blank lines at the edges are dropped, repeated spaces collapse in the web view, ' \
@@ -69,30 +74,12 @@ module Lalabase
 
         args = symbolized(args)
         ticket_id = args[:ticket_id].to_s.strip
-        body = args[:body].to_s
         return Result.invalid_input('ticket_id is required') if ticket_id.empty?
         return Result.invalid_input('invalid ticket_id format') unless ticket_id.match?(UUID_FORMAT)
 
-        format = args.fetch(:format, DEFAULT_FORMAT)
-        return Result.invalid_input('format must be a string') unless format.is_a?(String)
-        return Result.invalid_input("format must be #{FORMATS.join(' or ')}") unless FORMATS.include?(format)
-
-        # The JSON parser lets invalid UTF-8 through inside a string, and
-        # String#strip raises on it: refused for both formats before any string
-        # method runs on the body.
-        body = body.dup.force_encoding(Encoding::UTF_8)
-        return Result.invalid_input('body must be valid UTF-8') unless body.valid_encoding?
-
-        plain = format == PLAIN_FORMAT
-        # plain promises body_text == body, so a byte that cannot round-trip is
-        # refused rather than cleaned. html keeps its legacy behaviour: the HTML
-        # parser drops a NUL byte on its own.
-        return Result.invalid_input('body must not contain NUL bytes') if plain && body.include?("\0")
-
-        # Decided on what would be stored: a plain body of Unicode whitespace
-        # only converts to nothing (String#strip knows ASCII whitespace only).
-        content = plain ? Posts::PlainTextBody.call(body: body) : body
-        return Result.invalid_input('body is required') if content.strip.empty?
+        # A format only when given: absent is html, a given null is refused.
+        comment = Posts::Comment.parse(body: args[:body], is_private: args[:is_private], **args.slice(:format))
+        return Result.invalid_input(REFUSAL_TEXT.fetch(comment.refusal)) if comment.refused?
 
         # Inside the read scope: a ticket the caller may not read answers like a
         # missing one (Base.readable_tickets).
@@ -103,19 +90,27 @@ module Lalabase
         # may see the ticket at all (private-post visibility lives in that policy),
         # :create? proves write access. Either denial → tripwire-safe 'Not authorized.'.
         authorize!(context, ticket, :show?)
-        # The record exists before #call, so the policy sees the post it is asked
-        # about (PostUpdateService does the same).
-        actor = Actors::SavePost.new(ticket: ticket, current_user: context.actor,
-                                     params: { content: content, is_private: [true, 'true'].include?(args[:is_private]) })
-        authorize!(context, actor.record, :create?)
+        post = comment.build(ticket: ticket, current_user: context.actor)
+        authorize!(context, post, :create?)
 
-        # No code, so refused: a model validation does not prove the input was wrong,
-        # and create_ticket and create_time_session answer a refused save the same way.
-        outcome = actor.call
-        return Result.new(error: "comment failed: #{outcome.errors.join(', ')}") unless outcome.success?
+        outcome = comment.save
+        return Result.new(error: comment_failure(outcome)) unless outcome.success?
 
-        json_result(serialize(actor.record))
+        json_result(serialize(post))
       end
+
+      # No code, so refused: a model validation does not prove the input was
+      # wrong, and create_ticket and create_time_session answer a refused save
+      # the same way. An unexpected failure (BaseActor's :internal_error where it
+      # does not re-raise) gets a fixed text: its message may name the database.
+      # Only a failure before the commit gets here: a comment already written
+      # counts as saved (Posts::Comment#save).
+      def self.comment_failure(outcome)
+        return 'comment failed: unexpected error' if outcome.code == :internal_error
+
+        "comment failed: #{outcome.errors.join(', ')}"
+      end
+      private_class_method :comment_failure
 
       def self.serialize(post)
         {

@@ -68,11 +68,14 @@ Codebase-Verständnis.
   (default, unchanged ActionText input) or `plain`. `Posts::PlainTextBody` escapes
   literal text, normalizes CR and CRLF, drops blank lines at the edges, turns blank
   lines into paragraphs and single line breaks into `<br>`. Repeated spaces and
-  indentation are stored but collapse in the web view; no Markdown. The tool checks
-  the format itself (`FORMATS`), refuses invalid UTF-8 in either format and NUL in
-  plain bodies as `invalid_input`, and decides emptiness on the converted text (a
-  body of Unicode whitespace only is `body is required`); model save failures stay
-  `refused`.
+  indentation are stored but collapse in the web view; no Markdown. The rule is
+  `Posts::Comment`'s since REST R3a, shared with `POST /api/v1/tickets/:ticket_id/posts`:
+  invalid UTF-8 in either format and NUL in plain bodies are `invalid_input`, emptiness
+  is decided on the converted text (a body of Unicode whitespace only is `body is
+  required`). The tool keeps its own texts (`REFUSAL_TEXT`) and checks before the ticket
+  lookup; model save failures stay `refused`, an unexpected one (`internal_error`) is
+  `comment failed: unexpected error`, never the exception's text, unless it came after
+  the commit: then the comment is written and the tool returns it.
   Zwei Formen: `record`-Werkzeuge liefern
   Zeilen und zitieren jede (Ticket-Werkzeuge), `report`-Werkzeuge liefern nur Zahlen und
   zitieren die Auswertung (`summarize_time_sessions`, Zitationstyp `time_report`). Ein

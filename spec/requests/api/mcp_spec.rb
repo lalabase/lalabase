@@ -730,7 +730,7 @@ RSpec.describe 'API MCP endpoint', type: :request do
     end
 
     it 'caps the number of posts and flags truncation (D9 caps)' do
-      stub_const('Lalabase::Tools::GetTicket::MAX_POSTS', 1)
+      stub_const('Tickets::Reading::MAX_POSTS', 1)
       Prosopite.pause
       ActsAsTenant.with_tenant(organisation) do
         2.times { |i| create(:post, ticket: ticket, user: user, organisation: organisation, content: "Reply #{i}") }

@@ -7,6 +7,12 @@ module Api
 
       idempotent :create, :update
 
+      # Raised while the paging options are read, before any ticket is looked
+      # up: the 422 does not depend on whether the ticket exists.
+      rescue_from Tickets::Reading::InvalidOption, with: :invalid_paging
+
+      SHOW_PRELOAD = %i[creator assignees].freeze
+
       MAX_PER_PAGE = 100
       DEFAULT_PER_PAGE = 25
 
@@ -35,7 +41,11 @@ module Api
 
           render json: {
             data: filter.paginate(scope).map { |t| ticket_serializer.summary(t) },
-            meta: { page: filter.page, per_page: filter.per_page, total: filter.total(scope) }
+            # available_statuses: the project's status keys, the source MCP
+            # list_tickets names them from (REST R1), so a client filters by a
+            # status the project actually has.
+            meta: { page: filter.page, per_page: filter.per_page, total: filter.total(scope),
+                    available_statuses: TicketAttributeDefinition.ordered_value_keys_for(project, 'status') }
           }
         end
       end
@@ -65,12 +75,20 @@ module Api
         end
       end
 
+      # Without paging parameters the body is what it always was (every readable
+      # comment, no attachments); gboyke/lalabase-mcp reads it. Any one of them
+      # switches to pages (REST R1).
       def show
-        with_readable_ticket(params[:id], preload: %i[creator assignees]) do |ticket|
-          render json: {
-            data: ticket_serializer.full(ticket),
-            permissions: serialize_permissions(ticket)
-          }
+        paging = paging_options
+        with_readable_ticket(params[:id], preload: SHOW_PRELOAD) { |ticket| render_ticket(ticket, paging) }
+      end
+
+      # GET /api/v1/projects/:project_id/tickets/number/:number
+      # The same answer as #show for the ticket of that number in that project.
+      def by_number
+        paging = paging_options
+        with_readable_ticket_number(params[:project_id], params[:number], preload: SHOW_PRELOAD) do |ticket|
+          render_ticket(ticket, paging)
         end
       end
 
@@ -117,6 +135,35 @@ module Api
       end
 
       private
+
+      def render_ticket(ticket, paging)
+        render json: { data: ticket_data(ticket, paging), permissions: serialize_permissions(ticket) }
+      end
+
+      # The pages come from Tickets::Reading, shared with MCP get_ticket, without
+      # its caps: REST hands descriptions and comments out whole.
+      def ticket_data(ticket, paging)
+        return ticket_serializer.full(ticket) if paging.nil?
+
+        reading = Tickets::Reading.new(serializer: ticket_serializer)
+        ticket_serializer.full(ticket, posts: false)
+                         .merge(reading.post_page(ticket, paging))
+                         .merge(reading.attachment_page(ticket, paging.attachments_page))
+      end
+
+      # nil without any paging parameter. Above 50 comments per page REST refuses
+      # where MCP clamps.
+      def paging_options
+        return nil unless Tickets::Reading.paging_requested?(params)
+
+        args = Tickets::Reading::PAGING_KEYS.to_h { |key| [key.to_sym, params[key]] }
+        Tickets::Reading.options(args, over_max: :refuse)
+      end
+
+      def invalid_paging(exception)
+        render_error(error: 'invalid_input', code: 'invalid_input', message: exception.message,
+                     status: :unprocessable_content)
+      end
 
       # Renders an actor failure Result. The machine-readable code becomes both
       # the `error` field and (via ACTOR_ERROR_STATUS) the HTTP status, so a

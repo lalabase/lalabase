@@ -929,6 +929,11 @@ Rails.application.routes.draw do
       get 'time_sessions/open', to: 'time_sessions#open'
       resources :projects, only: %i[index] do
         resources :tickets, only: %i[index create]
+        # REST R1: a ticket by the number users see. format: false and the
+        # constraint keep "1.5" one segment: a malformed number (JSON 404), not
+        # number 1 as format "5" nor a route miss.
+        get 'tickets/number/:number', to: 'tickets#by_number', as: :ticket_by_number, format: false,
+                                      constraints: { number: %r{[^/]+} }
         get :ticket_attribute_definitions, on: :member
       end
       resources :tickets, only: %i[show update] do
@@ -937,7 +942,7 @@ Rails.application.routes.draw do
           get :attachments
         end
         resources :time_sessions, only: %i[index create]
-        resources :posts, only: %i[create]
+        resources :posts, only: %i[create show]
       end
     end
   end

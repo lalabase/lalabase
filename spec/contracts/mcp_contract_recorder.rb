@@ -475,11 +475,28 @@ module McpContract
 
     # Each request from its own line (Prosopite). `show` is the ticket without
     # paging parameters: its body must stay what gboyke/lalabase-mcp reads.
+    # The answers after `show` are the R1 additions: a page, a refused option,
+    # the ticket by number (and a number that is not there or not readable),
+    # one comment and a missing one.
     def rest_ticket_view_calls
       login = "/api/v1/tickets/#{id(:login_ticket)}"
+      by_number = ->(project, number) { "/api/v1/projects/#{id(project)}/tickets/number/#{number}" }
       {
-        'list' => rest_get(:read, "/api/v1/projects/#{id(:website)}/tickets"),
-        'show' => rest_get(:read, login)
+        # Filtered to Ben's one ticket: the writes above left both website
+        # tickets with the same updated_at, and the list has no second sort key.
+        'list' => rest_get(:read, "/api/v1/projects/#{id(:website)}/tickets?assignee=#{id(:ben)}"),
+        'show' => rest_get(:read, login),
+        # Oldest first: the second comment was made with its own clock tick, while
+        # the comments the recorded writes added share one second and would be
+        # ordered by their random ids.
+        'show_paged' => rest_get(:read, "#{login}?posts_per_page=1&posts_page=2&attachments_page=1"),
+        'show_invalid_paging' => rest_get(:read, "#{login}?posts_order=random"),
+        'by_number' => rest_get(:read, by_number.call(:website, 1)),
+        'by_number_not_found' => rest_get(:read, by_number.call(:website, 999)),
+        # No read access to the handbook's tickets: answered like a missing number.
+        'by_number_hidden' => rest_get(:read, by_number.call(:handbook, 1)),
+        'post' => rest_get(:read, "#{login}/posts/#{id(:first_post)}"),
+        'post_not_found' => rest_get(:read, "#{login}/posts/#{id(:missing)}")
       }
     end
 

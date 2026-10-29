@@ -775,7 +775,8 @@ Drei Namensräume unter `/api`, und sie unterscheiden sich darin, **wer** ruft:
 * Antworten tragen **eine** Hülle: `data.<ding>` im Erfolg, `error.{code,messages}` im Fehler.
   `code` ist maschinenlesbar, `messages` sind übersetzter Text.
 
-For the seven REST ticket member routes, `Api::V1::ReadableTicket` resolves tickets
+For the REST ticket member routes (including `GET /tickets/:ticket_id/posts/:id`) and the
+number route, `Api::V1::ReadableTicket` resolves tickets
 through the token's effective organisation/project reach and `TicketPolicy::Scope`:
 missing and unreadable tickets return 404 with `{"error":"not_found","code":"not_found"}`.
 Denied actions on readable tickets remain 403; read-only tokens reject writes with 403
@@ -808,6 +809,27 @@ feature by feature):
 * **`GET /api/v1/me`** names `api_version` and `capabilities` from `Api::V1::Capabilities`,
   pinned against the routes both ways (`spec/requests/api/v1/capabilities_spec.rb`): a new
   endpoint adds its line there. Additive changes bump the minor.
+
+**Ticket view** (REST R1, 2026-10-29, API 1.3.0):
+
+* `GET /projects/:project_id/tickets` names `meta.available_statuses`, the project's status
+  keys from the same source as MCP `list_tickets`.
+* `GET /tickets/:id` takes opt-in pages: any one of `posts_page`, `posts_per_page` (at most
+  50, above is 422), `posts_order` (`oldest`, `newest`), `attachments_page` (10 per page)
+  switches the answer to the paged fields of MCP `get_ticket` (`posts_total`,
+  `posts_truncated`, `attachments`, ...). **Without them the body stays byte-equal** (the
+  contract records it; gboyke/lalabase-mcp reads it). Invalid values: 422 `invalid_input`,
+  checked before the ticket is looked up. A key without a value switches too. REST does not
+  truncate bodies, nor the extracted `text` of attachments (up to 10 per page). These
+  `attachments` are the ticket's own files only, with text and without URL (`attachments_total`
+  counts those); `GET /tickets/:id/attachments` lists ticket and comment files with signed URLs.
+* `GET /projects/:project_id/tickets/number/:number` answers what `GET /tickets/:id` answers,
+  paging included. Missing, malformed (`abc`, `0`), unreadable, out of reach or foreign: the
+  same 404. The number is looked up only inside that project.
+* `GET /tickets/:ticket_id/posts/:id`: one readable comment, whole, in the shape of a comment
+  in the ticket. Hidden private, foreign and missing comments: the same 404.
+* Options and pages come from `Tickets::Reading`, shared with MCP `get_ticket`; MCP keeps its
+  caps. Guard: `spec/requests/api/v1/ticket_view_spec.rb`.
 
 `GET /api/v1/time_sessions/open` lists the person's own open hours within the token's
 reach, organisations AND projects, and only the rows the web time list shows them

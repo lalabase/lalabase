@@ -795,8 +795,9 @@ feature by feature):
   `spec/architecture/api_v1_error_body_guard_spec.rb`. Answers outside the controllers carry
   no `code`: the Rack::Attack 429 (plain text), a 500 from the exceptions app, a 400 for a
   query string Rack cannot decode (`?x=%`; raised in middleware before any controller), and a
-  400 for a parameter that is no valid UTF-8 (Rails raises `ActionController::BadRequest` while
-  it parses the parameters, which `BaseController` does not rescue). The 401 of `/api/mcp` (same concern,
+  400 for a body parameter that is no valid UTF-8, form or JSON (Rails raises
+  `ActionController::BadRequest` when it first reads the parameters, in its params wrapper or
+  its request log, before any callback or `rescue_from` of `BaseController` runs). The 401 of `/api/mcp` (same concern,
   `render_unauthorized`) keeps its old body.
 * **`Idempotency-Key`** on every write (`idempotent :create` in the controller,
   `Api::V1::Idempotent`): the same key and request replays the first 2xx answer (status and

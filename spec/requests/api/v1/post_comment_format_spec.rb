@@ -229,6 +229,13 @@ RSpec.describe 'API V1 comment format', :ci_guard, type: :request do
       expect(response).to have_http_status(:bad_request)
     end
 
+    it 'never lets invalid UTF-8 in a JSON body reach the rule either' do
+      raw = "{\"post\":{\"format\":\"plain\",\"body\":\"a#{255.chr}b\"}}".b
+      expect { post "/api/v1/tickets/#{ticket.id}/posts", params: raw, headers: headers(json: true) }
+        .not_to(change { posts_count })
+      expect(response).to have_http_status(:bad_request)
+    end
+
     it 'answers a post that is no object like a missing one, never a crash' do
       post "/api/v1/tickets/#{ticket.id}/posts", params: {}, headers: headers
       missing = [response.status, response.body]

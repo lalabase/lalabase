@@ -52,7 +52,11 @@ permissions:
 
 jobs:
   anchors:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: the job runs the documentation program's Ruby
+    # (its .ruby-version, 3.3.4), and on ubuntu-26.04 ruby/setup-ruby builds
+    # only the newest patch of a series, so 3.3.4 is a 404 there. Back to
+    # ubuntu-latest once the documentation moves to a Ruby that image has.
+    runs-on: ubuntu-24.04
     # Only this repository's own branches carry the deploy key (see above).
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:

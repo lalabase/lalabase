@@ -22,11 +22,11 @@ Codebase-Verständnis.
   `:assistant` and `:assistant_with_code` only, People S3): no project and no coverage like
   the help, but a right of their own. `PersonPolicy.view_allowed?` is asked inside the tool
   BEFORE anything is read, else `refused` (a deactivated member too). They read through
-  `People::Directory` only, never `Person.where`/`find`. The id is the format of
-  `Meetings::ParticipantLinkChoice` (`person:<uuid>` for a contact, `member:<uuid>` for a
-  member); unknown, foreign and invisible ids give the same `not_found`. Which fields reach
-  the provider is decided only in `PeopleTool.row`/`.card` (never `notes`, E2; the last
-  contact as date and kind, E3). Both cite type `person` (area `people`, no project, a content
+  `People::Lookup` only (over `People::Directory`), never `Person.where`/`find`. The id is the
+  format of `Meetings::ParticipantLinkChoice` (`person:<uuid>` for a contact, `member:<uuid>`
+  for a member); unknown, foreign and invisible ids give the same `not_found`. Which fields
+  reach the provider is decided only in `People::Lookup.row`/`.card` (never `notes`, E2; the
+  last contact as date and kind, E3). Both cite type `person` (area `people`, no project, a content
   type): a contact by its row, a member by the account (`member_id`, the page sends it on to
   the row). `find_people` cites its first five rows, or an answer drawn on the list alone
   would carry no area and stay unredacted for others.

@@ -325,6 +325,7 @@ jobs:
           spec/requests/organisations/people_spec.rb
           spec/services/people/directory_spec.rb
           spec/services/people/contacts_spec.rb
+          spec/services/people/lookup_spec.rb
           spec/requests/organisations/people_last_contact_spec.rb
           spec/services/lalabase/tools/find_people_spec.rb
           spec/services/lalabase/tools/get_person_spec.rb

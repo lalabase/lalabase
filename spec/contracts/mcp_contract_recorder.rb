@@ -467,7 +467,19 @@ module McpContract
         # answer per error code, then a write with an Idempotency-Key, its replay
         # and the key reused with another body.
         'errors' => rest_error_calls,
-        'idempotency' => rest_idempotency_calls
+        'idempotency' => rest_idempotency_calls,
+        # REST R1 (cli_rest_plan), appended last: the ticket view without MCP.
+        'ticket_view' => rest_ticket_view_calls
+      }
+    end
+
+    # Each request from its own line (Prosopite). `show` is the ticket without
+    # paging parameters: its body must stay what gboyke/lalabase-mcp reads.
+    def rest_ticket_view_calls
+      login = "/api/v1/tickets/#{id(:login_ticket)}"
+      {
+        'list' => rest_get(:read, "/api/v1/projects/#{id(:website)}/tickets"),
+        'show' => rest_get(:read, login)
       }
     end
 

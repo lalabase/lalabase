@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# One MCP tool call through the seam: the gates, the idempotency key, the tenant,
+# the tool. Details in the class comment.
+#
+# Entry point: response
 module Mcp
   # Executes a single MCP tool call: resolves + authorizes the target project from
   # the PAT scope, sets the tenant, builds the Tools::Context and runs the tool,

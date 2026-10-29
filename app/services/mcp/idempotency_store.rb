@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Durable idempotency of the MCP and /api/v1 writes, and the one rule of which
+# key it can hold. Details in the class comment.
+#
+# Entry point: client_key / storable_key? (the rule), replay / lookup / remember (the store)
 module Mcp
   # Durable idempotency for MCP write tools (D9), backed by the
   # mcp_idempotency_keys table. The /api/v1 writes share it (Api::V1::Idempotent,

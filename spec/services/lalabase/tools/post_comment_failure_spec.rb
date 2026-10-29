@@ -59,6 +59,15 @@ RSpec.describe Lalabase::Tools::PostComment, :ci_guard do
     end
   end
 
+  # The rule holds the reading of is_private (a JSON true or the string
+  # "true", as the tool always took it); the tool must hand the value on.
+  it 'takes is_private given as the string "true" as private' do
+    result = execute(is_private: 'true')
+    saved = Post.find(JSON.parse(result.content).fetch('id'))
+    expect(saved).to be_private
+    expect(saved.visible_to_user_id).to eq(user.id)
+  end
+
   it 'answers an unexpected failure with a fixed text, never the exception text' do
     failing_save(:internal_error, ['PG::ConnectionBad: could not connect to server at 192.168.0.1'])
     result = execute

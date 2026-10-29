@@ -98,6 +98,14 @@ RSpec.describe Posts::Comment, :ci_guard do
       expect(described_class.parse(body: "a#{0xFF.chr}b".b)).not_to be_refused
     end
 
+    # Kept, not transcoded: the two differ only where a byte has no character
+    # in its charset (0x81 in Windows-1252). Transcoding would refuse it here;
+    # ActionText fails the save instead, as it did before R3a.
+    it 'keeps an html body in a named encoding even where it would not transcode' do
+      cp1252 = "a#{0x81.chr}b".force_encoding(Encoding::CP1252)
+      expect(described_class.parse(body: cp1252)).not_to be_refused
+    end
+
     # html takes a no-break space as text, as it always did; the model then
     # decides on the stored plain text.
     it 'leaves an html body of a no-break space to the model' do

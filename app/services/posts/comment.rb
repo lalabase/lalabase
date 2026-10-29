@@ -100,7 +100,8 @@ module Posts
     # JSON and forms give UTF-8 on both surfaces. Only a multipart part (REST)
     # can name a charset of its own: html, stored as sent, keeps it, and
     # ActionText reads it as it always did (a Latin-1 comment keeps its
-    # letters); plain transcodes it. A binary part names no charset, so plain
+    # letters; a byte without a character in its charset fails the save, as
+    # before); plain transcodes it. A binary part names no charset, so plain
     # reads its bytes as UTF-8.
     def readable(body)
       return body.dup.force_encoding(Encoding::UTF_8) if body.encoding == Encoding::UTF_8

@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "3b8b8c047d8706867945bae06e108b27b5dadffb",
+    "core_commit": "3237c54efb6341fa863a2f71e25360cfd13ad46a",
     "core_dirty": true,
-    "contract_sha256": "9f4ef33865437173595bdd3d8e21c1cb6dbb8f14a48af521817f0f9b53f5a51d"
+    "contract_sha256": "104823b69a072b45fcb7c10148435d0d4bd5e94df62ad7e7e8cf5b52c426805b"
   },
   "contract": {
     "mcp": {
@@ -42,7 +42,7 @@
               },
               "serverInfo": {
                 "name": "lalabase",
-                "version": "0.13.0"
+                "version": "0.13.1"
               }
             }
           }
@@ -357,7 +357,7 @@
                       },
                       "idempotency_key": {
                         "type": "string",
-                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate."
+                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate. At most 255 bytes of valid UTF-8 without NUL."
                       }
                     },
                     "required": [
@@ -399,7 +399,7 @@
                       },
                       "idempotency_key": {
                         "type": "string",
-                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate."
+                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate. At most 255 bytes of valid UTF-8 without NUL."
                       }
                     },
                     "required": [
@@ -486,7 +486,7 @@
                       },
                       "idempotency_key": {
                         "type": "string",
-                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate."
+                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate. At most 255 bytes of valid UTF-8 without NUL."
                       }
                     },
                     "required": [
@@ -508,7 +508,7 @@
                       },
                       "idempotency_key": {
                         "type": "string",
-                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate."
+                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate. At most 255 bytes of valid UTF-8 without NUL."
                       }
                     },
                     "required": [
@@ -555,7 +555,7 @@
                       },
                       "idempotency_key": {
                         "type": "string",
-                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate."
+                        "description": "Optional. Repeating a write with the same key returns the original result instead of creating a duplicate. At most 255 bytes of valid UTF-8 without NUL."
                       }
                     },
                     "required": [
@@ -3614,6 +3614,116 @@
                   "_meta": {
                     "lalabase/code": "refused",
                     "lalabase/reason": "people_directory"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "idempotency_key": {
+          "too_long": {
+            "token": "write",
+            "request": {
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "tools/call",
+              "params": {
+                "name": "post_comment",
+                "arguments": {
+                  "project_id": "00000000-0000-4000-8000-000000000031",
+                  "ticket_id": "00000000-0000-4000-8000-000000000041",
+                  "body": "Hallo",
+                  "idempotency_key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "body": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "idempotency_key must be valid UTF-8 without NUL, at most 255 bytes"
+                    }
+                  ],
+                  "isError": true,
+                  "_meta": {
+                    "lalabase/code": "invalid_input"
+                  }
+                }
+              }
+            }
+          },
+          "too_long_multibyte": {
+            "token": "write",
+            "request": {
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "tools/call",
+              "params": {
+                "name": "post_comment",
+                "arguments": {
+                  "project_id": "00000000-0000-4000-8000-000000000031",
+                  "ticket_id": "00000000-0000-4000-8000-000000000041",
+                  "body": "Hallo",
+                  "idempotency_key": "ääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääää"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "body": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "idempotency_key must be valid UTF-8 without NUL, at most 255 bytes"
+                    }
+                  ],
+                  "isError": true,
+                  "_meta": {
+                    "lalabase/code": "invalid_input"
+                  }
+                }
+              }
+            }
+          },
+          "nul": {
+            "token": "write",
+            "request": {
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "tools/call",
+              "params": {
+                "name": "post_comment",
+                "arguments": {
+                  "project_id": "00000000-0000-4000-8000-000000000031",
+                  "ticket_id": "00000000-0000-4000-8000-000000000041",
+                  "body": "Hallo",
+                  "idempotency_key": "k\u0000x"
+                }
+              }
+            },
+            "response": {
+              "status": 200,
+              "body": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "idempotency_key must be valid UTF-8 without NUL, at most 255 bytes"
+                    }
+                  ],
+                  "isError": true,
+                  "_meta": {
+                    "lalabase/code": "invalid_input"
                   }
                 }
               }

@@ -347,7 +347,24 @@ module McpContract
         'summarize_time_sessions' => time_report_calls(website, foreign),
         # People S3b, appended last for the same reason (people_world).
         'find_people' => find_people_calls,
-        'get_person' => get_person_calls
+        'get_person' => get_person_calls,
+        # MCP 0.13.1, appended last: refusals that write nothing, so every
+        # answer after them stays as it was.
+        'idempotency_key' => idempotency_key_calls(website)
+      }
+    end
+
+    # A key the store cannot hold is refused before the write (MCP 0.13.1).
+    # Each from its own line (Prosopite), without `record`: nothing is written
+    # and no clock moves. 256 bytes; 128 umlauts, which are 256 bytes in 128
+    # characters (the bound counts bytes); a NUL inside the key. A key that is
+    # no valid UTF-8 cannot be written into this file.
+    def idempotency_key_calls(website)
+      args = { project_id: website, ticket_id: id(:login_ticket), body: 'Hallo' }
+      {
+        'too_long' => tool_call(:write, 'post_comment', **args, idempotency_key: 'k' * 256),
+        'too_long_multibyte' => tool_call(:write, 'post_comment', **args, idempotency_key: 'ä' * 128),
+        'nul' => tool_call(:write, 'post_comment', **args, idempotency_key: "k#{0.chr}x")
       }
     end
 

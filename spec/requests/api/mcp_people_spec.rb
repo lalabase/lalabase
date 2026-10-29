@@ -132,9 +132,11 @@ RSpec.describe 'MCP people tools', :ci_guard, type: :request do
     end
   end
 
-  it 'reports server version 0.13.0' do
+  # The version that brought the people tools, or a later one: a pin on the
+  # exact number broke with the next patch (0.13.1).
+  it 'reports a server version from 0.13.0 on' do
     body = rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'rspec', version: '0' } })
-    expect(body.dig('result', 'serverInfo', 'version')).to eq('0.13.0')
+    expect(Gem::Version.new(body.dig('result', 'serverInfo', 'version'))).to be >= Gem::Version.new('0.13.0')
   end
 
   describe 'find_people' do

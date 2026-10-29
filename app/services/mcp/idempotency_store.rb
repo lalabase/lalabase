@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Durable idempotency of the MCP and /api/v1 writes, and the one rule of which
+# key it can hold. Details in the class comment.
+#
+# Entry point: client_key / storable_key? (the rule), replay / lookup / remember (the store)
 module Mcp
   # Durable idempotency for MCP write tools (D9), backed by the
   # mcp_idempotency_keys table. The /api/v1 writes share it (Api::V1::Idempotent,
@@ -29,15 +33,59 @@ module Mcp
   #
   # Keys are scoped per PAT (token + key is the unique constraint), so they cannot
   # collide or leak across tokens.
+  #
+  # WHICH KEY the store can hold is decided here, once, for both surfaces
+  # (.client_key, .storable_key?): the REST header and the MCP argument are read
+  # and bounded by the same rule, and each surface refuses a key outside it
+  # BEFORE the write, in its own envelope (422 invalid_idempotency_key,
+  # invalid_input).
   class IdempotencyStore
     MISMATCH_ERROR = 'idempotency_key already used with different parameters'
+    # Bytes, not characters. The unique index on (token, key) holds about 2.7 KB,
+    # and the key is stored only AFTER the write: a longer key wrote, failed to
+    # be stored with an error, and wrote again on every retry.
+    MAX_KEY_LENGTH = 255
+
+    # The key a client sent, read the same way on both surfaces: surrounding
+    # whitespace dropped (String#strip, which drops a NUL at either end too), and
+    # a blank key is no key (nil). Bytes that are no valid UTF-8 come back as
+    # sent, for .storable_key? to refuse: String#strip raises on them. A REST
+    # header arrives as binary, which is always a valid encoding.
+    def self.client_key(raw)
+      key = raw.to_s
+      return key unless key.valid_encoding?
+
+      key.strip.presence
+    end
+
+    # Within the index (bytes) and storable in a PostgreSQL text column: valid
+    # UTF-8 without NUL, which the database refuses with an error otherwise; and
+    # not blank, which the model refuses (blank? in the key's own encoding, the
+    # one the model sees). Takes a key from .client_key, which is never blank; a
+    # binary one is read as the UTF-8 it claims.
+    def self.storable_key?(key)
+      utf8 = key.dup.force_encoding(Encoding::UTF_8)
+      key.bytesize <= MAX_KEY_LENGTH && utf8.valid_encoding? && !utf8.include?("\0") && key.present?
+    end
+
+    # The refusal of a key outside .storable_key?, naming the field the surface
+    # reads it from (the REST header, the MCP argument).
+    def self.unstorable_key_message(field)
+      "#{field} must be valid UTF-8 without NUL, at most #{MAX_KEY_LENGTH} bytes"
+    end
 
     # @param token [PersonalAccessToken]
     # @param tool_name [String] for the audit column only
-    # @param key [String] the client-supplied idempotency key
+    # @param key [String] the client-supplied idempotency key, read by
+    #   .client_key and accepted by .storable_key?
     # @param args [Hash] the request args the key dedupes (already minus the key);
     #   its fingerprint detects a key reused with a DIFFERENT payload.
     def initialize(token:, tool_name:, key:, args:)
+      # Both surfaces refuse such a key before the write. A caller that forgot
+      # would fail only in #remember, after the write, and its retry would write
+      # again: refused here, before anything runs.
+      raise ArgumentError, 'the store cannot hold this idempotency key' unless self.class.storable_key?(key)
+
       @token = token
       @tool_name = tool_name
       @key = key

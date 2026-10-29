@@ -110,6 +110,13 @@ Codebase-Verständnis.
   und `data: []`. Wer das `:mcp`-Set ändert, erneuert den Vertrag
   `spec/fixtures/mcp_contract.json` mit `RAILS_ENV=test bin/rails mcp:contract` und hebt
   `Mcp::Dispatcher::SERVER_VERSION` (Minor); die Vertrags-Spec vergleicht nur.
+  The seam answers some errors itself, before any tool runs, in this order: `project_id`
+  missing (`invalid_input`), a project out of reach (`not_found`), a write over a read-only
+  token (`read_only`), then (MCP 0.13.1) an `idempotency_key` the store cannot hold: more
+  than 255 bytes, no valid UTF-8 or a NUL (`invalid_input`). The key is remembered only
+  after the write, so such a key used to write, fail with -32603 and write again on the
+  retry. The rule is `Mcp::IdempotencyStore`'s, shared with the REST header; a read tool is
+  not offered the key and ignores it. Guard: `spec/requests/api/mcp_idempotency_key_bound_spec.rb`.
 * `indexer/` — Codebase-Indizierung (befüllt `project_index`, `code_symbol`, `fragment`)
 * `project_rag/` — Retrieval für projektbezogene Chats; org-Threads (S3a T3) nur
   Content-Schicht über `Fragment.for_context_map` (je Area verengte Projektmenge)

@@ -161,7 +161,7 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
     # The unique index on (token, key) holds about 2.7 KB; a longer key used to
     # write, fail to be stored with a 500, and write again on every retry.
     it 'refuses a key longer than the limit before writing' do
-      long = 'k' * (Api::V1::Idempotent::MAX_KEY_LENGTH + 1)
+      long = 'k' * (Mcp::IdempotencyStore::MAX_KEY_LENGTH + 1)
       expect { comment('Hallo', key: long) }.not_to(change { posts_count })
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body).to include('error' => 'invalid_idempotency_key', 'code' => 'invalid_input')
@@ -191,7 +191,7 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
     end
 
     it 'accepts a key of exactly the limit' do
-      key = 'k' * Api::V1::Idempotent::MAX_KEY_LENGTH
+      key = 'k' * Mcp::IdempotencyStore::MAX_KEY_LENGTH
       expect { 2.times { comment('Hallo', key: key) } }.to change { posts_count }.by(1)
     end
   end

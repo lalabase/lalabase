@@ -19,7 +19,8 @@ module Mcp
   # `project_id` as an optional filter argument, runs WITHOUT an ambient tenant
   # (its query names the organisations explicitly) and, being record-mode by
   # registry rule, marks its own authorization decision or the tripwire fires.
-  # The read-only gate (D3) and the idempotency replay apply to both modes.
+  # The read-only gate (D3), the bound on the idempotency key and the replay
+  # apply to both modes.
   #
   # A project the token cannot access is reported exactly like a missing one — no
   # existence leak (mirrors Api::TokenAuthenticatable's RecordNotFound-on-scope-miss).
@@ -65,7 +66,14 @@ module Mcp
       # central to the seam, so no individual write tool can forget it.
       return error_response('This token is read-only; writes are not permitted.', code: :read_only) if write_blocked?
 
-      run_tool(project)
+      # A key the store cannot hold is refused before the write, after the two
+      # gates above, so it says nothing about a project the token cannot see.
+      # The key is remembered only after the write: one too long for the index
+      # wrote, failed to be remembered (-32603) and wrote again on every retry.
+      key = idempotency_key
+      return unstorable_key_response if key && !IdempotencyStore.storable_key?(key)
+
+      run_tool(project, key)
     rescue Pundit::NotAuthorizedError
       # Expected per-record denial (D2): the actor may not touch this record.
       # Reported as a clean tool error — never a leak, never a 500.
@@ -88,19 +96,14 @@ module Mcp
     # Project mode runs under the project's tenant. Token mode (project nil) runs
     # without one: the tool's query filters organisations explicitly, an ambient
     # tenant would only hide one organisation's rows from a multi-org token.
-    def run_tool(project)
-      return run_in_place(project) if project.nil?
+    def run_tool(project, key)
+      return run_in_place(project, key) if project.nil?
 
-      ActsAsTenant.with_tenant(project.organisation) { run_in_place(project) }
+      ActsAsTenant.with_tenant(project.organisation) { run_in_place(project, key) }
     end
 
-    def run_in_place(project)
-      key = idempotency_key
-      result = if key && @tool_class.mutating?
-                 execute_idempotently(project, key)
-               else
-                 execute_tool(project)
-               end
+    def run_in_place(project, key)
+      result = key ? execute_idempotently(project, key) : execute_tool(project)
       result_to_response(result)
     end
 
@@ -146,8 +149,15 @@ module Mcp
       result
     end
 
+    # The client's key, read as REST reads its header (IdempotencyStore.client_key),
+    # or nil. Only a write has one: a read tool is not offered the argument and
+    # ignores it, whatever it holds.
     def idempotency_key
-      @args[IDEMPOTENCY_KEY].to_s.strip.presence
+      IdempotencyStore.client_key(@args[IDEMPOTENCY_KEY]) if @tool_class.mutating?
+    end
+
+    def unstorable_key_response
+      error_response(IdempotencyStore.unstorable_key_message(IDEMPOTENCY_KEY), code: :invalid_input)
     end
 
     # Audit/provenance (D9): every write attempt logs PAT id + origin, so an

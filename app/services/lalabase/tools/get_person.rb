@@ -58,9 +58,13 @@ module Lalabase
 
       # Unknown, foreign and out of reach: one answer for all three.
       def self.not_found(raw)
-        Result.new(error: "No person found for #{raw}. Use an id find_people returned.", code: :not_found)
+        Result.new(error: not_found_text(raw), code: :not_found)
       end
-      private_class_method :not_found
+
+      def self.not_found_text(raw)
+        "No person found for #{raw}. Use an id find_people returned."
+      end
+      private_class_method :not_found, :not_found_text
     end
   end
 end

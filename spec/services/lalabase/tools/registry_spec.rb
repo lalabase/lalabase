@@ -33,7 +33,7 @@ RSpec.describe Lalabase::Tools::Registry do
       # search_help / help_contents / get_help_page (doc/product_knowledge_plan.md, S2):
       # Lalabase's own help, the same for every organisation. Not in :mcp (pinned below).
       # find_people / get_person (People S3): the people directory, under the asker's
-      # people right. Not in :mcp either (pinned below).
+      # people right. :mcp has twins of them, not these classes (pinned below).
       expect(described_class.for(:assistant)).to contain_exactly(
         t::ListTickets, t::GetTicket, t::GetNote, t::GetDocument, t::GetMeeting, t::SummarizeTimeSessions, t::RecentActivity,
         t::FindPeople, t::GetPerson, t::SearchHelp, t::HelpContents, t::GetHelpPage
@@ -81,19 +81,22 @@ RSpec.describe Lalabase::Tools::Registry do
       end
     end
 
-    # Terminal client S6: the booked time of a ticket. Appended LAST, so the
-    # pinned wire order of every tool before it stays intact.
-    # People S3: the people tools are the assistant's only. The terminal client gets them in
-    # a step of its own, with a contract and a SERVER_VERSION (plan section 7).
-    it 'keeps the people tools out of :mcp' do
+    # People S3b: on :mcp the people tools are twins of the assistant's, under the same names,
+    # because their schema names the organisation (organisation_id) and they run on a token.
+    # The assistant's classes stay out of :mcp, and a name resolves to the twin there.
+    it 'offers the people tools on :mcp as twins, never the assistant\'s classes' do
       [t::FindPeople, t::GetPerson].each do |tool|
         expect(described_class.for(:mcp)).not_to include(tool), tool.tool_name
-        expect(described_class.by_name(tool.tool_name, set: :mcp)).to be_nil
       end
+      expect(described_class.by_name('find_people', set: :mcp)).to eq(t::McpFindPeople)
+      expect(described_class.by_name('get_person', set: :mcp)).to eq(t::McpGetPerson)
+      expect(described_class.by_name('find_people', set: :assistant)).to eq(t::FindPeople)
     end
 
-    it 'offers the time report on :mcp as the last tool (wire order pinned)' do
-      expect(described_class.for(:mcp).last).to eq(t::SummarizeTimeSessions)
+    # Terminal client S6 (the booked time of a ticket), then People S3b: each appended LAST, so
+    # the pinned wire order of every tool before them stays intact.
+    it 'offers the time report and then the people twins as the last tools on :mcp (wire order pinned)' do
+      expect(described_class.for(:mcp).last(3)).to eq([t::SummarizeTimeSessions, t::McpFindPeople, t::McpGetPerson])
     end
 
     it 'no chat set carries search_knowledge (deliberate omission)' do
@@ -110,7 +113,8 @@ RSpec.describe Lalabase::Tools::Registry do
         t::SearchCodeSymbols, t::ListCapabilities, t::GetProjectVision,
         t::GetCapabilityDetails, t::GetSymbolDetails, t::ListTickets,
         t::GetTicket, t::SearchKnowledge, t::CreateTicket, t::PostComment, t::ListNotifications,
-        t::CreateTimeSession, t::MarkNotificationRead, t::UpdateTicket, t::SummarizeTimeSessions
+        t::CreateTimeSession, t::MarkNotificationRead, t::UpdateTicket, t::SummarizeTimeSessions,
+        t::McpFindPeople, t::McpGetPerson
       )
     end
 
@@ -200,7 +204,7 @@ RSpec.describe Lalabase::Tools::Registry do
 
     it ':mcp token-scoped tools require the actor and mark their own authorization (record mode)' do
       token_tools = described_class.for(:mcp).select { |tool| tool.scope_mode == :token }
-      expect(token_tools).to include(t::ListNotifications)
+      expect(token_tools).to include(t::ListNotifications, t::McpFindPeople, t::McpGetPerson)
       token_tools.each do |tool|
         expect(tool.requires_actor?).to be(true), tool.tool_name
         expect(tool.authorization_mode).to eq(:record), tool.tool_name
@@ -215,7 +219,7 @@ RSpec.describe Lalabase::Tools::Registry do
         get_capability_details get_symbol_details list_tickets
         get_ticket search_knowledge create_ticket post_comment
         list_notifications create_time_session mark_notification_read
-        update_ticket summarize_time_sessions
+        update_ticket summarize_time_sessions find_people get_person
       ]
     end
 

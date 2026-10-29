@@ -265,6 +265,7 @@ jobs:
           spec/requests/api/mcp_update_ticket_spec.rb
           spec/requests/api/mcp_plain_comment_spec.rb
           spec/requests/api/mcp_time_report_spec.rb
+          spec/requests/api/mcp_people_spec.rb
           spec/services/posts/plain_text_body_spec.rb
           spec/services/lalabase/tools/post_comment_spec.rb
           spec/requests/api/inbox_organisation_filter_spec.rb

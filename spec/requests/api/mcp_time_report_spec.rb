@@ -102,28 +102,30 @@ RSpec.describe 'MCP summarize_time_sessions', :ci_guard, type: :request do
   describe 'tools/list' do
     let(:tools) { rpc('tools/list', {}, pat).dig('result', 'tools') }
 
-    it 'advertises the tool LAST, the pinned order of every other tool unchanged' do
-      expect(tools.pluck('name')).to eq(%w[
-                                          search_code_symbols list_capabilities get_project_vision
-                                          get_capability_details get_symbol_details list_tickets
-                                          get_ticket search_knowledge create_ticket post_comment
-                                          list_notifications create_time_session mark_notification_read
-                                          update_ticket summarize_time_sessions
-                                        ])
+    # Appended last in S6; People S3b appended its two tools after it.
+    it 'advertises the tool after update_ticket, the pinned order of every tool before it unchanged' do
+      expect(tools.pluck('name').first(15)).to eq(%w[
+                                                    search_code_symbols list_capabilities get_project_vision
+                                                    get_capability_details get_symbol_details list_tickets
+                                                    get_ticket search_knowledge create_ticket post_comment
+                                                    list_notifications create_time_session mark_notification_read
+                                                    update_ticket summarize_time_sessions
+                                                  ])
     end
 
     it 'requires project_id and offers no idempotency_key (a read, D6)' do
-      schema = tools.last['inputSchema']
+      schema = tools.find { |tool| tool['name'] == 'summarize_time_sessions' }['inputSchema']
       expect(schema['required']).to eq(['project_id'])
       expect(schema['properties'].keys).to include('ticket', 'creator', 'start_date', 'end_date', 'project_id')
       expect(schema['properties']).not_to have_key('idempotency_key')
     end
   end
 
-  it 'reports server version 0.12.0' do
+  # The tool came with 0.12.0; later minors keep it (the surface is additive only).
+  it 'reports a server version of at least 0.12.0' do
     body = rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'rspec', version: '0' } },
                pat)
-    expect(body.dig('result', 'serverInfo', 'version')).to eq('0.12.0')
+    expect(Gem::Version.new(body.dig('result', 'serverInfo', 'version'))).to be >= Gem::Version.new('0.12.0')
   end
 
   context 'when the owner sees all time of the project' do

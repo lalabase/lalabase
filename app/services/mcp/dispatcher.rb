@@ -44,8 +44,9 @@ module Mcp
     # anything else is invalid_input instead of being stored).
     # 0.11 = post_comment takes format: "plain" (terminal client S2b).
     # 0.12 = summarize_time_sessions (terminal client S6: the booked time of a
-    # ticket).
-    SERVER_VERSION = '0.12.0'
+    # ticket). 0.13 = find_people and get_person (People S3b: the people directory,
+    # for a token that reaches every project of the organisation named).
+    SERVER_VERSION = '0.13.0'
 
     # MCP surface — sourced from the single tool registry (D6): the :mcp set is the
     # ONE definition of this surface, so a registry refactor can't drift it (R3);

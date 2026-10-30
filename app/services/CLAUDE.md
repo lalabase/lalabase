@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-10-29)
+# Karte: app/services (Stand: 2026-10-30)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -560,6 +560,14 @@ Bekannte Doppel-Verortungen (Altbestand; Boy-Scout-Regel: bei Berührung konsoli
   `apply`/`restore`/`still_applied?`/`describe`; Fehler über `Invalid.with(code)`, weil die
   Konvention Initializer ohne Positionsargumente will), `tickets/change_applier.rb` (EIN Ticket
   im eigenen Sicherungspunkt, trägt das Rescue je Ticket, damit die Actors den Vertrag halten),
+  `tickets/change.rb` (REST R3b, 30.10.2026, nicht zu verwechseln mit dem Register
+  `tickets/changes*`) ist die EINE Regel einer Änderung über einen Token: das MCP-Werkzeug
+  `update_ticket` und `POST /api/v1/tickets/:id/changes` rufen sie. `parse` (Art nach
+  vorhandenem Schlüssel, Schlüssel, UTF-8, Titelregel, Listen, `"me"`), `write` (Status und
+  Personen über den Actor unten, Titel über `SaveTicket` unter Zeilensperre im Projekt) und
+  `Outcome` (geschrieben, Ticket weg, `FAILURES`, Unerwartetes). Rechte und Wortlaut bleiben in
+  den Hüllen; `REFUSALS`, `FAILURES`, die Tabellen des Werkzeugs und die `services.ticket_change*`-Schlüssel
+  in de und en hält `spec/locales/token_rule_refusal_texts_spec.rb` zusammen.
   `actors/apply_ticket_changes.rb` (EIN Actor für eins und viele, D13; sperrt die Zeilen,
   vergleicht den Bestand, schreibt den Durchlauf `TicketBulkRun`) und `actors/undo_ticket_bulk_run.rb`.
   Seit 6b bedient `apply_ticket_changes` auch Board-Drag und Kommentar-Status mit einer Menge

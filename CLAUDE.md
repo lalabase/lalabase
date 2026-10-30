@@ -910,8 +910,33 @@ a retry with the same key wrote it twice, because the key keeps only successes. 
 `posts.plain`. Guards:
 `spec/requests/api/v1/post_comment_format_spec.rb`, `spec/services/posts/comment_spec.rb`,
 `spec/requests/api/mcp_plain_comment_spec.rb`, `spec/locales/token_rule_refusal_texts_spec.rb`
-(the refusals of `Posts::Comment` and `TimeSessions::Booking`, the MCP texts and the de and en
-keys are three lists kept by hand; the guard holds them together).
+(the refusals of `Posts::Comment`, `TimeSessions::Booking` and `Tickets::Change`, the MCP texts and
+the de and en keys are three lists kept by hand; the guard holds them together).
+
+`POST /api/v1/tickets/:id/changes` (REST R3b, 2026-10-30, API 1.7.0, capability
+`tickets.changes`) changes ONE thing by the rule the MCP tool `update_ticket` changes by,
+`Tickets::Change`: `change[title]`, `change[status]` (a key of `meta.available_statuses`), or
+`change[add_assignee_ids]` and `change[remove_assignee_ids]` (at most 50 each, `"me"` is the token
+owner) against the current list. The kind is decided by the keys present, not their values. It
+answers 200 with the ticket summary, like `PATCH /tickets/:id`, which stays as it is: its
+`assignee_ids` REPLACE the list, and `gboyke/lalabase-mcp` relies on that. Status and assignees
+go through `Actors::ApplyTicketChanges` like a board drag (a `TicketBulkRun` included), the title
+through `Actors::SaveTicket` alone under a lock on the row in its project, so the side effects are
+the web's and MCP's, once. Order: read-only token 403, then the read gate (missing, malformed,
+foreign, out of reach, hidden: one 404, whatever the body), then `authorize :update?` (403, whatever
+the body), and only then the input, so a refusal of it only ever answers a caller who may write.
+Input refused (mixed kinds, an unknown key, no `change`, the title rule, a list that is no list,
+over 50, the same person in both lists, text that is no UTF-8): 422
+`validation_failed`/`invalid_input`, a text from `services.ticket_change.*` that repeats nothing the
+client sent. Stopped by the project's state: 422 with `code: refused`, and `error` and `reason` the
+same word (`value_not_allowed`, `user_not_assignable`, `no_status_field`, `validation_failed`), a
+text from `services.ticket_change_failure.*` in `errors` and, for a title the model refuses, its
+messages behind it. The code is named in the controller: `Api::V1::ErrorBody` alone would read
+`validation_failed` as invalid input. Nobody is removed by a refused change, and a stale assignment
+stays unless it is named. A ticket that moved or was deleted after the rights check answers the same
+404; a failure the rule does not name answers 500 without its text. Guards:
+`spec/requests/api/v1/ticket_changes_spec.rb`, `spec/requests/api/v1/ticket_changes_side_effects_spec.rb`
+(the same trail as MCP), `spec/services/tickets/change_spec.rb`.
 
 ## Admin: Betreiber-Teile kommen nur über Schlitze
 

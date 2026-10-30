@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 # The profile picture MOVED out of the Devise profile into Settings >
-# Namensanzeige (user decision 04.09.2026): the profile form runs through
+# Profil (user decision 04.09.2026): the profile form runs through
 # update_with_password and demanded the current password for a picture. This
 # file now pins the teardown - no upload spot here, and a smuggled avatar
 # param is dead (unpermitted), so the password-gated path cannot come back

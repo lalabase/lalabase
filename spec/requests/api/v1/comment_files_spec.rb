@@ -47,8 +47,8 @@ RSpec.describe 'Comment files in the ticket view', :ci_guard, type: :request do
     document
   end
 
-  # The file with the higher id is made first: the list follows the id, not the
-  # order the rows were written in.
+  # The file with the higher id is made first and has the earlier name: the list
+  # follows the id, not the order the rows were written in, nor the name.
   let(:higher_id) { 'ffffffff-ffff-4fff-8fff-ffffffffffff' }
   let(:lower_id) { '00000000-0000-4000-8000-00000000000a' }
 
@@ -57,8 +57,8 @@ RSpec.describe 'Comment files in the ticket view', :ci_guard, type: :request do
     Prosopite.pause do
       ActsAsTenant.with_tenant(organisation) do
         with_files = comment(0)
-        file(with_files, 'screenshot.png', 'image/png', id: higher_id)
-        file(with_files, 'bericht.pdf', 'application/pdf', id: lower_id)
+        file(with_files, 'bericht.pdf', 'application/pdf', id: higher_id)
+        file(with_files, 'screenshot.png', 'image/png', id: lower_id)
         hidden = comment(1, is_private: true, visible_to_user: addressee)
         file(hidden, 'geheim.txt', 'text/plain')
         empty = comment(2)
@@ -108,8 +108,8 @@ RSpec.describe 'Comment files in the ticket view', :ci_guard, type: :request do
   end
 
   let(:both_files) do
-    [{ 'id' => lower_id, 'filename' => 'bericht.pdf', 'content_type' => 'application/pdf', 'byte_size' => 6 },
-     { 'id' => higher_id, 'filename' => 'screenshot.png', 'content_type' => 'image/png', 'byte_size' => 6 }]
+    [{ 'id' => lower_id, 'filename' => 'screenshot.png', 'content_type' => 'image/png', 'byte_size' => 6 },
+     { 'id' => higher_id, 'filename' => 'bericht.pdf', 'content_type' => 'application/pdf', 'byte_size' => 6 }]
   end
 
   describe 'on every road to a comment' do
@@ -171,7 +171,7 @@ RSpec.describe 'Comment files in the ticket view', :ci_guard, type: :request do
       token = token_for(other)
       get "#{ticket_path}/attachments", headers: { 'Authorization' => "Bearer #{token}" }
       routed = response.parsed_body['data'].find { |entry| entry['filename'] == 'bericht.pdf' }
-      expect(routed['id']).not_to eq(lower_id)
+      expect(routed['id']).not_to eq(higher_id)
       sign_in other
       proxy_get(routed['id'])
       expect(response).to have_http_status(:not_found)
@@ -198,7 +198,7 @@ RSpec.describe 'Comment files in the ticket view', :ci_guard, type: :request do
     # Each list is shown to be there, with the public files on it, so an absent
     # name means the filter worked and not that the answer was empty.
     context 'for a member who may not read the comment' do
-      let(:public_names) { %w[bericht.pdf screenshot.png protokoll.txt] }
+      let(:public_names) { %w[screenshot.png bericht.pdf protokoll.txt] }
 
       it 'is missing from the whole ticket' do
         posts = get_json(other, ticket_path).dig('data', 'posts')

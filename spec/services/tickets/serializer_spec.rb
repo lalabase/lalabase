@@ -179,6 +179,19 @@ RSpec.describe Tickets::Serializer do
       expect(list.first[:text_status]).to eq('available')
     end
 
+    # The row stays, what describes it is gone: left out of the list, as a comment's
+    # file is, and still counted, so the total says a file is there.
+    it 'drops a file that lost its blob and keeps counting it' do
+      list, total = ActsAsTenant.with_tenant(organisation) do
+        document = create(:ticket_document, ticket: ticket, organisation: organisation)
+        ActiveStorage::Attachment.where(record: document).delete_all
+        [serializer.attachments(ticket.reload), serializer.attachments_total(ticket)]
+      end
+
+      expect(list).to eq([])
+      expect(total).to eq(1)
+    end
+
     # The difference the reader needs: "there is no text in this file" is an answer,
     # "the text was never read out" is a defect on our side. Both look identical
     # without the status, and the model would fill the silence either way.

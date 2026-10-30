@@ -106,7 +106,7 @@ module McpContract
       role: 21, other_role: 22, guest_role: 23,
       website: 31, internal: 32, handbook: 33, foreign_project: 34, archive: 35,
       login_ticket: 41, export_ticket: 42, hidden_ticket: 43, archived_ticket: 44, internal_ticket: 45,
-      first_post: 51, second_post: 52,
+      first_post: 51, second_post: 52, first_post_file: 53,
       deploy_note: 61,
       unread_notification: 71, read_notification: 72, archived_notification: 73,
       write_token: 81, read_token: 82, deactivated_token: 83, limited_token: 84, dora_token: 85,
@@ -350,7 +350,30 @@ module McpContract
         'get_person' => get_person_calls,
         # MCP 0.13.1, appended last: refusals that write nothing, so every
         # answer after them stays as it was.
-        'idempotency_key' => idempotency_key_calls(website)
+        'idempotency_key' => idempotency_key_calls(website),
+        # MCP 0.14 (REST R7), appended last: the file of Ben's comment, made
+        # right before it.
+        'comment_file' => comment_file_calls(website)
+      }
+    end
+
+    # A comment's file, by the id of its PostDocument: fixed, because the file
+    # proxy takes that id and the client builds its address from it. Ben's comment
+    # is the oldest on the login ticket, so a page of one holds it. Without
+    # `record`: no tick, no clock moved for the REST section, which lists this
+    # file too (attachment_calls, ticket_view).
+    def comment_file_calls(website)
+      in_org do
+        attach_fixture(PostDocument.new(id: id(:first_post_file), post: Post.find(id(:first_post)), organisation: @organisation,
+                                        create_embeddings: false),
+                       :post_document_file, :post)
+      end
+      login = { project_id: website, ticket_id: id(:login_ticket) }
+      {
+        'page' => tool_call(:read, 'get_ticket', **login, posts_per_page: 1),
+        'one_post' => tool_call(:read, 'get_ticket', **login, post_id: id(:first_post)),
+        # The comment beside it has no file, and says so.
+        'no_file' => tool_call(:read, 'get_ticket', **login, post_id: id(:second_post))
       }
     end
 
@@ -546,8 +569,9 @@ module McpContract
           'empty' => rest_get(:read, "/api/v1/projects?organisation_id=#{id(:other_organisation)}"),
           'unauthorized' => rest_get(nil, '/api/v1/projects')
         },
-        # Terminal client S5, appended last: its files are made right before it,
-        # so every answer above stays as it was.
+        # Terminal client S5, appended last: the ticket's file is made right before
+        # it and the comment's after the MCP calls, so every answer above stays as
+        # it was.
         'GET /api/v1/tickets/:id/attachments' => attachment_calls,
         # REST R0 (cli_rest_plan D6, D7), appended last for the same reason: one
         # answer per error code, then a write with an Idempotency-Key, its replay
@@ -681,6 +705,8 @@ module McpContract
         # the comments the recorded writes added share one second and would be
         # ordered by their random ids.
         'show_paged' => rest_get(:read, "#{login}?posts_per_page=1&posts_page=2&attachments_page=1"),
+        # R7: page one is Ben's comment, with its file (comment_file_calls).
+        'show_paged_comment_file' => rest_get(:read, "#{login}?posts_per_page=1"),
         'show_invalid_paging' => rest_get(:read, "#{login}?posts_order=random"),
         'by_number' => rest_get(:read, by_number.call(:website, 2)),
         'by_number_not_found' => rest_get(:read, by_number.call(:website, 999)),
@@ -814,9 +840,10 @@ module McpContract
       }
     end
 
-    # One file on the login ticket, one on Ben's public comment there, both from
-    # fixed fixture files so name, type and size are the same on every run.
-    # Without `record`: no tick, no clock moved for anything recorded later.
+    # One file on the login ticket, made here, one on Ben's public comment there,
+    # made by comment_file_calls, both from fixed fixture files so name, type and
+    # size are the same on every run. Without `record`: no tick, no clock moved
+    # for anything recorded later.
     ATTACHMENT_FIXTURES = {
       ticket: ['test_document.pdf', 'application/pdf'],
       post: ['test_file.txt', 'text/plain']
@@ -826,8 +853,6 @@ module McpContract
       in_org do
         attach_fixture(TicketDocument.new(ticket: @login, organisation: @organisation, create_embeddings: false),
                        :ticket_document_file, :ticket)
-        attach_fixture(PostDocument.new(post: Post.find(id(:first_post)), organisation: @organisation, create_embeddings: false),
-                       :post_document_file, :post)
       end
       path = ->(ticket) { "/api/v1/tickets/#{id(ticket)}/attachments" }
       {

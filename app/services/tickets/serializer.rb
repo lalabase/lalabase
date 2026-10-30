@@ -144,10 +144,10 @@ module Tickets
     end
 
     # Eager-load everything serialized below (author, rich-text body, attachment
-    # rows) so a ticket with many posts does not N+1. Shared by the API show
-    # action and the MCP get_ticket tool, both of which can return many posts.
+    # rows and their blobs) so a ticket with many posts does not N+1. Shared by the
+    # API show action and the MCP get_ticket tool, both of which can return many posts.
     def loaded(scope)
-      scope.includes(:user, :post_documents).with_rich_text_content
+      scope.includes(:user, post_documents: { post_document_file_attachment: :blob }).with_rich_text_content
     end
 
     def post_payload(post)
@@ -162,10 +162,25 @@ module Tickets
         # post_document_files), so the old count answered 0 for every comment that
         # had one — and handed that 0 to the model as a fact.
         # .size on the preloaded association — avoids a COUNT(*) per post.
+        # Counts rows: a document whose blob went missing stays here and is
+        # dropped from the list below, as #attachments_total does for a ticket.
         attachments_count: post.post_documents.size,
+        attachments: post_attachments(post),
         created_at: post.created_at.iso8601,
         updated_at: post.updated_at.iso8601
       }
+    end
+
+    # A comment's files in id order. The id is the PostDocument's, which the file
+    # proxy takes (/org/:org/files/post_document/:id, a comment's file opens for
+    # whoever may read the comment), NOT the Active Storage attachment's that
+    # GET /tickets/:id/attachments hands out. Metadata only: no signed URL (see the
+    # NOTE on this class), and no text, so the caps of get_ticket hold as they were.
+    def post_attachments(post)
+      post.post_documents.sort_by(&:id).filter_map do |document|
+        blob = document.post_document_file&.blob
+        blob && file_fields(document, blob)
+      end
     end
 
     def attachment(document)
@@ -173,17 +188,17 @@ module Tickets
       return nil if blob.nil?
 
       raw = document.plain_text_version
-      {
-        id: document.id,
-        filename: blob.filename.to_s,
-        content_type: blob.content_type,
-        byte_size: blob.byte_size,
+      file_fields(document, blob).merge(
         text: raw.presence,
         # The four-word vocabulary (available / unsupported / unavailable / empty)
         # and the ⚠️ about reading the RAW column live with the extractor's
         # allowlist, shared with Tools::GetDocument.
         text_status: ExtractPlainTextProcessingService.text_status(raw, blob.content_type)
-      }
+      )
+    end
+
+    def file_fields(document, blob)
+      { id: document.id, filename: blob.filename.to_s, content_type: blob.content_type, byte_size: blob.byte_size }
     end
   end
 end

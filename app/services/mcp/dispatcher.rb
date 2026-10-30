@@ -51,7 +51,9 @@ module Mcp
     # It narrows an existing argument on purpose, released as a fix: a key of 256
     # bytes up to about 2.6 KB used to be stored and replayed (one stored before
     # is refused now, not replayed), a longer one wrote again on every retry.
-    SERVER_VERSION = '0.13.1'
+    # 0.14 = a comment in get_ticket lists its files (`attachments`: id, filename,
+    # content_type, byte_size; REST R7), beside attachments_count.
+    SERVER_VERSION = '0.14.0'
 
     # MCP surface — sourced from the single tool registry (D6): the :mcp set is the
     # ONE definition of this surface, so a registry refactor can't drift it (R3);

@@ -99,6 +99,9 @@ Codebase-Verständnis.
   `full_text`, `post_id`, Zitationen. `posts_per_page` über 50 klemmt MCP auf 50
   (`over_max: :clamp`), REST lehnt mit 422 ab. Eine neue Seiten-Regel gehört in den Service,
   nicht in eine der beiden Hüllen.
+  `search_knowledge` liest über `Knowledge::Lookup` (`app/services/knowledge/lookup.rb`,
+  REST R2), denselben Service wie `GET /api/v1/projects/:project_id/knowledge`. Im Werkzeug
+  bleiben `q` als Pflicht, die nachsichtigen Seiten-Optionen und die Zitationen.
   Fehler eines Werkzeugs tragen eine Klasse: `Result.invalid_input(msg)` oder
   `Result.refused(msg, reason:)`; ohne Code gilt `refused`, auch für ein abgelehntes Speichern
   (Modellvalidierung, Actor-Fehler): das beweist keine falsche Eingabe. Spec je Fehlerstelle:

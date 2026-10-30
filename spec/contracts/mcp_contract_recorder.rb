@@ -563,7 +563,24 @@ module McpContract
         'POST /api/v1/tickets/:ticket_id/time_sessions' => rest_booking_calls,
         # REST R3a (cli_rest_plan R3 a), appended last: its comments land on the
         # login ticket after every answer above, without advancing the clock.
-        'POST /api/v1/tickets/:ticket_id/posts' => rest_comment_calls
+        'POST /api/v1/tickets/:ticket_id/posts' => rest_comment_calls,
+        # REST R2, appended last: reads only, over the deploy note of the website.
+        'GET /api/v1/projects/:project_id/knowledge' => rest_knowledge_calls
+      }
+    end
+
+    def rest_knowledge_calls
+      # Spelled out, not a loop: each request from its own line (Prosopite).
+      path = "/api/v1/projects/#{id(:website)}/knowledge"
+      {
+        'ok' => rest_get(:read, "#{path}?q=Deploy"),
+        'empty' => rest_get(:read, "#{path}?q=Gibt%20es%20nicht"),
+        'list' => rest_get(:read, path),
+        'list_type' => rest_get(:read, "#{path}?type=note&per_page=5"),
+        'invalid_input' => rest_get(:read, "#{path}?type=ticket"),
+        'invalid_input_per_page' => rest_get(:read, "#{path}?per_page=101"),
+        'not_found' => rest_get(:read, "/api/v1/projects/#{id(:foreign_project)}/knowledge"),
+        'unauthorized' => rest_get(nil, path)
       }
     end
 

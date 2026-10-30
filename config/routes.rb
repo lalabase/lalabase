@@ -938,6 +938,8 @@ Rails.application.routes.draw do
         get 'tickets/number/:number', to: 'tickets#by_number', as: :ticket_by_number, format: false,
                                       constraints: { number: %r{[^/]+} }
         get :ticket_attribute_definitions, on: :member
+        # REST R2: the project's notes and documents by title, read only.
+        resources :knowledge, only: %i[index], controller: 'knowledge'
       end
       resources :tickets, only: %i[show update] do
         member do

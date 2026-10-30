@@ -123,6 +123,7 @@ module Api
       # Missing, foreign and unreadable tickets answer the same 404 whatever the
       # input, a ticket the token may not write the same 403: the input is read
       # after both, so a refusal of it only ever answers a caller who may write.
+      # Only a body Rails cannot read comes first, a 400 for every ticket alike.
       def changes
         with_readable_ticket(params[:id]) do |ticket, project|
           authorize ticket, :update?
@@ -255,7 +256,9 @@ module Api
 
       # The keys and values as they came: strong parameters would drop a list
       # where a text belongs and a key nobody permitted, and the rule refuses
-      # both. A change that is no object is none at all.
+      # both. A change that is no object is none at all. As they came, up to
+      # Rails, which drops a JSON null from a list on the way into params: it
+      # names nobody, so nobody is added or removed for it.
       def change_input
         input = params[:change]
         input.is_a?(ActionController::Parameters) ? input.to_unsafe_h : {}

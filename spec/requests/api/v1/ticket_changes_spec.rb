@@ -303,10 +303,27 @@ RSpec.describe 'API V1 ticket changes', :ci_guard, type: :request do
       end
     end
 
-    # Rails drops a JSON null from a list before the rule sees it: it names nobody.
+    # Rails drops a JSON null from a list before the rule sees it: it names
+    # nobody. MCP gets the list as sent and refuses it.
     it 'reads a list of nulls as naming nobody' do
       send_change({ add_assignee_ids: [nil] })
       expect_invalid_input('Name at least one user in add_assignee_ids or remove_assignee_ids.')
+    end
+
+    it 'reads a null beside a person as nobody, and adds the person it names' do
+      assign(colleague)
+      send_change({ add_assignee_ids: [user.id, nil] })
+
+      expect(response).to have_http_status(:ok)
+      expect(assignee_ids).to contain_exactly(user.id, colleague.id)
+    end
+
+    it 'takes nobody off for a null, only the person it names' do
+      assign(colleague, user)
+      send_change({ add_assignee_ids: [nil], remove_assignee_ids: [colleague.id] })
+
+      expect(response).to have_http_status(:ok)
+      expect(assignee_ids).to eq([user.id])
     end
 
     it 'refuses a person the project does not offer loudly, and takes nobody off' do

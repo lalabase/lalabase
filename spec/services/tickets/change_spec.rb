@@ -368,6 +368,14 @@ RSpec.describe Tickets::Change, :ci_guard do
                                                  custom_attributes: { 'status' => 'open', 'priority' => 'high', 'area' => 'backend' })
       end
 
+      # String#strip knows only ASCII.
+      it 'stores the title without the spaces of any kind at its edges' do
+        title = "#{0xA0.chr(Encoding::UTF_8)}Neu#{0x3000.chr(Encoding::UTF_8)}"
+
+        expect(write({ title: title })).to be_written
+        expect(ticket.reload.title).to eq('Neu')
+      end
+
       it 'names the caller in the history, also without an ambient Current.user' do
         Current.reset
 

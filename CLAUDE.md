@@ -924,11 +924,14 @@ go through `Actors::ApplyTicketChanges` like a board drag (a `TicketBulkRun` inc
 through `Actors::SaveTicket` alone under a lock on the row in its project, so the side effects are
 the web's and MCP's, once. Order: read-only token 403, then the read gate (missing, malformed,
 foreign, out of reach, hidden: one 404, whatever the body), then `authorize :update?` (403, whatever
-the body), and only then the input, so a refusal of it only ever answers a caller who may write.
+the body), and only then the input, so a refusal of it only ever answers a caller who may write. A
+body Rails cannot read comes before the gate: a 400, the same for every ticket.
 Input refused (mixed kinds, an unknown key, no `change`, the title rule, a list that is no list,
 over 50, the same person in both lists, text that is no UTF-8): 422
 `validation_failed`/`invalid_input`, a text from `services.ticket_change.*` that repeats nothing the
-client sent. Stopped by the project's state: 422 with `code: refused`, and `error` and `reason` the
+client sent. One difference to MCP is Rails', not the rule's: a JSON `null` in a list is gone before
+the rule reads it, so `[id, null]` is `[id]` here and refused there; it names nobody either way.
+Stopped by the project's state: 422 with `code: refused`, and `error` and `reason` the
 same word (`value_not_allowed`, `user_not_assignable`, `no_status_field`, `validation_failed`), a
 text from `services.ticket_change_failure.*` in `errors` and, for a title the model refuses, its
 messages behind it. The code is named in the controller: `Api::V1::ErrorBody` alone would read

@@ -21,7 +21,8 @@ RSpec.describe 'Account page: who sees the email', type: :request do
   it 'says that others see the login address, and links to the page that changes it' do
     hint = hint_html
 
-    expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.login'))
+    expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.login',
+                                        email: 'login@example.com'))
     expect(hint.at_css('a')['href']).to eq(display_user_preferences_path)
     expect(hint.at_css('a').text).to eq(I18n.t('views.devise.registrations.edit.shown_email.change'))
   end
@@ -45,6 +46,43 @@ RSpec.describe 'Account page: who sees the email', type: :request do
     expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.none'))
     expect(hint.text).not_to include('login@example.com')
     expect(hint.at_css('a')['href']).to eq(display_user_preferences_path)
+  end
+
+  %i[de en].each do |locale|
+    context "with a login email change in #{locale}" do
+      before { user.update!(language_preference: locale.to_s) }
+
+      it 'names the saved address when the submitted change is rejected' do
+        put user_registration_path, params: {
+          user: { email: 'new@example.com', current_password: 'wrong-password' }
+        }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        page = Nokogiri::HTML(response.body)
+        expect(page.at_css('input[name="user[email]"]')['value']).to eq('new@example.com')
+        expect(user.reload.shown_email).to eq('login@example.com')
+        expect(page.at_css('[data-shown-email-hint]').text).to include('login@example.com')
+        expect(page.at_css('[data-shown-email-hint]').text).not_to include('new@example.com')
+      end
+
+      it 'names the current address until the new address is confirmed' do
+        put user_registration_path, params: {
+          user: { email: 'new@example.com', current_password: 'password123' }
+        }
+
+        expect(response).to have_http_status(:see_other)
+        expect(user.reload.unconfirmed_email).to eq('new@example.com')
+        expect(user.shown_email).to eq('login@example.com')
+        hint = hint_html
+        expect(hint.text).to include('login@example.com')
+        expect(hint.text).not_to include('new@example.com')
+
+        user.confirm
+
+        expect(user.reload.shown_email).to eq('new@example.com')
+        expect(hint_html.text).to include('new@example.com')
+      end
+    end
   end
 
   it 'has the hint in both languages' do

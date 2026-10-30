@@ -1077,7 +1077,7 @@ en:
           last_name: Last name
           email_change_hint: A new address only takes effect once you click the confirmation link sent to it. Until then the current one stays active.
           shown_email:
-            login: Others in your organisations see this address.
+            login: "Others in your organisations see %{email}."
             contact: "Others in your organisations see %{email} instead."
             none: Others in your organisations see no email of yours.
             change: Change in your profile

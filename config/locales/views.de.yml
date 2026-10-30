@@ -1079,7 +1079,7 @@ de:
           last_name: Nachname
           email_change_hint: Eine neue Adresse wird erst aktiv, wenn du den Bestätigungslink darin anklickst. Bis dahin gilt die bisherige.
           shown_email:
-            login: Andere in deinen Organisationen sehen diese Adresse.
+            login: "Andere in deinen Organisationen sehen %{email}."
             contact: "Andere in deinen Organisationen sehen stattdessen %{email}."
             none: Andere in deinen Organisationen sehen keine E-Mail von dir.
             change: Im Profil ändern

@@ -844,8 +844,9 @@ writes no activity and no notification; it touches the ticket's `updated_at`. Gu
 * `GET /tickets/:id` takes opt-in pages: any one of `posts_page`, `posts_per_page` (at most
   50, above is 422), `posts_order` (`oldest`, `newest`), `attachments_page` (10 per page)
   switches the answer to the paged fields of MCP `get_ticket` (`posts_total`,
-  `posts_truncated`, `attachments`, ...). **Without them the body stays byte-equal** (the
-  contract records it; gboyke/lalabase-mcp reads it). Invalid values: 422 `invalid_input`,
+  `posts_truncated`, `attachments`, ...). **Without them the body stays what it was** (the
+  contract records it; gboyke/lalabase-mcp reads it and passes it on), but for the additive
+  `attachments` on a comment since R7, below. Invalid values: 422 `invalid_input`,
   checked before the ticket is looked up. A key without a value switches too. REST does not
   truncate bodies, nor the extracted `text` of attachments (up to 10 per page). These
   `attachments` are the ticket's own files only, with text and without URL (`attachments_total`
@@ -857,6 +858,16 @@ writes no activity and no notification; it touches the ticket's `updated_at`. Gu
   in the ticket. Hidden private, foreign and missing comments: the same 404.
 * Options and pages come from `Tickets::Reading`, shared with MCP `get_ticket`; MCP keeps its
   caps. Guard: `spec/requests/api/v1/ticket_view_spec.rb`.
+* **A comment lists its files** (REST R7, 2026-10-30, API 1.8.0, MCP 0.14): `attachments`
+  beside `attachments_count`, wherever a comment is served (`Tickets::Serializer#post_payload`:
+  the ticket, whole or in pages, the number route, the comment route, MCP `get_ticket`), each
+  with `id`, `filename`, `content_type`, `byte_size`, in id order. ⚠️ `id` is the
+  `PostDocument`'s, which the file proxy takes (`/org/:org/files/post_document/:id`), NOT the
+  Active Storage attachment's that `GET /tickets/:id/attachments` hands out with a signed URL.
+  No URL and no text, so `get_ticket`'s caps hold as they were. No capability: a client takes
+  the field's presence as the signal. Visibility is the comment's (`readable_by`), no second
+  rule. `attachments_count` counts rows: a document that lost its blob stays in the count and
+  leaves the list. Guard: `spec/requests/api/v1/comment_files_spec.rb`.
 
 `GET /api/v1/time_sessions/open` lists the person's own open hours within the token's
 reach, organisations AND projects, and only the rows the web time list shows them

@@ -1546,14 +1546,14 @@ de:
       other: "%{count} ungelesene Meldungen"
     organisation: Organisation
     other_orgs_signal: Ungelesene Meldungen in anderen Organisationen
-    profile: Profil
+    profile: Account
     project: Projekt
     projects: Projekte
     search_project: Projekt suchen...
     select_organisation_prompt: Bitte wählen Sie eine Organisation aus
     settings: Einstellungen
     settings_general: Allgemein
-    settings_display: Namensanzeige
+    settings_display: Profil
     settings_tickets: Tickets
     settings_meetings: Meetings
     settings_datetime: Datum/Zeit
@@ -3044,7 +3044,7 @@ de:
           first_last_initial: Vorname und abgekürzter Nachname
           initial_last: Abgekürzter Vorname und Nachname
           description: "Die Vorschau neben jeder Option zeigt deinen eigenen Namen in der jeweiligen Schreibweise."
-        title: Namensanzeige
+        title: Profil
       general:
         future_settings: Weitere allgemeine Einstellungen werden hier in Zukunft verfügbar
           sein.

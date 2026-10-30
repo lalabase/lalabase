@@ -1440,14 +1440,14 @@ en:
       other: "%{count} unread notifications"
     organisation: Organisation
     other_orgs_signal: Unread notifications in other organisations
-    profile: Profile
+    profile: Account
     project: Project
     projects: Projects
     search_project: Search project...
     select_organisation_prompt: Please select an organisation
     settings: Settings
     settings_general: General
-    settings_display: Name display
+    settings_display: Profile
     settings_tickets: Tickets
     settings_meetings: Meetings
     settings_datetime: Date/Time
@@ -2797,7 +2797,7 @@ en:
           first_last_initial: First name and abbreviated last name
           initial_last: Abbreviated first name and last name
           description: "The preview next to each option shows your own name in that spelling."
-        title: Name display
+        title: Profile
       general:
         future_settings: Additional general settings will be available here in the future.
         items_per_page:

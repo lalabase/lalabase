@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-# The profile picture lives in Settings > Namensanzeige since 04.09.2026
+# The profile picture lives in Settings > Profil since 04.09.2026
 # (user decision): it belongs next to the name-display choice, and unlike the
 # Devise profile this endpoint does NOT demand the current password for a
 # picture change. Pins the upload without a password, the blank-field

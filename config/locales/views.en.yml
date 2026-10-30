@@ -1070,19 +1070,24 @@ en:
           strength_rule: at least %{count} characters
       registrations:
         edit:
-          title: Profile
+          title: Account
           profile_section: Personal Information
           password_section: Change Password
           first_name: First name
           last_name: Last name
           email_change_hint: A new address only takes effect once you click the confirmation link sent to it. Until then the current one stays active.
+          shown_email:
+            login: Others in your organisations see this address.
+            contact: "Others in your organisations see %{email} instead."
+            none: Others in your organisations see no email of yours.
+            change: Change in your profile
           pending_confirmation: 'Waiting for confirmation for: %{email}'
           new_password: New password
           leave_blank_password: Minimum 6 characters
           confirm_new_password: Confirm new password
           current_password: Current password
           current_password_hint: required to confirm the changes
-          save_profile: Save profile
+          save_profile: Save
           save_password: Change password
           save_changes: Save changes
           danger_zone: Danger zone

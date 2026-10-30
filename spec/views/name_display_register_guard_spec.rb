@@ -4,7 +4,7 @@ require 'rails_helper'
 
 # Guard: no raw user full_name renders outside the name-display register.
 #
-# The viewer's name-display setting (Settings > Namensanzeige) only works if
+# The viewer's name-display setting (Settings > Profil) only works if
 # every surface goes through one of the three seams:
 #   - Neo::Users::NameComponent      -> a user as an identity LABEL
 #   - viewer_user_list(users)        -> a GROUP of users (pair when one, chips when several)

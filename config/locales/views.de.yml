@@ -1072,19 +1072,24 @@ de:
           strength_rule: mindestens %{count} Zeichen
       registrations:
         edit:
-          title: Profil
+          title: Account
           profile_section: Persönliche Daten
           password_section: Passwort ändern
           first_name: Vorname
           last_name: Nachname
           email_change_hint: Eine neue Adresse wird erst aktiv, wenn du den Bestätigungslink darin anklickst. Bis dahin gilt die bisherige.
+          shown_email:
+            login: Andere in deinen Organisationen sehen diese Adresse.
+            contact: "Andere in deinen Organisationen sehen stattdessen %{email}."
+            none: Andere in deinen Organisationen sehen keine E-Mail von dir.
+            change: Im Profil ändern
           pending_confirmation: 'Warte auf Bestätigung für: %{email}'
           new_password: Neues Passwort
           leave_blank_password: Mindestens 6 Zeichen
           confirm_new_password: Neues Passwort bestätigen
           current_password: Aktuelles Passwort
           current_password_hint: zur Bestätigung der Änderungen erforderlich
-          save_profile: Profil speichern
+          save_profile: Speichern
           save_password: Passwort ändern
           save_changes: Änderungen speichern
           danger_zone: Gefahrenzone

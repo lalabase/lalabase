@@ -33,7 +33,7 @@ RSpec.describe 'API V1 capabilities', :ci_guard, type: :request do
 
   it 'names the API version and the capabilities beside the existing fields' do
     data = me(token(read_only: false))
-    expect(data['api_version']).to eq('1.7.0')
+    expect(data['api_version']).to eq('1.8.0')
     expect(data['capabilities']).to eq(Api::V1::Capabilities.names)
     expect(data.keys).to include('user', 'token', 'scoped_organisations')
   end

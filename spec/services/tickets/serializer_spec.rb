@@ -122,7 +122,21 @@ RSpec.describe Tickets::Serializer do
 
       expect(hash[:posts].size).to eq(1)
       expect(hash[:posts].first.keys).to contain_exactly(
-        :id, :author, :body_html, :body_text, :is_private, :attachments_count, :created_at, :updated_at
+        :id, :author, :body_html, :body_text, :is_private, :attachments_count, :attachments, :created_at, :updated_at
+      )
+    end
+
+    # What a comment says about its file: no signed URL, no extracted text. Pinned
+    # with text in the column, which is what #attachments would hand on.
+    it 'pins the key set of a comment file, by the id of its PostDocument' do
+      document, hash = ActsAsTenant.with_tenant(organisation) do
+        post = create(:post, ticket: ticket, user: viewer, is_private: false)
+        made = create(:post_document, :with_pdf, post: post, organisation: organisation, plain_text_version: 'Inhalt')
+        [made, serializer.full(ticket)]
+      end
+
+      expect(hash[:posts].first[:attachments]).to eq(
+        [{ id: document.id, filename: 'test_document.pdf', content_type: 'application/pdf', byte_size: 25 }]
       )
     end
 

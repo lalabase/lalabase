@@ -303,6 +303,7 @@ jobs:
           spec/requests/api/v1/capabilities_spec.rb
           spec/requests/api/v1/time_session_booking_spec.rb
           spec/requests/api/v1/ticket_view_spec.rb
+          spec/requests/api/v1/comment_files_spec.rb
           spec/requests/api/v1/people_spec.rb
           spec/requests/api/people_parity_spec.rb
           spec/requests/api/v1/post_comment_format_spec.rb

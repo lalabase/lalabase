@@ -10,7 +10,8 @@
 # Visibility is the serializer's: every page and count comes out of
 # ticket.posts.readable_by, so posts_total never counts a comment the reader
 # may not see. The attachments are the ticket's OWN files (TicketDocument);
-# files on comments are not part of this list.
+# files on comments are not part of this list, each comment lists its own
+# (Tickets::Serializer#post_attachments, REST R7).
 #
 # Entry point: options
 module Tickets

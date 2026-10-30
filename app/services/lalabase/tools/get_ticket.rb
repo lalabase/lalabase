@@ -17,7 +17,9 @@ module Lalabase
     # names a referenced ticket but never its content (Bezugs-Sammlung E5), so a
     # question about the attached PDF is answered from this payload or not at all.
     # A `text_status` per file says whether that text exists, is missing, or was
-    # never extractable — silence would be answered with a guess.
+    # never extractable — silence would be answered with a guess. A comment's files
+    # are another matter: they come with the comment as name, type and size only
+    # (Tickets::Serializer#post_attachments), metadata like its author, no text.
     #
     # Caps (D9, over-fetching / DoS): long bodies are truncated, the posts list is
     # bounded, and so are the attachments in both directions (how many, and how much

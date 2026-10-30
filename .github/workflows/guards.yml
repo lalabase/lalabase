@@ -275,6 +275,7 @@ jobs:
           spec/services/lalabase/tools/post_comment_spec.rb
           spec/services/lalabase/tools/post_comment_failure_spec.rb
           spec/services/posts/comment_spec.rb
+          spec/services/tickets/change_spec.rb
           spec/requests/api/inbox_organisation_filter_spec.rb
           spec/services/lalabase/tools/get_ticket_paging_spec.rb
           spec/services/lalabase/tools/get_ticket_assistant_limits_spec.rb

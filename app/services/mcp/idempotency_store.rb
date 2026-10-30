@@ -96,7 +96,14 @@ module Mcp
     # (sort.to_h) — sufficient because a retrying client resends the same structure;
     # we are detecting accidental reuse of a key, not defending against an adversary.
     def self.fingerprint(args)
-      Digest::SHA256.hexdigest(args.sort.to_h.to_json)
+      ordered = args.sort.to_h
+      Digest::SHA256.hexdigest(ordered.to_json)
+    rescue JSON::GeneratorError
+      # Rack can accept binary multipart strings that JSON cannot encode. Keep
+      # their bytes and types so authorization and input validation can run.
+      # The NUL prefix separates this dump (never loaded) from legacy JSON;
+      # every request JSON can encode keeps its existing stored fingerprint.
+      Digest::SHA256.hexdigest("\0binary-params-v1\0".b + Marshal.dump(ordered.as_json))
     end
 
     # @return [Lalabase::Tools::Result, nil] a Result to return verbatim (the

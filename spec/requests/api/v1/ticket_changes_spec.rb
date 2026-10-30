@@ -88,12 +88,12 @@ RSpec.describe 'API V1 ticket changes', :ci_guard, type: :request do
 
   # Multipart, where a text part may name a charset of its own (Rack tags the
   # string with it); JSON and forms always arrive as UTF-8.
-  def change_multipart(name, type, bytes)
+  def change_multipart(name, type, bytes, key: nil, ticket_id: ticket.id)
     boundary = 'r3b-boundary'
     raw = "--#{boundary}\r\nContent-Disposition: form-data; name=\"change[#{name}]\"\r\nContent-Type: #{type}\r\n\r\n".b
     raw << bytes.b << "\r\n--#{boundary}--\r\n".b
-    post "/api/v1/tickets/#{ticket.id}/changes", params: raw,
-                                                 headers: headers(json: false).merge('Content-Type' => "multipart/form-data; boundary=#{boundary}")
+    post "/api/v1/tickets/#{ticket_id}/changes", params: raw,
+                                                 headers: headers(json: false, key: key).merge('Content-Type' => "multipart/form-data; boundary=#{boundary}")
   end
 
   def body = response.parsed_body
@@ -530,6 +530,33 @@ RSpec.describe 'API V1 ticket changes', :ci_guard, type: :request do
       expect(response).to have_http_status(:ok)
       expect(reloaded.title).to eq('Müller')
     end
+
+    it 'refuses binary bytes with an idempotency key and leaves the key free for a corrected retry' do
+      before = written
+      change_multipart('title', 'text/plain; charset=binary', "M\xFFller", key: 'binary-title')
+
+      expect_invalid_input('The change cannot be read as UTF-8.')
+      expect(written).to eq(before)
+
+      send_change({ title: 'Müller' }, key: 'binary-title')
+      expect(response).to have_http_status(:ok)
+      expect(reloaded.title).to eq('Müller')
+    end
+
+    it 'keeps the read gate ahead of keyed binary bytes' do
+      change_multipart('title', 'text/plain; charset=binary', "M\xFFller", key: 'binary-title', ticket_id: SecureRandom.uuid)
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.body).to eq('{"error":"not_found","code":"not_found"}')
+    end
+
+    it 'keeps the write permission ahead of keyed binary bytes' do
+      Prosopite.pause { in_org { ProjectPermission.find_by!(user: user, project: project).update!(tickets_access: :read_only) } }
+      change_multipart('title', 'text/plain; charset=binary', "M\xFFller", key: 'binary-title')
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.body).to eq('{"error":"forbidden","code":"forbidden"}')
+    end
   end
 
   describe 'rights and existence' do
@@ -686,6 +713,29 @@ RSpec.describe 'API V1 ticket changes', :ci_guard, type: :request do
       expect(response).to have_http_status(:not_found)
       expect(response.body).to eq('{"error":"not_found","code":"not_found"}')
       expect(ActsAsTenant.without_tenant { Ticket.where(title: 'Phantom') }).not_to exist
+    end
+  end
+
+  describe 'a ticket that moves after the write' do
+    { 'title' => { title: 'Renamed' }, 'status' => { status: 'wip' }, 'assignees' => { add_assignee_ids: ['me'] } }.each do |kind, fields|
+      it "does not disclose or cache the destination's data after the #{kind} change" do
+        elsewhere = Prosopite.pause { in_org { create(:project, organisation: organisation) } }
+        allow_any_instance_of(Tickets::Change).to receive(:write).and_wrap_original do |original, **kwargs|
+          original.call(**kwargs).tap do |outcome|
+            expect(outcome).to be_written
+            # The write released its lock. Another request moves the ticket
+            # into a project this caller cannot read, then changes its title.
+            Ticket.where(id: ticket.id).update_all(project_id: elsewhere.id, title: 'Private destination title')
+          end
+        end
+
+        send_change(fields, key: 'moved-before-response')
+
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).to eq('{"error":"not_found","code":"not_found"}')
+        expect(reloaded.title).to eq('Private destination title')
+        expect(McpIdempotencyKey.where(personal_access_token: pat)).not_to exist
+      end
     end
   end
 

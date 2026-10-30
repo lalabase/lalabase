@@ -51,6 +51,15 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
     post "/api/v1/tickets/#{ticket.id}/posts", params: { post: { body: body } }, headers: headers(key, token: token)
   end
 
+  def comment_with_binary_parameter(bytes)
+    boundary = 'binary-parameter'
+    raw = "--#{boundary}\r\nContent-Disposition: form-data; name=\"post[body]\"\r\n\r\nHallo\r\n".b
+    raw << "--#{boundary}\r\nContent-Disposition: form-data; name=\"ignored\"\r\nContent-Type: text/plain; charset=binary\r\n\r\n".b
+    raw << bytes.b << "\r\n--#{boundary}--\r\n".b
+    post "/api/v1/tickets/#{ticket.id}/posts", params: raw,
+                                               headers: headers('binary-parameter').merge('CONTENT_TYPE' => "multipart/form-data; boundary=#{boundary}")
+  end
+
   describe 'POST /api/v1/tickets/:ticket_id/posts' do
     it 'replays the first answer for a repeated key and writes once' do
       expect { comment('Hallo', key: 'k-1') }.to change { posts_count }.by(1)
@@ -125,6 +134,19 @@ RSpec.describe 'API V1 idempotency', :ci_guard, type: :request do
 
   describe 'the request the key belongs to' do
     let(:other_ticket) { create(:ticket, project: project, organisation: organisation, creator: user) }
+
+    it 'replays a successful write with ignored binary input, but refuses different bytes' do
+      expect { comment_with_binary_parameter("x\xFF") }.to change { posts_count }.by(1)
+      first = snapshot
+      expect(first.first).to eq(201)
+
+      expect { comment_with_binary_parameter("x\xFF") }.not_to(change { posts_count })
+      expect(snapshot).to eq(first)
+
+      expect { comment_with_binary_parameter("x\xFE") }.not_to(change { posts_count })
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body).to include('error' => 'idempotency_key_reused')
+    end
 
     # The ticket is in the path only: without the path in the fingerprint the
     # comment on the second ticket would get the first ticket's answer and never land.

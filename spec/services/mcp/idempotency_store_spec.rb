@@ -21,6 +21,34 @@ RSpec.describe Mcp::IdempotencyStore, :ci_guard do
   end
 
   describe '#replay' do
+    it 'keeps fingerprints stored before binary parameter support' do
+      McpIdempotencyKey.create!(personal_access_token: token, idempotency_key: 'old', tool_name: 'create_ticket',
+                                request_fingerprint: Digest::SHA256.hexdigest('{"a":1,"b":{"title":"Old"}}'),
+                                response_content: 'original answer')
+
+      expect(store(key: 'old', args: { b: { title: 'Old' }, a: 1 }).replay.content).to eq('original answer')
+    end
+
+    it 'replays nested binary parameters and distinguishes different bytes' do
+      store(key: 'binary', args: { change: { title: 'New' }, extra: ["x\xFF".b] }).remember('first')
+
+      expect(store(key: 'binary', args: { extra: ["x\xFF".b], change: { title: 'New' } }).replay.content).to eq('first')
+      expect(store(key: 'binary', args: { extra: ["x\xFE".b], change: { title: 'New' } }).replay.error).to match(/different parameters/)
+      expect(store(key: 'binary', args: { extra: ["x\uFFFD"], change: { title: 'New' } }).replay.error).to match(/different parameters/)
+    end
+
+    {
+      'a marker-shaped object' => { encoding: 'ASCII-8BIT', bytes: 'fe' },
+      'a marker-shaped list' => %w[ASCII-8BIT fe],
+      'the same bytes in another encoding' => "\xFE".dup.force_encoding('UTF-8')
+    }.each do |label, value|
+      it "keeps binary strings distinct from #{label}" do
+        store(key: 'binary', args: { extra: "\xFF".b, value: "\xFE".b }).remember('first')
+
+        expect(store(key: 'binary', args: { extra: "\xFF".b, value: value }).replay.error).to match(/different parameters/)
+      end
+    end
+
     it 'returns nil when the key has not been seen (caller should execute)' do
       expect(store(key: 'k', args: { a: 1 }).replay).to be_nil
     end

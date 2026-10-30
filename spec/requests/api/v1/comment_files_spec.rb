@@ -266,6 +266,31 @@ RSpec.describe 'Comment files in the ticket view', :ci_guard, type: :request do
     end
   end
 
+  # The list has no cap of its own. Cut without a word it would read like a file
+  # that lost its blob, beside a higher attachments_count. One more than a page of
+  # the ticket's files is the cap it would most likely get by mistake.
+  describe 'a comment with more files than a page of ticket files' do
+    let(:file_count) { Tickets::Reading::MAX_ATTACHMENTS + 1 }
+
+    before do
+      Prosopite.pause do
+        ActsAsTenant.with_tenant(organisation) do
+          (file_count - 1).times { |number| file(comments[:last], "anhang-#{number}.txt", 'text/plain') }
+        end
+      end
+    end
+
+    it 'lists every one of them on REST, as many as it counts' do
+      data = get_json(other, comment_path(:last))['data']
+      expect(data['attachments'].size).to eq(file_count)
+      expect(data['attachments_count']).to eq(file_count)
+    end
+
+    it 'lists every one of them on a page of MCP get_ticket' do
+      expect(listed_on(JSON.parse(mcp_ticket(other))['posts'], :last).size).to eq(file_count)
+    end
+  end
+
   # Prosopite watches every example here, and four files on three comments are
   # enough for it to speak. This one says what it would only imply: one read of
   # each table for a whole page.

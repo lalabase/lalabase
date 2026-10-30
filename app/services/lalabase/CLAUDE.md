@@ -1,4 +1,4 @@
-# Karte: app/services/lalabase (Stand: 2026-10-29)
+# Karte: app/services/lalabase (Stand: 2026-10-30)
 
 AI/RAG-Domäne (Produktname „Lalabase"): alles rund um LLM-Aufrufe, Embeddings und
 Codebase-Verständnis.
@@ -60,9 +60,14 @@ Codebase-Verständnis.
   Zuweisung über `Actors::ApplyTicketChanges` wie Board und Kopfmenü, Titel über
   `Actors::SaveTicket` ohne `assignee_ids` (das ersetzt die Liste), unter Zeilensperre im
   Projekt (`SaveTicket` sucht organisationsweit und baut für eine fehlende ID ein NEUES
-  Ticket). Unbekannte Argumente sind `invalid_input`. Schema bewusst flach, ohne `oneOf`:
+  Ticket). Unbekannte Argumente sind `invalid_input`. Die Regel, die Schreibwege und das
+  Einordnen der Ergebnisse liegen seit REST R3b in `Tickets::Change`, geteilt mit
+  `POST /api/v1/tickets/:id/changes`; im Werkzeug bleiben Argumente, Rechte, die Texte
+  (`REFUSAL_TEXT`, `FAILURE_TEXT`) und die Reihenfolge der Antworten: erst Schlüssel und
+  Kodierung (`unreadable?`), dann die eigene `ticket_id`, dann die Änderung
+  (`update_ticket_order_spec.rb`). Schema bewusst flach, ohne `oneOf`:
   der Go-Client erkennt Funktionen nur an den obersten `properties`. Den Titel prüfen
-  `create_ticket` und `update_ticket` gemeinsam (`tools/ticket_title.rb`): eine Zeile, höchstens
+  `create_ticket` und `Tickets::Change` gemeinsam (`tools/ticket_title.rb`): eine Zeile, höchstens
   255 Zeichen, unsichtbare und Steuerzeichen abgelehnt, nicht bereinigt.
   `post_comment` (MCP 0.11.0, terminal client S2b) takes optional `format`: `html`
   (default, unchanged ActionText input) or `plain`. `Posts::PlainTextBody` escapes

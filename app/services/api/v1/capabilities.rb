@@ -17,8 +17,8 @@ module Api
       # never: an existing name, field or meaning does not change. 1.2.0 added
       # the People API; 1.3.0 added the REST ticket view (R1); 1.4.0 adds
       # time_sessions.book (R6); 1.5.0 adds posts.plain (R3a); 1.6.0 adds
-      # knowledge.search (R2).
-      API_VERSION = '1.6.0'
+      # knowledge.search (R2); 1.7.0 adds tickets.changes (R3b).
+      API_VERSION = '1.7.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
@@ -34,6 +34,7 @@ module Api
         'tickets.by_number' => ['GET', '/api/v1/projects/:project_id/tickets/number/:number'],
         'tickets.show' => ['GET', '/api/v1/tickets/:id'],
         'tickets.update' => ['PATCH', '/api/v1/tickets/:id'],
+        'tickets.changes' => ['POST', '/api/v1/tickets/:id/changes'],
         'tickets.activities' => ['GET', '/api/v1/tickets/:id/activities'],
         'tickets.attachments' => ['GET', '/api/v1/tickets/:id/attachments'],
         'posts.create' => ['POST', '/api/v1/tickets/:ticket_id/posts'],

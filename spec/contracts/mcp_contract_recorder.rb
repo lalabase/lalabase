@@ -565,7 +565,49 @@ module McpContract
         # login ticket after every answer above, without advancing the clock.
         'POST /api/v1/tickets/:ticket_id/posts' => rest_comment_calls,
         # REST R2, appended last: reads only, over the deploy note of the website.
-        'GET /api/v1/projects/:project_id/knowledge' => rest_knowledge_calls
+        'GET /api/v1/projects/:project_id/knowledge' => rest_knowledge_calls,
+        # REST R3b, appended last: it changes the export and the login ticket
+        # after every answer above, without advancing the clock.
+        'POST /api/v1/tickets/:id/changes' => rest_ticket_change_calls
+      }
+    end
+
+    # Each request from its own line (Prosopite). The export ticket has Anna on
+    # it; on the login ticket Carla's assignment is stale (update_ticket_calls),
+    # so a change that does not name her leaves her there. user_not_assignable
+    # is left to a race, as on MCP: no case here.
+    def rest_ticket_change_calls
+      path = ->(ticket) { "/api/v1/tickets/#{id(ticket)}/changes" }
+      export = path.call(:export_ticket)
+      statuses = in_org { TicketAttributeDefinition.ordered_value_keys_for(@website, 'status') }
+      once = { change: { status: statuses.last } }
+      key = 'contract-rest-change-1'
+      {
+        'ok_status' => rest_send(:post, :write, export, params: { change: { status: statuses.first } }),
+        'ok_assign' => rest_send(:post, :write, export, params: { change: { add_assignee_ids: [id(:ben)] } }),
+        'ok_unassign' => rest_send(:post, :write, export, params: { change: { remove_assignee_ids: [id(:ben)] } }),
+        'ok_assign_and_unassign' => rest_send(:post, :write, export,
+                                              params: { change: { add_assignee_ids: [id(:ben)], remove_assignee_ids: ['me'] } }),
+        'ok_title' => rest_send(:post, :write, export, params: { change: { title: 'Export als CSV, XLSX und PDF' } }),
+        'ok_beside_stale' => rest_send(:post, :write, path.call(:login_ticket), params: { change: { remove_assignee_ids: [id(:ben)] } }),
+        'invalid_input_mixed' => rest_send(:post, :write, export, params: { change: { title: 'x', status: statuses.first } }),
+        'invalid_input_unknown_key' => rest_send(:post, :write, export, params: { change: { priority: 'low' } }),
+        'invalid_input_no_change' => rest_send(:post, :write, export, params: {}),
+        'invalid_input_title' => rest_send(:post, :write, export, params: { change: { title: "zwei\nZeilen" } }),
+        'invalid_input_same_person' => rest_send(:post, :write, export,
+                                                 params: { change: { add_assignee_ids: ['me'], remove_assignee_ids: [id(:anna)] } }),
+        'refused_status' => rest_send(:post, :write, export, params: { change: { status: 'erledigt' } }),
+        'refused_person' => rest_send(:post, :write, export, params: { change: { add_assignee_ids: [id(:missing)] } }),
+        'refused_no_status_field' => rest_send(:post, :write, path.call(:internal_ticket), params: { change: { status: statuses.first } }),
+        'not_found' => rest_send(:post, :write, path.call(:missing), params: { change: { status: statuses.first } }),
+        # No read access to the ticket: answered like a missing one.
+        'hidden' => rest_send(:post, :write, path.call(:hidden_ticket), params: { change: { status: statuses.first } }),
+        # Anna reads the archive's tickets, she may not write them.
+        'forbidden' => rest_send(:post, :write, path.call(:archived_ticket), params: { change: { status: statuses.first } }),
+        'read_only' => rest_send(:post, :read, export, params: { change: { status: statuses.first } }),
+        'idempotency_first' => rest_send(:post, :write, export, params: once, key: key),
+        'idempotency_replay' => rest_send(:post, :write, export, params: once, key: key),
+        'idempotency_mismatch' => rest_send(:post, :write, export, params: { change: { status: statuses.first } }, key: key)
       }
     end
 

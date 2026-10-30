@@ -626,7 +626,7 @@ RSpec.describe 'API V1 Write Endpoints', :ci_guard, type: :request do
     def request_write(verb, path_spec, controller)
       record_id = controller == 'api/v1/notifications' ? notification.id : ticket.id
       path = path_spec.gsub(':project_id', project.id).gsub(':ticket_id', ticket.id).gsub(':id', record_id)
-      params = { ticket: { title: 'Written anyway' }, post: { body: 'Written anyway' },
+      params = { ticket: { title: 'Written anyway' }, post: { body: 'Written anyway' }, change: { title: 'Written anyway' },
                  time_session: { occurred_on: '2026-05-20T10:00:00Z', duration_minutes: 30 } }
       process verb.downcase.to_sym, path, params: params, headers: auth_headers
     end

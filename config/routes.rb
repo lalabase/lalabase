@@ -945,6 +945,8 @@ Rails.application.routes.draw do
         member do
           get :activities
           get :attachments
+          # REST R3b: one change, by the rule of the MCP tool update_ticket.
+          post :changes
         end
         resources :time_sessions, only: %i[index create]
         resources :posts, only: %i[create show]

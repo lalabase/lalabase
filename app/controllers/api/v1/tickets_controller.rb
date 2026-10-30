@@ -5,7 +5,7 @@ module Api
     class TicketsController < BaseController
       include Api::V1::ReadableTicket
 
-      idempotent :create, :update
+      idempotent :create, :update, :changes
 
       # Raised while the paging options are read, before any ticket is looked
       # up: the 422 does not depend on whether the ticket exists.
@@ -110,6 +110,33 @@ module Api
           else
             render_actor_failure(result)
           end
+        end
+      end
+
+      # POST /api/v1/tickets/:id/changes
+      #
+      # One change per request by the rule the MCP tool update_ticket changes by
+      # (Tickets::Change, REST R3b): change[title], change[status], or
+      # change[add_assignee_ids] and change[remove_assignee_ids] against the
+      # current list. PATCH stays as it is: its assignee_ids REPLACE the list.
+      #
+      # Missing, foreign and unreadable tickets answer the same 404 whatever the
+      # input, a ticket the token may not write the same 403: the input is read
+      # after both, so a refusal of it only ever answers a caller who may write.
+      # Only a body Rails cannot read comes first, a 400 for every ticket alike.
+      def changes
+        with_readable_ticket(params[:id]) do |ticket, project|
+          authorize ticket, :update?
+
+          change = Tickets::Change.parse(change_input, actor: current_user)
+          next render_change_refusal(change) if change.refused?
+
+          outcome = change.write(ticket: ticket, project: project)
+          # It left the project, or was deleted, after the lookup: as if never found.
+          raise ActiveRecord::RecordNotFound if outcome.gone?
+          next render_change_failure(outcome) unless outcome.written?
+
+          render json: { data: ticket_serializer.summary(ticket.reload) }
         end
       end
 
@@ -223,6 +250,39 @@ module Api
         mapped[:custom_attributes] = (ticket.custom_attributes || {}).merge('status' => attrs[:status].to_s) if attrs.key?(:status)
         mapped[:assignee_ids] = attrs[:assignee_ids] if attrs.key?(:assignee_ids)
         mapped
+      end
+
+      # --- Change helpers --------------------------------------------------
+
+      # The keys and values as they came: strong parameters would drop a list
+      # where a text belongs and a key nobody permitted, and the rule refuses
+      # both. A change that is no object is none at all. As they came, up to
+      # Rails, which drops a JSON null from a list on the way into params: it
+      # names nobody, so nobody is added or removed for it.
+      def change_input
+        input = params[:change]
+        input.is_a?(ActionController::Parameters) ? input.to_unsafe_h : {}
+      end
+
+      # What the request alone decides: 422 invalid_input, in the form of the
+      # comment's and the booking's refusals.
+      def render_change_refusal(change)
+        render_error(error: 'validation_failed',
+                     errors: [I18n.t("services.ticket_change.#{change.refusal}", **change.refusal_details)],
+                     status: :unprocessable_entity)
+      end
+
+      # What the project's state decides: 422 refused with its reason, which
+      # `error` carries as it does for every other refused actor code. The code
+      # is named: Api::V1::ErrorBody reads a `validation_failed` as invalid input,
+      # and here the input was fine. A failure the rule does not name answers
+      # 500 without a text, which may be an exception's.
+      def render_change_failure(outcome)
+        return render_error(error: 'internal_error', status: :internal_server_error) if outcome.unexpected?
+
+        render_error(error: outcome.reason, code: 'refused', reason: outcome.reason,
+                     errors: [I18n.t("services.ticket_change_failure.#{outcome.failure}"), *outcome.messages],
+                     status: :unprocessable_entity)
       end
 
       # --- Loaders ---------------------------------------------------------

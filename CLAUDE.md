@@ -817,7 +817,9 @@ feature by feature):
   `spec/requests/api/mcp_idempotency_key_bound_spec.rb`; it used to write, fail to remember
   the key with -32603 and write again on every retry). A replay checks no rights
   (it repeats what the same token already got; keys do not expire), and a retry must send
-  the same bytes. Every write route must be `idempotent`
+  the same bytes. Multipart bytes Rack accepts but JSON cannot encode are fingerprinted
+  without decoding, so the action still applies its permissions and input validation.
+  Existing JSON fingerprints stay unchanged. Every write route must be `idempotent`
   (`spec/architecture/api_v1_writes_idempotent_guard_spec.rb`).
 * **`GET /api/v1/me`** names `api_version` and `capabilities` from `Api::V1::Capabilities`,
   pinned against the routes both ways (`spec/requests/api/v1/capabilities_spec.rb`): a new

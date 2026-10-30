@@ -79,6 +79,9 @@ others find it.
 - **MCP server and REST API.** Connect Claude, Cursor or your own agent with a personal access
   token: list, create and update tickets, comment, log time, search the knowledge base, read the
   inbox, and look things up in the indexed code of your repositories.
+- **Terminal client.** [Lalabase CLI](https://github.com/lalabase/lalabase-cli) is a separate
+  program for macOS and Linux, for people who live in the terminal: work through the inbox, read
+  and answer tickets, book time, hand a ticket to Claude Code and keep an eye on the running agents.
 
 ## Built with
 

@@ -61,10 +61,11 @@ class User < ApplicationRecord
 
     private
 
-    # Bit-identical to the historic User#display_name: stripped full name,
-    # email local part when both name parts are blank.
+    # Stripped full name; without one, the local part of the email the member
+    # shows to others (User::EmailDisplay), never of a hidden login address.
+    # A member who shows no email and has no name reads as a neutral word.
     def default_display_name
-      full_name.strip.presence || email.split('@').first
+      full_name.strip.presence || shown_email&.split('@')&.first.presence || I18n.t('users.unnamed')
     end
 
     def name_initial(part)

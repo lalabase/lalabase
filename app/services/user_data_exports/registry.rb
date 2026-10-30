@@ -62,6 +62,7 @@ module UserDataExports
       # ── global (ZIP root) ────────────────────────────────────────────────
       source(key: :account, model: 'User', tenant_scoped: false,
              attributes: %w[email first_name last_name language_preference timezone
+                            email_visibility contact_email
                             session_timeout_minutes active terms_accepted_at created_at
                             scheduled_deletion_at deletion_canceled_at deletion_recommended],
              scope: ->(user) { User.where(id: user.id) }),

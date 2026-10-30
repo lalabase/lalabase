@@ -86,6 +86,10 @@ class User < ApplicationRecord
       self.remember_created_at = nil
       self.unconfirmed_email = nil
       self.confirmation_token = nil
+      # The contact address is the member's own data like the login address;
+      # an erased member shows no email at all (User::EmailDisplay).
+      self.contact_email = nil
+      self.email_visibility = 'none'
       # :lockable belongs to the "credential/recovery fields" promised blank
       # above; a live unlock token on an erased row is a credential like any
       # other (survived both paths until 2026-08-24).

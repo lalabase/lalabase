@@ -47,6 +47,22 @@ RSpec.describe SmartFolderHelper, type: :helper do
       expect(ids).not_to include(foreigner.id)
     end
 
+    # By name, not by email: the list is cut at 50, so an order by email would
+    # decide who appears by the alphabet of addresses a member may hide.
+    it 'orders the people by name, not by their login address' do
+      zora = create(:user, first_name: 'Zora', last_name: 'Alpha', email: 'zz-login@example.com')
+      anna = create(:user, first_name: 'Anna', last_name: 'Zeta', email: 'aa-login@example.com')
+      [zora, anna].each do |user|
+        create(:membership, user: user, organisation: organisation, role: standard_role, active: true)
+        create(:project_permission, user: user, project: project_a, tickets_access: 'read_only')
+      end
+
+      ids = helper.available_reference_options('assignee', organisation, project: project_a,
+                                                                         accessible_project_ids: [project_a.id]).map { |o| o[:value] }
+
+      expect(ids.index(zora.id)).to be < ids.index(anna.id)
+    end
+
     it 'includes the current user and project colleagues, scoped to the passed projects' do
       colleague = member_in
       create(:project_permission, user: colleague, project: project_a, tickets_access: 'read_only')

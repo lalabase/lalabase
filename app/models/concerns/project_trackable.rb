@@ -18,8 +18,11 @@ module ProjectTrackable
       action: 'member_added',
       secondary: user,
       parameters: {
+        # No email: the row is shown and searched by everyone who reads the
+        # project's activities, and a member chooses which email the others see
+        # (User::EmailDisplay). Older rows may still carry `user_email`; the
+        # activity search leaves that key out.
         user_name: user.full_name,
-        user_email: user.email,
         tickets_access: permission_details[:tickets_access],
         notes_access: permission_details[:notes_access],
         documents_access: permission_details[:documents_access],

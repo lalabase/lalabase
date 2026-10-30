@@ -462,7 +462,6 @@ de:
         account_locked: "Account gesperrt%{lock_reason}"
         account_unlocked: "Account entsperrt"
         email_changed: "E-Mail-Adresse geändert"
-        email_changed_detail: "E-Mail geändert von %{old_email} zu %{new_email}"
         role_changed: "Rolle '%{role_name}' %{action_text}"
         role_changed_no_name: "Rolle %{action_text}"
         role_action_assigned: "zugewiesen"
@@ -526,3 +525,6 @@ de:
         status:
           active: "Aktiv"
           inactive: "Inaktiv"
+  users:
+    # A member with neither a name nor a shown email (User::NameDisplay).
+    unnamed: "Mitglied ohne Namen"

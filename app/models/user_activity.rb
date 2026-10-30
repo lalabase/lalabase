@@ -308,14 +308,11 @@ class UserActivity < ApplicationRecord
     I18n.t('models.user_activity.descriptions.location_info', ip: ip_address)
   end
 
+  # Names no address: organisation admins read this log on the member's
+  # activity page, and a member chooses which email the others see
+  # (User::EmailDisplay).
   def email_change_description
-    if attribute_changes['email'].present?
-      I18n.t('models.user_activity.descriptions.email_changed_detail',
-             old_email: attribute_changes['email'][0],
-             new_email: attribute_changes['email'][1])
-    else
-      I18n.t('models.user_activity.descriptions.email_changed')
-    end
+    I18n.t('models.user_activity.descriptions.email_changed')
   end
 
   def role_change_description(action_text)

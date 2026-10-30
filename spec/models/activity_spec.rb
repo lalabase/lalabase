@@ -568,23 +568,6 @@ RSpec.describe Activity, type: :model do
       end
     end
 
-    describe '#assignee_email' do
-      it 'returns email for assignment actions' do
-        activity = create_activity(action: 'assigned', key: 'ticket.assigned', secondary: assignee)
-        expect(activity.assignee_email).to eq(assignee.email)
-      end
-
-      it 'returns nil for non-assignment actions' do
-        activity = create_activity(action: 'created')
-        expect(activity.assignee_email).to be_nil
-      end
-
-      it 'returns nil when secondary is nil' do
-        activity = create_activity(action: 'assigned', key: 'ticket.assigned', secondary: nil)
-        expect(activity.assignee_email).to be_nil
-      end
-    end
-
     describe '#subscriber_display_name' do
       it 'returns display_name for subscriber_added' do
         activity = create_activity(action: 'subscriber_added', key: 'ticket.subscriber_added', secondary: assignee)

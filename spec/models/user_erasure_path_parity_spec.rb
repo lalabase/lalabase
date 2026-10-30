@@ -350,7 +350,8 @@ RSpec.describe 'Account erasure path parity', type: :model do
       { first_name: 'Max', last_name: 'Mustermann', unconfirmed_email: 'max.neu@example.com',
         confirmation_token: "pending-#{user.id}", reset_password_token: "reset-#{user.id}",
         reset_password_sent_at: 1.hour.ago, remember_created_at: 1.day.ago,
-        unlock_token: "unlock-#{user.id}", locked_at: 30.minutes.ago, failed_attempts: 3 }
+        unlock_token: "unlock-#{user.id}", locked_at: 30.minutes.ago, failed_attempts: 3,
+        email_visibility: 'contact', contact_email: 'max.kontakt@example.com' }
     end
 
     before do
@@ -389,7 +390,9 @@ RSpec.describe 'Account erasure path parity', type: :model do
       rows.each do |row|
         expect(row.attributes.slice('unconfirmed_email', 'confirmation_token', 'reset_password_token',
                                     'reset_password_sent_at', 'remember_created_at', 'unlock_token',
-                                    'locked_at').values).to all(be_nil)
+                                    'locked_at', 'contact_email').values).to all(be_nil)
+        # An erased member shows no email at all, not even the tombstone address.
+        expect(row.email_visibility).to eq('none')
         expect(row.failed_attempts).to eq(0)
         expect(row.encrypted_password).to eq('')
         expect([row.first_name, row.last_name]).to all(eq(User::DeletionLifecycle::ANONYMIZED_NAME))

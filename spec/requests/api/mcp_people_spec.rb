@@ -205,6 +205,16 @@ RSpec.describe 'MCP people tools', :ci_guard, type: :request do
       expect(data(person("member:#{colleague.id}"))).to include('name' => 'Carl Kollege', 'email' => 'carl@example.com')
     end
 
+    it 'answers the email a member shows to others, never a hidden login address' do
+      colleague.update!(email_visibility: 'contact', contact_email: 'carl.team@example.com')
+      expect(data(person("member:#{colleague.id}"))).to include('name' => 'Carl Kollege', 'email' => 'carl.team@example.com')
+
+      colleague.update!(email_visibility: 'none')
+      result = person("member:#{colleague.id}")
+      expect(data(result)).to include('name' => 'Carl Kollege', 'email' => nil)
+      expect(text(result)).not_to include('carl@example.com')
+    end
+
     # Like get_ticket on this surface: a record that is not there is an empty answer, the same
     # for a missing, a foreign and an invisible id; not_found is kept for the organisation.
     it 'answers a missing, a foreign and an invisible person alike' do

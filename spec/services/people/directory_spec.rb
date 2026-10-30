@@ -91,6 +91,21 @@ RSpec.describe People::Directory, :ci_guard do
     expect(names(entries(query: 'versteckt'))).to eq([])
   end
 
+  # The member chooses which email the others see (User::EmailDisplay). A search
+  # must not confirm a hidden login address.
+  it 'searches the email a member shows, never a hidden login address' do
+    colleague.update!(email_visibility: 'contact', contact_email: 'carl.team@example.com')
+
+    expect(names(entries(query: 'carl.team'))).to eq(['Carl Kollege'])
+    expect(names(entries(query: colleague.email))).to eq([])
+  end
+
+  it 'finds no email of a member who shows none' do
+    colleague.update!(email_visibility: 'none')
+
+    expect(names(entries(query: colleague.email))).to eq([])
+  end
+
   # One directory per example: each call resolves the viewer's reach once, and
   # Prosopite would read a second call as an N+1.
   {
@@ -343,6 +358,16 @@ RSpec.describe People::Directory, :ci_guard do
         expect(entry(kind: :member, user: user, person: build(:person, **bare)).detail).to eq('carl@example.com')
         expect(entry(kind: :member, user: user).detail).to eq('carl@example.com')
         expect(entry(kind: :contact, person: build(:person, email: 'doris@example.com', **bare)).detail).to be_nil
+      end
+
+      it 'is the email a member shows to others, and falls through when they show none' do
+        bare = { function: nil, company: nil }
+        contact = build(:user, email: 'carl@example.com', email_visibility: 'contact', contact_email: 'carl.team@example.com')
+        hidden = build(:user, email: 'carl@example.com', email_visibility: 'none')
+
+        expect(entry(kind: :member, user: contact).detail).to eq('carl.team@example.com')
+        expect(entry(kind: :member, user: hidden).detail).to be_nil
+        expect(entry(kind: :member, user: hidden, person: build(:person, salutation: 'Herr', **bare)).detail).to eq('Herr')
       end
 
       # Two contacts named "Müller" without function or company: the salutation

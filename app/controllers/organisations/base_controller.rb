@@ -92,7 +92,7 @@ class Organisations::BaseController < ApplicationController
     violation = Subscriptions::GuestCeiling.new(account).violation_for(user)
     return unless violation
 
-    flash[:warning] = t('shared.guest_ceiling.exceeded_hint', user: user.full_name.presence || user.email)
+    flash[:warning] = t('shared.guest_ceiling.exceeded_hint', user: user.display_name)
   rescue StandardError => e
     # Best-effort by design: the triggering write has already committed when
     # this runs, so a detection failure (broken sibling-org data in the same

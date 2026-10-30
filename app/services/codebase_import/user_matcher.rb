@@ -61,7 +61,11 @@ class CodebaseImport::UserMatcher
     # 2. Similar email addresses (same domain, from pre-loaded users)
     if email.present?
       domain = email.split('@').last
-      similar_emails = active_users.select { |u| u.email != email && u.email&.end_with?("@#{domain}") }
+      # The email each member shows to others (User::EmailDisplay), not the
+      # login address: the preview names the member next to the match, which
+      # would confirm the domain of a hidden address. The exact match above
+      # stays on the login address, it is how an import finds the account.
+      similar_emails = active_users.select { |u| u.email != email && u.shown_email&.end_with?("@#{domain}") }
                                    .first(3)
 
       similar_emails.each do |user|

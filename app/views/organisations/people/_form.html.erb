@@ -72,7 +72,7 @@
     <div class="people-form__field">
       <%= f.label :email %>
       <% if member %>
-        <%= email_field_tag 'person_email_locked', member.email, id: 'person_email', readonly: true, disabled: true, autocomplete: 'off',
+        <%= email_field_tag 'person_email_locked', member.shown_email, id: 'person_email', readonly: true, disabled: true, autocomplete: 'off',
                                                                  class: 'people-input people-input--locked' %>
       <% else %>
         <%= f.email_field :email, class: 'people-input', maxlength: Person::MAX_FIELD_LENGTH,

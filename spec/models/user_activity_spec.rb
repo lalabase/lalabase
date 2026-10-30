@@ -557,12 +557,15 @@ RSpec.describe UserActivity, type: :model do
       expect(activity.description).to eq(I18n.t('models.user_activity.descriptions.logout'))
     end
 
-    it 'returns email_changed description with change details' do
+    # An organisation admin reads this log on the member's activity page, and a
+    # member chooses which email the others see (User::EmailDisplay): the
+    # description names no address, even when the change details are stored.
+    it 'returns the generic email_changed description even with change details' do
       activity = build(:user_activity, user: user, organisation: organisation,
                                        action: 'email_changed', category: 'profile',
                                        attribute_changes: { 'email' => %w[old@test.com new@test.com] })
-      expect(activity.description).to include('old@test.com')
-      expect(activity.description).to include('new@test.com')
+      expect(activity.description).to eq(I18n.t('models.user_activity.descriptions.email_changed'))
+      expect(activity.description).not_to include('old@test.com', 'new@test.com')
     end
 
     it 'returns generic email_changed description without change details' do

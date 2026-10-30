@@ -637,6 +637,16 @@ RSpec.describe NeoFilterBarComponent, type: :component do
       expect(labels[referenced_user.id]).to eq(referenced_user.display_name)
     end
 
+    # A user without a name is labelled like everywhere else, never by a hidden
+    # login address (User::EmailDisplay).
+    it 'never labels a nameless user by a hidden login address' do
+      referenced_user.update!(first_name: nil, last_name: nil, email: 'ghost-login@example.com', email_visibility: 'none')
+
+      labels = JSON.parse(build(ad_hoc_filters: { 'assignee' => [referenced_user.id] }).send(:value_labels_json))
+
+      expect(labels[referenced_user.id]).to eq(I18n.t('users.unnamed'))
+    end
+
     it 'maps a creator user-id to the user display name' do
       labels = JSON.parse(build(ad_hoc_filters: { 'creator' => [referenced_user.id] }).send(:value_labels_json))
       expect(labels[referenced_user.id]).to eq(referenced_user.display_name)

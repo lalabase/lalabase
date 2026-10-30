@@ -123,7 +123,7 @@ export default class extends Controller {
         <i class="bi bi-person text-gray-400" style="font-size: 14px;"></i>
         <div>
           <div class="font-medium text-gray-800">${this._escapeHtml(user.name)}</div>
-          <div class="text-xs text-gray-400">${this._escapeHtml(user.email)}</div>
+          ${user.email ? `<div class="text-xs text-gray-400">${this._escapeHtml(user.email)}</div>` : ""}
         </div>
       </button>
     `).join("")

@@ -163,11 +163,13 @@ class Organisations::Projects::ActivitiesController < Organisations::BaseControl
       <<~SQL.squish,
         activities.action ILIKE :pattern OR
         activities.key ILIKE :pattern OR
-        CAST(activities.parameters AS TEXT) ILIKE :pattern OR
+        CAST(activities.parameters - ARRAY[:stored_email_keys]::text[] AS TEXT) ILIKE :pattern OR
         (activities.trackable_type = 'Ticket' AND activities.trackable_id IN (:ticket_ids)) OR
         (activities.secondary_type = 'Ticket' AND activities.secondary_id IN (:ticket_ids))
       SQL
       pattern:,
+      # Older rows may still hold a member's login address (Activity::STORED_EMAIL_KEYS).
+      stored_email_keys: Activity::STORED_EMAIL_KEYS,
       ticket_ids: matching_tickets
     )
   end

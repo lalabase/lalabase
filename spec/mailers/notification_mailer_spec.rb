@@ -42,6 +42,14 @@ RSpec.describe NotificationMailer, type: :mailer do
     it 'is addressed to the recipient' do
       expect(described_class.index_completed(notification('index_completed')).to).to eq(['dev@example.com'])
     end
+
+    # The contact address is only shown to others (User::EmailDisplay); Lalabase
+    # never mails to it, whatever the member chose.
+    it 'goes to the login address, also when the member shows a contact address' do
+      recipient.update!(email_visibility: 'contact', contact_email: 'dev.team@example.com')
+
+      expect(described_class.index_completed(notification('index_completed')).to).to eq(['dev@example.com'])
+    end
   end
 
   describe '#tickets_bulk_changed' do

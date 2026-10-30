@@ -179,9 +179,14 @@ module SmartFolderHelper
         end
       end
 
-      # Optional: sort the options sensibly
-      sort_column = %i[name title email].find { |col| model_class.column_names.include?(col.to_s) } || model_class.primary_key
-      records = base_scope.order(sort_column)
+      # Optional: sort the options sensibly. People by name, never by email: the
+      # list is cut at 50 below, and an order by email would decide who appears
+      # by the alphabet of addresses a member may hide (User::EmailDisplay).
+      records = if model_class == User
+                  base_scope.order(:last_name, :first_name, :id)
+                else
+                  base_scope.order(%i[name title].find { |col| model_class.column_names.include?(col.to_s) } || model_class.primary_key)
+                end
 
       # Filter by search term, if one is present
       records = records.where('name ILIKE ?', "%#{search_term}%") if search_term.present? && model_class.column_names.include?('name')

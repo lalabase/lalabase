@@ -117,12 +117,13 @@ class Organisations::MembershipsController < Organisations::BaseController
     @invitations = policy_scope(Invitation).pending.order(sent_at: :desc)
     @roles = policy_scope(Role).order(:title).to_a if current_user.account_admin_in?(current_organisation)
     query = params[:q].to_s.strip.downcase
-    @memberships.select! { |member| [member.user.full_name, member.user.email].any? { |value| value.to_s.downcase.include?(query) } } if query.present?
+    # The shown email only (User::EmailDisplay): a hidden login address is neither matched nor sorted by.
+    @memberships.select! { |member| [member.user.full_name, member.user.shown_email].any? { |value| value.to_s.downcase.include?(query) } } if query.present?
     @memberships.sort_by! do |member|
       case params[:sort]
       when 'role' then [helpers.membership_role_name(member.role).downcase, member.user.full_name.to_s.downcase, member.id]
       when 'since' then [member.created_at, member.id]
-      else [helpers.viewer_display_name(member.user).downcase, member.user.email, member.id]
+      else [helpers.viewer_display_name(member.user).downcase, member.user.shown_email.to_s, member.id]
       end
     end
     @memberships.reverse! if params[:direction] == 'desc'

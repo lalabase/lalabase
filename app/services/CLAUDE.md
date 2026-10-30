@@ -163,7 +163,9 @@ Verzeichnis-Übersicht (Auswahl):
 * `people/` — `directory.rb`, das Lese-Objekt der Personenliste (seit 26.10.2026): Mitglieder
   über `MembershipPolicy::Scope` (dieselbe Reichweite wie die Mitgliederseite), dazu die
   Zeilen ohne aktives Mitglied als Kontakte; Suche in Ruby über `PersonName.normalize`.
-  Rechte nur über `PersonPolicy`, keine eigene Regel daneben.
+  Rechte nur über `PersonPolicy`, keine eigene Regel daneben. Die E-Mail eines Mitglieds
+  (Zeile unter dem Namen, Suche, Karte in `lookup.rb`) ist immer `User#shown_email`: eine
+  verborgene Login-Adresse wird weder gezeigt noch gesucht (29.10.2026).
   `contacts.rb` (S2a, 26.10.2026): Meetings einer Person (`person_id` ODER `user_id` des
   Mitglieds) und „Letzter Kontakt“ einer ganzen Liste in fester Abfragezahl. Lesbar nur über
   `MeetingPolicy::Scope`, `TicketPolicy::Scope`, `Post.readable_by` und `Activity.feed`; bei

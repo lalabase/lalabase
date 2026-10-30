@@ -90,6 +90,17 @@ RSpec.describe CodebaseImport::UserMatcher do
         expect(similar_matches.first[:confidence]).to eq(:medium)
         expect(similar_matches.first[:reason]).to include('example.com')
       end
+
+      # The domain of a hidden login address is not offered: the preview would
+      # name the member next to it and so confirm where they sign in.
+      it 'compares the email each member shows, never a hidden login address' do
+        domain_user.update!(email_visibility: 'none')
+        existing_user.update!(email_visibility: 'contact', contact_email: 'john.team@example.com')
+
+        similar = matcher.send(:find_potential_matches, user_data).select { |m| m[:match_type] == :similar_email }
+
+        expect(similar.map { |m| m[:user] }).to contain_exactly(existing_user)
+      end
     end
 
     context 'with similar names' do

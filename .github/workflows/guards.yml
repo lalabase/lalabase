@@ -199,6 +199,8 @@ jobs:
           spec/lib/tasks/chats_purge_legacy_threads_spec.rb
           spec/lib/tasks/chats_scope_project_cleanup_spec.rb
           spec/lib/tasks/data_backfills_spec.rb
+          spec/lib/tasks/activities_drop_stored_emails_spec.rb
+          spec/presenters/inbox/activity_line_spec.rb
           spec/mailers/
           spec/middleware/active_storage_tenant_bypass_spec.rb
           spec/migrations/remove_ticket_id_from_chats_spec.rb
@@ -239,6 +241,7 @@ jobs:
           spec/models/time_sessions/list_filters_spec.rb
           spec/models/membership_spec.rb
           spec/models/user/avatar_spec.rb
+          spec/models/user/email_display_spec.rb
           spec/models/user/name_display_spec.rb
           spec/models/user/preference_store_spec.rb
           spec/models/user/preferences_form_spec.rb
@@ -333,6 +336,8 @@ jobs:
           spec/requests/organisations/meetings_overview_create_spec.rb
           spec/models/person_spec.rb
           spec/requests/organisations/people_spec.rb
+          spec/requests/organisations/shown_email_spec.rb
+          spec/requests/user_preferences_email_visibility_spec.rb
           spec/services/people/directory_spec.rb
           spec/services/people/contacts_spec.rb
           spec/services/people/lookup_spec.rb

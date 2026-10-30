@@ -41,6 +41,23 @@ RSpec.describe Overview::ActivityFeedComponent, type: :component do
     expect(page).to have_text(I18n.t('dashboard.briefing.sections.activity.title'))
   end
 
+  # A nameless actor is named like everywhere else, never by the part before the
+  # @ of a hidden login address (User::EmailDisplay).
+  it 'never names a nameless actor by a hidden login address' do
+    ghost = build(:user, first_name: nil, last_name: nil, email: 'ghost-login@example.com', email_visibility: 'none')
+    group = instance_double(Dashboard::BriefingActivityGroup,
+                            icon: 'pencil', css_class: 'text-cobalt-600', trackable: nil,
+                            trackable_display_name: 'Some note', headline_action: 'updated',
+                            secondary_count: 0, actor: ghost, latest_at: 1.hour.ago)
+    allow(briefing).to receive(:recent_activities_others).and_return([group])
+
+    render_inline(build_component)
+
+    expect(page).to have_text('Some note')
+    expect(page).to have_text(I18n.t('users.unnamed'))
+    expect(page).to have_no_text('ghost-login')
+  end
+
   it 'passes an explicit whitelisted limit through to the briefing' do
     expect(briefing).to receive(:recent_activities_others).with(limit: 10).and_return([])
     render_inline(build_component(limit: 10))

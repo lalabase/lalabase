@@ -115,14 +115,14 @@ module Organisations
       users = accessible.where.not(id: subscribed_user_ids)
 
       if params[:q].present?
-        query = "%#{params[:q].downcase}%"
-        users = users.where(
-          'LOWER(first_name) LIKE :q OR LOWER(last_name) LIKE :q OR LOWER(email) LIKE :q',
-          q: query
-        )
+        query = "%#{User.sanitize_sql_like(params[:q].downcase)}%"
+        # Names, and the email each member shows to others (User::EmailDisplay):
+        # a hidden login address is never matched, so the picker cannot confirm it.
+        by_name = users.where('LOWER(first_name) LIKE :q OR LOWER(last_name) LIKE :q', q: query)
+        users = by_name.or(users.merge(User.matching_shown_email(params[:q])))
       end
 
-      render json: users.limit(20).map { |u| { id: u.id, name: u.full_name, email: u.email } }
+      render json: users.limit(20).map { |u| { id: u.id, name: u.display_name, email: u.shown_email } }
     end
 
     private

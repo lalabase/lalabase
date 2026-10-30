@@ -62,6 +62,14 @@ RSpec.describe UserDataExports::Builder,
 
   # The README is rendered in a job with no request, so it must read the
   # configured absolute privacy URL directly.
+  it 'exports which email the member shows and the contact address' do
+    user.update!(email_visibility: 'contact', contact_email: 'kontakt@example.com')
+    account = JSON.parse(described_class.new(user).files['account.json'])
+    row = account.is_a?(Array) ? account.first : account
+
+    expect(row).to include('email_visibility' => 'contact', 'contact_email' => 'kontakt@example.com')
+  end
+
   it 'uses the configured privacy URL, never a renderer default' do
     expect(files['README.txt']).to include('https://public.example/datenschutz')
     expect(files['README.txt']).not_to include('example.org')

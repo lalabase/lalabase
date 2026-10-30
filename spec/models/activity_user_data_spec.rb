@@ -74,7 +74,9 @@ RSpec.describe 'Activity user data handling', type: :model do
 
         # Helper methods should retrieve data from association
         expect(activity.assignee_display_name).to eq(assignee.full_name)
-        expect(activity.assignee_email).to eq(assignee.email)
+        # No email reader: an activity is shown to everyone who reads the
+        # ticket, and a member chooses which email the others see.
+        expect(activity).not_to respond_to(:assignee_email)
       end
 
       it 'handles deleted users gracefully' do
@@ -87,7 +89,6 @@ RSpec.describe 'Activity user data handling', type: :model do
 
         # Should return fallback for deleted user
         expect(activity.assignee_display_name).to eq(I18n.t('activities.deleted_user'))
-        expect(activity.assignee_email).to be_nil
       end
     end
 

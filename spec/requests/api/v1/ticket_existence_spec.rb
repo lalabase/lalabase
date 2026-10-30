@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-# Missing and unreadable UUIDs have the same HTTP contract on all seven ticket
+# Missing and unreadable UUIDs have the same HTTP contract on all eight ticket
 # member routes. Query counts deliberately differ: tenant discovery reads only
 # the two routing IDs before the scoped lookup. Each example sends one request.
 RSpec.describe 'REST ticket existence', :ci_guard, type: :request do
@@ -74,7 +74,8 @@ RSpec.describe 'REST ticket existence', :ci_guard, type: :request do
     [:get, '/attachments', {}],
     [:get, '/time_sessions', {}],
     [:post, '/time_sessions', { time_session: { duration_minutes: 30 } }],
-    [:post, '/posts', { post: { body: 'A public comment' } }]
+    [:post, '/posts', { post: { body: 'A public comment' } }],
+    [:post, '/changes', { change: { title: 'Renamed by an admin' } }]
   ]
 
   routes.each do |verb, suffix, payload|
@@ -112,10 +113,12 @@ RSpec.describe 'REST ticket existence', :ci_guard, type: :request do
           expect_any_instance_of(TicketPolicy).to receive(:show?).and_call_original
           before = domain_state
           request_ticket(verb, suffix, payload)
-          expect(response).to have_http_status(verb == :post ? :created : :ok)
+          expect(response).to have_http_status(verb == :post && suffix != '/changes' ? :created : :ok)
           after = domain_state
           if verb == :patch
             expect(after.first.fetch('custom_attributes').fetch('status')).to eq('closed')
+          elsif suffix == '/changes'
+            expect(after.first.fetch('title')).to eq('Renamed by an admin')
           elsif verb == :post
             key = suffix == '/posts' ? 1 : 2
             expect(after[key]).to eq(before[key] + 1)

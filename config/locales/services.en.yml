@@ -177,6 +177,33 @@ en:
       body_invalid_utf8: "The comment (post[body]) cannot be read as UTF-8."
       body_nul: "A plain comment (post[body]) must not contain NUL bytes."
       body_empty: "The comment (post[body]) has no text."
+    # The refusals of a ticket change through a token (Tickets::Change::REFUSALS),
+    # as the HTTP API answers them; the MCP tool update_ticket keeps its own
+    # English texts. None repeats what the client sent.
+    ticket_change:
+      unknown_keys: "A change takes only title, status, add_assignee_ids and remove_assignee_ids."
+      invalid_utf8: "The change cannot be read as UTF-8."
+      one_kind: "Give exactly one change: title, status, or add_assignee_ids and remove_assignee_ids."
+      title_not_string: "Give the title (change[title]) as text."
+      title_invalid_utf8: "The title (change[title]) cannot be read as UTF-8."
+      title_forbidden: "The title (change[title]) must be one line without control characters."
+      title_empty: "The title (change[title]) has no visible text."
+      title_too_long: "The title (change[title]) is longer than %{max} characters."
+      status_not_string: "Give the status (change[status]) as text."
+      status_empty: "The status (change[status]) is empty."
+      assignees_not_a_list: "Give %{list} as a list of user ids or \"me\"."
+      too_many_assignees: "Name at most %{max} users per list."
+      assignee_invalid: "%{list} holds a value that is no user id and not \"me\"."
+      no_assignees: "Name at least one user in add_assignee_ids or remove_assignee_ids."
+      assignees_overlap: "add_assignee_ids and remove_assignee_ids name the same user."
+    # Why a ticket change stops at the project's state (Tickets::Change::FAILURES).
+    ticket_change_failure:
+      no_status_field: "This project has no status field."
+      status_not_allowed: "This is no status of this project; use a key from meta.available_statuses."
+      assignee_not_allowed: "A user in this change cannot be assigned in this project."
+      user_not_assignable: "Nothing was changed: a person in this change no longer has access to this project."
+      title_not_saved: "The title could not be saved."
+      ticket_not_saved: "The ticket could not be saved."
     default_smart_folder:
       my_tasks: "My Tasks"
       high_priority: "High Priority"

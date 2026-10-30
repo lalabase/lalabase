@@ -177,6 +177,33 @@ de:
       body_invalid_utf8: "Der Kommentar (post[body]) lässt sich nicht als UTF-8 lesen."
       body_nul: "Ein Kommentar im Format plain (post[body]) darf keine NUL-Bytes enthalten."
       body_empty: "Bitte geben Sie einen Kommentartext (post[body]) an."
+    # The refusals of a ticket change through a token (Tickets::Change::REFUSALS),
+    # as the HTTP API answers them; the MCP tool update_ticket keeps its own
+    # English texts. None repeats what the client sent.
+    ticket_change:
+      unknown_keys: "Eine Änderung kennt nur title, status, add_assignee_ids und remove_assignee_ids."
+      invalid_utf8: "Die Änderung lässt sich nicht als UTF-8 lesen."
+      one_kind: "Bitte geben Sie genau eine Änderung an: title, status oder add_assignee_ids und remove_assignee_ids."
+      title_not_string: "Bitte geben Sie den Titel (change[title]) als Text an."
+      title_invalid_utf8: "Der Titel (change[title]) lässt sich nicht als UTF-8 lesen."
+      title_forbidden: "Der Titel (change[title]) muss eine Zeile ohne Steuerzeichen sein."
+      title_empty: "Der Titel (change[title]) enthält keinen sichtbaren Text."
+      title_too_long: "Der Titel (change[title]) ist länger als %{max} Zeichen."
+      status_not_string: "Bitte geben Sie den Status (change[status]) als Text an."
+      status_empty: "Der Status (change[status]) ist leer."
+      assignees_not_a_list: "Bitte geben Sie %{list} als Liste von Benutzer-IDs oder \"me\" an."
+      too_many_assignees: "Bitte nennen Sie höchstens %{max} Personen je Liste."
+      assignee_invalid: "%{list} enthält einen Wert, der weder eine Benutzer-ID noch \"me\" ist."
+      no_assignees: "Bitte nennen Sie mindestens eine Person in add_assignee_ids oder remove_assignee_ids."
+      assignees_overlap: "add_assignee_ids und remove_assignee_ids nennen dieselbe Person."
+    # Why a ticket change stops at the project's state (Tickets::Change::FAILURES).
+    ticket_change_failure:
+      no_status_field: "Dieses Projekt hat kein Statusfeld."
+      status_not_allowed: "Das ist kein Status dieses Projekts; bitte einen Schlüssel aus meta.available_statuses verwenden."
+      assignee_not_allowed: "Eine Person in dieser Änderung kann in diesem Projekt nicht zugewiesen werden."
+      user_not_assignable: "Nichts wurde geändert: Eine Person in dieser Änderung hat keinen Zugang mehr zu diesem Projekt."
+      title_not_saved: "Der Titel konnte nicht gespeichert werden."
+      ticket_not_saved: "Das Ticket konnte nicht gespeichert werden."
     default_smart_folder:
       my_tasks: "Meine Aufgaben"
       high_priority: "Hohe Priorität"

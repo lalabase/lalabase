@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "80d75a190772f8f15546fb4b7c200cc9a0b88de8",
+    "core_commit": "fd8bc86139b3a3cf239bd630aef7b47a91f248bf",
     "core_dirty": true,
-    "contract_sha256": "bce4a6d9eec92d9e35ccce8217316d3be5650ed01217ed6915125a1cf78790d2"
+    "contract_sha256": "7df2bef5397ad681a83d23b9a7c86cfd2de851beb7165c14c92754f1c38e7b50"
   },
   "contract": {
     "mcp": {
@@ -235,7 +235,7 @@
                 },
                 {
                   "name": "get_ticket",
-                  "description": "Fetches a single ticket as JSON: head fields, description, custom attributes and discussion posts (oldest first). Address the ticket either by ticket_id (its UUID) or by number, the \"#187\" users see in the app; a number is unique within one project only. ticket_id wins when both are given. Authorized per-record against the token owner. The ticket's attachments come with the text extracted from each file, so a question about an attached PDF is answered from here; text_status says whether a file has readable text (\"available\"), was read and holds none, such as a scanned PDF (\"empty\"), has not been read out yet or the reading failed, so the same file may answer later (\"unavailable\"), or is a type we never read text from (\"unsupported\"). status_functions says what the status means in its project (is_backlog, is_new, is_open, is_in_progress, is_completed, is_closed), [] when the project gave it none. Long bodies are truncated, the posts and attachment lists are capped, and attachment download URLs are not included.",
+                  "description": "Fetches a single ticket as JSON: head fields, description, custom attributes and discussion posts (oldest first). Address the ticket either by ticket_id (its UUID) or by number, the \"#187\" users see in the app; a number is unique within one project only. ticket_id wins when both are given. Authorized per-record against the token owner. The ticket's attachments come with the text extracted from each file, so a question about an attached PDF is answered from here; text_status says whether a file has readable text (\"available\"), was read and holds none, such as a scanned PDF (\"empty\"), has not been read out yet or the reading failed, so the same file may answer later (\"unavailable\"), or is a type we never read text from (\"unsupported\"). A comment lists its own files in attachments too, by id, name, type and size: their text is not here. status_functions says what the status means in its project (is_backlog, is_new, is_open, is_in_progress, is_completed, is_closed), [] when the project gave it none. Long bodies are truncated, the posts and the ticket's attachments are capped, and attachment download URLs are not included.",
                   "inputSchema": {
                     "$schema": "https://json-schema.org/draft/2020-12/schema",
                     "type": "object",

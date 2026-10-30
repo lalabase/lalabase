@@ -18,8 +18,9 @@ module Lalabase
     # question about the attached PDF is answered from this payload or not at all.
     # A `text_status` per file says whether that text exists, is missing, or was
     # never extractable — silence would be answered with a guess. A comment's files
-    # are another matter: they come with the comment as name, type and size only
-    # (Tickets::Serializer#post_attachments), metadata like its author, no text.
+    # are another matter: they come with the comment as id, name, type and size
+    # (Tickets::Serializer#post_attachments), uncapped metadata like its author, and
+    # the description says that their text is not here.
     #
     # Caps (D9, over-fetching / DoS): long bodies are truncated, the posts list is
     # bounded, and so are the attachments in both directions (how many, and how much
@@ -93,9 +94,11 @@ module Lalabase
           'none, such as a scanned PDF ("empty"), has not been read out yet or the ' \
           'reading failed, so the same file may answer later ("unavailable"), or is ' \
           'a type we never read text from ("unsupported"). ' \
+          'A comment lists its own files in attachments too, by id, name, type and size: ' \
+          'their text is not here. ' \
           'status_functions says what the status means in its project (is_backlog, is_new, ' \
           'is_open, is_in_progress, is_completed, is_closed), [] when the project gave it none. ' \
-          'Long bodies are truncated, the posts and attachment lists are capped, ' \
+          'Long bodies are truncated, the posts and the ticket\'s attachments are capped, ' \
           'and attachment download URLs are not included.'
       end
 

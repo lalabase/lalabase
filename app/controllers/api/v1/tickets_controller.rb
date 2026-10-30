@@ -136,7 +136,13 @@ module Api
           raise ActiveRecord::RecordNotFound if outcome.gone?
           next render_change_failure(outcome) unless outcome.written?
 
-          render json: { data: ticket_serializer.summary(ticket.reload) }
+          # The write released its lock. Keep the authorized project boundary
+          # while reading the response, including the serializer's associations:
+          # a move that won the race is a 404, and a later move waits for us.
+          data = Ticket.transaction do
+            ticket_serializer.summary(project.tickets.lock.find(ticket.id))
+          end
+          render json: { data: data }
         end
       end
 

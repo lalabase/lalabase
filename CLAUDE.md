@@ -937,9 +937,12 @@ text from `services.ticket_change_failure.*` in `errors` and, for a title the mo
 messages behind it. The code is named in the controller: `Api::V1::ErrorBody` alone would read
 `validation_failed` as invalid input. Nobody is removed by a refused change, and a stale assignment
 stays unless it is named. A ticket that moved or was deleted after the rights check answers the same
-404; a failure the rule does not name answers 500 without its text. Guards:
+404. After the write commits, the response takes a fresh lock in that same project and reads
+the whole summary under it, so a concurrent move cannot disclose destination data.
+A failure the rule does not name answers 500 without its text. Guards:
 `spec/requests/api/v1/ticket_changes_spec.rb`, `spec/requests/api/v1/ticket_changes_side_effects_spec.rb`
-(the same trail as MCP), `spec/services/tickets/change_spec.rb`.
+(the same trail as MCP), `spec/requests/api/v1/ticket_changes_concurrency_spec.rb`
+(the response against a concurrent move), `spec/services/tickets/change_spec.rb`.
 
 ## Admin: Betreiber-Teile kommen nur über Schlitze
 

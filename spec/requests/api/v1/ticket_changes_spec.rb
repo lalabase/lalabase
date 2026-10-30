@@ -689,6 +689,29 @@ RSpec.describe 'API V1 ticket changes', :ci_guard, type: :request do
     end
   end
 
+  describe 'a ticket that moves after the write' do
+    { 'title' => { title: 'Renamed' }, 'status' => { status: 'wip' }, 'assignees' => { add_assignee_ids: ['me'] } }.each do |kind, fields|
+      it "does not disclose or cache the destination's data after the #{kind} change" do
+        elsewhere = Prosopite.pause { in_org { create(:project, organisation: organisation) } }
+        allow_any_instance_of(Tickets::Change).to receive(:write).and_wrap_original do |original, **kwargs|
+          original.call(**kwargs).tap do |outcome|
+            expect(outcome).to be_written
+            # The write released its lock. Another request moves the ticket
+            # into a project this caller cannot read, then changes its title.
+            Ticket.where(id: ticket.id).update_all(project_id: elsewhere.id, title: 'Private destination title')
+          end
+        end
+
+        send_change(fields, key: 'moved-before-response')
+
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).to eq('{"error":"not_found","code":"not_found"}')
+        expect(reloaded.title).to eq('Private destination title')
+        expect(McpIdempotencyKey.where(personal_access_token: pat)).not_to exist
+      end
+    end
+  end
+
   describe 'a failure the rule does not name' do
     let(:secret) { 'PG::Error: secret detail' }
 

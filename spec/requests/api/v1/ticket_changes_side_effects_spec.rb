@@ -110,6 +110,12 @@ RSpec.describe 'REST ticket changes: side effects equal the MCP write', :ci_guar
     Prosopite.pause { ActsAsTenant.without_tenant { tickets.map { |ticket| yield ticket.reload } } }
   end
 
+  it 'runs both surfaces through the one rule' do
+    expect(Tickets::Change).to receive(:parse).twice.and_call_original
+
+    compare({ status: 'wip' })
+  end
+
   it 'changes the status with the same trail, once' do
     rest, mcp, rest_ticket, mcp_ticket = compare({ status: 'wip' })
 

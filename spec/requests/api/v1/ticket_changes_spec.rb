@@ -303,6 +303,12 @@ RSpec.describe 'API V1 ticket changes', :ci_guard, type: :request do
       end
     end
 
+    # Rails drops a JSON null from a list before the rule sees it: it names nobody.
+    it 'reads a list of nulls as naming nobody' do
+      send_change({ add_assignee_ids: [nil] })
+      expect_invalid_input('Name at least one user in add_assignee_ids or remove_assignee_ids.')
+    end
+
     it 'refuses a person the project does not offer loudly, and takes nobody off' do
       assign(colleague)
       before = written
@@ -479,6 +485,26 @@ RSpec.describe 'API V1 ticket changes', :ci_guard, type: :request do
         expect_invalid_input('The change cannot be read as UTF-8.')
         expect(written).to eq(before)
       end
+    end
+
+    it 'refuses a file in place of a title' do
+      upload = Rack::Test::UploadedFile.new(Rails.root.join('spec/fixtures/files/test_file.txt'), 'text/plain')
+      before = written
+      post "/api/v1/tickets/#{ticket.id}/changes", params: { change: { title: upload } }, headers: headers(json: false)
+
+      expect_invalid_input('Give the title (change[title]) as text.')
+      expect(written).to eq(before)
+    end
+
+    # The body is read before any lookup, so it cannot tell a ticket from no ticket.
+    it 'answers a body that is no JSON with a 400, the same for a missing ticket' do
+      change_raw('{"change":')
+      first = [response.status, response.body]
+      change_raw('{"change":', ticket_id: SecureRandom.uuid)
+
+      expect(response).to have_http_status(:bad_request)
+      expect(body).to include('error' => 'bad_request', 'code' => 'invalid_input')
+      expect([response.status, response.body]).to eq(first)
     end
 
     it 'takes a multipart part in UTF-8' do

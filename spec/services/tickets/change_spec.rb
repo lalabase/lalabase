@@ -210,8 +210,10 @@ RSpec.describe Tickets::Change, :ci_guard do
       end
     end
 
-    it 'holds no refusal outside REFUSALS' do
-      expect(%i[unknown_keys invalid_utf8 one_kind status_not_string assignees_overlap] - described_class::REFUSALS).to be_empty
+    # REFUSALS is the list the surfaces word; a refusal outside it raises there.
+    it 'lists every refusal it answers' do
+      source = Rails.root.join('app/services/tickets/change.rb').read
+      expect(source.scan(/refuse\(:(\w+)/).flatten.map(&:to_sym) - described_class::REFUSALS).to be_empty
     end
   end
 
@@ -289,8 +291,12 @@ RSpec.describe Tickets::Change, :ci_guard do
         end
       end
 
-      it 'reads a save the model refuses as a ticket not saved, without the board text' do
-        allow(Actors::ApplyTicketChanges).to receive(:call).and_return(actor_failure(:validation_failed, errors: ['Kartentext']))
+      # Only a title hands on what the model said: for a field the actor has a
+      # generic board text, whatever its record holds.
+      it 'reads a save the model refuses as a ticket not saved, without any messages' do
+        run = TicketBulkRun.new.tap { |record| record.errors.add(:base, 'Kartentext') }
+        allow(Actors::ApplyTicketChanges).to receive(:call)
+          .and_return(actor_failure(:validation_failed, errors: ['Kartentext'], resource: run))
 
         expect(write({ status: 'wip' })).to have_attributes(failure: :ticket_not_saved, reason: :validation_failed, messages: [])
       end

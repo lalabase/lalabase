@@ -113,6 +113,14 @@ RSpec.describe PersonalAccessTokens::ReachListing, :ci_guard do
       expect(listing(token).projects(viewer: user, organisation_ids: [])).to eq([])
     end
 
+    it 'answers nothing to a limited token whose links are gone, never the whole organisation' do
+      token = create(:personal_access_token, user: user, organisations: [organisation],
+                                             project_scopes: { organisation => [eta] })
+      token.personal_access_token_projects.delete_all
+
+      expect(listing(token.reload).projects(viewer: user)).to eq([])
+    end
+
     it 'answers an empty list to a member without a project' do
       stranger = create(:user)
       make_token_owner_a_member(stranger, organisation)
@@ -127,6 +135,49 @@ RSpec.describe PersonalAccessTokens::ReachListing, :ci_guard do
       listing(token).projects(viewer: user)
 
       expect(ActsAsTenant.current_tenant).to be_nil
+    end
+
+    # The gate of a project tool (ProjectAccessService.can_access_project?) counts the areas of
+    # ProjectPermission; the policy scope counts every *_all_projects key of a role, time
+    # tracking included. Walked over every key and every kind of grant, because the two
+    # differ in only two of them.
+    describe 'openable_only' do
+      let(:stranger) { create(:user) }
+      let(:project) { project_in(organisation, name: 'Matrix') }
+      let(:token) { create(:personal_access_token, user: stranger, organisations: [organisation]) }
+
+      role_keys = Permission::CATEGORIES[:projects].select { |key| key.match?(/\A(read|write)_access_.*_all_projects\z/) }
+      grants = { 'no grant' => nil, 'read' => :read_only, 'write' => :read_write, 'no access' => :no_access }
+
+      def member_with(role_key)
+        role = create(:role, organisation: organisation)
+        create(:permission, role: role, category: 'projects', action: role_key)
+        create(:membership, user: stranger, organisation: organisation, role: role, active: true)
+      end
+
+      role_keys.product(grants.to_a).each do |role_key, (grant, level)|
+        it "agrees with the gate for #{role_key} and #{grant}" do
+          project
+          ActsAsTenant.with_tenant(organisation) do
+            member_with(role_key)
+            create(:project_permission, user: stranger, project: project, tickets_access: level) if level
+          end
+
+          listed = listing(token).projects(viewer: stranger, openable_only: true).pluck(:id).include?(project.id)
+          opens = ActsAsTenant.with_tenant(organisation) do
+            AccessCheck::ProjectAccessService.can_access_project?(stranger, project)
+          end
+
+          expect(listed).to eq(opens)
+        end
+      end
+
+      it 'leaves out a project only time tracking reaches, which the gate refuses' do
+        ActsAsTenant.with_tenant(organisation) { project && member_with('read_access_time_tracking_all_projects') }
+
+        expect(listing(token).projects(viewer: stranger).pluck(:id)).to include(project.id)
+        expect(listing(token).projects(viewer: stranger, openable_only: true).pluck(:id)).not_to include(project.id)
+      end
     end
 
     context 'with an archived project' do

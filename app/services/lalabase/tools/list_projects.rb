@@ -10,9 +10,10 @@ module Lalabase
     # 200 with an empty list and everything uncut, which is its contract.
     #
     # Token-scoped (scope_mode :token): there is no project yet to gate, this is how one
-    # is found. A listed id passes the gate of Mcp::ToolCall, because the policy scope
-    # here and the access check there read the same rules; held by
-    # spec/requests/api/mcp_list_projects_spec.rb.
+    # is found. A listed id passes the gate of Mcp::ToolCall: openable_only keeps what
+    # that gate opens, which is narrower than the policy scope (a role holding nothing but
+    # time tracking sees projects there and opens none). Held by
+    # spec/services/personal_access_tokens/reach_listing_spec.rb, over every role key.
     #
     # Authorization (D7): the decision is the policy scope inside the listing, marked
     # with scoped_by_policy!. Not ProjectPolicy#index?: it says no to an active member
@@ -42,7 +43,7 @@ module Lalabase
 
       def self.description
         'Lists the projects this token reaches and you may read as JSON, by organisation, then by ' \
-          'name. Use a row\'s id as the project_id of the project tools. Each row carries id, name, ' \
+          'name. Every id opens in the project tools as their project_id. Each row carries id, name, ' \
           "description (cut after #{MAX_DESCRIPTION_CHARS} characters), archived, organisation (id, name), " \
           'created_at and updated_at. Archived projects are left out unless include_archived is ' \
           'true, and only an account admin sees them at all. organisation_id narrows to one ' \
@@ -69,25 +70,30 @@ module Lalabase
         return Result.new(error: 'token context missing') unless token_wide?(context)
 
         args = symbolized(args)
-        page = args.fetch(:page, 1)
-        per_page = args.fetch(:per_page, DEFAULT_PER_PAGE)
-        return Result.invalid_input('page must be a whole number from 1') unless positive_integer?(page)
-        return Result.invalid_input('per_page must be a whole number from 1') unless positive_integer?(per_page)
+        page = whole_number(args.fetch(:page, 1))
+        per_page = whole_number(args.fetch(:per_page, DEFAULT_PER_PAGE))
+        return Result.invalid_input('page must be a whole number from 1') unless page&.positive?
+        return Result.invalid_input('per_page must be a whole number from 1') unless per_page&.positive?
 
         organisation_ids = organisation_filter(args[:organisation_id], context)
         return organisation_ids if organisation_ids.is_a?(Result)
 
         scoped_by_policy!(context)
         rows = PersonalAccessTokens::ReachListing.new(reach: context.reach).projects(
-          viewer: context.actor, organisation_ids: organisation_ids, include_archived: args[:include_archived] == true
+          viewer: context.actor, organisation_ids: organisation_ids,
+          include_archived: args[:include_archived] == true, openable_only: true
         )
         page_of(rows, page: page, per_page: [per_page, MAX_PER_PAGE].min)
       end
 
-      def self.positive_integer?(value)
-        value.is_a?(Integer) && value.positive?
+      # The Integer a value stands for, or nil. JSON Schema counts 2.0 as an integer, so the
+      # SDK lets it through and a client that sends numbers as floats sends it.
+      def self.whole_number(value)
+        return value if value.is_a?(Integer)
+
+        value.to_i if value.is_a?(Float) && value.finite? && value == value.floor
       end
-      private_class_method :positive_integer?
+      private_class_method :whole_number
 
       # nil (every organisation in reach), the one id asked for, or the Result to answer
       # instead. Outside the reach reads like missing, with list_notifications' wording.

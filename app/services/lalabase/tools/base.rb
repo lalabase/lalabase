@@ -352,7 +352,8 @@ module Lalabase
       #   :project — authorized by the PAT project-scope check alone. The MCP
       #              dispatcher resolves + gates the project before execute, so a
       #              project-mode tool needs no further per-record check.
-      #   :record  — returns a single record and MUST call authorize!. The ToolCall
+      #   :record  — returns a single record and MUST call authorize!, or, for a list
+      #              whose rows pass a policy scope, scoped_by_policy!. The ToolCall
       #              asserts it afterwards and raises loudly if it didn't.
       # Chat-path tools never set Context#authorization, so the mode is irrelevant
       # there — the tripwire is an MCP-only concern.

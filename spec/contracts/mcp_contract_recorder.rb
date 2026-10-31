@@ -365,17 +365,6 @@ module McpContract
     # is the oldest on the login ticket, so a page of one holds it. Without
     # `record`: no tick, no clock moved for the REST section, which lists this
     # file too (attachment_calls, ticket_view).
-    def list_projects_calls
-      {
-        'ok' => tool_call(:read, 'list_projects'),
-        'one_organisation' => tool_call(:read, 'list_projects', organisation_id: id(:organisation), per_page: 2),
-        'include_archived' => tool_call(:read, 'list_projects', include_archived: true),
-        'invalid_input' => tool_call(:read, 'list_projects', organisation_id: 'oops'),
-        'invalid_input_per_page' => tool_call(:read, 'list_projects', per_page: 0),
-        'not_found' => tool_call(:read, 'list_projects', organisation_id: id(:other_organisation))
-      }
-    end
-
     def comment_file_calls(website)
       in_org do
         attach_fixture(PostDocument.new(id: id(:first_post_file), post: Post.find(id(:first_post)), organisation: @organisation,
@@ -388,6 +377,17 @@ module McpContract
         'one_post' => tool_call(:read, 'get_ticket', **login, post_id: id(:first_post)),
         # The comment beside it has no file, and says so.
         'no_file' => tool_call(:read, 'get_ticket', **login, post_id: id(:second_post))
+      }
+    end
+
+    def list_projects_calls
+      {
+        'ok' => tool_call(:read, 'list_projects'),
+        'one_organisation' => tool_call(:read, 'list_projects', organisation_id: id(:organisation), per_page: 2),
+        'include_archived' => tool_call(:read, 'list_projects', include_archived: true),
+        'invalid_input' => tool_call(:read, 'list_projects', organisation_id: 'oops'),
+        'invalid_input_per_page' => tool_call(:read, 'list_projects', per_page: 0),
+        'not_found' => tool_call(:read, 'list_projects', organisation_id: id(:other_organisation))
       }
     end
 

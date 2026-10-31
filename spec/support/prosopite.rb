@@ -53,6 +53,7 @@ Prosopite.allow_stack_paths = [
   'extract_plain_text_content',       # Note before_save: per-record ActionText to_plain_text → embeds_attachments
   'validate_project_default_uniqueness', # DashboardConfiguration: per-record uniqueness validation
   'validate_custom_attributes', # CustomAttributable: per-record validation loads the project's attribute definitions once per ticket/record save; one query per saved record (not a request N+1) — surfaces only when a spec creates several status-bearing records in one example
+  'users_with_any_access', # ProjectAccessService: one users_with_access lookup per ProjectPermission area (7) for one project, bounded by the area list, the inverse of openable_project_ids — not a data N+1
   'knowledge_creator_options', # KnowledgeFilterHelper: a constant ONE users_with_access lookup per knowledge area (2) for the creator filter pool — bounded, not a data N+1
   'backfill_tenant', # Wiki::NoteBackfill: one batched notes scan per organisation (bounded by tenant count) — the repeated identical SQL is the per-tenant loop, not a per-record N+1
   'ensure_due_date', # DueDateBackfillService: one due_date find_by per project in a one-time backfill loop (bounded by project count), not a request N+1

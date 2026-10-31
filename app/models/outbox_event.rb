@@ -167,24 +167,35 @@ class OutboxEvent < ApplicationRecord
     activity.trackable
   end
 
+  # A run writes its notifications recipient by recipient, and a failed run keeps none
+  # of them. Until 2026-10-31 it kept them: the retry stopped at the first recipient it
+  # had served already (dedupe_fingerprint taken), and everybody after that person was
+  # lost, on every retry. Guard: spec/models/outbox_event_failed_run_spec.rb.
+  #
+  # requires_new: ActiveRecord::Rollback would do nothing inside a joined transaction, so
+  # this one stands on its own, whatever the caller holds.
+  #
+  # The failure is booked after the rollback, because a database error leaves the
+  # transaction unusable and the retry must be planned anyway. Under a lock of its own:
+  # another worker may have stepped in once the first lock was gone.
   def process!
     return if processed?
 
-    ActiveRecord::Base.transaction do
-      # Lock the row to prevent concurrent processing
-      with_lock do
-        return if processed?
+    result = nil
 
-        # Process the event
-        result = process_event
+    # Lock the row to prevent concurrent processing
+    with_lock(requires_new: true) do
+      return if processed?
 
-        if result[:success]
-          mark_processed!
-        else
-          mark_failed(result[:error])
-        end
-      end
+      result = process_event
+      raise ActiveRecord::Rollback unless result[:success]
+
+      mark_processed!
     end
+
+    return if result[:success]
+
+    with_lock { mark_failed(result[:error]) unless processed? }
   end
 
   def retry!

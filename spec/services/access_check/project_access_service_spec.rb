@@ -422,6 +422,60 @@ RSpec.describe AccessCheck::ProjectAccessService do
     end
   end
 
+  # The other direction of .can_access_project?, for project news ("any area will do").
+  # Two versions of one rule drift, so they are held against each other, person by person.
+  describe '.users_with_any_access (the inverse of .can_access_project?)' do
+    def member(role: regular_role, active: true)
+      create(:user).tap do |person|
+        create(:membership, user: person, organisation: organisation, role: role, active: active)
+      end
+    end
+
+    def role_reading(area)
+      create(:role, organisation: organisation).tap do |role|
+        create(:permission, role: role, category: 'projects', action: "read_access_#{area}_all_projects", allowed: true)
+      end
+    end
+
+    it 'names exactly the people .can_access_project? lets in' do
+      ActsAsTenant.with_tenant(organisation) do
+        through_role = member(role: role_reading(:notes))
+        direct = member.tap { |person| create(:project_permission, user: person, project: project, documents_access: 'read_only') }
+        blocked = member(role: role_reading(:notes)).tap { |person| create(:project_permission, user: person, project: project) }
+        empty_row = member.tap { |person| create(:project_permission, user: person, project: project) }
+        people = [admin_user, through_role, direct, blocked, empty_row, user]
+
+        listed = described_class.users_with_any_access(project).where(id: people.map(&:id))
+
+        expect(listed).to contain_exactly(admin_user, through_role, direct)
+        expect(people.select { |person| described_class.can_access_project?(person, project) })
+          .to contain_exactly(*listed)
+      end
+    end
+
+    it 'finds a reader of each area alone' do
+      ActsAsTenant.with_tenant(organisation) do
+        readers = ProjectPermission.access_areas.index_with do |area|
+          member.tap { |person| create(:project_permission, user: person, project: project, "#{area}_access": 'read_only') }
+        end
+
+        expect(described_class.users_with_any_access(project)).to include(*readers.values)
+      end
+    end
+
+    # Like .users_with_access: the list is who holds a right, and who may act on it is
+    # asked of each person. Notifications::FanoutService#with_current_access does.
+    it 'still names a deactivated member, whom .can_access_project? refuses' do
+      ActsAsTenant.with_tenant(organisation) do
+        deactivated = member(active: false)
+        create(:project_permission, user: deactivated, project: project, tickets_access: 'read_only')
+
+        expect(described_class.users_with_any_access(project)).to include(deactivated)
+        expect(described_class.can_access_project?(deactivated, project)).to be(false)
+      end
+    end
+  end
+
   # .users_with_access — the inverse query (who can access THIS project). It had
   # no direct coverage here; the existing tests live in project_spec.rb (via
   # Project#users_with_access) and cover admin + global-role + direct-permission

@@ -169,11 +169,6 @@ RSpec.describe Notifications::FanoutService, type: :service do
       end
 
       it 'sets project_id for Project notifications' do
-        # Subscribe user to project so they receive notifications
-        # (find_project_members_with_access_optimized has a bug where users_with_access(:read, :general)
-        # raises NoMethodError, which causes the entire method to return [] including admin users)
-        NotificationSubscription.create!(user: user, subscribable: project, mode: 'follow')
-
         activity = create(:activity,
                           organisation: organisation,
                           trackable: project,

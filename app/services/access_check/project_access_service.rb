@@ -323,6 +323,14 @@ module AccessCheck
         User.where(id: all_user_ids)
       end
 
+      # Inverse of can_access_project?: everybody with read access to the project in at
+      # least one area of ProjectPermission (the counterpart of openable_project_ids).
+      # Like users_with_access it still names a deactivated member; a caller that acts on
+      # the list asks can_access_project? for each of them.
+      def users_with_any_access(project)
+        User.where(id: ProjectPermission.access_areas.flat_map { |area| users_with_access(project, :read, area).pluck(:id) })
+      end
+
       # All people the given user "knows": every person with access to at least
       # one of the projects accessible to this user (= union of users_with_access
       # over accessible_projects). Org admins/owners see the whole organisation. Supplies

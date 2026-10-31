@@ -5,13 +5,11 @@ module Api
     class ProjectsController < BaseController
       UUID_TYPE = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Uuid.new
 
-      # Deliberate opt-out from the Pundit tripwire on index: PersonalAccessTokens::ReachListing
-      # asks the policy scope per organisation itself, for the MCP tool list_projects as well.
-      # The helper this tripwire watches is the one it must not use (it memoises per scope
-      # object). Pinned in spec/services/personal_access_tokens/reach_listing_spec.rb.
-      skip_after_action :verify_policy_scoped
-
       def index
+        # The rows are policy-scoped inside PersonalAccessTokens::ReachListing, per
+        # organisation (Pundit.policy_scope!); a policy_scope here would be a second copy
+        # nothing reads.
+        skip_policy_scope
         projects = PersonalAccessTokens::ReachListing.new(reach: current_token.reach)
                                                      .projects(viewer: current_user, organisation_ids: organisation_ids)
 

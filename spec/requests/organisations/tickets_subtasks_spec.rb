@@ -79,6 +79,8 @@ RSpec.describe 'Tickets sub-tasks (create)', :ci_guard, type: :request do
       expect(response).to have_http_status(:found)
       expect(flash[:notice]).to be_nil
       expect(flash[:alert]).to include(cannot_change)
+      # The whole sentence a German reader sees: field name and message, both German.
+      expect(flash[:alert]).to include('Übergeordnete Aufgabe kann nach dem Anlegen nicht mehr geändert werden')
       expect(parent_id_of(ticket)).to be_nil
     end
 

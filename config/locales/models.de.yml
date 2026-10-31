@@ -149,9 +149,9 @@ de:
         ticket:
           attributes:
             parent_id:
-              cannot_be_self: "darf nicht auf sich selbst verweisen"
-              not_found: "übergeordnete Aufgabe nicht gefunden"
-              different_project: "übergeordnete Aufgabe muss im selben Projekt liegen"
+              cannot_be_self: "darf nicht das Ticket selbst sein"
+              not_found: "wurde nicht gefunden"
+              different_project: "muss im selben Projekt liegen"
               cannot_change: "kann nach dem Anlegen nicht mehr geändert werden"
         reference:
           self_reference: "Eine Referenz darf nicht auf sich selbst zeigen"

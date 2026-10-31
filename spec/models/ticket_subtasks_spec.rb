@@ -128,6 +128,16 @@ RSpec.describe Ticket, 'sub-tasks', type: :model do
       expect(b.reload.parent_id).to eq(a.id)
     end
 
+    it 'names the parent task in the full message, in both languages' do
+      ticket = create(:ticket, project: project)
+      ticket.parent = create(:ticket, project: project)
+      ticket.valid?
+
+      full = ->(locale) { I18n.with_locale(locale) { ticket.errors.full_message(:parent_id, ticket.errors.generate_message(:parent_id, :cannot_change)) } }
+      expect(full.call(:de)).to eq('Übergeordnete Aufgabe kann nach dem Anlegen nicht mehr geändert werden')
+      expect(full.call(:en)).to eq('Parent task cannot be changed once the ticket exists')
+    end
+
     it 'still saves other changes of a ticket with a parent' do
       parent = create(:ticket, project: project)
       child = create(:ticket, project: project, parent: parent)

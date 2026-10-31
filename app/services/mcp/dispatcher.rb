@@ -53,7 +53,9 @@ module Mcp
     # is refused now, not replayed), a longer one wrote again on every retry.
     # 0.14 = a comment in get_ticket lists its files (`attachments`: id, filename,
     # content_type, byte_size; REST R7), beside attachments_count.
-    SERVER_VERSION = '0.14.0'
+    # 0.15 = list_organisations and list_projects: the ids the other tools take,
+    # from the same reader as GET /api/v1/organisations and /projects.
+    SERVER_VERSION = '0.15.0'
 
     # MCP surface — sourced from the single tool registry (D6): the :mcp set is the
     # ONE definition of this surface, so a registry refactor can't drift it (R3);
@@ -135,7 +137,7 @@ module Mcp
       else
         schema[:properties][:project_id] = {
           type: 'string',
-          description: 'UUID of the Lalabase project to scope this call to.'
+          description: 'UUID of the Lalabase project to scope this call to (list_projects names them).'
         }
         schema[:required] = (Array(schema[:required]) + ['project_id']).uniq
       end

@@ -20,7 +20,7 @@ RSpec.describe 'MCP contract file' do
 
       If the change is intended: regenerate with `#{McpContract::REGENERATE}`, keep
       the MCP surface additive (Mcp::Dispatcher::SERVER_VERSION, minor bump) and
-      update the copy in gboyke/lalabase-cli.
+      update the copy in lalabase/lalabase-cli.
     MESSAGE
   end
 

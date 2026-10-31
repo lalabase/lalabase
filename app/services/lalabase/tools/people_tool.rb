@@ -31,8 +31,7 @@ module Lalabase
       ORGANISATION_ID_SCHEMA = {
         organisation_id: { type: 'string',
                            description: 'UUID of the organisation whose people directory to read ' \
-                                        '(list_notifications names each organisation in reach under ' \
-                                        'meta.by_organisation).' }
+                                        '(list_organisations names each organisation in reach).' }
       }.freeze
 
       TOKEN_NOTE = 'Both people tools take the organisation_id of the directory they read. Only a token ' \

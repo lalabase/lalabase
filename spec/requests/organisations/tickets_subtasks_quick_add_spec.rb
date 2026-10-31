@@ -57,6 +57,43 @@ RSpec.describe 'Tickets sub-tasks quick-add', type: :request do
     expect(response.body).to include('Bilder besorgen')
   end
 
+  # A new sub-task is a ticket of the list. Which row it takes, and whether the filter shows it at
+  # all, only the list's own query knows, so the page reloads the frame from its live address.
+  describe 'the ticket list' do
+    def reloads_the_list?
+      Nokogiri::HTML(response.body).css('turbo-stream').any? do |stream|
+        stream['action'] == 'reloadFrame' && stream['target'] == 'tickets_list_frame'
+      end
+    end
+
+    it 'reloads after the first sub-task' do
+      post organisation_project_ticket_subtasks_path(organisation, project, parent),
+           params: { title: 'Texte liefern' }, as: :turbo_stream
+
+      expect(response).to have_http_status(:ok)
+      expect(reloads_the_list?).to be(true)
+    end
+
+    it 'reloads after a further sub-task' do
+      create(:ticket, project: project, creator: user, parent: parent)
+
+      post organisation_project_ticket_subtasks_path(organisation, project, parent),
+           params: { title: 'Bilder besorgen' }, as: :turbo_stream
+
+      expect(response).to have_http_status(:ok)
+      expect(reloads_the_list?).to be(true)
+    end
+
+    it 'stays as it is when nothing was created' do
+      post organisation_project_ticket_subtasks_path(organisation, project, parent),
+           params: { title: '' }, as: :turbo_stream
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('turbo-stream')
+      expect(reloads_the_list?).to be(false)
+    end
+  end
+
   it 'first child for a "compact" user comes back expanded so the next can be typed' do
     ViewConfiguration.for_user_project(user, project, 'tickets')
                      .update!(detail_settings: { 'subtasks_display' => 'compact' })

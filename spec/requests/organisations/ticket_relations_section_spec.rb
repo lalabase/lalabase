@@ -155,6 +155,7 @@ RSpec.describe 'Ticket relations section and waiting hint', :ci_guard, type: :re
       other_link = section.at_css(%(a[href="#{organisation_project_tickets_path(organisation, other_project, ticket_id: elsewhere.id)}"]))
       expect(same_link['data-turbo-frame']).to be_nil
       expect(other_link['data-turbo-frame']).to eq('_top')
+      expect(same_link.key?('data-ticket-link')).to be(true)
     end
 
     it 'renders for a sub-task as well' do

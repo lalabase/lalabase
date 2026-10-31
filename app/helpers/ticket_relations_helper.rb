@@ -50,9 +50,11 @@ module TicketRelationsHelper
   # A link to a related ticket. Within the same project it stays in the ticket frame, the way
   # a sub-task link does. Into another project it leaves the frame (_top): the lane of project
   # A would otherwise show B while the list and the navigation stay on A (plan §8.2, review 5).
+  # data-ticket-link: in the inbox pane it leaves in any case (ticket_pane_links_controller).
   def ticket_relation_link(other, from:, **options, &)
     url = organisation_project_tickets_path(current_organisation, other.project, ticket_id: other.id)
-    options[:data] = (options[:data] || {}).merge(turbo_frame: '_top') if other.project_id != from.project_id
+    options[:data] = (options[:data] || {}).merge(ticket_link: true)
+    options[:data][:turbo_frame] = '_top' if other.project_id != from.project_id
     link_to(url, options, &)
   end
 

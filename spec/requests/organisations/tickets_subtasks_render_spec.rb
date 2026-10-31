@@ -68,6 +68,7 @@ RSpec.describe 'Tickets sub-tasks (detail rendering)', type: :request do
     expect(response).to have_http_status(:ok)
     expect(link).to be_present
     expect(link['data-turbo-frame']).to eq('ticket_display_frame')
+    expect(link.key?('data-ticket-link')).to be(true)
   end
 
   it 'shows only the compact right-aligned quick-add when there are no sub-tasks (no heading/hint/hero)' do
@@ -100,6 +101,7 @@ RSpec.describe 'Tickets sub-tasks (detail rendering)', type: :request do
     link = nav.at_css('ol li a')
     expect(link.text.strip).to eq("##{parent.number}")
     expect(link['href']).to eq(organisation_project_tickets_path(organisation, project, ticket_id: parent.id))
+    expect(link.key?('data-ticket-link')).to be(true)
     expect(response.body).not_to include('Teil von')
   end
 

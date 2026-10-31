@@ -12,7 +12,8 @@
       <li class="inline-flex items-center gap-1">
         <%= link_to "##{ancestor.number}",
                     organisation_project_tickets_path(current_organisation, project, ticket_id: ancestor.id),
-                    class: "inline-flex h-6 items-center rounded-full border border-cream-300 px-2 font-mono tabular-nums hover:bg-cream-100" %>
+                    class: "inline-flex h-6 items-center rounded-full border border-cream-300 px-2 font-mono tabular-nums hover:bg-cream-100",
+                    data: { ticket_link: true } %>
         <span class="text-cream-500" aria-hidden="true">›</span>
       </li>
     <% end %>

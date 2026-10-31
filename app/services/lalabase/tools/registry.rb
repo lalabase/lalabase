@@ -144,7 +144,8 @@ module Lalabase
         McpGetPerson,
         # How an agent finds the organisation and project ids the tools above take,
         # token-scoped reads. Appended for the same reason.
-        ListOrganisations
+        ListOrganisations,
+        ListProjects
       ].freeze
 
       # Sets whose tools reach the LLM tool loop. The guard-spec enforces the

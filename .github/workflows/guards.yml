@@ -269,6 +269,7 @@ jobs:
           spec/requests/api/mcp_plain_comment_spec.rb
           spec/requests/api/mcp_time_report_spec.rb
           spec/requests/api/mcp_people_spec.rb
+          spec/requests/api/mcp_list_projects_spec.rb
           spec/requests/api/mcp_idempotency_key_bound_spec.rb
           spec/services/mcp/idempotency_store_spec.rb
           spec/services/personal_access_tokens/reach_listing_spec.rb

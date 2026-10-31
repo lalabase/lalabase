@@ -59,8 +59,9 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   Abonnenten): jeden, der den Bereich des Ereignisses lesen darf, Kontoadmins und Rollen mit
   Recht auf alle Projekte eingeschlossen, dazu die Abonnenten; Projektnachrichten jeden mit
   irgendeinem Recht im Projekt (`Project#users_with_any_access`). Die Suche kennt kein
-  `rescue`: schlägt sie fehl, schlägt das Ereignis fehl und `OutboxEvent#mark_failed` plant
-  neu.
+  `rescue`: schlägt sie fehl, schlägt das Ereignis fehl. Das gilt für jeden Lauf:
+  `OutboxEvent#process!` rollt einen Fehlschlag ganz zurück und plant danach neu, der Retry
+  beginnt also bei null (Wächter `spec/models/outbox_event_failed_run_spec.rb`).
   Abschalten geht je Ereignistyp in den Einstellungen, stumm bleibt ein Abo im Modus
   `mute`. ⚠️ Für diese Empfänger ist das nur die Inbox: eine Mail geht ab Score 80 sofort
   raus, und ohne Abo erreicht kein Projekt-Ereignis diese Zahl. Dafür ist `project.created`

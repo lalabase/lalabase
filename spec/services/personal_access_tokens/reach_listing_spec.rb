@@ -172,6 +172,29 @@ RSpec.describe PersonalAccessTokens::ReachListing, :ci_guard do
         end
       end
 
+      # members has no role key at all: a grant is the only way in through that area.
+      ProjectPermission.access_areas.each do |area|
+        it "lists a project opened by a grant in #{area} alone" do
+          project
+          ActsAsTenant.with_tenant(organisation) do
+            create(:membership, user: stranger, organisation: organisation, role: create(:role, organisation: organisation),
+                                active: true)
+            levels = ProjectPermission.access_areas.to_h do |name|
+              [:"#{name}_access", name == area ? :read_only : :no_access]
+            end
+            create(:project_permission, user: stranger, project: project, **levels)
+          end
+
+          listed = listing(token).projects(viewer: stranger, openable_only: true).pluck(:id)
+          opens = ActsAsTenant.with_tenant(organisation) do
+            AccessCheck::ProjectAccessService.can_access_project?(stranger, project)
+          end
+
+          expect(opens).to be true
+          expect(listed).to eq([project.id])
+        end
+      end
+
       it 'leaves out a project only time tracking reaches, which the gate refuses' do
         ActsAsTenant.with_tenant(organisation) { project && member_with('read_access_time_tracking_all_projects') }
 

@@ -157,6 +157,11 @@ RSpec.describe Lalabase::Tools::ListProjects do
       expect(call(per_page: 2.5).code).to eq(:invalid_input)
     end
 
+    it 'answers invalid_input for a number with no whole value, instead of raising' do
+      expect(call(page: Float::INFINITY).code).to eq(:invalid_input)
+      expect(call(per_page: Float::NAN).code).to eq(:invalid_input)
+    end
+
     it 'answers invalid_input for a page or per_page below one' do
       expect(call(page: 0).code).to eq(:invalid_input)
       expect(call(per_page: 0).code).to eq(:invalid_input)

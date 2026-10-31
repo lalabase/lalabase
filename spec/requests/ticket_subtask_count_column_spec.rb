@@ -282,16 +282,29 @@ RSpec.describe 'Ticket table: sub-ticket column', type: :request do
     end
 
     # A saved ticket keeps its parent (Ticket#parent_unchanged): an edit that names
-    # another parent changes nothing, so no row has a new count to show.
-    it 'keeps the parent when an edit names another one, and the other stays empty' do
+    # another parent is refused in the writing surface, and no row is redrawn. The
+    # error text is what makes this bite: without the rule the edit saves, the
+    # answer is the success branch, and the new parent's cell gets a stream.
+    it 'refuses an edit that names another parent and redraws no row' do
       new_parent = create(:ticket, project: project, creator: user)
       sub = child('Offen')
 
       patch organisation_project_ticket_path(organisation, project, sub),
             params: { ticket: { title: sub.title, parent_id: new_parent.id } }, headers: stream_headers
 
+      expect(response).to have_http_status(:ok)
       expect(sub.reload.parent_id).to eq(parent.id)
-      expect(parent_cell(of: new_parent).to_s).to eq('')
+
+      streams = Nokogiri::HTML(response.body).css('turbo-stream')
+      surface = streams.find { |node| node['target'] == 'writing_surface' }
+      expect(surface).to be_present
+      expect(surface['action']).to eq('replace')
+      message = Ticket.new.errors.full_message(
+        :parent_id, I18n.t('activerecord.errors.models.ticket.attributes.parent_id.cannot_change')
+      )
+      expect(message).to start_with(Ticket.human_attribute_name(:parent_id))
+      expect(surface.text).to include(message)
+      expect(streams.map { |node| node['targets'].to_s }.grep(/#{new_parent.id}/)).to be_empty
     end
 
     # Finding 2 of the second review: the unread dot on the parent's number

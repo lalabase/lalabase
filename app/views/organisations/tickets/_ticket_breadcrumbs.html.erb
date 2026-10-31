@@ -2,10 +2,10 @@
     the list with that ticket open (the target of the old "part of" pill), then
     the ticket's own number, not a link. Sub-tasks nest to any depth, so the
     whole chain shows and wraps on a narrow screen; nothing is collapsed.
-    One query for the chain (Tickets::Ancestry). Rendered by the header for a
-    ticket with a parent; needs ticket, project and current_organisation, which
-    the header has on the page and in its turbo streams alike. %>
-<% ancestors = Tickets::Ancestry.call(ticket: ticket) %>
+    The header reads the chain (Tickets::Ancestry, one query) and renders this
+    only when it found ancestors. Needs ticket, ancestors, project and
+    current_organisation, which the header has on the page and in its turbo
+    streams alike. %>
 <nav aria-label="<%= t('views.organisations.tickets.shared.subtasks.breadcrumbs_label') %>">
   <ol class="flex flex-wrap items-center gap-1 text-xs text-cream-700">
     <% ancestors.each do |ancestor| %>

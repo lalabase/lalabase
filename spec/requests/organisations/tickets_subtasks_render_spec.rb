@@ -122,6 +122,23 @@ RSpec.describe 'Tickets sub-tasks (detail rendering)', type: :request do
     expect(statements.grep(/WITH RECURSIVE ancestors/).size).to eq(1)
   end
 
+  # The header asks the database, not parent_id: a parent the walk cannot reach (deleted
+  # meanwhile, or legacy data in another project) leaves no ancestors, and a trail of the
+  # ticket's own number alone would say nothing. Written past the model on purpose.
+  it 'shows no trail when the parent lies in another project' do
+    other_project = create(:project, organisation: organisation)
+    foreign = create(:ticket, project: other_project, creator: user)
+    orphan = create(:ticket, project: project, creator: user)
+    orphan.update_column(:parent_id, foreign.id)
+
+    statements = capture_sql { get detail_path(orphan) }
+
+    expect(response).to have_http_status(:ok)
+    expect(breadcrumbs).to be_nil
+    expect(response.body).not_to include("##{foreign.number}</a>")
+    expect(statements.grep(/WITH RECURSIVE ancestors/).size).to eq(1)
+  end
+
   it 'shows no trail on a top-level ticket' do
     lone = create(:ticket, project: project, creator: user)
 

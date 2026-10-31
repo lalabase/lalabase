@@ -376,7 +376,7 @@ RSpec.describe 'API V1 Write Endpoints', :ci_guard, type: :request do
       ActsAsTenant.without_tenant { expect(Ticket.where(parent_id: foreign_parent.id)).to be_empty }
     end
 
-    it 'returns 422 when the parent is itself a sub-ticket (one level only)' do
+    it 'creates a grandchild when the parent is itself a sub-ticket (depth is unlimited)' do
       child = ActsAsTenant.with_tenant(organisation) do
         create(:ticket, project: project, organisation: organisation, creator: user, parent: ticket)
       end
@@ -385,7 +385,10 @@ RSpec.describe 'API V1 Write Endpoints', :ci_guard, type: :request do
            params: { ticket: { title: 'Grandchild', parent_id: child.id } },
            headers: auth_headers
 
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to have_http_status(:created)
+      body = JSON.parse(response.body)
+      expect(body.dig('data', 'parent_id')).to eq(child.id)
+      ActsAsTenant.with_tenant(organisation) { expect(Ticket.find(body.dig('data', 'id')).parent_id).to eq(child.id) }
     end
 
     # --- mapper hardening (save_ticket_create_params) -------------------

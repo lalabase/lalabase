@@ -2,8 +2,8 @@
 
 require 'rails_helper'
 
-# Sub-tasks: self-referential parent_id, exactly ONE level deep, same project + org.
-# Covers the four invariants, children_progress, the delete-orphan contract and top_level.
+# Sub-tasks: self-referential parent_id, any depth, same project + org, parent fixed after create.
+# Covers the invariants, children_progress, the delete-orphan contract and top_level.
 RSpec.describe Ticket, 'sub-tasks', type: :model do
   let(:organisation) { create(:organisation) }
   let(:project) do
@@ -24,7 +24,7 @@ RSpec.describe Ticket, 'sub-tasks', type: :model do
            options: { 'allowed_values' => allowed_values })
   end
 
-  describe 'one-level invariant validations' do
+  describe 'invariant validations' do
     let(:parent) { create(:ticket, project: project) }
 
     it 'accepts a child in the same project' do
@@ -64,18 +64,77 @@ RSpec.describe Ticket, 'sub-tasks', type: :model do
       expect(child.errors[:parent_id]).to include(I18n.t('activerecord.errors.models.ticket.attributes.parent_id.different_project'))
     end
 
-    it 'rejects a grandchild (parent must be top-level)' do
+    it 'accepts a grandchild and a great-grandchild (depth is unlimited)' do
       child = create(:ticket, project: project, parent: parent)
-      grandchild = build(:ticket, project: project, parent: child)
-      expect(grandchild).not_to be_valid
-      expect(grandchild.errors[:parent_id]).to include(I18n.t('activerecord.errors.models.ticket.attributes.parent_id.must_be_top_level'))
+      grandchild = create(:ticket, project: project, parent: child)
+      great_grandchild = build(:ticket, project: project, parent: grandchild)
+
+      expect(great_grandchild).to be_valid
+      great_grandchild.save!
+      expect(great_grandchild.reload.parent_id).to eq(grandchild.id)
+      expect(grandchild.reload.parent_id).to eq(child.id)
+    end
+  end
+
+  describe 'the parent is fixed once the ticket exists' do
+    let(:cannot_change) { I18n.t('activerecord.errors.models.ticket.attributes.parent_id.cannot_change') }
+
+    it 'refuses giving a parent to a saved childless top-level ticket' do
+      ticket = create(:ticket, project: project)
+      ticket.parent = create(:ticket, project: project)
+
+      expect(ticket).not_to be_valid
+      expect(ticket.errors[:parent_id]).to include(cannot_change)
+      expect(ticket.reload.parent_id).to be_nil
     end
 
-    it 'rejects giving a parent to a ticket that already has children' do
-      create(:ticket, project: project, parent: parent) # parent now has a child
+    it 'refuses moving a saved child to another parent' do
+      first_parent = create(:ticket, project: project)
+      child = create(:ticket, project: project, parent: first_parent)
+      child.parent = create(:ticket, project: project)
+
+      expect(child).not_to be_valid
+      expect(child.errors[:parent_id]).to include(cannot_change)
+      expect(child.reload.parent_id).to eq(first_parent.id)
+    end
+
+    it 'refuses detaching a saved child (parent to nil is a change as well)' do
+      parent = create(:ticket, project: project)
+      child = create(:ticket, project: project, parent: parent)
+      child.parent_id = nil
+
+      expect(child).not_to be_valid
+      expect(child.errors[:parent_id]).to include(cannot_change)
+      expect(child.reload.parent_id).to eq(parent.id)
+    end
+
+    it 'refuses giving a parent to a ticket that already has children' do
+      parent = create(:ticket, project: project)
+      create(:ticket, project: project, parent: parent)
       parent.parent = create(:ticket, project: project)
+
       expect(parent).not_to be_valid
-      expect(parent.errors[:parent_id]).to include(I18n.t('activerecord.errors.models.ticket.attributes.parent_id.has_children'))
+      expect(parent.errors[:parent_id]).to include(cannot_change)
+    end
+
+    it 'cannot close a cycle A -> B -> A through the model' do
+      a = create(:ticket, project: project)
+      b = create(:ticket, project: project, parent: a)
+      a.parent = b
+
+      expect(a.save).to be(false)
+      expect(a.errors[:parent_id]).to include(cannot_change)
+      expect(a.reload.parent_id).to be_nil
+      expect(b.reload.parent_id).to eq(a.id)
+    end
+
+    it 'still saves other changes of a ticket with a parent' do
+      parent = create(:ticket, project: project)
+      child = create(:ticket, project: project, parent: parent)
+      child.title = 'Renamed'
+
+      expect(child.save).to be(true)
+      expect(child.reload.parent_id).to eq(parent.id)
     end
   end
 
@@ -128,6 +187,15 @@ RSpec.describe Ticket, 'sub-tasks', type: :model do
       expect(parent.children_progress).to eq(done: 2, total: 2, percent: 100)
     end
 
+    it 'counts only direct children, not grandchildren' do
+      create_status_def(project, [['Offen', ['is_new']], ['Erledigt', ['is_completed']]])
+      child = create(:ticket, project: project, parent: parent, custom_attributes: { 'status' => 'Offen' })
+      create(:ticket, project: project, parent: child, custom_attributes: { 'status' => 'Erledigt' })
+      create(:ticket, project: project, parent: child, custom_attributes: { 'status' => 'Erledigt' })
+
+      expect(parent.children_progress).to eq(done: 0, total: 1, percent: 0)
+    end
+
     it 'is scoped to the parent project: a status another project marks closed does NOT count' do
       # The done-calc must use closed_status_values_for([parent.project_id]), not a global lookup.
       # Here project has no closed status; only a sibling project marks 'Erledigt' as completed.
@@ -162,6 +230,22 @@ RSpec.describe Ticket, 'sub-tasks', type: :model do
       parent.delete
 
       expect(child.reload.parent_id).to be_nil
+    end
+  end
+
+  describe 'deleting the middle ticket of three levels' do
+    it 'makes its child top-level and leaves the grandchild on that child' do
+      root = create(:ticket, project: project)
+      middle = create(:ticket, project: project, parent: root)
+      child = create(:ticket, project: project, parent: middle)
+      grandchild = create(:ticket, project: project, parent: child)
+
+      middle.destroy
+
+      # dependent: :nullify writes with update_all, past the fixed-parent validation.
+      expect(child.reload.parent_id).to be_nil
+      expect(grandchild.reload.parent_id).to eq(child.id)
+      expect(Ticket.exists?(root.id)).to be(true)
     end
   end
 

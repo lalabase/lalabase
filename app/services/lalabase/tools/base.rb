@@ -402,6 +402,14 @@ module Lalabase
         record
       end
 
+      # Marks the decision of a list tool whose rows pass a policy scope instead of a
+      # record check: the scope IS the authorization, and an empty list is its answer,
+      # not a refusal. Call it before the read, so the D7 tripwire stays armed for a
+      # tool that reads without it.
+      def self.scoped_by_policy!(context)
+        context.authorization&.record!
+      end
+
       # The tickets of `relation` the actor may read (TicketPolicy::Scope). Every
       # tool that addresses ONE ticket looks it up in here, so a ticket without
       # read access answers exactly like a missing one. A lookup outside the

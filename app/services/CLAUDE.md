@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-10-30)
+# Karte: app/services (Stand: 2026-10-31)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -223,6 +223,12 @@ Verzeichnis-Übersicht (Auswahl):
   without `format` stays byte for byte). Not a second rule: do not align them in one hull.
   Encodings: JSON and forms always give UTF-8; a multipart part may name its own charset,
   which an html body keeps (ActionText reads it, as before) and a plain body transcodes.
+* `personal_access_tokens/` — `reach_listing.rb` (31.10.2026) is the ONE read of a token's
+  organisations and projects as rows, for `GET /api/v1/organisations`, `GET /api/v1/projects` and
+  the MCP tools `list_organisations` and `list_projects`. Reach (`PersonalAccessToken::Reach`) AND
+  the policy scope decide. It asks `Pundit.policy_scope!` per organisation, never the controller
+  helper, which memoises per scope object. The method `projects_in_organisation` keeps its name:
+  `spec/support/prosopite.rb` allow-lists it by that name.
 * `lalabase/` — AI/RAG-Domäne (eigene Karte im Ordner)
 * `access_check/` — Projekt-Zugriffslogik, 5 Objekte mit überlappenden Prädikaten —
   **vor Neubau erst hier prüfen**. `project_access_service.rb` ist der EINE Besitzer der

@@ -49,7 +49,7 @@ module McpContract
   end
 
   # SHA-256 of the compact JSON of the payload, keys in file order. The terminal
-  # client rebuilds it to check its copy (gboyke/lalabase-cli,
+  # client rebuilds it to check its copy (lalabase/lalabase-cli,
   # tools/update-contract): it compacts the payload exactly as the file writes it
   # (Go's json.Compact, no re-escaping) and hashes that. So the file must keep the
   # escaping JSON.generate uses, which JSON.pretty_generate does; a writer that
@@ -353,7 +353,10 @@ module McpContract
         'idempotency_key' => idempotency_key_calls(website),
         # MCP 0.14 (REST R7), appended last: the file of Ben's comment, made
         # right before it.
-        'comment_file' => comment_file_calls(website)
+        'comment_file' => comment_file_calls(website),
+        # MCP 0.15, appended last: reads, so every answer above stays as it was.
+        'list_organisations' => { 'ok' => tool_call(:read, 'list_organisations') },
+        'list_projects' => list_projects_calls
       }
     end
 
@@ -362,6 +365,17 @@ module McpContract
     # is the oldest on the login ticket, so a page of one holds it. Without
     # `record`: no tick, no clock moved for the REST section, which lists this
     # file too (attachment_calls, ticket_view).
+    def list_projects_calls
+      {
+        'ok' => tool_call(:read, 'list_projects'),
+        'one_organisation' => tool_call(:read, 'list_projects', organisation_id: id(:organisation), per_page: 2),
+        'include_archived' => tool_call(:read, 'list_projects', include_archived: true),
+        'invalid_input' => tool_call(:read, 'list_projects', organisation_id: 'oops'),
+        'invalid_input_per_page' => tool_call(:read, 'list_projects', per_page: 0),
+        'not_found' => tool_call(:read, 'list_projects', organisation_id: id(:other_organisation))
+      }
+    end
+
     def comment_file_calls(website)
       in_org do
         attach_fixture(PostDocument.new(id: id(:first_post_file), post: Post.find(id(:first_post)), organisation: @organisation,

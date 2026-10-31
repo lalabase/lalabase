@@ -2,11 +2,13 @@
 
 require 'rails_helper'
 
-# Renders the sub-tasks UI: section + progress on the parent, compact quick-add on a
-# childless top-level ticket, and the parent backlink on a child. The SECTION lives
-# INSIDE the lazy timeline frame since the T3 follow-up (03.09., ticket detail
-# redesign) — the show body only carries the frame's src, so section assertions go
-# against the frame's own endpoint; header assertions (backlink badge) stay on show.
+# Renders the sub-tasks UI: section + progress on a ticket with children, compact
+# quick-add on a childless one, and the trail of ancestors on a sub-task. Sub-tasks
+# nest to any depth, so every ticket, a sub-task too, carries the section. The
+# SECTION lives INSIDE the lazy timeline frame since the T3 follow-up (03.09., ticket
+# detail redesign) - the show body only carries the frame's src, so section
+# assertions go against the frame's own endpoint; header assertions (the trail)
+# stay on show.
 RSpec.describe 'Tickets sub-tasks (detail rendering)', type: :request do
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }
@@ -55,6 +57,20 @@ RSpec.describe 'Tickets sub-tasks (detail rendering)', type: :request do
     expect(body).to include(done_child.title)
   end
 
+  # The section sits inside the turbo frame of the timeline. A link without a target stays in
+  # that frame, the answer holds no such frame, and the reader gets "Content missing".
+  it 'opens a sub-task from the list in the detail frame, not in the timeline frame' do
+    parent = create(:ticket, project: project, creator: user)
+    child = create(:ticket, project: project, creator: user, parent: parent)
+
+    link = Nokogiri::HTML(subtasks_body(parent)).at_css("a[href*='ticket_id=#{child.id}']")
+
+    expect(response).to have_http_status(:ok)
+    expect(link).to be_present
+    expect(link['data-turbo-frame']).to eq('ticket_display_frame')
+    expect(link.key?('data-ticket-link')).to be(true)
+  end
+
   it 'shows only the compact right-aligned quick-add when there are no sub-tasks (no heading/hint/hero)' do
     lone = create(:ticket, project: project, creator: user)
 
@@ -67,14 +83,84 @@ RSpec.describe 'Tickets sub-tasks (detail rendering)', type: :request do
     expect(body).not_to include('Zerlege diese Aufgabe in kleinere Schritte.')
   end
 
-  it 'shows the parent backlink badge on a child ticket' do
+  def breadcrumbs(body = response.body)
+    Nokogiri::HTML(body).at_css(
+      "nav[aria-label='#{I18n.t('views.organisations.tickets.shared.subtasks.breadcrumbs_label')}']"
+    )
+  end
+
+  it 'shows the parent number as a link in the trail of a child, and no old pill' do
     parent = create(:ticket, project: project, creator: user)
     child = create(:ticket, project: project, creator: user, parent: parent)
 
     get detail_path(child)
 
-    expect(response.body).to include("Teil von ##{parent.number}")
-    expect(response.body).to include('bi-arrow-return-right')
+    expect(response).to have_http_status(:ok)
+    nav = breadcrumbs
+    expect(nav).to be_present
+    link = nav.at_css('ol li a')
+    expect(link.text.strip).to eq("##{parent.number}")
+    expect(link['href']).to eq(organisation_project_tickets_path(organisation, project, ticket_id: parent.id))
+    expect(link.key?('data-ticket-link')).to be(true)
+    expect(response.body).not_to include('Teil von')
+  end
+
+  it 'shows the whole chain of a great-grandchild, root first, its own number last and not a link' do
+    root = create(:ticket, project: project, creator: user)
+    child = create(:ticket, project: project, creator: user, parent: root)
+    grandchild = create(:ticket, project: project, creator: user, parent: child)
+    great = create(:ticket, project: project, creator: user, parent: grandchild)
+
+    get detail_path(great)
+
+    expect(response).to have_http_status(:ok)
+    items = breadcrumbs.css('ol > li')
+    expect(items.map { |li| li.text.gsub(/\s+/, ' ').strip.delete_suffix('›').strip })
+      .to eq([root, child, grandchild, great].map { |t| "##{t.number}" })
+    expect(items[0..2].map { |li| li.at_css('a')['href'] })
+      .to eq([root, child, grandchild].map { |t| organisation_project_tickets_path(organisation, project, ticket_id: t.id) })
+    expect(items.last.at_css('a')).to be_nil
+    expect(items.last.at_css('[aria-current="page"]').text.strip).to eq("##{great.number}")
+    # The separator is decoration, not a word a screen reader reads out.
+    expect(breadcrumbs.css('[aria-hidden="true"]').map { |n| n.text.strip }).to eq(%w[› › ›])
+  end
+
+  it 'looks the ancestors up in one query, however deep the ticket sits' do
+    root = create(:ticket, project: project, creator: user)
+    child = create(:ticket, project: project, creator: user, parent: root)
+    grandchild = create(:ticket, project: project, creator: user, parent: child)
+    great = create(:ticket, project: project, creator: user, parent: grandchild)
+
+    statements = capture_sql { get detail_path(great) }
+
+    expect(response).to have_http_status(:ok)
+    expect(statements.grep(/WITH RECURSIVE ancestors/).size).to eq(1)
+  end
+
+  # The header asks the database, not parent_id: a parent the walk cannot reach (deleted
+  # meanwhile, or legacy data in another project) leaves no ancestors, and a trail of the
+  # ticket's own number alone would say nothing. Written past the model on purpose.
+  it 'shows no trail when the parent lies in another project' do
+    other_project = create(:project, organisation: organisation)
+    foreign = create(:ticket, project: other_project, creator: user)
+    orphan = create(:ticket, project: project, creator: user)
+    orphan.update_column(:parent_id, foreign.id)
+
+    statements = capture_sql { get detail_path(orphan) }
+
+    expect(response).to have_http_status(:ok)
+    expect(breadcrumbs).to be_nil
+    expect(response.body).not_to include("##{foreign.number}</a>")
+    expect(statements.grep(/WITH RECURSIVE ancestors/).size).to eq(1)
+  end
+
+  it 'shows no trail on a top-level ticket' do
+    lone = create(:ticket, project: project, creator: user)
+
+    get detail_path(lone)
+
+    expect(response).to have_http_status(:ok)
+    expect(breadcrumbs).to be_nil
   end
 
   it 'renders the inline quick-add form posting to this parent subtasks endpoint' do
@@ -109,12 +195,16 @@ RSpec.describe 'Tickets sub-tasks (detail rendering)', type: :request do
     expect(body).not_to include('subtasks-details')
   end
 
-  it 'does not show the sub-tasks section on a child ticket' do
+  it 'shows the sub-tasks section and its quick-add on a child ticket too' do
     parent = create(:ticket, project: project, creator: user)
     child = create(:ticket, project: project, creator: user, parent: parent)
 
-    # Asserted against the frame endpoint — the surface that WOULD render the
-    # section if the parent_id gate were missing; the show body never carries it.
-    expect(subtasks_body(child)).not_to include("subtasks-#{child.id}")
+    body = subtasks_body(child)
+
+    expect(response).to have_http_status(:ok)
+    expect(body).to include("subtasks-#{child.id}")
+    expect(body).to include("subtask-quick-add-#{child.id}")
+    expect(body).to include(organisation_project_ticket_subtasks_path(organisation, project, child))
+    expect(body).to include('data-timeline-filter-target="subtasksToggleButton"')
   end
 end

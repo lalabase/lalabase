@@ -942,7 +942,10 @@ the de and en keys are three lists kept by hand; the guard holds them together).
 `change[add_assignee_ids]` and `change[remove_assignee_ids]` (at most 50 each, `"me"` is the token
 owner) against the current list. The kind is decided by the keys present, not their values. It
 answers 200 with the ticket summary, like `PATCH /tickets/:id`, which stays as it is: its
-`assignee_ids` REPLACE the list, and `gboyke/lalabase-mcp` relies on that. Status and assignees
+`assignee_ids` REPLACE the list, and `gboyke/lalabase-mcp` relies on that. `parent_id` on that
+PATCH reaches the model (`Ticket#parent_unchanged`, a saved ticket keeps its parent): another
+parent or an empty value is a 422 `validation_failed`/`invalid_input`, the current parent is no
+change, so a client may send back what it read. Status and assignees
 go through `Actors::ApplyTicketChanges` like a board drag (a `TicketBulkRun` included), the title
 through `Actors::SaveTicket` alone under a lock on the row in its project, so the side effects are
 the web's and MCP's, once. Order: read-only token 403, then the read gate (missing, malformed,

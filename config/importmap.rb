@@ -257,6 +257,7 @@ else
   pin 'controllers/ticket_group_controller', to: 'controllers/ticket_group_controller.js'
   pin 'controllers/ticket_inline_edit_controller', to: 'controllers/ticket_inline_edit_controller.js'
   pin 'controllers/ticket_meeting_panel_controller', to: 'controllers/ticket_meeting_panel_controller.js'
+  pin 'controllers/ticket_pane_links_controller', to: 'controllers/ticket_pane_links_controller.js'
   pin 'controllers/ticket_relation_modal_controller', to: 'controllers/ticket_relation_modal_controller.js'
   pin 'controllers/ticket_selection_controller', to: 'controllers/ticket_selection_controller.js'
   pin 'controllers/ticket_selector_controller', to: 'controllers/ticket_selector_controller.js'

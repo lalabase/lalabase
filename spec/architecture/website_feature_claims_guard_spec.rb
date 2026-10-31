@@ -187,18 +187,22 @@ RSpec.describe 'Mechanisms behind the claims on lalabase.com' do
   end
 
   describe 'the other chapters' do
-    # "Unteraufgaben gehen genau eine Ebene tief."
-    it 'refuses a second level of sub-tasks' do
+    # "Unteraufgaben gehen so tief, wie du sie brauchst. Der Fortschritt zählt nur die
+    # direkte Ebene."
+    it 'allows sub-tasks at any depth and counts only the direct level in the progress' do
       organisation = create(:organisation)
 
       ActsAsTenant.with_tenant(organisation) do
         project = create(:project, organisation: organisation)
-        parent = create(:ticket, project: project, organisation: organisation)
-        child = create(:ticket, project: project, organisation: organisation, parent: parent)
+        root = create(:ticket, project: project, organisation: organisation)
+        child = create(:ticket, project: project, organisation: organisation, parent: root)
+        grandchild = create(:ticket, project: project, organisation: organisation, parent: child)
+        great_grandchild = build(:ticket, project: project, organisation: organisation, parent: grandchild)
 
-        grandchild = build(:ticket, project: project, organisation: organisation, parent: child)
+        expect(great_grandchild).to be_valid
+        great_grandchild.save!
 
-        expect(grandchild).not_to be_valid
+        expect(root.children_progress).to include(total: 1)
       end
     end
 

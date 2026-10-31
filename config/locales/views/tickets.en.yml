@@ -245,7 +245,7 @@ en:
             heading: Sub-tasks
             progress: "%{done} of %{total} done"
             add_placeholder: Add a sub-task …
-            part_of: 'Part of #%{number}'
+            breadcrumbs_label: Parent tasks
           relations:
             heading: Relations
             add: Link

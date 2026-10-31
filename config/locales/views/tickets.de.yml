@@ -245,7 +245,7 @@ de:
             heading: Unteraufgaben
             progress: "%{done} von %{total} erledigt"
             add_placeholder: Unteraufgabe hinzufügen …
-            part_of: 'Teil von #%{number}'
+            breadcrumbs_label: Übergeordnete Aufgaben
           relations:
             heading: Beziehungen
             add: Verknüpfen

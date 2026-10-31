@@ -102,11 +102,14 @@ class Ticket < ApplicationRecord
 
   has_many :time_sessions, dependent: :nullify
 
-  # Sub-tasks: self-referential, exactly ONE level deep (parent -> children, no grandchildren).
-  # The one-level invariant is enforced by the validations below. `dependent: :nullify`
-  # ORPHANS children on parent delete (they survive as top-level tickets), mirrored at the
-  # DB level by the FK on_delete: :nullify — destroying a child's logged time/comments
-  # would be data loss (sub-tasks design, premise 4).
+  # Sub-tasks: self-referential, any depth (parent -> children -> grandchildren ...). A ticket
+  # gets its parent when it is created and keeps it: the validations below refuse any later
+  # change, so a cycle cannot be built (a new ticket has no descendants to close one with).
+  # `dependent: :nullify` ORPHANS children on parent delete (they survive as top-level
+  # tickets, their own children stay attached), mirrored at the DB level by the FK
+  # on_delete: :nullify; it writes past validations, which is why the fixed parent does not
+  # block it. Destroying a child's logged time/comments would be data loss (sub-tasks
+  # design, premise 4).
   belongs_to :parent, class_name: 'Ticket', optional: true
   has_many :children, class_name: 'Ticket', foreign_key: :parent_id, inverse_of: :parent, dependent: :nullify
 
@@ -127,11 +130,11 @@ class Ticket < ApplicationRecord
   # every write through SaveTicket. acts_as_tenant scopes the `parent` load, so a foreign-org
   # parent loads as nil -> rejected as :not_found (cross-tenant is a subset of cross-project,
   # since project_ids are globally unique, but we reject not-found explicitly rather than
-  # letting `optional: true` swallow a dangling reference).
+  # letting `optional: true` swallow a dangling reference). Depth is not limited; instead the
+  # parent is fixed once the ticket exists (parent_unchanged), which keeps the tree acyclic.
   validate :parent_not_self
   validate :parent_loadable_and_same_project
-  validate :parent_is_top_level
-  validate :no_parent_when_has_children
+  validate :parent_unchanged, on: :update
 
   include PgSearch::Model
   pg_search_scope :search_full_text, using: {
@@ -516,14 +519,10 @@ class Ticket < ApplicationRecord
     end
   end
 
-  # One level: the parent must itself be top-level (no grandchildren).
-  def parent_is_top_level
-    errors.add(:parent_id, :must_be_top_level) if parent && parent.parent_id.present?
-  end
-
-  # One level: a ticket that already has children cannot itself become a child.
-  def no_parent_when_has_children
-    errors.add(:parent_id, :has_children) if parent_id.present? && children.exists?
+  # A saved ticket keeps its parent: setting, replacing and clearing it are all refused.
+  # Only a new ticket (no descendants yet) picks a parent, so no write can close a cycle.
+  def parent_unchanged
+    errors.add(:parent_id, :cannot_change) if will_save_change_to_parent_id?
   end
 end
 

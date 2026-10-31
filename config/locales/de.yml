@@ -109,6 +109,7 @@ de:
         created_at: Erstellt am
         creator: Ersteller
         number: Nummer
+        parent_id: Übergeordnete Aufgabe
         project: Projekt
         summary: Zusammenfassung
         tags: Tags

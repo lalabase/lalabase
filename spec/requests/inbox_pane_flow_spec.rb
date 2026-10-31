@@ -143,6 +143,25 @@ RSpec.describe 'Inbox pane flow', type: :request do
     end
   end
 
+  # The pane is a quick look at ONE notification: its head names that ticket, so a link to
+  # another ticket leaves the pane instead of swapping only the part below the head. The
+  # timeline loads apart and cannot know where it sits, hence a controller here, not a target
+  # on each link. It sits inside the frame: a frame load does not copy the frame's attributes.
+  describe 'links to other tickets from the pane' do
+    it 'wires the controller that sends them out, inside the pane' do
+      get organisation_notifications_path(organisation),
+          params: { notification: ticket_notification.id },
+          headers: { 'Turbo-Frame' => 'ticket_pane' }
+
+      expect(response).to have_http_status(:ok)
+      document = Nokogiri::HTML(response.body)
+      wrapper = document.at_css("turbo-frame#ticket_pane [data-controller~='ticket-pane-links']")
+      expect(wrapper).to be_present
+      expect(wrapper['data-action']).to include('click->ticket-pane-links#leave')
+      expect(wrapper.at_css('turbo-frame#ticket_display_frame')).to be_present
+    end
+  end
+
   describe 'editing a ticket from the pane' do
     # The pane carries ticket_display_frame like the standalone ticket view
     # (_index_desktop.html.erb): the status pills and inline edits target it, and

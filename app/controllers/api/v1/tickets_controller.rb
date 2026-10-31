@@ -93,7 +93,9 @@ module Api
       end
 
       # PATCH /api/v1/tickets/:id
-      # Allowed fields: status, assignee_ids (replace semantics).
+      # Allowed fields: status, assignee_ids (replace semantics). parent_id passes through so
+      # the model answers it (Ticket#parent_unchanged): another parent is a 422, the current
+      # one is no change, and nothing is dropped silently.
       def update
         with_readable_ticket(params[:id]) do |ticket, project|
           authorize ticket, :update?
@@ -241,12 +243,12 @@ module Api
       # --- Update helpers --------------------------------------------------
 
       def update_params
-        permitted = params.require(:ticket).permit(:status, assignee_ids: [])
+        permitted = params.require(:ticket).permit(:status, :parent_id, assignee_ids: [])
         # Use to_h.symbolize_keys so we can introspect with .key?
         permitted.to_h.symbolize_keys
       end
 
-      # Maps the API update whitelist (status, assignee_ids) onto SaveTicket params.
+      # Maps the API update whitelist (status, assignee_ids, parent_id) onto SaveTicket params.
       # status is merged into custom_attributes (preserving the other keys), as the
       # previous apply_status_change did. assignee_ids is forwarded only when the
       # client sent the key, so a status-only update leaves assignees untouched
@@ -256,6 +258,7 @@ module Api
         mapped = {}
         mapped[:custom_attributes] = (ticket.custom_attributes || {}).merge('status' => attrs[:status].to_s) if attrs.key?(:status)
         mapped[:assignee_ids] = attrs[:assignee_ids] if attrs.key?(:assignee_ids)
+        mapped[:parent_id] = attrs[:parent_id].presence if attrs.key?(:parent_id)
         mapped
       end
 

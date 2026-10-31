@@ -419,6 +419,56 @@ RSpec.describe 'API V1 Write Endpoints', :ci_guard, type: :request do
   # PATCH /api/v1/tickets/:id  (status + assignees)
   # ------------------------------------------------------------------
   describe 'PATCH /api/v1/tickets/:id' do
+    # Ticket#parent_unchanged decides, as on the web: a client that names another parent hears
+    # no, and one that sends back the parent_id it just read has changed nothing.
+    context 'with a parent_id' do
+      let(:child) do
+        ActsAsTenant.with_tenant(organisation) do
+          create(:ticket, project: project, organisation: organisation, creator: user, parent: ticket)
+        end
+      end
+      let(:other) do
+        ActsAsTenant.with_tenant(organisation) do
+          create(:ticket, project: project, organisation: organisation, creator: user)
+        end
+      end
+
+      def parent_id_of(record)
+        ActsAsTenant.with_tenant(organisation) { record.reload.parent_id }
+      end
+
+      it 'refuses another parent, says so and changes nothing' do
+        patch "/api/v1/tickets/#{child.id}", params: { ticket: { parent_id: other.id } }, headers: auth_headers
+
+        expect(response).to have_http_status(:unprocessable_content)
+        body = response.parsed_body
+        expect(body).to include('error' => 'validation_failed', 'code' => 'invalid_input')
+        expect(body['errors'].join).to include(I18n.t('activerecord.errors.models.ticket.attributes.parent_id.cannot_change'))
+        expect(parent_id_of(child)).to eq(ticket.id)
+      end
+
+      it 'refuses a parent for a top-level ticket' do
+        patch "/api/v1/tickets/#{other.id}", params: { ticket: { parent_id: ticket.id } }, headers: auth_headers
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(parent_id_of(other)).to be_nil
+      end
+
+      it 'refuses clearing the parent with an empty value' do
+        patch "/api/v1/tickets/#{child.id}", params: { ticket: { parent_id: '' } }, headers: auth_headers
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(parent_id_of(child)).to eq(ticket.id)
+      end
+
+      it 'accepts the parent the ticket already has' do
+        patch "/api/v1/tickets/#{child.id}", params: { ticket: { parent_id: ticket.id } }, headers: auth_headers
+
+        expect(response).to have_http_status(:ok)
+        expect(parent_id_of(child)).to eq(ticket.id)
+      end
+    end
+
     it 'updates the status' do
       patch "/api/v1/tickets/#{ticket.id}",
             params: { ticket: { status: 'in_progress' } },

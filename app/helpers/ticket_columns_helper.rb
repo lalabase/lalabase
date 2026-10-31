@@ -153,9 +153,10 @@ module TicketColumnsHelper
         safe_join([render(NeoTimeShareBarComponent.new(shares: totals[:shares])), label], ' ')
       end
     when 'subtask_count'
-      # A ticket without sub-tickets shows nothing, and so does every sub-ticket
-      # (one level deep, Ticket#parent_is_top_level): "0/0" in most rows would
-      # be the column of placeholders the note at the top rules out.
+      # A ticket without sub-tickets shows nothing: "0/0" in most rows would be
+      # the column of placeholders the note at the top rules out. Sub-tickets
+      # nest to any depth, so a sub-ticket with sub-tickets of its own shows
+      # its numbers. Every row counts its DIRECT children only.
       counts = ticket_subtask_counts(ticket)
       return empty_cell unless counts[:total].positive?
 

@@ -69,6 +69,50 @@ RSpec.describe 'Tickets sub-tasks quick-add', type: :request do
     expect(response.body).to match(/<details[^>]*\bopen\b/)
   end
 
+  # Sub-tasks nest to any depth: the quick-add on a sub-task makes a grandchild, and the list's
+  # Subs cell of that sub-task (its own row, not the root's) gets the new count.
+  context 'on a sub-task' do
+    let(:sub_task) do
+      ActsAsTenant.current_tenant = organisation
+      create(:ticket, project: project, creator: user, parent: parent)
+    end
+
+    before do
+      ViewConfiguration.create!(user: user, project: project, view_type: 'tickets',
+                                table_columns: %w[number title subtask_count],
+                                list_columns: { 'cells' => [], 'metadata' => [] },
+                                header_columns: %w[assignees])
+    end
+
+    def stream_text(target)
+      Nokogiri::HTML(response.body).css('turbo-stream').find { |node| node['targets'] == target }&.text&.strip
+    end
+
+    it 'creates a grandchild below the sub-task' do
+      expect do
+        post organisation_project_ticket_subtasks_path(organisation, project, sub_task),
+             params: { title: 'Enkel' }, as: :turbo_stream
+      end.to change { children_of(sub_task).size }.by(1)
+
+      expect(response).to have_http_status(:ok)
+      grandchild = children_of(sub_task).last
+      expect(grandchild.title).to eq('Enkel')
+      expect(grandchild.parent_id).to eq(sub_task.id)
+      expect(response.body).to include("subtask-quick-add-#{sub_task.id}")
+    end
+
+    it "redraws the sub-task's own Subs cell and item, not the root's" do
+      post organisation_project_ticket_subtasks_path(organisation, project, sub_task),
+           params: { title: 'Enkel' }, as: :turbo_stream
+
+      expect(response).to have_http_status(:ok)
+      expect(stream_text("tr[data-ticket-id='#{sub_task.id}'] td[data-column='subtask_count']")).to eq('0/1')
+      expect(stream_text("tr[data-ticket-id='#{sub_task.id}'] .ticket-meta__item[data-meta-column='subtask_count']"))
+        .to eq('Subs 0/1')
+      expect(stream_text("tr[data-ticket-id='#{parent.id}'] td[data-column='subtask_count']")).to be_nil
+    end
+  end
+
   it 'rejects a blank title: no child, inline error, 422' do
     expect do
       post organisation_project_ticket_subtasks_path(organisation, project, parent),

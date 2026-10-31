@@ -3,9 +3,10 @@
 require 'rails_helper'
 
 # The "Subs" column, seen from the list that renders it. The cache spec proves
-# the numbers; this proves the wiring: the cell shows "done/total", stays empty
-# for a ticket without sub-tickets and for the sub-tickets themselves, the page
-# preloads, and the single-row re-render after a save still counts.
+# the numbers; this proves the wiring: the cell shows "done/total" of a ticket's
+# DIRECT sub-tickets, also on a sub-ticket with sub-tickets of its own, stays
+# empty for a ticket without any, the page preloads, and the single-row
+# re-render after a save still counts.
 RSpec.describe 'Ticket table: sub-ticket column', type: :request do
   let(:organisation) { create(:organisation) }
   let(:user) { ActsAsTenant.with_tenant(organisation) { create(:user) } }
@@ -62,6 +63,25 @@ RSpec.describe 'Ticket table: sub-ticket column', type: :request do
     expect(response).to have_http_status(:ok)
     # Four rows: the parent with its count, three children with an empty cell.
     expect(cells.sort).to eq(['', '', '', '1/3'])
+  end
+
+  # Sub-tasks nest to any depth. Each row counts its direct children: the
+  # grandchild is the sub-ticket's, not the root's.
+  it "shows a sub-ticket's own children and leaves them out of the root's count" do
+    sub = child('Offen')
+    create(:ticket, project: project, creator: user, parent: sub, custom_attributes: { 'status' => 'Erledigt' })
+    create(:ticket, project: project, creator: user, parent: sub, custom_attributes: { 'status' => 'Offen' })
+    child('Erledigt')
+
+    get_index
+    expect(response).to have_http_status(:ok)
+    by_row = Nokogiri::HTML(response.body).css('tr[data-ticket-id]').to_h do |row|
+      [row['data-ticket-id'], row.at_css('td.subtask_count-column')&.text&.strip]
+    end
+    expect(by_row[parent.id]).to eq('1/2')
+    expect(by_row[sub.id]).to eq('1/2')
+    # The other sub-ticket and both grandchildren have no children: empty.
+    expect(by_row.values.sort).to eq(['', '', '', '1/2', '1/2'])
   end
 
   it 'explains the number in the cell title' do
@@ -261,18 +281,17 @@ RSpec.describe 'Ticket table: sub-ticket column', type: :request do
       expect(parent_cell).to eq('1/1')
     end
 
-    it 'redraws the old parent too when a ticket moves to another one' do
+    # A saved ticket keeps its parent (Ticket#parent_unchanged): an edit that names
+    # another parent changes nothing, so no row has a new count to show.
+    it 'keeps the parent when an edit names another one, and the other stays empty' do
       new_parent = create(:ticket, project: project, creator: user)
       sub = child('Offen')
 
       patch organisation_project_ticket_path(organisation, project, sub),
             params: { ticket: { title: sub.title, parent_id: new_parent.id } }, headers: stream_headers
 
-      expect(response).to have_http_status(:ok)
-      expect(parent_cell(of: new_parent)).to eq('0/1')
-      # The old parent has no sub-tickets left: its cell and item are emptied.
-      expect(parent_cell(of: parent)).to eq('')
-      expect(parent_meta(of: parent)).to eq('')
+      expect(sub.reload.parent_id).to eq(parent.id)
+      expect(parent_cell(of: new_parent).to_s).to eq('')
     end
 
     # Finding 2 of the second review: the unread dot on the parent's number

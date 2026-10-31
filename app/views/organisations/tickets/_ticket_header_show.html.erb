@@ -116,13 +116,10 @@
           <%= ticket.title %>
         <% end %>
       </h2>
-      <%# Sub-task backlink — neutral pill (not a status/action colour), links to the parent. %>
+      <%# Where a sub-task sits in its tree: every ticket above it, then its own number. %>
       <% if ticket.parent_id.present? %>
-        <%= link_to organisation_project_tickets_path(current_organisation, project, ticket_id: ticket.parent_id),
-                    class: "inline-flex h-6 w-fit items-center gap-1 rounded-full border border-cream-300 px-2 text-xs text-cream-700 hover:bg-cream-100" do %>
-          <i class="bi bi-arrow-return-right text-[11px]"></i>
-          <%= t('views.organisations.tickets.shared.subtasks.part_of', number: ticket.parent.number) %>
-        <% end %>
+        <%= render 'organisations/tickets/ticket_breadcrumbs',
+                   ticket: ticket, project: project, current_organisation: current_organisation %>
       <% end %>
     </div>
 

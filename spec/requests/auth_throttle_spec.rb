@@ -297,6 +297,67 @@ RSpec.describe 'Auth endpoint throttling', type: :request do
 
   # The branches of the bucketing function the request specs above never
   # reach: IPv6, IPv4-mapped IPv6 and garbage input. Pinned directly.
+  # A throttle discriminator is part of the cache key, and the file store production
+  # runs on writes that key into a file name. The database only ever holds a token's
+  # digest; a raw token as the discriminator put the plaintext of every active token on
+  # disk, in tmp/cache and in whatever backs that up.
+  describe 'token throttles (api_v1/token, api_mcp/token, 60 per minute)' do
+    let(:token) { "#{PersonalAccessToken::TOKEN_PREFIX}#{'x' * PersonalAccessToken::TOKEN_BODY_LENGTH}" }
+    let(:other_token) { "#{PersonalAccessToken::TOKEN_PREFIX}#{'y' * PersonalAccessToken::TOKEN_BODY_LENGTH}" }
+
+    def bearer(raw, ip)
+      { 'Authorization' => "Bearer #{raw}", 'REMOTE_ADDR' => ip }
+    end
+
+    def call_api_v1(raw, ip: '203.0.113.1')
+      get '/api/v1/me', headers: bearer(raw, ip)
+    end
+
+    def call_mcp(raw, ip: '203.0.113.1')
+      post '/api/mcp', headers: bearer(raw, ip)
+    end
+
+    around do |example|
+      Dir.mktmpdir do |dir|
+        @cache_dir = dir
+        Rack::Attack.cache.store = ActiveSupport::Cache::FileStore.new(dir)
+        example.run
+      end
+    end
+
+    before { Prosopite.pause }
+
+    def cache_file_names
+      Dir.glob(File.join(@cache_dir, '**', '*')).select { |path| File.file?(path) }
+    end
+
+    %i[call_api_v1 call_mcp].each do |call|
+      it "keeps the plaintext out of the cache (#{call})" do
+        send(call, token)
+
+        expect(cache_file_names).not_to be_empty
+        expect(cache_file_names.join).not_to include(token)
+        expect(cache_file_names.map { |path| File.binread(path) }.join).not_to include(token)
+      end
+
+      # Each call from its own address, so that only the token bucket can answer 429.
+      it "counts one token across addresses (#{call})" do
+        60.times { |i| send(call, token, ip: "203.0.113.#{i + 1}") }
+        expect(response).not_to have_http_status(:too_many_requests)
+
+        send(call, token, ip: '198.51.100.1')
+        expect(response).to have_http_status(:too_many_requests)
+      end
+
+      it "gives another token its own bucket (#{call})" do
+        60.times { |i| send(call, token, ip: "203.0.113.#{i + 1}") }
+
+        send(call, other_token, ip: '198.51.100.1')
+        expect(response).not_to have_http_status(:too_many_requests)
+      end
+    end
+  end
+
   describe 'Rack::Attack.subnet_of' do
     it 'buckets a /24 together and the neighbouring /24 apart' do
       expect(Rack::Attack.subnet_of('203.0.113.7')).to eq(Rack::Attack.subnet_of('203.0.113.200'))

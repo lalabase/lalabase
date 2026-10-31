@@ -228,10 +228,7 @@ class Rack::Attack
   ### Throttle API v1 per token (60 req/min) ###
   # Protects against LLM infinite loops + brute force against leaked tokens.
   throttle('api_v1/token', limit: 60, period: 60.seconds) do |req|
-    next unless normalized_path(req).start_with?('/api/v1/')
-
-    raw = req.env['HTTP_AUTHORIZATION'].to_s.sub(/\ABearer /, '')
-    raw.presence
+    token_bucket(req) if normalized_path(req).start_with?('/api/v1/')
   end
 
   ### Throttle MCP endpoint per token (60 req/min) ###
@@ -239,10 +236,7 @@ class Rack::Attack
   # cap — so a per-token throttle bounds runaway agents + leaked-token brute force.
   # Per-IP is already covered by the 'api/ip' throttle above (/api/ prefix).
   throttle('api_mcp/token', limit: 60, period: 60.seconds) do |req|
-    next unless normalized_path(req).match?(MCP_PATH)
-
-    raw = req.env['HTTP_AUTHORIZATION'].to_s.sub(/\ABearer /, '')
-    raw.presence
+    token_bucket(req) if normalized_path(req).match?(MCP_PATH)
   end
 
   ### Throttle meetings AI participant detection per user ###
@@ -326,6 +320,14 @@ class Rack::Attack
   # padding bypass the normalizer closes (CLAUDE.md: duplicated enforcement).
   def self.post_to?(req, pattern)
     req.post? && normalized_path(req).match?(pattern)
+  end
+
+  # The bucket of a bearer token: its digest, never the token. A discriminator is part
+  # of the cache key, and the file store writes that key into a file name, so the raw
+  # value put the plaintext of every active token into tmp/cache. nil without a token.
+  def self.token_bucket(req)
+    raw = req.env['HTTP_AUTHORIZATION'].to_s.sub(/\ABearer /, '')
+    Digest::SHA256.hexdigest(raw) if raw.present?
   end
 
   # The address a login attempt names, from a form OR a JSON body. req.params
@@ -440,29 +442,6 @@ class Rack::Attack
     [429, headers, ["Zu viele Anfragen. Bitte versuchen Sie es später erneut. / Too many requests. Please try again later.\n"]]
   end
 end
-
-# ⚠ CLIENT-SPOOFABLE THROTTLE KEY -- needs a server-side fix, NOT a code-only one.
-#
-# Every `req.ip` above is client-controlled as things stand. req.ip (Rack 3)
-# prefers the RFC 7239 Forwarded header; ActionDispatch remote_ip prefers
-# X-Forwarded-For. With `config.action_dispatch.trusted_proxies` unset (it is
-# nil here) BOTH follow the header the client sent -- measured: a forged
-# X-Forwarded-For makes remote_ip return the forged value, so swapping req.ip
-# for remote_ip buys nothing. A client can therefore pick a fresh bucket per
-# request for registrations/ip and registrations/subnet, and can even spend a
-# victim /24's registration budget on purpose. The bot-trap log line has the
-# same weakness.
-#
-# The fix lives at the trust boundary and needs the production topology (Puma
-# behind nginx over a unix socket), which is not in this repo, so it is
-# deliberately NOT guessed here:
-#   1. nginx: set (do not append) X-Forwarded-For to $remote_addr and clear any
-#      inbound Forwarded header, so a spoofed value never reaches Rails;
-#   2. Rails: set config.action_dispatch.trusted_proxies to the proxy address so
-#      remote_ip stops at the nginx hop and returns the real client.
-# Until both are in place the per-IP and subnet throttles bound accidental
-# floods (a real botnet without header spoofing) but not a deliberate one; the
-# path-normalisation and honeypot defences above do not depend on the client IP.
 
 # Every limit above was invisible in the log: a throttled request answers 429
 # and disappears, and a track answers nothing at all. Without these two lines a

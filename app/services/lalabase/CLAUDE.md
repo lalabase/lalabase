@@ -1,4 +1,4 @@
-# Karte: app/services/lalabase (Stand: 2026-10-30)
+# Karte: app/services/lalabase (Stand: 2026-10-31)
 
 AI/RAG-Domäne (Produktname „Lalabase"): alles rund um LLM-Aufrufe, Embeddings und
 Codebase-Verständnis.
@@ -107,6 +107,16 @@ Codebase-Verständnis.
   `search_knowledge` liest über `Knowledge::Lookup` (`app/services/knowledge/lookup.rb`,
   REST R2), denselben Service wie `GET /api/v1/projects/:project_id/knowledge`. Im Werkzeug
   bleiben `q` als Pflicht, die nachsichtigen Seiten-Optionen und die Zitationen.
+  `list_organisations` and `list_projects` (MCP 0.15.0, `:mcp` only, the last two tools) name
+  the ids the other tools take. `scope_mode :token`, reads for a read-only token as well. Both
+  read through `PersonalAccessTokens::ReachListing`, the reader of `GET /api/v1/organisations`
+  and `/projects`, so a new rule of the reach belongs there. `list_projects` keeps what is the
+  tool's: archived projects only with `include_archived`, `not_found` for an organisation out
+  of reach (REST answers 200 with `[]`), `per_page` of at most 100 clamped, a description cut
+  after 500 characters. Not `ProjectPolicy#index?`: it refuses an active member without a
+  project, who gets an empty list, so `Base.scoped_by_policy!` marks the decision of the policy
+  scope. Every listed id passes the gate of `Mcp::ToolCall`; the walk is
+  `spec/requests/api/mcp_list_projects_spec.rb`.
   Fehler eines Werkzeugs tragen eine Klasse: `Result.invalid_input(msg)` oder
   `Result.refused(msg, reason:)`; ohne Code gilt `refused`, auch für ein abgelehntes Speichern
   (Modellvalidierung, Actor-Fehler): das beweist keine falsche Eingabe. Spec je Fehlerstelle:

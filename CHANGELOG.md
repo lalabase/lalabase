@@ -25,6 +25,9 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   signed record of where it was built (`gh attestation verify oci://ghcr.io/lalabase/lalabase:<version> --owner lalabase`).
   `compose.yml` of a release pulls the image of that release instead of building it, and
   `compose.build.yml` still builds the image from the checkout (#48).
+- The MCP tools `list_organisations` and `list_projects`: an agent now finds the ids the other
+  tools ask for itself, instead of taking them from the address bar. `GET /api/v1/organisations`
+  and `GET /api/v1/projects` read through the same code and answer as before.
 
 ### Fixed
 

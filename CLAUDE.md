@@ -875,6 +875,14 @@ reach, organisations AND projects, and only the rows the web time list shows the
 its minutes, with `ticket: null`. Owner: `TimeSessions::OpenHours`; guard:
 `spec/requests/api/v1/time_sessions_open_access_spec.rb`.
 
+`GET /api/v1/organisations` and `GET /api/v1/projects` read through
+`PersonalAccessTokens::ReachListing`, the reader of the MCP tools `list_organisations` and
+`list_projects` (MCP 0.15.0). The rows are the same, the rest differs on purpose: REST answers 200
+with `[]` for an organisation out of reach and shows an admin archived projects unpaged and uncut;
+MCP answers `not_found`, shows archived projects on request, pages by 100 and cuts a description.
+Guards: `spec/services/personal_access_tokens/reach_listing_spec.rb`,
+`spec/requests/api/mcp_list_projects_spec.rb` (every listed id passes the project gate).
+
 `GET /api/v1/projects/:project_id/knowledge` (REST R2, 2026-10-29, API 1.6.0, capability
 `knowledge.search`) lists a project's notes and documents by title through `Knowledge::Lookup`,
 the read the MCP tool `search_knowledge` uses: the same rows, order (`updated_at` newest first,

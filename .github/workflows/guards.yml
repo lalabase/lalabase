@@ -271,6 +271,7 @@ jobs:
           spec/requests/api/mcp_people_spec.rb
           spec/requests/api/mcp_idempotency_key_bound_spec.rb
           spec/services/mcp/idempotency_store_spec.rb
+          spec/services/personal_access_tokens/reach_listing_spec.rb
           spec/services/posts/plain_text_body_spec.rb
           spec/services/lalabase/tools/post_comment_spec.rb
           spec/services/lalabase/tools/post_comment_failure_spec.rb

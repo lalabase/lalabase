@@ -93,10 +93,13 @@ RSpec.describe Lalabase::Tools::Registry do
       expect(described_class.by_name('find_people', set: :assistant)).to eq(t::FindPeople)
     end
 
-    # Terminal client S6 (the booked time of a ticket), then People S3b: each appended LAST, so
-    # the pinned wire order of every tool before them stays intact.
-    it 'offers the time report and then the people twins as the last tools on :mcp (wire order pinned)' do
-      expect(described_class.for(:mcp).last(3)).to eq([t::SummarizeTimeSessions, t::McpFindPeople, t::McpGetPerson])
+    # Terminal client S6 (the booked time of a ticket), then People S3b, then the two lists an
+    # agent finds its ids with: each appended LAST, so the pinned wire order of every tool
+    # before them stays intact.
+    it 'offers the time report, the people twins and the two id lists as the last tools on :mcp (wire order pinned)' do
+      expect(described_class.for(:mcp).last(4)).to eq(
+        [t::SummarizeTimeSessions, t::McpFindPeople, t::McpGetPerson, t::ListOrganisations]
+      )
     end
 
     it 'no chat set carries search_knowledge (deliberate omission)' do
@@ -114,7 +117,7 @@ RSpec.describe Lalabase::Tools::Registry do
         t::GetCapabilityDetails, t::GetSymbolDetails, t::ListTickets,
         t::GetTicket, t::SearchKnowledge, t::CreateTicket, t::PostComment, t::ListNotifications,
         t::CreateTimeSession, t::MarkNotificationRead, t::UpdateTicket, t::SummarizeTimeSessions,
-        t::McpFindPeople, t::McpGetPerson
+        t::McpFindPeople, t::McpGetPerson, t::ListOrganisations
       )
     end
 
@@ -220,6 +223,7 @@ RSpec.describe Lalabase::Tools::Registry do
         get_ticket search_knowledge create_ticket post_comment
         list_notifications create_time_session mark_notification_read
         update_ticket summarize_time_sessions find_people get_person
+        list_organisations
       ]
     end
 

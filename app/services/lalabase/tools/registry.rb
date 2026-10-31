@@ -141,7 +141,10 @@ module Lalabase
         # the organisation reads its directory (E1), never the notes (E2). Appended for the
         # same reason.
         McpFindPeople,
-        McpGetPerson
+        McpGetPerson,
+        # How an agent finds the organisation and project ids the tools above take,
+        # token-scoped reads. Appended for the same reason.
+        ListOrganisations
       ].freeze
 
       # Sets whose tools reach the LLM tool loop. The guard-spec enforces the

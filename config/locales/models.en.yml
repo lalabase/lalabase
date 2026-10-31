@@ -141,11 +141,10 @@ en:
         ticket:
           attributes:
             parent_id:
-              cannot_be_self: "may not point to itself"
-              not_found: "parent task not found"
-              different_project: "parent task must be in the same project"
-              must_be_top_level: "parent task may not itself be a sub-task"
-              has_children: "tasks with sub-tasks cannot become a sub-task themselves"
+              cannot_be_self: "cannot be the ticket itself"
+              not_found: "was not found"
+              different_project: "must be in the same project"
+              cannot_change: "cannot be changed once the ticket exists"
         reference:
           self_reference: "A reference may not point to itself"
         # Whole sentences on :base, so the message reads without an attribute name.

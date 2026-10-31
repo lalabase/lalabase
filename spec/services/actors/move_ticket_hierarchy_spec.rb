@@ -47,6 +47,29 @@ RSpec.describe Actors::MoveTicket, 'hierarchy guard', type: :service do
     expect(child.reload.project_id).to eq(source_project.id)
   end
 
+  context 'with a tree three levels deep' do
+    let!(:middle) { create(:ticket, project: source_project, organisation: organisation, creator: user, parent: parent) }
+    let!(:grandchild) do
+      create(:ticket, project: source_project, organisation: organisation, creator: user, parent: middle)
+    end
+
+    it 'blocks moving the grandchild and leaves the tree in place' do
+      result = described_class.new(ticket: grandchild, target_project: target_project, current_user: user).call
+
+      expect(result.success?).to be(false)
+      expect(result.code).to eq(:has_hierarchy)
+      expect(grandchild.reload.project_id).to eq(source_project.id)
+    end
+
+    it 'blocks moving the middle ticket (it has a parent and a child) and leaves the tree in place' do
+      result = described_class.new(ticket: middle, target_project: target_project, current_user: user).call
+
+      expect(result.success?).to be(false)
+      expect(result.code).to eq(:has_hierarchy)
+      expect(Ticket.where(id: [parent.id, middle.id, grandchild.id]).pluck(:project_id)).to eq([source_project.id] * 3)
+    end
+  end
+
   it 'still moves a normal ticket without parent or children (regression guard)' do
     plain = create(:ticket, project: source_project, organisation: organisation, creator: user)
 

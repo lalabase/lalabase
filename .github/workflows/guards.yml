@@ -380,6 +380,7 @@ jobs:
           spec/requests/organisations/tickets_name_display_spec.rb
           spec/requests/organisations/tickets_selected_page_redirect_spec.rb
           spec/requests/organisations/tickets_timeline_spec.rb
+          spec/requests/organisations/tickets_subtasks_spec.rb
           spec/requests/ticket_list_view_columns_spec.rb
           spec/requests/ticket_column_pins_spec.rb
           spec/models/activity_spec.rb
@@ -654,6 +655,7 @@ jobs:
           spec/services/actors/ticket_relation_actors_tenant_boundary_spec.rb
           spec/services/tickets/waiting_spec.rb
           spec/services/tickets/cycle_check_spec.rb
+          spec/services/tickets/ancestry_spec.rb
           spec/models/ticket_relation_spec.rb
           spec/services/actors/create_ticket_relation_spec.rb
           spec/services/actors/destroy_ticket_relation_spec.rb

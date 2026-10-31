@@ -103,6 +103,7 @@ en:
         created_at: Created at
         creator: Creator
         number: Number
+        parent_id: Parent task
         project: Project
         summary: Summary
         tags: Tags

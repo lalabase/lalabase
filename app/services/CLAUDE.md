@@ -589,7 +589,10 @@ Bekannte Doppel-Verortungen (Altbestand; Boy-Scout-Regel: bei Berührung konsoli
   Ticket-Beziehungen (30.09.2026, `doc/ticket_relations_plan.md`): `tickets/waiting.rb` ist der
   EINE Besitzer von „wartet“/„hält auf“ (`waiting`, `blocking`, `counts_for` mit fester
   Abfragezahl, `for`), `tickets/cycle_check.rb` die Erreichbarkeit über eine feste Kantenliste
-  (rekursive CTE, gibt nur IDs aus, endet auch bei Altbestand-Kreisen). Geschrieben wird über
+  (rekursive CTE, gibt nur IDs aus, endet auch bei Altbestand-Kreisen), und zwar NUR für
+  Warte-Kanten: die Hierarchie braucht keine, weil die Eltern nach dem Anlegen feststehen.
+  `tickets/ancestry.rb` ist der EINE Leser der Vorfahren eines Tickets (Brotkrumen): eine
+  Abfrage, endet bei Kreisen in den Daten, bleibt in Projekt und Organisation. Geschrieben wird über
   `actors/create_ticket_relation.rb` (Advisory-Lock je Organisation, dann Kreis-Prüfung, dann
   `save!`) und `actors/destroy_ticket_relation.rb`; beide prüfen keine Rechte, das tut der Aufrufer
   (`Organisations::Tickets::RelationsController`). Seit PR 2 (Ticketseite): `tickets/waiting.rb`

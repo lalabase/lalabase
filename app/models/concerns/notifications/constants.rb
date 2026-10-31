@@ -250,6 +250,9 @@ module Notifications
       'ticket.ticket_commented' => EVENT_TYPE_TICKET_COMMENTED,
       'post.created' => EVENT_TYPE_TICKET_COMMENTED,
       'project.note_created' => EVENT_TYPE_DOCUMENT_ADDED,
+      # Project news like project.updated. The action fallback below would make it a
+      # system message: score 80 and more, so a mail at once to every account admin.
+      'project.created' => EVENT_TYPE_PROJECT_ANNOUNCEMENT,
       'mention.created' => EVENT_TYPE_MENTION,
       'ticket.moved' => EVENT_TYPE_SYSTEM_MESSAGE,
 

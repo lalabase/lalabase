@@ -214,7 +214,7 @@ module Notifications
 
       case notifiable
       when Project
-        project_members = find_project_members_with_access_optimized(notifiable, :general)
+        project_members = find_project_members_with_access_optimized(notifiable, gated_area_for(notifiable))
         recipients.merge(project_members)
         recipients.merge(active_subscriber_users)
 
@@ -538,32 +538,19 @@ module Notifications
                               .where(users: { active: true })
     end
 
+    # Everybody who may read `area` of the project, account admins included. nil is
+    # project news, any area will do (Notification.area_for). An event without a rule
+    # has no area to look up and reaches nobody (see #with_current_access).
+    #
+    # Deliberately no rescue. Until 2026-10-31 one answered with an empty list here,
+    # so a lookup that raised on every project event passed as a success. Nothing is
+    # written yet at this point: a failure leaves the event to its retry
+    # (OutboxEvent#mark_failed).
     def find_project_members_with_access_optimized(project, area)
-      return [] unless project
+      return [] if project.nil? || area == Notification::UNMAPPED_EVENT
 
-      begin
-        admin_user_ids = @organisation.memberships
-                                      .joins(:user, :role)
-                                      .where(active: true, roles: { title: 'account_admin' })
-                                      .pluck(:user_id)
-
-        project_user_ids = []
-        if project.respond_to?(:users_with_access)
-          project_users = project.users_with_access(:read, area)
-          project_user_ids = project_users.respond_to?(:pluck) ? project_users.pluck(:id) : []
-        end
-
-        all_user_ids = (admin_user_ids + project_user_ids).uniq
-        return [] if all_user_ids.empty?
-
-        User.active
-            .includes(:memberships, :roles)
-            .where(id: all_user_ids)
-            .to_a
-      rescue StandardError => e
-        Rails.logger.warn "Failed to find project members (optimized): #{e.message}"
-        []
-      end
+      readers = area ? project.users_with_access(:read, area) : project.users_with_any_access
+      User.active.includes(:memberships, :roles).where(id: readers.select(:id)).to_a
     end
 
     def derive_event_type

@@ -25,6 +25,15 @@ RSpec.describe Notifications::Constants, '.derive_event_type' do
     end
   end
 
+  # A key beats the action fallback: a new project is project news, not a system message
+  # (fanout_service_project_event_recipients_spec.rb says what that keeps from happening).
+  describe 'a new project' do
+    let(:key) { 'project.created' }
+    let(:action) { 'created' }
+
+    it { is_expected.to eq('project_announcement') }
+  end
+
   describe 'explicit overrides (action fallback)' do
     let(:key) { nil }
 

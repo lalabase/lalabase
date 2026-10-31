@@ -119,6 +119,12 @@ class Project < ApplicationRecord
     AccessCheck::ProjectAccessService.users_with_access(self, action, area)
   end
 
+  # Everybody with read access in at least one area (any area will do, the question
+  # project news ask) — delegates to ProjectAccessService.
+  def users_with_any_access
+    AccessCheck::ProjectAccessService.users_with_any_access(self)
+  end
+
   # Who may be ASSIGNED to (or made to watch) a ticket of this project: whoever
   # may read its tickets, among the ACTIVE members. users_with_access answers
   # who has access and keeps a deactivated member, whose permission rows stay;

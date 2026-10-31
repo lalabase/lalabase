@@ -31,6 +31,12 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 - Building the image yourself no longer fails on the first `up --build` with Docker 29:
   only the web service builds, and the worker runs the image it built (#48).
 
+### Security
+
+- The rate limit of `/api/v1` and `/api/mcp` no longer writes access tokens in plain text
+  into the cache. It counts per digest of the token. With the default file cache, tokens
+  that were in use stood in file names under `tmp/cache` (#92).
+
 ### Upgrade notes
 
 - `compose.yml` no longer builds the image: it pulls `ghcr.io/lalabase/lalabase` in the
@@ -41,6 +47,8 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   later keeps running the pinned version.
 - Unless you keep building the image, the image `lalabase:local` that earlier releases built
   is no longer used: `docker image rm lalabase:local` removes it.
+- After updating, empty the contents of `tmp/cache` once. If that directory is part of a
+  backup, or someone you do not trust could read it, replace your access tokens (#92).
 
 ## [2026.10.1] - 2026-10-21
 

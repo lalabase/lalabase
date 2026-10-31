@@ -18,6 +18,10 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ## [Unreleased]
 
+## [2026.11.0] - 2026-10-31
+
+<!-- drafted from d31c38282b6a52e09e33ebbe4195546d11421234 -->
+
 ### Added
 
 - A Docker image for each release, `ghcr.io/lalabase/lalabase:<version>`, for linux/amd64
@@ -25,33 +29,104 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   signed record of where it was built (`gh attestation verify oci://ghcr.io/lalabase/lalabase:<version> --owner lalabase`).
   `compose.yml` of a release pulls the image of that release instead of building it, and
   `compose.build.yml` still builds the image from the checkout (#48).
-- The MCP tools `list_organisations` and `list_projects`: an agent now finds the ids the other
-  tools ask for itself, instead of taking them from the address bar. `GET /api/v1/organisations`
-  and `GET /api/v1/projects` read through the same code and answer as before.
+- A people directory for each organisation: members appear on their own, contacts without a
+  login are added by hand, with a salutation and up to ten labelled details (a second phone, a
+  website, an address). A person shows their last contact and their meetings, and a meeting
+  participant can point to a person. Two new role rights decide who may see and who may keep the
+  list, see the upgrade notes (#50), (#51), (#54), (#59), (#61), (#64), (#65), (#70), (#74).
+- The assistant looks people up in the directory, and the directory can be read over MCP and
+  `/api/v1`, by the same rights (#73), (#77).
+- A member chooses which email the others see: the login address (the default, as before), a
+  separate contact address, or none, under **Profile** (#82), (#88).
+- A meeting can move to another project, with its booked time, under the new role right
+  `move_meetings` (#45).
+- A meeting linked to a ticket opens beside the ticket in a read-only panel that fits the
+  width of the page, and the assistant is offered both (#40), (#42), (#43).
+- Search hits show their date, and their labels are translated (#66).
+- MCP server 0.15 with 19 tools, five more than 2026.10.1. `list_organisations` and
+  `list_projects`: an agent now finds the ids the other tools ask for itself, instead of taking
+  them from the address bar. `summarize_time_sessions`, and `find_people` and `get_person` for
+  the directory. `get_ticket` lists the files of a comment (#71), (#77), (#89), (#90), (#93), (#94), (#95).
+- `/api/v1` is now fit for programs (API 1.8.0, the Lalabase CLI uses it): an error `code` next
+  to `error`, an `Idempotency-Key` on every write, `api_version` and `capabilities` in
+  `GET /api/v1/me`, the ticket view with pages and by number, time booking, plain text comments,
+  a project's knowledge, `POST /api/v1/tickets/:id/changes`, and the files of a comment
+  (#72), (#76), (#78), (#81), (#83), (#85), (#87), (#89).
+
+### Changed
+
+- The page with name, login address and password is now called **Account**, and the page with
+  the picture, the shown email and the name spelling **Profile** (#86).
 
 ### Fixed
 
+- AI answers no longer run short because the model spent its output limit on thinking
+  (Gemini 2.5 and OpenAI reasoning models). An answer cut off at the limit is an error for
+  meeting summaries and analyses, not a result (#49).
 - Building the image yourself no longer fails on the first `up --build` with Docker 29:
   only the web service builds, and the worker runs the image it built (#48).
+- An MCP write with an `idempotency_key` that cannot be stored is refused before it writes.
+  It used to write, fail, and write again on every retry (#84).
+- `bundle install` works on Ubuntu 26.04, for installs without Docker (#41).
 
 ### Security
 
 - The rate limit of `/api/v1` and `/api/mcp` no longer writes access tokens in plain text
   into the cache. It counts per digest of the token. With the default file cache, tokens
   that were in use stood in file names under `tmp/cache` (#92).
+- An email a member keeps from the others is held back everywhere: pages, search, the
+  assistant, MCP and `/api/v1`. Activities no longer store login addresses, and the addresses
+  they stored, with their copies in notifications and outbox events, are removed when you
+  update (#82).
+- The meetings shown on a ticket are checked against the project each meeting is in. After a
+  ticket moved to another project, its page could show titles and dates of meetings the reader
+  had no rights to (#39).
+- An unexpected failure while booking time or commenting over `/api/v1` no longer returns the
+  text of the exception (#78), (#81).
+- Backups kept in the repository directory stay out of an image you build yourself (#60).
+- Updated dependencies: crass 1.0.8 for GHSA-pq4g-8rxf-4g29 (#46), ViewComponent 4.14.0 for
+  GHSA-8qw7-6phv-7q6p (#47), mcp 1.8.2 for GHSA-4m5j-jjfc-97gx (#52).
+
+### Maintenance
+
+- Tests and CI, with no effect on a running instance (#53), (#67), (#68), (#69), (#75), (#79), (#80).
+- Repository documentation: invited contributions may also be licensed under Apache-2.0, the
+  README names the terminal client, and `ops/backup` says it describes our servers, not a
+  self-hosting guide (#44), (#62), (#63), (#91).
 
 ### Upgrade notes
 
+- Take a backup first. Six migrations run when the container starts, and a data backfill
+  (`activities:drop_stored_emails`) removes stored login addresses for good. Both run by
+  themselves; without Docker, run `bin/rails db:migrate lalabase:data_backfills` as usual. The
+  backfill reads the activities, notifications and outbox events at each start.
 - `compose.yml` no longer builds the image: it pulls `ghcr.io/lalabase/lalabase` in the
-  version of the release you checked out. Update with `git checkout <release>`, then
-  `docker compose pull && docker compose up -d`. To keep building the image on your
-  server, add `COMPOSE_FILE=compose.yml:compose.build.yml` to `.env`.
+  version of the release you checked out. Update with `git fetch --tags && git checkout 2026.11.0`,
+  then `docker compose pull && docker compose up -d`. If you changed your `compose.yml`,
+  compare it with this one first.
+- To keep building the image on your server, add `COMPOSE_FILE=compose.yml:compose.build.yml`
+  to `.env`, and update with `docker compose up -d --build`, now and for later releases.
+  In this setup `docker compose pull` stops with an error, and `docker compose up -d`
+  without `--build` goes on running the old image and says nothing.
 - Leave `LALABASE_VERSION` out of `.env`. Set, it pins the image, and a release checked out
   later keeps running the pinned version.
 - Unless you keep building the image, the image `lalabase:local` that earlier releases built
   is no longer used: `docker image rm lalabase:local` removes it.
-- After updating, empty the contents of `tmp/cache` once. If that directory is part of a
-  backup, or someone you do not trust could read it, replace your access tokens (#92).
+- Access tokens in `tmp/cache` (#92). With Docker the directory lives in the container and
+  goes when the update replaces it, unless you mounted a volume there. Otherwise empty its
+  contents once after updating. If that directory is part of a backup, or someone you do not
+  trust could read it, replace your access tokens.
+- No existing role gets the new rights `view_people`, `manage_people` and `move_meetings`.
+  Account admins need none of them; for everyone else, grant them in the roles of the
+  organisation.
+- The members page now shows only the email a member chose, to organisation admins as well.
+  The login address stays visible in the instance admin area. For API and MCP clients, the
+  `email` of a member can be the contact address or `null`.
+- API clients: an unexpected failure of `POST /api/v1/tickets/:ticket_id/time_sessions` or
+  `POST /api/v1/tickets/:ticket_id/posts` now answers 500 instead of 422. A write on `/api/v1`
+  with an `Idempotency-Key` over 255 bytes is refused with 422.
+- No new required environment variables. `LALABASE_VERSION` and `COMPOSE_FILE` are optional,
+  see above.
 
 ## [2026.10.1] - 2026-10-21
 

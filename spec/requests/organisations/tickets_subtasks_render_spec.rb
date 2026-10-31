@@ -57,6 +57,19 @@ RSpec.describe 'Tickets sub-tasks (detail rendering)', type: :request do
     expect(body).to include(done_child.title)
   end
 
+  # The section sits inside the turbo frame of the timeline. A link without a target stays in
+  # that frame, the answer holds no such frame, and the reader gets "Content missing".
+  it 'opens a sub-task from the list in the detail frame, not in the timeline frame' do
+    parent = create(:ticket, project: project, creator: user)
+    child = create(:ticket, project: project, creator: user, parent: parent)
+
+    link = Nokogiri::HTML(subtasks_body(parent)).at_css("a[href*='ticket_id=#{child.id}']")
+
+    expect(response).to have_http_status(:ok)
+    expect(link).to be_present
+    expect(link['data-turbo-frame']).to eq('ticket_display_frame')
+  end
+
   it 'shows only the compact right-aligned quick-add when there are no sub-tasks (no heading/hint/hero)' do
     lone = create(:ticket, project: project, creator: user)
 

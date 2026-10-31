@@ -231,8 +231,9 @@ module Api
         }
         mapped[:content] = attrs[:description] if attrs[:description].present?
         mapped[:assignee_ids] = attrs[:assignee_ids] if attrs[:assignee_ids]
-        # parent_id is attacker-controllable; the same-project / one-level / cross-tenant
-        # guards live in the Ticket model validations (as for the web path), not here.
+        # parent_id is attacker-controllable; the Ticket model validations guard it (as for
+        # the web path), not here: the parent is in the same project (so never in another
+        # tenant), and a saved ticket's parent is fixed.
         mapped[:parent_id] = attrs[:parent_id] if attrs[:parent_id].present?
         mapped
       end

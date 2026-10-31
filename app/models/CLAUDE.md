@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-10-29)
+# Karte: app/models (Stand: 2026-10-31)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -46,6 +46,10 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Ein Rückgängig nimmt die Personen seines Laufs an, legt aber nicht mehr Zuweisbare nicht
   zurück (`AddRemoveBase#restorable`); der Rest des Tickets wird zurückgesetzt.
   Titel: höchstens `Ticket::TITLE_MAX_LENGTH` (255), geprüft nur bei geändertem Titel.
+  Unteraufgaben (seit 31.10.2026 in beliebiger Tiefe): die Eltern liegen im selben Projekt und
+  stehen nach dem Anlegen fest (`Ticket#parent_unchanged`), darum kein Kreis. Vorfahren liest
+  nur `Tickets::Ancestry`. Fortschritt und Spalte „Subs“ zählen nur direkte Kinder; ein
+  Ticket in einem Baum lehnt `Tickets::Mover` weiter ab.
   ⚠️ Wer eine Beziehung SEHEN darf, entscheidet nur `TicketRelation.visible_to(user, org, token:)`:
   beide Enden lesbar (`TicketPolicy::Scope`), mit Token zusätzlich in dessen Reichweite. Titel,
   Nummer und Projekt eines Tickets ohne Leserecht erscheinen nirgends (Plan §4).

@@ -16,7 +16,9 @@
 # for the organisation across this check and its write.
 module Tickets
   class CycleCheck
-    # :parent_hierarchy joins here with deeper sub-tasks (plan §14).
+    # The sub-task hierarchy has no edge set here on purpose: a new ticket has no
+    # descendants and a saved ticket's parent is fixed (Ticket#parent_unchanged), so no
+    # parent link can close a cycle. Waiting relations are the only edges that can.
     EDGES = {
       waiting_relations: lambda {
         TicketRelation.waiting_edges.select('ticket_relations.source_ticket_id AS from_id',

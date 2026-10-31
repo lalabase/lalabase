@@ -1124,8 +1124,9 @@ class Organisations::TicketsController < Organisations::BaseController
   end
 
   def ticket_params
-    # Get base permitted params. parent_id is attacker-controllable; the same-project /
-    # one-level guards live in the Ticket model validations, not in this filter.
+    # Get base permitted params. parent_id is attacker-controllable; the Ticket model
+    # validations guard it (parent in the same project, a saved ticket's parent is fixed),
+    # not this filter.
     permitted = [:title, :content, :tag_list, :ticket_type, :parent_id, { assignee_ids: [] }]
 
     # Ticket document handling

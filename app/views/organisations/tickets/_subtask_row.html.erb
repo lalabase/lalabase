@@ -1,8 +1,8 @@
 <%# One sub-task row. Shared by the section's list AND the quick-add Turbo Stream (append) so the
     appended row is byte-identical to a page-rendered one. Locals: child, project, org, status_def.
     The link names the detail frame: the section sits inside the timeline's frame, and without a
-    target it stays there, where the answer holds no such frame ("Content missing"). Where no
-    detail frame exists (the inbox pane), Turbo makes it a normal visit. %>
+    target it stays there, where the answer holds no such frame ("Content missing"). The inbox
+    pane has a detail frame of its own, so the sub-task opens there too, below the pane's header. %>
 <li class="flex items-center gap-3 px-3 py-2">
   <span class="font-mono text-xs text-cream-500 tabular-nums">#<%= child.number %></span>
   <%= link_to child.title,

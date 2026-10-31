@@ -148,6 +148,15 @@ RSpec.describe Lalabase::Tools::ListProjects do
       expect(payload(page: 10**30)['data']).to eq([])
     end
 
+    it 'takes a whole number sent as a float, as the other list tools do' do
+      expect(payload(page: 1.0, per_page: 2.0)['meta']).to include('page' => 1, 'per_page' => 2)
+    end
+
+    it 'answers invalid_input for a fraction' do
+      expect(call(page: 1.5).code).to eq(:invalid_input)
+      expect(call(per_page: 2.5).code).to eq(:invalid_input)
+    end
+
     it 'answers invalid_input for a page or per_page below one' do
       expect(call(page: 0).code).to eq(:invalid_input)
       expect(call(per_page: 0).code).to eq(:invalid_input)

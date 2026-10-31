@@ -206,6 +206,16 @@ module AccessCheck
         false
       end
 
+      # The projects can_access_project? opens, as ids, for one organisation in one go: read
+      # access in at least one area of ProjectPermission. Narrower than accessible_projects
+      # without an area, which also counts a role that holds nothing but time tracking.
+      # For a list whose ids a caller then takes through the gate.
+      def openable_project_ids(user, organisation)
+        ProjectPermission.access_areas.flat_map do |area|
+          accessible_project_ids(user, organisation, action: :read, area: area)
+        end.uniq
+      end
+
       # Returns the list of all projects the user has access to.
       # Optional area/action filtering: only projects in which the user may perform
       # the desired action for that area.

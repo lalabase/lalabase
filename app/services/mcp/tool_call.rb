@@ -204,7 +204,7 @@ module Mcp
       return unless result.success? && !result.empty?
 
       raise AuthorizationNotPerformedError,
-            "#{@tool_class.tool_name} is a :record-mode tool but served a record without calling authorize!"
+            "#{@tool_class.tool_name} is a :record-mode tool but served a record without marking its authorization"
     end
 
     # Resolves the project WITHOUT a tenant (the caller doesn't know the org yet),

@@ -91,6 +91,13 @@ RSpec.describe 'MCP list_organisations and list_projects', :ci_guard, type: :req
       expect(rows(call_tool(pat, 'list_projects')).pluck('id')).to eq([granted.id])
     end
 
+    it 'shows nothing to a limited token whose links are gone, never the whole organisation' do
+      pat = token_for(organisations: [organisation], project_scopes: { organisation => [granted] })
+      pat.personal_access_token_projects.delete_all
+
+      expect(rows(call_tool(pat, 'list_projects'))).to eq([])
+    end
+
     it 'covers every membership of an all-organisations token' do
       pat = token_for(all_organisations: true)
 
@@ -184,6 +191,19 @@ RSpec.describe 'MCP list_organisations and list_projects', :ci_guard, type: :req
       pat = token_for(organisations: [organisation])
 
       expect(expect_every_listed_id_to_open(pat, include_archived: true)).to include(archived.id)
+    end
+
+    it 'names no project a role reaches through time tracking alone, which the gate refuses' do
+      stranger = create(:user)
+      ActsAsTenant.with_tenant(organisation) do
+        role = create(:role, organisation: organisation)
+        create(:permission, role: role, category: 'projects', action: 'read_access_time_tracking_all_projects')
+        create(:membership, user: stranger, organisation: organisation, role: role, active: true)
+      end
+      pat = token_for(owner: stranger, organisations: [organisation])
+
+      expect(rows(call_tool(pat, 'list_projects'))).to eq([])
+      expect(code(call_tool(pat, 'list_tickets', project_id: granted.id))).to eq('not_found')
     end
 
     it 'names no archived project to anybody else, so nothing listed fails to open' do

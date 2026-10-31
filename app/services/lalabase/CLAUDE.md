@@ -45,8 +45,9 @@ Codebase-Verständnis.
   Reichweite je Werkzeug (`Base.scope_mode`): `:project` (Default, Dispatcher injiziert
   `project_id` als Pflicht, ToolCall gated das Projekt) oder `:token` (Inbox-Arbeitsfluss:
   kein Projekt-Gate, `Context#reach` = `PersonalAccessToken::Reach`, läuft OHNE Tenant, nur
-  im `:mcp`-Set, record-mode; `list_notifications`, `mark_notification_read`, und die
-  Personen-Zwillinge, die sich den Tenant ihrer Organisation selbst setzen). Die Inbox-
+  im `:mcp`-Set, record-mode; `list_notifications`, `mark_notification_read`,
+  `list_organisations`, `list_projects` und die Personen-Zwillinge, die sich den Tenant ihrer
+  Organisation selbst setzen). Die Inbox-
   Zeilen kommen aus `Notifications::InboxQuery` + `Serializer`, geteilt mit der HTTP-API.
   Schreibende Werkzeuge gibt es nur im `:mcp`-Set: `create_ticket`, `post_comment`,
   `create_time_session`, `mark_notification_read`, `update_ticket`. `create_time_session`
@@ -115,8 +116,11 @@ Codebase-Verständnis.
   of reach (REST answers 200 with `[]`), `per_page` of at most 100 clamped, a description cut
   after 500 characters. Not `ProjectPolicy#index?`: it refuses an active member without a
   project, who gets an empty list, so `Base.scoped_by_policy!` marks the decision of the policy
-  scope. Every listed id passes the gate of `Mcp::ToolCall`; the walk is
-  `spec/requests/api/mcp_list_projects_spec.rb`.
+  scope. Every listed id passes the gate of `Mcp::ToolCall`: `openable_only`, which reads
+  `ProjectAccessService.openable_project_ids`, because the policy scope alone is wider (a role
+  holding nothing but time tracking sees projects there and opens none). Held over every role
+  key in `spec/services/personal_access_tokens/reach_listing_spec.rb`, walked through the real
+  gate in `spec/requests/api/mcp_list_projects_spec.rb`.
   Fehler eines Werkzeugs tragen eine Klasse: `Result.invalid_input(msg)` oder
   `Result.refused(msg, reason:)`; ohne Code gilt `refused`, auch für ein abgelehntes Speichern
   (Modellvalidierung, Actor-Fehler): das beweist keine falsche Eingabe. Spec je Fehlerstelle:

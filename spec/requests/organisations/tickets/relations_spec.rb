@@ -457,7 +457,7 @@ RSpec.describe 'Organisations::Tickets::Relations', :ci_guard, type: :request do
     it 'answers a stale page with the section as it is now' do
       sign_in writer
       ActsAsTenant.with_tenant(organisation) do
-        Actors::DestroyTicketRelation.call(ticket: ticket, relation_id: outgoing.id, current_user: writer)
+        Actors::DestroyTicketRelation.call(ticket: ticket, relation: outgoing, current_user: writer)
       end
 
       delete destroy_path(outgoing), as: :turbo_stream

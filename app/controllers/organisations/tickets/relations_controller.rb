@@ -7,10 +7,10 @@
 # The actors check no rights. This controller does, before anything is written:
 #   1. write on tickets in the project of the shown ticket: the area gate of ProjectController
 #      and authorize @ticket, :update? as the first line of every action;
-#   2. read on the other ticket through policy_scope(Ticket): a ticket in a project the user
-#      cannot read, of another organisation, or deleted meanwhile is a 404;
-#   3. removing needs the relation to be visible (TicketRelation.visible_to): what the page
-#      never showed cannot be removed by its id either.
+#   2. read on the other ticket through Tickets::RelationAccess#other_ticket: a ticket in a
+#      project the user cannot read, of another organisation, or deleted meanwhile is a 404;
+#   3. removing needs the relation to be visible (Tickets::RelationAccess#relation): what the
+#      page never showed cannot be removed by its id either.
 # Those 404s are streams, not a bare error page: inside the ticket frame a page without the
 # frame would leave "Content missing" (review round 4 of #944). They say the same for "never
 # existed", "not readable" and "gone meanwhile", so they tell nothing about other tickets.
@@ -51,7 +51,7 @@ module Organisations
         return refuse([t('views.organisations.tickets.shared.relations.modal.pick_ticket')]) if other_ticket_id.blank?
 
         # Not readable, of another organisation, or deleted since it was picked.
-        @other_ticket = policy_scope(Ticket).find_by(id: other_ticket_id)
+        @other_ticket = relation_access.other_ticket(other_ticket_id)
         return refuse([t('views.organisations.tickets.shared.relations.modal.ticket_unavailable')], status: :not_found) if @other_ticket.nil?
 
         result = ::Actors::CreateTicketRelation.call(ticket: @ticket, other_ticket: @other_ticket, kind: @kind,
@@ -67,10 +67,10 @@ module Organisations
 
         # Not visible, not of this ticket, or removed by someone else on a page that was not
         # told (no broadcast, plan §8.3): the section as it is now, and the reason.
-        relation = TicketRelation.visible_to(current_user, current_organisation).touching(@ticket).find_by(id: params[:id])
+        relation = relation_access.relation(@ticket, params[:id])
         return changed(t('services.actors.destroy_ticket_relation.not_found'), type: :alert, status: :not_found) if relation.nil?
 
-        result = ::Actors::DestroyTicketRelation.call(ticket: @ticket, relation_id: relation.id, current_user: current_user)
+        result = ::Actors::DestroyTicketRelation.call(ticket: @ticket, relation: relation, current_user: current_user)
         return changed(t('flash.ticket_relations.removed')) if result.success?
         return changed(failed_message, type: :alert, status: :internal_server_error) if internal?(result)
 
@@ -88,6 +88,12 @@ module Organisations
 
       def set_ticket
         @ticket = @project.tickets.find(params[:ticket_id])
+      end
+
+      # A person on a page: no token, so the reach is their own.
+      def relation_access
+        @relation_access ||= ::Tickets::RelationAccess.new(user: current_user, organisation: current_organisation,
+                                                           token: nil)
       end
 
       def internal?(result)

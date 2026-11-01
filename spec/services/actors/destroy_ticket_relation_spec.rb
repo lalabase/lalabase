@@ -20,7 +20,7 @@ RSpec.describe Actors::DestroyTicketRelation do
   let!(:neighbour) { TicketRelation.create!(source_ticket: ticket_a, target_ticket: ticket_c, relation_type: :relates_to) }
 
   def unlink(ticket, relation_id)
-    described_class.call(ticket: ticket, relation_id: relation_id, current_user: user)
+    described_class.call(ticket: ticket, relation: TicketRelation.find_or_initialize_by(id: relation_id), current_user: user)
   end
 
   it 'removes the relation from its source ticket, and only that row' do

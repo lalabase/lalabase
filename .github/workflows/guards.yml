@@ -1,15 +1,11 @@
 # Guard net: runs the curated guard/architecture specs on every PR.
 #
-# What it does NOT run on, because the minutes are billed (private repository,
-# about 21 job minutes per run, 28.09.2026; about 22 since the `lala` job of
-# 03.10.2026, every job bills at least one minute):
+# It takes no path filter: branch protection can only require a check that reports
+# on every PR. A run skipped by a filter stays pending forever and blocks the PR.
+#
+# What it does NOT run on:
 # * a push to main: a merge re-checked the code its PR had just checked green.
 #   workflow_dispatch runs it by hand, on main or any branch.
-# * a PR that only touches Markdown in the repository root (README, CLAUDE.md,
-#   CONTRIBUTING, ...): no guard reads those. Only the root: the guards DO scan
-#   Markdown under app/ (the CLAUDE.md maps, app/changelog), hence '*.md' and not
-#   '**.md'. ⚠️ Once this check is required by branch protection, a skipped run
-#   stays pending forever and blocks such a PR; drop the filter then.
 # * a superseded commit: a new push to the same PR cancels the run in progress.
 #
 # Deliberately NOT the full suite (it carries known pre-existing drift failures —
@@ -25,9 +21,6 @@ name: Guards
 
 on:
   pull_request:
-    paths-ignore:
-      - '*.md'
-      - 'LICENSE'
   workflow_dispatch:
 
 concurrency:

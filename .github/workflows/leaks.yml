@@ -1,9 +1,9 @@
 # Leak net: secrets and what only the maintainers know, on EVERY pull request.
 #
-# Its own workflow on purpose: guards.yml skips a pull request that touches only
-# Markdown in the root, and a pasted login block lands in exactly such a file
-# (the one found before the launch was in CLAUDE.md). This one has no path
-# filter, needs no database and no bundle.
+# Its own workflow on purpose: it runs on a push to main as well, needs no
+# database and no bundle, and a pasted login block lands in any file, a Markdown
+# one in the root too (the one found before the launch was in CLAUDE.md). It has
+# no path filter.
 #
 # Everything a pull request makes public, not only its end state: in a public
 # repository a key committed and removed again stays in the history.

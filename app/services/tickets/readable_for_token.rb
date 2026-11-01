@@ -9,7 +9,8 @@
 #
 # token: nil is legitimate. The assistant calls the same tools as MCP and has no token; its reach
 # is the person's own, which is the policy scope alone. nil therefore means "no second limit",
-# and a caller that holds a token must pass it. A token's reach of nil means every project of the
+# and the caller writes token: nil out: the keyword is required, because a caller that forgot it
+# would silently widen an account admin to every project. A token's reach of nil means every project of the
 # organisation, [] means none, also for an organisation outside the token.
 #
 # The reach comes before the policy scope. An organisation the token no longer reaches (a
@@ -27,7 +28,7 @@ module Tickets
       new(**).call
     end
 
-    def initialize(user:, organisation:, relation: Ticket, token: nil)
+    def initialize(user:, organisation:, token:, relation: Ticket)
       @user = user
       @organisation = organisation
       @relation = relation

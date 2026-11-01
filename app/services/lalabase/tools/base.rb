@@ -413,9 +413,11 @@ module Lalabase
 
       # The tickets of `relation` the caller can find: the actor's read rights and,
       # on an MCP call, the reach of its token (Tickets::ReadableForToken owns both;
-      # the assistant has no token and is limited by the rights alone). Every tool
-      # that addresses ONE ticket looks it up in here, so a ticket without read
-      # access answers exactly like a missing one. A lookup outside the scope
+      # the assistant has no token and is limited by the rights alone). get_ticket,
+      # post_comment, create_time_session and update_ticket look their ticket up in
+      # here, so a ticket without read access answers exactly like a missing one.
+      # One exception: summarize_time_sessions (resolve_ticket) calls the policy
+      # scope itself and does not pass through here. A lookup outside the scope
       # followed by authorize! answered "Not authorized." instead, which told a
       # caller with access to the project, but not to its tickets, which ticket
       # numbers exist; numbers count up and can be tried one by one

@@ -164,6 +164,10 @@ RSpec.describe Tickets::ReadableForToken, :ci_guard do
   end
 
   describe 'without a token' do
+    it 'must be said out loud: leaving token: out raises' do
+      expect { described_class.call(user: reader, organisation: organisation) }.to raise_error(ArgumentError, /token/)
+    end
+
     it 'gives a reader what the policy scope gives' do
       expect(found(reader, ticket_b.id)).to eq(ticket_b)
       expect(found(reader, hidden_ticket.id)).to be_nil
@@ -216,7 +220,7 @@ RSpec.describe Tickets::ReadableForToken, :ci_guard do
   end
 
   it 'answers with a relation, so the caller can narrow it further and nothing raises' do
-    relation = ActsAsTenant.with_tenant(organisation) { described_class.call(user: reader, organisation: organisation) }
+    relation = ActsAsTenant.with_tenant(organisation) { described_class.call(user: reader, organisation: organisation, token: nil) }
 
     expect(relation).to be_a(ActiveRecord::Relation)
     expect(ActsAsTenant.with_tenant(organisation) { relation.where(id: ticket_a.id).first }).to eq(ticket_a)

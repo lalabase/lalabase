@@ -60,6 +60,30 @@ RSpec.describe 'Organisations::FileDownloads', :ci_guard, type: :request do
       expect(response.body).not_to include('dummy content')
     end
 
+    # The example above was green while every such request ended as a 500 outside the
+    # tests (found in a browser, 2026-09-30). This controller streams, so its action runs
+    # in a thread of its own (ActionController::Live, through ActiveStorage::Streaming).
+    # Devise answers a missing login with `throw :warden`, and the catch for it sits in
+    # a middleware of the REQUEST thread: in the action's thread the throw arrives
+    # nowhere. Rails runs a live action inline in tests (action_controller/test_case.rb
+    # redefines new_controller_thread), which is exactly what hid it. This example takes
+    # the thread back.
+    context 'with the action in a thread of its own, as outside the tests' do
+      before do
+        allow_any_instance_of(Organisations::FileDownloadsController)
+          .to receive(:new_controller_thread) { |controller, &action| controller.send(:original_new_controller_thread, &action) }
+      end
+
+      it 'redirects unauthenticated requests to login, and does not answer 500' do
+        # No record is needed, and none would be visible: the thread has its own
+        # database connection, outside this example's transaction. The login is
+        # checked before anything is looked up.
+        download(id: SecureRandom.uuid)
+
+        expect(response).to redirect_to(new_user_session_path)
+      end
+    end
+
     it 'returns 404 for a file from a different organisation (cross-org)' do
       create(:project_permission, user: member, project: project_a, documents_access: 'read_only')
       other_org = create(:organisation)

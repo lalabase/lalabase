@@ -85,6 +85,24 @@ module Organisations
 
     private
 
+    # Devise answers a missing login with `throw :warden`. The catch for it sits in a
+    # middleware of the request thread, and this action runs in a thread of its own
+    # (ActionController::Live, through ActiveStorage::Streaming): there the throw arrives
+    # nowhere, and until 2026-09-30 every request without a login ended as a 500 instead
+    # of at the login. No file was ever sent, the request failed closed; but an expired
+    # session looked like a server error, to the reader and in the error log.
+    #
+    # Caught here, in the thread that throws. A timed-out session throws the same way,
+    # from inside Devise, and lands here too.
+    def authenticate_user!(*)
+      signed_in = false
+      catch(:warden) do
+        super
+        signed_in = true
+      end
+      redirect_to new_user_session_path unless signed_in
+    end
+
     def not_found
       head :not_found
     end

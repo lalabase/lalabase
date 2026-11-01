@@ -57,9 +57,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   Besitzer der Auflösung ist `LocalChrome` in `spec/support/capybara.rb`, Guard:
   `spec/architecture/chrome_driver_binary_guard_spec.rb`. Auf dem Mac greift nichts davon, dort
   bleibt Selenium Manager zuständig.
-* **CI**: `.github/workflows/guards.yml` runs six jobs on PRs (not on a push to main,
-  not for a PR touching only Markdown in the repository root, and a new push cancels
-  the superseded run; by hand via `workflow_dispatch`, reasons in the workflow header):
+* **CI**: `.github/workflows/guards.yml` runs six jobs on every PR, with no path filter
+  (not on a push to main, and a new push cancels the superseded run; by hand via
+  `workflow_dispatch`, reasons in the workflow header):
   `guards` (curated specs plus `browser_database_cleanup_spec.rb`,
   `mobile_ticket_navigation_spec.rb`,
   `mobile_assistant_layout_spec.rb` and `mobile_shell_regressions_spec.rb`),
@@ -97,9 +97,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   servers' values unchanged (pinned by `spec/config/instance_settings_spec.rb`).
   ⚠️ **The compiled CSS carries the asset host.** The image precompiles with `ASSET_HOST=` set
   and empty; without it every instance would load its fonts from lalabase.com.
-* **Leaks** (`.github/workflows/leaks.yml`): a workflow of its own on **every** PR, also one
-  touching only root Markdown (guards.yml skips those, and a pasted login lands in exactly such a
-  file), and on every push to main. One job, `leaks`, over everything the PR makes public, not
+* **Leaks** (`.github/workflows/leaks.yml`): a workflow of its own on **every** PR and on
+  every push to main. One job, `leaks`, over everything the PR makes public, not
   only its end state: every commit (merges by their diff against main, so a conflict resolution
   counts), every commit message, who wrote and committed it, every name a commit adds
   (binaries, links, renames), the PR's branch name, title and body (GitHub writes them into the
@@ -1068,8 +1067,6 @@ ends that, and a `bundle update` can bring one without anybody noticing.
   `License:` and copyright line in `THIRD_PARTY_NOTICES.txt`, and the guard reads the
   `License:` line: a GPL file with a tidy notice is still red. A directory `Path:` may not lie
   above another entry (`Path: vendor/` would cover everything to come).
-* The file is `.txt` on purpose: the CI skips a pull request that touches only `*.md` in the
-  repository root, and the guard reads this file.
 * ⚠️ **Not covered**, because no lockfile and no file name shows it:
   * what a gem carries inside itself: the Rust crates compiled into `commonmarker`, native
     libraries (the macOS build of `nokogiri` ships LGPL `libiconv`, the Linux build does

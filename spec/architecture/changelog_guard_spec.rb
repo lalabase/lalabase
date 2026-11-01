@@ -8,8 +8,8 @@ require 'rails_helper'
 #       would be invisible to the script: `publish` would find no notes, and
 #       `prepare` would put the next release in the wrong place.
 #
-# The rules are Lalabase::Release.problems, which publish asks too (a pull
-# request touching only CHANGELOG.md skips guards.yml). Until the first release
+# The rules are Lalabase::Release.problems, which publish asks too, at the
+# moment it reads the notes. Until the first release
 # the file has no release to check, so the rules also run against a broken
 # sample they must catch: green here is not green in a vacuum.
 RSpec.describe 'CHANGELOG.md', type: :model do

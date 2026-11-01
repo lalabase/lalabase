@@ -353,7 +353,7 @@ RSpec.describe 'script/release' do
       expect(out).to include('Unreleased is not empty')
     end
 
-    # Review 2, point 3: the notes pull request touches only root Markdown, which guards.yml skips.
+    # Review 2, point 3: publish reads the notes, so it asks the rules itself.
     it 'checks the shape of CHANGELOG.md itself' do
       changelog_pull_request(9) { |path| File.write(path, File.read(path).sub('## [2026.10.0]', "## Notes\n\n## [2026.10.0]")) }
 

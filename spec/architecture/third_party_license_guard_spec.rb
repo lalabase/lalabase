@@ -98,8 +98,6 @@ module ThirdPartyLicenseGuard
   LICENSE_HEADER = /@license|Copyright \(c\)|Licensed under|Released under/i
   HEADER_BYTES = 1500
 
-  # Plain text on purpose: the CI skips a pull request that touches only `*.md` in the
-  # repository root, and this guard reads the file.
   NOTICES = 'THIRD_PARTY_NOTICES.txt'
 
   module_function

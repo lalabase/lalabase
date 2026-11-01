@@ -9,6 +9,8 @@ import "@hotwired/stimulus"
 // Import controllers
 import "controllers"
 
+import { listFrameAddress, reloadWait } from "list_frame_reload"
+
 // Debug: Check if Stimulus controllers are loaded
 document.addEventListener('DOMContentLoaded', () => {
   const ticketRows = document.querySelectorAll('[data-controller="list-row"]');
@@ -94,12 +96,30 @@ Turbo.StreamActions.makeRowsClickable = function () {
 // open ticket. The address carries all of them; the frame request through
 // index does too. An unchanged src does not fetch, so a frame that already
 // stands at that address reloads instead.
+// The first reload runs at once. One that comes too soon waits past the duplicate guard below,
+// and everything that arrives meanwhile shares it: it reads the list after all of them.
+const frameReloads = new WeakMap();
+
 Turbo.StreamActions.reloadFrame = function () {
   const frame = document.getElementById(this.target);
   if (!frame) return;
-  const before = frame.getAttribute('src');
-  frame.src = window.location.href;
-  if (frame.getAttribute('src') === before) frame.reload();
+
+  const state = frameReloads.get(frame) || {};
+  frameReloads.set(frame, state);
+  if (state.timer) return;
+
+  const reload = () => {
+    state.timer = null;
+    state.at = Date.now();
+    // Every assignment fetches, an unchanged value too (Turbo's attributeChangedCallback). A
+    // frame.reload() behind it would fetch again, the guard below blocks that and the frame
+    // stops loading.
+    frame.src = listFrameAddress(window.location.href, frame.getAttribute('src'));
+  };
+
+  const wait = reloadWait(state.at, Date.now());
+  if (wait === 0) reload();
+  else state.timer = setTimeout(reload, wait);
 };
 
 // A record created inside a master/detail lane has no selection in the page

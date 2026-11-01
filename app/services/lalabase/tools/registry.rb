@@ -145,7 +145,10 @@ module Lalabase
         # How an agent finds the organisation and project ids the tools above take,
         # token-scoped reads. Appended for the same reason.
         ListOrganisations,
-        ListProjects
+        ListProjects,
+        # A meeting with its transcript, token-scoped because the project may be
+        # missing (it then lands in the inbox). Appended for the same reason.
+        CreateMeeting
       ].freeze
 
       # Sets whose tools reach the LLM tool loop. The guard-spec enforces the

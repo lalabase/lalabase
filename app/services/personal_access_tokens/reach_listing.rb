@@ -80,6 +80,7 @@ module PersonalAccessTokens
         name: project.name,
         description: project.description,
         archived: project.archived_at.present?,
+        meeting_inbox: project.meeting_inbox?,
         organisation: {
           id: project.organisation_id,
           name: project.organisation&.name

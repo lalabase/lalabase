@@ -117,6 +117,11 @@ en:
       # not end up in the user-visible summary_creation_error column.
       provider_error: "The selected AI provider could not create a summary. Please check provider, model and access in the AI settings."
     meetings:
+      intake:
+        meeting_inbox_missing: Without a project the organisation needs an inbox project, and none is set.
+        meeting_inbox_forbidden: You may not create meetings in the inbox project. Name a project or ask for access.
+        project_archived: The project is archived and takes no meetings.
+        unknown_participant: A participant cannot be resolved.
       summary:
         ai_disabled: "AI features are disabled for this organisation."
         not_configured: "No valid AI access is configured."

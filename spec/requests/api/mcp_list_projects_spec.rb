@@ -57,13 +57,13 @@ RSpec.describe 'MCP list_organisations and list_projects', :ci_guard, type: :req
   end
 
   describe 'tools/list' do
-    it 'offers both as the last tools, so the order of every tool before them holds' do
+    it 'offers both after the pinned tools, so the order of every tool before them holds' do
       pat = token_for(organisations: [organisation])
       post '/api/mcp', params: { jsonrpc: '2.0', id: 1, method: 'tools/list' }.to_json,
                        headers: { 'Authorization' => "Bearer #{pat.token}", 'CONTENT_TYPE' => 'application/json' }
 
-      expect(response.parsed_body.dig('result', 'tools').pluck('name').last(2))
-        .to eq(%w[list_organisations list_projects])
+      expect(response.parsed_body.dig('result', 'tools').pluck('name').last(3))
+        .to eq(%w[list_organisations list_projects create_meeting])
     end
 
     it 'points the project_id of a project tool at list_projects' do

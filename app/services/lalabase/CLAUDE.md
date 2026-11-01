@@ -1,4 +1,4 @@
-# Karte: app/services/lalabase (Stand: 2026-10-31)
+# Karte: app/services/lalabase (Stand: 2026-11-01)
 
 AI/RAG-Domäne (Produktname „Lalabase"): alles rund um LLM-Aufrufe, Embeddings und
 Codebase-Verständnis.
@@ -50,7 +50,9 @@ Codebase-Verständnis.
   Organisation selbst setzen). Die Inbox-
   Zeilen kommen aus `Notifications::InboxQuery` + `Serializer`, geteilt mit der HTTP-API.
   Schreibende Werkzeuge gibt es nur im `:mcp`-Set: `create_ticket`, `post_comment`,
-  `create_time_session`, `mark_notification_read`, `update_ticket`. `create_time_session`
+  `create_time_session`, `mark_notification_read`, `update_ticket`, `create_meeting`
+  (token-scoped, setzt den Tenant selbst; Regel `Meetings::Intake`, dieselbe wie
+  `POST /api/v1/organisations/:id/meetings`). `create_time_session`
   bucht über `TimeSessions::Booking`, dieselbe Regel wie die HTTP-API (seit 29.10.2026,
   REST R6); im Werkzeug bleiben nur Argumente, Rechte und die Texte. `post_comment` schreibt
   über `Actors::SavePost` wie das Web-Formular (Activity `post_added`, Benachrichtigungen,

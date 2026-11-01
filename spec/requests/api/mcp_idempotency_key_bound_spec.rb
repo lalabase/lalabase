@@ -37,7 +37,7 @@ RSpec.describe 'MCP writes and an idempotency_key the store cannot hold', :ci_gu
 
   let!(:project_permission) do
     ActsAsTenant.with_tenant(organisation) do
-      create(:project_permission, user: user, project: project, tickets_access: :read_write)
+      create(:project_permission, user: user, project: project, tickets_access: :read_write, meetings_access: :read_write)
     end
   end
 
@@ -88,7 +88,9 @@ RSpec.describe 'MCP writes and an idempotency_key the store cannot hold', :ci_gu
                                 -> { TimeSession.count }],
       'mark_notification_read' => [{ notification_id: notification.id }, -> { notification.reload.state }],
       'update_ticket' => [{ project_id: project.id, ticket_id: ticket.id, title: 'Neuer Titel' },
-                          -> { ticket.reload.title }]
+                          -> { ticket.reload.title }],
+      'create_meeting' => [{ organisation_id: project.organisation_id, project_id: project.id, title: 'Abstimmung',
+                             occurred_at: '2026-11-01T10:00:00+01:00' }, -> { Meeting.count }]
     }
   end
 

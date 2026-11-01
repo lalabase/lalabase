@@ -223,6 +223,26 @@ RSpec.describe Actors::SaveMeeting do
     describe 'person link (person_id)' do
       let(:person) { create(:person, organisation: organisation, name: 'Karl Krause') }
 
+      it 'sets a link a caller resolved, by the normalized name' do
+        result = described_class.call(
+          project: project, current_user: user,
+          params: valid_params.merge(participants: [{ display_name: 'Karl Krause' }, { display_name: 'Anna Ananas' }]),
+          participant_links: { MeetingParticipant.normalize_name('Karl Krause') => person.id }
+        )
+
+        expect(result.resource.meeting_participants.find_by(display_name: 'Karl Krause').person_id).to eq(person.id)
+        expect(result.resource.meeting_participants.find_by(display_name: 'Anna Ananas').person_id).to be_nil
+      end
+
+      it 'never takes a person_id from the payload' do
+        result = described_class.call(
+          project: project, current_user: user,
+          params: valid_params.merge(participants: [{ display_name: 'Karl Krause', person_id: person.id }])
+        )
+
+        expect(result.resource.meeting_participants.first.person_id).to be_nil
+      end
+
       # The meeting is created through the actor; the link is set directly, as the
       # link dialog (a separate writer) will.
       def meeting_with(*names)

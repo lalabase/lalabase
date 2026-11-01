@@ -14,8 +14,12 @@ module Actors
   # transaction (add / remove / rename, no orphans). A nil payload means "not
   # provided" and leaves existing participants untouched.
   class SaveMeeting < BaseActor
-    def initialize(project:, params:, current_user:, id: nil)
+    # participant_links: normalized name => person_id, for a caller that has
+    # resolved people through the directory itself (Meetings::Intake). Separate
+    # from `params` on purpose: a payload never names a person_id.
+    def initialize(project:, params:, current_user:, id: nil, participant_links: {})
       super()
+      @participant_links = participant_links
       # Extract BEFORE find_meeting: a new record does project.meetings.build(params),
       # which would choke on a :participants key that is not a Meeting column.
       @participants_payload = extract_participants(params)
@@ -148,7 +152,7 @@ module Actors
 
     # Rows are matched and updated in place, never rebuilt. That is what keeps
     # person_id (the link to the people directory): the form does not know it,
-    # and it never comes from the payload. A row survives every save that keeps
+    # and it never comes from the payload (a caller hands it in participant_links). A row survives every save that keeps
     # the participant, with its link: the same normalized name in any spelling,
     # or the same member under another name (the form labels a member chip with
     # the member's current profile name, so a change of name in the profile
@@ -175,6 +179,8 @@ module Actors
         becomes_member = d[:user_id].present? && d[:user_id] != participant.user_id
         participant.person_id = nil if becomes_member
         participant.user_id = d[:user_id]
+        link = @participant_links[d[:normalized_name]]
+        participant.person_id = link if link
         participant.save!
       end
     end

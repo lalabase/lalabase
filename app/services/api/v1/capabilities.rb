@@ -19,8 +19,9 @@ module Api
       # time_sessions.book (R6); 1.5.0 adds posts.plain (R3a); 1.6.0 adds
       # knowledge.search (R2); 1.7.0 adds tickets.changes (R3b); 1.8.0 adds a
       # comment's attachments (R7), a field and no capability: a client takes
-      # its presence as the signal.
-      API_VERSION = '1.8.0'
+      # its presence as the signal; 1.9.0 adds meetings.create and the field
+      # meeting_inbox on projects.list.
+      API_VERSION = '1.9.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
@@ -28,6 +29,7 @@ module Api
         'organisations.list' => ['GET', '/api/v1/organisations'],
         'people.list' => ['GET', '/api/v1/organisations/:organisation_id/people'],
         'people.show' => ['GET', '/api/v1/organisations/:organisation_id/people/:id'],
+        'meetings.create' => ['POST', '/api/v1/organisations/:organisation_id/meetings'],
         'projects.list' => ['GET', '/api/v1/projects'],
         'projects.ticket_attribute_definitions' => ['GET', '/api/v1/projects/:id/ticket_attribute_definitions'],
         'knowledge.search' => ['GET', '/api/v1/projects/:project_id/knowledge'],

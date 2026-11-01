@@ -12,6 +12,10 @@
 # and a caller that holds a token must pass it. A token's reach of nil means every project of the
 # organisation, [] means none, also for an organisation outside the token.
 #
+# The reach comes before the policy scope. An organisation the token no longer reaches (a
+# deactivated membership, say) is not asked about at all: an empty reach answers with an empty
+# relation and no rights are looked up.
+#
 # Built under `organisation` as the tenant, like TicketRelation.visible_to, and bound by
 # organisation_id, so the rows and the rights do not depend on the tenant current at the call.
 # ⚠️ That holds for the rows only: a preload chained onto the relation runs at execution, under
@@ -32,18 +36,20 @@ module Tickets
 
     def call
       ActsAsTenant.with_tenant(@organisation) do
-        readable = Pundit.policy_scope!(@user, @relation.where(organisation_id: @organisation.id))
-        within_reach(readable)
+        rows = @relation.where(organisation_id: @organisation.id)
+        reached = reached_project_ids
+        next rows.none if reached == []
+
+        readable = Pundit.policy_scope!(@user, rows)
+        reached.nil? ? readable : readable.where(project_id: reached)
       end
     end
 
     private
 
-    def within_reach(readable)
-      return readable if @token.nil?
-
-      reached = @token.reach.project_ids_for(@organisation.id)
-      reached.nil? ? readable : readable.where(project_id: reached)
+    # nil: no limit from a token, either because there is none or because it reaches every project.
+    def reached_project_ids
+      @token&.reach&.project_ids_for(@organisation.id)
     end
   end
 end

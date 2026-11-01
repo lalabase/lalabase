@@ -138,6 +138,31 @@ RSpec.describe Tickets::ReadableForToken, :ci_guard do
     end
   end
 
+  describe 'an empty reach' do
+    {
+      'a token outside the organisation' => -> { token_for(admin, organisations: [foreign_organisation]) },
+      'a token of the organisation with an empty project list' => lambda {
+        token_for(admin, organisations: [organisation], project_scopes: { organisation => [] })
+      }
+    }.each do |name, build_token|
+      it "asks no rights for #{name} and finds nothing" do
+        token = instance_exec(&build_token)
+        tickets = all_tickets
+        expect(Pundit).not_to receive(:policy_scope!)
+
+        expect(found_tickets(admin, tickets, token: token)).to be_empty
+      end
+    end
+
+    it 'does ask the rights for a token that reaches something' do
+      token = token_reaching_a(admin)
+      tickets = all_tickets
+      expect(Pundit).to receive(:policy_scope!).once.and_call_original
+
+      expect(found_tickets(admin, tickets, token: token)).to contain_exactly(ticket_a)
+    end
+  end
+
   describe 'without a token' do
     it 'gives a reader what the policy scope gives' do
       expect(found(reader, ticket_b.id)).to eq(ticket_b)

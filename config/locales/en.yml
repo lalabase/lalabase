@@ -1384,6 +1384,7 @@ en:
         separator: "."
         delimiter: ","
   navigation:
+    meeting_inbox: Inbox for meetings
     all_meetings: All Meetings
     people: People
     all_organisations: All organisations
@@ -1904,6 +1905,11 @@ en:
         domain_label: Domain
         domain_placeholder: example.com
         domain_hint: Your organisation's domain (optional)
+        meeting_inbox_label: Inbox project
+        meeting_inbox_hint: Meetings a program creates without a project land here. From there they can be moved to their project.
+        meeting_inbox_none: No inbox project
+        meeting_inbox_archived_hint: This project is archived and takes no meetings. Once restored it is the inbox again.
+        meeting_inbox_archived_option: '%{name} (archived)'
         save_button: Save
     posts:
       post:
@@ -2003,6 +2009,7 @@ en:
         current_notes: Current Notes
         current_tasks: Current Tickets
         dashboard_title: Dashboard
+        meeting_inbox_subtitle: '%{name} · Inbox'
         description: Description
         documents_card_title: Documents
         edit: Edit

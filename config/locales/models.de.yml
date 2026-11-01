@@ -2,6 +2,8 @@
 de:
   activerecord:
     attributes:
+      organisation:
+        meeting_inbox_project_id: "Eingangsprojekt"
       person:
         user: "Mitglied"
         name: "Name"
@@ -389,6 +391,8 @@ de:
               forbidden_permission_present: "kann nicht auf nicht-abrechenbar gesetzt werden, solange eine accounts- oder projects-Berechtigung besteht"
         organisation:
           attributes:
+            meeting_inbox_project_id:
+              not_usable: "muss ein aktives Projekt dieser Organisation sein"
             ai_provider:
               supported_provider: "muss einer der unterstützten Provider sein"
             embedding_dims:

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_29_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_01_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1023,10 +1023,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_150000) do
     t.boolean "data_import_enabled", default: false, null: false
     t.boolean "assistant_enabled", default: false, null: false
     t.boolean "code_indexing_enabled", default: false, null: false
+    t.uuid "meeting_inbox_project_id"
     t.index ["account_id"], name: "index_organisations_on_account_id"
     t.index ["ai_activated_by_id"], name: "index_organisations_on_ai_activated_by_id"
     t.index ["ai_package_id"], name: "index_organisations_on_ai_package_id"
     t.index ["ai_provider"], name: "index_organisations_on_ai_provider"
+    t.index ["meeting_inbox_project_id"], name: "index_organisations_on_meeting_inbox_project_id"
     t.index ["notification_sender_email"], name: "index_organisations_on_notification_sender_email"
   end
 
@@ -2096,6 +2098,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_150000) do
   add_foreign_key "organisations", "accounts"
   add_foreign_key "organisations", "ai_packages"
   add_foreign_key "organisations", "embedding_spaces", column: "active_embedding_space_id", on_delete: :nullify
+  add_foreign_key "organisations", "projects", column: "meeting_inbox_project_id", on_delete: :nullify
   add_foreign_key "organisations", "users", column: "ai_activated_by_id", on_delete: :nullify
   add_foreign_key "organisations", "users", column: "ai_package_selected_by_id", on_delete: :nullify
   add_foreign_key "outbox_events", "activities"

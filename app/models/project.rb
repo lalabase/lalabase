@@ -113,6 +113,12 @@ class Project < ApplicationRecord
     update!(archived_at: nil, archived_by: nil)
   end
 
+  # The organisation's project for meetings sent without one
+  # (Organisation#meeting_inbox).
+  def meeting_inbox?
+    !archived? && organisation&.meeting_inbox_project_id == id
+  end
+
   # Find users who have access to this project — delegates to ProjectAccessService.
   # Correctly accounts for no_access overrides.
   def users_with_access(action = :read, area = :tickets)

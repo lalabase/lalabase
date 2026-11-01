@@ -928,6 +928,9 @@ Rails.application.routes.draw do
       resources :organisations, only: %i[index] do
         # People S3b: the people directory of one organisation, read only.
         resources :people, only: %i[index show]
+        # A meeting, under the organisation because the project may be missing
+        # (it then lands in the organisation's inbox project).
+        resources :meetings, only: %i[create]
       end
       get 'time_sessions/open', to: 'time_sessions#open'
       resources :projects, only: %i[index] do

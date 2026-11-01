@@ -84,7 +84,7 @@ RSpec.describe PersonalAccessTokens::ReachListing, :ci_guard do
       token = create(:personal_access_token, user: user, organisations: [other_organisation])
 
       expect(listing(token).projects(viewer: user)).to eq(
-        [{ id: foreign.id, name: 'Foreign', description: foreign.description, archived: false,
+        [{ id: foreign.id, name: 'Foreign', description: foreign.description, archived: false, meeting_inbox: false,
            organisation: { id: other_organisation.id, name: 'Alpha' },
            created_at: foreign.created_at.iso8601, updated_at: foreign.updated_at.iso8601 }]
       )

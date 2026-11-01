@@ -117,6 +117,11 @@ de:
       # not end up in the user-visible summary_creation_error column.
       provider_error: "Der gewählte KI-Anbieter konnte keine Zusammenfassung erstellen. Bitte prüfen Sie Anbieter, Modell und Zugang in den KI-Einstellungen."
     meetings:
+      intake:
+        meeting_inbox_missing: Ohne Projekt braucht die Organisation ein Eingangsprojekt. Dort ist keines gesetzt.
+        meeting_inbox_forbidden: Sie dürfen im Eingangsprojekt keine Meetings anlegen. Geben Sie ein Projekt an oder lassen Sie sich Zugriff geben.
+        project_archived: Das Projekt ist archiviert und nimmt keine Meetings an.
+        unknown_participant: Ein Teilnehmer lässt sich nicht zuordnen.
       summary:
         ai_disabled: "KI-Funktionen sind für diese Organisation deaktiviert."
         not_configured: "Es ist kein gültiger KI-Zugang konfiguriert."

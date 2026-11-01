@@ -29,13 +29,13 @@ RSpec.describe 'Mechanisms behind the claims on lalabase.com' do
     # until 10.09.2026. update_ticket (terminal client S2) ended the promise "no status
     # changes from outside" in two FAQ answers; the sentence that still holds is "no
     # deleting from outside".
-    it 'has exactly the five mutating MCP tools those sentences enumerate' do
+    it 'has exactly the six mutating MCP tools those sentences enumerate' do
       mutating = Lalabase::Tools::Registry.for(:mcp).select(&:mutating?)
 
       expect(mutating.map(&:name)).to match_array(
         %w[Lalabase::Tools::CreateTicket Lalabase::Tools::PostComment
            Lalabase::Tools::CreateTimeSession Lalabase::Tools::MarkNotificationRead
-           Lalabase::Tools::UpdateTicket]
+           Lalabase::Tools::UpdateTicket Lalabase::Tools::CreateMeeting]
       )
     end
 

@@ -356,7 +356,10 @@ module McpContract
         'comment_file' => comment_file_calls(website),
         # MCP 0.15, appended last: reads, so every answer above stays as it was.
         'list_organisations' => { 'ok' => tool_call(:read, 'list_organisations') },
-        'list_projects' => list_projects_calls
+        'list_projects' => list_projects_calls,
+        # MCP 0.16, appended last: refusals that write nothing, so every answer
+        # above stays as it was.
+        'create_meeting' => create_meeting_calls
       }
     end
 
@@ -377,6 +380,16 @@ module McpContract
         'one_post' => tool_call(:read, 'get_ticket', **login, post_id: id(:first_post)),
         # The comment beside it has no file, and says so.
         'no_file' => tool_call(:read, 'get_ticket', **login, post_id: id(:second_post))
+      }
+    end
+
+    def create_meeting_calls
+      meeting = { title: 'Abstimmung', occurred_at: '2026-01-01T10:00:00Z' }
+      {
+        'refused_no_inbox' => tool_call(:write, 'create_meeting', organisation_id: id(:organisation), **meeting),
+        'read_only' => tool_call(:read, 'create_meeting', organisation_id: id(:organisation), **meeting),
+        'invalid_input' => tool_call(:write, 'create_meeting', organisation_id: 'oops', **meeting),
+        'not_found' => tool_call(:write, 'create_meeting', organisation_id: id(:other_organisation), **meeting)
       }
     end
 

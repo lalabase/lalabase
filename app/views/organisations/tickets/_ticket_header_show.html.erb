@@ -149,17 +149,13 @@
           <%# Description body - clamped to two lines while collapsed. The
               measure is 70ch (user mockup 05.09.2026): every running-text
               surface on this page sits in it, only the heading and the
-              attribute row run wider. Editing at the object (designer round
-              8a): a click on the text opens the editor; clicks that mean
-              something else (links, images, a text selection) keep their
-              meaning - ticket_inline_edit_controller guards them. %>
+              attribute row run wider. Plain text, deliberately: the
+              description had a click-to-edit with a hover surface (designer
+              round 8a) and lost it again on user decision (10.09.2026) - the
+              hover made the whole text read as one big button. Editing
+              stays with the pencil and the title link above. %>
           <div data-ticket-description-collapse-target="body"
-               <% if can_edit_ticket %>
-               data-controller="ticket-inline-edit"
-               data-ticket-inline-edit-url-value="<%= edit_ticket_url %>"
-               data-action="click->ticket-inline-edit#open"
-               <% end %>
-               class="prose max-w-[70ch] text-[15px] leading-relaxed text-cream-800 <%= 'line-clamp-2' if collapsed %> <%= 'rounded-md transition-colors hover:bg-cream-200/40' if can_edit_ticket %>"><%= ticket.content %></div>
+               class="prose max-w-[70ch] text-[15px] leading-relaxed text-cream-800 <%= 'line-clamp-2' if collapsed %>"><%= ticket.content %></div>
 
           <%# The attachment DATA first, on its own line; the ACTIONS
               ("Einklappen", "Datei anhaengen") on the line below - data and
@@ -223,14 +219,9 @@
           <% end %>
         </div>
       <% else %>
-        <%# Not collapsible (new ticket / no own comment yet) - full content.
-            Click-to-edit like the collapsible branch above. %>
-        <div class="mt-4 prose max-w-[70ch] text-[15px] leading-relaxed text-cream-800 <%= 'rounded-md transition-colors hover:bg-cream-200/40' if can_edit_ticket %>"
-             <% if can_edit_ticket %>
-             data-controller="ticket-inline-edit"
-             data-ticket-inline-edit-url-value="<%= edit_ticket_url %>"
-             data-action="click->ticket-inline-edit#open"
-             <% end %>><%= ticket.content %></div>
+        <%# Not collapsible (new ticket / no own comment yet) - full content,
+            plain text like the collapsible branch above. %>
+        <div class="mt-4 prose max-w-[70ch] text-[15px] leading-relaxed text-cream-800"><%= ticket.content %></div>
       <% end %>
     <% end %>
 

@@ -8,9 +8,11 @@ require 'rails_helper'
 # (pencil, spark, dots) with the 6px radius, a divider, then the exit in the
 # SAME rank. Icon only - words above the title would compete with the title,
 # so every surface carries a title attribute instead. And editing happens at
-# the object too: a click on the title or the description opens the same
-# editor the pencil opens (writing_surface frame) - the pencil stays for
-# those who look for it.
+# the object too: a click on the title opens the same editor the pencil
+# opens (writing_surface frame) - the pencil stays for those who look for
+# it. The description does NOT take part: it had the same click-to-edit
+# with a hover surface and lost it on user decision (10.09.2026), because
+# the hover made the whole text read as one big button.
 RSpec.describe 'Ticket header actions', type: :request do
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }
@@ -79,13 +81,13 @@ RSpec.describe 'Ticket header actions', type: :request do
       expect(title_link['title']).to eq(header_t('edit_ticket'))
     end
 
-    it 'puts the inline-edit controller with the edit url on the description' do
-      body = document.at_css('[data-controller~="ticket-inline-edit"]')
+    it 'leaves the description plain text: no click handler, no hover surface' do
+      body = document.css('div.prose').find { |div| div.text.include?('Beschreibungstext im Kopf') }
       expect(body).to be_present
-      expect(body.text).to include('Beschreibungstext im Kopf')
-      expect(body['data-ticket-inline-edit-url-value'])
-        .to eq(edit_organisation_project_ticket_path(organisation, project, ticket))
-      expect(body['data-action']).to include('click->ticket-inline-edit#open')
+      expect(body['data-controller']).to be_nil
+      expect(body['data-action']).to be_nil
+      expect(body[:class]).not_to match(/hover:/)
+      expect(response.body).not_to include('ticket-inline-edit')
     end
   end
 

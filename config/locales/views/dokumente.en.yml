@@ -187,6 +187,12 @@ en:
           runs_heading: Sync runs
           runs_empty: No sync has run yet.
           run_duration: "%{seconds} s"
+          run_assets:
+            one: 1 image
+            other: "%{count} images"
+          run_assets_skipped:
+            one: 1 image not shown
+            other: "%{count} images not shown"
           trigger:
             manual: Manual
             polling: Automatic

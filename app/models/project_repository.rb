@@ -78,17 +78,6 @@ class ProjectRepository < ApplicationRecord
     SecureRandom.hex(WEBHOOK_SECRET_BYTES)
   end
 
-  # Public raw-content URL for one file in this repo (used e.g. to display
-  # images referenced by synced documentation pages). Lives HERE, next to
-  # `provider`, so host-specific URL knowledge has a single home: GitHub-only
-  # for now — the same v1 limitation as Lalabase::Indexer::GitCloner. When
-  # GitLab support lands, branch on `provider` in this one method.
-  # NOTE: unauthenticated by design; files in private repos will 404 (accepted
-  # v1 trade-off, see design OQ6 "images not guaranteed").
-  def raw_file_url(path_in_repo)
-    "https://raw.githubusercontent.com/#{full_name}/#{default_branch}/#{path_in_repo}"
-  end
-
   validates :provider, presence: true, inclusion: { in: PROVIDERS }
   validates :provider_repo_id, presence: true, uniqueness: { scope: %i[provider organisation_id] }
   validates :full_name, presence: true, format: { with: FULL_NAME_PATTERN, message: :invalid_full_name }

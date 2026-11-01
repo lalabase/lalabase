@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_01_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -517,6 +517,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_100000) do
     t.index ["user_id"], name: "index_document_versions_on_user_id"
   end
 
+  create_table "documentation_assets", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "organisation_id", null: false
+    t.uuid "documentation_set_id", null: false
+    t.string "path", null: false
+    t.string "git_blob_sha", null: false
+    t.string "content_type", null: false
+    t.bigint "byte_size", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["documentation_set_id", "path"], name: "idx_documentation_assets_set_path", unique: true
+    t.index ["organisation_id"], name: "index_documentation_assets_on_organisation_id"
+  end
+
   create_table "documentation_commits", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "organisation_id", null: false
     t.uuid "documentation_set_id", null: false
@@ -596,6 +609,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_100000) do
     t.uuid "triggered_by_user_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "assets_synced", default: 0, null: false
+    t.integer "assets_skipped", default: 0, null: false
     t.index ["documentation_set_id", "created_at"], name: "idx_on_documentation_set_id_created_at_714010eb45"
     t.index ["documentation_set_id"], name: "index_documentation_sync_runs_on_documentation_set_id"
     t.index ["organisation_id"], name: "index_documentation_sync_runs_on_organisation_id"
@@ -2034,6 +2049,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_100000) do
   add_foreign_key "dashboard_configurations", "projects"
   add_foreign_key "dashboard_configurations", "users"
   add_foreign_key "document_versions", "users"
+  add_foreign_key "documentation_assets", "documentation_sets"
+  add_foreign_key "documentation_assets", "organisations"
   add_foreign_key "documentation_commits", "documentation_sets"
   add_foreign_key "documentation_commits", "organisations"
   add_foreign_key "documentation_pages", "documentation_sets"

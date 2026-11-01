@@ -725,6 +725,7 @@ jobs:
           spec/models/ticket_attribute_definition_spec.rb
           spec/requests/organisations/file_downloads_spec.rb
           spec/requests/organisations/file_downloads_post_ticket_spec.rb
+          spec/requests/organisations/file_downloads_documentation_asset_spec.rb
           spec/requests/organisations/documents_version_authorization_spec.rb
           spec/requests/organisations/documents_write_actions_spec.rb
           spec/requests/webhooks/repositories_spec.rb

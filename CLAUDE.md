@@ -325,11 +325,13 @@ The guard asks three questions:
 * ⚠️ **The content security policy stops none of this.** It runs in report-only mode
   (`config/initializers/content_security_policy.rb`): it logs a violation and lets the request
   through. Do not count on it until that line says `false`.
-* ⚠️ **Content is not covered, and it does load from elsewhere.** A synced documentation page
-  shows its images from the repository host (`ProjectRepository#raw_file_url`,
-  raw.githubusercontent.com), and a Markdown image with an absolute address stays as its
-  author wrote it (`Documentation::MarkdownRenderer`). `img-src` allows any https. That is a
-  decision about content, and an open one; this guard is about what the application ships.
+* **Synced documentation pages load nothing from elsewhere either**, since 2026-11-01.
+  The sync copies the images a page shows out of the clone (`Documentation::AssetCollector`) and the file proxy serves them behind the right of
+  the documentation; an image that is not served shows as its alt text, one with a foreign
+  address becomes a link. Until then every reader of such a page contacted
+  raw.githubusercontent.com. Held by `documentation_sync_job_spec` ("names no repository
+  host and no address outside the instance").
+* ⚠️ Other content is not covered by this guard, and `img-src` still allows any https.
 * Not seen either: an address built at run time (a host in a constant, an interpolated string).
 * One named exception, `SAMPLES`: the code samples of the style guide are printed as text, and
   one of them shows the forbidden thing on purpose. A comment that quotes a foreign tag or

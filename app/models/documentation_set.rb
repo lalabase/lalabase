@@ -54,6 +54,9 @@ class DocumentationSet < ApplicationRecord
   has_many :documentation_sync_runs, dependent: :delete_all
   has_many :documentation_set_views, dependent: :delete_all
   has_many :documentation_commits, dependent: :delete_all
+  # destroy, not delete_all: the rows are small (no bodies), and only a destroy purges the
+  # file. A disconnected set must not leave a private repository's images in the storage.
+  has_many :documentation_assets, dependent: :destroy
 
   # prepend: true is LOAD-BEARING — it forces this to run BEFORE the association's
   # own dependent: :delete_all callback. Without it the pages would be gone by the

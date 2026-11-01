@@ -189,6 +189,12 @@ de:
           runs_heading: Synchronisierungs-Läufe
           runs_empty: Noch keine Synchronisierung gelaufen.
           run_duration: "%{seconds} s"
+          run_assets:
+            one: 1 Bild
+            other: "%{count} Bilder"
+          run_assets_skipped:
+            one: 1 Bild nicht angezeigt
+            other: "%{count} Bilder nicht angezeigt"
           trigger:
             manual: Manuell
             polling: Automatisch

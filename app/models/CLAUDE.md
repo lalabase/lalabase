@@ -180,7 +180,10 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Selbst-Erwähnung hat keinen Verweis und bleibt liegen. Specs:
   `spec/models/action_text/rich_text_embed_key_rotation_spec.rb`,
   `spec/services/rich_text_sgid_resign_spec.rb`.
-* **Dokumente/Doku/Codebase**: `document`, `document_version`, `documentation_*`, `codebase_*`,
+* **Dokumente/Doku/Codebase**: `document`, `document_version`, `documentation_*`
+  (`documentation_asset` = ein Bild einer synchronisierten Doku, aus dem Repository kopiert;
+  die gecachte Seite zeigt per ID darauf, ausgeliefert nur über `FileDownloadsController`),
+  `codebase_*`,
   `code_symbol`, `project_index{,_run}`, `project_repository`, `project_capability`,
   `project_layer4_vision`, `reference`, `fragment`, `imported_object`, `product_knowledge_entry`
   (Lalabases eigene Hilfetexte als Suchtabelle, tenant-frei, siehe Falle 3)

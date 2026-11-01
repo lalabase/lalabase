@@ -37,8 +37,26 @@ module Organisations
         model: -> { TicketDocument },
         attachment: :ticket_document_file,
         authorize_target: ->(record) { record.ticket }
+      },
+      # An image of a synced documentation page is as readable as the documentation:
+      # DocumentationSetPolicy#show? (area :documentation). The cached page HTML holds
+      # this address by id and without a signature, so every request is checked here.
+      # `version` lets the browser keep the file for a moment (VERSIONED_MAX_AGE): the
+      # address does not change when the file does, the version does.
+      'documentation_asset' => {
+        model: -> { DocumentationAsset },
+        attachment: :file,
+        authorize_target: ->(record) { record.documentation_set },
+        version: ->(record) { record.git_blob_sha }
       }
     }.freeze
+
+    # How long a browser may show a versioned file without asking. Short, because the
+    # address stays the same when the file changes; after that it asks with the ETag and
+    # gets a 304. One image is one request through Rails, and the general throttle counts
+    # each (rack_attack, requests/ip): a page with thirty images must not cost thirty
+    # requests on every visit.
+    VERSIONED_MAX_AGE = 5.minutes
 
     # Missing access, unknown kind and foreign/tampered IDs all respond UNIFORMLY
     # with 404 — so the response does not reveal the existence of foreign files (no 403/404 leak).
@@ -60,6 +78,9 @@ module Organisations
 
       attachment = record.public_send(config.fetch(:attachment))
       raise ActiveRecord::RecordNotFound unless attachment.attached?
+
+      # AFTER the right and the file were checked: a 304 is an answer about this file too.
+      return if fresh_version?(config, record)
 
       # Streams from the service (no full load into memory); content type and
       # filename come from the blob metadata. We REQUEST inline so previewable
@@ -101,6 +122,16 @@ module Organisations
         signed_in = true
       end
       redirect_to new_user_session_path unless signed_in
+    end
+
+    # For a kind that names a version: says so to the browser, and answers 304 (true)
+    # when the browser already holds it.
+    def fresh_version?(config, record)
+      version = config[:version]&.call(record)
+      return false if version.blank?
+
+      expires_in VERSIONED_MAX_AGE, public: false
+      !stale?(etag: version, public: false)
     end
 
     def not_found

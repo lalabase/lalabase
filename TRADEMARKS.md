@@ -1,9 +1,3 @@
-<!--
-Maintainer note: once the DPMA registers the word mark "Lalabase", change "trademark"
-to "registered trademark" in "The marks" and drop the sentence about the ®
-symbol in "Writing the name". Do not use ® before that.
--->
-
 # Lalabase Trademark Policy
 
 Lalabase is open source software. The [AGPLv3](LICENSE) gives you broad rights
@@ -21,9 +15,8 @@ This policy covers:
 - the name **Lalabase**,
 - the Lalabase logo and favicon.
 
-Lalabase is a trademark of gboyke solutions UG (haftungsbeschränkt), Germany
-("we" in this policy). An application to register it is pending with the
-German Patent and Trade Mark Office (DPMA).
+Lalabase is a registered trademark of gboyke solutions UG (haftungsbeschränkt),
+Germany ("we" in this policy), at the German Patent and Trade Mark Office (DPMA).
 
 ## The short version
 
@@ -108,7 +101,6 @@ as a service to other people:
 - Write **Lalabase** as one word with a capital L. Not "LalaBase", "Lala Base"
   or "lalabase" (except in code, commands and URLs).
 - Use it as a name, not as a verb or a generic term for project software.
-- The registration is still pending, so please do not add the ® symbol.
 
 ## Questions, permission and misuse
 

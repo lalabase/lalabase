@@ -171,6 +171,9 @@ maintainer and a few people we invite. An issue that describes the problem helps
 Bundled third-party components keep their own licenses, listed in
 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
 
+The license covers the code, not the name or the logo. A modified version or a service built on it
+goes by its own name: [TRADEMARKS.md](TRADEMARKS.md).
+
 The license covers the code. It grants no rights to the name Lalabase, and none to Lala, the
 mascot in `.github/readme/lala-*.svg`: the figure is not covered by the AGPL, all rights are
 reserved, and it may not be copied, modified or used outside this repository.

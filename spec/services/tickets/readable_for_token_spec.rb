@@ -138,6 +138,55 @@ RSpec.describe Tickets::ReadableForToken, :ci_guard do
     end
   end
 
+  describe 'a token that reaches several places' do
+    it 'finds every listed project, not only the first' do
+      token = token_for(admin, organisations: [organisation], project_scopes: { organisation => [project_a, project_b] })
+      tickets = all_tickets
+
+      expect(found_tickets(admin, tickets, token: token)).to contain_exactly(ticket_a, ticket_b)
+    end
+
+    # Reach is per organisation. A rule that read another organisation's entry would widen one
+    # of these two tokens, whichever order the entries come in. The admin is a member of both:
+    # a token holds an organisation only while its owner does.
+    before do
+      Prosopite.pause do
+        ActsAsTenant.with_tenant(foreign_organisation) do
+          create(:membership, user: admin, organisation: foreign_organisation,
+                              role: create(:admin_role, organisation: foreign_organisation), active: true)
+        end
+      end
+    end
+
+    it "cuts by this organisation's entry when another organisation is open" do
+      token = token_for(admin, organisations: [foreign_organisation, organisation],
+                               project_scopes: { organisation => [project_a] })
+
+      expect(token.reach.organisation_ids).to contain_exactly(organisation.id, foreign_organisation.id)
+      expect(found(admin, ticket_a.id, token: token)).to eq(ticket_a)
+      expect(found(admin, ticket_b.id, token: token)).to be_nil
+    end
+
+    it 'opens this organisation by its own entry when another organisation is limited' do
+      foreign_project = new_project(foreign_organisation)
+      token = token_for(admin, organisations: [foreign_organisation, organisation],
+                               project_scopes: { foreign_organisation => [foreign_project] })
+
+      expect(token.reach.organisation_ids).to contain_exactly(organisation.id, foreign_organisation.id)
+      expect(found(admin, ticket_b.id, token: token)).to eq(ticket_b)
+    end
+  end
+
+  describe 'an id that names nothing' do
+    ['not-a-uuid', '', nil].each do |id|
+      it "gives nil for #{id.inspect}, and no database error" do
+        ticket_a
+
+        expect(found(admin, id, token: token_reaching_everything(admin))).to be_nil
+      end
+    end
+  end
+
   describe 'an empty reach' do
     {
       'a token outside the organisation' => -> { token_for(admin, organisations: [foreign_organisation]) },

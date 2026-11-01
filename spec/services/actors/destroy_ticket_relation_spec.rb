@@ -45,6 +45,25 @@ RSpec.describe Actors::DestroyTicketRelation do
     expect(TicketRelation.count).to eq(2)
   end
 
+  # The caller found the row, then someone else removed it. destroy! on the stale object would
+  # report success for a write that never happened.
+  it 'does not find a relation removed after the caller found it' do
+    stale = TicketRelation.find(relation.id)
+    TicketRelation.where(id: relation.id).delete_all
+
+    result = described_class.call(ticket: ticket_a, relation: stale, current_user: user)
+
+    expect(result.code).to eq(:not_found)
+    expect(TicketRelation.pluck(:id)).to eq([neighbour.id])
+  end
+
+  it 'does not remove a found relation through a ticket it does not touch' do
+    result = described_class.call(ticket: ticket_c, relation: relation, current_user: user)
+
+    expect(result.code).to eq(:not_found)
+    expect(TicketRelation.exists?(relation.id)).to be(true)
+  end
+
   it 'does not find an unknown id' do
     expect(unlink(ticket_a, SecureRandom.uuid).code).to eq(:not_found)
   end

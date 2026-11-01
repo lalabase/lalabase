@@ -106,6 +106,21 @@ RSpec.describe Tickets::RelationAccess, :ci_guard do
       expect(other_ticket(admin, ticket_b.id, token: token_reaching_a(admin))).to be_nil
     end
 
+    it 'finds nothing through a token outside the organisation, never everything' do
+      token = Prosopite.pause { create(:personal_access_token, user: admin, organisations: [foreign_organisation]) }
+
+      expect(other_ticket(admin, ticket_a.id)).to eq(ticket_a)
+      expect(other_ticket(admin, ticket_a.id, token: token)).to be_nil
+    end
+
+    ['not-a-uuid', '', nil].each do |id|
+      it "gives nil for #{id.inspect}, and no database error" do
+        ticket_a
+
+        expect(other_ticket(admin, id)).to be_nil
+      end
+    end
+
     it 'finds project B for the account admin without a token' do
       expect(other_ticket(admin, ticket_b.id)).to eq(ticket_b)
     end
@@ -143,6 +158,29 @@ RSpec.describe Tickets::RelationAccess, :ci_guard do
 
       expect(relation(admin, ticket_a, inside.id, token: token)).to eq(inside)
       expect(relation(admin, ticket_a, edge.id, token: token)).to be_nil
+    end
+
+    it 'stops at the reach whichever end lies outside it' do
+      incoming = link(ticket_b, ticket_a)
+      token = token_reaching_a(admin)
+
+      expect(relation(admin, ticket_a, incoming.id)).to eq(incoming)
+      expect(relation(admin, ticket_a, incoming.id, token: token)).to be_nil
+    end
+
+    it 'finds nothing through a token outside the organisation, never everything' do
+      edge = link(ticket_a, ticket_a2)
+      token = Prosopite.pause { create(:personal_access_token, user: admin, organisations: [foreign_organisation]) }
+
+      expect(relation(admin, ticket_a, edge.id, token: token)).to be_nil
+    end
+
+    ['not-a-uuid', '', nil].each do |id|
+      it "gives nil for #{id.inspect}, and no database error" do
+        link(ticket_a, ticket_a2)
+
+        expect(relation(admin, ticket_a, id)).to be_nil
+      end
     end
 
     it 'finds the relation A-B for the account admin without a token' do

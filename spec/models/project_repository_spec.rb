@@ -416,19 +416,4 @@ RSpec.describe ProjectRepository, type: :model do
       expect(repo.reload.access_token).to eq(token)
     end
   end
-
-  describe '#raw_file_url' do
-    it 'builds the raw content URL from full_name, default_branch and the given path' do
-      repo = build(:project_repository, full_name: 'acme/docs', default_branch: 'develop')
-
-      expect(repo.raw_file_url('docs/img/logo.png'))
-        .to eq('https://raw.githubusercontent.com/acme/docs/develop/docs/img/logo.png')
-    end
-
-    it 'never embeds the access token (raw URLs are shipped to browsers)' do
-      repo = build(:project_repository, access_token: 'ghp_secret_token')
-
-      expect(repo.raw_file_url('a.png')).not_to include('ghp_secret_token')
-    end
-  end
 end

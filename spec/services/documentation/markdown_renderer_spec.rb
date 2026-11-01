@@ -88,21 +88,95 @@ RSpec.describe Documentation::MarkdownRenderer do
     end
   end
 
-  describe 'relative images' do
-    it 'rewrites a relative image source to the raw repo URL' do
-      html = render('![logo](img/logo.png)')
-      expect(html).to include('src="https://raw.githubusercontent.com/acme/handbook/main/.lalabase/doku/guide/img/logo.png"')
+  # The images of a page come from the instance. The
+  # renderer asks a resolver for the address of every relative image; the sync hands it
+  # the AssetCollector. What is not served shows as text, never as an address elsewhere.
+  describe 'images' do
+    let(:resolver) do
+      Class.new do
+        attr_reader :asked
+
+        def initialize(answers) = (@answers = answers) && (@asked = [])
+
+        def address_for(path)
+          @asked << path
+          @answers[path]
+        end
+      end
     end
 
-    it 'leaves absolute image sources untouched' do
-      html = render('![x](https://cdn.example.com/x.png)')
-      expect(html).to include('src="https://cdn.example.com/x.png"')
+    def render_with(answers, markdown, page_path: 'guide/intro.md')
+      asked = resolver.new(answers)
+      html = described_class.new(documentation_set: set, page_path: page_path, asset_resolver: asked).render(markdown)
+      [html, asked.asked]
     end
 
-    it 'never embeds the repository access token in the raw URL' do
-      html = render('![logo](img/logo.png)')
-      expect(html).to include('raw.githubusercontent.com') # sanity: it did rewrite
-      expect(html).not_to include(repository.access_token)
+    it 'shows a relative image from the address the resolver gives, asked by its path in the repository' do
+      html, asked = render_with({ '.lalabase/doku/guide/img/logo.png' => '/org/1/files/documentation_asset/7' }, '![Logo](img/logo.png)')
+
+      expect(asked).to eq(['.lalabase/doku/guide/img/logo.png'])
+      expect(html).to include('<img src="/org/1/files/documentation_asset/7" alt="Logo">')
+    end
+
+    it 'reaches an image outside the documentation folder, as long as it is inside the repository' do
+      _, asked = render_with({}, '![x](../../../assets/shared.png)')
+
+      expect(asked).to eq(['assets/shared.png'])
+    end
+
+    it 'reads a path that starts with a slash from the root of the repository, as the repository host does' do
+      _, asked = render_with({}, '![x](/assets/shared.png)')
+
+      expect(asked).to eq(['assets/shared.png'])
+    end
+
+    it 'asks for the file, not for its query string, its fragment or its escapes' do
+      _, asked = render_with({}, '![x](img/my%20logo.png?raw=true#top)')
+
+      expect(asked).to eq(['.lalabase/doku/guide/img/my logo.png'])
+    end
+
+    it 'does not ask about a path that climbs out of the repository' do
+      html, asked = render_with({}, '![leak](../../../../secret.png)')
+
+      expect(asked).to be_empty
+      expect(html).to include('<em>leak</em>')
+      expect(html).not_to include('<img')
+    end
+
+    it 'shows the alt text for an image that is not served, and the file name when there is none' do
+      html, = render_with({}, "![Aufbau](img/aufbau.png)
+
+![](img/ohne-text.svg)")
+
+      expect(html).to include('<em>Aufbau</em>', '<em>ohne-text.svg</em>')
+      expect(html).not_to include('<img')
+    end
+
+    it 'shows the alt text without a resolver, and names no repository host' do
+      html = render('![Logo](img/logo.png)')
+
+      expect(html).to include('<em>Logo</em>')
+      expect(html).not_to include('<img', 'raw.githubusercontent.com', repository.access_token)
+    end
+
+    # An image with an address of its own would make the reader's browser fetch it from
+    # there on every visit. It becomes a link: no request without a click.
+    it 'turns an image with a foreign address into a link with its alt text' do
+      html = render("![Build](https://img.shields.io/badge/build-passing.svg)
+
+![](//cdn.example.com/x.png)")
+
+      expect(html).to include('<a href="https://img.shields.io/badge/build-passing.svg">Build</a>')
+      expect(html).to include('<a href="//cdn.example.com/x.png">//cdn.example.com/x.png</a>')
+      expect(html).not_to include('<img')
+    end
+
+    it 'keeps an image inside a link as a link, without nesting one in the other' do
+      html = render('[![Build](https://img.shields.io/badge.svg)](https://ci.example.com/run/1)')
+
+      expect(html).to include('<a href="https://ci.example.com/run/1">Build</a>')
+      expect(html).not_to include('<img', 'img.shields.io')
     end
   end
 
@@ -163,8 +237,8 @@ RSpec.describe Documentation::MarkdownRenderer do
       expect(result.html).to include("/notes/#{note.id}")
       expect(result.html).to include("/documents/#{document.id}")
       # The other rewrite branches still fire (knowledge branch does not shadow them).
-      expect(result.html).to include('/documentation')            # internal .md link
-      expect(result.html).to include('raw.githubusercontent.com') # relative image
+      expect(result.html).to include('/documentation') # internal .md link
+      expect(result.html).to include('<em>pic</em>') # relative image: no resolver here, so its alt text
     end
 
     it 'does NOT resolve a note from another project (no cross-project link), no reference' do
@@ -232,9 +306,10 @@ RSpec.describe Documentation::MarkdownRenderer do
       expect(html).not_to include('/documentation')
     end
 
-    it 'does not turn an image escaping the set into a repo URL' do
-      html = render('![leak](../../../secret.png)')
-      expect(html).not_to include('raw.githubusercontent.com')
+    it 'does not turn an image escaping the repository into an image at all' do
+      html = render('![leak](../../../../secret.png)')
+      expect(html).not_to include('<img', 'secret.png')
+      expect(html).to include('<em>leak</em>')
     end
   end
 end

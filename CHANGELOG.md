@@ -18,6 +18,19 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ## [Unreleased]
 
+### Changed
+
+- Synced documentation pages show their images from your instance. The sync copies them
+  out of the repository, and they are served behind the right to read the documentation,
+  so a reader no longer contacts the repository host and images from private repositories
+  show. An image that cannot be served shows as its alt text, one with a full address
+  becomes a link. SVG is not shown yet. Limits: 5 MB per image, 200 images per set.
+
+### Upgrade notes
+
+- Run `bin/rails documentation:resync_all` once after updating. Until then a page keeps
+  its old image addresses, unless its repository receives a new commit.
+
 ## [2026.11.0] - 2026-10-31
 
 <!-- drafted from d31c38282b6a52e09e33ebbe4195546d11421234 -->

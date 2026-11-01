@@ -316,6 +316,31 @@ RSpec.describe 'Organisations::Documentation', type: :request do
       expect(response.body).to include(I18n.t('views.organisations.documentation.history.trigger.polling'))
     end
 
+    # The run says how many images it kept and how many it turned down: an image that is
+    # too large or not an image shows as text on the page, and this is where a reader of
+    # the logbook learns why.
+    it 'says how many images a run kept and how many it did not show' do
+      create(:documentation_sync_run, documentation_set: documentation_set, status: 'ready',
+                                      trigger: 'manual', assets_synced: 12, assets_skipped: 2)
+      sign_in_with_role(reader_role)
+
+      get history_path
+
+      expect(response.body).to include(I18n.t('views.organisations.documentation.history.run_assets', count: 12))
+      expect(response.body).to include(I18n.t('views.organisations.documentation.history.run_assets_skipped', count: 2))
+    end
+
+    it 'says nothing about images for a run that met none' do
+      create(:documentation_sync_run, documentation_set: documentation_set, status: 'ready', trigger: 'manual')
+      sign_in_with_role(reader_role)
+
+      get history_path
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include(I18n.t('views.organisations.documentation.history.run_assets', count: 0))
+      expect(response.body).not_to include(I18n.t('views.organisations.documentation.history.run_assets_skipped', count: 0))
+    end
+
     it 'blocks a user without documentation access' do
       sign_in_with_role(no_access_role)
 

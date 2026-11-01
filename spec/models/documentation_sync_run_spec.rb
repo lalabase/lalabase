@@ -5,6 +5,8 @@
 # Table name: documentation_sync_runs
 #
 #  id                   :uuid             not null, primary key
+#  assets_skipped       :integer          default(0), not null
+#  assets_synced        :integer          default(0), not null
 #  commit_sha           :string
 #  error_class          :string
 #  error_message        :text

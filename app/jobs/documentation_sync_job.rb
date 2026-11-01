@@ -90,7 +90,8 @@ class DocumentationSyncJob < ApplicationJob
 
     stamp_set(set, sync_status: 'ready', last_synced_at: Time.current, last_synced_commit: result[:commit])
     record_run(context, status: 'ready', commit_sha: result[:commit],
-                        pages_synced: result[:synced], pages_removed: result[:removed])
+                        pages_synced: result[:synced], pages_removed: result[:removed],
+                        assets_synced: result[:assets_synced], assets_skipped: result[:assets_skipped])
     # Chat-grounding ingestion (Slice 3): fan out embedding jobs only AFTER the
     # sync is recorded ready, and only for pages that actually changed this run.
     enqueue_embedding_jobs(result[:changed_page_ids])
@@ -111,12 +112,13 @@ class DocumentationSyncJob < ApplicationJob
   end
 
   # Clones the repo and upserts every markdown page. Returns counts + commit +
-  # the ids of the pages that actually changed (for the embedding fan-out).
+  # the ids of the pages whose markdown changed (for the embedding fan-out).
   def clone_and_upsert(set)
     synced = 0
     seen_paths = []
     changed_page_ids = []
     commits = []
+    assets = nil
     # Preload every existing page once (keyed by path) to avoid a per-file query.
     existing_pages = set.documentation_pages.index_by(&:path)
     cloner = Lalabase::Indexer::GitCloner.new(set.project_repository, depth: CLONE_DEPTH)
@@ -131,13 +133,21 @@ class DocumentationSyncJob < ApplicationJob
       raise path_not_found_error(set) unless contained_in?(repo_path, docs_dir)
       raise path_not_found_error(set) unless docs_dir.directory?
 
+      # The images the pages show are copied out of the clone while it is there:
+      # the renderer asks the collector per image.
+      assets = Documentation::AssetCollector.new(documentation_set: set, repo_path: repo_path)
+
       markdown_files(docs_dir).each do |file|
         relative = file.relative_path_from(docs_dir).to_s
-        changed = upsert_page(set, existing_pages[relative], relative, file.read)
+        changed = upsert_page(set, existing_pages[relative], relative, file.read, assets)
         changed_page_ids << changed.id if changed
         seen_paths << relative
         synced += 1
       end
+
+      # After the pages: what no page showed in this run goes, and no saved page still
+      # points at it.
+      assets.finish
 
       # Read inside the block (the clone dir is wiped afterwards); persist
       # outside, after the pages are settled.
@@ -146,7 +156,8 @@ class DocumentationSyncJob < ApplicationJob
 
     removed = mark_missing_removed(set, seen_paths)
     store_commits(set, commits)
-    { synced: synced, removed: removed, commit: cloner.cloned_commit, changed_page_ids: changed_page_ids }
+    { synced: synced, removed: removed, commit: cloner.cloned_commit, changed_page_ids: changed_page_ids,
+      assets_synced: assets&.synced.to_i, assets_skipped: assets&.skipped.to_i }
   rescue Lalabase::Indexer::GitCloner::Error => e
     raise SyncError.new(e.message, error_class: classify_clone_error(e))
   end
@@ -183,22 +194,29 @@ class DocumentationSyncJob < ApplicationJob
     end
   end
 
-  # Upserts one page. Returns the page WHEN it changed (created, content updated,
-  # or revived from removed) so the caller can enqueue its embedding; returns nil
-  # for the unchanged skip, which enqueues nothing.
-  def upsert_page(set, existing_page, relative_path, content)
-    blob_sha = git_blob_sha(content)
+  # Upserts one page. Returns the page WHEN its MARKDOWN changed (created, content
+  # updated, or revived from removed) so the caller can enqueue its embedding; returns
+  # nil otherwise, which enqueues nothing.
+  #
+  # Rendered on every run, written only when something differs. The HTML of a page
+  # depends on more than its own markdown: an image arrives or goes, a knowledge link
+  # finds its target, the renderer itself changes. A page skipped for its unchanged blob
+  # SHA kept the HTML of the day it was last edited, and a manual sync, the repair tool,
+  # repaired nothing. The cost is one render per page per run, beside a git clone.
+  def upsert_page(set, existing_page, relative_path, content, assets)
+    blob_sha = Documentation::GitBlob.sha(content)
     # Build the new page standalone (NOT via set.documentation_pages.build): if a
     # later page fails to render mid-loop, a half-built page must not sit in the
     # set's in-memory association, or the failure path's set.update!(sync_status:)
     # would try to autosave that invalid page and raise instead of recording the
     # failure cleanly.
     page = existing_page || DocumentationPage.new(documentation_set: set, path: relative_path)
+    markdown_changed = page.new_record? || page.git_blob_sha != blob_sha || page.removed_at.present?
 
-    # Unchanged and still present → nothing to do (cheap incremental skip).
-    return nil if page.persisted? && page.git_blob_sha == blob_sha && page.removed_at.nil?
+    rendered = render_page(set, relative_path, content, assets)
+    # Unchanged in every respect → nothing to write.
+    return nil unless markdown_changed || page.rendered_html != rendered.html
 
-    rendered = render_page(set, relative_path, content)
     page.assign_attributes(
       # Reuse the already-loaded tenant so the belongs_to presence check on save
       # does not re-query organisations per page.
@@ -211,10 +229,10 @@ class DocumentationSyncJob < ApplicationJob
     )
     page.save!
     # Rebuild the page's outgoing knowledge links (Slice 4) from the targets the
-    # renderer just resolved. Reached ONLY on a changed page — the blob-SHA skip
-    # above returns nil for an unchanged one, so its references are left untouched.
+    # renderer just resolved. Reached whenever the page was written, so the link index
+    # says what the saved HTML says; an unchanged page returned above and keeps its rows.
     rebuild_references(page, rendered.references)
-    page
+    page if markdown_changed
   end
 
   # Mirror of Note#rebuild_wiki_references: delete + insert keeps a page's outgoing
@@ -260,8 +278,9 @@ class DocumentationSyncJob < ApplicationJob
   # Renders the page AND collects the knowledge targets its lalabase:// links
   # resolved to (one pass, no second parse). Returns the renderer's Result
   # (html + references).
-  def render_page(set, relative_path, content)
-    Documentation::MarkdownRenderer.new(documentation_set: set, page_path: relative_path).render_with_references(content)
+  def render_page(set, relative_path, content, assets)
+    Documentation::MarkdownRenderer.new(documentation_set: set, page_path: relative_path, asset_resolver: assets)
+                                   .render_with_references(content)
   rescue StandardError => e
     raise SyncError.new("failed to render '#{relative_path}': #{e.message}", error_class: 'markdown_invalid')
   end
@@ -303,14 +322,6 @@ class DocumentationSyncJob < ApplicationJob
     set.documentation_pages.where(id: missing_ids)
        .update_all(removed_at: Time.current, updated_at: Time.current)
     missing_ids.size
-  end
-
-  # Git blob SHA of the file content (matches `git hash-object`), computed in
-  # Ruby so no per-file shell-out is needed.
-  def git_blob_sha(content)
-    bytes = content.to_s.b
-    header = "blob #{bytes.bytesize}\0".b
-    Digest::SHA1.hexdigest(header + bytes)
   end
 
   def extract_title(content, relative_path)

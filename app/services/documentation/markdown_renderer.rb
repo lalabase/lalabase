@@ -10,9 +10,12 @@ module Documentation
   #   * knowledge links (lalabase://…)      → the in-app note/document page, and
   #     the resolved target is collected so the sync job can index a Reference row
   #     (Slice 4; see KnowledgeLinkResolver for the tenant/project isolation)
-  #   * relative image sources              → the repo's raw file URL (best
-  #     effort; private-repo images may not load — images are not guaranteed
-  #     in v1, a full authenticated asset server is a later slice)
+  #   * images                              → served by the instance, or not shown:
+  #     a relative image gets the address the asset resolver gives (the sync hands
+  #     in Documentation::AssetCollector, which copies the file out of the clone);
+  #     one that is not served shows as its alt text; one with a foreign address
+  #     becomes a link. A page makes no browser load from the repository host or
+  #     from anywhere else.
   class MarkdownRenderer
     ALLOWED_TAGS = %w[
       p br strong em code pre ul ol li blockquote a img
@@ -28,9 +31,12 @@ module Documentation
 
     # documentation_set: the set the page belongs to (for route + repo context).
     # page_path: the page's path relative to the set's path_prefix.
-    def initialize(documentation_set:, page_path:)
+    # asset_resolver: answers #address_for(path in the repository) with the address an
+    #   image is served from, or nil. Without one no relative image is shown.
+    def initialize(documentation_set:, page_path:, asset_resolver: nil)
       @documentation_set = documentation_set
       @page_path = page_path
+      @asset_resolver = asset_resolver
     end
 
     # Backward-compatible string entry point (browsing preview, tests): the HTML only.
@@ -89,10 +95,7 @@ module Documentation
         end
       end
 
-      fragment.css('img[src]').each do |node|
-        rewritten = raw_asset_src(node['src'])
-        node['src'] = rewritten if rewritten
-      end
+      fragment.css('img').each { |node| rewrite_image(node) }
 
       # Dedup: two links to the same note yield one Reference row (the DB unique index
       # is the second line of defense). An UNRESOLVED lalabase:// link contributes
@@ -122,16 +125,73 @@ module Documentation
       anchor.present? ? "#{path}##{anchor}" : path
     end
 
-    # A relative image source becomes the repo's raw file URL (host-specific URL
-    # building lives on ProjectRepository). Absolute/data URIs are left untouched.
-    def raw_asset_src(src)
-      return nil if src.blank? || absolute_or_anchor?(src)
+    # An image is shown from the instance, or it is not shown as an image:
+    #   * data: carries its bytes itself and stays;
+    #   * a foreign address would make every reader's browser fetch it from there, so it
+    #     becomes a link, a request only on a click;
+    #   * a relative one gets the address the resolver gives, or shows as its alt text.
+    def rewrite_image(node)
+      src = node['src'].to_s.strip
+      return if src.start_with?('data:')
 
-      resolved = resolve_relative(src)
-      return nil if resolved.nil?
+      if src.start_with?('http://', 'https://', '//')
+        replace_image(node, foreign_image_link(node, src))
+      elsif (address = asset_address(src))
+        node['src'] = address
+      else
+        replace_image(node, image_text(node, src))
+      end
+    end
 
-      repo_relative = File.join(@documentation_set.path_prefix.to_s.chomp('/'), resolved)
-      @documentation_set.project_repository.raw_file_url(repo_relative)
+    def asset_address(src)
+      path = repository_path(src)
+      path && @asset_resolver&.address_for(path)
+    end
+
+    # The file an image source names, as a path from the root of the REPOSITORY (an image
+    # often lives beside the documentation folder, not in it), or nil when the source
+    # names none or climbs out of the repository. A leading slash means the root of the
+    # repository, as it does on the repository host. Query string and fragment are not
+    # part of a file name; percent escapes are.
+    def repository_path(src)
+      file = src.split(/[?#]/, 2).first.to_s
+      return nil if file.blank? || file.match?(/\A[a-z][a-z0-9+.-]*:/i)
+
+      file = URI.decode_uri_component(file)
+      base = file.start_with?('/') ? Pathname.new('.') : page_directory_in_repository
+      candidate = (base + file.delete_prefix('/')).cleanpath.to_s
+      return nil if candidate.start_with?('..', '/') || candidate == '.'
+
+      candidate
+    rescue ArgumentError
+      nil
+    end
+
+    def page_directory_in_repository
+      Pathname.new(@documentation_set.path_prefix.to_s) + Pathname.new(@page_path).dirname
+    end
+
+    def foreign_image_link(node, src)
+      Nokogiri::XML::Node.new('a', node.document).tap do |link|
+        link['href'] = src
+        link.content = node['alt'].presence || src
+      end
+    end
+
+    def image_text(node, src)
+      Nokogiri::XML::Node.new('em', node.document).tap do |text|
+        text.content = node['alt'].presence || File.basename(src.split(/[?#]/, 2).first.to_s)
+      end
+    end
+
+    # An image that already sits in a link (a badge that links to its build) gives its
+    # text to that link: a link inside a link is not HTML.
+    def replace_image(node, replacement)
+      if node.ancestors('a').any?
+        node.replace(Nokogiri::XML::Text.new(replacement.content, node.document))
+      else
+        node.replace(replacement)
+      end
     end
 
     def absolute_or_anchor?(value)

@@ -13,6 +13,8 @@ RSpec.describe DocumentationSyncJob, type: :job do
   let(:project) { create(:project, organisation: organisation) }
   let(:set) { create(:documentation_set, project: project, path_prefix: 'docs/') }
 
+  let(:png) { Rails.root.join('spec/fixtures/files/test_avatar.png').binread }
+
   before { ActsAsTenant.current_tenant = organisation }
 
   after { @clone_dirs&.each { |d| FileUtils.remove_entry(d, true) } }
@@ -27,7 +29,7 @@ RSpec.describe DocumentationSyncJob, type: :job do
     files.each do |rel, content|
       full = File.join(dir, rel)
       FileUtils.mkdir_p(File.dirname(full))
-      File.write(full, content)
+      File.binwrite(full, content)
     end
     cloner = instance_double(Lalabase::Indexer::GitCloner,
                              cloned_commit: commit, remote_head_commit: remote_head)
@@ -169,30 +171,155 @@ RSpec.describe DocumentationSyncJob, type: :job do
   end
 
   describe 'link and image rewriting' do
-    it 'rewrites internal .md links and relative image sources' do
+    it 'rewrites internal .md links and shows a relative image from the instance' do
       stub_cloner_with(files: {
                          'docs/intro.md' => 'See [setup](guide/setup.md) and ![logo](img/logo.png)',
-                         'docs/guide/setup.md' => '# Setup'
+                         'docs/guide/setup.md' => '# Setup',
+                         'docs/img/logo.png' => png
                        })
 
       described_class.perform_now(set.id)
 
       html = set.documentation_pages.find_by(path: 'intro.md').rendered_html
+      asset = set.documentation_assets.find_by!(path: 'docs/img/logo.png')
       expect(html).to include('/documentation')
       expect(html).to include('page=guide%2Fsetup.md').or include('page=guide/setup.md')
-      expect(html).to include('raw.githubusercontent.com')
+      expect(html).to include(%(<img src="/org/#{organisation.id}/files/documentation_asset/#{asset.id}" alt="logo">))
+    end
+  end
+
+  # The images of a page are copied out of the clone and served by the instance.
+  # Until then a page showed them from raw.githubusercontent.com: every reader contacted
+  # GitHub, and the images of a private repository did not show at all.
+  describe 'images' do
+    let(:page_with_image) { "# A\n\n![Aufbau](img/aufbau.png)" }
+
+    def html_of(path)
+      set.documentation_pages.find_by!(path: path).rendered_html
+    end
+
+    def sync_with(files)
+      stub_cloner_with(files: files)
+      described_class.perform_now(set.id)
+    end
+
+    it 'names no repository host and no address outside the instance, whatever the page asks for' do
+      sync_with('docs/a.md' => '![in](img/aufbau.png) ![missing](img/nowhere.png) ![badge](https://img.shields.io/x.svg)',
+                'docs/img/aufbau.png' => png)
+
+      html = html_of('a.md')
+      expect(html).not_to include('raw.githubusercontent.com')
+      expect(html.scan(/<img[^>]*src="([^"]*)"/).flatten).to all(start_with("/org/#{organisation.id}/files/documentation_asset/"))
+      expect(html).to include('<em>missing</em>', '<a href="https://img.shields.io/x.svg">badge</a>')
+    end
+
+    it 'counts what it kept and what it turned down on the run' do
+      sync_with('docs/a.md' => '![in](img/aufbau.png) ![missing](img/nowhere.png) ![fake](img/fake.png)',
+                'docs/img/aufbau.png' => png, 'docs/img/fake.png' => '<html></html>')
+
+      expect(set.documentation_sync_runs.recent.first).to have_attributes(status: 'ready', assets_synced: 1, assets_skipped: 2)
+    end
+
+    it 'takes an image that lives beside the documentation folder' do
+      sync_with('docs/a.md' => '![logo](../assets/logo.png)', 'assets/logo.png' => png)
+
+      expect(set.documentation_assets.pluck(:path)).to eq(['assets/logo.png'])
+      expect(html_of('a.md')).to include('<img')
+    end
+
+    # The page did not change, its image appeared. The HTML has to follow, and the
+    # embeddings, which are made from the markdown, have nothing to do.
+    it 'shows an image that arrives later, without the page having changed' do
+      sync_with('docs/a.md' => page_with_image)
+      expect(html_of('a.md')).to include('<em>Aufbau</em>')
+      RSpec::Mocks.space.proxy_for(EmbeddingProcessingJob).reset
+      allow(EmbeddingProcessingJob).to receive(:perform_later)
+
+      sync_with('docs/a.md' => page_with_image, 'docs/img/aufbau.png' => png)
+
+      expect(html_of('a.md')).to include('<img')
+      expect(html_of('a.md')).not_to include('<em>Aufbau</em>')
+      expect(EmbeddingProcessingJob).not_to have_received(:perform_later)
+    end
+
+    it 'takes an image away, file and all, when it leaves the repository' do
+      sync_with('docs/a.md' => page_with_image, 'docs/img/aufbau.png' => png)
+      blob_id = set.documentation_assets.first.file.blob.id
+
+      adapter_was = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      perform_enqueued_jobs { sync_with('docs/a.md' => page_with_image) }
+      ActiveJob::Base.queue_adapter = adapter_was
+
+      expect(set.documentation_assets).to be_empty
+      expect(ActiveStorage::Blob.find_by(id: blob_id)).to be_nil
+      expect(html_of('a.md')).to include('<em>Aufbau</em>')
+      expect(html_of('a.md')).not_to include('<img')
+    end
+
+    it 'takes an image away when no page shows it any more, although the file is still there' do
+      sync_with('docs/a.md' => page_with_image, 'docs/img/aufbau.png' => png)
+
+      sync_with('docs/a.md' => '# A', 'docs/img/aufbau.png' => png)
+
+      expect(set.documentation_assets).to be_empty
+    end
+
+    it 'keeps the address and takes the new bytes when only the image changed' do
+      sync_with('docs/a.md' => page_with_image, 'docs/img/aufbau.png' => png)
+      html = html_of('a.md')
+      # A written page gets a new updated_at; this one is pushed into the past to tell.
+      written_at = 2.days.ago.change(usec: 0)
+      set.documentation_pages.find_by!(path: 'a.md').update_columns(updated_at: written_at)
+      other = Rails.root.join('spec/fixtures/files/avatar_quadrants.png').binread
+
+      sync_with('docs/a.md' => page_with_image, 'docs/img/aufbau.png' => other)
+
+      expect(set.documentation_assets.first.file.download).to eq(other)
+      expect(html_of('a.md')).to eq(html)
+      expect(set.documentation_pages.find_by!(path: 'a.md').updated_at).to eq(written_at)
+    end
+
+    it 'leaves the images of a run that failed where they are' do
+      sync_with('docs/a.md' => page_with_image, 'docs/img/aufbau.png' => png)
+      stub_cloner_raising(Lalabase::Indexer::GitCloner::Error.new('network down'))
+
+      described_class.perform_now(set.id)
+
+      expect(set.reload.sync_status).to eq('failed')
+      expect(set.documentation_assets.count).to eq(1)
     end
   end
 
   describe 'incremental change detection' do
-    it 'does not re-render a page whose content is unchanged' do
+    # Rendered on every run, written only when something differs: the HTML of a page
+    # depends on more than its own markdown (an image arrives, the renderer changes).
+    it 'does not write a page that is unchanged in every respect' do
+      stub_cloner_with(files: { 'docs/a.md' => '# A' })
+      described_class.perform_now(set.id)
+      # A written page gets a new updated_at; this one is pushed into the past to tell.
+      written_at = 2.days.ago.change(usec: 0)
+      set.documentation_pages.find_by!(path: 'a.md').update_columns(updated_at: written_at)
+
       stub_cloner_with(files: { 'docs/a.md' => '# A' })
       described_class.perform_now(set.id)
 
-      # Second identical sync must skip rendering (the whole point of git_blob_sha).
+      expect(set.documentation_pages.find_by!(path: 'a.md').updated_at).to eq(written_at)
+    end
+
+    # The promise at skip_unchanged_poll?: a manual sync is the repair tool after a code
+    # change. It was not, as long as an unchanged blob SHA skipped the render.
+    it 'renders a page again whose markdown did not change, and heals a stale cache' do
       stub_cloner_with(files: { 'docs/a.md' => '# A' })
-      expect(Documentation::MarkdownRenderer).not_to receive(:new)
       described_class.perform_now(set.id)
+      page = set.documentation_pages.find_by!(path: 'a.md')
+      fresh = page.rendered_html
+      page.update_columns(rendered_html: '<p>what an older renderer wrote</p>')
+
+      stub_cloner_with(files: { 'docs/a.md' => '# A' })
+      described_class.perform_now(set.id)
+
+      expect(page.reload.rendered_html).to eq(fresh)
     end
 
     it 're-renders and updates a page whose content changed' do

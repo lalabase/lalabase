@@ -25,11 +25,10 @@ require 'open3'
 #
 # What this does NOT see:
 #   * an address built at run time ("#{HOST}/logo.png", a host in a constant);
-#   * CONTENT. A synced documentation page shows its images from the repository host
-#     (ProjectRepository#raw_file_url, raw.githubusercontent.com), and a Markdown image
-#     with an absolute address stays as its author wrote it. `img-src` allows any https.
-#     That is the content's address, not the application's, and it is a decision of its
-#     own.
+#   * CONTENT. What a user or a repository writes is not read here. Synced documentation
+#     pages are held by their own spec (documentation_sync_job_spec, "names no repository
+#     host and no address outside the instance"): their images come from the instance
+#     since 2026-09-30. `img-src` still allows any https.
 #
 # A comment that quotes such a tag or address trips the guard as well. Describe it in
 # words.

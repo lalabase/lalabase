@@ -508,7 +508,12 @@ Verzeichnis-Übersicht (Auswahl):
   „kein Paket" — still und plausibel.
 * `codebase_import/`, `user_data_exports/`, `subscriptions/`, `overview/`, `dashboard/`
 * **Achtung, zwei ähnlich benannte Domänen:** `documentation/` = aus Repos synchronisierte
-  `.md`-Doku (eigener `MarkdownRenderer`, eigene `Navigation`), `product_knowledge/` =
+  `.md`-Doku (eigener `MarkdownRenderer`, eigene `Navigation`; `asset_collector.rb` kopiert
+  beim Sync die Bilder aus dem Klon und ist die EINE Stelle, die entscheidet, was davon
+  ausgeliefert wird: innerhalb des Klons nach Auflösen der Symlinks, Typ aus den Bytes, eine
+  Typliste `RichTextEmbeds::IMAGE_CONTENT_TYPES`; ⚠️ nach einer Änderung am Renderer
+  `bin/rails documentation:resync_all`, ein Poll überspringt unveränderte Repos),
+  `product_knowledge/` =
   Lalabases eigene Texte als Tabelle für die Suche. Die dritte, `docs/`, rendert seit **D5
   (21.09.2026) kein Markdown mehr** und ist nur noch die LESESCHICHT auf eine fremde Datei
   (`doc/docs_delivery_plan.md`).

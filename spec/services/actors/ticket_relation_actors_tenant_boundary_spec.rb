@@ -42,7 +42,7 @@ RSpec.describe 'Ticket relation actors across organisations', :ci_guard do
     results = ActsAsTenant.with_tenant(organisation) do
       Prosopite.pause do
         [ticket, foreign_ticket].map do |shown|
-          Actors::DestroyTicketRelation.call(ticket: shown, relation_id: foreign_relation.id, current_user: user).code
+          Actors::DestroyTicketRelation.call(ticket: shown, relation: foreign_relation, current_user: user).code
         end
       end
     end

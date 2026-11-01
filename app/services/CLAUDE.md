@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-10-31)
+# Karte: app/services (Stand: 2026-11-01)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -12,6 +12,12 @@ Ausgenommene Subtrees mit eigenem Vertrag: `actors/`, `lalabase/tools/`).
 **Writes**: nicht-trivialer Write → Command-Objekt unter `actors/` (Vertrag: Root-`CLAUDE.md`
 „Actor-Pattern", Guard: `spec/services/actors/actor_contract_guard_spec.rb`). Triviales
 Einzel-`update!` ohne Side-Effects bleibt im Controller.
+
+* An actor writes and checks no rights.
+* Finding belongs to one object per domain (`Tickets::ReadableForToken`, `Tickets::RelationAccess`, `People::Lookup`); they share the question, not code.
+* The policy decides yes or no.
+* The caller words the answer (status, text, 404 form).
+* A guard holds where a mistake discloses data (`ticket_token_lookup_guard_spec.rb`, `ticket_relation_actor_callers_guard_spec.rb`).
 
 Verzeichnis-Übersicht (Auswahl):
 * `knowledge/` — `lookup.rb` (`Knowledge::Lookup`, REST R2, 29.10.2026) ist das EINE Lesen

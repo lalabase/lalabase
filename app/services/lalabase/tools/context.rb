@@ -30,7 +30,15 @@ module Lalabase
     # list_tickets_spec), but `reach` is EXCLUSIVE: a token-wide call with a
     # project or scope set would let a tool branch on the wrong reach, so the
     # constructor refuses it right here, not three frames into the tool.
-    Context = Struct.new(:chat, :organisation, :project, :actor, :authorization, :scope, :reach,
+    #
+    # `token` is the Personal Access Token of an MCP call, set in both branches of
+    # Mcp::ToolCall#context_for, and nil on the chat path: the assistant has none,
+    # and Tickets::ReadableForToken takes nil as "no second limit". It is not a
+    # fourth reach: it sits next to `project` and next to `reach`, and the rule
+    # above does not look at it. A branch of context_for that forgets it would
+    # therefore read as the assistant's case and widen the reach without an error
+    # (pinned in spec/services/mcp/tool_call_token_context_spec.rb).
+    Context = Struct.new(:chat, :organisation, :project, :actor, :authorization, :scope, :reach, :token,
                          keyword_init: true) do
       def initialize(**)
         super

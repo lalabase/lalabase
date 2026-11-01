@@ -152,7 +152,7 @@ RSpec.describe 'Ticket relations on the ticket page', type: :system do
       visit lane_path
       within(section_css) { expect(page).to have_content('Zahlungsanbieter wechseln') }
 
-      Actors::DestroyTicketRelation.call(ticket: ticket, relation_id: stale.id, current_user: user)
+      Actors::DestroyTicketRelation.call(ticket: ticket, relation: stale, current_user: user)
       within("#{section_css} li[data-relation-id='#{stale.id}']") do
         accept_confirm { find("button[aria-label='#{I18n.t("#{rs}.remove")}']").click }
       end

@@ -12,12 +12,18 @@ module Api
     # and hidden tickets: IDs are random UUIDs, not sequential ticket numbers. The
     # contract is equal status and body, not equal queries or constant timing.
     #
+    # What can be found is decided by Tickets::ReadableForToken alone: the policy
+    # scope and the token's reach, with no second reach check here. A ticket or
+    # project out of reach comes back as an empty relation, so take! raises the
+    # same RecordNotFound as a missing one, after reading the organisation. The
+    # answer stays here: the 404 and the show? check.
+    #
     # By number (REST R1): the project is discovered the same way, then the
-    # number is looked up inside THAT project only, through the same reach check
-    # and policy scope. A number is unique per project, so a number never
-    # resolves to a sibling project's ticket. Because numbers ARE sequential,
-    # status and body are what must not tell an unknown number from a hidden one:
-    # both end in the same RecordNotFound.
+    # number is looked up inside THAT project only, through the same owner. A
+    # number is unique per project, so a number never resolves to a sibling
+    # project's ticket. Because numbers ARE sequential, status and body are what
+    # must not tell an unknown number from a hidden one: both end in the same
+    # RecordNotFound.
     module ReadableTicket
       extend ActiveSupport::Concern
 
@@ -45,11 +51,14 @@ module Api
         raise ActiveRecord::RecordNotFound unless address
 
         organisation_id, project_id = address
-        raise ActiveRecord::RecordNotFound unless current_token.reach.project_id?(organisation_id, project_id)
+        organisation = Organisation.find(organisation_id)
 
-        ActsAsTenant.with_tenant(Organisation.find(organisation_id)) do
-          relation = Ticket.where(organisation_id: organisation_id, project_id: project_id).where(conditions)
-          ticket = Pundit.policy_scope!(current_user, relation).includes(:project, *preload).take!
+        ActsAsTenant.with_tenant(organisation) do
+          relation = Ticket.where(project_id: project_id).where(conditions)
+          readable = Tickets::ReadableForToken.call(
+            user: current_user, organisation: organisation, relation: relation, token: current_token
+          )
+          ticket = readable.includes(:project, *preload).take!
           raise ActiveRecord::RecordNotFound unless ticket.project
 
           authorize ticket, :show?

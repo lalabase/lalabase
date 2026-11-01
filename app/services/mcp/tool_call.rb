@@ -232,12 +232,12 @@ module Mcp
       if project.nil?
         Lalabase::Tools::Context.new(
           actor: @token.user, organisation: nil, project: nil, chat: nil,
-          authorization: recorder, reach: @token.reach
+          authorization: recorder, reach: @token.reach, token: @token
         )
       else
         Lalabase::Tools::Context.new(
           actor: @token.user, organisation: project.organisation, project: project, chat: nil,
-          authorization: recorder
+          authorization: recorder, token: @token
         )
       end
     end

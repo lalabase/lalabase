@@ -20,7 +20,7 @@ RSpec.describe Actors::DestroyTicketRelation do
   let!(:neighbour) { TicketRelation.create!(source_ticket: ticket_a, target_ticket: ticket_c, relation_type: :relates_to) }
 
   def unlink(ticket, relation_id)
-    described_class.call(ticket: ticket, relation_id: relation_id, current_user: user)
+    described_class.call(ticket: ticket, relation: TicketRelation.find_or_initialize_by(id: relation_id), current_user: user)
   end
 
   it 'removes the relation from its source ticket, and only that row' do
@@ -43,6 +43,25 @@ RSpec.describe Actors::DestroyTicketRelation do
     expect(result.code).to eq(:not_found)
     expect(result.errors).to eq([I18n.t('services.actors.destroy_ticket_relation.not_found')])
     expect(TicketRelation.count).to eq(2)
+  end
+
+  # The caller found the row, then someone else removed it. destroy! on the stale object would
+  # report success for a write that never happened.
+  it 'does not find a relation removed after the caller found it' do
+    stale = TicketRelation.find(relation.id)
+    TicketRelation.where(id: relation.id).delete_all
+
+    result = described_class.call(ticket: ticket_a, relation: stale, current_user: user)
+
+    expect(result.code).to eq(:not_found)
+    expect(TicketRelation.pluck(:id)).to eq([neighbour.id])
+  end
+
+  it 'does not remove a found relation through a ticket it does not touch' do
+    result = described_class.call(ticket: ticket_c, relation: relation, current_user: user)
+
+    expect(result.code).to eq(:not_found)
+    expect(TicketRelation.exists?(relation.id)).to be(true)
   end
 
   it 'does not find an unknown id' do

@@ -411,22 +411,24 @@ module Lalabase
         context.authorization&.record!
       end
 
-      # The tickets of `relation` the actor may read (TicketPolicy::Scope). Every
-      # tool that addresses ONE ticket looks it up in here, so a ticket without
-      # read access answers exactly like a missing one. A lookup outside the
-      # scope followed by authorize! answered "Not authorized." instead, which
-      # told a caller with access to the project, but not to its tickets, which
-      # ticket numbers exist; numbers count up and can be tried one by one
+      # The tickets of `relation` the caller can find: the actor's read rights and,
+      # on an MCP call, the reach of its token (Tickets::ReadableForToken owns both;
+      # the assistant has no token and is limited by the rights alone). get_ticket,
+      # post_comment, create_time_session and update_ticket look their ticket up in
+      # here, so a ticket without read access answers exactly like a missing one.
+      # One exception: summarize_time_sessions (resolve_ticket) calls the policy
+      # scope itself and does not pass through here. A lookup outside the scope
+      # followed by authorize! answered "Not authorized." instead, which told a
+      # caller with access to the project, but not to its tickets, which ticket
+      # numbers exist; numbers count up and can be tried one by one
       # (spec/requests/api/mcp_ticket_existence_spec.rb).
       #
       # authorize! stays after the lookup: it marks the record-mode tripwire and
-      # checks the record once more. `relation` must already be bound to the
-      # context's organisation (project.tickets, or a where on organisation_id):
-      # the policy resolves its rights against the ambient tenant, the rows must
-      # not lean on it as well (Context contract; precedent Scope#
-      # resolve_code_project_ids).
+      # checks the record once more. context.organisation must be set, the rows
+      # are bound to it and the rights resolve under it as the tenant.
       def self.readable_tickets(context, relation)
-        Pundit.policy_scope!(context.actor, relation)
+        Tickets::ReadableForToken.call(user: context.actor, organisation: context.organisation,
+                                       relation: relation, token: context.token)
       end
 
       # Resolves the set of ProjectRepository IDs to search for a tool call.

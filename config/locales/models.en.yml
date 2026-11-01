@@ -2,6 +2,8 @@
 en:
   activerecord:
     attributes:
+      organisation:
+        meeting_inbox_project_id: "Inbox project"
       person:
         user: "Member"
         name: "Name"
@@ -381,6 +383,8 @@ en:
               forbidden_permission_present: "cannot be set to non-billable while it has an accounts or projects permission"
         organisation:
           attributes:
+            meeting_inbox_project_id:
+              not_usable: "must be an active project of this organisation"
             ai_provider:
               supported_provider: "must be one of the supported providers"
             embedding_dims:

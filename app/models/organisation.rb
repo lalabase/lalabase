@@ -39,6 +39,7 @@
 #  ai_package_id             :uuid
 #  ai_package_selected_by_id :uuid
 #  embedding_organization_id :string
+#  meeting_inbox_project_id  :uuid
 #
 # Indexes
 #
@@ -46,6 +47,7 @@
 #  index_organisations_on_ai_activated_by_id         (ai_activated_by_id)
 #  index_organisations_on_ai_package_id              (ai_package_id)
 #  index_organisations_on_ai_provider                (ai_provider)
+#  index_organisations_on_meeting_inbox_project_id   (meeting_inbox_project_id)
 #  index_organisations_on_notification_sender_email  (notification_sender_email)
 #
 # Foreign Keys
@@ -55,6 +57,7 @@
 #  fk_rails_...  (ai_activated_by_id => users.id) ON DELETE => nullify
 #  fk_rails_...  (ai_package_id => ai_packages.id)
 #  fk_rails_...  (ai_package_selected_by_id => users.id) ON DELETE => nullify
+#  fk_rails_...  (meeting_inbox_project_id => projects.id) ON DELETE => nullify
 #
 
 class Organisation < ApplicationRecord
@@ -101,6 +104,9 @@ class Organisation < ApplicationRecord
   has_many :invitations, dependent: :destroy
   has_many :roles, dependent: :destroy
   has_many :projects, dependent: :destroy
+  # Read it through #meeting_inbox: the column alone does not say whether the
+  # project still takes meetings.
+  belongs_to :meeting_inbox_project, class_name: 'Project', optional: true, inverse_of: false
   has_many :tickets, through: :projects
   has_many :smart_folders, dependent: :destroy
   # Project#view_configurations takes the rows of a project; this one takes the
@@ -204,6 +210,7 @@ class Organisation < ApplicationRecord
 
   # Validations
   validates :name, presence: true, uniqueness: true
+  validate :meeting_inbox_project_usable, if: :meeting_inbox_project_id_changed?
   # S1 honest facade: the org chat provider must be one the Factory can actually
   # build. Lazy `in:` (evaluated per validation) reads AiCredential.implemented_providers
   # so this allow-list can never drift from the Factory registry. Conditional
@@ -333,6 +340,15 @@ class Organisation < ApplicationRecord
   # derivation, deliberately without a third column in the schema.
   #
   # @return [Boolean]
+  # The project meetings without a project land in, or nil. An archived project
+  # takes no meetings, so it counts as not set; the column stays, restoring the
+  # project brings the inbox back. Sets its own tenant: Project requires one, and
+  # a token request reads this before it has entered the project.
+  def meeting_inbox
+    project = ActsAsTenant.with_tenant(self) { meeting_inbox_project }
+    project unless project.nil? || project.archived?
+  end
+
   def ai_custom_access_configured?
     has_own_ai_credentials?(ai_provider.presence || AiCredential::PROVIDER_OPENAI)
   end
@@ -615,6 +631,15 @@ class Organisation < ApplicationRecord
   end
 
   private
+
+  # A foreign project is out of reach of every reader of this column, an
+  # archived one would be an inbox that takes nothing from the first moment.
+  def meeting_inbox_project_usable
+    return if meeting_inbox_project_id.nil?
+
+    project = ActsAsTenant.with_tenant(self) { projects.find_by(id: meeting_inbox_project_id) }
+    errors.add(:meeting_inbox_project_id, :not_usable) if project.nil? || project.archived?
+  end
 
   # The embedding twin of own_ai_token_usable?, on the independent embedding_*
   # columns. Same branches for the same reasons (the sk-/org- rule is the one key

@@ -6,6 +6,14 @@ module MeetingsHelper
   # lib/list_row/address.js): narrower, a lane would cover the list.
   LANE_FULL_PAGE_BELOW_PX = 1024
 
+  # The choices of the inbox select in the organisation settings.
+  def meeting_inbox_options(projects)
+    projects.map do |project|
+      label = project.archived? ? t('organisations.organisation_settings.show.meeting_inbox_archived_option', name: project.name) : project.name
+      [label, project.id]
+    end
+  end
+
   def meeting_list_state(pagy: nil)
     state = Meetings::ListState.extract(params)
     state['page'] = pagy.page.to_s if pagy && state.key?('page')

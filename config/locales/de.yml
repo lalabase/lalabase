@@ -1490,6 +1490,7 @@ de:
         separator: ","
         delimiter: "."
   navigation:
+    meeting_inbox: Eingang für Meetings
     all_meetings: Alle Meetings
     people: Personen
     all_organisations: Alle Organisationen
@@ -1992,6 +1993,11 @@ de:
         domain_label: Domain
         domain_placeholder: beispiel.de
         domain_hint: Die Domain Ihrer Organisation (optional)
+        meeting_inbox_label: Eingangsprojekt
+        meeting_inbox_hint: Hierhin kommen Meetings, die ein Programm ohne Projekt anlegt. Von dort lassen sie sich in ihr Projekt verschieben.
+        meeting_inbox_none: Kein Eingangsprojekt
+        meeting_inbox_archived_hint: Dieses Projekt ist archiviert und nimmt keine Meetings an. Nach dem Wiederherstellen gilt es wieder als Eingang.
+        meeting_inbox_archived_option: '%{name} (archiviert)'
         save_button: Speichern
     posts:
       post:
@@ -2091,6 +2097,7 @@ de:
         current_notes: Aktuelle Notizen
         current_tasks: Aktuelle Tickets
         dashboard_title: Dashboard
+        meeting_inbox_subtitle: '%{name} · Eingang'
         description: Beschreibung
         documents_card_title: Dokumente
         edit: Bearbeiten

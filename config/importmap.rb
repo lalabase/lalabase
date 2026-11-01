@@ -256,7 +256,6 @@ else
   pin 'controllers/ticket_description_collapse_controller', to: 'controllers/ticket_description_collapse_controller.js'
   pin 'controllers/ticket_direct_navigation_controller', to: 'controllers/ticket_direct_navigation_controller.js'
   pin 'controllers/ticket_group_controller', to: 'controllers/ticket_group_controller.js'
-  pin 'controllers/ticket_inline_edit_controller', to: 'controllers/ticket_inline_edit_controller.js'
   pin 'controllers/ticket_meeting_panel_controller', to: 'controllers/ticket_meeting_panel_controller.js'
   pin 'controllers/ticket_pane_links_controller', to: 'controllers/ticket_pane_links_controller.js'
   pin 'controllers/ticket_relation_modal_controller', to: 'controllers/ticket_relation_modal_controller.js'

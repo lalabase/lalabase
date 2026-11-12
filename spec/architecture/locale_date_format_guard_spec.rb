@@ -85,7 +85,6 @@ RSpec.describe 'locale date format guard' do
       'app/components/overview/projects_table_component.html.erb' => 1,
       'app/helpers/application_helper.rb' => 3,
       'app/helpers/tickets_helper.rb' => 4,
-      'app/views/organisations/ai_sync_statuses/show.html.erb' => 1,
       'app/views/organisations/codebase_import_files/_import_files_table.html.erb' => 1,
       'app/views/organisations/codebase_import_files/assign_uploads.html.erb' => 1,
       'app/views/organisations/codebase_import_files/preview_time_sessions.html.erb' => 3,

@@ -85,10 +85,6 @@ module ShadowLevels
     'app/views/organisations/_cockpit_settings_modal.html.erb' => 2,
     'app/views/organisations/_organisation_tiles.html.erb' => 4, # clickable tiles, may move to shadow-lift later
     'app/views/organisations/ai_protocols/show.html.erb' => 1,
-    'app/views/organisations/ai_settings/_package_card.html.erb' => 1,
-    'app/views/organisations/ai_settings/_package_chooser.html.erb' => 1,
-    'app/views/organisations/ai_settings/confirm_package.html.erb' => 1,
-    'app/views/organisations/ai_sync_statuses/_summary.html.erb' => 1,
     'app/views/organisations/appearances/_color_swatch.html.erb' => 2,
     'app/views/organisations/briefings/_onboarding_banner.html.erb' => 2,
     'app/views/organisations/changelog/show.html.erb' => 1,

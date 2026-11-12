@@ -15,6 +15,8 @@ export default class extends Controller {
     const url = new URL(link.href)
     if (url.origin !== window.location.origin || url.pathname !== this.listPath || url.hash) return
     event.preventDefault()
+    // detail is 0 for Enter on a link and for the row's own synthetic click (see openRow).
+    this.openedByPointer = this.openedByPointer || event.detail > 0
     this.visit(url)
   }
 
@@ -41,15 +43,24 @@ export default class extends Controller {
     // so reload never tries to reopen the membership that was just removed.
     const path = this.element.querySelector("[data-membership-workspace-url]")?.dataset.membershipWorkspaceUrl
     if (path) history.replaceState({ membershipWorkspace: true }, "", path)
+    // Focus stays inside the workspace, so Escape still closes the panel. Opened by
+    // the keyboard, it lands on the close button. Opened by the mouse, it lands on the
+    // panel itself: a script focus on the button after a click on the row (nothing
+    // focused before) matches :focus-visible and drew the keyboard ring around the cross.
     const control = this.focusId && document.getElementById(this.focusId)
     if (control) control.focus({ preventScroll: true })
+    else if (this.openedByPointer && this.hasPanelTarget) this.panelTarget.focus({ preventScroll: true })
     else if (this.hasCloseTarget) this.closeTarget.focus({ preventScroll: true })
     this.focusId = null
+    this.openedByPointer = false
   }
 
   openRow(event) {
     if (event.target.closest("a, button, select, form, details") || window.getSelection()?.toString()) return
-    event.currentTarget.querySelector("[data-member-link]")?.click()
+    const link = event.currentTarget.querySelector("[data-member-link]")
+    if (!link) return
+    this.openedByPointer = true
+    link.click()
   }
 
   changeRole(event) {

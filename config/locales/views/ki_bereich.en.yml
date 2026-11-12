@@ -46,7 +46,7 @@ en:
         # sentence and the switch's actions live under status: and actions:
         # (doc/ki_uebersicht_zeilenliste_plan.md).
         activation:
-          explanation: Upon activation, content of your organisation — tickets, notes, comments, documents, meetings (e.g. for AI summaries, AI analyses with selectable prompts, participant detection from transcripts, deriving ticket suggestions and — when released — search and chat) and connected repositories — is transferred to the selected AI provider (OpenAI or Anthropic, USA) for processing.
+          explanation: Upon activation, content of your organisation (tickets, notes, comments, documents, meetings (e.g. for AI summaries, AI analyses with selectable prompts, participant detection from transcripts, deriving ticket suggestions and, when released, search and chat) and connected repositories) is transferred to the selected AI provider (OpenAI or Anthropic, USA) for processing.
           privacy_link: Details in the privacy policy.
           usage_note: To make the monthly AI quota transparent, each AI action records who triggered it, when, and how many credits it cost. This usage overview is visible to administrators of your organisation.
         # "Eigene Konfiguration" (S7, E6-A). Own block like `usage:` and `protocol:`

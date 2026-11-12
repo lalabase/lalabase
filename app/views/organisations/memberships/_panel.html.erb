@@ -1,4 +1,4 @@
-<aside class="members-panel" aria-labelledby="membership-panel-title" data-membership-workspace-target="panel">
+<aside class="members-panel" tabindex="-1" aria-labelledby="membership-panel-title" data-membership-workspace-target="panel">
   <div class="flex items-center justify-between mb-6">
     <h2 id="membership-panel-title" class="text-sm text-muted"><%= t('member_management.membership') %></h2>
     <%= link_to membership_list_path(membership_id: nil), class: 'members-more', title: t('member_management.close'), 'aria-label': t('member_management.close'), data: { membership_workspace_target: 'close' } do %><i class="bi bi-x-lg" aria-hidden="true"></i><% end %>

@@ -46,7 +46,7 @@ de:
         # KI-Übertragung. Statussatz und Aktionen des Schalters stehen unter status: und
         # actions: (doc/ki_uebersicht_zeilenliste_plan.md).
         activation:
-          explanation: Mit der Aktivierung werden Inhalte Ihrer Organisation — Tickets, Notizen, Kommentare, Dokumente, Meetings (z. B. für KI-Zusammenfassungen, KI-Analysen mit wählbaren Prompts, die Teilnehmer-Erkennung aus Transkripten, das Ableiten von Ticket-Vorschlägen sowie – bei Freigabe – für Suche und Chat) und verbundene Repositories — zur Verarbeitung an den gewählten KI-Anbieter (OpenAI bzw. Anthropic, USA) übertragen.
+          explanation: Mit der Aktivierung werden Inhalte Ihrer Organisation (Tickets, Notizen, Kommentare, Dokumente, Meetings (z. B. für KI-Zusammenfassungen, KI-Analysen mit wählbaren Prompts, die Teilnehmer-Erkennung aus Transkripten, das Ableiten von Ticket-Vorschlägen sowie, bei Freigabe, für Suche und Chat) und verbundene Repositories) zur Verarbeitung an den gewählten KI-Anbieter (OpenAI bzw. Anthropic, USA) übertragen.
           privacy_link: Details in der Datenschutzerklärung.
           usage_note: Zur Nachvollziehbarkeit des monatlichen KI-Kontingents wird pro KI-Aktion festgehalten, wer sie ausgelöst hat, wann und wie viele Credits sie gekostet hat. Diese Nutzungsübersicht ist für Administratoren Ihrer Organisation einsehbar.
         # „Eigene Konfiguration" (S7, E6-A). Eigener Block wie `usage:` und `protocol:`

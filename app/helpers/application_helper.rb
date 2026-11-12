@@ -4,6 +4,12 @@ module ApplicationHelper
   include Pagy::Frontend if defined?(Pagy::Frontend)
   include Notifications::Constants
 
+  # Whether the account menus (desktop sidebar and the phone's "More" page) lead to the
+  # news page and mark unread entries. Off while no news are being written (2026-11-12):
+  # an entry that never changes reads as a dead corner. The page itself stays reachable
+  # by its address. Turn it back on here, in one place.
+  CHANGELOG_IN_NAVIGATION = false
+
   # Operator name and legal links come from the instance admin settings (LegalIdentity).
   def legal_operator_credit
     operator = LegalIdentity.current.operator_name
@@ -711,6 +717,10 @@ module ApplicationHelper
     else
       TicketColorMap.status_dot_color(status_value)
     end
+  end
+
+  def changelog_in_navigation?
+    CHANGELOG_IN_NAVIGATION
   end
 
   def changelog_has_unread?(user)

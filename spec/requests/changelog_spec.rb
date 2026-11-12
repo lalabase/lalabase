@@ -61,32 +61,51 @@ RSpec.describe 'Changelog', type: :request do
 
         before { allow(Changelog::EntryLoader).to receive(:call).and_return([entry]) }
 
-        it 'shows the dot in the account menu on a non-changelog page when unread' do
-          user.update!(changelog_last_read_at: nil)
+        # Off while no news are written (ApplicationHelper::CHANGELOG_IN_NAVIGATION):
+        # no menu entry and no dot, even with an unread entry. The page stays reachable.
+        context 'while the news are hidden from the navigation' do
+          it 'shows neither the entry nor the dot' do
+            user.update!(changelog_last_read_at: nil)
 
-          get organisation_root_path(organisation_id: organisation.id)
+            get organisation_root_path(organisation_id: organisation.id)
 
-          expect(response).to have_http_status(:success)
-          expect(response.body).to include('changelog-unread-dot')
+            expect(response).to have_http_status(:success)
+            expect(response.body).to include(edit_user_registration_path)
+            expect(response.body).not_to include('changelog-unread-dot')
+            expect(response.body).not_to include(organisation_changelog_path(organisation_id: organisation.id))
+          end
         end
 
-        it 'hides the dot once the changelog has been read' do
-          user.update!(changelog_last_read_at: Time.current)
+        context 'while the news are in the navigation' do
+          before { stub_const('ApplicationHelper::CHANGELOG_IN_NAVIGATION', true) }
 
-          get organisation_root_path(organisation_id: organisation.id)
+          it 'shows the dot in the account menu on a non-changelog page when unread' do
+            user.update!(changelog_last_read_at: nil)
 
-          expect(response).to have_http_status(:success)
-          expect(response.body).not_to include('changelog-unread-dot')
-        end
+            get organisation_root_path(organisation_id: organisation.id)
 
-        it 'exposes the changelog entry point inside the account menu, not next to the logo' do
-          get organisation_root_path(organisation_id: organisation.id)
+            expect(response).to have_http_status(:success)
+            expect(response.body).to include('changelog-unread-dot')
+          end
 
-          doc = Nokogiri::HTML(response.body)
-          changelog_links = doc.css('a').select { |a| a['href']&.include?('changelog') }
+          it 'hides the dot once the changelog has been read' do
+            user.update!(changelog_last_read_at: Time.current)
 
-          expect(changelog_links.size).to eq(1)
-          expect(changelog_links.first.ancestors('details')).not_to be_empty
+            get organisation_root_path(organisation_id: organisation.id)
+
+            expect(response).to have_http_status(:success)
+            expect(response.body).not_to include('changelog-unread-dot')
+          end
+
+          it 'exposes the changelog entry point inside the account menu, not next to the logo' do
+            get organisation_root_path(organisation_id: organisation.id)
+
+            doc = Nokogiri::HTML(response.body)
+            changelog_links = doc.css('a').select { |a| a['href']&.include?('changelog') }
+
+            expect(changelog_links.size).to eq(1)
+            expect(changelog_links.first.ancestors('details')).not_to be_empty
+          end
         end
       end
     end

@@ -60,7 +60,8 @@ RSpec.describe 'Mobile application navigation', type: :request do
     get organisation_mobile_more_path(organisation)
     expect(response).to have_http_status(:ok)
     expect(html.at_css('.mobile-person').text).to include(organisation.name)
-    expect(html.css('.mobile-menu-list a').map { |a| a['href'] }).to include(edit_user_registration_path, general_user_preferences_path, user_data_export_path, organisation_changelog_path(organisation))
+    expect(html.css('.mobile-menu-list a').map { |a| a['href'] }).to include(edit_user_registration_path, general_user_preferences_path, user_data_export_path)
+    expect(html.css('.mobile-menu-list a').map { |a| a['href'] }).not_to include(organisation_changelog_path(organisation))
     expect(html.css('[data-theme-set]').map { |button| button['data-theme-set'] }).to include('light', 'dark', 'pop')
     expect(html.at_css('[data-action="personal-tasks-drawer#open"]')).to be_present
   end

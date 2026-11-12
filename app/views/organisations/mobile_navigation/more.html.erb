@@ -43,7 +43,9 @@
     <% end %>
     <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-person-gear', aria: { hidden: true }), content_tag(:span, t('navigation.preferences'))]), general_user_preferences_path %></li>
     <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-download', aria: { hidden: true }), content_tag(:span, t('navigation.data_export'))]), user_data_export_path %></li>
-    <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-megaphone', aria: { hidden: true }), content_tag(:span, changelog_nav_label(changelog_has_unread?(current_user)))]), organisation_changelog_path(current_organisation) %></li>
+    <% if changelog_in_navigation? %>
+      <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-megaphone', aria: { hidden: true }), content_tag(:span, changelog_nav_label(changelog_has_unread?(current_user)))]), organisation_changelog_path(current_organisation) %></li>
+    <% end %>
     <li>
       <fieldset class="py-4 border-b border-cream-300">
         <legend><%= t('navigation.theme.label') %></legend>

@@ -450,9 +450,9 @@ en:
           # so adding a state there surfaces the gap here instead of hiding it.
           progress:
             building_title: Search is being rebuilt
-            building_body: "%{remaining} of %{total} records still to go — %{percent} % are in the new index."
+            building_body: "%{remaining} of %{total} records still to go, %{percent} % are in the new index."
             awaiting_flip_title: Rebuild complete
-            awaiting_flip_body: The new search index is complete. It usually becomes active automatically within fifteen minutes — nothing for you to do.
+            awaiting_flip_body: The new search index is complete. It usually becomes active automatically within fifteen minutes. Nothing for you to do.
             paused_title: Switch paused
             paused_body: Your AI allowance for this month is used up, so the rebuild is on hold. It resumes automatically once the allowance resets next month.
             # Not progress but a halt: the target space is complete yet taken out of
@@ -460,12 +460,12 @@ en:
             # it needs reactivation by the operator — so the text names a
             # responsibility rather than a waiting time.
             retired_target_title: Switch stalled
-            retired_target_body: The target index is complete but currently not in use. This will not resolve on its own — please contact your system administrator. Your search keeps working unchanged in the meantime.
+            retired_target_body: The target index is complete but currently not in use. This will not resolve on its own, please contact your system administrator. Your search keeps working unchanged in the meantime.
             # ONE search sentence: every state that reaches the notice has a resolved
             # pointer, so the old index keeps serving until the flip. The former second
             # variant for pointerless orgs is gone — it would have warned every healthy
             # organisation along with them (review blocker 1).
-            search_kept: Your existing content stays findable in the meantime — search reads from the previous index until the rebuild finishes. Content created during that window becomes searchable afterwards.
+            search_kept: "Your existing content stays findable in the meantime: search reads from the previous index until the rebuild finishes. Content created during that window becomes searchable afterwards."
           # P4c (E5): the org's own package is not in the grid — two ways in, with
           # different outcomes.
           outside_grid:
@@ -512,7 +512,7 @@ en:
           # missing statement reads as an all-clear.
           training_notes:
             used: The provider uses content you process through the AI features to train its models.
-            unspecified: We hold no contractual assurance about model training for this package. That does not mean training happens — it means we cannot evidence that it does not.
+            unspecified: We hold no contractual assurance about model training for this package. That does not mean training happens. It means we cannot evidence that it does not.
           # The third claim is a sentence, not a badge (E1). Unlike the jurisdiction,
           # the good value carries a sentence too: this axis has no badge of its own,
           # so without one "not stored" would stay invisible.
@@ -530,19 +530,19 @@ en:
             # package, on the selected one it is the switcher (§7).
             tier_switch_heading: Performance tier
             tier_provider_missing: Provider not configured yet
-            tier_unavailable: Credentials disabled — not selectable right now
+            tier_unavailable: Credentials disabled, not selectable right now
             # P4c (E5): a DIFFERENT reason from tier_unavailable, hence its own text.
             # The tier is not broken — its chat works and the org is running on one of
             # them — the package is simply no longer offered. Recycling "credentials
             # disabled" here would send the customer to the credentials instead of to
             # the package.
-            tier_withdrawn: Package no longer offered — tier cannot be changed
-            tier_utility_hint: Helper tasks — participant detection, ticket and document summaries, ticket suggestions and the indexing of connected repositories — always run on "%{tier}" regardless. This does not change the jurisdiction.
+            tier_withdrawn: Package no longer offered, tier cannot be changed
+            tier_utility_hint: Helper tasks (participant detection, ticket and document summaries, ticket suggestions and the indexing of connected repositories) always run on "%{tier}" regardless. This does not change the jurisdiction.
             # The same statement with the sign flipped: helper tasks still run on
             # this tier, it just cannot serve right now. Without its own copy the
             # hint above promises five features that are all down — precisely when
             # the customer picked a DIFFERENT tier and their chat keeps working.
-            tier_utility_unavailable: Helper tasks — participant detection, ticket and document summaries, ticket suggestions and the indexing of connected repositories — always run on "%{tier}". That tier's credentials are currently disabled, so these features are unavailable — even though you selected a different tier. Please contact your system administrator.
+            tier_utility_unavailable: Helper tasks (participant detection, ticket and document summaries, ticket suggestions and the indexing of connected repositories) always run on "%{tier}". That tier's credentials are currently disabled, so these features are unavailable, even though you selected a different tier. Please contact your system administrator.
             provider_note_summary: What the provider contractually does with the data
             selected_badge: Selected
             select_button: Choose this package
@@ -555,18 +555,18 @@ en:
             # The second refusal door of the same card (P3): the tier a fresh
             # selection would land on has no usable credentials. Its own copy, because
             # it is about neither the jurisdiction nor the search index.
-            selection_blocked: This package cannot be selected right now — the credentials of its default tier are disabled. Please contact your system administrator.
+            selection_blocked: "This package cannot be selected right now: the credentials of its default tier are disabled. Please contact your system administrator."
             selection_blocked_button: Not selectable right now
           empty:
             title: No package meets both criteria
             hint_provider: Set to "non-European companies too", the provider filter shows at least one package.
             hint_processing: Set to "outside the EU too", the processing filter shows at least one package.
-            hint_both: Relaxed on its own, either filter shows at least one package — relax the one that matters less to you.
-            hint_relax_both: Only relaxing both filters brings a package into view — neither relaxation is enough on its own.
+            hint_both: Relaxed on its own, either filter shows at least one package. Relax the one that matters less to you.
+            hint_relax_both: Only relaxing both filters brings a package into view. Neither relaxation is enough on its own.
             hint_none: No package is published at the moment. Please contact your system administrator.
           custom:
             title: Own configuration
-            description: Not a curated package but this organisation's own provider settings — including your own API keys.
+            description: Not a curated package but this organisation's own provider settings, including your own API keys.
             note: Jurisdiction and processing location are then yours to answer for; no package text covers them.
             # The way back is the same switch as the way in and takes the same
             # detour — its own text because the direction differs.
@@ -589,22 +589,22 @@ en:
           # than a modal — reasoning at the top of confirm_package.html.erb.
           switch:
             title: Review package switch
-            intro: 'You are about to switch to "%{target}". What that means is set out below — the switch only starts once you confirm it.'
+            intro: 'You are about to switch to "%{target}". What that means is set out below. The switch only starts once you confirm it.'
             unavailable: This package is not available for selection right now.
-            tier_unusable: This package cannot be selected at the moment — its default performance tier is unavailable. Please contact the operator.
-            same_lane: This choice does not move the search index — you can pick it directly from the overview.
+            tier_unusable: "This package cannot be selected at the moment: its default performance tier is unavailable. Please contact the operator."
+            same_lane: This choice does not move the search index. You can pick it directly from the overview.
             legal_heading: Jurisdiction
             side_today: Today
             side_after: After the switch
-            jurisdiction_unstated: No jurisdiction is recorded for this configuration — jurisdiction and processing location are yours to answer for.
+            jurisdiction_unstated: No jurisdiction is recorded for this configuration. Jurisdiction and processing location are yours to answer for.
             # Four cases, not three: a package that claims nothing must be reported
             # as neither an improvement nor a deterioration.
             jurisdiction_change:
               unchanged: The jurisdiction stays the same.
-              to_eu_native: The switch removes the third-country transfer — provider and processing are then both in the EU.
+              to_eu_native: The switch removes the third-country transfer. Provider and processing are then both in the EU.
               from_eu_native: The switch creates a third-country transfer. Your content will no longer be processed exclusively by a European company inside the EU.
               changed: The jurisdiction changes. Please compare the two statements above.
-              unstated: At least one of the two sides records no jurisdiction — whether anything changes about the third-country transfer cannot be derived from that. Please compare the two statements above.
+              unstated: At least one of the two sides records no jurisdiction. Whether anything changes about the third-country transfer cannot be derived from that. Please compare the two statements above.
               self_hosted_target: Processing moves to a self-operated server. No transfer to an external provider takes place after that; the operator of this installation is then responsible for jurisdiction and processing location.
               self_hosted_source: Processing leaves the self-operated server and goes to an external provider. Please check the jurisdiction statement above.
             # T7: same construction as above, one axis deeper. There is deliberately
@@ -617,20 +617,20 @@ en:
               unchanged: The training assurance does not change.
               to_used: "Careful: the new provider uses your content to train its models. Until now that was contractually excluded."
               to_excluded: The new provider contractually excludes using your content for model training. Until now that was not assured.
-              not_comparable: At least one of the two sides carries no contractual assurance about model training — whether anything changes cannot be derived from that. Please compare the two statements above.
+              not_comparable: At least one of the two sides carries no contractual assurance about model training. Whether anything changes cannot be derived from that. Please compare the two statements above.
             cost_heading: Scope and cost
             cost_estimate: "The migration covers roughly %{records} records and corresponds to an estimated %{credits} credits."
-            cost_estimate_hint: An estimate, not a price — the token count is approximated (it can come out higher as well as lower), and entries that already exist are skipped. The actual billing may land below this, or above it for very code-heavy content.
+            cost_estimate_hint: "An estimate, not a price: the token count is approximated (it can come out higher as well as lower), and entries that already exist are skipped. The actual billing may land below this, or above it for very code-heavy content."
             quota_covered: "Your remaining monthly quota (%{remaining} credits) covers the migration even with the safety margin."
             quota_short_title: The estimate exceeds your remaining quota
-            quota_short_body: "Your monthly quota has %{remaining} credits left. Because the estimate is imprecise we plan with a 30%% safety margin — that is %{planned} credits, and therefore %{shortfall} more than you have left. If the quota runs out, chat and semantic search stop working until the start of next month."
+            quota_short_body: "Your monthly quota has %{remaining} credits left. Because the estimate is imprecise we plan with a 30%% safety margin, that is %{planned} credits, and therefore %{shortfall} more than you have left. If the quota runs out, chat and semantic search stop working until the start of next month."
             quota_exhausted_title: Your monthly quota is used up
             quota_exhausted_body: The switch is saved, but the rebuild only starts once quota is available again next month.
             search_heading: Search during the migration
-            search_body: Your content is being prepared for search again in the background. Until that finishes, search keeps returning results from the existing index — depending on the provider and the amount of data this takes minutes to hours.
-            search_body_hard: Your content is being prepared for search again in the background. This organisation has no existing search index to fall back on in the meantime, so search — and chat answers that draw on your content — will return nothing until it finishes. Depending on the provider and the amount of data this takes minutes to hours.
+            search_body: Your content is being prepared for search again in the background. Until that finishes, search keeps returning results from the existing index. Depending on the provider and the amount of data this takes minutes to hours.
+            search_body_hard: Your content is being prepared for search again in the background. This organisation has no existing search index to fall back on in the meantime, so search, and chat answers that draw on your content, will return nothing until it finishes. Depending on the provider and the amount of data this takes minutes to hours.
             search_body_paused: Your content will be prepared for search again once quota is available next month. Until then, search keeps returning results from the existing index.
-            search_body_hard_paused: Your content will be prepared for search again once quota is available next month. This organisation has no existing search index, so search — and chat answers that draw on your content — will return nothing until then.
+            search_body_hard_paused: Your content will be prepared for search again once quota is available next month. This organisation has no existing search index, so search, and chat answers that draw on your content, will return nothing until then.
             search_recipients: "Search queries and search entries go to %{today} today and to %{after} after the migration."
             search_gap: Content created during the migration only becomes findable once the migration has finished.
             recipient_custom: this organisation's own provider configuration

@@ -455,9 +455,9 @@ de:
           # findet hier die Lücke, statt sie zu übersehen.
           progress:
             building_title: Umstellung der Suche läuft
-            building_body: "Noch %{remaining} von %{total} Datensätzen — %{percent} % sind im neuen Suchindex."
+            building_body: "Noch %{remaining} von %{total} Datensätzen, %{percent} % sind im neuen Suchindex."
             awaiting_flip_title: Neuaufbau abgeschlossen
-            awaiting_flip_body: Der neue Suchindex ist vollständig. Er wird in der Regel innerhalb einer Viertelstunde automatisch aktiv — Sie müssen nichts tun.
+            awaiting_flip_body: Der neue Suchindex ist vollständig. Er wird in der Regel innerhalb einer Viertelstunde automatisch aktiv. Sie müssen nichts tun.
             paused_title: Umstellung pausiert
             paused_body: Ihr KI-Kontingent für diesen Monat ist aufgebraucht, deshalb ruht der Neuaufbau. Er wird automatisch fortgesetzt, sobald das Kontingent im nächsten Monat zurückgesetzt wird.
             # Kein Fortschritt, sondern ein Halt: der Zielraum ist vollständig, aber
@@ -465,12 +465,12 @@ de:
             # nichts zu tun), es braucht die Reaktivierung durch den Betreiber —
             # deshalb nennt der Text keine Wartezeit, sondern eine Zuständigkeit.
             retired_target_title: Umstellung steht
-            retired_target_body: Der Zielindex ist vollständig, aber derzeit nicht in Benutzung. Das löst sich nicht von selbst — bitte wenden Sie sich an den Systemadministrator. Ihre Suche arbeitet währenddessen unverändert weiter.
+            retired_target_body: Der Zielindex ist vollständig, aber derzeit nicht in Benutzung. Das löst sich nicht von selbst, bitte wenden Sie sich an den Systemadministrator. Ihre Suche arbeitet währenddessen unverändert weiter.
             # EINE Suchzeile: jeder Zustand, der die Anzeige erreicht, hat einen
             # aufgelösten Zeiger, also bedient der alte Index bis zum Umschalten weiter.
             # Die frühere zweite Variante für zeigerlose Orgs ist entfallen — sie hätte
             # jede gesunde Org mitgewarnt (Review-Blocker 1).
-            search_kept: Ihre bestehenden Inhalte bleiben währenddessen auffindbar — die Suche liest bis zum Abschluss aus dem bisherigen Index. Inhalte, die in dieser Zeit neu entstehen, sind erst danach durchsuchbar.
+            search_kept: "Ihre bestehenden Inhalte bleiben währenddessen auffindbar: Die Suche liest bis zum Abschluss aus dem bisherigen Index. Inhalte, die in dieser Zeit neu entstehen, sind erst danach durchsuchbar."
           # P4c (E5): das eigene Paket steht nicht im Raster — zwei Wege dorthin mit
           # ungleichem Ausgang.
           outside_grid:
@@ -517,7 +517,7 @@ de:
           # eine fehlende Angabe liest sich als Entwarnung.
           training_notes:
             used: Der Anbieter nutzt Inhalte, die Sie über die KI-Funktionen verarbeiten lassen, zum Training seiner Modelle.
-            unspecified: Für dieses Paket liegt uns keine vertragliche Zusage zum Modelltraining vor. Das heißt nicht, dass trainiert wird — es heißt, dass wir es nicht belegen können.
+            unspecified: Für dieses Paket liegt uns keine vertragliche Zusage zum Modelltraining vor. Das heißt nicht, dass trainiert wird. Es heißt, dass wir es nicht belegen können.
           # Die dritte Aussage steht als Satz statt als Badge (E1). Anders als beim
           # Rechtsraum trägt hier AUCH der gute Wert einen Satz: die Achse hat keinen
           # eigenen Badge, ohne Satz bliebe „wird nicht gespeichert" unsichtbar.
@@ -536,20 +536,20 @@ de:
             # Umschalter (§7).
             tier_switch_heading: Leistungsstufe
             tier_provider_missing: Anbieter noch nicht hinterlegt
-            tier_unavailable: Zugangsdaten deaktiviert — derzeit nicht wählbar
+            tier_unavailable: Zugangsdaten deaktiviert, derzeit nicht wählbar
             # P4c (E5): ein ANDERER Grund als tier_unavailable und deshalb ein eigener
             # Text. Die Stufe ist nicht kaputt — der Chat dahinter läuft, die Org sitzt
             # auf einer davon —, das Paket wird nur nicht mehr angeboten. „Zugangsdaten
             # deaktiviert“ hier zu recyceln schickte den Kunden zu den Credentials statt
             # zum Paket.
-            tier_withdrawn: Paket wird nicht mehr angeboten — Stufe nicht umstellbar
-            tier_utility_hint: Hilfsaufgaben — Teilnehmererkennung, Zusammenfassungen von Tickets und Dokumenten, Ticket-Vorschläge und die Indexierung angebundener Repositories — laufen unabhängig davon immer auf „%{tier}“. Der Rechtsraum ändert sich dadurch nicht.
+            tier_withdrawn: Paket wird nicht mehr angeboten, Stufe nicht umstellbar
+            tier_utility_hint: Hilfsaufgaben (Teilnehmererkennung, Zusammenfassungen von Tickets und Dokumenten, Ticket-Vorschläge und die Indexierung angebundener Repositories) laufen unabhängig davon immer auf „%{tier}“. Der Rechtsraum ändert sich dadurch nicht.
             # Dieselbe Aussage mit umgekehrtem Vorzeichen: die Hilfsaufgaben laufen
             # weiterhin auf dieser Stufe — nur kann die gerade nicht bedienen. Ohne
             # eigenen Text verspricht der Hinweis oben fuenf Funktionen, die alle
             # stillstehen, und zwar genau dann, wenn der Kunde eine ANDERE Stufe
             # gewaehlt hat und sein Chat weiterlaeuft.
-            tier_utility_unavailable: Hilfsaufgaben — Teilnehmererkennung, Zusammenfassungen von Tickets und Dokumenten, Ticket-Vorschläge und die Indexierung angebundener Repositories — laufen immer auf „%{tier}“. Die Zugangsdaten dieser Stufe sind derzeit deaktiviert, diese Funktionen stehen deshalb nicht zur Verfügung — auch wenn Sie eine andere Stufe gewählt haben. Bitte wenden Sie sich an den Systemadministrator.
+            tier_utility_unavailable: Hilfsaufgaben (Teilnehmererkennung, Zusammenfassungen von Tickets und Dokumenten, Ticket-Vorschläge und die Indexierung angebundener Repositories) laufen immer auf „%{tier}“. Die Zugangsdaten dieser Stufe sind derzeit deaktiviert, diese Funktionen stehen deshalb nicht zur Verfügung, auch wenn Sie eine andere Stufe gewählt haben. Bitte wenden Sie sich an den Systemadministrator.
             provider_note_summary: Was der Anbieter vertraglich mit den Daten tut
             selected_badge: Gewählt
             select_button: Dieses Paket wählen
@@ -562,18 +562,18 @@ de:
             # Zweite Absage-Tuer derselben Karte (P3): die Stufe, auf der eine frische
             # Auswahl landet, hat keine nutzbaren Zugangsdaten. Eigener Text, weil es
             # weder um den Rechtsraum noch um den Suchindex geht.
-            selection_blocked: Dieses Paket ist derzeit nicht wählbar — die Zugangsdaten seiner Standard-Stufe sind deaktiviert. Bitte wenden Sie sich an den Systemadministrator.
+            selection_blocked: "Dieses Paket ist derzeit nicht wählbar: Die Zugangsdaten seiner Standard-Stufe sind deaktiviert. Bitte wenden Sie sich an den Systemadministrator."
             selection_blocked_button: Derzeit nicht wählbar
           empty:
             title: Kein Paket erfüllt beide Kriterien
             hint_provider: Auf „auch außereuropäische Unternehmen“ gestellt, zeigt der Anbieter-Filter mindestens ein Paket.
             hint_processing: Auf „auch außerhalb der EU“ gestellt, zeigt der Verarbeitungs-Filter mindestens ein Paket.
-            hint_both: Jeder der beiden Filter zeigt einzeln gelockert mindestens ein Paket — lockern Sie den, der für Sie weniger wiegt.
-            hint_relax_both: Erst wenn Sie beide Filter lockern, erscheint ein Paket — einzeln reicht keine der beiden Lockerungen.
+            hint_both: Jeder der beiden Filter zeigt einzeln gelockert mindestens ein Paket. Lockern Sie den, der für Sie weniger wiegt.
+            hint_relax_both: Erst wenn Sie beide Filter lockern, erscheint ein Paket. Einzeln reicht keine der beiden Lockerungen.
             hint_none: Derzeit ist kein Paket veröffentlicht. Bitte wenden Sie sich an den Systemadministrator.
           custom:
             title: Eigene Konfiguration
-            description: Kein kuratiertes Paket, sondern die eigenen Anbieter-Einstellungen dieser Organisation — inklusive eigener API-Schlüssel.
+            description: Kein kuratiertes Paket, sondern die eigenen Anbieter-Einstellungen dieser Organisation, inklusive eigener API-Schlüssel.
             note: Rechtsraum und Verarbeitungsort verantworten Sie damit selbst; sie stehen in keinem Paket-Text.
             # Der Rückweg ist derselbe Wechsel wie der Hinweg und nimmt denselben
             # Umweg — eigener Text, weil die Richtung eine andere ist.
@@ -596,22 +596,22 @@ de:
           # Begründung im Kopf von confirm_package.html.erb.
           switch:
             title: Paketwechsel prüfen
-            intro: "Sie sind dabei, auf „%{target}“ zu wechseln. Was das bedeutet, steht hier — der Wechsel startet erst, wenn Sie ihn unten bestätigen."
+            intro: "Sie sind dabei, auf „%{target}“ zu wechseln. Was das bedeutet, steht hier. Der Wechsel startet erst, wenn Sie ihn unten bestätigen."
             unavailable: Dieses Paket steht derzeit nicht zur Auswahl.
-            tier_unusable: Dieses Paket lässt sich derzeit nicht auswählen — die vorgesehene Leistungsstufe ist nicht verfügbar. Bitte wenden Sie sich an den Betreiber.
-            same_lane: Für diese Auswahl ändert sich der Vektorraum der Suche nicht — sie lässt sich direkt in der Übersicht wählen.
+            tier_unusable: "Dieses Paket lässt sich derzeit nicht auswählen: Die vorgesehene Leistungsstufe ist nicht verfügbar. Bitte wenden Sie sich an den Betreiber."
+            same_lane: Für diese Auswahl ändert sich der Vektorraum der Suche nicht. Sie lässt sich direkt in der Übersicht wählen.
             legal_heading: Rechtsraum
             side_today: Heute
             side_after: Nach dem Wechsel
-            jurisdiction_unstated: Für diese Konfiguration ist kein Rechtsraum hinterlegt — Rechtsraum und Verarbeitungsort verantworten Sie damit selbst.
+            jurisdiction_unstated: Für diese Konfiguration ist kein Rechtsraum hinterlegt. Rechtsraum und Verarbeitungsort verantworten Sie damit selbst.
             # Vier Fälle, nicht drei: ein Paket, das gar nichts zusichert, darf
             # weder als Verbesserung noch als Verschlechterung gemeldet werden.
             jurisdiction_change:
               unchanged: Der Rechtsraum bleibt unverändert.
-              to_eu_native: Mit dem Wechsel entfällt die Drittlandübermittlung — Anbieter und Verarbeitung liegen danach in der EU.
+              to_eu_native: Mit dem Wechsel entfällt die Drittlandübermittlung. Anbieter und Verarbeitung liegen danach in der EU.
               from_eu_native: Mit dem Wechsel entsteht eine Drittlandübermittlung. Ihre Inhalte werden danach nicht mehr ausschließlich von einem europäischen Unternehmen in der EU verarbeitet.
               changed: Der Rechtsraum ändert sich. Bitte vergleichen Sie die beiden Angaben oben.
-              unstated: Zu mindestens einer der beiden Seiten ist kein Rechtsraum hinterlegt — ob sich an der Drittlandübermittlung etwas ändert, lässt sich daraus nicht ableiten. Bitte vergleichen Sie die beiden Angaben oben.
+              unstated: Zu mindestens einer der beiden Seiten ist kein Rechtsraum hinterlegt. Ob sich an der Drittlandübermittlung etwas ändert, lässt sich daraus nicht ableiten. Bitte vergleichen Sie die beiden Angaben oben.
               self_hosted_target: Die Verarbeitung wandert auf einen selbst betriebenen Server. Eine Übermittlung an einen externen Anbieter findet danach nicht mehr statt; verantwortlich für Rechtsraum und Verarbeitungsort ist dann der Betreiber dieser Installation.
               self_hosted_source: Die Verarbeitung verlässt den selbst betriebenen Server und geht an einen externen Anbieter. Bitte prüfen Sie die Angabe zum Rechtsraum oben.
             # T7: dieselbe Bauart wie oben, eine Achse tiefer. Es gibt bewusst
@@ -624,20 +624,20 @@ de:
               unchanged: An der Trainings-Zusage ändert sich nichts.
               to_used: "Achtung: Der neue Anbieter nutzt Ihre Inhalte zum Training seiner Modelle. Bisher war das vertraglich ausgeschlossen."
               to_excluded: Der neue Anbieter schließt die Nutzung Ihrer Inhalte zum Modelltraining vertraglich aus. Bisher war das nicht zugesichert.
-              not_comparable: Zu mindestens einer der beiden Seiten liegt keine vertragliche Zusage zum Modelltraining vor — ob sich daran etwas ändert, lässt sich daraus nicht ableiten. Bitte vergleichen Sie die beiden Angaben oben.
+              not_comparable: Zu mindestens einer der beiden Seiten liegt keine vertragliche Zusage zum Modelltraining vor. Ob sich daran etwas ändert, lässt sich daraus nicht ableiten. Bitte vergleichen Sie die beiden Angaben oben.
             cost_heading: Umfang und Kosten
             cost_estimate: "Die Umstellung umfasst ca. %{records} Datensätze und entspricht schätzungsweise %{credits} Credits."
-            cost_estimate_hint: Eine Schätzung, kein Preis — die Tokenmenge ist überschlagen (Abweichung nach oben wie nach unten möglich), und bereits vorhandene Einträge werden übersprungen. Die tatsächliche Abrechnung kann darunter, bei sehr code-lastigen Inhalten auch darüber liegen.
+            cost_estimate_hint: "Eine Schätzung, kein Preis: Die Tokenmenge ist überschlagen (Abweichung nach oben wie nach unten möglich), und bereits vorhandene Einträge werden übersprungen. Die tatsächliche Abrechnung kann darunter, bei sehr code-lastigen Inhalten auch darüber liegen."
             quota_covered: "Ihr verbleibendes Monatskontingent (%{remaining} Credits) deckt die Umstellung auch mit Sicherheitsaufschlag ab."
             quota_short_title: Die Schätzung übersteigt Ihr verbleibendes Kontingent
-            quota_short_body: "Von Ihrem Monatskontingent sind noch %{remaining} Credits übrig. Weil die Schätzung ungenau ist, rechnen wir mit einem Sicherheitsaufschlag von 30 %% — also mit %{planned} Credits, und damit %{shortfall} Credits mehr, als Ihnen bleiben. Wird das Kontingent aufgebraucht, stehen Chat und semantische Suche bis zum nächsten Monatsbeginn nicht mehr zur Verfügung."
+            quota_short_body: "Von Ihrem Monatskontingent sind noch %{remaining} Credits übrig. Weil die Schätzung ungenau ist, rechnen wir mit einem Sicherheitsaufschlag von 30 %%, also mit %{planned} Credits, und damit %{shortfall} Credits mehr, als Ihnen bleiben. Wird das Kontingent aufgebraucht, stehen Chat und semantische Suche bis zum nächsten Monatsbeginn nicht mehr zur Verfügung."
             quota_exhausted_title: Ihr Monatskontingent ist aufgebraucht
             quota_exhausted_body: Der Wechsel wird gespeichert, der Neuaufbau beginnt aber erst, wenn im nächsten Monat wieder Kontingent zur Verfügung steht.
             search_heading: Suche während der Umstellung
-            search_body: Ihre Inhalte werden im Hintergrund neu für die Suche aufbereitet. Bis das abgeschlossen ist, liefert die Suche unverändert Treffer aus dem bisherigen Index — je nach Anbieter und Datenmenge dauert das Minuten bis Stunden.
-            search_body_hard: Ihre Inhalte werden im Hintergrund neu für die Suche aufbereitet. Für diese Organisation ist kein bestehender Suchindex hinterlegt, auf den in der Zwischenzeit zurückgegriffen werden kann — Suche und Chat-Antworten mit Bezug auf Ihre Inhalte liefern deshalb bis zum Abschluss keine Treffer. Je nach Anbieter und Datenmenge dauert das Minuten bis Stunden.
+            search_body: Ihre Inhalte werden im Hintergrund neu für die Suche aufbereitet. Bis das abgeschlossen ist, liefert die Suche unverändert Treffer aus dem bisherigen Index. Je nach Anbieter und Datenmenge dauert das Minuten bis Stunden.
+            search_body_hard: Ihre Inhalte werden im Hintergrund neu für die Suche aufbereitet. Für diese Organisation ist kein bestehender Suchindex hinterlegt, auf den in der Zwischenzeit zurückgegriffen werden kann. Suche und Chat-Antworten mit Bezug auf Ihre Inhalte liefern deshalb bis zum Abschluss keine Treffer. Je nach Anbieter und Datenmenge dauert das Minuten bis Stunden.
             search_body_paused: Ihre Inhalte werden neu für die Suche aufbereitet, sobald im nächsten Monat wieder Kontingent zur Verfügung steht. Bis dahin liefert die Suche unverändert Treffer aus dem bisherigen Index.
-            search_body_hard_paused: Ihre Inhalte werden neu für die Suche aufbereitet, sobald im nächsten Monat wieder Kontingent zur Verfügung steht. Für diese Organisation ist kein bestehender Suchindex hinterlegt — Suche und Chat-Antworten mit Bezug auf Ihre Inhalte liefern deshalb bis dahin keine Treffer.
+            search_body_hard_paused: Ihre Inhalte werden neu für die Suche aufbereitet, sobald im nächsten Monat wieder Kontingent zur Verfügung steht. Für diese Organisation ist kein bestehender Suchindex hinterlegt. Suche und Chat-Antworten mit Bezug auf Ihre Inhalte liefern deshalb bis dahin keine Treffer.
             search_recipients: "Suchanfragen und Sucheinträge gehen heute an %{today}, nach der Umstellung an %{after}."
             search_gap: Inhalte, die während der Umstellung neu entstehen, sind erst auffindbar, wenn die Umstellung abgeschlossen ist.
             recipient_custom: die Anbieter-Konfiguration dieser Organisation

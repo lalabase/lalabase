@@ -807,6 +807,7 @@ jobs:
           spec/requests/api/v1/me_spec.rb
           spec/controllers/concerns/api/token_authenticatable_spec.rb
           spec/requests/users/personal_access_tokens_spec.rb
+          spec/requests/users/personal_access_tokens_pages_spec.rb
           spec/requests/organisations/memberships_management_spec.rb
           spec/requests/organisations/management_sidebar_spec.rb
           spec/requests/organisations/roles_head_spec.rb

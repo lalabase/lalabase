@@ -37,10 +37,15 @@ RSpec.describe 'Users::PersonalAccessTokens', :ci_guard, type: :request do
   end
 
   describe 'GET /users/personal_access_tokens/new' do
-    it 'renders the multi-block form' do
+    # The headings are read as headings. Until 2026-11-12 this example compared the raw
+    # text of "Organisationen & Projekte", which the page writes as "&amp;": it was green
+    # only because an HTML comment in the template happened to hold the German words.
+    it 'renders the form in its three sections' do
       get new_users_personal_access_token_path
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(I18n.t('views.users.personal_access_tokens.new.block_organisations'))
+      headings = Nokogiri::HTML(response.body).css('main form h2').map { |h2| h2.text.squish }
+      expect(headings).to eq(%w[block_basic block_organisations block_summary]
+                               .map { |key| I18n.t("views.users.personal_access_tokens.new.#{key}") })
       expect(response.body).to include(organisation.name)
     end
   end

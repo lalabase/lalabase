@@ -102,10 +102,7 @@ module ShadowLevels
     'app/views/organisations/time_sessions/index.html.erb' => 1,
     'app/views/shared/_brand_mark.html.erb' => 1, # the logo tile, as on the website; not a token
     'app/views/shared/_pagination_nav.html.erb' => 2,
-    'app/views/shared/_pagination_nav_compact.html.erb' => 2,
-    'app/views/users/personal_access_tokens/created.html.erb' => 1,
-    'app/views/users/personal_access_tokens/edit.html.erb' => 2,
-    'app/views/users/personal_access_tokens/new.html.erb' => 5
+    'app/views/shared/_pagination_nav_compact.html.erb' => 2
   }.freeze
 
   # Shrink only: path => hard box-shadow literals on 2026-11-08, lowered and deleted like

@@ -130,7 +130,7 @@ export default class extends Controller {
     this.summaryListTarget.innerHTML = ""
     if (items.length === 0) {
       const li = document.createElement("li")
-      li.className = "text-gray-500 italic"
+      li.className = "italic text-faint"
       li.textContent = this.summaryPlaceholderTarget.textContent
       this.summaryListTarget.appendChild(li)
     } else {

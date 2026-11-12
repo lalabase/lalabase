@@ -2579,10 +2579,10 @@ en:
       confirm_archive_all: Archive all read notifications?
       confirm_mark_all_read: Mark all unread notifications as read?
     personal_access_token:
-      all_projects: "%{org} — all projects"
+      all_projects: "%{org}: all projects"
       all_organisations: Every organisation you are active in, including future ones, each with all projects
-      no_projects: "%{org} — no projects selected"
-      projects_count: "%{org} — %{count} project(s): %{names}"
+      no_projects: "%{org}: no projects selected"
+      projects_count: "%{org}, %{count} project(s): %{names}"
     registration_toggle:
       disabled: New registrations are disabled. Only invitations work.
       enabled: New users can register themselves.

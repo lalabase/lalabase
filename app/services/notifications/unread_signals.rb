@@ -49,7 +49,7 @@ module Notifications
         return if organisations.size < 2
 
         counts = count_by_organisation(user, organisations)
-        # Same order and cap as NavigationHelper#switcher_organisations.
+        # Same order and cap as ApplicationController#switcher_organisations.
         menu_ids = organisations.first(NavigationHelper::ORG_MENU_LIMIT).map(&:id)
         I18n.with_locale(user.language_preference.presence || I18n.default_locale) do
           organisations.each do |organisation|

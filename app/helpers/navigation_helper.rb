@@ -115,24 +115,12 @@ module NavigationHelper
     'invitations' => :members
   }.merge(AI_AREA_CONTROLLERS.index_with { :ai }).freeze
 
-  # The organisations shown in the switcher menu: the user's ACTIVE-membership orgs (active_
-  # organisations already merges Membership.active), ordered case-insensitively by name and capped
-  # at ORG_MENU_LIMIT. Extracted from the view so this data logic is unit-testable and lives beside
-  # the gates it belongs with. Two deliberate choices:
-  #   - Organisation.by_name (a reorder) so the alphabetical sort WINS over any default scope on the relation;
-  #   - a hard limit so the sidebar costs ONE small query on every page render — the full list lives
-  #     in the cockpit behind "Alle Organisationen", and the row colour chips read the memoised
-  #     org-colour store (no per-row query), so the switcher stays N+1-free.
-  def switcher_organisations(user)
-    @switcher_organisations ||= {}
-    @switcher_organisations[user.id] ||= user.active_organisations.by_name.limit(ORG_MENU_LIMIT).to_a
-  end
-
   # Where the logo in the sidebar leads. Someone in two or more organisations gets the
   # cockpit with all of them ("Organisation auswählen"); someone in one stays on that
   # organisation's start page, and outside any organisation it is the root. The count
-  # comes from switcher_organisations, memoised per request: the org switcher in the same
-  # sidebar reads the same list, so the logo costs no query of its own there.
+  # comes from switcher_organisations (ApplicationController, memoised per request): the
+  # org switcher in the same sidebar reads the same list, so the logo costs no query of
+  # its own there.
   def brand_link_path
     return root_path unless user_signed_in?
     return select_organisation_path if switcher_organisations(current_user).size >= 2

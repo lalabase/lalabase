@@ -34,9 +34,15 @@ module AccessCheck
       def inherited?  = %i[admin role].include?(source)
     end
 
-    def initialize(organisation:, current_user:, member_scope: nil)
+    # project_ids: the columns the reader chose (projects[] from the address). Resolved
+    #   inside the organisation's active projects only, so an id of another organisation
+    #   or an archived project names nothing; when none of them resolves, every column shows.
+    # query: narrows the rows to members whose display name contains it (case-insensitive).
+    def initialize(organisation:, current_user:, member_scope: nil, project_ids: nil, query: nil)
       @organisation = organisation
       @current_user = current_user
+      @project_ids = Array(project_ids).compact_blank.map(&:to_s)
+      @query = query.to_s.strip.downcase
       # Optional Membership relation (e.g. the controller's policy_scope) that further
       # narrows the rows. Defaults to "all active org members" so the service is usable and
       # unit-testable without a Pundit context.
@@ -50,12 +56,22 @@ module AccessCheck
       @users ||= load_users
     end
 
-    # Ordered column set: the org's active (non-archived) projects.
+    # Every active (non-archived) project of the organisation: the options of the project pill.
+    def all_projects
+      @all_projects ||= @organisation.projects.active
+                                     .includes(:organisation)
+                                     .order(Arel.sql('LOWER(projects.name)'))
+                                     .to_a
+    end
+
+    # The chosen projects that exist here; empty means "no choice", not "nothing".
+    def chosen_project_ids
+      @chosen_project_ids ||= all_projects.map(&:id).select { |id| @project_ids.include?(id.to_s) }
+    end
+
+    # Ordered column set: the chosen projects, or all of them while none is chosen.
     def projects
-      @projects ||= @organisation.projects.active
-                                 .includes(:organisation)
-                                 .order(Arel.sql('LOWER(projects.name)'))
-                                 .to_a
+      @projects ||= chosen_project_ids.empty? ? all_projects : all_projects.select { |p| chosen_project_ids.include?(p.id) }
     end
 
     def cell(user, project)
@@ -127,6 +143,7 @@ module AccessCheck
       User.where(id: membership_scope.select(:user_id), active: true, deleted_at: nil)
           .includes(memberships: { role: :permissions })
           .to_a
+          .select { |user| @query.empty? || user.display_name.downcase.include?(@query) }
           .sort_by { |user| [user.display_name.downcase, user.id] }
     end
   end

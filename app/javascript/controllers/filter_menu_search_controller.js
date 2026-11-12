@@ -10,7 +10,7 @@ import { searchTerm, optionMatches, showsEmptyNotice } from "filter_menu_search"
 // screen at full height. The field looked dead and was reported as such.
 //
 // The utility class beats it because Tailwind emits `.hidden` after `.flex`.
-// Same fix and same reason as access_matrix_filter_controller, and the same
+// The same fix the access overview once needed for its own filter, and the same
 // trap the stylesheets already record three times (landing.css, layout.css,
 // components/rich_text_embeds.css).
 const HIDDEN_CLASS = "hidden"

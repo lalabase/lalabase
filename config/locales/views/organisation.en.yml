@@ -373,6 +373,10 @@ en:
         filter:
           search_placeholder: Search by name…
           projects_label: Projects
+          projects_chosen:
+            one: "Projects: %{count} of %{total}"
+            other: "Projects: %{count} of %{total}"
+          no_members: No member matches this search.
         legend:
           title: Legend
           read_write: Write access

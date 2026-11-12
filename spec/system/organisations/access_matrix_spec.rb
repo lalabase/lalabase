@@ -2,10 +2,11 @@
 
 require 'rails_helper'
 
-# [→E2E] Happy path for the org access matrix: an admin opens it, the client-side Stimulus
-# filter narrows rows (by member name) and columns (by project), and a column deep-link
-# leads to the editable project team page. Needs a JS driver — the filter is Stimulus, and
-# CSS-faithful (_full) so `.am-hidden { display: none }` really hides elements.
+# [→E2E] Happy path for the org access matrix: an admin opens it, the list search narrows
+# the rows (it reloads the grid frame and writes q into the address), the project pill
+# narrows the columns (projects[] in the address, kept by the search), and a column
+# deep-link leads to the editable project team page. Real clicks in a real browser: the
+# search opens from its magnifier and answers while typing.
 RSpec.describe 'Access matrix', type: :system do
   before do
     Prosopite.pause
@@ -54,19 +55,21 @@ RSpec.describe 'Access matrix', type: :system do
     expect(page).to have_link('Apollo')
     expect(page).to have_link('Beacon')
 
-    # Name filter narrows the rows: typing "alice" hides everyone else.
-    find("input[data-access-matrix-filter-target='search']").set('alice')
-    expect(page).to have_selector("tr[data-user-name='alice ant']", visible: :visible)
-    expect(page).to have_selector("tr[data-user-name='bob bee']", visible: :hidden)
+    # The search opens from its magnifier and narrows the rows while typing.
+    wait_for_stimulus('[data-fb-search]', 'search-disclosure')
+    find('[data-fb-search-open-button]').click
+    find('#access-matrix-search').set('alice')
+    expect(page).to have_css('th.am-rowhead', text: 'Alice Ant')
+    expect(page).to have_no_css('th.am-rowhead', text: 'Bob Bee')
+    expect(page).to have_current_path(/q=alice/)
 
-    # Clear the name filter so the column test is not confounded by hidden rows.
-    find("input[data-access-matrix-filter-target='search']").set('')
-
-    # Project filter narrows the columns: unchecking Apollo hides its column.
-    find('summary', text: 'Projekte').click
-    uncheck('Apollo')
-    expect(page).to have_selector("th[data-project-id='#{apollo.id}']", visible: :hidden)
-    expect(page).to have_selector("th[data-project-id='#{beacon.id}']", visible: :visible)
+    # The project pill narrows the columns and keeps the search.
+    find('[data-filter-pill="projects"] summary').click
+    within('[data-filter-pill="projects"]') { click_link 'Beacon' }
+    expect(page).to have_css("th[data-project-id='#{beacon.id}']")
+    expect(page).to have_no_css("th[data-project-id='#{apollo.id}']")
+    expect(page).to have_css('th.am-rowhead', text: 'Alice Ant')
+    expect(page).to have_no_css('th.am-rowhead', text: 'Bob Bee')
 
     # A column header is a deep-link to the editable project team page.
     click_link 'Beacon'

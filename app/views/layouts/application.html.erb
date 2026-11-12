@@ -121,7 +121,9 @@
         <div class="flex-shrink-0">
           <!-- logo + changelog -->
           <div class="flex items-center justify-between mx-7 pt-4 pb-4">
-            <%= link_to @current_organisation.present? ? organisation_root_path(organisation_id: @current_organisation.id) : root_path, class: "text-2xl font-black flex flex-row items-center gap-1.5" do %>
+            <%# NavigationHelper#brand_link_path: the organisation select page for someone in
+                two or more organisations, else the organisation's start page. %>
+            <%= link_to brand_link_path, class: "text-2xl font-black flex flex-row items-center gap-1.5", data: { brand_link: true } do %>
               <%# The brand mark of the public pages, ONE partial (user, 10.09.2026: the
                   application carried a third fashion, "alaBase" with a 2px shadow). The
                   chip keeps the org recognition colour through bg-brand (BrandHelper sets

@@ -144,6 +144,21 @@ class ApplicationController < ActionController::Base
 
   helper_method :current_organisation, :current_project
 
+  # The organisations shown in the switcher menu: the user's ACTIVE-membership orgs (active_
+  # organisations already merges Membership.active), ordered case-insensitively by name and capped
+  # at NavigationHelper::ORG_MENU_LIMIT. Two deliberate choices:
+  #   - Organisation.by_name (a reorder) so the alphabetical sort WINS over any default scope on the relation;
+  #   - a hard limit so the sidebar costs ONE small query on every page render: the full list lives
+  #     in the cockpit behind "Alle Organisationen", and the row colour chips read the memoised
+  #     org-colour store (no per-row query), so the switcher stays N+1-free.
+  # Memoised per request (here, not in NavigationHelper: helpers keep no state), because the
+  # logo (NavigationHelper#brand_link_path) asks the same list before the switcher renders it.
+  def switcher_organisations(user)
+    @switcher_organisations ||= {}
+    @switcher_organisations[user.id] ||= user.active_organisations.by_name.limit(NavigationHelper::ORG_MENU_LIMIT).to_a
+  end
+  helper_method :switcher_organisations
+
   # Single source for the global-search access GATE: signed in, inside an organisation,
   # and allowed to read projects or time sessions. Shared by the search overlay (view)
   # and the search-pin toggle (SearchPinsController) so the two can never drift apart.

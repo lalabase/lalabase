@@ -479,18 +479,6 @@
 #access-matrix .am-cell__pop-area { color: rgb(var(--cream-700)); }
 #access-matrix .am-cell__pop-level { font-weight: 600; color: rgb(var(--ink)); }
 
-/* Project filter dropdown. */
-#access-matrix .am-projectfilter > summary { list-style: none; }
-#access-matrix .am-projectfilter > summary::-webkit-details-marker { display: none; }
-#access-matrix .am-projectfilter__pop {
-  position: absolute; z-index: 20; margin-top: 4px; min-width: 14rem; max-height: 16rem; overflow-y: auto;
-  background: rgb(var(--cream-50)); border: 1px solid rgb(var(--cream-300));
-  border-radius: 8px; padding: 8px 10px; box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
-}
-
-/* Stimulus filter hides non-matching rows/columns. */
-#access-matrix .am-hidden { display: none !important; }
-
 #access-matrix .am-cell > summary:focus-visible,
 #access-matrix .am-colhead__link:focus-visible { outline: 2px solid rgb(var(--cream-600)); outline-offset: 2px; }
 

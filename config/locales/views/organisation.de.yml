@@ -372,6 +372,10 @@ de:
         filter:
           search_placeholder: Nach Name suchen…
           projects_label: Projekte
+          projects_chosen:
+            one: "Projekte: %{count} von %{total}"
+            other: "Projekte: %{count} von %{total}"
+          no_members: Kein Mitglied passt zu dieser Suche.
         legend:
           title: Legende
           read_write: Schreibzugriff

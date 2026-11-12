@@ -12,7 +12,9 @@ class Organisations::AccessMatrixController < Organisations::BaseController
     @matrix = AccessCheck::OrgAccessMatrix.new(
       organisation: current_organisation,
       current_user: current_user,
-      member_scope: member_scope
+      member_scope: member_scope,
+      project_ids: params[:projects].is_a?(Array) ? params[:projects] : nil,
+      query: params[:q].is_a?(String) ? params[:q] : nil
     )
   end
 end

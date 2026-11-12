@@ -1,14 +1,25 @@
-<%# The account's first tab: name and address. The password and deleting the account
-    are tabs of their own (devise/registrations/_account_head). Fields in the style of
-    the other forms of the application, one value per row, capped (.width-capped). %>
+<%# The account's first tab, the profile: who the person is. Two forms, because they
+    are saved under two rules:
+
+    1. name and login address, Devise's own form, behind the current password;
+    2. what the others see (the picture, which email), without it
+       (devise/registrations/_display_form, #update_display). Until 2026-11-12 that
+       form stood on the preferences page; it says how others see the person, not how
+       the application behaves for them.
+
+    The password and deleting the account are tabs of their own
+    (devise/registrations/_account_head). Fields in the style of the other forms of
+    the application, one value per row, capped (.width-capped). %>
 <% field_class = 'block w-full rounded border border-cream-300 bg-surface-raised px-3 py-2 text-sm text-body focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink transition-all' %>
 <% label_class = 'mb-1 block text-sm font-medium text-cream-700' %>
 <% hint_class = 'mt-1 block text-xs text-muted' %>
 <div>
   <%= render 'devise/registrations/account_head', active: :profile %>
 
-  <div class="width-capped">
-    <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put, class: 'space-y-5', data: { turbo: false } }) do |f| %>
+  <div class="width-capped space-y-8">
+    <section aria-labelledby="account-login-title">
+    <h2 id="account-login-title" class="text-base font-semibold text-heading"><%= t('views.devise.registrations.edit.login.title') %></h2>
+    <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put, class: 'mt-4 space-y-5', data: { turbo: false } }) do |f| %>
       <%= render 'devise/shared/error_messages', resource: resource %>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -21,10 +32,6 @@
           <%= f.text_field :last_name, autocomplete: 'family-name', class: field_class %>
         </div>
       </div>
-
-      <%# The profile picture lives in the preferences' profile section
-          (user_preferences/edit): this Devise form demands the current
-          password for every change - unreasonable for a picture (04.09.2026). %>
 
       <div>
         <%= f.label :email, class: label_class %>
@@ -39,7 +46,7 @@
             The hint must describe the saved user, not the submitted address. %>
         <small class="<%= hint_class %> break-words" data-shown-email-hint>
           <%= t("views.devise.registrations.edit.shown_email.#{current_user.email_visibility}", email: current_user.shown_email) %>
-          <%= link_to t('views.devise.registrations.edit.shown_email.change'), preferences_section_path('display'), class: 'underline' %>
+          <%= link_to t('views.devise.registrations.edit.shown_email.change'), account_display_path, class: 'underline' %>
         </small>
       </div>
 
@@ -60,6 +67,18 @@
           <%= t('views.devise.registrations.edit.save_profile') %>
         <% end %>
       </div>
+    <% end %>
+    </section>
+
+    <%# The picture is NOT a field of the form above on purpose: that form demands the
+        current password for every change, unreasonable for a picture (04.09.2026). %>
+    <% display_user = @display_user || current_user %>
+    <%= tag.section id: AccountProfileHelper::DISPLAY_ANCHOR, aria: { labelledby: 'account-display-title' },
+                    class: 'scroll-mt-20 border-t border-divider pt-6' do %>
+      <h2 id="account-display-title" class="text-base font-semibold text-heading"><%= t('views.devise.registrations.edit.display.title') %></h2>
+      <p class="mt-1 text-sm text-muted"><%= t('user_preferences.edit.display.intro') %></p>
+      <%= render 'devise/registrations/display_form', user: display_user,
+                 field_class: field_class, label_class: label_class, hint_class: hint_class %>
     <% end %>
   </div>
 </div>

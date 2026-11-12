@@ -412,7 +412,7 @@ jobs:
           spec/requests/organisations/people_spec.rb
           spec/requests/organisations/people_list_head_spec.rb
           spec/requests/organisations/shown_email_spec.rb
-          spec/requests/user_preferences_email_visibility_spec.rb
+          spec/requests/users/registrations_display_email_spec.rb
           spec/services/people/directory_spec.rb
           spec/services/people/contacts_spec.rb
           spec/services/people/lookup_spec.rb
@@ -549,13 +549,12 @@ jobs:
           spec/requests/organisations/accept_invitations_consent_spec.rb
           spec/requests/locale_per_request_spec.rb
           spec/requests/user_preferences_spec.rb
-          spec/requests/user_preferences_avatar_spec.rb
+          spec/requests/users/registrations_display_avatar_spec.rb
           spec/requests/help_inside_organisation_spec.rb
           spec/requests/acquisition_capture_spec.rb
           spec/requests/users/bot_trap_spec.rb
           spec/requests/users/email_confirmation_spec.rb
           spec/requests/users/registration_invited_email_spec.rb
-          spec/requests/users/registrations_avatar_spec.rb
           spec/requests/users/registrations_consent_spec.rb
           spec/requests/users/registrations_disposable_email_spec.rb
           spec/requests/users/registrations_onboarding_spec.rb

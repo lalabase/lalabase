@@ -2975,14 +2975,12 @@ de:
       actions:
         reset_defaults: Auf Standard zurücksetzen
         save: Speichern
-        save_profile: Profil speichern
       # Die Zeile neben der Überschrift eines Abschnitts: eine Änderung speichert sofort.
       autosave:
         saved: Gespeichert
         failed: Nicht gespeichert
       # Überschriften der Abschnitte der einen Präferenzen-Seite (user_preferences/edit).
       sections:
-        profile: Profil
         general: Anzeige
         tickets: Tickets
         meetings: Meetings

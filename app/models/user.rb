@@ -206,12 +206,12 @@ class User < ApplicationRecord
   end
   validate :acceptable_avatar
 
-  # Checkbox seam for the display settings: "1" purges the avatar after save.
-  # A virtual attribute instead of controller logic, so a plain
-  # current_user.update can carry it like any attribute
-  # (UserPreferencesController#apply_avatar_update). It used to ride Devise's
-  # update_with_password path; the picture moved out of that form on
-  # 04.09.2026 because the gate demanded the current password for a picture.
+  # Checkbox seam for the picture form of the account's profile tab: "1" purges
+  # the avatar after save. A virtual attribute instead of controller logic, so a
+  # plain user.update can carry it like any attribute (User::ProfileDisplayForm).
+  # It used to ride Devise's update_with_password path; the picture moved out of
+  # that form on 04.09.2026 because the gate demanded the current password for a
+  # picture.
   attr_accessor :remove_avatar
 
   after_save :purge_avatar_if_requested

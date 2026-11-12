@@ -27,8 +27,9 @@ module Users
     # Devise's own declaration (Rails keeps one entry per callback name), so the list
     # repeats Devise's three actions; with only: :edit_password, #edit and #update
     # lost their resource.
-    prepend_before_action :authenticate_scope!, only: %i[edit update destroy edit_password] # rubocop:disable Rails/LexicallyScopedActionFilter -- edit, update and destroy are Devise's, inherited
+    prepend_before_action :authenticate_scope!, only: %i[edit update destroy edit_password update_display] # rubocop:disable Rails/LexicallyScopedActionFilter -- edit, update and destroy are Devise's, inherited
     include BotTrapProtected
+    include AccountProfileHelper
     skip_before_action :load_tenant_from_session
     before_action :configure_permitted_parameters, if: :devise_controller?
 
@@ -118,6 +119,26 @@ module Users
     # AccountDeletionsController with DeleteAccountService behind it.
     def destroy
       redirect_to new_account_deletion_path
+    end
+
+    # PATCH /users/edit/display: the second form of the profile tab, what the others
+    # see of the person (the picture, which email). Saved WITHOUT the current password,
+    # which is why it is no part of #update: Devise's update_with_password demanded the
+    # password for a picture (user decision 04.09.2026). It lived on the preferences
+    # page until 2026-11-12; it says how others see the person, not how the application
+    # behaves for them.
+    #
+    # Written on a copy of the account, as Devise's #update does: a refused save
+    # re-renders the tab with what was sent, while `resource` and current_user (the
+    # other form, the layout, the hint under the login address) stay the saved account.
+    def update_display
+      @display_user = resource_class.to_adapter.get!(resource.to_key)
+      if User::ProfileDisplayForm.new(@display_user).update(params[:user])
+        redirect_to account_display_path, notice: t('views.devise.registrations.edit.display.saved')
+      else
+        # formats: the tab has an HTML template only, whatever the client accepts.
+        render :edit, formats: [:html], status: :unprocessable_entity
+      end
     end
 
     private
@@ -415,9 +436,9 @@ module Users
 
     def configure_permitted_parameters
       devise_parameter_sanitizer.permit(:sign_up, keys: %i[first_name last_name])
-      # No avatar keys here: the profile picture moved to the display section
-      # of user_preferences, which does not sit behind the current-password
-      # gate of update_with_password (user decision 04.09.2026).
+      # No avatar keys here: the profile picture has a form of its own on the
+      # profile tab (#update_display), which does not sit behind the
+      # current-password gate of update_with_password (user decision 04.09.2026).
       devise_parameter_sanitizer.permit(:account_update, keys: %i[first_name last_name])
     end
   end

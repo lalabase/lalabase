@@ -1084,7 +1084,7 @@ de:
             login: "Andere in deinen Organisationen sehen %{email}."
             contact: "Andere in deinen Organisationen sehen stattdessen %{email}."
             none: Andere in deinen Organisationen sehen keine E-Mail von dir.
-            change: Im Profil ändern
+            change: Ändern
           pending_confirmation: 'Warte auf Bestätigung für: %{email}'
           new_password: Neues Passwort
           password_min_length: Mindestens %{count} Zeichen
@@ -1092,6 +1092,14 @@ de:
           current_password: Aktuelles Passwort
           current_password_hint: zur Bestätigung der Änderungen erforderlich
           save_profile: Speichern
+          # Die zwei Formulare des Reiters Profil: Name und Login-Adresse (mit Passwort),
+          # darunter, was andere sehen (ohne Passwort).
+          login:
+            title: Name und Login-Adresse
+          display:
+            title: Profilbild und E-Mail für andere
+            save: Bild und E-Mail speichern
+            saved: Profilbild und E-Mail für andere wurden gespeichert.
           save_password: Passwort ändern
           save_changes: Änderungen speichern
         disabled:

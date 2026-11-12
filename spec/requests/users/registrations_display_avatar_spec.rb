@@ -2,13 +2,15 @@
 
 require 'rails_helper'
 
-# The profile picture lives in Settings > Profil since 04.09.2026
-# (user decision): it belongs next to the name-display choice, and unlike the
-# Devise profile this endpoint does NOT demand the current password for a
-# picture change. Pins the upload without a password, the blank-field
-# no-change semantics, removal, rejection with a re-rendered section, and the
-# crop tool's server half (framed square in original pixels).
-RSpec.describe 'User preferences avatar', type: :request do
+# The profile picture is a form of its own on the account's profile tab
+# (Users::RegistrationsController#update_display, User::ProfileDisplayForm), next to
+# the email the others see. It is NOT a field of Devise's account form: that one runs
+# through update_with_password and demanded the current password for a picture (user
+# decision 04.09.2026). From then until 2026-11-12 the form stood on the preferences
+# page. Pins the upload without a password, the blank-field no-change semantics,
+# removal, rejection with the tab rendered again, the crop tool's server half (framed
+# square in original pixels), and that the password-gated form cannot take a picture.
+RSpec.describe 'Account profile: the picture', type: :request do
   let(:user) { create(:user) }
 
   before { sign_in user }
@@ -49,8 +51,8 @@ RSpec.describe 'User preferences avatar', type: :request do
     user.save!
   end
 
-  it 'shows the upload spot and the crop tool skeleton in the display section' do
-    get edit_user_preferences_path
+  it 'shows the upload spot and the crop tool skeleton on the profile tab' do
+    get edit_user_registration_path
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(I18n.t('user_preferences.edit.display.avatar.label'))
@@ -59,21 +61,17 @@ RSpec.describe 'User preferences avatar', type: :request do
   end
 
   it 'attaches the picture WITHOUT any password' do
-    patch user_preferences_path, params: {
-      current_section: 'display',
-      preferences: { name_display: 'first_last_initial' },
+    patch user_registration_display_path, params: {
       user: { avatar: png_upload }
     }
 
-    expect(response).to redirect_to(edit_user_preferences_path(anchor: 'section-display'))
+    expect(response).to redirect_to(edit_user_registration_path(anchor: 'section-display'))
+    expect(flash[:notice]).to eq(I18n.t('views.devise.registrations.edit.display.saved'))
     expect(user.reload.avatar).to be_attached
-    expect(user.preference_store.name_display_mode).to eq('first_last_initial')
   end
 
   it 'stores the framed square when crop values are sent (8px fixture, 4px frame)' do
-    patch user_preferences_path, params: {
-      current_section: 'display',
-      preferences: { name_display: 'first_last_initial' },
+    patch user_registration_display_path, params: {
       user: { avatar: quadrants_upload, avatar_crop_x: '4', avatar_crop_y: '4', avatar_crop_size: '4' }
     }
 
@@ -90,9 +88,7 @@ RSpec.describe 'User preferences avatar', type: :request do
   it 'keeps the existing picture when the file field is submitted blank (no-change semantics)' do
     attach_existing_avatar
 
-    patch user_preferences_path, params: {
-      current_section: 'display',
-      preferences: { name_display: 'full' },
+    patch user_registration_display_path, params: {
       user: { avatar: '' }
     }
 
@@ -102,19 +98,15 @@ RSpec.describe 'User preferences avatar', type: :request do
   it 'removes the picture via the checkbox' do
     attach_existing_avatar
 
-    patch user_preferences_path, params: {
-      current_section: 'display',
-      preferences: { name_display: 'full' },
+    patch user_registration_display_path, params: {
       user: { remove_avatar: '1' }
     }
 
     expect(user.reload.avatar).not_to be_attached
   end
 
-  it 'rejects a file outside the whitelist and re-renders the section with the error' do
-    patch user_preferences_path, params: {
-      current_section: 'display',
-      preferences: { name_display: 'full' },
+  it 'rejects a file outside the whitelist and renders the tab again with the error' do
+    patch user_registration_display_path, params: {
       user: { avatar: fixture_file_upload('test_image.bmp', 'image/bmp') }
     }
 
@@ -129,10 +121,8 @@ RSpec.describe 'User preferences avatar', type: :request do
   # page with a 500 is never reached. The size rule needs a variant-capable
   # type, and it is the rule whose own message could not be shown once before.
   describe 'a picture over the size limit' do
-    it 'renders the section with the size message instead of crashing' do
-      patch user_preferences_path, params: {
-        current_section: 'display',
-        preferences: { name_display: 'full' },
+    it 'renders the tab with the size message instead of crashing' do
+      patch user_registration_display_path, params: {
         user: { avatar: oversized_png_upload }
       }
 
@@ -144,9 +134,7 @@ RSpec.describe 'User preferences avatar', type: :request do
     # Cropping shrinks the file, so a rule measured after the crop would take
     # this very upload. The same picture must be refused with and without JS.
     it 'is refused just the same when the crop tool sent a frame' do
-      patch user_preferences_path, params: {
-        current_section: 'display',
-        preferences: { name_display: 'full' },
+      patch user_registration_display_path, params: {
         user: { avatar: oversized_png_upload, avatar_crop_x: '0', avatar_crop_y: '0', avatar_crop_size: '4' }
       }
 
@@ -158,9 +146,7 @@ RSpec.describe 'User preferences avatar', type: :request do
     # attached? is true for the merely picked file, so the section would offer
     # to remove a picture this user has never had.
     it 'does not offer to remove a picture that was never stored' do
-      patch user_preferences_path, params: {
-        current_section: 'display',
-        preferences: { name_display: 'full' },
+      patch user_registration_display_path, params: {
         user: { avatar: oversized_png_upload }
       }
 
@@ -169,34 +155,72 @@ RSpec.describe 'User preferences avatar', type: :request do
   end
 
   # A multipart body with a JSON Accept header, not `as: :json`: a file cannot
-  # ride in a JSON body, so that variant never reaches the failure at all.
-  # `render 'display'` here would look for display.json and raise
-  # MissingTemplate — a 500 exactly where the caller asked for an error.
-  it 'answers a JSON client with its errors rather than a missing template' do
-    patch user_preferences_path,
-          params: {
-            current_section: 'display',
-            preferences: { name_display: 'full' },
-            user: { avatar: fixture_file_upload('test_image.bmp', 'image/bmp') }
-          },
+  # ride in a JSON body, so that variant never reaches the failure at all. The tab
+  # has an HTML template only; a bare `render :edit` would look for edit.json and
+  # raise MissingTemplate, a 500 exactly where the caller sent something refused.
+  it 'answers a refused upload with 422 whatever the client accepts' do
+    patch user_registration_display_path,
+          params: { user: { avatar: fixture_file_upload('test_image.bmp', 'image/bmp') } },
           headers: { 'Accept' => 'application/json' }
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.parsed_body['success']).to be(false)
-    expect(response.parsed_body['errors']).to be_present
+    expect(user.reload.avatar).not_to be_attached
   end
 
   # `present?` and `&.key?` both say yes to a scalar, and require(:user).permit
   # then raises NoMethodError on a String. ApplicationController only rescues
   # Pundit, so that was an unhandled 500 on a crafted request.
-  it 'survives a :user param that is not a hash' do
-    patch user_preferences_path, params: {
-      current_section: 'display',
-      preferences: { name_display: 'first_last_initial' },
-      user: 'not-a-hash'
-    }
+  it 'survives a :user param that is not a hash, and one that is missing' do
+    patch user_registration_display_path, params: { user: 'not-a-hash' }
+    expect(response).to redirect_to(edit_user_registration_path(anchor: 'section-display'))
 
-    expect(response).to redirect_to(edit_user_preferences_path(anchor: 'section-display'))
-    expect(user.reload.preference_store.name_display_mode).to eq('first_last_initial')
+    patch user_registration_display_path
+    expect(response).to redirect_to(edit_user_registration_path(anchor: 'section-display'))
+  end
+
+  it 'asks a visitor to sign in' do
+    sign_out user
+
+    patch user_registration_display_path, params: { user: { avatar: png_upload } }
+
+    expect(response).to redirect_to(new_user_session_path)
+    expect(user.reload.avatar).not_to be_attached
+  end
+
+  # The teardown of 04.09.2026, kept: the password-gated form has no upload spot,
+  # and a smuggled avatar param is dead there (unpermitted), so the gate cannot
+  # come back silently.
+  describe 'the password-gated form of the same tab' do
+    def forms
+      get edit_user_registration_path
+      doc = Nokogiri::HTML(response.body)
+      [doc.at_css(%(main form[action="#{user_registration_path}"])),
+       doc.at_css(%(main form[action="#{user_registration_display_path}"]))]
+    end
+
+    it 'holds no picture, and the picture form asks for no password' do
+      login_form, display_form = forms
+
+      expect(login_form.at_css('input[name="user[current_password]"]')).to be_present
+      expect(login_form.at_css('input[name="user[avatar]"]')).to be_nil
+      expect(display_form.at_css('input[type="file"][name="user[avatar]"]')).to be_present
+      expect(display_form.at_css('input[type="password"]')).to be_nil
+    end
+
+    it 'ignores a smuggled avatar param (unpermitted on account_update)' do
+      put user_registration_path, params: {
+        user: { avatar: png_upload, current_password: 'password123' }
+      }
+
+      expect(user.reload.avatar).not_to be_attached
+    end
+
+    it 'still updates the name with the current password (unchanged Devise contract)' do
+      put user_registration_path, params: {
+        user: { first_name: 'Neu', current_password: 'password123' }
+      }
+
+      expect(user.reload.first_name).to eq('Neu')
+    end
   end
 end

@@ -44,7 +44,7 @@ RSpec.describe 'UserPreferences', type: :request do
   # One page of sections (user, 2026-11-12): the head of the application, every
   # section a form of its own, a change saved at once.
   describe 'GET /user_preferences/edit: the page' do
-    let(:autosaved) { %w[general tickets meetings datetime language session] }
+    let(:sections) { UserPreferencesController::SECTIONS }
 
     before do
       user.update!(first_name: 'Lena', last_name: 'Beispiel')
@@ -58,22 +58,21 @@ RSpec.describe 'UserPreferences', type: :request do
 
     it 'lists its sections in one order, each under the anchor other pages link to' do
       expect(page.css('main section[id]').map { |section| section['id'] })
-        .to eq((%w[display] + autosaved).map { |key| "section-#{key}" })
+        .to eq(sections.map { |key| "section-#{key}" })
       expect(page.css('main section h2').map { |h2| h2.text.squish })
-        .to eq(%w[profile general tickets meetings datetime language session]
-                 .map { |key| I18n.t("user_preferences.edit.sections.#{key}") })
+        .to eq(sections.map { |key| I18n.t("user_preferences.edit.sections.#{key}") })
     end
 
     it 'gives every section a form of its own that names the section' do
-      (%w[display] + autosaved).each do |key|
+      sections.each do |key|
         forms = page.css("#section-#{key} form")
         expect(forms.size).to eq(1), key
         expect(forms.first.at_css('input[name="current_section"]')['value']).to eq(key)
       end
     end
 
-    it 'saves a change at once in every section but the profile, and keeps a button for a browser without scripts' do
-      autosaved.each do |key|
+    it 'saves a change at once in every section, and keeps a button for a browser without scripts' do
+      sections.each do |key|
         section = page.at_css("#section-#{key}")
         expect(section['data-controller']).to eq('preferences-autosave'), key
         expect(section.at_css('form')['data-action']).to eq('change->preferences-autosave#save'), key
@@ -81,12 +80,15 @@ RSpec.describe 'UserPreferences', type: :request do
         expect(section.at_css('noscript button[type="submit"]')).to be_present, key
         expect(section.css('form > button, form > div > button[type="submit"]')).to be_empty, key
       end
+    end
 
-      profile = page.at_css('#section-display')
-      expect(profile['data-controller']).to be_nil
-      expect(profile.at_css('noscript')).to be_nil
-      expect(profile.css('button[type="submit"]').map { |button| button.text.squish })
-        .to eq([I18n.t('user_preferences.edit.actions.save_profile')])
+    # A preference says how the application behaves for the person. What the others
+    # see of them (picture, shown email) stands on the account's profile tab since
+    # 2026-11-12, and the API tokens are a function with an entry of their own.
+    it 'holds neither the picture nor the email for the others' do
+      expect(response.body).not_to include('user[avatar]')
+      expect(response.body).not_to include('user[email_visibility]')
+      expect(response.body).not_to include('user[contact_email]')
     end
 
     it 'holds no API tokens: they are a function with an entry of their own' do
@@ -103,6 +105,12 @@ RSpec.describe 'UserPreferences', type: :request do
 
         expect(response).to redirect_to(section_path(key))
       end
+    end
+
+    it 'sends the former profile page on to the account, where picture and shown email are' do
+      get '/user_preferences/display'
+
+      expect(response).to redirect_to(edit_user_registration_path(anchor: 'section-display'))
     end
 
     it 'leads every anchor to a section the page has' do
@@ -223,19 +231,19 @@ RSpec.describe 'UserPreferences', type: :request do
     end
 
     context 'when updating name_display (name display S1)' do
-      it 'persists a valid value and redirects back to the display section' do
+      it 'persists a valid value and redirects back to its section' do
         patch user_preferences_path, params: {
-          current_section: 'display',
+          current_section: 'general',
           preferences: { name_display: 'first_last_initial' }
         }
 
-        expect(response).to redirect_to(section_path('display'))
+        expect(response).to redirect_to(section_path('general'))
         expect(user.reload.preferences['name_display']).to eq('first_last_initial')
       end
 
       it "drops the legacy 'circle' value (the picture stopped being a mode on 05.09.2026)" do
         patch user_preferences_path, params: {
-          current_section: 'display',
+          current_section: 'general',
           preferences: { name_display: 'circle' }
         }
 
@@ -245,19 +253,19 @@ RSpec.describe 'UserPreferences', type: :request do
 
       it 'discards an unknown value (whitelist hardening — same gate as the other enum prefs)' do
         patch user_preferences_path, params: {
-          current_section: 'display',
+          current_section: 'general',
           preferences: { name_display: 'gravatar' }
         }
 
         expect(user.reload.preferences).not_to have_key('name_display')
       end
 
-      it 'derives the display section from the param alone (no current_section)' do
+      it 'derives its section from the param alone (no current_section)' do
         patch user_preferences_path, params: {
           preferences: { name_display: 'initial_last' }
         }
 
-        expect(response).to redirect_to(section_path('display'))
+        expect(response).to redirect_to(section_path('general'))
         expect(user.reload.preferences['name_display']).to eq('initial_last')
       end
     end
@@ -565,7 +573,7 @@ RSpec.describe 'UserPreferences', type: :request do
     end
   end
 
-  describe 'the display section (name display S1)' do
+  describe 'the name display (S1), in the general section' do
     it 'shows the four mode options with the viewer name previewed' do
       user.update!(first_name: 'Guido', last_name: 'Boyke')
 

@@ -2729,14 +2729,12 @@ en:
       actions:
         reset_defaults: Reset to Defaults
         save: Save
-        save_profile: Save profile
       # The line beside a section's heading: a change saves at once.
       autosave:
         saved: Saved
         failed: Not saved
       # Headings of the sections of the one preferences page (user_preferences/edit).
       sections:
-        profile: Profile
         general: Display
         tickets: Tickets
         meetings: Meetings

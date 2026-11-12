@@ -1,54 +1,42 @@
-<%# locals: (key:, title:, intro: nil, autosave: true, multipart: false) %>
+<%# locals: (key:, title:, intro: nil) %>
 <%# One section of the preferences page (user_preferences/edit): a heading, an optional
     sentence, and ONE form that carries `current_section`, so a save touches this
     section's values and nothing else (UserPreferencesController#update).
 
-    autosave: true (every section but the profile): a change saves at once
-    (preferences_autosave_controller) and says so beside the heading. There is no button
-    to forget at the end of a long page. Without JavaScript the form is an ordinary one:
-    its button stands in <noscript>.
+    A change saves at once (preferences_autosave_controller) and says so beside the
+    heading. There is no button to forget at the end of a long page. Without JavaScript
+    the form is an ordinary one: its button stands in <noscript>.
 
-    autosave: false: the caller renders its own button (the profile picture is a file
-    with a crop, the contact address is typed; both want a deliberate save).
-
-    The id is the anchor other pages link to (`edit_user_preferences_path(anchor:)`,
-    UserPreferencesHelper#preferences_section_anchor). scroll-mt keeps the heading clear
-    of the phone's sticky header. %>
+    The id is the anchor other pages link to (`preferences_section_path`,
+    UserPreferencesHelper). scroll-mt keeps the heading clear of the phone's sticky
+    header. %>
 <% heading_id = "#{preferences_section_anchor(key)}-title" %>
-<% autosave_data = autosave ? {
-     controller: 'preferences-autosave',
-     preferences_autosave_saved_value: t('user_preferences.edit.autosave.saved'),
-     preferences_autosave_failed_value: t('user_preferences.edit.autosave.failed')
-   } : {} %>
 <%= tag.section id: preferences_section_anchor(key), aria: { labelledby: heading_id },
                 class: 'scroll-mt-20 border-t border-divider pt-6 first:border-t-0 first:pt-0',
-                data: autosave_data do %>
+                data: { controller: 'preferences-autosave',
+                        preferences_autosave_saved_value: t('user_preferences.edit.autosave.saved'),
+                        preferences_autosave_failed_value: t('user_preferences.edit.autosave.failed') } do %>
   <div class="flex items-baseline justify-between gap-4">
     <h2 id="<%= heading_id %>" class="text-base font-semibold text-heading"><%= title %></h2>
-    <% if autosave %>
-      <%# Empty until the first save. role="status" reads the result to a screen reader
-          without moving the focus off the field that was just changed. %>
-      <span role="status" class="text-xs text-muted" data-preferences-autosave-target="status"></span>
-    <% end %>
+    <%# Empty until the first save. role="status" reads the result to a screen reader
+        without moving the focus off the field that was just changed. %>
+    <span role="status" class="text-xs text-muted" data-preferences-autosave-target="status"></span>
   </div>
   <% if intro.present? %>
     <p class="mt-1 text-sm text-muted"><%= intro %></p>
   <% end %>
 
-  <% form_data = { turbo: false } %>
-  <% form_data.merge!(preferences_autosave_target: 'form', action: 'change->preferences-autosave#save') if autosave %>
-  <%= form_with url: user_preferences_path, method: :patch, local: true, multipart: multipart,
-                data: form_data, class: 'mt-4 space-y-5' do %>
+  <%= form_with url: user_preferences_path, method: :patch, local: true,
+                data: { turbo: false, preferences_autosave_target: 'form', action: 'change->preferences-autosave#save' },
+                class: 'mt-4 space-y-5' do %>
     <%= hidden_field_tag 'current_section', key, id: nil %>
     <%= yield %>
-    <% if autosave %>
-      <noscript>
-        <div class="flex justify-end">
-          <%= render Neo::Buttons::ButtonComponent.new(variant: :secondary, size: :medium, tag: :button, type: 'submit') do %>
-            <%= t('user_preferences.edit.actions.save') %>
-          <% end %>
-        </div>
-      </noscript>
-    <% end %>
+    <noscript>
+      <div class="flex justify-end">
+        <%= render Neo::Buttons::ButtonComponent.new(variant: :secondary, size: :medium, tag: :button, type: 'submit') do %>
+          <%= t('user_preferences.edit.actions.save') %>
+        <% end %>
+      </div>
+    </noscript>
   <% end %>
 <% end %>

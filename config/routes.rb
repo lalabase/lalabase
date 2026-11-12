@@ -188,6 +188,8 @@ Rails.application.routes.draw do
   # tab is a page of its own, its form still PUTs to Devise's registration.
   devise_scope :user do
     get 'users/edit/password', to: 'users/registrations#edit_password', as: :edit_user_registration_password
+    # The profile tab's second form: picture and shown email, without the password.
+    patch 'users/edit/display', to: 'users/registrations#update_display', as: :user_registration_display
   end
 
   # Self-service account deletion (outside organization scope), the account's third tab
@@ -208,9 +210,11 @@ Rails.application.routes.draw do
   # bookmark and a link in an old mail still land on the setting.
   resource :user_preferences, only: %i[edit update] do
     member do
-      %w[general display tickets meetings datetime language session].each do |section|
+      %w[general tickets meetings datetime language session].each do |section|
         get section, to: redirect("/user_preferences/edit#section-#{section}")
       end
+      # Picture and shown email moved on to the account's profile tab.
+      get :display, to: redirect('/users/edit#section-display')
       get :general_show, to: redirect('/user_preferences/edit#section-general')
       get :datetime_show, to: redirect('/user_preferences/edit#section-datetime')
       get :language_show, to: redirect('/user_preferences/edit#section-language')

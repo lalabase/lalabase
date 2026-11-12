@@ -21,7 +21,7 @@
         path: edit_user_registration_path,
         icon: 'bi bi-person-fill',
         hover_color: '#f5f1ea',
-        active: [edit_user_registration_path, edit_user_registration_password_path, new_account_deletion_path].include?(request.path) %>
+        active: [edit_user_registration_path, edit_user_registration_password_path, new_account_deletion_path, user_registration_display_path].include?(request.path) %>
 
       <%# Billing accounts (K1 revised): the area hangs on the account, not on an
           organisation, and this navigation is the only one that renders without a tenant

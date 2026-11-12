@@ -48,7 +48,6 @@ RSpec.describe 'page width guard' do
       'app/views/billing_accounts/index.html.erb' => 1,
       'app/views/organisations/accept_invitations/show.html.erb' => 1,
       'app/views/organisations/ai_configurations/show.html.erb' => 5,
-      'app/views/organisations/ai_protocols/show.html.erb' => 2,
       'app/views/organisations/ai_settings/confirm_package.html.erb' => 1,
       'app/views/organisations/ai_settings/show.html.erb' => 2,
       'app/views/organisations/ai_usages/show.html.erb' => 2,

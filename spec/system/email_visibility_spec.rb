@@ -30,10 +30,10 @@ RSpec.describe 'Choosing the email the others see', type: :system do
   end
 
   def choose_and_save(choice, address: nil)
-    visit display_user_preferences_path
+    visit edit_user_preferences_path
     choose I18n.t("user_preferences.edit.display.email_visibility.#{choice}", email: lena.email)
     fill_in I18n.t('user_preferences.edit.display.email_visibility.contact_label'), with: address if address
-    click_button I18n.t('user_preferences.edit.actions.save')
+    click_button I18n.t('user_preferences.edit.actions.save_profile')
     expect(page).to have_text(I18n.t('user_preferences.settings_updated'))
   end
 

@@ -1,90 +1,116 @@
 # frozen_string_literal: true
 
 class UserPreferencesController < ApplicationController
+  include UserPreferencesHelper
+
   before_action :authenticate_user!
   skip_before_action :load_tenant_from_session
 
-  # The section name selects the template to render, so only these are accepted.
+  # The sections of the one preferences page (user_preferences/edit). A save names its
+  # section in `current_section` and touches that section's values only; the name is
+  # also the anchor an answer leads back to, so only these are accepted.
   SECTIONS = %w[general display tickets meetings datetime language session].freeze
 
   # GET /user_preferences/edit
-  # GET /user_preferences/general
-  # GET /user_preferences/datetime
-  # GET /user_preferences/language
+  # One page for every section since 2026-11-12. The old section addresses
+  # (/user_preferences/tickets, ...) redirect to its anchors (config/routes.rb).
   def edit
     @user = current_user
-    # Looked up inline (not via known_section) so Brakeman sees the allowlist.
-    @current_section = SECTIONS.find { |section| section == params[:section] } || 'general'
     ensure_preferences_structure
-    render @current_section
   end
 
   # PATCH /user_preferences
+  # Answers a form with a redirect to the section's anchor, and a script (the page's
+  # autosave, the pagination's page size, the ticket's collapse choice) with JSON:
+  # `success`, on success `items_per_page` and `reload` (true when the page the reader
+  # looks at is stale now: another language, another session length in the layout).
   def update
     # Determine which section the user is actively editing (hidden field has priority)
     section = determine_current_section_from_params
 
-    # Handle session timeout preference separately (column on users, not in preferences JSON)
-    if section == 'session' && user_param_hash? && params[:user].key?(:session_timeout_minutes)
-      new_timeout = params[:user][:session_timeout_minutes].to_i
-      if current_user.update(session_timeout_minutes: new_timeout)
-        redirect_to session_user_preferences_path, notice: t('user_preferences.settings_updated')
-      else
-        redirect_to session_user_preferences_path, alert: t('user_preferences.settings_update_failed')
-      end
-      return
-    end
+    # Session length: a column on users, not in the preferences JSON.
+    return update_session_timeout if section == 'session' && user_param_hash? && params[:user].key?(:session_timeout_minutes)
 
     # Profile picture (display section): an attachment on users, not a JSONB
     # pref. Lives HERE and not in the Devise profile on purpose - Devise's
     # update_with_password demanded the current password for every picture
     # change (user decision 04.09.2026). Applied BEFORE the JSONB prefs so one
-    # submit can carry both; a failed picture keeps the section rendered with
+    # submit can carry both; a failed picture keeps the page rendered with
     # the model's own error message.
     # The picture and which email the others see (User::EmailDisplay) are
     # columns and an attachment on users, saved here in ONE update, so a
     # refused part leaves nothing half saved.
     return if section == 'display' && user_param_hash? && !apply_display_update
 
-    # Handle language preference separately
-    if section == 'language' && user_param_hash? && params[:user].key?(:language_preference)
-      new_lang = user_params[:language_preference]
-      if new_lang.present? && new_lang != current_user.language_preference
-        if current_user.update(user_params)
-          I18n.locale = current_user.language_preference.to_sym
-          redirect_to language_user_preferences_path, notice: t('user_preferences.language_updated')
-        else
-          redirect_to language_user_preferences_path, alert: t('user_preferences.language_update_failed')
-        end
-      else
-        # No change – redirect back to language section with generic success
-        redirect_to language_user_preferences_path, notice: t('user_preferences.settings_updated')
-      end
-      return
-    end
+    return update_language if section == 'language' && user_param_hash? && params[:user].key?(:language_preference)
 
     if User::PreferencesForm.new(current_user).update(preference_params)
-      redirect_path = determine_redirect_path
-
-      respond_to do |format|
-        format.json { render json: { success: true, items_per_page: current_user.items_per_page_preference } }
-        format.html { redirect_to redirect_path, notice: t('user_preferences.settings_updated') }
-      end
+      respond_saved(section)
     else
       respond_to do |format|
         format.json { render json: { success: false, errors: current_user.errors.full_messages }, status: :unprocessable_entity }
         format.html do
           flash.now[:alert] = t('user_preferences.settings_update_failed')
-          @user = current_user
-          @current_section = determine_current_section_from_params
-          ensure_preferences_structure
-          render @current_section, status: :unprocessable_entity
+          render_page_again
         end
       end
     end
   end
 
   private
+
+  def update_session_timeout
+    new_timeout = params[:user][:session_timeout_minutes].to_i
+    changed = new_timeout != current_user.session_timeout_minutes
+    if current_user.update(session_timeout_minutes: new_timeout)
+      # The layout counts down to the old length until it is rendered again.
+      respond_saved('session', reload: changed)
+    else
+      respond_refused('session', alert: t('user_preferences.settings_update_failed'))
+    end
+  end
+
+  def update_language
+    new_lang = user_params[:language_preference]
+    # No change: nothing to write, and nothing on the page is stale.
+    return respond_saved('language') unless new_lang.present? && new_lang != current_user.language_preference
+
+    if current_user.update(user_params)
+      I18n.locale = current_user.language_preference.to_sym
+      respond_saved('language', notice: t('user_preferences.language_updated'), reload: true)
+    else
+      respond_refused('language', alert: t('user_preferences.language_update_failed'))
+    end
+  end
+
+  # A script that is told to reload gets the notice on the page it loads next: the
+  # line beside the section's heading does not survive the reload.
+  def respond_saved(section, notice: t('user_preferences.settings_updated'), reload: false)
+    respond_to do |format|
+      format.json do
+        flash[:notice] = notice if reload
+        render json: { success: true, reload: reload, items_per_page: current_user.items_per_page_preference }
+      end
+      format.html { redirect_to preferences_section_path(section), notice: notice }
+    end
+  end
+
+  def respond_refused(section, alert:)
+    respond_to do |format|
+      format.json do
+        render json: { success: false, errors: current_user.errors.full_messages.presence || [alert] },
+               status: :unprocessable_entity
+      end
+      format.html { redirect_to preferences_section_path(section), alert: alert }
+    end
+  end
+
+  # The whole page again after a refused save (422), with what the user holds now.
+  def render_page_again
+    @user = current_user
+    ensure_preferences_structure
+    render :edit, status: :unprocessable_entity
+  end
 
   def user_params
     params.require(:user).permit(:language_preference, :session_timeout_minutes)
@@ -116,12 +142,12 @@ class UserPreferencesController < ApplicationController
     permitted.to_h
   end
 
-  # The display section again, with the model's own error messages (422).
+  # The page again, with the model's own error messages (422).
   # Returns false, the answer of a refused update.
   def render_display_errors
     # respond_to, not a bare render: this controller answers JSON too (see the
-    # preferences branch above), and `render 'display'` on a JSON request looks
-    # for display.json and raises MissingTemplate — a 500 exactly where the
+    # preferences branch above), and a bare render on a JSON request looks
+    # for edit.json and raises MissingTemplate — a 500 exactly where the
     # caller asked for an error message.
     respond_to do |format|
       format.json do
@@ -130,10 +156,7 @@ class UserPreferencesController < ApplicationController
       end
       format.html do
         flash.now[:alert] = current_user.errors.full_messages.to_sentence
-        @user = current_user
-        @current_section = 'display'
-        ensure_preferences_structure
-        render 'display', status: :unprocessable_entity
+        render_page_again
       end
     end
     false
@@ -146,30 +169,6 @@ class UserPreferencesController < ApplicationController
   # instead, so the shape is checked in ONE place rather than four.
   def user_param_hash?
     params[:user].is_a?(ActionController::Parameters)
-  end
-
-  def redirect_path
-    params[:redirect_to].presence || root_path
-  end
-
-  def determine_redirect_path
-    section = determine_current_section_from_params
-    case section
-    when 'tickets'
-      tickets_user_preferences_path
-    when 'meetings'
-      meetings_user_preferences_path
-    when 'datetime'
-      datetime_user_preferences_path
-    when 'display'
-      display_user_preferences_path
-    when 'language'
-      language_user_preferences_path
-    when 'session'
-      session_user_preferences_path
-    else
-      general_user_preferences_path
-    end
   end
 
   def known_section(value)

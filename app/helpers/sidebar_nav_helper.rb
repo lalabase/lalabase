@@ -3,7 +3,7 @@
 # The look of one sidebar row, handed out from one place.
 #
 # It was written out by hand at five call sites (_navigation_item,
-# _global_search_nav_item, _account_nav_subitem, the assistant button in
+# _global_search_nav_item, the assistant button in
 # _navigation_application, NeoSidebarProjectItemComponent). Every one of them
 # carried the same class string, and when the shell went one step darker
 # (designer, 07.09.2026) every one of them had to be corrected in the same way.

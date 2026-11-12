@@ -23,7 +23,7 @@ RSpec.describe 'Account page: who sees the email', type: :request do
 
     expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.login',
                                         email: 'login@example.com'))
-    expect(hint.at_css('a')['href']).to eq(display_user_preferences_path)
+    expect(hint.at_css('a')['href']).to eq(edit_user_preferences_path(anchor: 'section-display'))
     expect(hint.at_css('a').text).to eq(I18n.t('views.devise.registrations.edit.shown_email.change'))
   end
 
@@ -35,7 +35,7 @@ RSpec.describe 'Account page: who sees the email', type: :request do
     expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.contact',
                                         email: 'contact@example.com'))
     expect(hint.text).to include('contact@example.com')
-    expect(hint.at_css('a')['href']).to eq(display_user_preferences_path)
+    expect(hint.at_css('a')['href']).to eq(edit_user_preferences_path(anchor: 'section-display'))
   end
 
   it 'says that others see no email when the member shows none' do
@@ -45,7 +45,7 @@ RSpec.describe 'Account page: who sees the email', type: :request do
 
     expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.none'))
     expect(hint.text).not_to include('login@example.com')
-    expect(hint.at_css('a')['href']).to eq(display_user_preferences_path)
+    expect(hint.at_css('a')['href']).to eq(edit_user_preferences_path(anchor: 'section-display'))
   end
 
   %i[de en].each do |locale|
@@ -99,9 +99,7 @@ RSpec.describe 'Account page: who sees the email', type: :request do
     expect(I18n.t('navigation.profile', locale: :en)).to eq('Account')
     expect(I18n.t('views.devise.registrations.edit.title', locale: :de)).to eq('Account')
     expect(I18n.t('views.devise.registrations.edit.title', locale: :en)).to eq('Account')
-    expect(I18n.t('navigation.settings_display', locale: :de)).to eq('Profil')
-    expect(I18n.t('navigation.settings_display', locale: :en)).to eq('Profile')
-    expect(I18n.t('user_preferences.edit.display.title', locale: :de)).to eq('Profil')
-    expect(I18n.t('user_preferences.edit.display.title', locale: :en)).to eq('Profile')
+    expect(I18n.t('user_preferences.edit.sections.profile', locale: :de)).to eq('Profil')
+    expect(I18n.t('user_preferences.edit.sections.profile', locale: :en)).to eq('Profile')
   end
 end

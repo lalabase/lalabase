@@ -41,8 +41,9 @@
     <% if policy(TimeSession).index? %>
       <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-clock', aria: { hidden: true }), content_tag(:span, t('mobile.my_times'))]), organisation_time_sessions_path(current_organisation, creator_id: current_user.id) %></li>
     <% end %>
-    <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-person-gear', aria: { hidden: true }), content_tag(:span, t('navigation.preferences'))]), general_user_preferences_path %></li>
+    <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-person-gear', aria: { hidden: true }), content_tag(:span, t('navigation.preferences'))]), edit_user_preferences_path %></li>
     <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-download', aria: { hidden: true }), content_tag(:span, t('navigation.data_export'))]), user_data_export_path %></li>
+    <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-key', aria: { hidden: true }), content_tag(:span, t('navigation.settings_api_tokens'))]), users_personal_access_tokens_path %></li>
     <% if changelog_in_navigation? %>
       <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-megaphone', aria: { hidden: true }), content_tag(:span, changelog_nav_label(changelog_has_unread?(current_user)))]), organisation_changelog_path(current_organisation) %></li>
     <% end %>

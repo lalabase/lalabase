@@ -50,7 +50,7 @@ RSpec.describe 'User preferences avatar', type: :request do
   end
 
   it 'shows the upload spot and the crop tool skeleton in the display section' do
-    get display_user_preferences_path
+    get edit_user_preferences_path
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include(I18n.t('user_preferences.edit.display.avatar.label'))
@@ -65,7 +65,7 @@ RSpec.describe 'User preferences avatar', type: :request do
       user: { avatar: png_upload }
     }
 
-    expect(response).to redirect_to(display_user_preferences_path)
+    expect(response).to redirect_to(edit_user_preferences_path(anchor: 'section-display'))
     expect(user.reload.avatar).to be_attached
     expect(user.preference_store.name_display_mode).to eq('first_last_initial')
   end
@@ -196,7 +196,7 @@ RSpec.describe 'User preferences avatar', type: :request do
       user: 'not-a-hash'
     }
 
-    expect(response).to redirect_to(display_user_preferences_path)
+    expect(response).to redirect_to(edit_user_preferences_path(anchor: 'section-display'))
     expect(user.reload.preference_store.name_display_mode).to eq('first_last_initial')
   end
 end

@@ -88,7 +88,7 @@ class User < ApplicationRecord
 
   # Allowed per-user session-timeout values (minutes). DELIBERATELY defined on
   # the User class, NOT inside User::Authenticatable: it is referenced externally
-  # as User::ALLOWED_SESSION_TIMEOUTS (app/views/user_preferences/session.html.erb).
+  # as User::ALLOWED_SESSION_TIMEOUTS (app/views/user_preferences/edit.html.erb).
   # User::Authenticatable's session_timeout_minutes validation resolves the
   # bareword to this constant via lexical nesting, so it must be defined BEFORE
   # that concern is included.

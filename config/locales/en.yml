@@ -1448,13 +1448,6 @@ en:
     search_project: Search project...
     select_organisation_prompt: Please select an organisation
     settings: Settings
-    settings_general: General
-    settings_display: Profile
-    settings_tickets: Tickets
-    settings_meetings: Meetings
-    settings_datetime: Date/Time
-    settings_language: Language
-    settings_session: Session duration
     settings_api_tokens: API Tokens
     management: Management
     management_back: Back
@@ -2736,6 +2729,20 @@ en:
       actions:
         reset_defaults: Reset to Defaults
         save: Save
+        save_profile: Save profile
+      # The line beside a section's heading: a change saves at once.
+      autosave:
+        saved: Saved
+        failed: Not saved
+      # Headings of the sections of the one preferences page (user_preferences/edit).
+      sections:
+        profile: Profile
+        general: Display
+        tickets: Tickets
+        meetings: Meetings
+        datetime: Date and time
+        language: Language
+        session: Session
       datetime:
         custom_format_label: "Custom Format"
         format_codes_hint: "Format codes: %d = day, %m = month, %Y = year, %H = hour, %M = minute"
@@ -2756,7 +2763,7 @@ en:
           description: Enable this option to use the global format everywhere
           label: Use global format for all areas
       display:
-        intro: "Others in your organisations see your profile picture and your email. How names are spelled only affects your own view."
+        intro: "Others in your organisations see your profile picture and your email."
         avatar:
           label: Profile picture
           hint: PNG, JPEG or WebP, up to %{max_megabytes} MB. Always shown next to your name, e.g. on comments and in lists; without a picture your initials appear there.
@@ -2776,7 +2783,7 @@ en:
           full: Full name
           first_last_initial: First name and abbreviated last name
           initial_last: Abbreviated first name and last name
-          description: "The preview next to each option shows your own name in that spelling."
+          description: "Only affects your own view. The preview next to each option shows your own name in that spelling."
         title: Profile
       general:
         future_settings: Additional general settings will be available here in the future.
@@ -2793,9 +2800,9 @@ en:
         intro: "This setting controls how participants are detected when you paste a meeting transcript. It applies across all organisations and projects."
         detection_mode:
           label: "Detection mode for transcripts"
-          offline: "Offline (default) — detection stays in the browser"
-          ai: "AI mode — the transcript is transferred to the AI provider for detection"
-          description: "In offline mode the transcript never leaves the browser for participant detection; AI detection can be triggered per meeting via a button. In AI mode a pasted transcript is automatically transferred to the AI provider for detection. AI mode only takes effect in organisations with activated AI features — the organisation setting always takes precedence."
+          offline: "Offline (default): detection stays in the browser"
+          ai: "AI mode: the transcript is transferred to the AI provider for detection"
+          description: "In offline mode the transcript never leaves the browser for participant detection; AI detection can be triggered per meeting via a button. In AI mode a pasted transcript is automatically transferred to the AI provider for detection. AI mode only takes effect in organisations with activated AI features. The organisation setting always takes precedence."
           ai_unavailable_hint: "AI mode is currently not selectable: none of your organisations has AI features activated and configured."
       tickets:
         intro: "These preferences apply to your ticket view across all projects. Per-project columns and fields are configured directly on a ticket via “Customize detail view”."

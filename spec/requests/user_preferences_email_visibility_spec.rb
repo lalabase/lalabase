@@ -17,7 +17,7 @@ RSpec.describe 'User preferences: the email the others see', :ci_guard, type: :r
   end
 
   it 'offers the three choices and the contact address in the display section' do
-    get display_user_preferences_path
+    get edit_user_preferences_path
 
     expect(response).to have_http_status(:ok)
     User::EmailDisplay::EMAIL_VISIBILITIES.each do |choice|
@@ -35,7 +35,7 @@ RSpec.describe 'User preferences: the email the others see', :ci_guard, type: :r
     it "preselects #{choice} when the member chose it" do
       user.update!(email_visibility: choice, contact_email: 'team@example.com')
 
-      get display_user_preferences_path
+      get edit_user_preferences_path
 
       expect(response.body).to include(%(value="#{choice}" checked="checked"))
       expect(response.body).not_to include('value="login" checked')
@@ -44,7 +44,7 @@ RSpec.describe 'User preferences: the email the others see', :ci_guard, type: :r
 
   it 'keeps none when the section is saved again with its preselected form values' do
     user.update!(email_visibility: 'none')
-    get display_user_preferences_path
+    get edit_user_preferences_path
     form = Nokogiri::HTML(response.body)
     chosen = form.at_css('input[name="user[email_visibility]"][checked]')['value']
 
@@ -57,7 +57,7 @@ RSpec.describe 'User preferences: the email the others see', :ci_guard, type: :r
   it 'saves a contact address without the current password' do
     save(email_visibility: 'contact', contact_email: 'team@example.com')
 
-    expect(response).to redirect_to(display_user_preferences_path)
+    expect(response).to redirect_to(edit_user_preferences_path(anchor: 'section-display'))
     expect(user.reload).to have_attributes(email_visibility: 'contact', contact_email: 'team@example.com',
                                            email: 'login@example.com')
   end

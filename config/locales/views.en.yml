@@ -34,7 +34,7 @@ en:
         title: Session duration
         subtitle: How long you stay logged in while you're not actively using the app.
         label: Log me out after
-        hint: Longer sessions are more convenient but less secure — especially on shared devices.
+        hint: Longer sessions are more convenient but less secure, especially on shared devices.
         save: Save
         options:
           '30': 30 minutes (default)

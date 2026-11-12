@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-08)
+# Karte: app/javascript/controllers (Stand: 2026-11-12)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -133,6 +133,13 @@ Konventionen:
 * `filter_bar` ist die EINE Filterleiste (Reiter, Pillen, Speicherzeile; Zustand kommt aus der
   Adresse, Logik in `lib/filter_bar/change_set.js`). Die eingefrorene Kopie `filter_bar_legacy`
   samt `lib/filter_bar_legacy/` und dem Nutzer-Flag ist am 07.09.2026 gelöscht.
+* `preferences_autosave` (12.11.2026) sitzt an jedem Abschnitt der Präferenzen-Seite
+  (`user_preferences/_section`): eine Änderung schickt das Formular des Abschnitts sofort
+  (JSON), das Ergebnis steht neben der Überschrift. Antwortet der Server `reload: true`
+  (andere Sprache, andere Session-Dauer), lädt die Seite neu. Ohne JS sendet der Knopf im
+  `<noscript>`. `user_preferences` (Datum/Zeit) arbeitet ihm zu: ein abgelehntes Format wird
+  per `setCustomValidity` ungültig und nicht gesendet, eine ausgeblendete Zeile wird wieder
+  gültig. Browser-Spec: `spec/system/preferences_page_spec.rb`.
 * Echte Duplikate/Leichen wurden 2026-07-13 gelöscht (`sort`, `search_clear`, `search_input`,
   `permission_radio`, `neo_grouped_notification`, `.disabled`-Dateien) — der Census-Guard
   meldet neue.

@@ -80,7 +80,7 @@ RSpec.describe 'The language of a request', type: :request do
     it 'lets a valid query locale win over the signed-in profile' do
       sign_in create(:user, language_preference: 'de')
 
-      get language_user_preferences_path, params: { locale: 'en' }
+      get edit_user_preferences_path, params: { locale: 'en' }
 
       expect(page_language).to eq('en')
     end
@@ -145,7 +145,7 @@ RSpec.describe 'The language of a request', type: :request do
     it 'keeps a signed-in profile ahead of the browser language' do
       sign_in create(:user, language_preference: 'de')
 
-      get language_user_preferences_path, headers: { 'HTTP_ACCEPT_LANGUAGE' => 'en' }
+      get edit_user_preferences_path, headers: { 'HTTP_ACCEPT_LANGUAGE' => 'en' }
 
       expect(page_language).to eq('de')
     end
@@ -211,7 +211,7 @@ RSpec.describe 'The language of a request', type: :request do
     get english_page
     thread_left_in(:en)
 
-    get language_user_preferences_path
+    get edit_user_preferences_path
 
     expect(response.body).to include(I18n.t('user_preferences.language.interface_description', locale: :de))
   end

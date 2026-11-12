@@ -202,20 +202,18 @@ Rails.application.routes.draw do
     get :download
   end
 
-  # User preferences (outside organization scope for global settings)
+  # User preferences (outside organization scope for global settings). One page of
+  # sections since 2026-11-12 (/user_preferences/edit). The addresses of the former
+  # section pages and the older "show" ones redirect to their section's anchor, so a
+  # bookmark and a link in an old mail still land on the setting.
   resource :user_preferences, only: %i[edit update] do
     member do
-      get :general, action: :edit, defaults: { section: 'general' }
-      get :display, action: :edit, defaults: { section: 'display' }
-      get :tickets, action: :edit, defaults: { section: 'tickets' }
-      get :meetings, action: :edit, defaults: { section: 'meetings' }
-      get :datetime, action: :edit, defaults: { section: 'datetime' }
-      get :language, action: :edit, defaults: { section: 'language' }
-      get :session, action: :edit, defaults: { section: 'session' }
-      # Backward-compatibility redirects for old show routes
-      get :general_show, to: redirect('/user_preferences/general')
-      get :datetime_show, to: redirect('/user_preferences/datetime')
-      get :language_show, to: redirect('/user_preferences/language')
+      %w[general display tickets meetings datetime language session].each do |section|
+        get section, to: redirect("/user_preferences/edit#section-#{section}")
+      end
+      get :general_show, to: redirect('/user_preferences/edit#section-general')
+      get :datetime_show, to: redirect('/user_preferences/edit#section-datetime')
+      get :language_show, to: redirect('/user_preferences/edit#section-language')
     end
   end
 

@@ -82,6 +82,29 @@ RSpec.describe 'UserPreferences', type: :request do
       end
     end
 
+    # The outline of the page (shared/_page_outline, F46): one link per section, in the
+    # page's order, each to an anchor the page has. Plain #anchors, so the jump works
+    # without a script; the script only marks the current one.
+    it 'lists its sections in an outline that leads to each of them' do
+      outline = page.at_css("main nav.page-outline[aria-label='#{I18n.t('navigation.on_this_page')}']")
+      links = outline.css('a')
+
+      expect(links.map { |link| link.text.squish })
+        .to eq(sections.map { |key| I18n.t("user_preferences.edit.sections.#{key}") })
+      expect(links.map { |link| link['href'] }).to eq(sections.map { |key| "#section-#{key}" })
+      links.each { |link| expect(page.at_css("main section#{link['href']}")).to be_present, link['href'] }
+      expect(outline['data-controller']).to eq('page-outline')
+      # No link is marked by the server: which section is current is known in the browser only.
+      expect(outline.css('[aria-current]')).to be_empty
+    end
+
+    it 'puts the outline before the sections, so the keyboard reaches it first' do
+      order = page.css('main nav.page-outline, main section[id]').map(&:name)
+
+      expect(order.first).to eq('nav')
+      expect(order.count('nav')).to eq(1)
+    end
+
     # A preference says how the application behaves for the person. What the others
     # see of them (picture, shown email) stands on the account's profile tab since
     # 2026-11-12, and the API tokens are a function with an entry of their own.

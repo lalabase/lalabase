@@ -25,6 +25,9 @@ pin 'meeting_project_select', to: 'lib/meeting_project_select.js'
 # NeoAutosuggest's server search (the ticket picker of the "Link" modal): confirmed
 # choice, request sequence, debounce and abort, pure so spec/javascript can test them.
 pin 'autosuggest_search', to: 'lib/autosuggest_search.js'
+# The page outline: which section of a long page is current, pure so
+# spec/javascript can test it.
+pin 'page_outline', to: 'lib/page_outline.js'
 pin 'rich_text_embed_accept', to: 'lib/rich_text_embed_accept.js'
 pin 'rich_text_zoom', to: 'lib/rich_text_zoom.js'
 pin 'form_snapshot', to: 'lib/form_snapshot.js'
@@ -226,6 +229,7 @@ else
   pin 'controllers/note_actions_controller', to: 'controllers/note_actions_controller.js'
   pin 'controllers/notification_count_data_controller', to: 'controllers/notification_count_data_controller.js'
   pin 'controllers/notification_count_listener_controller', to: 'controllers/notification_count_listener_controller.js'
+  pin 'controllers/page_outline_controller', to: 'controllers/page_outline_controller.js'
   pin 'controllers/pane_mark_read_delay_controller', to: 'controllers/pane_mark_read_delay_controller.js'
   pin 'controllers/participant_link_modal_controller', to: 'controllers/participant_link_modal_controller.js'
   pin 'controllers/person_details_controller', to: 'controllers/person_details_controller.js'

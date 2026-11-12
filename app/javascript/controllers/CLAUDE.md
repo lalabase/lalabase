@@ -140,6 +140,16 @@ Konventionen:
   `<noscript>`. `user_preferences` (Datum/Zeit) arbeitet ihm zu: ein abgelehntes Format wird
   per `setCustomValidity` ungültig und nicht gesendet, eine ausgeblendete Zeile wird wieder
   gültig. Browser-Spec: `spec/system/preferences_page_spec.rb`.
+* `page_outline` (12.11.2026) sitzt an der Sprungliste einer langen Seite
+  (`shared/_page_outline`, Belegungstabelle F46; heute die Präferenzen): die Links sind
+  schlichte `#anker`, der Controller setzt nur die Marke (`aria-current="location"`),
+  gezeichnet wird sie in `components/page_outline.css`. Welcher Abschnitt dran ist,
+  entscheidet `lib/page_outline.js` (Pin `page_outline`, node-Tests): der letzte über der
+  Leselinie, am Seitenende der letzte, und ein eben gewählter bleibt, solange er im Fenster
+  steht und niemand von Hand weiterscrollt (`wheel`, `touchmove`, `keydown`).
+  ⚠️ Turbo folgt einem Anker-Link derselben Seite selbst und meldet ein eigenes `hashchange`,
+  BEVOR es die Adresse ändert: das Ziel aus `event.newURL` lesen, nie aus `window.location`.
+  ⚠️ Nicht auf einer Bahn-Seite (siehe oben: dort `scroll_into_view`).
 * Echte Duplikate/Leichen wurden 2026-07-13 gelöscht (`sort`, `search_clear`, `search_input`,
   `permission_radio`, `neo_grouped_notification`, `.disabled`-Dateien) — der Census-Guard
   meldet neue.

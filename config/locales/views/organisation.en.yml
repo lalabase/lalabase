@@ -427,7 +427,7 @@ en:
         packages:
           title: AI package
           intro: A package decides which provider processes your organisation's chat and search, and under which jurisdiction that happens.
-          current_label_package: "Current: %{name} — %{description}"
+          current_label_package: "Current: %{name}"
           current_label_custom: "Current: own configuration"
           current_custom_hint: The organisation's own credentials apply, stored under "Own configuration".
           # doc/ki_zugang_umbau_plan.md D7, state Z3: neither a package nor own

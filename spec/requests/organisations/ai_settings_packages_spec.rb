@@ -360,10 +360,10 @@ RSpec.describe 'Organisations::AiSettings package catalogue (§7/§7.1)', type: 
 
       get organisation_ai_settings_path(organisation)
 
-      expect(response.body).to include(
-        rendered(I18n.t('views.organisations.ai_settings.packages.current_label_package',
-                        name: 'Europäisch',
-                        description: 'Chat und Suche werden in Frankreich von Mistral AI verarbeitet.'))
+      current = Nokogiri::HTML(response.body).at_css('#ai_packages > div')
+      expect(current.text.squish).to include(
+        I18n.t('views.organisations.ai_settings.packages.current_label_package', name: 'Europäisch'),
+        'Chat und Suche werden in Frankreich von Mistral AI verarbeitet.'
       )
     end
 

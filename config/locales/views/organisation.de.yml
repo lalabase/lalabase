@@ -430,7 +430,7 @@ de:
         packages:
           title: KI-Paket
           intro: Ein Paket legt fest, welcher Anbieter Chat und Suche Ihrer Organisation verarbeitet und in welchem Rechtsraum das geschieht.
-          current_label_package: "Aktuell: %{name} — %{description}"
+          current_label_package: "Aktuell: %{name}"
           current_label_custom: "Aktuell: Eigene Konfiguration"
           current_custom_hint: Es gelten die eigenen Zugangsdaten der Organisation, hinterlegt unter „Eigene Konfiguration".
           # doc/ki_zugang_umbau_plan.md D7, Zustand Z3: weder Paket noch eigene

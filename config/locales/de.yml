@@ -21,7 +21,6 @@ de:
     title: Account löschen
     warning_message: Diese Aktion kann nicht rückgängig gemacht werden. Ihr Account
       und alle damit verbundenen Daten werden dauerhaft gelöscht.
-    warning_title: Warnung
   activerecord:
     attributes:
       account:

@@ -184,7 +184,13 @@ Rails.application.routes.draw do
     unlocks: 'users/unlocks'
   }
 
-  # Self-service account deletion (outside organization scope)
+  # The account page has three tabs (profile, password, delete account); the password
+  # tab is a page of its own, its form still PUTs to Devise's registration.
+  devise_scope :user do
+    get 'users/edit/password', to: 'users/registrations#edit_password', as: :edit_user_registration_password
+  end
+
+  # Self-service account deletion (outside organization scope), the account's third tab
   resource :account_deletion, only: %i[new create]
 
   # Cancel account deletion

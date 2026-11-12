@@ -5,6 +5,9 @@ module Users
   class RegistrationsController < Devise::RegistrationsController
     layout :determine_layout
 
+    # The value of account_tab the password form sends (see #respond_with).
+    PASSWORD_TAB = 'password'
+
     # The flash each domain refusal of Actors::CreateSignup gets on the form.
     SIGNUP_REJECTIONS = {
       terms_not_accepted: 'flash.registrations.accept_terms',
@@ -19,6 +22,12 @@ module Users
     # this controller (pinned by
     # spec/requests/users/registrations_onboarding_spec.rb).
     protect_from_forgery with: :exception
+    # The password tab of the account page is Devise's edit with other fields, so it
+    # needs the same signed-in scope as #edit. ⚠️ Declaring the callback again REPLACES
+    # Devise's own declaration (Rails keeps one entry per callback name), so the list
+    # repeats Devise's three actions; with only: :edit_password, #edit and #update
+    # lost their resource.
+    prepend_before_action :authenticate_scope!, only: %i[edit update destroy edit_password] # rubocop:disable Rails/LexicallyScopedActionFilter -- edit, update and destroy are Devise's, inherited
     include BotTrapProtected
     skip_before_action :load_tenant_from_session
     before_action :configure_permitted_parameters, if: :devise_controller?
@@ -339,6 +348,12 @@ module Users
       ActiveModel::Type::Boolean.new.cast(user_form_scalar(:terms_accepted))
     end
 
+    # The account's password tab (GET /users/edit/password). Its form PUTs to #update
+    # like the profile form; ACCOUNT_TABS names which tab a refused form returns to.
+    def edit_password
+      render :edit_password
+    end
+
     def determine_layout
       # Werkstatt split screen (design handoff 3b) for the sign-up form; the
       # create branch covers Devise's own re-render on validation errors.
@@ -352,6 +367,19 @@ module Users
     end
 
     protected
+
+    # A refused update re-renders the tab the form came from. Devise answers a
+    # refused #update with `respond_with resource`, which renders :edit, the profile
+    # tab: a refused password change would come back with the password fields gone.
+    # The form names its tab in account_tab; anything else is the profile.
+    def refused_password_tab_update?
+      action_name == 'update' && params[:account_tab] == PASSWORD_TAB
+    end
+
+    def respond_with(*args, **options, &)
+      options = options.merge(render: { action: :edit_password }) if refused_password_tab_update?
+      super
+    end
 
     # :confirmable mails the instructions from an after_create callback, so the
     # skip has to happen BEFORE the save — build_resource is the hook that runs

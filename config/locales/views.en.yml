@@ -1069,10 +1069,13 @@ en:
             - Strong
           strength_rule: at least %{count} characters
       registrations:
+        tabs:
+          aria_label: Account sections
+          profile: Personal information
+          password: Password
+          delete: Delete account
         edit:
           title: Account
-          profile_section: Personal Information
-          password_section: Change Password
           first_name: First name
           last_name: Last name
           email_change_hint: A new address only takes effect once you click the confirmation link sent to it. Until then the current one stays active.
@@ -1083,16 +1086,13 @@ en:
             change: Change in your profile
           pending_confirmation: 'Waiting for confirmation for: %{email}'
           new_password: New password
-          leave_blank_password: Minimum 6 characters
+          password_min_length: At least %{count} characters
           confirm_new_password: Confirm new password
           current_password: Current password
           current_password_hint: required to confirm the changes
           save_profile: Save
           save_password: Change password
           save_changes: Save changes
-          danger_zone: Danger zone
-          delete_warning: Deleting your account cannot be undone.
-          delete_account: Delete account
         disabled:
           title: Registration not available
           existing_account_hint: If you already have an account, you can still log in. For questions, please contact the administrator.

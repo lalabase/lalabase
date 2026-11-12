@@ -111,9 +111,14 @@
         are decided CENTRALLY; returns only valid hex (no 'off' leak as a CSS value).
         The line is gated (only when a color is present) -> default orgs: no line -> pixel-identical. %>
     <% org_brand = current_user&.org_colors&.effective_color(@current_organisation) if user_signed_in? && @current_organisation %>
+    <%# The account layer rises over this sidebar on an organisation's page
+        (common/_account_layer, F47); sidebar_layer_controller sits on the aside because
+        it reaches the name at its foot, the layer and what the layer covers. %>
+    <% account_layer = user_signed_in? && @current_organisation.present? %>
     <aside id="sidebar"
       class="fixed inset-y-0 start-0 sidebar flex flex-col w-64 lg:min-w-64 h-screen overflow-hidden <%= 'bg-cream-200' unless org_brand %> border-r border-cream-300 <%= 'border-s-[3px] border-s-brand' if org_brand %> transition-all duration-500 ease-in-out -translate-x-full lg:translate-x-0 max-lg:z-sidebar rtl:translate-x-full lg:rtl:translate-x-0"
-      <% if org_brand %> style="background-color: <%= org_brand %>;"<% end %>>
+      <% if org_brand %> style="background-color: <%= org_brand %>;"<% end %>
+      <% if account_layer %> data-controller="sidebar-layer"<% end %>>
 
       <!-- Scrollable content container -->
       <div class="flex flex-col h-full">
@@ -137,6 +142,14 @@
           </div>
         </div>
 
+        <%# The stage: everything between the logo and the reader's name. ONE grid cell
+            that the sidebar's own content and the account layer share, so the layer
+            covers exactly this and needs no measured offsets. It clips (the layer
+            slides in from below the cell), and it is deliberately NOT positioned: the
+            organisation switcher's menu is placed against the aside
+            (details_autoclose_controller#reposition) and has to keep that reference. %>
+        <div class="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden">
+        <div class="col-start-1 row-start-1 flex min-h-0 flex-col" data-sidebar-layer-target="covered">
         <!-- Scrollable middle section -->
         <div class="flex-1 overflow-y-auto scrollbars">
           <% if user_signed_in? && @current_organisation.blank? %>
@@ -164,7 +177,7 @@
               material, not a full nav row (doc/in_app_hilfe_plan.md §3.4) — the "?" is
               learned app-wide via the contextual-help triggers. The mobile sidebar is an
               overlay, hence the max-lg padding bumps (≥44px touch targets). %>
-          <div class="px-4 py-2.5 border-b border-cream-300 flex items-center justify-between gap-2">
+          <div class="px-4 py-2.5 flex items-center justify-between gap-2">
             <%# Notizblock trigger replaces the (redundant) "Ansicht" label; theme toggles stay
                 on the right. Opens the body-level slide-over drawer (personal_tasks_drawer). %>
             <% if user_signed_in? && @current_organisation.present? %>
@@ -231,11 +244,14 @@
           <%# "Neues Projekt" moved from here into common/_sidebar_project_list (object
               action lives with the object); the help entry collapsed into the icon-only
               "?" in the utility row above. %>
+        </div>
+        </div>
+        <%= render 'common/account_layer' if account_layer %>
+        </div>
 
-          <!-- User Menu -->
-          <div class="space-y-0">
-            <%= render 'common/user_menu_compact', current_organisation: @current_organisation %>
-          </div>
+        <%# The reader's name: outside the stage, so it stays while the layer is up. %>
+        <div class="flex-shrink-0 border-t border-cream-300">
+          <%= render 'common/user_menu_compact', current_organisation: @current_organisation %>
         </div>
       </div>
     </aside>

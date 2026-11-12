@@ -246,6 +246,7 @@ else
   pin 'controllers/search_disclosure_controller', to: 'controllers/search_disclosure_controller.js'
   pin 'controllers/search_overlay_controller', to: 'controllers/search_overlay_controller.js'
   pin 'controllers/session_timeout_controller', to: 'controllers/session_timeout_controller.js'
+  pin 'controllers/sidebar_layer_controller', to: 'controllers/sidebar_layer_controller.js'
   pin 'controllers/sidebar_project_accordion_controller', to: 'controllers/sidebar_project_accordion_controller.js'
   pin 'controllers/slim_select_controller', to: 'controllers/slim_select_controller.js'
   pin 'controllers/smart_folder_form_controller', to: 'controllers/smart_folder_form_controller.js'

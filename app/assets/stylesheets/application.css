@@ -21,6 +21,7 @@
  *= require components/ticket_meeting_panel
  *= require components/transcript_correction
  *= require components/sidebar_nav
+ *= require components/sidebar_layer
  *= require components/mobile_app
  */
 

@@ -15,7 +15,6 @@ en:
     submit_button: Delete account permanently
     title: Delete Account
     warning_message: This action cannot be undone. Your account and all associated data will be permanently deleted.
-    warning_title: Warning
   activerecord:
     attributes:
       account:

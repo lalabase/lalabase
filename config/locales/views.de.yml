@@ -1071,10 +1071,13 @@ de:
             - Stark
           strength_rule: mindestens %{count} Zeichen
       registrations:
+        tabs:
+          aria_label: Bereiche des Accounts
+          profile: Persönliche Daten
+          password: Passwort
+          delete: Account löschen
         edit:
           title: Account
-          profile_section: Persönliche Daten
-          password_section: Passwort ändern
           first_name: Vorname
           last_name: Nachname
           email_change_hint: Eine neue Adresse wird erst aktiv, wenn du den Bestätigungslink darin anklickst. Bis dahin gilt die bisherige.
@@ -1085,16 +1088,13 @@ de:
             change: Im Profil ändern
           pending_confirmation: 'Warte auf Bestätigung für: %{email}'
           new_password: Neues Passwort
-          leave_blank_password: Mindestens 6 Zeichen
+          password_min_length: Mindestens %{count} Zeichen
           confirm_new_password: Neues Passwort bestätigen
           current_password: Aktuelles Passwort
           current_password_hint: zur Bestätigung der Änderungen erforderlich
           save_profile: Speichern
           save_password: Passwort ändern
           save_changes: Änderungen speichern
-          danger_zone: Gefahrenzone
-          delete_warning: Das Löschen Ihres Accounts kann nicht rückgängig gemacht werden.
-          delete_account: Account löschen
         disabled:
           title: Registrierung nicht verfügbar
           existing_account_hint: Falls Sie bereits ein Konto haben, können Sie sich weiterhin anmelden. Bei Fragen wenden Sie sich bitte an den Administrator.

@@ -444,8 +444,14 @@
   .list-tab-bar { @apply relative min-h-[40px] flex-wrap-reverse items-start gap-2 border-b border-divider pb-0; }
   /* The tab strip; it scrolls sideways when the tabs alone are wider than the row. */
   .list-tab-bar__tabs { @apply scrollbar-hide flex min-w-0 items-end gap-0.5 overflow-x-auto -mb-px; }
-  /* The tools at the right end, before the search where there is one. */
-  .list-tab-bar__tools { @apply ms-auto flex items-center gap-1 self-center; }
+  /* The tools at the right end, before the search where there is one.
+     They wrap among themselves where they are wider than the row (rule 7: moved,
+     not shrunk), each line at the right end. Until 2026-11-12 they never did: on a
+     360 px phone the glossary's "Prüfliste" was cut at the edge of the screen and
+     the page scrolled sideways, and a long project name in a select did the same
+     on any phone. max-w-full and min-w-0 are what lets them: a flex item is never
+     narrower than its content by default. */
+  .list-tab-bar__tools { @apply ms-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1 self-center; }
   /* A select among the tools: a word with a chevron, no box, the size of a
      pill (.people-pill) beside it; tinted while it narrows the list. */
   .list-tab-bar__select { @apply w-auto max-w-[11rem] cursor-pointer truncate rounded-full border-0 bg-transparent py-1 pl-3 pr-7 text-[13px] text-heading hover:bg-cream-100 focus:ring-0; background-position: right 0.4rem center; }
@@ -692,7 +698,9 @@
    (people-* above, the wrapper carries people-page too), plus what only a
    glossary has: the status of a term, its heard forms and the merge form. */
 @layer components {
-  .glossary-filters { @apply flex items-center gap-1; }
+  /* The glossary's two selects; they wrap too, a long project name beside a category
+     is wider than a phone (see .list-tab-bar__tools). */
+  .glossary-filters { @apply flex min-w-0 flex-wrap items-center justify-end gap-1; }
   .glossary-row { @apply items-start; }
   .glossary-row--rejected .people-row__name { @apply text-muted line-through; }
   .glossary-row__head { @apply flex min-w-0 flex-wrap items-center gap-1.5; }

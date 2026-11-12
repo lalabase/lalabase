@@ -96,6 +96,61 @@ RSpec.describe 'List tab bar on a narrow row', type: :system do
     end
   end
 
+  # The tools themselves can be wider than a phone: two selects and a pill side by
+  # side. Until 2026-11-12 they never wrapped, so on a 360 px phone the glossary's
+  # "Prüfliste" was cut at the edge of the screen and the page scrolled sideways (365 px
+  # of tools in a row of 328); a long project name in a select did the same on any phone.
+  describe 'tools wider than the row' do
+    # Every tool lies inside the screen, and the page has nothing to scroll to sideways.
+    def expect_tools_on_the_screen(name)
+      expect(page).to have_css('.list-tab-bar [role="tablist"]')
+      measured = page.evaluate_script(<<~JS)
+        (function () {
+          var screen = document.documentElement.clientWidth;
+          var tools = document.querySelector('.list-tab-bar .list-tab-bar__tools');
+          var parts = Array.prototype.slice.call(tools.querySelectorAll('select, a, button'));
+          return { screen: screen, page_overflow: document.documentElement.scrollWidth - screen,
+                   tools_right: Math.round(tools.getBoundingClientRect().right),
+                   beyond: parts.filter(function (part) { var box = part.getBoundingClientRect(); return box.width > 0 && box.right > screen + 0.5; })
+                                .map(function (part) { return part.textContent.trim().slice(0, 30); }) };
+        })()
+      JS
+      expect(measured['beyond']).to be_empty, "#{name}: tools reach past the screen: #{measured.inspect}"
+      expect(measured['page_overflow']).to be <= 0, "#{name}: the page scrolls sideways: #{measured.inspect}"
+    end
+
+    let(:long_name) { 'Internationales Kundenprojekt mit besonders langem Projektnamen' }
+    let(:project) { create(:project, organisation: organisation, name: long_name) }
+
+    it 'keeps the tools on the screen of a 360 px phone: the inbox and the glossary' do
+      on_a_phone(360) do
+        visit organisation_notifications_path(organisation, viewport: 'mobile')
+        expect_tools_on_the_screen('Inbox')
+        expect_tools_above_tabs_that_keep_the_row('Inbox')
+
+        visit organisation_glossary_terms_path(organisation, viewport: 'mobile')
+        expect_tools_on_the_screen('Glossar')
+        expect_tools_above_tabs_that_keep_the_row('Glossar')
+      end
+    end
+
+    it 'keeps them on the screen with a long project name chosen in a select' do
+      create(:term_correction, organisation: organisation, project: project,
+                               glossary_term: GlossaryTerm.find_by!(term: 'Zorbelstein'))
+
+      on_a_phone(390) do
+        visit organisation_notifications_path(organisation, viewport: 'mobile', project_id: project.id)
+        expect(page).to have_select('project_id', selected: long_name)
+        expect_tools_on_the_screen('Inbox')
+
+        visit organisation_glossary_terms_path(organisation, viewport: 'mobile', project_id: project.id)
+        expect(page).to have_select('glossary-project-filter', selected: long_name)
+        expect_tools_on_the_screen('Glossar')
+        expect_tools_above_tabs_that_keep_the_row('Glossar')
+      end
+    end
+  end
+
   it 'keeps one row where the tools fit: the glossary and Personen on a desk' do
     page.driver.browser.manage.window.resize_to(1400, 900)
 

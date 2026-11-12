@@ -124,7 +124,20 @@ module NavigationHelper
   #     in the cockpit behind "Alle Organisationen", and the row colour chips read the memoised
   #     org-colour store (no per-row query), so the switcher stays N+1-free.
   def switcher_organisations(user)
-    user.active_organisations.by_name.limit(ORG_MENU_LIMIT)
+    @switcher_organisations ||= {}
+    @switcher_organisations[user.id] ||= user.active_organisations.by_name.limit(ORG_MENU_LIMIT).to_a
+  end
+
+  # Where the logo in the sidebar leads. Someone in two or more organisations gets the
+  # cockpit with all of them ("Organisation auswählen"); someone in one stays on that
+  # organisation's start page, and outside any organisation it is the root. The count
+  # comes from switcher_organisations, memoised per request: the org switcher in the same
+  # sidebar reads the same list, so the logo costs no query of its own there.
+  def brand_link_path
+    return root_path unless user_signed_in?
+    return select_organisation_path if switcher_organisations(current_user).size >= 2
+
+    current_organisation.present? ? organisation_root_path(organisation_id: current_organisation.id) : root_path
   end
 
   # Render-ready section list: resolves label + path for `org`, dropping every section

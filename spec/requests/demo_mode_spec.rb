@@ -509,6 +509,16 @@ RSpec.describe 'Demo mode', :ci_guard, type: :request do
       expect_refused
     end
 
+    # The second form of the account's profile tab is saved without the password, so
+    # the password the demo shows to everybody is no gate for it either.
+    it 'cannot change the picture or the email the others see of the shared person' do
+      patch user_registration_display_path,
+            params: { user: { email_visibility: 'none', avatar: fixture_file_upload('test_avatar.png', 'image/png') } }
+      expect_refused
+      expect(demo_user.reload).to have_attributes(email_visibility: 'login')
+      expect(demo_user.avatar).not_to be_attached
+    end
+
     it 'cannot change the preferences stored on the shared person' do
       patch user_preferences_path, params: { current_section: 'language', user: { language_preference: 'de' } }
       expect_refused

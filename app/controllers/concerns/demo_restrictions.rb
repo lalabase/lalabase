@@ -19,9 +19,10 @@ module DemoRestrictions
 
   BLOCKED = {
     # Sign-up (no accounts outside the demo), email and password change (one
-    # visitor would lock out the rest), deleting the account. `edit` shows the
+    # visitor would lock out the rest), the picture and the email the others see
+    # (stored on the shared person), deleting the account. `edit` shows the
     # page; nothing on it can be saved.
-    'users/registrations' => %w[new create update destroy cancel],
+    'users/registrations' => %w[new create update update_display destroy cancel],
     # The reset link goes out by mail; the page would promise one that never comes.
     'users/passwords' => ALL,
     'account_deletions' => ALL,

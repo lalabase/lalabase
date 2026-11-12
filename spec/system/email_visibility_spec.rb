@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-# With real clicks: a member chooses in the display settings which email the
+# With real clicks: a member chooses on the account's profile tab which email the
 # others see, and another member then sees exactly that on the members page and
 # in the people directory (User::EmailDisplay).
 RSpec.describe 'Choosing the email the others see', type: :system do
@@ -30,11 +30,11 @@ RSpec.describe 'Choosing the email the others see', type: :system do
   end
 
   def choose_and_save(choice, address: nil)
-    visit edit_user_preferences_path
+    visit edit_user_registration_path
     choose I18n.t("user_preferences.edit.display.email_visibility.#{choice}", email: lena.email)
     fill_in I18n.t('user_preferences.edit.display.email_visibility.contact_label'), with: address if address
-    click_button I18n.t('user_preferences.edit.actions.save_profile')
-    expect(page).to have_text(I18n.t('user_preferences.settings_updated'))
+    click_button I18n.t('views.devise.registrations.edit.display.save')
+    expect(page).to have_text(I18n.t('views.devise.registrations.edit.display.saved'))
   end
 
   it 'shows the contact address to another member, and nothing after choosing none' do

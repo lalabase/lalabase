@@ -4,9 +4,8 @@ require 'rails_helper'
 
 # The account page shows the login address, and that field is where a member
 # asks who else sees it. The answer below the field follows the member's own
-# choice (User::EmailDisplay), and the link leads to the page that changes it.
-# Also pins the two names: "Account" for this page, "Profil" for the page that
-# holds the picture and the shown email.
+# choice (User::EmailDisplay), and the link leads to the form that changes it,
+# further down on the same tab. Also pins the page's name, "Account".
 RSpec.describe 'Account page: who sees the email', type: :request do
   let(:user) { create(:user, email: 'login@example.com') }
 
@@ -18,12 +17,12 @@ RSpec.describe 'Account page: who sees the email', type: :request do
     Nokogiri::HTML(response.body).at_css('[data-shown-email-hint]')
   end
 
-  it 'says that others see the login address, and links to the page that changes it' do
+  it 'says that others see the login address, and links to the form that changes it' do
     hint = hint_html
 
     expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.login',
                                         email: 'login@example.com'))
-    expect(hint.at_css('a')['href']).to eq(edit_user_preferences_path(anchor: 'section-display'))
+    expect(hint.at_css('a')['href']).to eq(edit_user_registration_path(anchor: 'section-display'))
     expect(hint.at_css('a').text).to eq(I18n.t('views.devise.registrations.edit.shown_email.change'))
   end
 
@@ -35,7 +34,7 @@ RSpec.describe 'Account page: who sees the email', type: :request do
     expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.contact',
                                         email: 'contact@example.com'))
     expect(hint.text).to include('contact@example.com')
-    expect(hint.at_css('a')['href']).to eq(edit_user_preferences_path(anchor: 'section-display'))
+    expect(hint.at_css('a')['href']).to eq(edit_user_registration_path(anchor: 'section-display'))
   end
 
   it 'says that others see no email when the member shows none' do
@@ -45,7 +44,7 @@ RSpec.describe 'Account page: who sees the email', type: :request do
 
     expect(hint.text).to include(I18n.t('views.devise.registrations.edit.shown_email.none'))
     expect(hint.text).not_to include('login@example.com')
-    expect(hint.at_css('a')['href']).to eq(edit_user_preferences_path(anchor: 'section-display'))
+    expect(hint.at_css('a')['href']).to eq(edit_user_registration_path(anchor: 'section-display'))
   end
 
   %i[de en].each do |locale|
@@ -94,12 +93,10 @@ RSpec.describe 'Account page: who sees the email', type: :request do
     end
   end
 
-  it 'calls the page Account and the display settings Profil' do
+  it 'calls the page Account' do
     expect(I18n.t('navigation.profile', locale: :de)).to eq('Account')
     expect(I18n.t('navigation.profile', locale: :en)).to eq('Account')
     expect(I18n.t('views.devise.registrations.edit.title', locale: :de)).to eq('Account')
     expect(I18n.t('views.devise.registrations.edit.title', locale: :en)).to eq('Account')
-    expect(I18n.t('user_preferences.edit.sections.profile', locale: :de)).to eq('Profil')
-    expect(I18n.t('user_preferences.edit.sections.profile', locale: :en)).to eq('Profile')
   end
 end

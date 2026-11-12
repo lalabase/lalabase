@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-11-09)
+# Karte: app/models (Stand: 2026-11-12)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -10,7 +10,8 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   (Login-Adresse, Kontakt-Adresse oder keine, `email_visibility`) EINEN Owner:
   `user/email_display.rb` (`#shown_email`, `.matching_shown_email`), Wächter
   `spec/architecture/shown_email_guard_spec.rb` gegen ein rohes Mitglieds-`.email`; Anmeldung,
-  Mails und `/admin` behalten `email`), `membership`,
+  Mails und `/admin` behalten `email`; Profilbild und gezeigte E-Mail schreibt das Formular
+  `user/profile_display_form.rb` vom Account-Reiter aus, ohne Passwort), `membership`,
   `role`, `permission`, `project_permission`, `invitation`, `account` (Billing-Ebene ÜBER Orgs),
   `current` (`Current.user` = Audit-Actor der Activity-Kette)
 * **Tickets**: `ticket`, `ticket_assignment`, `ticket_attribute_definition`, `ticket_document`,

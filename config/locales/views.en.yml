@@ -1083,7 +1083,7 @@ en:
             login: "Others in your organisations see %{email}."
             contact: "Others in your organisations see %{email} instead."
             none: Others in your organisations see no email of yours.
-            change: Change in your profile
+            change: Change
           pending_confirmation: 'Waiting for confirmation for: %{email}'
           new_password: New password
           password_min_length: At least %{count} characters
@@ -1091,6 +1091,14 @@ en:
           current_password: Current password
           current_password_hint: required to confirm the changes
           save_profile: Save
+          # The two forms of the profile tab: name and login address (with the password),
+          # below it what the others see (without).
+          login:
+            title: Name and login address
+          display:
+            title: Profile picture and email for others
+            save: Save picture and email
+            saved: Your profile picture and the email for others were saved.
           save_password: Change password
           save_changes: Save changes
         disabled:

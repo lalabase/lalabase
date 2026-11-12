@@ -72,6 +72,38 @@ RSpec.describe 'UserDataExports', type: :request do
         expect(response.body).not_to include(I18n.t('user_data_export.download_button'))
       end
 
+      # The page wears the head every page of the application wears (the shared title
+      # box, no card around the page), and one main action at a time: the download
+      # while there is a file to fetch, else the request. The status is a quiet box
+      # that names its state for the page to be read by state, not by colour.
+      describe 'the page layout' do
+        def page_doc = Nokogiri::HTML(response.body)
+        def primary_labels(doc) = doc.css('main .shadow-press').map { |b| b.text.squish }
+
+        it 'names itself in the shared page head, without a card around the page' do
+          get user_data_export_path
+          doc = page_doc
+
+          expect(doc.at_css('main h1').text.squish).to eq(I18n.t('user_data_export.title'))
+          expect(doc.css('main .shadow-md')).to be_empty
+          expect(doc.css('main .width-capped').size).to eq(1)
+        end
+
+        it 'makes the request the main action while there is nothing to download' do
+          get user_data_export_path
+          expect(primary_labels(page_doc)).to eq([I18n.t('user_data_export.request_button')])
+        end
+
+        it 'makes the download the main action once the file is there, and the request a quiet one' do
+          create(:user_data_export, :completed, user: user, created_at: 2.days.ago)
+          get user_data_export_path
+          doc = page_doc
+
+          expect(doc.at_css('[data-export-state]')['data-export-state']).to eq('completed')
+          expect(primary_labels(doc)).to eq([I18n.t('user_data_export.download_button')])
+        end
+      end
+
       it 'renders the failed state with a new-request form' do
         create(:user_data_export, :failed, user: user)
 

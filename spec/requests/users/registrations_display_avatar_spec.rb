@@ -207,6 +207,17 @@ RSpec.describe 'Account profile: the picture', type: :request do
       expect(display_form.at_css('input[type="password"]')).to be_nil
     end
 
+    # Every save looks like a save: each form's foot carries the main action (F1 comes
+    # once per area, and a form's foot is one). The picture form's save was the
+    # secondary button at first.
+    it 'gives each of the two forms the main action as its save' do
+      forms.each do |form|
+        saves = form.css('button[type="submit"]')
+        expect(saves.size).to eq(1)
+        expect(saves.first['class']).to include('shadow-press')
+      end
+    end
+
     it 'ignores a smuggled avatar param (unpermitted on account_update)' do
       put user_registration_path, params: {
         user: { avatar: png_upload, current_password: 'password123' }

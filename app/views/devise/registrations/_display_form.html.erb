@@ -92,9 +92,12 @@
     <p class="<%= hint_class %> mt-2"><%= t('user_preferences.edit.display.email_visibility.description') %></p>
   </div>
 
-  <%# The quieter of the tab's two saves: its main action is the form above (F1). %>
+  <%# The main action of THIS form (F1). The tab has two forms, and each form's foot is
+      an area of its own: F1 comes once per area, not once per page. Until 2026-11-12
+      this save was the secondary button, and read as less of a save than the one
+      above it (user, the same day). %>
   <div class="flex justify-end">
-    <%= render Neo::Buttons::ButtonComponent.new(variant: :secondary, size: :large, tag: :button, type: 'submit') do %>
+    <%= render Neo::Buttons::ButtonComponent.new(variant: :primary, size: :large, tag: :button, type: 'submit') do %>
       <%= t('views.devise.registrations.edit.display.save') %>
     <% end %>
   </div>

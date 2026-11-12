@@ -5,7 +5,8 @@
 
     A change saves at once (preferences_autosave_controller) and says so beside the
     heading. There is no button to forget at the end of a long page. Without JavaScript
-    the form is an ordinary one: its button stands in <noscript>.
+    the form is an ordinary one: its button stands in <noscript>, as the main action
+    of its form's foot, like every save (F1).
 
     The id is the anchor other pages link to (`preferences_section_path`,
     UserPreferencesHelper). scroll-mt keeps the heading clear of the phone's sticky
@@ -33,7 +34,7 @@
     <%= yield %>
     <noscript>
       <div class="flex justify-end">
-        <%= render Neo::Buttons::ButtonComponent.new(variant: :secondary, size: :medium, tag: :button, type: 'submit') do %>
+        <%= render Neo::Buttons::ButtonComponent.new(variant: :primary, size: :medium, tag: :button, type: 'submit') do %>
           <%= t('user_preferences.edit.actions.save') %>
         <% end %>
       </div>

@@ -265,6 +265,17 @@ RSpec.describe 'Organisations::PromptPersonas', type: :request do
       expect(doc.css("main [title='#{help_label}']").size).to eq(1)
     end
 
+    # The main action stands in the head, right of the title, as on Mitglieder and
+    # Rollen (title_action), and only there: not a second time beside the list.
+    it 'puts the "+" for a new persona into the head, once' do
+      doc = page_doc(organisation_prompt_personas_path(organisation))
+      new_path = new_organisation_prompt_persona_path(organisation)
+      head_row = doc.at_css('main h1').ancestors('.flex.flex-wrap').first
+
+      expect(head_row.css("a[href='#{new_path}']").size).to eq(1)
+      expect(doc.css("main a[href='#{new_path}']").size).to eq(1)
+    end
+
     it 'puts the new form below the tab' do
       expect_below_the_list(page_doc(new_organisation_prompt_persona_path(organisation)),
                             I18n.t('views.organisations.prompt_personas.new.title'))

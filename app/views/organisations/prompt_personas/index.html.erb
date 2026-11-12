@@ -1,34 +1,34 @@
 <div>
   <%# The Chat-Personas tab of the AI section (doc/verwaltung_seitennavigation_plan.md
       §5, S3): the head names the section, as on every tab, and carries the page's help,
-      as every page head does. The "+" stays beside the list it adds to. %>
+      as every page head does. The "+" is the page's main action and stands in the head
+      as title_action, outermost, as on Mitglieder and Rollen (#143); until 2026-11-12 it
+      stood beside the list instead, the one page of the area that did so. %>
   <% head_tools = capture do %>
     <%= render 'common/contextual_help_menu', context: :settings_prompt_personas %>
   <% end %>
+  <% new_persona = capture do %>
+    <%= render Neo::Buttons::IconButtonComponent.new(
+      variant: :primary,
+      icon: "plus-lg",
+      size: :medium,
+      title: t('views.organisations.prompt_personas.index.add'),
+      url: new_organisation_prompt_persona_path(@current_organisation)
+    ) %>
+  <% end %>
   <%= render 'organisations/shared/settings_subnav', active: :ai,
                                                      tabs: ai_section_tabs(@current_organisation), tab_active: :personas,
-                                                     right_content: head_tools %>
+                                                     right_content: head_tools, title_action: new_persona %>
 
   <%# The shapes of the surface table, like the other tabs of the section: a section is a
       quiet heading with its hint (no large bold title), lists are tables with the column
       head (F43) over an ink line, a mark of a row is a flat label (F15), and "Override
       anlegen" is a link to another place (F5). Until 2026-11-12 the page drew in slate
-      and gray, colours outside the token layer. The "+" stays the section's main action
-      (F1), beside the list it adds to. %>
+      and gray, colours outside the token layer. The "+" is the page's main action
+      (F1), in the head. %>
   <section aria-labelledby="personas-own" class="mb-10">
-    <div class="mb-3 flex items-start justify-between gap-4">
-      <div>
-        <h2 id="personas-own" class="text-sm font-semibold text-heading"><%= t('views.organisations.prompt_personas.index.your_personas') %></h2>
-        <p class="mt-1 text-sm text-muted"><%= t('views.organisations.prompt_personas.index.your_personas_hint') %></p>
-      </div>
-      <%= render Neo::Buttons::IconButtonComponent.new(
-        variant: :primary,
-        icon: "plus-lg",
-        size: :medium,
-        title: t('views.organisations.prompt_personas.index.add'),
-        url: new_organisation_prompt_persona_path(@current_organisation)
-      ) %>
-    </div>
+    <h2 id="personas-own" class="text-sm font-semibold text-heading"><%= t('views.organisations.prompt_personas.index.your_personas') %></h2>
+    <p class="mt-1 mb-3 text-sm text-muted"><%= t('views.organisations.prompt_personas.index.your_personas_hint') %></p>
 
     <% if @org_personas.any? %>
       <table class="min-w-full border-collapse">

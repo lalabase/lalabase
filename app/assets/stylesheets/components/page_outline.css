@@ -1,0 +1,21 @@
+/* The outline of a long page (shared/_page_outline, Belegungstabelle F46).
+ *
+ * Only the state lives here. The list and its two layouts are Tailwind classes
+ * in the partial; which link is current is an attribute the script sets
+ * (aria-current="location", page_outline_controller) and this file reads. A
+ * state the script flips is picked in CSS, never painted by the script
+ * (column_picker.css does the same with aria-pressed).
+ *
+ * "Here you are" is F6 in its form without a fill: ink and weight, and from lg
+ * on a stroke on the edge that faces the content. Colours are tokens only
+ * (rule 6), so the dark theme follows. */
+.page-outline__link[aria-current] {
+  color: rgb(var(--cream-900));
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  .page-outline__link[aria-current] {
+    border-inline-start-color: rgb(var(--ink));
+  }
+}

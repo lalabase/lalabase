@@ -61,6 +61,17 @@ RSpec.describe 'Organisations::Archives', type: :request do
       expect(response.body).not_to include(unarchive_organisation_project_path(organisation, active_project))
     end
 
+    # One archivable type, one table: its column already says "Projekt", so a section
+    # heading above it only repeated the page title's subject. The heading comes back
+    # with a second type.
+    it 'puts no section heading above the only table' do
+      get organisation_archives_path(organisation)
+
+      page = Nokogiri::HTML(response.body)
+      expect(page.at_css('table thead')).to be_present
+      expect(page.css('main h2, #main-content h2').map { |h| h.text.strip }).not_to include('Projekte')
+    end
+
     it 'links the row to the project settings, where deletion lives' do
       get organisation_archives_path(organisation)
 

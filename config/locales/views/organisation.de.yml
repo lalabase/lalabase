@@ -3,7 +3,6 @@ de:
     organisations:
       archives:
         index:
-          projects_section: Projekte
           table_headers:
             name: Projekt
             archived_at: Archiviert am

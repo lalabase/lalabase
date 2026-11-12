@@ -1,0 +1,89 @@
+<%# locals: (layer: false) %>
+<%# The pages of "Mein Konto", ONE list for the two places that show it:
+
+    - the sidebar of an account page (common/_navigation_account), where it is the
+      sidebar's middle;
+    - the account layer (common/_account_layer, Belegungstabelle F47), which rises
+      over the sidebar of an organisation's page when the reader clicks their name.
+
+    Until 2026-11-12 the second place was a small menu of its own under the name,
+    with four of these entries and none of the others (no billing accounts, no API
+    tokens, no way to the other organisations): two lists of one area that did not
+    agree. A new account page is one entry here and shows in both.
+
+    layer: true adds what only the layer has: the cross that closes it (F20, at the
+    end of the label row as F41 has it) and, while the news are in the navigation
+    (ApplicationHelper#changelog_in_navigation?), the news of the organisation the
+    reader stands in. The label has the form of the sidebar's other labels
+    ("PROJEKTE", "VERWALTUNG"). %>
+<div class="flex items-center justify-between gap-2 px-3 pb-1.5">
+  <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"><%= t('navigation.account_section') %></p>
+  <% if layer %>
+    <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted transition-colors hover:text-heading"
+            title="<%= t('views.common.close') %>" aria-label="<%= t('views.common.close') %>"
+            data-action="sidebar-layer#close">
+      <i class="bi bi-x-lg text-xs" aria-hidden="true"></i>
+    </button>
+  <% end %>
+</div>
+<ul class="flex flex-col gap-1" data-account-nav-list>
+  <%# "Alle Organisationen" (not "wechseln"): from the account section you are not in an
+      org context, so the label matches the org switcher menu's cockpit link. %>
+  <%= render 'common/navigation_item',
+        name: t('navigation.all_organisations'),
+        path: select_organisation_path,
+        icon: 'bi bi-building',
+        active: request.path == select_organisation_path %>
+
+  <%= render 'common/navigation_item',
+        name: t('navigation.profile'),
+        path: edit_user_registration_path,
+        icon: 'bi bi-person-fill',
+        active: [edit_user_registration_path, edit_user_registration_password_path, new_account_deletion_path, user_registration_display_path].include?(request.path) %>
+
+  <%# Billing accounts (K1 revised): the area hangs on the account, not on an
+      organisation, and the account navigation is the only one that renders without a
+      tenant (see layouts/application.html.erb). That way an account owner WITHOUT any
+      membership anywhere reaches it too -- that is N1, and the reason the area was
+      pulled out of the organisation at all.
+
+      Always visible, not only for people with an account: checking visibility would
+      cost one round of Subscriptions::VisibleAccounts on EVERY page that renders this
+      list (one role query per organisation of the user), and since the layer that is
+      every page of the application. Whoever has none sees the honest empty state,
+      just like with the data export. %>
+  <%= render 'common/navigation_item',
+        name: t('navigation.billing_accounts'),
+        path: billing_accounts_path,
+        icon: 'bi bi-receipt',
+        active: request.path.start_with?('/billing') %>
+
+  <%= render 'common/navigation_item',
+        name: t('navigation.data_export'),
+        path: user_data_export_path,
+        icon: 'bi bi-download',
+        active: request.path.start_with?('/user_data_export') %>
+
+  <%# API tokens and preferences are entries of their own since 2026-11-12. Until
+      then both hung under a "Präferenzen" group with seven sub-pages. The tokens
+      are a function (a list, a create flow), not a setting of how the application
+      behaves; the preferences are one page of sections (user_preferences/edit). %>
+  <%= render 'common/navigation_item',
+        name: t('navigation.settings_api_tokens'),
+        path: users_personal_access_tokens_path,
+        icon: 'bi bi-key',
+        active: request.path.start_with?('/users/personal_access_tokens') %>
+
+  <%= render 'common/navigation_item',
+        name: t('navigation.preferences'),
+        path: edit_user_preferences_path,
+        icon: 'bi bi-person-gear',
+        active: request.path.start_with?('/user_preferences') %>
+
+  <% if layer && changelog_in_navigation? && current_organisation.present? %>
+    <%= render 'common/navigation_item',
+          name: changelog_nav_label(changelog_has_unread?(current_user)),
+          path: organisation_changelog_path(organisation_id: current_organisation.id),
+          icon: 'bi bi-megaphone' %>
+  <% end %>
+</ul>

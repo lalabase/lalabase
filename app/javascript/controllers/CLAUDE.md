@@ -133,6 +133,17 @@ Konventionen:
 * `filter_bar` ist die EINE Filterleiste (Reiter, Pillen, Speicherzeile; Zustand kommt aus der
   Adresse, Logik in `lib/filter_bar/change_set.js`). Die eingefrorene Kopie `filter_bar_legacy`
   samt `lib/filter_bar_legacy/` und dem Nutzer-Flag ist am 07.09.2026 gelöscht.
+* `sidebar_layer` (12.11.2026) sitzt an der Seitenleiste (`<aside id="sidebar">`) einer
+  Organisationsseite und führt die Konto-Ebene (`common/_account_layer`, Belegungstabelle F47):
+  ein Klick auf den eigenen Namen lässt „Mein Konto" von unten bis unter das Logo hochfahren,
+  die Seite dahinter bleibt. Er setzt nur Attribute (`hidden`, `data-state="open"`,
+  `aria-expanded`, `inert` auf dem Verdeckten); Fläche und Fahrt sind
+  `components/sidebar_layer.css`. Schließen: Name, Kreuz, Escape (`ownsEscape()`), Druck
+  daneben, und `turbo:before-cache` (sonst steht die Ebene nach „Zurück" wieder offen).
+  Der Name ist ohne JS ein Link auf die Account-Seite. ⚠️ Die Bühne im Layout ist EINE
+  Rasterzelle und bewusst NICHT positioniert: das Menü des Organisations-Umschalters hängt
+  am `aside` (`details_autoclose#reposition`). KEIN weiterer `toggle`/`dropdown`: er öffnet
+  eine Ebene über einem ganzen Bereich und sperrt, was darunter liegt.
 * `preferences_autosave` (12.11.2026) sitzt an jedem Abschnitt der Präferenzen-Seite
   (`user_preferences/_section`): eine Änderung schickt das Formular des Abschnitts sofort
   (JSON), das Ergebnis steht neben der Überschrift. Antwortet der Server `reload: true`

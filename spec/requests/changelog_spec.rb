@@ -97,14 +97,14 @@ RSpec.describe 'Changelog', type: :request do
             expect(response.body).not_to include('changelog-unread-dot')
           end
 
-          it 'exposes the changelog entry point inside the account menu, not next to the logo' do
+          it 'exposes the changelog entry point inside the account layer, not next to the logo' do
             get organisation_root_path(organisation_id: organisation.id)
 
             doc = Nokogiri::HTML(response.body)
             changelog_links = doc.css('a').select { |a| a['href']&.include?('changelog') }
 
             expect(changelog_links.size).to eq(1)
-            expect(changelog_links.first.ancestors('details')).not_to be_empty
+            expect(changelog_links.first.ancestors('#account-layer')).not_to be_empty
           end
         end
       end

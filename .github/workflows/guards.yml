@@ -347,6 +347,8 @@ jobs:
           spec/system/people_tab_bar_spec.rb
           spec/system/list_tab_bar_wrap_spec.rb
           spec/system/preferences_page_spec.rb
+          spec/system/account_layer_spec.rb
+          spec/requests/account_layer_spec.rb
           spec/requests/org_switcher_signal_spec.rb
           spec/requests/notifications_avatar_preload_spec.rb
           spec/requests/organisations/archives_spec.rb

@@ -1,0 +1,61 @@
+/* The account layer (common/_account_layer, Belegungstabelle F47): the pages of
+ * "Mein Konto" rising over the sidebar from the reader's name up to the logo.
+ *
+ * Where it stands is the layout's doing: the sidebar's stage is ONE grid cell,
+ * and this is its second child (grid-area 1/1), so it covers the app's
+ * navigation and the utility row and nothing else. This file is the surface and
+ * the slide.
+ *
+ * The slide: the layer waits one cell-height below its place and comes up when
+ * the script sets data-state="open". The stage clips, so it seems to rise from
+ * behind the name. The script flips attributes and paints nothing
+ * (sidebar_layer_controller): `hidden` while it is away, data-state while it
+ * moves and stands, aria-expanded on the name for the chevron.
+ *
+ * The surface is the sidebar's on an account page, because that is where an
+ * entry leads: cream-200, and cream-100 in the dark and the pop theme (the same
+ * two rules the sidebar has in application.tailwind.css). An organisation's
+ * recognition colour, which tints the sidebar inline, stops here on purpose:
+ * the account stands above the organisations. Tokens only (rule 6). */
+.sidebar-layer {
+  grid-area: 1 / 1;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background-color: rgb(var(--cream-200));
+  translate: 0 100%;
+  transition: translate 0.25s ease;
+}
+
+.sidebar-layer[hidden] {
+  display: none;
+}
+
+.sidebar-layer[data-state="open"] {
+  translate: 0 0;
+}
+
+.dark .sidebar-layer,
+.theme-pop .sidebar-layer {
+  background-color: rgb(var(--cream-100));
+}
+
+/* F22: the chevron turns while what it opens is open. */
+.sidebar-layer__chevron {
+  transition: rotate 0.25s ease;
+}
+
+.sidebar-layer__trigger[aria-expanded="true"] .sidebar-layer__chevron {
+  rotate: 180deg;
+}
+
+/* Nothing slides for a reader who asked for less motion: the layer is there, or
+   it is not. The script reads the duration and does not wait for an end that
+   never comes. */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-layer,
+  .sidebar-layer__chevron {
+    transition: none;
+  }
+}

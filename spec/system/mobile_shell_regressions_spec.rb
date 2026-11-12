@@ -33,11 +33,9 @@ RSpec.describe 'Mobile shell regressions', type: :system do
     JS
   end
 
+  # A finger swipes the page upwards from near its top (TouchSwipe).
   def swipe_background
-    page.driver.browser.execute_cdp('Emulation.setTouchEmulationEnabled', enabled: true)
-    page.driver.browser.execute_cdp('Input.synthesizeScrollGesture', x: 195, y: 90,
-                                                                     yDistance: -350, speed: 800, gestureSourceType: 'touch')
-    page.evaluate_async_script('requestAnimationFrame(() => requestAnimationFrame(arguments[0]))')
+    touch_swipe(from: { x: 195, y: 90 }, to: { x: 195, y: 10 })
   end
 
   it 'keeps sufficient contrast for the primary action and Inbox count in Dark' do
@@ -98,6 +96,13 @@ RSpec.describe 'Mobile shell regressions', type: :system do
       expect(page).to have_css('.mobile-ticket-title', count: 21)
 
       scroll_document_to(400)
+      scroll_document_to(0)
+
+      # The control: this very swipe moves the page while nothing holds it. Without it
+      # the expectation below is true of every page a swipe does not reach, which is
+      # how this example stayed green in CI while the swipe moved nothing there.
+      swipe_background
+      expect(page.evaluate_script('window.scrollY')).to be_positive
       scroll_document_to(0)
 
       case sheet

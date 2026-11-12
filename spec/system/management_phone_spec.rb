@@ -156,18 +156,16 @@ RSpec.describe 'Management area on a phone', type: :system do
       end
     end
 
-    # A finger on the row swipes it back to its start (touch emulation as in
-    # mobile_shell_regressions_spec, switched off again in `after`).
+    # A finger on the row swipes it back to its start (TouchSwipe; touch emulation is
+    # switched off again in `after`). 300 px to the right: more than the row's offset.
     def swipe_row_to_its_start
       middle = page.evaluate_script(<<~JS, section)
         (function (label) {
           const box = document.querySelector(`main nav[aria-label="${CSS.escape(label)}"] ul`).getBoundingClientRect()
-          return { x: Math.round(box.left + box.width / 2), y: Math.round(box.top + box.height / 2) }
+          return { x: Math.round(box.left + box.width / 4), y: Math.round(box.top + box.height / 2) }
         })(arguments[0])
       JS
-      page.driver.browser.execute_cdp('Emulation.setTouchEmulationEnabled', enabled: true)
-      page.driver.browser.execute_cdp('Input.synthesizeScrollGesture', x: middle['x'], y: middle['y'], xDistance: 400,
-                                                                       yDistance: 0, speed: 800, gestureSourceType: 'touch')
+      touch_swipe(from: { x: middle['x'], y: middle['y'] }, to: { x: middle['x'] + 300, y: middle['y'] })
     end
 
     # Two animation frames: what changed is laid out, and a move of the row is reported.

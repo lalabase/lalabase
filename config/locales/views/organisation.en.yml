@@ -638,6 +638,12 @@ en:
             confirm_button: Start switch
       ai_sync_statuses:
         show:
+          col_project: Project
+          col_type: Type
+          col_created: Created
+          col_embedding: Embedding
+          col_details: Details
+          toggle_details: "Show or hide details for %{project}"
           overview: Overview
           total_content: Total Content
           with_embeddings: With Embeddings
@@ -664,8 +670,6 @@ en:
           no_projects: No projects found.
           fragment_statistics: Fragment Statistics
           by_content_type: By Content Type
-          count_total: "%{count} total"
-          count_with_embeddings: "%{count} with embeddings"
           recent_fragments: Recent Fragments
           with_embedding: With Embedding
           without_embedding: Without Embedding

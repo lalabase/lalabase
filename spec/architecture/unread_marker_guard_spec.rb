@@ -21,9 +21,7 @@ module UnreadMarkerGuard
 
   EXCEPTIONS = {
     'app/views/organisations/ai_overviews/_row.html.erb' =>
-      'alert state of an AI overview row (red against amber), not a notification',
-    'app/views/organisations/ai_sync_statuses/show.html.erb' =>
-      'status dot for failed embeddings, not a notification'
+      'alert state of an AI overview row (red against amber), not a notification'
   }.freeze
 end
 

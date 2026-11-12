@@ -118,10 +118,10 @@ RSpec.describe 'Organisations::AiSyncStatuses', type: :request do
                       create_embeddings: true, embedding_creation_error: 'boom')
       end
       get organisation_ai_sync_status_path(organisation)
-      card = Nokogiri::HTML(response.body).at_css("[data-type-card='notes']").text
+      row = Nokogiri::HTML(response.body).at_css("[data-type-card='notes']")
 
-      expect(card).to include(I18n.t('views.organisations.ai_sync_statuses.show.errors'))
-      expect(card.gsub(/\s+/, ' ')).to include("#{I18n.t('views.organisations.ai_sync_statuses.show.errors')}: 1")
+      expect(row.at_css('[data-type-errors]').text.strip).to eq('1')
+      expect(row.at_css('[data-type-errors]')['class']).to include('text-red-700')
     end
 
     it 'reports a clean index as clear and says so in words' do

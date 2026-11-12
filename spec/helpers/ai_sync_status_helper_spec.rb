@@ -25,9 +25,9 @@ RSpec.describe AiSyncStatusHelper, type: :helper do
     end
   end
 
-  it 'gives every type an icon and the three class strings the view places' do
+  it 'gives every type an icon' do
     described_class::TYPE_PRESENTATION.each_value do |presentation|
-      expect(presentation.keys).to contain_exactly(:icon, :card, :heading, :bar)
+      expect(presentation.keys).to contain_exactly(:icon)
       expect(presentation.values).to all(be_present)
     end
   end

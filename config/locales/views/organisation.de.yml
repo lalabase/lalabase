@@ -645,6 +645,12 @@ de:
             confirm_button: Wechsel starten
       ai_sync_statuses:
         show:
+          col_project: Projekt
+          col_type: Typ
+          col_created: Erstellt
+          col_embedding: Embedding
+          col_details: Details
+          toggle_details: "Details zu %{project} ein- oder ausblenden"
           overview: Gesamtübersicht
           total_content: Gesamt Inhalte
           with_embeddings: Mit Embeddings
@@ -671,8 +677,6 @@ de:
           no_projects: Keine Projekte gefunden.
           fragment_statistics: Fragment-Statistiken
           by_content_type: Nach Content-Typ
-          count_total: "%{count} gesamt"
-          count_with_embeddings: "%{count} mit Embeddings"
           recent_fragments: Neueste Fragments
           with_embedding: Mit Embedding
           without_embedding: Ohne Embedding

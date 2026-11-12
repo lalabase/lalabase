@@ -13,6 +13,7 @@ de:
         export_data: Daten exportieren
   user_data_export:
     title: Datenexport
+    contents_heading: Was das Archiv enthält
     intro: 'Lade eine Kopie deiner bei Lalabase gespeicherten Daten als ZIP-Archiv
       herunter (Auskunft nach Art. 15 und Datenübertragbarkeit nach Art. 20 DSGVO).
       Das Archiv enthält unter anderem:'
@@ -34,7 +35,7 @@ de:
           Datei bereitsteht.
       completed:
         title: Dein Export ist bereit
-        hint: Lade die Datei herunter und bewahre sie sicher auf — sie enthält
+        hint: Lade die Datei herunter und bewahre sie sicher auf. Sie enthält
           deine Daten im Klartext.
       expired:
         title: Export abgelaufen

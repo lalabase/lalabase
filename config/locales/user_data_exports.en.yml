@@ -13,6 +13,7 @@ en:
         export_data: Export data
   user_data_export:
     title: Data export
+    contents_heading: What the archive contains
     intro: 'Download a copy of the data Lalabase stores about you as a ZIP archive
       (access under Art. 15 and data portability under Art. 20 GDPR). The archive
       includes among other things:'
@@ -34,7 +35,7 @@ en:
           the file is ready.
       completed:
         title: Your export is ready
-        hint: Download the file and store it safely — it contains your data in
+        hint: Download the file and store it safely. It contains your data in
           plain text.
       expired:
         title: Export expired

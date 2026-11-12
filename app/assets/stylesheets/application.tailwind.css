@@ -42,6 +42,8 @@
   .members-invitation-row { @apply flex items-center gap-4 border-b border-cream-200 py-3; }
   .members-invitation-row .more-menu { margin-inline-start: auto; }
   .members-panel { @apply rounded-xl border border-cream-300 bg-surface-raised p-5; position: sticky; top: 16px; }
+  /* The panel takes focus only from the script, after a mouse opened it (membership_workspace_controller#restoreFocus). */
+  .members-panel:focus { outline: none; }
   .members-panel .members-role-select { @apply border border-cream-400 px-2 pr-6; width: auto; max-width: 190px; }
   .members-setting { @apply flex items-center justify-between gap-4 border-b border-cream-200 py-4; }
   .members-setting form { flex-shrink: 0; }

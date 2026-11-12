@@ -80,6 +80,27 @@ RSpec.describe 'Organisations::AiProtocols', type: :request do
       expect(response.body).to include(I18n.l(2.days.ago.to_date, format: :long))
     end
 
+    # The shapes of the rest of the application (2026-11-12): until then every entry was
+    # a white card with a hard shadow across the full width. A record is read, not
+    # pressed, so the rows are flat, in one list capped for reading, each with the sign
+    # of its verb. The shadow and width guards hold the file at zero; this holds the
+    # list itself.
+    it 'lists the entries as flat rows of one capped list, each with the sign of its verb' do
+      AiProtocolActions::ALL.each { |action| write_entry(organisation, action, actor: admin) }
+
+      get organisation_ai_protocol_path(organisation)
+
+      doc = Nokogiri::HTML(response.body)
+      list = doc.at_css('main .width-capped--wide ol')
+      expect(list).to be_present
+      expect(list.css('> li').size).to eq(AiProtocolActions::ALL.size)
+      expect(list.to_html).not_to include('shadow-')
+      signs = list.css('> li').map { |row| row.at_css('i.bi')['class'][/bi-[a-z0-9-]+/] }
+      expect(signs.uniq.size).to eq(AiProtocolActions::ALL.size)
+      expect(signs).not_to include('bi-clock-history')
+      expect(list.css('> li time[datetime]').size).to eq(AiProtocolActions::ALL.size)
+    end
+
     # The filter, asserted from the other side. Every model in the app writes activities;
     # without the action filter this page would be a general org feed with an audit
     # page's title — and would leak ticket titles to an audience the ticket policies

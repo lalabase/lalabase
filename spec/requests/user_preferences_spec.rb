@@ -17,22 +17,99 @@ RSpec.describe 'UserPreferences', type: :request do
     ActsAsTenant.current_tenant = organisation
   end
 
-  # The section name picks the template to render. Before 26.09.2026 any value was
-  # passed to `render`, so ?section= could render any other view of the app.
+  # A section's anchor on the one preferences page (UserPreferencesHelper).
+  def section_path(key)
+    edit_user_preferences_path(anchor: "section-#{key}")
+  end
+
+  def page
+    Nokogiri::HTML(response.body)
+  end
+
+  # Until 26.09.2026 the section name picked the template, and any value was passed to
+  # `render`, so ?section= could render any other view of the app. Since 2026-11-12
+  # there is one page and no template to pick.
   describe 'GET /user_preferences/edit with a section parameter' do
-    it 'renders a known section' do
-      get edit_user_preferences_path(section: 'datetime')
-
-      expect(response).to have_http_status(:ok)
-      expect(response.body).to include('id="preferences_date_display_global_format"')
-    end
-
-    ['edit', '../layouts/application', 'shared/flash'].each do |section|
-      it "falls back to the general section for #{section.inspect}" do
+    ['datetime', 'edit', '../layouts/application', 'shared/flash'].each do |section|
+      it "renders the one page for #{section.inspect}" do
         get edit_user_preferences_path(section: section)
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include('id="preferences_items_per_page"')
+        expect(response.body).to include('id="preferences_date_display_global_format"')
+      end
+    end
+  end
+
+  # One page of sections (user, 2026-11-12): the head of the application, every
+  # section a form of its own, a change saved at once.
+  describe 'GET /user_preferences/edit: the page' do
+    let(:autosaved) { %w[general tickets meetings datetime language session] }
+
+    before do
+      user.update!(first_name: 'Lena', last_name: 'Beispiel')
+      get edit_user_preferences_path
+    end
+
+    it 'is titled by its area, with the person below, once' do
+      expect(page.css('main h1').map { |h1| h1.text.squish }).to eq([I18n.t('navigation.preferences')])
+      expect(page.at_css('main').text).to include('Lena Beispiel')
+    end
+
+    it 'lists its sections in one order, each under the anchor other pages link to' do
+      expect(page.css('main section[id]').map { |section| section['id'] })
+        .to eq((%w[display] + autosaved).map { |key| "section-#{key}" })
+      expect(page.css('main section h2').map { |h2| h2.text.squish })
+        .to eq(%w[profile general tickets meetings datetime language session]
+                 .map { |key| I18n.t("user_preferences.edit.sections.#{key}") })
+    end
+
+    it 'gives every section a form of its own that names the section' do
+      (%w[display] + autosaved).each do |key|
+        forms = page.css("#section-#{key} form")
+        expect(forms.size).to eq(1), key
+        expect(forms.first.at_css('input[name="current_section"]')['value']).to eq(key)
+      end
+    end
+
+    it 'saves a change at once in every section but the profile, and keeps a button for a browser without scripts' do
+      autosaved.each do |key|
+        section = page.at_css("#section-#{key}")
+        expect(section['data-controller']).to eq('preferences-autosave'), key
+        expect(section.at_css('form')['data-action']).to eq('change->preferences-autosave#save'), key
+        expect(section.at_css('[role="status"][data-preferences-autosave-target="status"]')).to be_present, key
+        expect(section.at_css('noscript button[type="submit"]')).to be_present, key
+        expect(section.css('form > button, form > div > button[type="submit"]')).to be_empty, key
+      end
+
+      profile = page.at_css('#section-display')
+      expect(profile['data-controller']).to be_nil
+      expect(profile.at_css('noscript')).to be_nil
+      expect(profile.css('button[type="submit"]').map { |button| button.text.squish })
+        .to eq([I18n.t('user_preferences.edit.actions.save_profile')])
+    end
+
+    it 'holds no API tokens: they are a function with an entry of their own' do
+      expect(page.css('main a').map { |link| link['href'] }).not_to include(users_personal_access_tokens_path)
+      expect(page.css('#sidebar a').map { |link| link['href'] })
+        .to include(users_personal_access_tokens_path, edit_user_preferences_path)
+    end
+  end
+
+  describe 'the former section pages' do
+    UserPreferencesController::SECTIONS.each do |key|
+      it "redirects /user_preferences/#{key} to its section of the one page" do
+        get "/user_preferences/#{key}"
+
+        expect(response).to redirect_to(section_path(key))
+      end
+    end
+
+    it 'leads every anchor to a section the page has' do
+      get edit_user_preferences_path
+
+      UserPreferencesController::SECTIONS.each do |key|
+        expect(page.at_css("section#section-#{key}")).to be_present, key
       end
     end
   end
@@ -48,10 +125,10 @@ RSpec.describe 'UserPreferences', type: :request do
           }
         }
 
-        expect(response).to redirect_to(general_user_preferences_path)
+        expect(response).to redirect_to(section_path('general'))
         follow_redirect!
 
-        expect(request.path).to eq(general_user_preferences_path)
+        expect(request.path).to eq(edit_user_preferences_path)
         expect(response).to have_http_status(:ok)
         expect(flash[:notice]).to eq(I18n.t('user_preferences.settings_updated'))
       end
@@ -119,7 +196,7 @@ RSpec.describe 'UserPreferences', type: :request do
           preferences: { meeting_detection_mode: 'ai' }
         }
 
-        expect(response).to redirect_to(meetings_user_preferences_path)
+        expect(response).to redirect_to(section_path('meetings'))
         expect(user.reload.preferences['meeting_detection_mode']).to eq('ai')
       end
 
@@ -140,7 +217,7 @@ RSpec.describe 'UserPreferences', type: :request do
           preferences: { meeting_detection_mode: 'ai' }
         }
 
-        expect(response).to redirect_to(meetings_user_preferences_path)
+        expect(response).to redirect_to(section_path('meetings'))
         expect(user.reload.preferences['meeting_detection_mode']).to eq('ai')
       end
     end
@@ -152,7 +229,7 @@ RSpec.describe 'UserPreferences', type: :request do
           preferences: { name_display: 'first_last_initial' }
         }
 
-        expect(response).to redirect_to(display_user_preferences_path)
+        expect(response).to redirect_to(section_path('display'))
         expect(user.reload.preferences['name_display']).to eq('first_last_initial')
       end
 
@@ -180,7 +257,7 @@ RSpec.describe 'UserPreferences', type: :request do
           preferences: { name_display: 'initial_last' }
         }
 
-        expect(response).to redirect_to(display_user_preferences_path)
+        expect(response).to redirect_to(section_path('display'))
         expect(user.reload.preferences['name_display']).to eq('initial_last')
       end
     end
@@ -197,10 +274,10 @@ RSpec.describe 'UserPreferences', type: :request do
           }
         }
 
-        expect(response).to redirect_to(datetime_user_preferences_path)
+        expect(response).to redirect_to(section_path('datetime'))
         follow_redirect!
 
-        expect(request.path).to eq(datetime_user_preferences_path)
+        expect(request.path).to eq(edit_user_preferences_path)
         expect(response).to have_http_status(:ok)
         expect(flash[:notice]).to eq(I18n.t('user_preferences.settings_updated'))
       end
@@ -249,10 +326,10 @@ RSpec.describe 'UserPreferences', type: :request do
           }
         }
 
-        expect(response).to redirect_to(language_user_preferences_path)
+        expect(response).to redirect_to(section_path('language'))
         follow_redirect!
 
-        expect(request.path).to eq(language_user_preferences_path)
+        expect(request.path).to eq(edit_user_preferences_path)
         expect(response).to have_http_status(:ok)
         # The notice answers in the language just chosen. Read in :en explicitly: since
         # 10.09.2026 the request hands the thread back, so the test's own locale stays German.
@@ -292,7 +369,7 @@ RSpec.describe 'UserPreferences', type: :request do
           }
         }
 
-        expect(response).to redirect_to(language_user_preferences_path)
+        expect(response).to redirect_to(section_path('language'))
         follow_redirect!
         expect(flash[:alert]).to eq(I18n.t('user_preferences.language_update_failed'))
       end
@@ -306,7 +383,7 @@ RSpec.describe 'UserPreferences', type: :request do
           }
         }
 
-        expect(response).to redirect_to(general_user_preferences_path)
+        expect(response).to redirect_to(section_path('general'))
       end
 
       it 'determines section from ticket parameters' do
@@ -316,7 +393,7 @@ RSpec.describe 'UserPreferences', type: :request do
           }
         }
 
-        expect(response).to redirect_to(tickets_user_preferences_path)
+        expect(response).to redirect_to(section_path('tickets'))
       end
 
       it 'determines section from datetime parameters' do
@@ -328,7 +405,7 @@ RSpec.describe 'UserPreferences', type: :request do
           }
         }
 
-        expect(response).to redirect_to(datetime_user_preferences_path)
+        expect(response).to redirect_to(section_path('datetime'))
       end
 
       it 'determines section from language parameters' do
@@ -338,7 +415,7 @@ RSpec.describe 'UserPreferences', type: :request do
           }
         }
 
-        expect(response).to redirect_to(language_user_preferences_path)
+        expect(response).to redirect_to(section_path('language'))
       end
 
       it 'defaults to general section when no specific parameters' do
@@ -346,7 +423,7 @@ RSpec.describe 'UserPreferences', type: :request do
           preferences: {}
         }
 
-        expect(response).to redirect_to(general_user_preferences_path)
+        expect(response).to redirect_to(section_path('general'))
       end
     end
 
@@ -381,6 +458,71 @@ RSpec.describe 'UserPreferences', type: :request do
         json_response = JSON.parse(response.body)
         expect(json_response['success']).to be true
         expect(json_response['items_per_page']).to eq(50)
+        expect(json_response['reload']).to be false
+      end
+
+      # What the page's autosave gets (preferences_autosave_controller). `reload` says the
+      # page the reader looks at is stale now; the notice then waits for the page it
+      # loads next, because the line beside the heading does not survive the reload.
+      def save_as_script(params)
+        patch user_preferences_path, params: params, headers: { 'Accept' => 'application/json' }
+        JSON.parse(response.body)
+      end
+
+      it 'tells the page to reload after another language, with the notice in that language' do
+        user.update!(language_preference: 'de')
+
+        answer = save_as_script(current_section: 'language', user: { language_preference: 'en' })
+
+        expect(response).to have_http_status(:ok)
+        expect(answer).to include('success' => true, 'reload' => true)
+        expect(user.reload.language_preference).to eq('en')
+        expect(flash[:notice]).to eq(I18n.t('user_preferences.language_updated', locale: :en))
+      end
+
+      it 'does not reload for the language the person already has' do
+        user.update!(language_preference: 'de')
+
+        answer = save_as_script(current_section: 'language', user: { language_preference: 'de' })
+
+        expect(answer).to include('success' => true, 'reload' => false)
+        expect(flash[:notice]).to be_nil
+      end
+
+      it 'tells the page to reload after another session length: the layout counts down to the old one' do
+        answer = save_as_script(current_section: 'session', user: { session_timeout_minutes: '120' })
+
+        expect(response).to have_http_status(:ok)
+        expect(answer).to include('success' => true, 'reload' => true)
+        expect(user.reload.session_timeout_minutes).to eq(120)
+      end
+
+      it 'does not reload for the session length the person already has' do
+        answer = save_as_script(current_section: 'session',
+                                user: { session_timeout_minutes: user.session_timeout_minutes.to_s })
+
+        expect(answer).to include('success' => true, 'reload' => false)
+      end
+
+      it 'refuses a session length outside the list with the reason, and keeps the old one' do
+        before = user.session_timeout_minutes
+
+        answer = save_as_script(current_section: 'session', user: { session_timeout_minutes: '7' })
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(answer['success']).to be false
+        expect(answer['errors']).to be_present
+        expect(user.reload.session_timeout_minutes).to eq(before)
+      end
+
+      it 'saves one section and leaves the others alone' do
+        user.update!(preferences: user.preferences.merge('post_direction' => 'reverse', 'name_display' => 'initial_last'))
+
+        save_as_script(current_section: 'general', preferences: { items_per_page: '100' })
+
+        user.reload
+        expect(user.items_per_page_preference).to eq(100)
+        expect(user.preferences).to include('post_direction' => 'reverse', 'name_display' => 'initial_last')
       end
 
       it 'returns error response on failure' do
@@ -402,9 +544,9 @@ RSpec.describe 'UserPreferences', type: :request do
     end
   end
 
-  describe 'GET /user_preferences/general' do
+  describe 'the general section' do
     it 'shows the general edit form' do
-      get general_user_preferences_path
+      get edit_user_preferences_path
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t('user_preferences.edit.general.items_per_page.label'))
     end
@@ -412,7 +554,7 @@ RSpec.describe 'UserPreferences', type: :request do
     it 'handles empty preferences gracefully' do
       user.update(preferences: {})
 
-      get general_user_preferences_path
+      get edit_user_preferences_path
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t('user_preferences.edit.general.items_per_page.label'))
@@ -423,11 +565,11 @@ RSpec.describe 'UserPreferences', type: :request do
     end
   end
 
-  describe 'GET /user_preferences/display (name display S1)' do
+  describe 'the display section (name display S1)' do
     it 'shows the four mode options with the viewer name previewed' do
       user.update!(first_name: 'Guido', last_name: 'Boyke')
 
-      get display_user_preferences_path
+      get edit_user_preferences_path
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t('user_preferences.edit.display.name_display.label'))
@@ -441,26 +583,20 @@ RSpec.describe 'UserPreferences', type: :request do
     end
   end
 
-  describe 'GET /user_preferences/tickets' do
+  describe 'the tickets section' do
     it 'shows the ticket settings form with the moved ticket preferences' do
-      get tickets_user_preferences_path
+      get edit_user_preferences_path
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t('user_preferences.edit.tickets.timeline_order.label'))
       expect(response.body).to include(I18n.t('user_preferences.edit.tickets.description_collapse.label'))
       expect(response.body).to include(I18n.t('user_preferences.edit.tickets.intro'))
     end
-
-    it 'no longer shows ticket preferences on the general page' do
-      get general_user_preferences_path
-
-      expect(response.body).not_to include(I18n.t('user_preferences.edit.tickets.timeline_order.label'))
-    end
   end
 
-  describe 'GET /user_preferences/meetings (Gespräche Slice 5)' do
+  describe 'the meetings section (Gespräche Slice 5)' do
     it 'shows the detection mode setting with the offline default selected' do
-      get meetings_user_preferences_path
+      get edit_user_preferences_path
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t('user_preferences.edit.meetings.detection_mode.label'))
@@ -469,7 +605,7 @@ RSpec.describe 'UserPreferences', type: :request do
 
     context 'when no organisation of the user has AI available' do
       it 'renders the AI option disabled with an explanatory hint' do
-        get meetings_user_preferences_path
+        get edit_user_preferences_path
 
         expect(response.body).to include('option disabled="disabled" value="ai"')
         expect(response.body).to include(I18n.t('user_preferences.edit.meetings.detection_mode.ai_unavailable_hint'))
@@ -483,7 +619,7 @@ RSpec.describe 'UserPreferences', type: :request do
       end
 
       it 'renders the AI option selectable' do
-        get meetings_user_preferences_path
+        get edit_user_preferences_path
 
         expect(response.body).not_to include('option disabled="disabled" value="ai"')
         expect(response.body).not_to include(I18n.t('user_preferences.edit.meetings.detection_mode.ai_unavailable_hint'))
@@ -502,7 +638,7 @@ RSpec.describe 'UserPreferences', type: :request do
           .with(:meeting_participant_detection, anything)
           .and_return(Lalabase::Llm::FeatureRegistry::Availability.new(available: false, reason: :no_credential))
 
-        get meetings_user_preferences_path
+        get edit_user_preferences_path
 
         expect(response.body).to include('option disabled="disabled" value="ai"')
       end
@@ -515,51 +651,36 @@ RSpec.describe 'UserPreferences', type: :request do
           .with(:meeting_summary, anything)
           .and_return(Lalabase::Llm::FeatureRegistry::Availability.new(available: false, reason: :no_credential))
 
-        get meetings_user_preferences_path
+        get edit_user_preferences_path
 
         expect(response.body).not_to include('option disabled="disabled" value="ai"')
       end
     end
   end
 
-  describe 'GET /user_preferences/datetime' do
+  describe 'the datetime section' do
     it 'shows the datetime edit form' do
-      get datetime_user_preferences_path
+      get edit_user_preferences_path
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t('user_preferences.edit.datetime.global_format.label'))
     end
   end
 
-  describe 'GET /user_preferences/language' do
+  describe 'the language section' do
     it 'shows the language edit form' do
-      get language_user_preferences_path
+      get edit_user_preferences_path
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t('user_preferences.language.interface_language'))
     end
   end
 
-  describe 'GET /user_preferences/edit' do
-    it 'renders the general section by default' do
-      get edit_user_preferences_path
-      expect(response).to have_http_status(:ok)
-      expect(response.body).to include(I18n.t('user_preferences.edit.general.items_per_page.label'))
-    end
-  end
-
   describe 'backward-compatibility redirects' do
-    it 'redirects general_show to general' do
-      get general_show_user_preferences_path
-      expect(response).to redirect_to('/user_preferences/general')
-    end
+    %w[general datetime language].each do |key|
+      it "redirects #{key}_show to the #{key} section" do
+        get "/user_preferences/#{key}_show"
 
-    it 'redirects datetime_show to datetime' do
-      get datetime_show_user_preferences_path
-      expect(response).to redirect_to('/user_preferences/datetime')
-    end
-
-    it 'redirects language_show to language' do
-      get language_show_user_preferences_path
-      expect(response).to redirect_to('/user_preferences/language')
+        expect(response).to redirect_to(section_path(key))
+      end
     end
   end
 end

@@ -256,7 +256,7 @@ RSpec.describe User, type: :model do
 
   describe 'session timeout' do
     # Contract guard: the allow-list is referenced externally as
-    # User::ALLOWED_SESSION_TIMEOUTS (app/views/user_preferences/session.html.erb
+    # User::ALLOWED_SESSION_TIMEOUTS (app/views/user_preferences/edit.html.erb
     # and below). It must resolve as a User constant and hold exactly these four
     # values; removing it from User raises NameError here.
     it 'pins User::ALLOWED_SESSION_TIMEOUTS to the exact allow-list' do

@@ -47,36 +47,23 @@
         hover_color: '#f5f1ea',
         active: request.path.start_with?('/user_data_export') %>
 
-      <li>
-        <details class="group" <%= 'open' if request.path.include?('/user_preferences') || request.path.start_with?('/users/personal_access_tokens') %>>
-          <summary class="flex items-center gap-2 text-sm px-4 py-2 cursor-pointer rounded border border-transparent hover:border-cream-300 hover:bg-cream-100 transition-all list-none"
-                   style="--hover-bg: #f5f1ea"
-                   onmouseover="this.style.backgroundColor='#f5f1ea'"
-                   onmouseout="if(!this.parentElement.open) this.style.backgroundColor=''">
-            <p class="bi bi-person-gear"> <%= t('navigation.preferences') %></p>
-            <i class="bi bi-chevron-right group-open:rotate-90 transition-transform text-xs ml-auto"></i>
-          </summary>
-          <ul class="flex flex-col gap-1 mt-1 ml-6">
-            <%= render 'common/account_nav_subitem', path: general_user_preferences_path,
-                                                     label: t('navigation.settings_general') %>
-            <%= render 'common/account_nav_subitem', path: display_user_preferences_path,
-                                                     label: t('navigation.settings_display') %>
-            <%= render 'common/account_nav_subitem', path: tickets_user_preferences_path,
-                                                     label: t('navigation.settings_tickets') %>
-            <%= render 'common/account_nav_subitem', path: meetings_user_preferences_path,
-                                                     label: t('navigation.settings_meetings') %>
-            <%= render 'common/account_nav_subitem', path: datetime_user_preferences_path,
-                                                     label: t('navigation.settings_datetime') %>
-            <%= render 'common/account_nav_subitem', path: language_user_preferences_path,
-                                                     label: t('navigation.settings_language') %>
-            <%= render 'common/account_nav_subitem', path: session_user_preferences_path,
-                                                     label: t('navigation.settings_session') %>
-            <%= render 'common/account_nav_subitem', path: users_personal_access_tokens_path,
-                                                     label: t('navigation.settings_api_tokens'),
-                                                     active: request.path.start_with?('/users/personal_access_tokens') %>
-          </ul>
-        </details>
-      </li>
+      <%# API tokens and preferences are entries of their own since 2026-11-12. Until
+          then both hung under a "Präferenzen" group with seven sub-pages. The tokens
+          are a function (a list, a create flow), not a setting of how the application
+          behaves; the preferences are one page of sections (user_preferences/edit). %>
+      <%= render 'common/navigation_item',
+        name: t('navigation.settings_api_tokens'),
+        path: users_personal_access_tokens_path,
+        icon: 'bi bi-key',
+        hover_color: '#f5f1ea',
+        active: request.path.start_with?('/users/personal_access_tokens') %>
+
+      <%= render 'common/navigation_item',
+        name: t('navigation.preferences'),
+        path: edit_user_preferences_path,
+        icon: 'bi bi-person-gear',
+        hover_color: '#f5f1ea',
+        active: request.path.start_with?('/user_preferences') %>
 
     </ul>
 

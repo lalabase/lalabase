@@ -1,9 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 import I18n from "i18n"
 
+// The date and time section of the preferences page (user_preferences/edit): which rows
+// show (a custom format, one format for all areas, a custom format per area) and whether
+// a typed format is one we can read.
+//
+// The section saves on every change (preferences_autosave_controller, mounted on the
+// section around this one). Two things here are for it: a format this controller refuses
+// is marked invalid on the field (setCustomValidity), so the form is not sent with it,
+// and a row that is hidden loses its mark, because a hidden invalid field would block
+// every later save without anybody seeing why. "Back to the defaults" sets the fields
+// and reports a change, which saves like any other.
 export default class extends Controller {
-  // Dirty tracking removed (design principle P9/AP4: no dirty-disabling of the submit — the button stays
-  // always active, a no-op save is harmless). The controller remains for the toggle/validation logic.
   static targets = ["globalFormat", "customFormatRow", "useGlobalCheckbox", "areaSettings", "areaFormatSelect"]
 
   connect() {
@@ -17,7 +25,7 @@ export default class extends Controller {
 
     const globalFormat = this.globalFormatTarget.value
     if (this.hasCustomFormatRowTarget) {
-      this.customFormatRowTarget.style.display = globalFormat === 'custom' ? 'block' : 'none'
+      this.#toggleFormatRow(this.customFormatRowTarget, globalFormat === 'custom')
     }
   }
 
@@ -26,6 +34,9 @@ export default class extends Controller {
 
     const useGlobal = this.useGlobalCheckboxTarget.checked
     const areaSelects = this.areaSettingsTarget.querySelectorAll('select')
+    // One format for all: the per-area rows say nothing then, and five disabled
+    // fields only make the page longer. Without JavaScript they all stay visible.
+    this.areaSettingsTarget.hidden = useGlobal
 
     if (useGlobal) {
       areaSelects.forEach(select => {
@@ -33,6 +44,7 @@ export default class extends Controller {
         select.disabled = true
         select.classList.add('opacity-50')
       })
+      this.#hideAreaFormatRows()
     } else {
       areaSelects.forEach(select => {
         select.disabled = false
@@ -48,6 +60,7 @@ export default class extends Controller {
     const allInherit = Array.from(areaSelects).every(select => select.value === 'inherit')
 
     this.useGlobalCheckboxTarget.checked = allInherit
+    this.areaSettingsTarget.hidden = allInherit
 
     if (allInherit) {
       areaSelects.forEach(select => {
@@ -76,7 +89,10 @@ export default class extends Controller {
           select.disabled = true
           select.classList.add('opacity-50')
         })
+        this.areaSettingsTarget.hidden = true
       }
+
+      this.#hideAreaFormatRows()
 
       // Check the global usage checkbox
       if (this.hasUseGlobalCheckboxTarget) {
@@ -85,7 +101,24 @@ export default class extends Controller {
 
       // Update UI
       this.toggleCustomFormat()
+
+      // The fields were set by a script, which fires no event: report the change, so
+      // the section saves (preferences_autosave_controller listens on the form).
+      if (this.hasGlobalFormatTarget) {
+        this.globalFormatTarget.dispatchEvent(new Event('change', { bubbles: true }))
+      }
     }
+  }
+
+  // Shows or hides a custom format row. Hidden, its field is valid again: nobody can
+  // see or correct a hidden field, and it is not used while its format is not chosen.
+  #toggleFormatRow(row, visible) {
+    row.style.display = visible ? 'block' : 'none'
+    if (!visible) row.querySelectorAll('input').forEach(input => this.clearFormatError(input))
+  }
+
+  #hideAreaFormatRows() {
+    this.element.querySelectorAll('.area-custom-format-row').forEach(row => this.#toggleFormatRow(row, false))
   }
 
   toggleAreaCustomFormat(event) {
@@ -94,7 +127,7 @@ export default class extends Controller {
     const customFormatRow = document.querySelector(`.area-custom-format-row[data-area="${area}"]`)
 
     if (customFormatRow) {
-      customFormatRow.style.display = select.value === 'custom' ? 'block' : 'none'
+      this.#toggleFormatRow(customFormatRow, select.value === 'custom')
     }
   }
 
@@ -163,6 +196,7 @@ export default class extends Controller {
 
     input.classList.add('border-red-500')
     input.classList.remove('border-black')
+    input.setCustomValidity(message)
 
     const errorDiv = document.createElement('div')
     errorDiv.className = 'format-error text-xs text-red-600 mt-1'
@@ -176,6 +210,7 @@ export default class extends Controller {
 
     input.classList.remove('border-red-500')
     input.classList.add('border-black')
+    input.setCustomValidity('')
   }
 
   validateGlobalFormat(event) {

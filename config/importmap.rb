@@ -233,6 +233,7 @@ else
   pin 'controllers/popover_controller', to: 'controllers/popover_controller.js'
   pin 'controllers/post_composer_controller', to: 'controllers/post_composer_controller.js'
   pin 'controllers/post_reaction_tooltip_controller', to: 'controllers/post_reaction_tooltip_controller.js'
+  pin 'controllers/preferences_autosave_controller', to: 'controllers/preferences_autosave_controller.js'
   pin 'controllers/preview_embed_controller', to: 'controllers/preview_embed_controller.js'
   pin 'controllers/price_ladder_controller', to: 'controllers/price_ladder_controller.js'
   pin 'controllers/project_delete_modal_controller', to: 'controllers/project_delete_modal_controller.js'

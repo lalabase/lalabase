@@ -35,7 +35,7 @@ de:
         title: Session-Dauer
         subtitle: Wie lange du eingeloggt bleibst, wenn du gerade nicht aktiv bist.
         label: Automatisch ausloggen nach
-        hint: Längere Sessions sind komfortabler, aber weniger sicher — besonders auf geteilten Geräten.
+        hint: Längere Sessions sind komfortabler, aber weniger sicher, besonders auf geteilten Geräten.
         save: Speichern
         options:
           '30': 30 Minuten (Standard)

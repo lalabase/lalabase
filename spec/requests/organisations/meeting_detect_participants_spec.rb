@@ -238,7 +238,7 @@ RSpec.describe 'Organisations::Meetings detect_participants', type: :request do
         get_new_form(writer)
 
         expect(response.body).to include(I18n.t('views.organisations.meetings.form.ai_mode_hint'))
-        expect(response.body).to include(meetings_user_preferences_path)
+        expect(response.body).to include(edit_user_preferences_path(anchor: 'section-meetings'))
         expect(response.body).to include('detection-mode-value="ai"')
         expect(response.body).not_to include(I18n.t('views.organisations.meetings.form.detect_button'))
       end

@@ -1554,13 +1554,6 @@ de:
     search_project: Projekt suchen...
     select_organisation_prompt: Bitte wählen Sie eine Organisation aus
     settings: Einstellungen
-    settings_general: Allgemein
-    settings_display: Profil
-    settings_tickets: Tickets
-    settings_meetings: Meetings
-    settings_datetime: Datum/Zeit
-    settings_language: Sprache
-    settings_session: Session-Dauer
     settings_api_tokens: API-Tokens
     management: Verwaltung
     management_back: Zurück
@@ -2982,6 +2975,20 @@ de:
       actions:
         reset_defaults: Auf Standard zurücksetzen
         save: Speichern
+        save_profile: Profil speichern
+      # Die Zeile neben der Überschrift eines Abschnitts: eine Änderung speichert sofort.
+      autosave:
+        saved: Gespeichert
+        failed: Nicht gespeichert
+      # Überschriften der Abschnitte der einen Präferenzen-Seite (user_preferences/edit).
+      sections:
+        profile: Profil
+        general: Anzeige
+        tickets: Tickets
+        meetings: Meetings
+        datetime: Datum und Zeit
+        language: Sprache
+        session: Sitzung
       datetime:
         custom_format_label: "Eigenes Format"
         format_codes_hint: "Format-Codes: %d = Tag, %m = Monat, %Y = Jahr, %H = Stunde, %M = Minute"
@@ -3003,7 +3010,7 @@ de:
             zu verwenden
           label: Globales Format für alle Bereiche verwenden
       display:
-        intro: "Profilbild und E-Mail sehen auch andere in deinen Organisationen. Wie Namen geschrieben werden, gilt nur für deine eigene Ansicht."
+        intro: "Profilbild und E-Mail sehen auch andere in deinen Organisationen."
         avatar:
           label: Profilbild
           hint: PNG, JPEG oder WebP, maximal %{max_megabytes} MB. Wird immer neben deinem Namen angezeigt, z. B. bei Kommentaren und in Listen; ohne Bild stehen dort deine Initialen.
@@ -3023,7 +3030,7 @@ de:
           full: Voller Name
           first_last_initial: Vorname und abgekürzter Nachname
           initial_last: Abgekürzter Vorname und Nachname
-          description: "Die Vorschau neben jeder Option zeigt deinen eigenen Namen in der jeweiligen Schreibweise."
+          description: "Gilt nur für deine eigene Ansicht. Die Vorschau neben jeder Option zeigt deinen eigenen Namen in der jeweiligen Schreibweise."
         title: Profil
       general:
         future_settings: Weitere allgemeine Einstellungen werden hier in Zukunft verfügbar
@@ -3042,9 +3049,9 @@ de:
         intro: "Diese Einstellung steuert, wie Teilnehmer beim Einfügen eines Meeting-Transkripts erkannt werden. Sie gilt für alle Organisationen und Projekte."
         detection_mode:
           label: "Erkennungsmodus für Transkripte"
-          offline: "Offline (Standard) — Erkennung nur im Browser"
-          ai: "KI-Modus — Transkript wird zur Erkennung an den KI-Anbieter übertragen"
-          description: "Im Offline-Modus verlässt das Transkript für die Teilnehmer-Erkennung nie den Browser; die KI-Erkennung lässt sich pro Meeting per Button auslösen. Im KI-Modus wird das eingefügte Transkript automatisch zur Erkennung an den KI-Anbieter übertragen. Der KI-Modus wirkt nur in Organisationen mit aktivierten KI-Funktionen — die Organisations-Einstellung ist stets übergeordnet."
+          offline: "Offline (Standard): Erkennung nur im Browser"
+          ai: "KI-Modus: Transkript wird zur Erkennung an den KI-Anbieter übertragen"
+          description: "Im Offline-Modus verlässt das Transkript für die Teilnehmer-Erkennung nie den Browser; die KI-Erkennung lässt sich pro Meeting per Button auslösen. Im KI-Modus wird das eingefügte Transkript automatisch zur Erkennung an den KI-Anbieter übertragen. Der KI-Modus wirkt nur in Organisationen mit aktivierten KI-Funktionen. Die Organisations-Einstellung ist stets übergeordnet."
           ai_unavailable_hint: "Der KI-Modus ist derzeit nicht wählbar: In keiner deiner Organisationen sind KI-Funktionen aktiviert und konfiguriert."
       tickets:
         intro: "Diese Einstellungen gelten für deine Ticket-Ansicht in allen Projekten. Spalten und Felder pro Projekt passt du direkt im Ticket über „Detail-Ansicht anpassen“ an."

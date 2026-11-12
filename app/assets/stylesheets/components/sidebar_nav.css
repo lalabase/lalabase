@@ -1,7 +1,7 @@
 /* One row of the sidebar navigation, in ONE place.
  *
  * It used to be a class string written out by hand in five: _navigation_item,
- * _global_search_nav_item, _account_nav_subitem, the assistant button in
+ * _global_search_nav_item, the assistant button in
  * _navigation_application and NeoSidebarProjectItemComponent. All five carried
  * the same look, and the moment the shell went one step darker every one of
  * them had to be corrected in the same way - which is the signal that a

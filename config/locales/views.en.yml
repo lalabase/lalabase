@@ -44,8 +44,7 @@ en:
     users:
       personal_access_tokens:
         index:
-          title: Personal Access Tokens
-          subtitle: Only needed to connect external programs like Claude Code — not required for normal use.
+          subtitle: Only needed to connect external programs like Claude Code. For normal use you need no token.
           new_button: Create token
           empty: You have no tokens yet.
           col_scope: Scope
@@ -67,8 +66,8 @@ en:
           revoke_confirm: Really revoke this token? This action cannot be undone.
           explainer:
             title: What is this for?
-            intro: "An access token is like a password — but for programs instead of you. It lets an external tool (e.g. the AI assistant Claude Code) access Lalabase on your behalf: read your projects and tasks and, if you allow it, edit them too."
-            point_purpose: Only for connecting external programs — such as an AI assistant that works directly with your projects.
+            intro: "An access token is like a password, but for programs instead of you. It lets an external tool (e.g. the AI assistant Claude Code) access Lalabase on your behalf: read your projects and tasks and, if you allow it, edit them too."
+            point_purpose: Only for connecting external programs, such as an AI assistant that works directly with your projects.
             point_scope: "You decide exactly what a token may access: which organisations and projects, read-only or read-write, and how long it stays valid."
             point_permissions: A token can never see or do more than you can yourself. You can revoke it at any time.
             not_title: What this is NOT
@@ -95,7 +94,7 @@ en:
           org_mode_selected: Selected organisations only
           org_mode_all: All organisations, including future ones
           org_mode_all_hint: Also organisations you join later, each with all projects. When you leave an organisation or are deactivated there, access there ends at once. The token never sees more than you may see yourself.
-          org_no_orgs: You are not a member of any active organisation – cannot create token.
+          org_no_orgs: You are not an active member of any organisation. Without one, no token can be created.
           project_all: All projects (including future ones)
           project_selected: Selected projects only
           project_no_projects: No projects in this organisation.

@@ -45,8 +45,7 @@ de:
     users:
       personal_access_tokens:
         index:
-          title: Personal Access Tokens
-          subtitle: Nur nötig, um externe Programme wie Claude Code anzubinden — für die normale Nutzung nicht erforderlich.
+          subtitle: Nur nötig, um externe Programme wie Claude Code anzubinden. Für die normale Nutzung brauchst du keinen Token.
           new_button: Token erstellen
           empty: Du hast noch keine Tokens.
           col_scope: Scope
@@ -68,8 +67,8 @@ de:
           revoke_confirm: Token wirklich widerrufen? Diese Aktion ist nicht umkehrbar.
           explainer:
             title: Wofür ist das hier?
-            intro: "Ein Access Token ist wie ein Passwort — aber für Programme statt für dich. Damit darf ein externes Werkzeug (z. B. der KI-Assistent Claude Code) in deinem Namen auf Lalabase zugreifen: deine Projekte und Aufgaben lesen und, wenn du es erlaubst, auch bearbeiten."
-            point_purpose: Nur für die Anbindung externer Programme — etwa einen KI-Assistenten, der direkt mit deinen Projekten arbeiten soll.
+            intro: "Ein Access Token ist wie ein Passwort, aber für Programme statt für dich. Damit darf ein externes Werkzeug (z. B. der KI-Assistent Claude Code) in deinem Namen auf Lalabase zugreifen: deine Projekte und Aufgaben lesen und, wenn du es erlaubst, auch bearbeiten."
+            point_purpose: Nur für die Anbindung externer Programme, etwa einen KI-Assistenten, der direkt mit deinen Projekten arbeiten soll.
             point_scope: "Du legst genau fest, worauf ein Token zugreifen darf: welche Organisationen und Projekte, nur lesen oder auch schreiben, und wie lange er gültig ist."
             point_permissions: Ein Token kann nie mehr sehen oder tun als du selbst. Du kannst ihn jederzeit widerrufen.
             not_title: Was das NICHT ist
@@ -96,7 +95,7 @@ de:
           org_mode_selected: Nur ausgewählte Organisationen
           org_mode_all: Alle Organisationen, auch künftige
           org_mode_all_hint: Auch Organisationen, denen du später beitrittst, jeweils mit allen Projekten. Verlässt du eine Organisation oder wirst dort deaktiviert, endet der Zugriff dort sofort. Mehr als du selbst sehen darfst, sieht der Token nie.
-          org_no_orgs: Du bist in keiner Organisation aktiv – Token-Erstellung nicht möglich.
+          org_no_orgs: Du bist in keiner Organisation aktiv. Ohne Organisation lässt sich kein Token erstellen.
           project_all: Alle Projekte (auch zukünftige)
           project_selected: Nur ausgewählte Projekte
           project_no_projects: Keine Projekte in dieser Organisation.

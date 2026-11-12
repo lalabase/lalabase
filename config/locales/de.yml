@@ -2781,10 +2781,10 @@ de:
       confirm_archive_all: Alle gelesenen Benachrichtigungen archivieren?
       confirm_mark_all_read: Alle ungelesenen Benachrichtigungen als gelesen markieren?
     personal_access_token:
-      all_projects: "%{org} — alle Projekte"
+      all_projects: "%{org}: alle Projekte"
       all_organisations: Alle Organisationen, in denen du aktiv bist, auch künftige, jeweils mit allen Projekten
-      no_projects: "%{org} — keine Projekte ausgewählt"
-      projects_count: "%{org} — %{count} Projekt(e): %{names}"
+      no_projects: "%{org}: keine Projekte ausgewählt"
+      projects_count: "%{org}, %{count} Projekt(e): %{names}"
     registration_toggle:
       disabled: Neue Registrierungen sind deaktiviert. Nur Einladungen funktionieren.
       enabled: Neue Benutzer können sich selbst registrieren.

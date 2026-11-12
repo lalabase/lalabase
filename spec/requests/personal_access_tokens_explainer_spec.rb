@@ -2,19 +2,19 @@
 
 require 'rails_helper'
 
-# What:  The Personal Access Tokens index page (Präferenzen › API-Tokens).
+# What:  The API tokens' list page (Mein Konto › API-Tokens).
 # Type:  Request spec against the real controller action (full stack).
 # Why:   The page must ALWAYS show a plain-language explainer beside the token list so a
 #        non-technical user immediately understands what tokens are for (external dev
 #        tools like Claude Code) and — just as important — what they are NOT (not a login,
-#        not an invite). Regression guard for the two-column explainer panel and the
-#        clarified subtitle. The explainer shows regardless of whether tokens exist.
+#        not an invite). Regression guard for the explainer panel beside the list and the
+#        sentence above it. The explainer shows regardless of whether tokens exist.
 RSpec.describe 'Personal Access Tokens index explainer', type: :request do
   let(:user) { create(:user) }
 
   before { sign_in user }
 
-  it 'renders the explainer heading, the "what this is NOT" box and the sharpened subtitle' do
+  it 'renders the explainer heading, the "what this is NOT" box and the sentence above the list' do
     get users_personal_access_tokens_path
 
     expect(response).to have_http_status(:ok)

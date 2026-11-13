@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { redrawAddress } from "inbox_live"
 
 // Gmail-style bulk select for the inbox master list.
 //
@@ -13,9 +14,16 @@ import { Controller } from "@hotwired/stimulus"
 //
 // Backend: extends the existing mark_all_read / archive_all routes with
 // params[:ids][]. See doc/inbox_v1_plan.md PR-2.
+//
+// The same bar serves the inbox above the organisations (all_inboxes/index,
+// followAddress), on routes that take a selection and nothing else. Two things
+// differ there. The address of a submit carries the list state, read from the
+// page's address when the form leaves. And a selection that crosses
+// organisations is questioned first (number of rows, names of the
+// organisations, from the ticked checkboxes).
 export default class extends Controller {
   static targets = ["row", "checkbox", "bar", "count", "form"]
-  static values  = { selectedIds: Array }
+  static values  = { selectedIds: Array, followAddress: Boolean }
 
   connect() {
     this.selectedIdsValue = []
@@ -121,7 +129,61 @@ export default class extends Controller {
   // submitter once its request has ended, so a submit that would leave
   // without ids is stopped here, whatever the buttons say.
   guardSubmit(event) {
-    if (this.selectedIdsValue.length === 0) event.preventDefault()
+    if (this.selectedIdsValue.length === 0) {
+      event.preventDefault()
+      return
+    }
+    const form = event.target
+    if (!form) return
+    if (this.followAddressValue) this._carryListState(form)
+    this._question(form, event.params?.confirm)
+  }
+
+  // The bar lies outside the list and outside the frame the search reloads,
+  // so an address written into its forms can be older than the list below.
+  // The answer redraws the list from the address of the action: it takes the
+  // state the page's address names now and the pages the endless scroll has
+  // loaded, the rule of the live redraw (lib/inbox_live).
+  _carryListState(form) {
+    const list = document.getElementById("inbox_master_list")
+    form.action = redrawAddress(window.location.href, {
+      path: new URL(form.action, window.location.origin).pathname,
+      firstPage: list?.dataset.neoEndlessScrollFirstPageValue,
+      throughPage: list?.dataset.neoEndlessScrollPageValue
+    })
+  }
+
+  // Across organisations Turbo asks before the form leaves: this runs on the
+  // form, before Turbo reads data-turbo-confirm from it. Within one
+  // organisation no question, as the inbox of an organisation acts.
+  _question(form, template) {
+    const names = this._selectedOrganisations()
+    if (!template || names.length < 2) {
+      delete form.dataset.turboConfirm
+      return
+    }
+    form.dataset.turboConfirm = template
+      .replace("{number}", this.selectedIdsValue.length)
+      .replace("{organisations}", this._sentence(names))
+  }
+
+  // The names of the organisations the ticked rows belong to, each
+  // organisation once (two can share a name). Empty inside an organisation,
+  // where a row names none.
+  _selectedOrganisations() {
+    const selected = new Set(this.selectedIdsValue)
+    const names = new Map()
+    this.checkboxTargets.forEach((cb) => {
+      const { notificationId, organisationId, organisationName } = cb.dataset
+      if (selected.has(notificationId) && organisationId && organisationName) names.set(organisationId, organisationName)
+    })
+    return Array.from(names.values())
+  }
+
+  // "A, B und C" in the language of the page.
+  _sentence(names) {
+    if (typeof Intl === "undefined" || !Intl.ListFormat) return names.join(", ")
+    return new Intl.ListFormat(document.documentElement.lang || undefined, { style: "long", type: "conjunction" }).format(names)
   }
 
   // After a bulk submit (mark_all_read / archive_all): a success clears the

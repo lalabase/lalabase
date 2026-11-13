@@ -84,10 +84,52 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
       expect(link['data-turbo-frame']).to eq('_top')
     end
 
-    it 'offers no bulk action yet: no bulk checkbox, no bulk bar (the row menu: all_inboxes_row_actions_spec)' do
-      doc = page
-      expect(doc.css('.inbox-row')).not_to be_empty
-      expect(doc.css('.inbox-row__check, .inbox-bulk')).to be_empty
+    # The bulk bar of the organisation's inbox, on the routes of this page
+    # (the write: all_inboxes_bulk_actions_spec).
+    describe 'the bulk bar' do
+      it 'gives every row its checkbox, with the organisation the question names' do
+        doc = page
+        box = row_of(doc, south_row).at_css('input.inbox-row__check[data-inbox-bulk-select-target="checkbox"]')
+
+        expect(doc.css('.inbox-row').size).to eq(doc.css('.inbox-row__check').size)
+        expect(box['data-notification-id']).to eq(south_row.id)
+        expect(box['data-organisation-id']).to eq(south.id)
+        expect(box['data-organisation-name']).to eq('Suedhang AG')
+      end
+
+      it 'stands in the head, under the controller that holds the selection, with the two actions of a selection' do
+        doc = page(org: north.id, state_filters: %w[unread])
+        column = doc.at_css('.inbox-list-column[data-controller~="inbox-bulk-select"]')
+        expect(column['data-inbox-bulk-select-follow-address-value']).to eq('true')
+        expect(column.at_css('#inbox_master_list')).to be_present
+
+        forms = column.css('.inbox-bulk form[data-inbox-bulk-select-target="form"]')
+        expect(forms.map { |form| URI(form['action']).path }).to eq(%w[/inbox/selection/mark_read /inbox/selection/archive])
+        expect(forms.map { |form| form.at_css('input[name="_method"]')['value'] }).to all(eq('patch'))
+        forms.each do |form|
+          expect(Rack::Utils.parse_nested_query(URI(form['action']).query))
+            .to eq('org' => north.id, 'state_filters' => %w[unread])
+          expect(form['data-action']).to include('submit->inbox-bulk-select#guardSubmit')
+        end
+      end
+
+      it 'hands each action the question it asks across organisations, in the language of the page' do
+        forms = page.css('.inbox-bulk form')
+
+        expect(forms.pluck('data-inbox-bulk-select-confirm-param')).to eq(
+          [I18n.t('views.all_inboxes.bulk.confirm_mark_read', number: '{number}', organisations: '{organisations}'),
+           I18n.t('views.all_inboxes.bulk.confirm_archive', number: '{number}', organisations: '{organisations}')]
+        )
+        expect(forms.first['data-inbox-bulk-select-confirm-param']).to include('{number}', '{organisations}')
+      end
+
+      it 'has the way in for a phone behind "···", and nothing there that belongs to one organisation' do
+        menu = page.at_css('.people-head details.more-menu')
+
+        expect(menu.css('.more-menu__items > *').map { |item| item.text.strip })
+          .to eq([I18n.t('views.organisations.notifications.index.select_rows')])
+        expect(menu.at_css('button')['data-action']).to eq('click->inbox-bulk-select#startSelecting')
+      end
     end
 
     it 'carries the title of the page above, not the one of an organisation' do

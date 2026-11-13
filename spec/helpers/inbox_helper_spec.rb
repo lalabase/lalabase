@@ -192,6 +192,32 @@ RSpec.describe InboxHelper, type: :helper do
     end
   end
 
+  # The two actions of the bulk bar. Inside an organisation its own routes,
+  # which read the list state from the referrer; above the organisations routes
+  # that take a selection only, with the list state in the address.
+  describe '#inbox_bulk_action_path' do
+    it 'is the route of the organisation, without the list state' do
+      with_query('search' => 'x', 'state_filters' => ['unread'], 'page' => '2')
+
+      expect(helper.inbox_bulk_action_path(:mark_read)).to eq("/org/#{organisation.id}/inbox/mark_all_read")
+      expect(helper.inbox_bulk_action_path(:archive)).to eq("/org/#{organisation.id}/inbox/archive_all")
+    end
+
+    it 'is the route of a selection above the organisations, with the list state and the page' do
+      helper.define_singleton_method(:current_organisation) { nil }
+      with_query('org' => 'o1', 'search' => 'x', 'state_filters' => ['unread'], 'page' => '2', 'notification' => 'n1')
+
+      url = helper.inbox_bulk_action_path(:archive)
+      expect(URI.parse(url).path).to eq('/inbox/selection/archive')
+      expect(query_of(url)).to eq('org' => 'o1', 'search' => 'x', 'state_filters' => ['unread'], 'page' => '2')
+      expect(URI.parse(helper.inbox_bulk_action_path(:mark_read)).path).to eq('/inbox/selection/mark_read')
+    end
+
+    it 'knows no other action' do
+      expect { helper.inbox_bulk_action_path(:unarchive) }.to raise_error(KeyError)
+    end
+  end
+
   describe '#inbox_organisation_option' do
     it 'names the unread count while there is one, the name alone at zero' do
       expect(helper.inbox_organisation_option(name: 'Nordwind GmbH', unread: 3)).to eq('Nordwind GmbH (3)')

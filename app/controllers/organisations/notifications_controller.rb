@@ -230,9 +230,11 @@ class Organisations::NotificationsController < Organisations::BaseController
     selected_ids = Array(params[:ids]).reject(&:blank?)
     return refuse_empty_selection if empty_selection?(selected_ids)
 
-    scope = with_whole_tickets(scope, selected_ids) if selected_ids.any?
-    marked_count = scope.unread
-                        .bulk_transition!(state: 'read', read_at: Time.current)
+    marked_count = if selected_ids.any?
+                     change_selected_states!(scope, selected_ids, 'read')
+                   else
+                     scope.unread.bulk_transition!(state: 'read', read_at: Time.current)
+                   end
 
     @unread_count = current_user.unread_notifications_count(current_organisation)
     @notifications = policy_scope(current_user.notifications)
@@ -269,16 +271,11 @@ class Organisations::NotificationsController < Organisations::BaseController
       selected_ids = Array(params[:ids]).reject(&:blank?)
       return refuse_empty_selection if empty_selection?(selected_ids)
 
-      if selected_ids.any?
-        scope = with_whole_tickets(scope, selected_ids)
-        archived_count = scope.bulk_transition!(state: 'archived', archived_at: Time.current)
-      else
-        archived_count = scope.read
-                              .bulk_transition!(
-                                state: 'archived',
-                                archived_at: Time.current
-                              )
-      end
+      archived_count = if selected_ids.any?
+                         change_selected_states!(scope, selected_ids, 'archive')
+                       else
+                         scope.read.bulk_transition!(state: 'archived', archived_at: Time.current)
+                       end
 
       # Refresh data for response (exclude archived)
       @notifications = policy_scope(current_user.notifications)
@@ -759,16 +756,23 @@ class Organisations::NotificationsController < Organisations::BaseController
   # The bulk bar of the inbox names its requests (selection=1). One of them
   # without ids would be the whole-inbox action the bar never offers, so it is
   # refused; the header dropdown asks for that action without the marker.
-  # One ticket is one row: a selected row stands for every notification of its
-  # ticket, as the single actions do (cascade_notifiable_state). In the bundled
-  # view a row carries the id of its newest notification only; archiving that
-  # one alone left the row standing with the next.
-  def with_whole_tickets(scope, selected_ids)
-    selected = scope.where(id: selected_ids)
-    tickets = selected.where.not(notifiable_id: nil).distinct.pluck(:notifiable_type, :notifiable_id)
-    return selected if tickets.empty?
+  #
+  # The write of the bar: the selected rows of this inbox and, bundled, the
+  # other notifications about their tickets (Actors::ChangeNotificationStates,
+  # shared with the inbox above the organisations). One ticket is one row: in
+  # the bundled view a row carries the id of its newest notification only, and
+  # archiving that one alone left the row standing with the next. Answers the
+  # number of notifications changed. A refusal is none the reader can act on:
+  # it raises.
+  def change_selected_states!(scope, selected_ids, change)
+    actor = Actors::ChangeNotificationStates.new(
+      ids_by_organisation: { current_organisation => scope.where(id: selected_ids).pluck(:id) },
+      change: change, current_user: current_user
+    )
+    result = actor.call
+    raise Actors::ActorError, result.errors unless result.success?
 
-    tickets.map { |type, id| scope.where(notifiable_type: type, notifiable_id: id) }.reduce(selected, :or)
+    actor.changed_count
   end
 
   def empty_selection?(selected_ids)

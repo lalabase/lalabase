@@ -339,6 +339,11 @@ jobs:
           spec/requests/inbox_pagination_spec.rb
           spec/requests/all_inboxes_spec.rb
           spec/requests/all_inboxes_row_actions_spec.rb
+          spec/requests/all_inboxes_bulk_actions_spec.rb
+          spec/services/actors/change_notification_states_spec.rb
+          spec/services/actors/change_notification_states_concurrency_spec.rb
+          spec/services/notifications/selection_spec.rb
+          spec/services/notifications/subject_bundle_spec.rb
           spec/requests/all_inboxes_live_spec.rb
           spec/requests/all_inboxes_entry_points_spec.rb
           spec/presenters/inbox/master_list_presenter_spec.rb

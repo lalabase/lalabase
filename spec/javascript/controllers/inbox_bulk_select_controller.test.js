@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
+import { redrawAddress } from '../../../app/javascript/lib/inbox_live.js'
 
 // The bulk bar of the inbox. Without ids the routes behind its two forms act
 // on EVERY notification, so a submit with nothing ticked must never leave:
@@ -31,15 +32,25 @@ function fakeForm() {
   }
 }
 
-function build({ ids = ['n1', 'n2'] } = {}) {
+// organisations: { id: [organisationId, organisationName] }, the inbox above the
+// organisations, where a row names its organisation. list: the dataset of the
+// list element (the pages the endless scroll has loaded).
+function build({ ids = ['n1', 'n2'], organisations = {}, address = 'https://lalabase.test/inbox', lang = 'de', list = null } = {}) {
   const document = {
     activeElement: null,
-    createElement: () => ({ dataset: {}, remove() {} })
+    documentElement: { lang },
+    createElement: () => ({ dataset: {}, remove() {} }),
+    getElementById: (id) => (id === 'inbox_master_list' && list ? { dataset: list } : null)
   }
-  const Controller = runInNewContext(`${source}\nInboxBulkSelectController`, { Controller: class {}, document })
+  const window = { location: { href: address, origin: new URL(address).origin } }
+  const Controller = runInNewContext(`${source}\nInboxBulkSelectController`,
+    { Controller: class {}, document, window, URL, Intl, redrawAddress })
   const controller = new Controller()
   const forms = [fakeForm(), fakeForm()]
-  const checkboxes = ids.map((id) => ({ checked: false, dataset: { notificationId: id }, focus() { this.focused = true } }))
+  const checkboxes = ids.map((id) => {
+    const [organisationId, organisationName] = organisations[id] || []
+    return { checked: false, dataset: { notificationId: id, organisationId, organisationName }, focus() { this.focused = true } }
+  })
   const bar = { classList: classList(['hidden']), contains: (node) => node === 'inside-the-bar' }
   controller.element = { classList: classList(), querySelector: () => null }
   controller.formTargets = forms
@@ -183,4 +194,116 @@ test('the rows of the first draw, which connect before the controller does, star
   await afterRedraw()
 
   assert.equal(controller.reconcilePending, undefined)
+})
+
+// The inbox above the organisations (followAddress): the bar lies outside the
+// list and outside the frame the search reloads, so the address written into
+// its forms can be older than the list. The submit takes the list state from
+// the page's address and the pages the endless scroll has loaded, like the
+// live redraw does (lib/inbox_live.js).
+function submitOf(form, confirm) {
+  return { target: form, params: { confirm }, preventDefault() { this.prevented = true } }
+}
+
+function tick(controller, checkbox, checked = true) {
+  checkbox.checked = checked
+  controller.toggle({ target: checkbox })
+}
+
+test('above the organisations a submit carries the list state of the address and the loaded pages', () => {
+  const { controller, checkboxes } = build({
+    address: 'https://lalabase.test/inbox?org=o1&search=Regal&state_filters%5B%5D=unread',
+    list: { neoEndlessScrollFirstPageValue: '1', neoEndlessScrollPageValue: '3' }
+  })
+  controller.followAddressValue = true
+  const form = { action: 'https://lalabase.test/inbox/selection/archive?search=Alt', dataset: {} }
+
+  tick(controller, checkboxes[0])
+  controller.guardSubmit(submitOf(form))
+
+  const action = new URL(form.action)
+  assert.equal(action.pathname, '/inbox/selection/archive')
+  assert.equal(action.searchParams.get('search'), 'Regal')
+  assert.equal(action.searchParams.get('org'), 'o1')
+  assert.deepEqual(action.searchParams.getAll('state_filters[]'), ['unread'])
+  assert.equal(action.searchParams.get('page'), '1')
+  assert.equal(action.searchParams.get('through_page'), '3')
+})
+
+test('inside an organisation the address of the form stays as it was written', () => {
+  const { controller, checkboxes } = build({ address: 'https://lalabase.test/org/o1/inbox?search=Regal' })
+  const form = { action: 'https://lalabase.test/org/o1/inbox/mark_all_read', dataset: {} }
+
+  tick(controller, checkboxes[0])
+  controller.guardSubmit(submitOf(form))
+
+  assert.equal(form.action, 'https://lalabase.test/org/o1/inbox/mark_all_read')
+})
+
+test('a submit with nothing ticked is stopped before its address is touched', () => {
+  const { controller } = build()
+  controller.followAddressValue = true
+  const form = { action: 'https://lalabase.test/inbox/selection/archive', dataset: {} }
+  const submit = submitOf(form, '{number} / {organisations}')
+
+  controller.startSelecting()
+  controller.guardSubmit(submit)
+
+  assert.equal(submit.prevented, true)
+  assert.equal(form.action, 'https://lalabase.test/inbox/selection/archive')
+  assert.equal(form.dataset.turboConfirm, undefined)
+})
+
+// The question before a bulk action that crosses organisations: how many rows,
+// and which organisations. Inside one organisation the bar acts at once.
+test('a selection within one organisation is not questioned', () => {
+  const { controller, checkboxes } = build({ organisations: { n1: ['o1', 'Nordwind GmbH'], n2: ['o1', 'Nordwind GmbH'] } })
+  const form = { action: 'https://lalabase.test/inbox/selection/archive', dataset: { turboConfirm: 'left over' } }
+
+  checkboxes.forEach((checkbox) => tick(controller, checkbox))
+  controller.guardSubmit(submitOf(form, '{number} Meldungen aus {organisations} archivieren?'))
+
+  assert.equal(form.dataset.turboConfirm, undefined)
+})
+
+test('a selection across organisations is questioned with its number and their names', () => {
+  const { controller, checkboxes } = build({
+    ids: ['n1', 'n2', 'n3'],
+    organisations: { n1: ['o1', 'Nordwind GmbH'], n2: ['o2', 'Suedhang AG'], n3: ['o1', 'Nordwind GmbH'] }
+  })
+  const form = { action: 'https://lalabase.test/inbox/selection/archive', dataset: {} }
+  const submit = submitOf(form, '{number} Meldungen aus {organisations} archivieren?')
+
+  checkboxes.forEach((checkbox) => tick(controller, checkbox))
+  controller.guardSubmit(submit)
+
+  assert.equal(form.dataset.turboConfirm, '3 Meldungen aus Nordwind GmbH und Suedhang AG archivieren?')
+  assert.equal(submit.prevented, undefined)
+
+  tick(controller, checkboxes[1], false)
+  controller.guardSubmit(submit)
+  assert.equal(form.dataset.turboConfirm, undefined)
+})
+
+test('two organisations of the same name are two organisations, named in the language of the page', () => {
+  const { controller, checkboxes } = build({
+    ids: ['n1', 'n2', 'n3'], lang: 'en',
+    organisations: { n1: ['o1', 'Muster GmbH'], n2: ['o2', 'Muster GmbH'], n3: ['o3', 'Beispiel AG'] }
+  })
+  const form = { action: 'https://lalabase.test/inbox/selection/mark_read', dataset: {} }
+
+  checkboxes.forEach((checkbox) => tick(controller, checkbox))
+  controller.guardSubmit(submitOf(form, 'Mark {number} notifications from {organisations} as read?'))
+
+  assert.equal(form.dataset.turboConfirm, 'Mark 3 notifications from Muster GmbH, Muster GmbH, and Beispiel AG as read?')
+})
+
+test('rows without an organisation (the inbox of one organisation) are never questioned', () => {
+  const { controller, checkboxes } = build()
+  const form = { action: 'https://lalabase.test/org/o1/inbox/archive_all', dataset: {} }
+
+  checkboxes.forEach((checkbox) => tick(controller, checkbox))
+  controller.guardSubmit(submitOf(form, '{number} / {organisations}'))
+
+  assert.equal(form.dataset.turboConfirm, undefined)
 })

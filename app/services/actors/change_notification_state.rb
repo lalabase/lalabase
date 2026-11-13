@@ -11,10 +11,9 @@
 # every in-app notification the person holds about the same subject in the
 # row's organisation along. "Unread" flips only this one back.
 #
-# The siblings are the ones the person may see (Notification.accessible_for)
-# in the organisation of the ROW, named here and not read from the ambient
-# tenant: the inbox above the organisations has none of its own. The caller
-# has found the row through its own gate and authorized it.
+# The siblings are the ones the person may see in the organisation of the ROW
+# (Notifications::SubjectBundle, the rule the bulk bar's actor shares). The
+# caller has found the row through its own gate and authorized it.
 module Actors
   class ChangeNotificationState < BaseActor
     CHANGES = %w[read unread archive unarchive].freeze
@@ -41,19 +40,16 @@ module Actors
 
     attr_reader :current_user, :siblings
 
-    # Lock the whole bundle before changing any member, in the same order for
-    # every caller. Otherwise two actions on different members each hold their
-    # own row and wait for the other's in the cascade. Keep the cascade within
-    # this snapshot; a notification arriving later belongs to the next action.
+    # The row and its bundle, locked before any member changes
+    # (Notifications::SubjectBundle, shared with the bulk bar's actor). The
+    # cascade stays within this snapshot.
     def lock_bundle
-      scope = visible_notifications
-      @siblings = scope.channel_in_app
-                       .where(notifiable_type: @notification.notifiable_type, notifiable_id: @notification.notifiable_id)
-      ids = @siblings.or(scope.where(id: @notification.id)).order(:id).lock.pluck(:id)
-      @siblings = @siblings.where(id: ids)
+      visible = Notifications::SubjectBundle.visible(user: current_user, organisation: @notification.organisation)
+      locked = Notifications::SubjectBundle.lock(visible: visible, chosen: visible.where(id: @notification.id))
+      @siblings = locked.channel_in_app
       # Reload through the locked set too: access may have changed since the
       # caller authorized the row, and an unlocked row must never be written.
-      raise ActorError, 'notification is no longer accessible' unless ids.include?(@notification.id)
+      raise ActorError, 'notification is no longer accessible' unless locked.exists?(id: @notification.id)
 
       @notification.reload
     end
@@ -87,14 +83,6 @@ module Actors
       archived = siblings.where(state: Notification.states[:archived])
       archived.where(read_at: nil).bulk_transition!(state: 'read', archived_at: nil, read_at: Time.current)
       archived.bulk_transition!(state: 'read', archived_at: nil)
-    end
-
-    # The same access rule for the lock and for the cascade, in the row's org.
-    def visible_notifications
-      organisation = @notification.organisation
-      current_user.notifications
-                  .where(organisation_id: organisation.id)
-                  .accessible_for(current_user, organisation)
     end
   end
 end

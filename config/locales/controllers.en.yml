@@ -376,6 +376,15 @@ en:
       deleted: "Tag was successfully deleted."
     appearances:
       saved: "Appearance has been saved."
+    all_inboxes:
+      marked_read:
+        one: "1 notification marked as read."
+        other: "%{count} notifications marked as read."
+      archived:
+        one: "1 notification archived."
+        other: "%{count} notifications archived."
+      none_changed: "None of the selected notifications is there any more."
+      too_many_selected: "At most %{count} notifications at a time."
     notifications:
       deleted: "Notification deleted."
       marked_read: "%{count} notifications marked as read."

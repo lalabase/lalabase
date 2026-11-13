@@ -15,9 +15,9 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
                  organisation_name: nil)
     @notification = notification
     # Given on the inbox above the organisations (AllInboxesController), where a
-    # row names its organisation and leaves for that organisation's inbox. The
-    # row then acts on nothing in place: no bulk checkbox, no "···" (their
-    # addresses and answers belong to one organisation's list).
+    # row names its organisation and leaves for that organisation's inbox. Its
+    # "···" menu and its bulk checkbox act in place there, on addresses of that
+    # page (InboxHelper#inbox_row_action_path, #inbox_bulk_action_path).
     @organisation_name = organisation_name
     @selected = selected
     # Bundle counts (grouped view): how many notifications belong to the
@@ -62,6 +62,15 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
 
   def above_organisations?
     @organisation_name.present?
+  end
+
+  # What the bulk checkbox says about the row's organisation, above the
+  # organisations only: the bulk bar counts the organisations of a selection by
+  # id and names them.
+  def organisation_data
+    return {} unless above_organisations?
+
+    { organisation_id: notification.organisation_id, organisation_name: @organisation_name }
   end
 
   # In bundled mode the row counts as unread as soon as ANY

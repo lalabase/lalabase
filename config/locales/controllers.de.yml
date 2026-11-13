@@ -380,6 +380,15 @@ de:
       deleted: "Tag wurde erfolgreich gelöscht."
     appearances:
       saved: "Erscheinungsbild wurde gespeichert."
+    all_inboxes:
+      marked_read:
+        one: "1 Meldung als gelesen markiert."
+        other: "%{count} Meldungen als gelesen markiert."
+      archived:
+        one: "1 Meldung archiviert."
+        other: "%{count} Meldungen archiviert."
+      none_changed: "Keine der gewählten Meldungen ist noch da."
+      too_many_selected: "Höchstens %{count} Meldungen auf einmal."
     notifications:
       deleted: "Benachrichtigung gelöscht."
       marked_read: "%{count} Benachrichtigungen als gelesen markiert."

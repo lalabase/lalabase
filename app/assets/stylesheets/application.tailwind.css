@@ -606,7 +606,9 @@
   /* The checkbox shows on hover, while the row's link has focus (the keyboard's
      hover: Shift+Tab reaches it), and in selection mode. */
   .inbox-row:hover .inbox-row__check, .inbox-row:focus-within .inbox-row__check, .inbox-selecting .inbox-row__check { display: block; }
-  .inbox-row:hover .inbox-row__dot, .inbox-row:focus-within .inbox-row__dot, .inbox-selecting .inbox-row__dot { display: none; }
+  /* Only hide indicators when a control replaces them. :where keeps the
+     specificity unchanged so the touch-screen overrides below still win. */
+  .inbox-row:where(:has(.inbox-row__check)):hover .inbox-row__dot, .inbox-row:where(:has(.inbox-row__check)):focus-within .inbox-row__dot, .inbox-selecting .inbox-row:where(:has(.inbox-row__check)) .inbox-row__dot { display: none; }
   @media (hover: none) {
     .inbox-row:hover .inbox-row__check { display: none; }
     .inbox-row:hover .inbox-row__dot { display: block; }
@@ -641,7 +643,7 @@
   .inbox-row { position: relative; }
   .inbox-row__menu { @apply absolute right-1 top-1.5 opacity-0; }
   .inbox-row:hover .inbox-row__menu, .inbox-row:focus-within .inbox-row__menu, .inbox-row__menu[open] { opacity: 1; }
-  .inbox-row:hover .inbox-row__time, .inbox-row:focus-within .inbox-row__time, .inbox-row:has(.inbox-row__menu[open]) .inbox-row__time { visibility: hidden; }
+  .inbox-row:where(:has(.inbox-row__menu)):hover .inbox-row__time, .inbox-row:where(:has(.inbox-row__menu)):focus-within .inbox-row__time, .inbox-row:has(.inbox-row__menu[open]) .inbox-row__time { visibility: hidden; }
   /* No hover on a touch screen: the "···" stands there always, and the time
      moves left of it. */
   @media (hover: none) {

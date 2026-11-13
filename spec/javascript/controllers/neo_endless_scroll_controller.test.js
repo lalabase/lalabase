@@ -42,6 +42,22 @@ test('an address without parameters asks for the page alone', () => {
   assert.equal(controllerAt('').nextPageUrl(2).search, '?page=2')
 })
 
+test('a row action carries all loaded pages without changing its filters', () => {
+  const controller = controllerAt('?page=2')
+  controller.firstPageValue = 2
+  controller.pageValue = 4
+  const form = { action: 'https://inbox.example/inbox/id/mark_read?org=north&state_filters[]=read&state_filters[]=unread' }
+
+  controller.preservePages({ target: form })
+
+  const url = new URL(form.action)
+  assert.equal(url.pathname, '/inbox/id/mark_read')
+  assert.equal(url.searchParams.get('page'), '2')
+  assert.equal(url.searchParams.get('through_page'), '4')
+  assert.equal(url.searchParams.get('org'), 'north')
+  assert.deepEqual(url.searchParams.getAll('state_filters[]'), ['read', 'unread'])
+})
+
 // The pages are cut by offset and the list moves under them: a notification
 // that arrives after page one was drawn pushes its last row onto page two.
 

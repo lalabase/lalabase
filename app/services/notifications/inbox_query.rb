@@ -69,6 +69,18 @@ module Notifications
           include_archived: include_archived).relation
     end
 
+    # One row by its id, for an action on it: the row only if it is the person's,
+    # within the reach, and one they may still see (archived ones included). nil for
+    # every other case, so a foreign row, a hidden one and a missing one read alike.
+    # Reads tenant-free itself; the caller acts on the row under the row's tenant.
+    def self.row(user:, reach:, id:)
+      return nil unless Lalabase::Uuid.valid?(id.to_s)
+
+      ActsAsTenant.without_tenant do
+        relation(user: user, reach: reach, status: 'all', include_archived: true).find_by(id: id)
+      end
+    end
+
     # The rows of the web inbox above the organisations (AllInboxesController), for
     # a caller that filters and pages them itself (Inbox::MasterListPresenter, as the
     # inbox of one organisation does). The block runs tenant-free and gets

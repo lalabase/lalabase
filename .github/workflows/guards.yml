@@ -338,6 +338,7 @@ jobs:
           spec/requests/inbox_status_filter_spec.rb
           spec/requests/inbox_pagination_spec.rb
           spec/requests/all_inboxes_spec.rb
+          spec/requests/all_inboxes_row_actions_spec.rb
           spec/presenters/inbox/master_list_presenter_spec.rb
           spec/components/neo_inbox_master_item_component_spec.rb
           spec/helpers/inbox_helper_spec.rb

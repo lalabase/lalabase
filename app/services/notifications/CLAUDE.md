@@ -41,8 +41,16 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   geladen (`presenter.load!`), ein später nachgeladener Verweis wirft `NoTenantSet`. Sie setzt
   die Organisation der Sitzung nie; der Filter heißt deshalb `org` und nicht `organisation_id`
   (daraus liest `ApplicationController#load_tenant_from_session` den Mandanten). Eine Zeile
-  führt in die Inbox ihrer Organisation; Aktionen an der Zeile und eine eigene Bahn hat die
-  Seite noch nicht. Wächter: `spec/requests/all_inboxes_spec.rb`, `spec/system/all_inboxes_spec.rb`.
+  führt in die Inbox ihrer Organisation; eine eigene Bahn und Sammelaktionen hat die Seite
+  noch nicht. **Aktionen an der Zeile** (gelesen, ungelesen, archivieren, zurückholen) haben
+  eigene Adressen (`PATCH /inbox/:id/...`), weil jede Adresse unter `/org/:id` die Organisation
+  der Sitzung umstellt. Die Zeile findet `InboxQuery.row` (eigene, in Reichweite, sichtbar,
+  sonst 404), Policy und Schreiben laufen unter dem Mandanten der ZEILE. Geschrieben wird über
+  `Actors::ChangeNotificationState`, denselben Actor wie in der Inbox einer Organisation: er
+  nimmt die übrigen Meldungen zum selben Gegenstand mit (ein Ticket = eine Zeile), außer bei
+  „ungelesen“. Der Listenzustand reist in der Adresse der Aktion mit, nicht im Referrer.
+  Wächter: `spec/requests/all_inboxes_spec.rb`, `spec/requests/all_inboxes_row_actions_spec.rb`,
+  `spec/system/all_inboxes_spec.rb`.
 * **Eine Zählregel für „ungelesen in Organisation X“** (seit 02.10.2026): Cockpit-Kachel,
   Badge, mobile Navigation, Glocken-Dropdown, Org-Umschalter, Inbox-Liste und Token-Inbox
   zählen nach `Notification.inbox_unread` / `Notification.readable` (aktive Projekte, die die

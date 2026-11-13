@@ -97,8 +97,7 @@ class Organisations::NotificationsController < Organisations::BaseController
 
     case action_type
     when 'read', 'mark_read'
-      @notification.mark_as_read!
-      cascade_notifiable_state(@notification, :read)
+      change_notification_state!('read')
       @unread_count = current_user.unread_notifications_count(current_organisation)
 
       respond_to do |format|
@@ -106,8 +105,7 @@ class Organisations::NotificationsController < Organisations::BaseController
         format.json { render json: { status: 'read', unread_count: @unread_count } }
       end
     when 'archive'
-      @notification.archive!
-      cascade_notifiable_state(@notification, :archived)
+      change_notification_state!('archive')
       @unread_count = current_user.unread_notifications_count(current_organisation)
 
       respond_to do |format|
@@ -125,10 +123,9 @@ class Organisations::NotificationsController < Organisations::BaseController
   # Individual Actions (for member routes)
   def mark_read
     authorize @notification, :mark_read?
-    @notification.mark_as_read!
     # Bundling: one ticket = one inbox row. Reading cascades to ALL
     # notifications of this ticket — you look in once, everything done.
-    cascade_notifiable_state(@notification, :read)
+    change_notification_state!('read')
     @unread_count = current_user.unread_notifications_count(current_organisation)
     @action_type = 'mark_read'
     setup_pane_vars_from_action_notification
@@ -141,11 +138,7 @@ class Organisations::NotificationsController < Organisations::BaseController
 
   def mark_unread
     authorize @notification, :mark_unread?
-    if @notification.state_archived?
-      @notification.restore_from_archived!
-    else
-      @notification.mark_as_unread!
-    end
+    change_notification_state!('unread')
     @unread_count = current_user.unread_notifications_count(current_organisation)
     @action_type = 'mark_unread'
     setup_pane_vars_from_action_notification
@@ -158,9 +151,8 @@ class Organisations::NotificationsController < Organisations::BaseController
 
   def archive
     authorize @notification, :archive?
-    @notification.archive!
     # Bundling: archiving applies to the whole ticket (all siblings).
-    cascade_notifiable_state(@notification, :archived)
+    change_notification_state!('archive')
     @unread_count = current_user.unread_notifications_count(current_organisation)
     @action_type = 'archive'
     setup_pane_vars_from_action_notification
@@ -174,15 +166,8 @@ class Organisations::NotificationsController < Organisations::BaseController
   def unarchive
     # Reuse archive policy: whoever may archive may also bring it back out.
     authorize @notification, :archive?
-    if @notification.state_archived?
-      @notification.update!(
-        state: :read,
-        archived_at: nil,
-        read_at: @notification.read_at || Time.current
-      )
-    end
     # Bundling: archiving took the whole ticket, so does the way back.
-    cascade_notifiable_state(@notification, :unarchived)
+    change_notification_state!('unarchive')
     @unread_count = current_user.unread_notifications_count(current_organisation)
     @action_type = 'unarchive'
     setup_pane_vars_from_action_notification
@@ -673,31 +658,13 @@ class Organisations::NotificationsController < Organisations::BaseController
   # newest/displayed notification flips back to unread).
   # Only rows the person sees: rows about the same project can differ by the area of
   # their event, and a hidden one archived along would be gone when the right returns.
-  def cascade_notifiable_state(notification, target_state)
-    return unless notification.notifiable_type && notification.notifiable_id
-
-    scope = current_user.notifications
-                        .for_current_tenant_user(current_user)
-                        .accessible_for(current_user, current_organisation)
-                        .channel_in_app
-                        .where(notifiable_type: notification.notifiable_type,
-                               notifiable_id: notification.notifiable_id)
-
-    case target_state
-    when :read
-      scope.unread.bulk_transition!(state: 'read', read_at: Time.current)
-    when :archived
-      scope.where.not(state: Notification.states[:archived])
-           .bulk_transition!(state: 'archived', archived_at: Time.current)
-    when :unarchived
-      # Back as read, like the single unarchive: a row the bulk bar archived
-      # unread has no read_at yet and gets one, the others keep theirs.
-      archived = scope.where(state: Notification.states[:archived])
-      archived.where(read_at: nil).bulk_transition!(state: 'read', archived_at: nil, read_at: Time.current)
-      archived.bulk_transition!(state: 'read', archived_at: nil)
-    end
-  rescue StandardError => e
-    Rails.logger.warn("cascade_notifiable_state failed: #{e.class}: #{e.message}")
+  # The write of a row action: the row and, bundled, its siblings
+  # (Actors::ChangeNotificationState, shared with the inbox above the
+  # organisations). A refusal is none the reader can act on: it raises, as the
+  # bare update! did before.
+  def change_notification_state!(change)
+    result = Actors::ChangeNotificationState.call(notification: @notification, change: change, current_user: current_user)
+    raise Actors::ActorError, result.errors unless result.success?
   end
 
   def mark_notifications_for_notifiable(notification, all_channels: false)

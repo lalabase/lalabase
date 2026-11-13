@@ -5,6 +5,7 @@ export default class extends Controller {
   static values = { 
     url: String,
     page: Number,
+    firstPage: Number,
     hasMore: Boolean,
     loading: Boolean 
   }
@@ -42,6 +43,15 @@ export default class extends Controller {
     if (this.observer) {
       this.observer.disconnect()
     }
+  }
+
+  // A row action replaces the list. Tell it which pages are actually visible,
+  // since endless scroll leaves the browser address on the original page.
+  preservePages(event) {
+    const url = new URL(event.target.action, window.location.origin)
+    url.searchParams.set('page', this.firstPageValue || 1)
+    url.searchParams.set('through_page', this.pageValue)
+    event.target.action = url.toString()
   }
   
   handleIntersection(entries) {

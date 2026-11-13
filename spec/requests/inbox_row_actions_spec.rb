@@ -184,4 +184,65 @@ RSpec.describe 'Inbox row actions', type: :request do
       expect(b_one.reload.state).to eq('archived')
     end
   end
+
+  # The older address of the same write: PATCH /inbox/:id with action_type
+  # (bell dropdown, briefing lane).
+  describe 'the update address' do
+    def update_with(action_type, notification)
+      patch organisation_notification_path(organisation, notification),
+            params: { action_type: action_type }, headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'reads the whole ticket with action_type read, and archives nothing' do
+      update_with('read', a_new)
+
+      expect([a_new, a_old].map { |n| n.reload.state }).to eq(%w[read read])
+      expect(b_one.reload.state).to eq('delivered')
+    end
+
+    it 'archives the whole ticket with action_type archive' do
+      update_with('archive', a_new)
+
+      expect([a_new, a_old].map { |n| n.reload.state }).to eq(%w[archived archived])
+      expect(b_one.reload.state).to eq('delivered')
+    end
+  end
+
+  describe 'the answer of a row action' do
+    def toast
+      Nokogiri::HTML(response.body).at_css('turbo-stream[target="flash_messages"] template').text.squish
+    end
+
+    def update_text(key)
+      I18n.t("views.organisations.notifications.update.#{key}")
+    end
+
+    it 'counts the unread ones after the write' do
+      stream_patch mark_read_organisation_notification_path(organisation, a_new), referer: inbox_url
+
+      pill = Nokogiri::HTML(response.body).at_css('turbo-stream[target="inbox_unread_count"] template')
+      expect(pill.text.strip).to eq('1') # b_one; a_new and a_old are read
+    end
+
+    it 'says "read" after reading' do
+      stream_patch mark_read_organisation_notification_path(organisation, a_new), referer: inbox_url
+
+      expect(toast).to eq(update_text(:marked_as_read))
+    end
+
+    it 'says "archived" after archiving' do
+      stream_patch archive_organisation_notification_path(organisation, a_new), referer: inbox_url
+
+      expect(toast).to eq(update_text(:notification_archived))
+    end
+
+    it 'does not say "archived" after the way back out of the archive' do
+      a_new.update!(state: :archived, read_at: Time.current, archived_at: Time.current)
+      stream_patch unarchive_organisation_notification_path(organisation, a_new),
+                   referer: inbox_url(state_filters: ['archived'])
+
+      expect(toast).to eq(update_text(:notification_updated))
+    end
+  end
 end

@@ -14,6 +14,14 @@ module InboxHelper
   # One organisation of the inbox above the organisations. It travels only
   # there: inside an organisation the address itself names it.
   INBOX_ORGANISATION_PARAM = 'org'
+  # The routes of the row actions, by action: inside an organisation and above
+  # the organisations (AllInboxesController::ROW_ACTIONS).
+  INBOX_ROW_ACTION_ROUTES = {
+    mark_read: { inside: :mark_read_organisation_notification_path, above: :all_inbox_mark_read_path },
+    mark_unread: { inside: :mark_unread_organisation_notification_path, above: :all_inbox_mark_unread_path },
+    archive: { inside: :archive_organisation_notification_path, above: :all_inbox_archive_path },
+    unarchive: { inside: :unarchive_organisation_notification_path, above: :all_inbox_unarchive_path }
+  }.freeze
 
   # The list address with one status view: unread, all or archived.
   def inbox_status_view_url(view, query: nil)
@@ -86,6 +94,24 @@ module InboxHelper
   def inbox_notification_in_organisation_url(notification, query: nil)
     states = inbox_list_query(query)['state_filters'].presence || Inbox::MasterListPresenter::STATUS_VIEWS.fetch('all')
     organisation_notifications_path(notification.organisation_id, state_filters: states, notification: notification.id)
+  end
+
+  # The address of an action on a row ("···" menu, head of the lane):
+  # mark_read, mark_unread, archive, unarchive. Above the organisations the
+  # action has an address of its own (one under /org/:id would move the
+  # session's organisation), and it carries the list state, which the answer
+  # redraws the list from. Inside an organisation the answer reads that state
+  # from the page's address (the referrer), as before.
+  def inbox_row_action_path(action, notification, query: nil)
+    route = INBOX_ROW_ACTION_ROUTES.fetch(action)
+    if inbox_above_organisations?
+      list = inbox_list_query(query)
+      page = (query || request.query_parameters).to_h.stringify_keys['page'].to_s.to_i
+      list['page'] = page if page > 1
+      public_send(route.fetch(:above), notification, list)
+    else
+      public_send(route.fetch(:inside), current_organisation, notification)
+    end
   end
 
   # An organisation in the select of the inbox above the organisations: its

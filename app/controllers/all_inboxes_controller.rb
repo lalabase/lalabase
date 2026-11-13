@@ -3,7 +3,8 @@
 # The inbox above the organisations ("Gesamt-Inbox", GET /inbox): the list of the
 # organisation's inbox with a wider reach, for a person with several organisations.
 # Every row names its organisation; a click leaves for that organisation's inbox
-# with the row open.
+# with the row open. The actions of a row (read, unread, archive, back from the
+# archive) work in place.
 #
 # Runs WITHOUT a tenant, like the cockpit, and never sets the session's
 # organisation: looking at a row of organisation B must not move the organisation
@@ -29,23 +30,80 @@ class AllInboxesController < ApplicationController
     head :not_found
   end
 
+  # The action of a row and the policy question it asks. One list for the routes,
+  # the actions below and the actor's vocabulary.
+  ROW_ACTIONS = {
+    'mark_read' => { change: 'read', query: :mark_read? },
+    'mark_unread' => { change: 'unread', query: :mark_unread? },
+    'archive' => { change: 'archive', query: :archive? },
+    # Whoever may archive may bring it back out, as in the inbox of an organisation.
+    'unarchive' => { change: 'unarchive', query: :archive? }
+  }.freeze
+
   def index
     return redirect_to(single_inbox_path) if single_inbox_path
 
+    load_list
+  end
+
+  # The actions of a row's "···" menu, in place: the row changes, the list stays
+  # where it is. The list state travels in the address of the action (the row's
+  # form carries it), so the answer redraws the list the reader was looking at.
+  ROW_ACTIONS.each_key do |name|
+    define_method(name) { change_row(ROW_ACTIONS.fetch(name)) }
+  end
+
+  private
+
+  # The row is found through the inbox reader (the person's own, within reach,
+  # still visible): everything else is no row. Policy and write then run under
+  # the tenant of the ROW, for this block only; the session keeps its organisation.
+  def change_row(action)
+    notification = Notifications::InboxQuery.row(user: current_user, reach: reach, id: params[:id])
+    return head(:not_found) unless notification
+
+    # Reject an unreachable/malformed list filter before committing the write.
+    # InboxQuery owns this validation for the index and the refresh as well.
+    Notifications::InboxQuery.new(user: current_user, reach: reach, organisation_id: params[:org])
+
+    ActsAsTenant.with_tenant(notification.organisation) do
+      authorize notification, action[:query]
+      result = Actors::ChangeNotificationState.call(notification: notification, change: action[:change],
+                                                    current_user: current_user)
+      raise Actors::ActorError, result.errors unless result.success?
+    end
+    @action_type = action_name
+    load_list
+
+    respond_to do |format|
+      format.turbo_stream { render :update }
+      format.html do
+        query = @presenter.query_context
+        query[:page] = @presenter.first_page if @presenter.first_page > 1
+        redirect_to all_inboxes_path(query)
+      end
+    end
+  end
+
+  def reach
+    @reach ||= PersonalAccessToken::Reach.for_person(current_user)
+  end
+
+  # Rows, counts per organisation and the number at "Ungelesen", for the page and
+  # for the answer of a row action alike.
+  def load_list
     filters = Inbox::MasterListPresenter.clean_filters(filter_params.to_h)
-    Notifications::InboxQuery.reading(user: current_user, reach: PersonalAccessToken::Reach.for_person(current_user),
-                                      organisation_id: params[:org]) do |rows, counts|
+    Notifications::InboxQuery.reading(user: current_user, reach: reach, organisation_id: params[:org]) do |rows, counts|
       @inbox_organisations = counts
       @presenter = Inbox::MasterListPresenter.new(
         pagy_helper: self,
         scope: Inbox::MasterListPresenter.narrow(rows, filters, time_zone: current_user.time_zone),
-        params: filters, time_zone: current_user.time_zone
+        params: filters, time_zone: current_user.time_zone,
+        through_page: action_name == 'index' ? nil : params[:through_page]
       ).load!
     end
     @unread_count = shown_organisations.sum { |organisation| organisation[:unread] }
   end
-
-  private
 
   # With fewer than two organisations there is nothing above them: the inbox of
   # the one organisation, or wherever a person without any belongs.

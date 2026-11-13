@@ -67,16 +67,17 @@ module Inbox
     # The pagy helper needs a class instance that understands `params` and the
     # `pagy_*` helpers — the controller passes itself. time_zone: the zone the
     # reader's days run in (User#time_zone), for the period headings.
-    def initialize(pagy_helper:, scope:, params:, time_zone: Time.zone)
+    def initialize(pagy_helper:, scope:, params:, time_zone: Time.zone, through_page: nil)
       @pagy_helper = pagy_helper
       @scope = scope
       @params = params
       @time_zone = time_zone
+      @through_page = through_page
       compute!
     end
 
     attr_reader :pagy, :notifications, :grouped_notifications, :view_mode,
-                :total_count, :active_state_filters
+                :total_count, :active_state_filters, :first_page
 
     def grouped?
       view_mode == 'grouped'
@@ -163,7 +164,7 @@ module Inbox
         compute_grouped!
       else
         @notifications = @filtered.for_notification_center.recent
-        @pagy, @notifications = @pagy_helper.send(:pagy, @notifications, limit: PAGE_SIZE)
+        @notifications = paginate(@notifications)
       end
     end
 
@@ -184,7 +185,7 @@ module Inbox
                               .for_notification_center
                               .order(created_at: :desc)
 
-      @pagy, reps = @pagy_helper.send(:pagy, rep_scope, limit: PAGE_SIZE)
+      reps = paginate(rep_scope)
 
       # Counts over the ENTIRE filtered scope (not just this page), so that
       # the badge shows the real total count per ticket.
@@ -193,6 +194,18 @@ module Inbox
 
       @grouped_notifications = group_by_period(reps)
       @notifications = reps
+    end
+
+    # A row action refreshes the pages currently on screen, including pages
+    # appended by endless scroll. Keep the original offset and extend the limit;
+    # the scroller resumes AFTER the last rendered page, still in PAGE_SIZE steps.
+    def paginate(scope)
+      @pagy, rows = @pagy_helper.send(:pagy, scope, limit: PAGE_SIZE)
+      @first_page = @pagy.page
+      last_page = @through_page.to_s.to_i.clamp(first_page, [@pagy.pages, first_page].max)
+      rows = rows.limit(@pagy.limit * (last_page - first_page + 1))
+      @pagy = Pagy.new(**@pagy.vars.merge(page: last_page)) if last_page != first_page
+      rows
     end
 
     # { period => representatives } in PERIODS order, empty periods left out.

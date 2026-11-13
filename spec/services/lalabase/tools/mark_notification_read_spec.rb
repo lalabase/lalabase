@@ -84,6 +84,14 @@ RSpec.describe Lalabase::Tools::MarkNotificationRead do
     it 'reads a missing id as not found' do
       expect_not_found(SecureRandom.uuid)
     end
+
+    # The reach is the TOKEN's, not the person's: an organisation the owner is a
+    # member of, but the token does not name, is outside.
+    it 'reads a row of an organisation the owner belongs to but the token does not reach as not found' do
+      make_token_owner_a_member(user, other_organisation)
+
+      expect_not_found(outside.id)
+    end
   end
 
   it 'refuses an archived row instead of answering "archived" to a request it did not fulfil' do

@@ -225,6 +225,14 @@ Rails.application.routes.draw do
   # organisation of the person, outside the org scope like the cockpit. The inbox
   # of one organisation stays at /org/:organisation_id/inbox.
   get 'inbox', to: 'all_inboxes#index', as: :all_inboxes
+  # The actions on a row of that inbox. Routes of its own: an address under
+  # /org/:organisation_id would move the organisation of the session.
+  scope 'inbox/:id', controller: 'all_inboxes', as: :all_inbox do
+    patch :mark_read
+    patch :mark_unread
+    patch :archive
+    patch :unarchive
+  end
 
   # Cockpit (organisations#select) personalisation — user-global, outside org scope (the cockpit
   # runs without a tenant, like user_preferences).

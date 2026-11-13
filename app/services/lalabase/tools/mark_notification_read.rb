@@ -59,10 +59,7 @@ module Lalabase
         return Result.invalid_input('notification_id is required') if id.empty?
         return Result.invalid_input('invalid notification_id format') unless id.match?(UUID_FORMAT)
 
-        notification = ActsAsTenant.without_tenant do
-          Notifications::InboxQuery.relation(user: context.actor, reach: context.reach,
-                                             status: 'all', include_archived: true).find_by(id: id)
-        end
+        notification = Notifications::InboxQuery.row(user: context.actor, reach: context.reach, id: id)
         return Result.new(content: "No notification found for #{id}.", citations: [], kind: :empty) if notification.nil?
         # mark_as_read! is a silent no-op on an archived row; the tool says so
         # rather than answering state "archived" to a request it did not fulfil.

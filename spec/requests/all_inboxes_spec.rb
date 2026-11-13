@@ -84,10 +84,10 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, type: :request do
       expect(link['data-turbo-frame']).to eq('_top')
     end
 
-    it 'offers nothing that acts in place: no bulk checkbox, no row menu, no bulk bar' do
+    it 'offers no bulk action yet: no bulk checkbox, no bulk bar (the row menu: all_inboxes_row_actions_spec)' do
       doc = page
       expect(doc.css('.inbox-row')).not_to be_empty
-      expect(doc.css('.inbox-row__check, .inbox-row__menu, .inbox-bulk')).to be_empty
+      expect(doc.css('.inbox-row__check, .inbox-bulk')).to be_empty
     end
 
     it 'carries the title of the page above, not the one of an organisation' do

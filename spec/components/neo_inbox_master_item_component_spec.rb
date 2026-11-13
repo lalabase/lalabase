@@ -72,9 +72,10 @@ RSpec.describe NeoInboxMasterItemComponent, type: :component do
       expect(link['data-inbox-master-item-fullview-url-value']).to be_present
     end
 
-    it 'has neither the bulk checkbox nor the row menu' do
+    it 'has the row menu on the addresses of that inbox, and no bulk checkbox' do
       expect(page).to have_no_css('.inbox-row__check')
-      expect(page).to have_no_css('.inbox-row__menu')
+      actions = page.all('.inbox-row__menu form', visible: :all).pluck(:action)
+      expect(actions).to eq(["/inbox/#{notification.id}/mark_read", "/inbox/#{notification.id}/archive"])
     end
   end
 end

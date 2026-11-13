@@ -49,4 +49,26 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     expect(page).to have_current_path(%r{\A/org/#{south.id}/inbox\?})
     expect(page).to have_css('.inbox-lane-content', text: 'Paket fehlt')
   end
+
+  # The "···" of a row acts in place: the row leaves the unread view, the counts
+  # follow, and the reader is still on the page above the organisations.
+  it 'archives a row from its menu and stays on the page' do
+    visit all_inboxes_path
+
+    row = find('.inbox-row', text: 'Paket fehlt')
+    row.hover
+    row.find('.inbox-row__menu summary').click
+    row.click_button I18n.t('views.organisations.notifications.actions.archive')
+
+    expect(page).to have_css('.inbox-row', count: 1)
+    expect(page).to have_no_css('.inbox-row__title', text: 'Paket fehlt')
+    expect(page).to have_current_path(all_inboxes_path)
+    within('[data-all-inboxes-nav]') do
+      expect(find('li', text: 'Suedhang AG')).to have_no_css('[class*="unread"]', text: '1')
+      expect(find('li', text: 'Nordwind GmbH')).to have_text('1')
+    end
+
+    visit all_inboxes_path(state_filters: %w[archived])
+    expect(page).to have_css('.inbox-row__title', text: 'Paket fehlt')
+  end
 end

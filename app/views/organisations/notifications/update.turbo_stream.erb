@@ -61,21 +61,5 @@
 
 <%# Show success toast message %>
 <%= turbo_stream.prepend "flash_messages" do %>
-  <div class="notification-toast notification-toast--success"
-       data-controller="auto-dismiss"
-       data-auto-dismiss-delay-value="3000">
-    <div class="notification-toast-content">
-      <% case action_type %>
-      <% when 'archive' %>
-        <i class="bi bi-archive-fill"></i>
-        <span><%= t('views.organisations.notifications.update.notification_archived') %></span>
-      <% when 'read', 'mark_read' %>
-        <i class="bi bi-check-circle-fill"></i>
-        <span><%= t('views.organisations.notifications.update.marked_as_read') %></span>
-      <% else %>
-        <i class="bi bi-check-circle-fill"></i>
-        <span><%= t('views.organisations.notifications.update.notification_updated') %></span>
-      <% end %>
-    </div>
-  </div>
+  <%= render 'organisations/notifications/action_toast', action_type: action_type %>
 <% end %>

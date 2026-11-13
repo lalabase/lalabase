@@ -1,0 +1,29 @@
+<%# The answer to an action on a row of the inbox above the organisations
+    (AllInboxesController#change_row). The list is redrawn whole from the state
+    the action's address carried, as the inbox of an organisation does: a row
+    that no longer fits the view is gone, a period heading without rows too.
+    With it everything that shows a count: the pill at "Ungelesen", the
+    organisation select of the tools and the sidebar. %>
+<% organisation_names = @inbox_organisations.to_h { |organisation| [organisation[:id], organisation[:name]] } %>
+<%= turbo_stream.replace 'inbox_master_list' do %>
+  <%= render 'organisations/notifications/master_list',
+             presenter: @presenter, selected_notification: nil,
+             query_context: @presenter.query_context, organisation_names: organisation_names %>
+<% end %>
+
+<%= turbo_stream.replace 'inbox_unread_count' do %>
+  <%= render 'organisations/notifications/unread_count', count: @unread_count %>
+<% end %>
+
+<%= turbo_stream.replace 'inbox_list_tools' do %>
+  <%= render 'organisations/notifications/list_tools',
+             presenter: @presenter, projects: [], unread_count: @unread_count, organisations: @inbox_organisations %>
+<% end %>
+
+<%= turbo_stream.replace 'all_inboxes_nav' do %>
+  <%= render 'common/navigation_all_inboxes', organisations: @inbox_organisations %>
+<% end %>
+
+<%= turbo_stream.prepend 'flash_messages' do %>
+  <%= render 'organisations/notifications/action_toast', action_type: @action_type %>
+<% end %>

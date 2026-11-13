@@ -6,9 +6,10 @@
     marked, and "Gesamt-Inbox" is the way back to all of them. Rows are the
     sidebar's own (common/_navigation_item). organisations: the counts of
     Notifications::InboxQuery ([{ id:, name:, unread: }]), the numbers the cockpit
-    tiles show. %>
+    tiles show. The id is the target of the stream that redraws the counts after
+    a row action (all_inboxes/update). %>
 <% chosen = params[InboxHelper::INBOX_ORGANISATION_PARAM].presence %>
-<div class="w-full px-4 pt-6" data-all-inboxes-nav>
+<div id="all_inboxes_nav" class="w-full px-4 pt-6" data-all-inboxes-nav>
   <ul class="flex flex-col gap-1">
     <%= render 'common/navigation_item', name: t('navigation.all_inboxes'), path: all_inboxes_path,
                                          icon: 'bi bi-bell', active: chosen.nil?,

@@ -33,12 +33,30 @@ module Actors
     def perform
       raise ActorError.new("unknown change #{@change}", code: :invalid_input) unless CHANGES.include?(@change)
 
+      lock_bundle
       send(:"perform_#{@change}")
     end
 
     private
 
-    attr_reader :current_user
+    attr_reader :current_user, :siblings
+
+    # Lock the whole bundle before changing any member, in the same order for
+    # every caller. Otherwise two actions on different members each hold their
+    # own row and wait for the other's in the cascade. Keep the cascade within
+    # this snapshot; a notification arriving later belongs to the next action.
+    def lock_bundle
+      scope = visible_notifications
+      @siblings = scope.channel_in_app
+                       .where(notifiable_type: @notification.notifiable_type, notifiable_id: @notification.notifiable_id)
+      ids = @siblings.or(scope.where(id: @notification.id)).order(:id).lock.pluck(:id)
+      @siblings = @siblings.where(id: ids)
+      # Reload through the locked set too: access may have changed since the
+      # caller authorized the row, and an unlocked row must never be written.
+      raise ActorError, 'notification is no longer accessible' unless ids.include?(@notification.id)
+
+      @notification.reload
+    end
 
     def perform_read
       @notification.mark_as_read!
@@ -71,15 +89,12 @@ module Actors
       archived.bulk_transition!(state: 'read', archived_at: nil)
     end
 
-    # Every in-app notification of the person about the same subject, in the
-    # row's organisation. Every row has a subject (NOT NULL in the table).
-    def siblings
+    # The same access rule for the lock and for the cascade, in the row's org.
+    def visible_notifications
       organisation = @notification.organisation
       current_user.notifications
                   .where(organisation_id: organisation.id)
                   .accessible_for(current_user, organisation)
-                  .channel_in_app
-                  .where(notifiable_type: @notification.notifiable_type, notifiable_id: @notification.notifiable_id)
     end
   end
 end

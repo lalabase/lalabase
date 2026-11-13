@@ -118,4 +118,33 @@ RSpec.describe Actors::ChangeNotificationState do
     expect(archived.reload).to be_state_archived
     expect(read.reload.read_at).to eq(read_at)
   end
+
+  it 'uses the current state when a row was archived after the caller loaded it' do
+    row = notification_for(ticket)
+    Notification.find(row.id).archive!
+
+    expect(change(row, 'unread')).to be_success
+
+    expect(row.reload).to be_state_queued
+    expect(row.archived_at).to be_nil
+  end
+
+  it 'rolls back the primary row when the sibling change fails' do
+    row = notification_for(ticket)
+    sibling = notification_for(ticket)
+    actor = described_class.new(notification: row, change: 'archive', current_user: user)
+    allow(actor).to receive(:siblings).and_raise(Actors::ActorError, 'cascade failed')
+
+    expect(actor.call).not_to be_success
+    expect(row.reload).to be_state_delivered
+    expect(sibling.reload).to be_state_delivered
+  end
+
+  it 'does not write a row whose project became inaccessible before the lock' do
+    row = notification_for(ticket)
+    project.update!(archived_at: Time.current)
+
+    expect(change(row, 'archive')).not_to be_success
+    expect(row.reload).to be_state_delivered
+  end
 end

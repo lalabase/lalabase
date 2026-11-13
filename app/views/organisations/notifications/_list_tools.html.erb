@@ -1,4 +1,4 @@
-<%# locals: (presenter:, projects:, unread_count:) %>
+<%# locals: (presenter:, projects:, unread_count:, organisations: nil) %>
 <%# The tools of the list head that carry the search in their addresses: the
     status views, the project, the period, the type chip. The search form
     reloads only the list frame, so these are drawn again from inside its
@@ -26,16 +26,35 @@
         _list_head, the last of them), as on the ticket list. %>
     <div class="list-tab-bar__tools">
 
-    <%= form_with url: organisation_notifications_path(current_organisation), method: :get,
-                  data: { turbo_frame: '_top', controller: 'auto-submit', inbox_tool: 'project' } do %>
-      <%= inbox_hidden_query_fields(except: %w[project_id]) %>
-      <label class="inbox-project">
-        <span class="sr-only"><%= t('views.organisations.notifications.filter.project_label') %></span>
-        <%= select_tag :project_id,
-                       options_for_select([[t('views.organisations.notifications.filter.all_projects'), '']] +
-                                          projects.map { |project| [project.name, project.id] }, params[:project_id]),
-                       class: "list-tab-bar__select #{'list-tab-bar__select--active' if params[:project_id].present?}" %>
-      </label>
+    <%# Above the organisations the list narrows to one of them, where the
+        project is inside an organisation: the same select, tinted while it
+        narrows. Each organisation with its unread count, as the sidebar names it. %>
+    <% if organisations %>
+      <% org_param = InboxHelper::INBOX_ORGANISATION_PARAM %>
+      <%= form_with url: inbox_list_path, method: :get,
+                    data: { turbo_frame: '_top', controller: 'auto-submit', inbox_tool: 'organisation' } do %>
+        <%= inbox_hidden_query_fields(except: [org_param]) %>
+        <label class="inbox-project">
+          <span class="sr-only"><%= t('views.all_inboxes.filter.organisation_label') %></span>
+          <%= select_tag org_param,
+                         options_for_select([[t('views.all_inboxes.filter.all_organisations'), '']] +
+                                            organisations.map { |organisation| [inbox_organisation_option(organisation), organisation[:id]] }, params[org_param]),
+                         id: 'inbox-organisation',
+                         class: "list-tab-bar__select #{'list-tab-bar__select--active' if params[org_param].present?}" %>
+        </label>
+      <% end %>
+    <% else %>
+      <%= form_with url: organisation_notifications_path(current_organisation), method: :get,
+                    data: { turbo_frame: '_top', controller: 'auto-submit', inbox_tool: 'project' } do %>
+        <%= inbox_hidden_query_fields(except: %w[project_id]) %>
+        <label class="inbox-project">
+          <span class="sr-only"><%= t('views.organisations.notifications.filter.project_label') %></span>
+          <%= select_tag :project_id,
+                         options_for_select([[t('views.organisations.notifications.filter.all_projects'), '']] +
+                                            projects.map { |project| [project.name, project.id] }, params[:project_id]),
+                         class: "list-tab-bar__select #{'list-tab-bar__select--active' if params[:project_id].present?}" %>
+        </label>
+      <% end %>
     <% end %>
 
     <%# The period, the time list's presets (TimeSessions::ListPeriod: one
@@ -43,7 +62,7 @@
         same form as the project beside it, tinted while it narrows. %>
     <% period = TimeSessions::ListPeriod.normalize_for_table(params[:period]) %>
     <% narrowing = period != TimeSessions::ListPeriod::TABLE_DEFAULT %>
-    <%= form_with url: organisation_notifications_path(current_organisation), method: :get,
+    <%= form_with url: inbox_list_path, method: :get,
                   data: { turbo_frame: '_top', controller: 'auto-submit', inbox_tool: 'period' } do %>
       <%= inbox_hidden_query_fields(except: %w[period]) %>
       <label class="inbox-project">

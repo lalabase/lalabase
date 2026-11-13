@@ -11,6 +11,9 @@ module InboxHelper
   # address (partial=, format=, or a name like submit= that would shadow a
   # method of the form it is written into) must not travel with the list.
   INBOX_LIST_PARAMS = %w[state_filters state view_mode search project_id event_type period].freeze
+  # One organisation of the inbox above the organisations. It travels only
+  # there: inside an organisation the address itself names it.
+  INBOX_ORGANISATION_PARAM = 'org'
 
   # The list address with one status view: unread, all or archived.
   def inbox_status_view_url(view, query: nil)
@@ -25,7 +28,8 @@ module InboxHelper
 
   # The list address without search, project and type: the status view stays.
   def inbox_reset_narrowing_url(query: nil)
-    inbox_list_url(inbox_list_query(query).except('search', 'project_id', 'event_type', 'period'))
+    inbox_list_url(inbox_list_query(query).except('search', 'project_id', 'event_type', 'period',
+                                                  INBOX_ORGANISATION_PARAM))
   end
 
   # The list address with one notification open in the lane.
@@ -64,6 +68,34 @@ module InboxHelper
     safe_join(fields)
   end
 
+  # The inbox above the organisations (AllInboxesController) and the inbox of one
+  # organisation render the same list. What differs (where the list lives, whether
+  # a row names its organisation) hangs on this one question: a list rendered
+  # without an organisation is the one above them.
+  def inbox_above_organisations?
+    current_organisation.nil?
+  end
+
+  # Where the list lives: the address its links, forms and paging lead to.
+  def inbox_list_path
+    inbox_above_organisations? ? all_inboxes_path : organisation_notifications_path(current_organisation)
+  end
+
+  # A row of the inbox above the organisations leaves for the inbox of its
+  # organisation, with the row open in the lane and the status view kept.
+  def inbox_notification_in_organisation_url(notification, query: nil)
+    states = inbox_list_query(query)['state_filters'].presence || Inbox::MasterListPresenter::STATUS_VIEWS.fetch('all')
+    organisation_notifications_path(notification.organisation_id, state_filters: states, notification: notification.id)
+  end
+
+  # An organisation in the select of the inbox above the organisations: its
+  # name, with the unread count while there is one ("Muster GmbH (3)").
+  def inbox_organisation_option(organisation)
+    return organisation[:name] unless organisation[:unread].positive?
+
+    "#{organisation[:name]} (#{organisation[:unread]})"
+  end
+
   def inbox_period_label(period)
     t("views.organisations.notifications.periods.#{period}")
   end
@@ -73,13 +105,13 @@ module InboxHelper
   # A type that does not exist is no filter (the controller reads it the
   # same way), so it does not travel either.
   def inbox_list_query(query = nil)
-    list = (query || request.query_parameters).to_h.deep_stringify_keys.slice(*INBOX_LIST_PARAMS)
+    keys = inbox_above_organisations? ? INBOX_LIST_PARAMS + [INBOX_ORGANISATION_PARAM] : INBOX_LIST_PARAMS
+    list = (query || request.query_parameters).to_h.deep_stringify_keys.slice(*keys)
     list.delete('event_type') unless Notification.event_types.key?(list['event_type'])
     list
   end
 
   def inbox_list_url(query)
-    path = organisation_notifications_path(current_organisation)
-    query.present? ? "#{path}?#{query.to_query}" : path
+    query.present? ? "#{inbox_list_path}?#{query.to_query}" : inbox_list_path
   end
 end

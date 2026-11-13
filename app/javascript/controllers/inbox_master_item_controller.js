@@ -16,7 +16,9 @@ import { Controller } from "@hotwired/stimulus"
 //
 // See doc/inbox_feature_spec.md chapter 4.7.
 export default class extends Controller {
-  static values = { fullviewUrl: String }
+  // lane: false on the inbox above the organisations, which has no lane: on a
+  // wide screen the link is then a plain visit (to the organisation's inbox).
+  static values = { fullviewUrl: String, lane: { type: Boolean, default: true } }
 
   // Tailwind lg breakpoint per the default theme.
   static LG_BREAKPOINT = 1024
@@ -33,6 +35,7 @@ export default class extends Controller {
 
   handleClick(event) {
     if (window.innerWidth >= this.constructor.LG_BREAKPOINT) {
+      if (!this.laneValue) return
       // Desktop: Turbo loads the pane frame; we mirror the URL (an entry of
       // the lane, like the ones layout-toggle writes), move the tint to this
       // row and open the lane, which is shut while nothing is chosen.

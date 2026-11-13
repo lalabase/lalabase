@@ -4,15 +4,18 @@
     ground, as on the other list pages; the grouped view sets a quiet period
     heading (Heute, Gestern, Diese Woche, Älter) above its rows.
     Locals: presenter (Inbox::MasterListPresenter), selected_notification,
-    query_context (optional, for turbo_stream re-renders). %>
+    query_context (optional, for turbo_stream re-renders), organisation_names
+    (optional, { id => name }: the inbox above the organisations, where a row
+    names its organisation). %>
 <div id="inbox_master_list"
      class="people-list inbox-list"
      data-controller="neo-endless-scroll"
-     data-neo-endless-scroll-url-value="<%= organisation_notifications_path(current_organisation) %>"
+     data-neo-endless-scroll-url-value="<%= inbox_list_path %>"
      data-neo-endless-scroll-page-value="<%= presenter.pagy.page %>"
      data-neo-endless-scroll-has-more-value="<%= presenter.pagy.next.present? %>">
   <% query_context = local_assigns[:query_context] %>
   <% selected_id = local_assigns[:selected_notification]&.id %>
+  <% organisation_names = local_assigns[:organisation_names] %>
 
   <% if presenter.empty? %>
     <%# Why it is empty decides the sentence: an empty unread view is the
@@ -53,7 +56,8 @@
                     selected: selected_id == notification.id,
                     group_count: presenter.group_total(notification),
                     group_unread: presenter.group_unread(notification),
-                    query_context: query_context
+                    query_context: query_context,
+                    organisation_name: organisation_names&.fetch(notification.organisation_id, nil)
                   ) %>
             </div>
           <% end %>
@@ -63,7 +67,8 @@
           <div id="<%= dom_id(notification) %>" data-notification-item="<%= notification.id %>">
             <%= render NeoInboxMasterItemComponent.new(notification: notification,
                                                        selected: selected_id == notification.id,
-                                                       query_context: query_context) %>
+                                                       query_context: query_context,
+                                                       organisation_name: organisation_names&.fetch(notification.organisation_id, nil)) %>
           </div>
         <% end %>
       <% end %>

@@ -11,8 +11,14 @@
 class NeoInboxMasterItemComponent < ViewComponent::Base
   include Notifications::Constants
 
-  def initialize(notification:, selected: false, group_count: 1, group_unread: nil, query_context: nil)
+  def initialize(notification:, selected: false, group_count: 1, group_unread: nil, query_context: nil,
+                 organisation_name: nil)
     @notification = notification
+    # Given on the inbox above the organisations (AllInboxesController), where a
+    # row names its organisation and leaves for that organisation's inbox. The
+    # row then acts on nothing in place: no bulk checkbox, no "···" (their
+    # addresses and answers belong to one organisation's list).
+    @organisation_name = organisation_name
     @selected = selected
     # Bundle counts (grouped view): how many notifications belong to the
     # same ticket, of which unread. group_unread: nil → single mode
@@ -47,9 +53,15 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
 
   # The small line under the title: who did what, and in which project. A
   # notification without an actor (a system message) names the event alone.
+  # Above the organisations the organisation comes first: it is what tells two
+  # rows of two customers apart.
   def meta_line
     what = notification.actor ? "#{actor_name} #{event_label}" : event_label
-    [what, project_name].compact_blank.join(' · ')
+    [@organisation_name, what, project_name].compact_blank.join(' · ')
+  end
+
+  def above_organisations?
+    @organisation_name.present?
   end
 
   # In bundled mode the row counts as unread as soon as ANY
@@ -98,7 +110,9 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
   # with ?notification=:id, click loads the pane via Turbo frame).
   # Otherwise → deep link as before (full view).
   def link_url
-    if notification.notifiable.is_a?(Ticket)
+    if above_organisations? && notification.notifiable.is_a?(Ticket)
+      helpers.inbox_notification_in_organisation_url(notification, query: @query_context.presence)
+    elsif notification.notifiable.is_a?(Ticket)
       # One builder for every address of the list (InboxHelper): only the
       # dimensions of the list travel, never a stray key of the address.
       helpers.inbox_notification_url(notification, query: @query_context.presence)
@@ -123,7 +137,17 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
   # browser URL is pushed to the link's href → back, reload, share
   # work. See doc/inbox_feature_spec.md chapter 4.8.
   def link_data
-    if notification.notifiable.is_a?(Ticket)
+    if above_organisations? && notification.notifiable.is_a?(Ticket)
+      # No lane on this page: on a wide screen the link is a plain visit of the
+      # organisation's inbox (lane: false), on a narrow one the full view as below.
+      {
+        turbo_frame: '_top',
+        controller: 'inbox-master-item',
+        action: 'click->inbox-master-item#handleClick',
+        inbox_master_item_fullview_url_value: fullview_url,
+        inbox_master_item_lane_value: false
+      }
+    elsif notification.notifiable.is_a?(Ticket)
       # NO turbo_action: 'advance' — that promotes the frame load to a
       # drive visit, which right after loading overwrites the freshly filled pane
       # with the placeholder (visible flicker). URL sync is instead done

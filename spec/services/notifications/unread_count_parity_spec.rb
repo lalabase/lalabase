@@ -104,6 +104,22 @@ RSpec.describe 'Unread count parity across surfaces', :ci_guard do
     expect(counts.to_h { |o| [o[:id], o[:unread]] }).to eq(expected)
   end
 
+  it 'inbox above the organisations (Notifications::InboxQuery.reading, the reach of the person)' do
+    counts = nil
+    Notifications::InboxQuery.reading(user: user, reach: PersonalAccessToken::Reach.for_person(user)) do |_rows, by_org|
+      counts = by_org.to_h { |organisation| [organisation[:id], organisation[:unread]] }
+    end
+    expect(counts).to eq(expected)
+  end
+
+  it 'inbox above the organisations lists the unread rows the counts promise' do
+    listed = nil
+    Notifications::InboxQuery.reading(user: user, reach: PersonalAccessToken::Reach.for_person(user)) do |rows, _by_org|
+      listed = rows.unread.group(:organisation_id).count
+    end
+    expect(listed).to eq(expected)
+  end
+
   # The two components below compute their number in a private method. Asked directly
   # rather than through rendered markup: the badge markup caps or hides numbers, and this
   # spec is about the number, not its look.

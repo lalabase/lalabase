@@ -832,23 +832,16 @@ class Organisations::NotificationsController < Organisations::BaseController
   def build_master_list_presenter(extra_params = {})
     merged = filter_params.to_h.merge(extra_params.transform_keys(&:to_s))
     merge_referrer_filters(merged) unless request.get? || request.head?
-    # A type that does not exist (a hand-made address) is no filter: Postgres
-    # refuses the value of its enum, and the page would answer 500.
-    merged.delete('event_type') unless Notification.event_types.key?(merged['event_type'])
-    # The period: one of the time area's presets; the whole time (the default)
-    # and an unknown value are no narrowing and leave the address.
-    period = TimeSessions::ListPeriod.normalize_for_table(merged['period'])
-    period == TimeSessions::ListPeriod::TABLE_DEFAULT ? merged.delete('period') : merged['period'] = period
+    Inbox::MasterListPresenter.clean_filters(merged)
 
     # The rows and the presenter read the SAME filters. The rows used to be
     # read with the request's own (none, on an action address) while the
     # presenter had the referrer's: a list narrowed to a project showed every
     # project again after the first stream.
-    base_scope = policy_scope(current_user.notifications)
-                 .for_current_tenant_user(current_user)
-                 .channel_in_app
-                 .apply_filters(merged)
-                 .created_in_period(merged['period'], time_zone: current_user.time_zone)
+    base_scope = Inbox::MasterListPresenter.narrow(
+      policy_scope(current_user.notifications).for_current_tenant_user(current_user).channel_in_app,
+      merged, time_zone: current_user.time_zone
+    )
     Inbox::MasterListPresenter.new(
       pagy_helper: self,
       scope: base_scope,

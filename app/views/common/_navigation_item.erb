@@ -49,6 +49,13 @@
       <i class="<%= icon %> <%= sidebar_row_icon_classes %>"></i>
     <% end %>
     <span><%= name %></span>
+    <%# Unread notifications behind the row (an organisation of the inbox above
+        the organisations), at its end. The marker draws nothing at zero. %>
+    <% if local_assigns[:count].to_i.positive? %>
+      <span class="ms-auto">
+        <%= render Neo::UnreadMarkerComponent.new(count: count, label: t('navigation.org_attention_count', count: count.to_i)) %>
+      </span>
+    <% end %>
     <%# A row that leads out of where it stands (the management list's "Rechnung",
         which leaves the organisation for its account) says so at its end. %>
     <% if local_assigns[:trailing_icon].present? %>

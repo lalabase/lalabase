@@ -69,6 +69,29 @@ RSpec.describe 'Inbox list head', type: :request do
     expect(ids).to contain_exactly(unread_one.id, read_one.id)
   end
 
+  # The list partials are shared with the inbox above the organisations
+  # (AllInboxesController): inside an organisation every address of the list
+  # stays in that organisation.
+  it 'searches and loads its next pages inside the organisation' do
+    doc = doc_for(state_filters: %w[read unread])
+
+    expect(doc.at_css('form.inbox-search')['action']).to eq(organisation_notifications_path(organisation))
+    expect(doc.at_css('[data-controller~="neo-endless-scroll"]')['data-neo-endless-scroll-url-value'])
+      .to eq(organisation_notifications_path(organisation))
+  end
+
+  it 'lists in-app rows only, never the mail twin of a notification' do
+    mailed = ActsAsTenant.with_tenant(organisation) do
+      create(:notification, recipient: user, organisation: organisation, project: project,
+                            notifiable: unread_one.notifiable, event_type: 'ticket_commented',
+                            channel: 'email', state: :delivered)
+    end
+
+    ids = doc_for(state_filters: %w[read unread], view_mode: 'chronological').css('.inbox-row').pluck('data-notification-id')
+    expect(ids).to include(unread_one.id)
+    expect(ids).not_to include(mailed.id)
+  end
+
   it 'names the status views Alle, Ungelesen, Gelesen, Archiviert, in that order' do
     tabs = doc_for(state_filters: %w[read unread]).css('[role="tablist"] a[role="tab"]')
 

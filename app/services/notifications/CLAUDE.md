@@ -1,4 +1,4 @@
-# Karte: app/services/notifications (Stand: 2026-10-31)
+# Karte: app/services/notifications (Stand: 2026-11-13)
 
 Verarbeitet OutboxEvents zu Notifications. Die Gesamtkette (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten.md`.
@@ -32,6 +32,17 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   mit einem Token für alle Organisationen sind das die Cockpit-Kacheln. `organisation_id`
   (seit 07.10.2026) und `project_id` engen Liste und alle Zahlen ein; was nicht erreichbar
   ist, wirft `NotReachable` mit derselben Antwort wie etwas, das es nicht gibt.
+* **Die Inbox über den Organisationen** („Gesamt-Inbox“, `GET /inbox`, `AllInboxesController`,
+  seit 13.11.2026): dieselbe Liste wie die Inbox einer Organisation, mit der Reichweite der
+  Person (`PersonalAccessToken::Reach.for_person`). Sie liest über `InboxQuery.reading`, filtert
+  und blättert mit `Inbox::MasterListPresenter` und zeichnet mit den Partials von
+  `organisations/notifications/` (ein Schalter: `InboxHelper#inbox_above_organisations?`).
+  ⚠️ Die Seite hat keinen Mandanten: alles, was eine Zeile zeigt, wird im Block von `reading`
+  geladen (`presenter.load!`), ein später nachgeladener Verweis wirft `NoTenantSet`. Sie setzt
+  die Organisation der Sitzung nie; der Filter heißt deshalb `org` und nicht `organisation_id`
+  (daraus liest `ApplicationController#load_tenant_from_session` den Mandanten). Eine Zeile
+  führt in die Inbox ihrer Organisation; Aktionen an der Zeile und eine eigene Bahn hat die
+  Seite noch nicht. Wächter: `spec/requests/all_inboxes_spec.rb`, `spec/system/all_inboxes_spec.rb`.
 * **Eine Zählregel für „ungelesen in Organisation X“** (seit 02.10.2026): Cockpit-Kachel,
   Badge, mobile Navigation, Glocken-Dropdown, Org-Umschalter, Inbox-Liste und Token-Inbox
   zählen nach `Notification.inbox_unread` / `Notification.readable` (aktive Projekte, die die

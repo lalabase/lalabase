@@ -1,0 +1,44 @@
+<% content_for :title, t('views.all_inboxes.title') %>
+
+<%# The inbox above the organisations (AllInboxesController): the list of the
+    organisation's inbox, drawn by the same partials, over every organisation of
+    the person. Each row names its organisation and leaves for that
+    organisation's inbox. On the shared list-and-lane grid like the inbox of one
+    organisation, with the lane shut: this page has none yet, so nothing here
+    opens it. No stream either: the list is as fresh as its last visit. %>
+<div class="labor-layout-view people-page inbox-page" data-all-inboxes>
+  <%= render NeoTwoColumnGridComponent.new(
+    context_type: :inbox,
+    css_classes: 'hide-content hide-panel',
+    chrome_height: NeoTwoColumnGridComponent::LANE_CHROME_HEIGHT_PX,
+    lane: true
+  ) do |grid| %>
+    <% grid.with_list do %>
+      <div class="inbox-list-column">
+        <%= render 'organisations/notifications/list_head',
+                   presenter: @presenter, projects: [], unread_count: @unread_count, organisations: @inbox_organisations %>
+
+        <turbo-frame id="notifications_list_frame" class="block">
+          <%= render 'organisations/notifications/master_list',
+                     presenter: @presenter, selected_notification: nil,
+                     organisation_names: @inbox_organisations.to_h { |organisation| [organisation[:id], organisation[:name]] } %>
+          <%# The search reloads only this frame; the tools that carry the search
+              in their addresses follow as streams inside its answer, as in the
+              inbox of one organisation (organisations/notifications/index). %>
+          <% if turbo_frame_request_id == 'notifications_list_frame' %>
+            <%= turbo_stream.replace 'inbox_list_tools' do %>
+              <%= render 'organisations/notifications/list_tools',
+                         presenter: @presenter, projects: [], unread_count: @unread_count, organisations: @inbox_organisations %>
+            <% end %>
+            <%= turbo_stream.replace 'inbox_view_switch' do %>
+              <%= render 'organisations/notifications/view_switch', presenter: @presenter %>
+            <% end %>
+          <% end %>
+        </turbo-frame>
+      </div>
+    <% end %>
+
+    <% grid.with_main_content do %>
+    <% end %>
+  <% end %>
+</div>

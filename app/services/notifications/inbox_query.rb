@@ -69,6 +69,34 @@ module Notifications
           include_archived: include_archived).relation
     end
 
+    # The rows of the web inbox above the organisations (AllInboxesController), for
+    # a caller that filters and pages them itself (Inbox::MasterListPresenter, as the
+    # inbox of one organisation does). The block runs tenant-free and gets
+    #   rows:   every row within the reach, archived ones included, unordered; with
+    #           organisation_id only that organisation's
+    #   counts: unread per organisation in view ([{ id:, name:, unread: }]), always
+    #           over the whole reach, so a list narrowed to one organisation still
+    #           names the others
+    # ⚠️ Whatever the caller renders has to be LOADED inside the block: the page
+    # has no tenant, and a row that loads a tenanted association later raises
+    # NoTenantSet. A relation built here stays tenant-free, a lazy association does not.
+    def self.reading(user:, reach:, organisation_id: nil)
+      whole = new(user: user, reach: reach, status: 'all', include_archived: true)
+      shown = organisation_id.present? ? whole.narrowed_to(organisation_id) : whole
+      ActsAsTenant.without_tenant { yield shown.relation.unscope(:order), whole.unread_per_organisation }
+    end
+
+    # What a row shows as its title and the polymorphic preload does not reach.
+    # Document#title reads current_version, a tenanted belongs_to: without this a
+    # page of document rows costs one query per row, and a page without a tenant
+    # cannot render them at all.
+    def self.preload_titles(rows)
+      documents = rows.filter_map(&:notifiable).grep(Document)
+      return if documents.empty?
+
+      ActiveRecord::Associations::Preloader.new(records: documents, associations: :current_version).call
+    end
+
     def initialize(user:, reach:, status: nil, since: nil, project_id: nil, organisation_id: nil,
                    include_archived: false)
       @user = user
@@ -86,12 +114,24 @@ module Notifications
       ActsAsTenant.without_tenant do
         rows = relation.limit(limit).offset((page_number - 1) * limit)
                        .includes(:actor, :organisation, :project, :notifiable).to_a
-        preload_document_versions(rows)
+        self.class.preload_titles(rows)
         unread_by_organisation = base.unread.group(:organisation_id).count
         Page.new(rows: rows, page: page_number, per_page: limit, total: relation.count,
                  unread_total: unread_by_organisation.values.sum, since: @since,
                  by_organisation: by_organisation(unread_by_organisation))
       end
+    end
+
+    # The same query for one organisation of the reach (.reading).
+    def narrowed_to(organisation_id)
+      self.class.new(user: @user, reach: @reach, status: @status, organisation_id: organisation_id,
+                     include_archived: @include_archived)
+    end
+
+    # Unread per organisation in view, zeros included (.reading; Page#by_organisation
+    # is the same list for the token inbox).
+    def unread_per_organisation
+      by_organisation(base.unread.group(:organisation_id).count)
     end
 
     # Ordered by ACTIVITY, the same column the `since` cursor cuts on: a grouped
@@ -236,16 +276,6 @@ module Notifications
       @reach_organisations ||= ActsAsTenant.without_tenant do
         Organisation.where(id: @reach.organisation_ids).by_name.index_by(&:id)
       end
-    end
-
-    # The polymorphic preload stops at the notifiable itself. Document#title
-    # reads current_version, a tenanted belongs_to the Serializer touches per row;
-    # without this a page of document rows costs one query per row.
-    def preload_document_versions(rows)
-      documents = rows.filter_map(&:notifiable).grep(Document)
-      return if documents.empty?
-
-      ActiveRecord::Associations::Preloader.new(records: documents, associations: :current_version).call
     end
 
     def status_filter(rel)

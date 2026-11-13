@@ -94,4 +94,22 @@ RSpec.describe PersonalAccessToken::Reach, :ci_guard do
   it 'is memoised on the token' do
     expect(token.reach).to be(reach)
   end
+
+  # The reach of a signed-in person, for the inbox above the organisations.
+  describe '.for_person' do
+    it 'names every organisation the person is an active member of, each with all projects' do
+      reach = described_class.for_person(user)
+      expect(reach.organisation_ids).to contain_exactly(org_a.id, org_b.id, org_c.id)
+      expect([org_a, org_b, org_c].map { |org| reach.project_ids_for(org.id) }).to all(be_nil)
+    end
+
+    it 'leaves out an organisation the person was deactivated in' do
+      memberships[org_c].update!(active: false)
+      expect(described_class.for_person(user).organisation_ids).to contain_exactly(org_a.id, org_b.id)
+    end
+
+    it 'names nothing for a person without an organisation' do
+      expect(described_class.for_person(create(:user)).organisation_ids).to be_empty
+    end
+  end
 end

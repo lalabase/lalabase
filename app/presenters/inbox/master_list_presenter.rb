@@ -32,8 +32,10 @@ module Inbox
     # period of its newest notification.
     PERIODS = %i[today yesterday this_week older].freeze
 
-    # What narrows the rows beyond the status view.
-    NARROWING = %i[search project_id event_type period].freeze
+    # What narrows the rows beyond the status view. `org` exists only on the
+    # inbox above the organisations (AllInboxesController): one organisation of
+    # the list.
+    NARROWING = %i[search project_id event_type period org].freeze
 
     # The status view a set of state filters names, or nil. No filter at all
     # is the default list (unread and read), so it is "all" as well.
@@ -42,6 +44,24 @@ module Inbox
       return 'all' if filters.empty?
 
       STATUS_VIEWS.find { |_key, set| set.sort == filters }&.first
+    end
+
+    # The filters of an inbox address as the list reads them, for both inboxes
+    # (of one organisation, above them). A type that does not exist (a hand-made
+    # address) is no filter: Postgres refuses the value of its enum, and the page
+    # would answer 500. The period is one of the time area's presets; the whole
+    # time (the default) and an unknown value are no narrowing and leave the
+    # address.
+    def self.clean_filters(filters)
+      filters.delete('event_type') unless Notification.event_types.key?(filters['event_type'])
+      period = TimeSessions::ListPeriod.normalize_for_table(filters['period'])
+      period == TimeSessions::ListPeriod::TABLE_DEFAULT ? filters.delete('period') : filters['period'] = period
+      filters
+    end
+
+    # The rows of `scope` the cleaned filters leave: project, type, search, period.
+    def self.narrow(scope, filters, time_zone:)
+      scope.apply_filters(filters).created_in_period(filters['period'], time_zone: time_zone)
     end
 
     # The pagy helper needs a class instance that understands `params` and the
@@ -60,6 +80,15 @@ module Inbox
 
     def grouped?
       view_mode == 'grouped'
+    end
+
+    # Loads the rows of the page now, with what a row reads as its title. For a
+    # page that renders without a tenant (the inbox above the organisations): the
+    # caller runs this inside the tenant-free read, afterwards a row loads nothing.
+    def load!
+      @notifications.load
+      Notifications::InboxQuery.preload_titles(@notifications)
+      self
     end
 
     # Number of notifications that belong to the same notifiable (ticket) as

@@ -1,5 +1,10 @@
 en:
   views:
+    all_inboxes:
+      title: All inboxes
+      filter:
+        organisation_label: Organisation
+        all_organisations: All organisations
     organisations:
       notifications:
         index:

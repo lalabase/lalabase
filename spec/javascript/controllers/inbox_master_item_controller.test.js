@@ -22,7 +22,7 @@ function classList(initial = []) {
   }
 }
 
-function build({ search = '', width = 1280, rowId = 'n1', rowClasses = [], otherRows = [] } = {}) {
+function build({ search = '', width = 1280, rowId = 'n1', rowClasses = [], otherRows = [], lane } = {}) {
   const pushed = []
   const visited = []
   const shown = []
@@ -44,6 +44,9 @@ function build({ search = '', width = 1280, rowId = 'n1', rowClasses = [], other
     closest: (selector) => (selector === '.inbox-row' ? row : page)
   }
   controller.application = { getControllerForElementAndIdentifier: () => ({ showContent: () => shown.push(true) }) }
+  // Stimulus fills a value without an attribute from the default of the
+  // values definition: the rows of an organisation's inbox carry none.
+  controller.laneValue = lane ?? Controller.values.lane.default
   controller.hasFullviewUrlValue = true
   controller.fullviewUrlValue = '/org/acme/projects/p/tickets/t'
   return { controller, row, pushed, visited, shown }
@@ -91,4 +94,29 @@ test('a click on a narrow page visits the full view of the ticket instead', () =
   assert.equal(visited[0].url, '/org/acme/projects/p/tickets/t')
   assert.equal(pushed.length, 0)
   assert.equal(shown.length, 0)
+})
+
+// The inbox above the organisations has no lane (lane: false): its rows lead
+// into the inbox of their organisation.
+test('without a lane a click on a wide page is left to the link: no address, no mark, no lane', () => {
+  const { controller, row, pushed, visited, shown } = build({ lane: false })
+  let prevented = false
+
+  controller.handleClick({ preventDefault: () => { prevented = true } })
+
+  assert.equal(prevented, false)
+  assert.equal(pushed.length, 0)
+  assert.equal(visited.length, 0)
+  assert.equal(shown.length, 0)
+  assert.equal(row.classList.has('selected-row'), false)
+})
+
+test('without a lane a click on a narrow page still visits the full view', () => {
+  const { controller, visited } = build({ lane: false, width: 800 })
+  let prevented = false
+
+  controller.handleClick({ preventDefault: () => { prevented = true } })
+
+  assert.equal(prevented, true)
+  assert.equal(visited[0].url, '/org/acme/projects/p/tickets/t')
 })

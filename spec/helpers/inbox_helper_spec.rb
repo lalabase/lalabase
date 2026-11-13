@@ -159,4 +159,50 @@ RSpec.describe InboxHelper, type: :helper do
       expect(helper.inbox_hidden_query_fields(except: [])).to eq('')
     end
   end
+
+  # The inbox above the organisations renders the same list without an
+  # organisation: its links stay on /inbox and carry `org`.
+  describe 'above the organisations' do
+    before do
+      helper.define_singleton_method(:current_organisation) { nil }
+      allow(helper).to receive(:organisation_notifications_path).and_call_original
+    end
+
+    it 'builds the addresses of the list on /inbox and keeps the organisation of the list' do
+      with_query('org' => 'o1', 'search' => 'x', 'notification' => 'n1')
+
+      url = helper.inbox_status_view_url('unread')
+      expect(URI.parse(url).path).to eq('/inbox')
+      expect(query_of(url)).to eq('state_filters' => ['unread'], 'org' => 'o1', 'search' => 'x')
+    end
+
+    it 'drops the organisation with the rest of the narrowing' do
+      with_query('org' => 'o1', 'search' => 'x', 'state_filters' => ['unread'])
+
+      expect(query_of(helper.inbox_reset_narrowing_url)).to eq('state_filters' => ['unread'])
+    end
+
+    it 'leads a row into the inbox of its organisation, with the status view of the list' do
+      notification = instance_double(Notification, id: 'n1', organisation_id: 'o2')
+      with_query('org' => 'o1', 'state_filters' => ['archived'], 'search' => 'x')
+
+      url = helper.inbox_notification_in_organisation_url(notification)
+      expect(URI.parse(url).path).to eq('/org/o2/inbox')
+      expect(query_of(url)).to eq('state_filters' => ['archived'], 'notification' => 'n1')
+    end
+  end
+
+  describe '#inbox_organisation_option' do
+    it 'names the unread count while there is one, the name alone at zero' do
+      expect(helper.inbox_organisation_option(name: 'Nordwind GmbH', unread: 3)).to eq('Nordwind GmbH (3)')
+      expect(helper.inbox_organisation_option(name: 'Nordwind GmbH', unread: 1)).to eq('Nordwind GmbH (1)')
+      expect(helper.inbox_organisation_option(name: 'Nordwind GmbH', unread: 0)).to eq('Nordwind GmbH')
+    end
+  end
+
+  it 'does not carry `org` inside an organisation, where the address names it' do
+    with_query('org' => 'o1', 'search' => 'x')
+
+    expect(query_of(helper.inbox_view_mode_url('grouped'))).to eq('search' => 'x', 'view_mode' => 'grouped')
+  end
 end

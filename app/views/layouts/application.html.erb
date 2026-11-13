@@ -152,7 +152,10 @@
         <div class="col-start-1 row-start-1 flex min-h-0 flex-col" data-sidebar-layer-target="covered">
         <!-- Scrollable middle section -->
         <div class="flex-1 overflow-y-auto scrollbars">
-          <% if user_signed_in? && @current_organisation.blank? %>
+          <% if user_signed_in? && @current_organisation.blank? && controller_name == 'all_inboxes' && @inbox_organisations %>
+            <%# The inbox above the organisations lists them, with their counts. %>
+            <%= render 'common/navigation_all_inboxes', organisations: @inbox_organisations %>
+          <% elsif user_signed_in? && @current_organisation.blank? %>
             <%= render 'common/navigation_account' %>
           <% else %>
             <%= render 'common/navigation_application', current_organisation: @current_organisation %>

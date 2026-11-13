@@ -221,6 +221,11 @@ Rails.application.routes.draw do
     end
   end
 
+  # The inbox above the organisations ("Gesamt-Inbox"): one list over every
+  # organisation of the person, outside the org scope like the cockpit. The inbox
+  # of one organisation stays at /org/:organisation_id/inbox.
+  get 'inbox', to: 'all_inboxes#index', as: :all_inboxes
+
   # Cockpit (organisations#select) personalisation — user-global, outside org scope (the cockpit
   # runs without a tenant, like user_preferences).
   resource :cockpit_settings, only: [:update]

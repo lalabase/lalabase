@@ -35,6 +35,18 @@ class PersonalAccessToken
       new(project_ids_by_organisation: by_organisation)
     end
 
+    # The reach of a signed-in person without a token: every organisation they
+    # are an active member of, and no narrowing to projects. For the inbox above
+    # the organisations (AllInboxesController), which reads through the same
+    # query as the token inbox. What the person may see INSIDE each organisation
+    # is not decided here: the reader asks that per organisation, as it does for
+    # a token.
+    #
+    # @param user [User]
+    def self.for_person(user)
+      new(project_ids_by_organisation: user.active_organisations.pluck(:id).index_with { nil })
+    end
+
     # @param project_ids_by_organisation [Hash{String => Array<String>, nil}]
     #   nil means every project of that organisation.
     def initialize(project_ids_by_organisation:)

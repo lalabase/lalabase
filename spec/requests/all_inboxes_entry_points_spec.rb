@@ -10,7 +10,7 @@ require 'rails_helper'
 #       for a person with two or more organisations and for nobody else (the route
 #       sends a person with one to the inbox of that one). Every check that a way
 #       is absent first proves the page around it rendered.
-RSpec.describe 'Ways to the inbox above the organisations', type: :request do
+RSpec.describe 'Ways to the inbox above the organisations', :real_transactions, type: :request do
   let(:user) { create(:user) }
   let(:north) { create(:organisation, name: 'Nordwind GmbH') }
   let(:south) { create(:organisation, name: 'Suedhang AG') }

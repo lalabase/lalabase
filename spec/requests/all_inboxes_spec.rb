@@ -11,7 +11,7 @@ require 'rails_helper'
 # Why:  a person with one organisation per customer had to visit every inbox in
 #       turn. The page reads across tenants, so everything it must NOT show is
 #       pinned here: another person's rows, a lost project, a left organisation.
-RSpec.describe 'Inbox above the organisations', :ci_guard, type: :request do
+RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, type: :request do
   let(:user) { create(:user) }
   let(:north) { create(:organisation, name: 'Nordwind GmbH') }
   let(:south) { create(:organisation, name: 'Suedhang AG') }

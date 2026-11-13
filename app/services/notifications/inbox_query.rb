@@ -107,11 +107,12 @@ module Notifications
     # (Notifications::Streams.all_inboxes); a signal with the stamp the page drew is
     # the echo of the person's own action and raises no banner.
     #
-    # Counts and the latest change per state, over the same rows as .reading (the one
-    # inbox rule per organisation): a row the person may not see changes nothing.
-    # Keyed (HMAC), so the stamp says nothing about the numbers behind it. A bulk
-    # change (update_all, no updated_at) moves rows between states, so the counts per
-    # state see it.
+    # Fingerprints every row, over the same rows as .reading (the one inbox rule
+    # per organisation): a row the person may not see changes nothing. A maximum
+    # timestamp misses an older write that commits after a newer one. Include
+    # state explicitly for bulk changes, which do not touch updated_at. The DB
+    # aggregates fixed-size row digests; Ruby receives only one digest, keyed
+    # (HMAC) so the public stamp reveals nothing about the rows behind it.
     def self.stamp(user:, reach:)
       ActsAsTenant.without_tenant { new(user: user, reach: reach, status: 'all', include_archived: true).stamp }
     end
@@ -184,9 +185,14 @@ module Notifications
 
     # See .stamp. Runs inside its without_tenant block.
     def stamp
-      rows = base.unscope(:order).group(:state)
-                 .pluck(:state, Arel.sql('COUNT(*)'), Arel.sql('MAX(notifications.updated_at)'))
-      digest = rows.map { |state, count, changed| [state.to_s, count, changed&.utc&.iso8601(6)] }.sort.inspect
+      digest = base.unscope(:order).pick(Arel.sql(<<~SQL.squish))
+        MD5(COALESCE(STRING_AGG(
+          MD5(ROW(notifications.id, notifications.state, notifications.updated_at,
+                  notifications.last_event_at, notifications.group_count)::text),
+          '' ORDER BY notifications.id
+        ), ''))
+      SQL
+      digest ||= Digest::MD5.hexdigest('') # Active Record short-circuits an empty reach (.none).
       OpenSSL::HMAC.hexdigest('SHA256', self.class.send(:stamp_key), digest).first(STAMP_LENGTH)
     end
 

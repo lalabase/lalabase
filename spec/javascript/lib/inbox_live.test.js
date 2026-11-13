@@ -4,7 +4,7 @@
 //   and a redraw that drops the pages the endless scroll loaded.
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { liveStep, returnStep, redrawAddress } from "../../../app/javascript/lib/inbox_live.js"
+import { liveStep, redrawAddress } from "../../../app/javascript/lib/inbox_live.js"
 
 test("a signal equal to the drawn stamp is the echo: no banner, no fetch", () => {
   assert.deepEqual(liveStep({ signal: "a", drawn: "a", counted: null, hidden: false }), { banner: false, fetch: null })
@@ -24,11 +24,6 @@ test("a hidden tab waits", () => {
 
 test("no signal yet: nothing", () => {
   assert.deepEqual(liveStep({ signal: null, drawn: "a", counted: null, hidden: false }), { banner: false, fetch: null })
-})
-
-test("a tab shown again redraws a list that is behind, and only then", () => {
-  assert.equal(returnStep({ signal: "b", drawn: "a" }), "list")
-  assert.equal(returnStep({ signal: "a", drawn: "a" }), null)
 })
 
 test("the redraw keeps the page's filters and the loaded pages", () => {

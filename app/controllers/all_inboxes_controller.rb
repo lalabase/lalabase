@@ -53,6 +53,7 @@ class AllInboxesController < ApplicationController
       # part=counts the counts alone. The same reader and the same list state in
       # the address as the page, no second path.
       format.turbo_stream do
+        response.set_header('X-Inbox-Stamp', @stamp)
         @redraw_list = params[:part] != 'counts'
         render :live
       end
@@ -103,22 +104,24 @@ class AllInboxesController < ApplicationController
   end
 
   # Rows, counts per organisation and the number at "Ungelesen", for the page, the
-  # live redraw and the answer of a row action alike. The stamp is taken BEFORE the
-  # rows are read: a change in between leaves the drawn stamp older than the list,
-  # which costs one needless banner, never a missed one.
+  # live redraw and the answer of a row action alike. The stamp, counts and rows
+  # must describe ONE snapshot: a row created and removed between these reads
+  # must not leave a phantom row on screen carrying the original (current) stamp.
   def load_list
-    @stamp = Notifications::InboxQuery.stamp(user: current_user, reach: reach)
-    filters = Inbox::MasterListPresenter.clean_filters(filter_params.to_h)
-    Notifications::InboxQuery.reading(user: current_user, reach: reach, organisation_id: params[:org]) do |rows, counts|
-      @inbox_organisations = counts
-      @presenter = Inbox::MasterListPresenter.new(
-        pagy_helper: self,
-        scope: Inbox::MasterListPresenter.narrow(rows, filters, time_zone: current_user.time_zone),
-        params: filters, time_zone: current_user.time_zone,
-        through_page: redraw? ? params[:through_page] : nil
-      ).load!
+    ApplicationRecord.transaction(isolation: :repeatable_read) do
+      @stamp = Notifications::InboxQuery.stamp(user: current_user, reach: reach)
+      filters = Inbox::MasterListPresenter.clean_filters(filter_params.to_h)
+      Notifications::InboxQuery.reading(user: current_user, reach: reach, organisation_id: params[:org]) do |rows, counts|
+        @inbox_organisations = counts
+        @presenter = Inbox::MasterListPresenter.new(
+          pagy_helper: self,
+          scope: Inbox::MasterListPresenter.narrow(rows, filters, time_zone: current_user.time_zone),
+          params: filters, time_zone: current_user.time_zone,
+          through_page: redraw? ? params[:through_page] : nil
+        ).load!
+      end
+      @unread_count = shown_organisations.sum { |organisation| organisation[:unread] }
     end
-    @unread_count = shown_organisations.sum { |organisation| organisation[:unread] }
   end
 
   # A redraw of a list already on the screen (a row action, the live redraw) keeps

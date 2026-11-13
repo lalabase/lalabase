@@ -73,7 +73,7 @@ RSpec.describe Notifications::InboxQuery, '.stamp', :ci_guard do
     expect(seen.each_cons(2).map { |a, b| a == b }).to all(be(false))
   end
 
-  # update_all leaves updated_at alone; the counts per state see the move.
+  # update_all leaves updated_at alone; each row's state still sees the move.
   it 'changes after a bulk change' do
     before = stamp
     ActsAsTenant.without_tenant do
@@ -86,6 +86,42 @@ RSpec.describe Notifications::InboxQuery, '.stamp', :ci_guard do
   it 'changes when a new event joins a group' do
     before = stamp
     ActsAsTenant.with_tenant(north) { north_row.update!(last_event_at: 1.minute.from_now, group_count: 2) }
+
+    expect(stamp).not_to eq(before)
+  end
+
+  it 'sees an older group update that becomes visible after a newer one' do
+    older_write_at = 1.minute.ago
+    newer_row = row(south)
+    ActsAsTenant.with_tenant(south) { newer_row.update!(updated_at: Time.current) }
+    before = stamp
+
+    # Reproduce the committed snapshots: this write's timestamp was assigned
+    # before newer_row's, but its transaction becomes visible only now.
+    ActsAsTenant.with_tenant(north) do
+      north_row.update!(last_event_at: older_write_at, group_count: 2, updated_at: older_write_at)
+    end
+    expect(north_row.updated_at).to be < newer_row.updated_at
+    expect(stamp).not_to eq(before)
+  end
+
+  it 'uses the same empty stamp for an empty inbox and an empty reach' do
+    ActsAsTenant.with_tenant(north) { north_row.destroy! }
+    empty_reach = PersonalAccessToken::Reach.new(project_ids_by_organisation: {})
+
+    expect(described_class.stamp(user: user, reach: empty_reach)).to eq(stamp)
+  end
+
+  it 'sees bulk state exchanges even when state counts and their newest rows stay the same' do
+    older_read = row(south, state: :read)
+    row(north)
+    row(south, state: :read)
+    before = stamp
+
+    ActsAsTenant.without_tenant do
+      Notification.where(id: north_row.id).bulk_transition!(state: 'read')
+      Notification.where(id: older_read.id).bulk_transition!(state: 'delivered')
+    end
 
     expect(stamp).not_to eq(before)
   end

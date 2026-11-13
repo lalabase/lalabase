@@ -49,11 +49,15 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   (daraus liest `ApplicationController#load_tenant_from_session` den Mandanten). Eine Zeile
   führt in die Inbox ihrer Organisation; eine eigene Bahn und Sammelaktionen hat die Seite
   noch nicht. **Live (S2a):** `UnreadSignals.call` sendet nach den Punkten des Umschalters
-  ein Signal auf `Streams.all_inboxes`: nur `InboxQuery.stamp` (HMAC über Anzahl und letzte
-  Änderung je Zustand der In-App-Zeilen in Reichweite). Die Seite zeichnet denselben Stempel
+  ein Signal auf `Streams.all_inboxes`: nur `InboxQuery.stamp` (HMAC über geordnete
+  Fingerprints jeder In-App-Zeile in Reichweite, inklusive Zustand und Änderungszeit).
+  Ein Maximum pro Zustand übersieht ältere Schreibvorgänge, die später committen.
+  Die Seite zeichnet denselben Stempel
   mit ihrer Liste; weicht das Signal ab, holt sie die Zahlen (`GET /inbox` als turbo_stream,
   `part=counts`) und zeigt das Banner, die Liste bewegt sich erst auf dessen Wort
-  (`all_inboxes_live_controller`). Der Auslöser im Modell ist dafür breiter als „ungelesen
+  (`all_inboxes_live_controller`). `load_list` liest Stempel, Zahlen und Zeilen in einer
+  Repeatable-Read-Transaktion; die Request-Specs verwenden deshalb `:real_transactions`.
+  Der Auslöser im Modell ist dafür breiter als „ungelesen
   ja/nein“: jede neue Zeile, jeder Wechsel zwischen ungelesen, gelesen und archiviert, ein neues
   Ereignis einer Gruppe (`last_event_at`), jedes Löschen. **Aktionen an der Zeile** (gelesen, ungelesen, archivieren, zurückholen) haben
   eigene Adressen (`PATCH /inbox/:id/...`), weil jede Adresse unter `/org/:id` die Organisation

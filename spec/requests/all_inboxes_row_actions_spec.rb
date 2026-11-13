@@ -12,7 +12,7 @@ require 'rails_helper'
 #       And an action on a row of organisation B must not move the organisation
 #       the session works in, which every address under /org/:id would.
 #       The same menu inside an organisation: spec/requests/inbox_row_actions_spec.rb.
-RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, type: :request do
+RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :real_transactions, type: :request do
   let(:user) { create(:user) }
   let(:north) { create(:organisation, name: 'Nordwind GmbH') }
   let(:south) { create(:organisation, name: 'Suedhang AG') }

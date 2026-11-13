@@ -11,7 +11,7 @@ require 'rails_helper'
 #       request of its own, so it must stay the person's, without an organisation,
 #       and never subscribed by an organisation's page. The redraw is the page's
 #       own reader again: what the rule per organisation hides stays hidden.
-RSpec.describe 'Live inbox above the organisations', :ci_guard, type: :request do
+RSpec.describe 'Live inbox above the organisations', :ci_guard, :real_transactions, type: :request do
   let(:user) { create(:user) }
   let(:north) { create(:organisation, name: 'Nordwind GmbH') }
   let(:south) { create(:organisation, name: 'Suedhang AG') }
@@ -118,6 +118,7 @@ RSpec.describe 'Live inbox above the organisations', :ci_guard, type: :request d
     it 'redraws the list, the stamp and every count' do
       doc = redraw
 
+      expect(response.headers['X-Inbox-Stamp']).to eq(stamp)
       expect(targets(doc)).to contain_exactly('inbox_master_list', 'all_inboxes_drawn_stamp', 'inbox_unread_count',
                                               'inbox_list_tools', 'all_inboxes_nav')
       expect(listed_ids(doc)).to eq([south_row.id, north_row.id])
@@ -125,10 +126,11 @@ RSpec.describe 'Live inbox above the organisations', :ci_guard, type: :request d
       expect(doc.at_css('turbo-stream[target="all_inboxes_nav"]').inner_html).to include('Nordwind GmbH', 'Suedhang AG')
     end
 
-    it 'redraws the counts alone with part=counts: no list, no stamp' do
+    it 'redraws counts with an authoritative header stamp but leaves the drawn stamp alone' do
       doc = redraw(part: 'counts')
 
       expect(targets(doc)).to contain_exactly('inbox_unread_count', 'inbox_list_tools', 'all_inboxes_nav')
+      expect(response.headers['X-Inbox-Stamp']).to eq(stamp)
     end
 
     it 'shows a row that arrived after the page was drawn' do

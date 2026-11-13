@@ -2,9 +2,9 @@
 // (all_inboxes_live_controller). Pure, so the rule is tested without a browser.
 //
 // Three stamps (Notifications::InboxQuery.stamp, opaque):
-//   signal:  the latest one the stream sent
+//   signal:  the latest one the stream or a reconciliation request supplied
 //   drawn:   the one the list on the screen was drawn with
-//   counted: the one the counts were last fetched for
+//   counted: the one the counts were last successfully applied for
 // Equal signal and drawn: the list is current (the echo of the reader's own
 // action, or a redraw that already caught up). Otherwise the list is behind:
 // while the tab is hidden nothing happens until it is shown again, then the list
@@ -16,11 +16,6 @@ export function liveStep({ signal, drawn, counted, hidden }) {
   if (hidden) return { banner: false, fetch: null }
 
   return { banner: true, fetch: signal === counted ? null : "counts" }
-}
-
-// A tab that comes back into view with a list behind the signal redraws it.
-export function returnStep({ signal, drawn }) {
-  return signal && signal !== drawn ? "list" : null
 }
 
 // The address of a redraw: the page's own address (filters, organisation, search,

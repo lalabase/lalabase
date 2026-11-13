@@ -40,7 +40,13 @@ Konventionen:
   einen Stempel: `signal` (ersetzt vom Stream `Notifications::Streams.all_inboxes`) und `drawn`
   (ersetzt mit jeder Liste). Die Regel ist rein (`lib/inbox_live.js`, Pin `inbox_live`,
   node-Tests): gleich = nichts, sichtbar = Zahlen holen + Banner, versteckter Tab = beim
-  Zurückkommen die Liste. Die Liste bewegt sich nie von selbst unter dem Leser.
+  Zurückkommen die Liste. Nach Cable-Reconnect/online werden die Zahlen mit dem Server
+  abgeglichen, auch wenn beide lokalen Stempel gleich sind; `X-Inbox-Stamp` liefert den
+  aktuellen Stand. Abfragen werden beim Disconnect, bei neuen Signalen und Zeilenaktionen
+  verworfen. Vor dem synchronen Replace-Batch werden URL, Liste und Targets erneut geprüft.
+  Ein inzwischen gewachsener Seitenbereich wird erneut geladen. Transiente Fehler werden
+  mit wachsender Pause (maximal 30 Sekunden) wiederholt, solange der Kontext noch gilt.
+  Die Liste bewegt sich nie von selbst unter dem Leser.
   ⚠️ Ohne Zeile in `config/importmap.rb` lädt ein neuer Controller in Development
   (`pin_all_from`), aber NICHT in Test und Produktion; ein Browser-Spec war so zuerst rot.
 * **Escape gehört dem Obersten** (`lib/escape_owner.js`, seit 17.10.2026): Jeder Controller, der

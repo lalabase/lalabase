@@ -35,6 +35,8 @@ module Notifications
     # enough to keep (page - 1) * per_page inside PostgreSQL's OFFSET range: an
     # unbounded page number overflowed bigint and answered a 500.
     MAX_PAGE = 100_000
+    # Hex characters of the stamp (.stamp): 96 bits, enough to tell two states apart.
+    STAMP_LENGTH = 24
     # The wording Mcp::ToolCall answers for a project outside the token's scope.
     # Deliberately the same string on both sides (the seam's gate and this filter),
     # so a client cannot tell a missing project from a hidden one by the message.
@@ -98,6 +100,28 @@ module Notifications
       ActsAsTenant.without_tenant { yield shown.relation.unscope(:order), whole.unread_per_organisation }
     end
 
+    # An opaque stamp of the rows the person may see within the reach, archived ones
+    # included: equal as long as nothing a list of the page above the organisations
+    # could show has changed. The page draws it with its list,
+    # Notifications::UnreadSignals sends it as the live signal
+    # (Notifications::Streams.all_inboxes); a signal with the stamp the page drew is
+    # the echo of the person's own action and raises no banner.
+    #
+    # Fingerprints every row, over the same rows as .reading (the one inbox rule
+    # per organisation): a row the person may not see changes nothing. A maximum
+    # timestamp misses an older write that commits after a newer one. Include
+    # state explicitly for bulk changes, which do not touch updated_at. The DB
+    # aggregates fixed-size row digests; Ruby receives only one digest, keyed
+    # (HMAC) so the public stamp reveals nothing about the rows behind it.
+    def self.stamp(user:, reach:)
+      ActsAsTenant.without_tenant { new(user: user, reach: reach, status: 'all', include_archived: true).stamp }
+    end
+
+    def self.stamp_key
+      @stamp_key ||= Rails.application.key_generator.generate_key('notifications/inbox_query/stamp', 32)
+    end
+    private_class_method :stamp_key
+
     # What a row shows as its title and the polymorphic preload does not reach.
     # Document#title reads current_version, a tenanted belongs_to: without this a
     # page of document rows costs one query per row, and a page without a tenant
@@ -157,6 +181,19 @@ module Notifications
       rel = base
       rel = rel.where('notifications.last_event_at > ?', @since) if @since
       status_filter(rel).order(last_event_at: :desc, id: :desc)
+    end
+
+    # See .stamp. Runs inside its without_tenant block.
+    def stamp
+      digest = base.unscope(:order).pick(Arel.sql(<<~SQL.squish))
+        MD5(COALESCE(STRING_AGG(
+          MD5(ROW(notifications.id, notifications.state, notifications.updated_at,
+                  notifications.last_event_at, notifications.group_count)::text),
+          '' ORDER BY notifications.id
+        ), ''))
+      SQL
+      digest ||= Digest::MD5.hexdigest('') # Active Record short-circuits an empty reach (.none).
+      OpenSSL::HMAC.hexdigest('SHA256', self.class.send(:stamp_key), digest).first(STAMP_LENGTH)
     end
 
     private

@@ -329,6 +329,7 @@ en:
             one: 1 thing needs you
             other: "%{count} things need you"
           subtitle: Across all your organisations.
+          all_inboxes: All notifications
           tasks_count:
             one: 1 task
             other: "%{count} tasks"

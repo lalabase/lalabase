@@ -65,7 +65,6 @@ module ShadowLevels
     'app/javascript/controllers/neo_form_section_controller.js' => 4,
     'app/javascript/controllers/tag_input_controller.js' => 3,
     'app/javascript/controllers/time_session_form_controller.js' => 1,
-    'app/services/notifications/broadcast_service.rb' => 1,
     'app/views/billing_accounts/index.html.erb' => 1,
     'app/views/billing_accounts/show.html.erb' => 2,
     'app/views/common/_button_container_standard_edit_form.html.erb' => 5,

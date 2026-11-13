@@ -339,6 +339,8 @@ jobs:
           spec/requests/inbox_pagination_spec.rb
           spec/requests/all_inboxes_spec.rb
           spec/requests/all_inboxes_row_actions_spec.rb
+          spec/requests/all_inboxes_live_spec.rb
+          spec/requests/all_inboxes_entry_points_spec.rb
           spec/presenters/inbox/master_list_presenter_spec.rb
           spec/components/neo_inbox_master_item_component_spec.rb
           spec/helpers/inbox_helper_spec.rb
@@ -665,6 +667,7 @@ jobs:
           spec/services/notifications/fanout_service_access_gate_spec.rb
           spec/services/notifications/fanout_service_assignee_comment_spec.rb
           spec/services/notifications/inbox_query_spec.rb
+          spec/services/notifications/inbox_query_stamp_spec.rb
           spec/services/notifications/serializer_spec.rb
           spec/services/notifications/unread_count_parity_spec.rb
           spec/services/notifications/area_rights_spec.rb

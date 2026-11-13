@@ -7,6 +7,9 @@ en:
         all_organisations: All organisations
     organisations:
       notifications:
+        new_banner:
+          text: New notifications have arrived.
+          refresh: Refresh
         index:
           title: Inbox
           ticket_exceptions: Ticket exceptions

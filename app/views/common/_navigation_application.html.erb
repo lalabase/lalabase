@@ -92,9 +92,17 @@
               </li>
             <% end %>
             <li>
+              <%# The inbox above the organisations (Gesamt-Inbox). No count here: the
+                  numbers of this menu count the OTHER organisations, the page counts all
+                  of them, and one name must not stand for two totals. %>
+              <%= link_to all_inboxes_path, class: "#{row_base} border-t border-cream-200", data: { all_inboxes_entry: 'switcher' } do %>
+                <i class="bi bi-bell" aria-hidden="true"></i><span class="flex-1 min-w-0"><%= t('navigation.all_inboxes') %></span>
+              <% end %>
+            </li>
+            <li>
               <%# Takes over the former "Überblick" sidebar entry: the full org list / cockpit. %>
               <%= link_to select_organisation_path,
-                  class: "#{row_base} border-t border-cream-200" do %>
+                  class: row_base do %>
                 <i class="bi bi-grid"></i><span class="flex-1 min-w-0"><%= t('navigation.all_organisations') %></span>
                 <%# Hits in organisations beyond the menu's cap (Notifications::UnreadSignals.overflow_count). %>
                 <%= render 'notifications/org_attention_count', target_id: 'org_attention_count_overflow',

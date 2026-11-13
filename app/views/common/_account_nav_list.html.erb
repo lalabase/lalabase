@@ -35,6 +35,16 @@
         icon: 'bi bi-building',
         active: request.path == select_organisation_path %>
 
+  <%# The inbox above the organisations, only where there is more than one: the
+      route sends a person with one organisation to its own inbox. %>
+  <% if switcher_organisations(current_user).many? %>
+    <%= render 'common/navigation_item',
+          name: t('navigation.all_inboxes'),
+          path: all_inboxes_path,
+          icon: 'bi bi-bell',
+          active: request.path == all_inboxes_path %>
+  <% end %>
+
   <%= render 'common/navigation_item',
         name: t('navigation.profile'),
         path: edit_user_registration_path,

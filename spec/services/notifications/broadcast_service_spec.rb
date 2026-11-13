@@ -27,7 +27,6 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
     # Mock Turbo broadcasts to prevent actual broadcasts in tests
     allow(notification).to receive(:broadcast_prepend_later_to)
     allow(notification).to receive(:broadcast_replace_later_to)
-    allow(Turbo::StreamsChannel).to receive(:broadcast_update_later_to)
     allow(Turbo::StreamsChannel).to receive(:broadcast_replace_later_to)
     allow(Turbo::StreamsChannel).to receive(:broadcast_render_later_to)
 
@@ -47,11 +46,29 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
       it 'broadcasts banner update to user notifications stream' do
         service.broadcast_creation
 
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_update_later_to).with(
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_later_to).with(
           Notifications::Streams.notifications(user, organisation),
           target: 'new_notifications_banner',
           html: anything
         )
+      end
+
+      # Until 2026-11-13 the text went INTO the hidden placeholder and stayed
+      # unseen. The banner replaces the placeholder now, shown, in the language
+      # of the recipient, without a hard shadow (it is not pressed).
+      it 'replaces the placeholder with a shown banner in the language of the recipient' do
+        html = {}
+        allow(Turbo::StreamsChannel).to receive(:broadcast_replace_later_to) { |_stream, **opts| html[:value] = opts[:html] }
+        user.update!(language_preference: 'en')
+
+        service.broadcast_creation
+
+        banner = Nokogiri::HTML.fragment(html[:value]).at_css('#new_notifications_banner')
+        expect(banner).to be_present
+        expect(banner['class'].split).not_to include('hidden')
+        expect(banner.text).to include(I18n.t('views.organisations.notifications.new_banner.text', locale: :en))
+        expect(banner.at_css('a')['href']).to eq('')
+        expect(html[:value]).not_to include('shadow')
       end
 
       it 'broadcasts the unread count streams' do
@@ -73,7 +90,7 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
       it 'does not broadcast' do
         service.broadcast_creation
 
-        expect(Turbo::StreamsChannel).not_to have_received(:broadcast_update_later_to)
+        expect(Turbo::StreamsChannel).not_to have_received(:broadcast_replace_later_to)
         expect(Turbo::StreamsChannel).not_to have_received(:broadcast_render_later_to)
       end
     end
@@ -112,7 +129,7 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
         service.broadcast_update
 
         expect(notification).not_to have_received(:broadcast_replace_later_to)
-        expect(Turbo::StreamsChannel).not_to have_received(:broadcast_update_later_to)
+        expect(Turbo::StreamsChannel).not_to have_received(:broadcast_replace_later_to)
         expect(Turbo::StreamsChannel).not_to have_received(:broadcast_render_later_to)
       end
     end
@@ -171,13 +188,13 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
           service.broadcast_creation
 
           if notification.channel_in_app?
-            expect(Turbo::StreamsChannel).to have_received(:broadcast_update_later_to).with(
+            expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_later_to).with(
               Notifications::Streams.notifications(user, organisation),
               target: 'new_notifications_banner',
               html: anything
             )
           else
-            expect(Turbo::StreamsChannel).not_to have_received(:broadcast_update_later_to)
+            expect(Turbo::StreamsChannel).not_to have_received(:broadcast_replace_later_to)
             expect(Turbo::StreamsChannel).not_to have_received(:broadcast_render_later_to)
           end
         end
@@ -188,7 +205,7 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
   describe 'error handling' do
     context 'when broadcast raises error' do
       before do
-        allow(Turbo::StreamsChannel).to receive(:broadcast_update_later_to)
+        allow(Turbo::StreamsChannel).to receive(:broadcast_replace_later_to)
           .with(Notifications::Streams.notifications(user, organisation), anything)
           .and_raise(StandardError.new('Broadcast error'))
       end
@@ -219,7 +236,7 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
     it 'uses correct stream name for notifications banner' do
       service.broadcast_creation
 
-      expect(Turbo::StreamsChannel).to have_received(:broadcast_update_later_to).with(
+      expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_later_to).with(
         Notifications::Streams.notifications(user, organisation),
         hash_including(target: 'new_notifications_banner')
       )
@@ -239,7 +256,7 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
     it 'uses correct target for notification banner' do
       service.broadcast_creation
 
-      expect(Turbo::StreamsChannel).to have_received(:broadcast_update_later_to).with(
+      expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_later_to).with(
         Notifications::Streams.notifications(user, organisation),
         hash_including(target: 'new_notifications_banner')
       )
@@ -333,7 +350,7 @@ RSpec.describe Notifications::BroadcastService, :ci_guard do
 
     def streams_reached
       streams = []
-      %i[broadcast_update_later_to broadcast_replace_later_to broadcast_render_later_to].each do |m|
+      %i[broadcast_replace_later_to broadcast_replace_later_to broadcast_render_later_to].each do |m|
         allow(Turbo::StreamsChannel).to receive(m) { |stream, **| streams << stream }
       end
       allow(other_notification).to receive(:broadcast_replace_later_to) { |stream, **| streams << stream }

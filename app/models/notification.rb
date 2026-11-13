@@ -358,8 +358,9 @@ class Notification < ApplicationRecord
 
   # Callbacks
   before_validation :set_timestamps, on: :create
-  # Org switcher signal (Notifications::UnreadSignals): every change that makes
-  # an in-app notification unread or no longer unread. after_save notes it for
+  # Signals of Notifications::UnreadSignals (the switcher dot, the inbox above the
+  # organisations): every change of an in-app notification a list shows, see
+  # #unread_signal_changed?. after_save notes it for
   # EACH save, so a second save in the same transaction cannot hide the first
   # (after_commit alone only sees the last save's changes). Bulk changes skip
   # these callbacks and go through .bulk_transition!, which refreshes instead.
@@ -459,7 +460,7 @@ class Notification < ApplicationRecord
   end
 
   def note_unread_signal_removal
-    @unread_signal_pending = true if Notifications::UnreadSignals.signal?(self) && unread?
+    @unread_signal_pending = true if Notifications::UnreadSignals.signal?(self)
   end
 
   def unread_signal_pending?
@@ -471,14 +472,19 @@ class Notification < ApplicationRecord
   end
 
   # Called from after_save, so the saved_change_* readers describe THIS save.
+  # Wider than "unread or no longer unread": the same job sends the signal of the
+  # inbox above the organisations, which lists read and archived rows too. So a
+  # new row, a change between unread, read and archived, and a new event joining a
+  # group (last_event_at) count. A change no list shows does not: priority, score,
+  # and delivery steps that leave a row unread (queued, sent, delivered).
   def unread_signal_changed?
     return false unless Notifications::UnreadSignals.signal?(self)
-    return unread? if saved_change_to_id?
+    return true if saved_change_to_id? || saved_change_to_last_event_at?
 
     before, after = saved_change_to_state
     return false if before.nil? && after.nil?
 
-    UNREAD_STATES.include?(before) != UNREAD_STATES.include?(after)
+    !(UNREAD_STATES.include?(before) && UNREAD_STATES.include?(after))
   end
 
   def refresh_unread_signals

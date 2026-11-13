@@ -9,14 +9,18 @@ require 'database_cleaner/active_record'
 # and the truncation below waits on the lock until something times out (about two
 # minutes per example, and the next example's browser call dies with
 # Net::ReadTimeout). Puma also needs committed rows to read them.
-module NontransactionalSystemSpecs
+module NontransactionalDatabaseSpecs
   extend ActiveSupport::Concern
 
   included { self.use_transactional_tests = false }
 end
 
 RSpec.configure do |config|
-  config.include NontransactionalSystemSpecs, type: :system
+  config.include NontransactionalDatabaseSpecs, type: :system
+  # Isolation-level changes need a real top-level transaction. Opt-in request
+  # specs exercise that production boundary instead of nesting it inside both
+  # the fixture and DatabaseCleaner transactions.
+  config.include NontransactionalDatabaseSpecs, :real_transactions
 
   # Start with a clean state for every test
   config.before(:suite) do
@@ -35,6 +39,10 @@ RSpec.configure do |config|
 
   # Use truncation for system tests or tests that need JavaScript
   config.before(:each, type: :system) do
+    DatabaseCleaner.strategy = :truncation
+  end
+
+  config.before(:each, :real_transactions) do
     DatabaseCleaner.strategy = :truncation
   end
 

@@ -7,6 +7,9 @@ de:
         all_organisations: Alle Organisationen
     organisations:
       notifications:
+        new_banner:
+          text: Neue Meldungen sind da.
+          refresh: Aktualisieren
         index:
           title: Inbox
           ticket_exceptions: Ticket-Ausnahmen

@@ -15,11 +15,17 @@
 # .call renders one view per organisation, each without itself, and sends
 # it to that organisation's badge stream.
 #
+# The same run sends the signal of the inbox above the organisations
+# (Notifications::Streams.all_inboxes): a stamp, nothing else.
+#
 # Who calls .refresh_later: Notification's after_commit (create, state change,
 # destroy of an in-app notification) and Notification.bulk_transition!, the one
 # way to change states in bulk (update_all skips that callback).
 module Notifications
   class UnreadSignals
+    # The element of the inbox above the organisations that holds the latest signal.
+    ALL_INBOXES_SIGNAL_ID = 'all_inboxes_signal'
+
     class << self
       def signal?(notification)
         notification.channel_in_app?
@@ -63,9 +69,24 @@ module Notifications
             )
           end
         end
+        broadcast_all_inboxes_signal(user, organisations)
       end
 
       private
+
+      # The inbox above the organisations hears every change through one signal
+      # that carries nothing but a stamp; the page asks its own reader for the rest
+      # (all_inboxes/_signal). Same reach as that page: the person's active
+      # organisations, every project.
+      def broadcast_all_inboxes_signal(user, organisations)
+        reach = PersonalAccessToken::Reach.new(project_ids_by_organisation: organisations.map(&:id).index_with { nil })
+        Turbo::StreamsChannel.broadcast_replace_to(
+          Notifications::Streams.all_inboxes(user),
+          target: ALL_INBOXES_SIGNAL_ID,
+          partial: 'all_inboxes/signal',
+          locals: { stamp: Notifications::InboxQuery.stamp(user: user, reach: reach) }
+        )
+      end
 
       # One grouped query over all organisations; the access filter
       # (Notification.inbox_unread, the one inbox rule) runs only in an

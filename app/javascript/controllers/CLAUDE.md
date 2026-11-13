@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-12)
+# Karte: app/javascript/controllers (Stand: 2026-11-13)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -36,6 +36,13 @@ Konventionen:
   (`lib/transcript_mark.js`, Pin `transcript_mark`, node-Tests). ⚠️ Nie Positionen aus dem HTML
   an den Server: die Seite zeigt Markdown, die Stelle findet `Meetings::TranscriptMark`. Im Panel
   neben einem Ticket nicht eingebunden.
+* `all_inboxes_live` (S2a, 13.11.2026): hält die Gesamt-Inbox aktuell. Zwei Targets tragen je
+  einen Stempel: `signal` (ersetzt vom Stream `Notifications::Streams.all_inboxes`) und `drawn`
+  (ersetzt mit jeder Liste). Die Regel ist rein (`lib/inbox_live.js`, Pin `inbox_live`,
+  node-Tests): gleich = nichts, sichtbar = Zahlen holen + Banner, versteckter Tab = beim
+  Zurückkommen die Liste. Die Liste bewegt sich nie von selbst unter dem Leser.
+  ⚠️ Ohne Zeile in `config/importmap.rb` lädt ein neuer Controller in Development
+  (`pin_all_from`), aber NICHT in Test und Produktion; ein Browser-Spec war so zuerst rot.
 * **Escape gehört dem Obersten** (`lib/escape_owner.js`, seit 17.10.2026): Jeder Controller, der
   auf Escape reagiert, beantwortet `ownsEscape()` (wahr, solange sein nächstes Escape etwas
   Eigenes schließt). Ein Overlay, das ein Skript außerhalb eines Controllers baut, trägt

@@ -108,4 +108,60 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     expect(page).to have_css('.inbox-row__title', text: 'Older ticket 49')
     expect(page).to have_current_path(all_inboxes_path)
   end
+
+  # Live (S2a). The test adapter of Action Cable reaches no browser, so the
+  # signal the real sender broadcast is handed to the page as the cable source
+  # would: Turbo renders the stream message.
+  describe 'while the page is open' do
+    def deliver_signal
+      stream = Notifications::Streams.all_inboxes(user)
+      Notifications::UnreadSignals.call(user: user)
+      payload = ActiveSupport::JSON.decode(ActionCable.server.pubsub.broadcasts(stream).last)
+      page.execute_script('window.Turbo.renderStreamMessage(arguments[0])', payload)
+    end
+
+    def banner = find_by_id('all_inboxes_banner', visible: :all)
+
+    it 'counts a new notification at once and moves the list only on the banner' do
+      visit all_inboxes_path
+      expect(page).to have_css('.inbox-row', count: 2)
+      expect(banner).not_to be_visible
+
+      ActsAsTenant.with_tenant(south) do
+        project = Notification.find_by!(recipient: user, organisation: south).project
+        ticket = create(:ticket, project: project, title: 'Neu angekommen')
+        create(:notification, recipient: user, organisation: south, project: project, notifiable: ticket,
+                              event_type: 'ticket_assigned', channel: 'in_app', state: :delivered)
+      end
+      deliver_signal
+
+      expect(page).to have_css('#all_inboxes_banner', visible: :visible)
+      within('[data-all-inboxes-nav]') { expect(find('li', text: 'Suedhang AG')).to have_text('2') }
+      expect(page).to have_css('.inbox-row', count: 2)
+      expect(page).to have_no_css('.inbox-row__title', text: 'Neu angekommen')
+
+      within('#all_inboxes_banner') { click_button I18n.t('views.organisations.notifications.new_banner.refresh') }
+
+      expect(page).to have_css('.inbox-row', count: 3)
+      expect(page).to have_css('.inbox-row__title', text: 'Neu angekommen')
+      expect(page).to have_no_css('#all_inboxes_banner', visible: :visible)
+      expect(page).to have_current_path(all_inboxes_path)
+    end
+
+    it "raises no banner for the echo of the reader's own action" do
+      visit all_inboxes_path
+
+      row = find('.inbox-row', text: 'Paket fehlt')
+      row.hover
+      row.find('.inbox-row__menu summary').click
+      row.click_button I18n.t('views.organisations.notifications.actions.archive')
+      expect(page).to have_css('.inbox-row', count: 1)
+
+      deliver_signal
+
+      expect(page).to have_css('#all_inboxes_signal', visible: :all)
+      expect(page).to have_no_css('#all_inboxes_banner', visible: :visible)
+      expect(page).to have_css('.inbox-row', count: 1)
+    end
+  end
 end

@@ -2,8 +2,10 @@
 
 require 'rails_helper'
 
-# Every change to an unread in-app notification refreshes the org
-# switcher signal (Notifications::UnreadSignals): the callback covers every
+# Every change of an in-app notification a list shows (its state, a new event
+# of its group, its creation, its removal) refreshes the signals of
+# Notifications::UnreadSignals: the switcher dot and the signal of the inbox
+# above the organisations. The callback covers every
 # writer that saves a record (fanout, grouping, mark_as_read!, archive!, API,
 # MCP); bulk writers go through Notification.bulk_transition!.
 RSpec.describe Notification, 'org switcher signal', :ci_guard do
@@ -103,9 +105,64 @@ RSpec.describe Notification, 'org switcher signal', :ci_guard do
     expect(signal_jobs).to be_empty
   end
 
-  it 'does not refresh when a read mention is created' do
-    build_signal(state: :read).save!
+  # The same job sends the signal of the inbox above the organisations
+  # (Notifications::Streams.all_inboxes): that page lists read and archived rows
+  # too, so every change a row of it shows counts, not only unread ones.
+  describe 'for the inbox above the organisations' do
+    it 'refreshes when a read mention is created' do
+      expect { build_signal(state: :read).save! }
+        .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: user.id)
+    end
 
-    expect(signal_jobs).to be_empty
+    it 'refreshes when a read row is archived' do
+      notification = build_signal(state: :read).tap(&:save!)
+      clear_enqueued_jobs
+
+      notification.archive!
+
+      expect(signal_jobs.size).to eq(1)
+    end
+
+    it 'refreshes when an archived row comes back read' do
+      notification = build_signal(state: :archived).tap(&:save!)
+      clear_enqueued_jobs
+
+      notification.update!(state: :read, archived_at: nil)
+
+      expect(signal_jobs.size).to eq(1)
+    end
+
+    # A new event joins a group that is still unread: no state change, but the
+    # row moves up and names one more event.
+    it 'refreshes when a new event joins an unread group' do
+      notification = build_signal.tap(&:save!)
+      clear_enqueued_jobs
+
+      notification.update!(last_event_at: 1.minute.from_now, group_count: 2)
+
+      expect(signal_jobs.size).to eq(1)
+    end
+
+    it 'refreshes when a read row is destroyed' do
+      notification = build_signal(state: :read).tap(&:save!)
+      clear_enqueued_jobs
+
+      expect { notification.destroy! }.to have_enqueued_job(Notifications::UnreadSignalsJob)
+    end
+
+    it 'does not refresh for a delivery step that leaves the row unread' do
+      notification = build_signal(state: :queued).tap(&:save!)
+      clear_enqueued_jobs
+
+      notification.update!(state: :delivered)
+
+      expect(signal_jobs).to be_empty
+    end
+
+    it 'does not refresh for a read email row either' do
+      build_signal(channel: 'email', state: :read).save!
+
+      expect(signal_jobs).to be_empty
+    end
   end
 end

@@ -5,6 +5,13 @@
     <div><strong><%= viewer_display_name(current_user) %></strong><p><%= current_organisation.name %></p></div>
     <%= link_to t('mobile.switch'), select_organisation_path, class: 'mobile-text-action' %>
   </div>
+  <%# The inbox above the organisations, beside "Wechseln": the phone's way to it. %>
+  <% if switcher_organisations(current_user).many? %>
+    <ul class="mobile-menu-list">
+      <li><%= link_to safe_join([content_tag(:i, '', class: 'bi bi-bell', aria: { hidden: true }), content_tag(:span, t('navigation.all_inboxes'))]), all_inboxes_path,
+                     data: { all_inboxes_entry: 'mobile' } %></li>
+    </ul>
+  <% end %>
   <% show_meetings = AccessCheck::ProjectAccessService.accessible_project_ids(current_user, current_organisation, action: :read, area: :meetings).any? %>
   <% show_people = policy(Person).index? %>
   <% show_billings = policy(TimeSessionGroup).index? %>

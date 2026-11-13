@@ -342,6 +342,7 @@ de:
             one: 1 Sache braucht dich
             other: "%{count} Dinge brauchen dich"
           subtitle: Über alle deine Organisationen hinweg.
+          all_inboxes: Alle Meldungen
           tasks_count:
             one: 1 Aufgabe
             other: "%{count} Aufgaben"

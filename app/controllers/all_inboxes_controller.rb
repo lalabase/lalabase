@@ -4,7 +4,9 @@
 # organisation's inbox with a wider reach, for a person with several organisations.
 # Every row names its organisation; a click leaves for that organisation's inbox
 # with the row open. The actions of a row (read, unread, archive, back from the
-# archive) work in place.
+# archive) work in place. The page follows changes made elsewhere through one
+# signal per person (Notifications::Streams.all_inboxes) and its own redraw
+# (index as turbo_stream).
 #
 # Runs WITHOUT a tenant, like the cockpit, and never sets the session's
 # organisation: looking at a row of organisation B must not move the organisation
@@ -44,6 +46,17 @@ class AllInboxesController < ApplicationController
     return redirect_to(single_inbox_path) if single_inbox_path
 
     load_list
+    respond_to do |format|
+      format.html
+      # The live redraw (all_inboxes_live_controller, after a signal on
+      # Notifications::Streams.all_inboxes): the list and every count, or with
+      # part=counts the counts alone. The same reader and the same list state in
+      # the address as the page, no second path.
+      format.turbo_stream do
+        @redraw_list = params[:part] != 'counts'
+        render :live
+      end
+    end
   end
 
   # The actions of a row's "···" menu, in place: the row changes, the list stays
@@ -89,9 +102,12 @@ class AllInboxesController < ApplicationController
     @reach ||= PersonalAccessToken::Reach.for_person(current_user)
   end
 
-  # Rows, counts per organisation and the number at "Ungelesen", for the page and
-  # for the answer of a row action alike.
+  # Rows, counts per organisation and the number at "Ungelesen", for the page, the
+  # live redraw and the answer of a row action alike. The stamp is taken BEFORE the
+  # rows are read: a change in between leaves the drawn stamp older than the list,
+  # which costs one needless banner, never a missed one.
   def load_list
+    @stamp = Notifications::InboxQuery.stamp(user: current_user, reach: reach)
     filters = Inbox::MasterListPresenter.clean_filters(filter_params.to_h)
     Notifications::InboxQuery.reading(user: current_user, reach: reach, organisation_id: params[:org]) do |rows, counts|
       @inbox_organisations = counts
@@ -99,10 +115,16 @@ class AllInboxesController < ApplicationController
         pagy_helper: self,
         scope: Inbox::MasterListPresenter.narrow(rows, filters, time_zone: current_user.time_zone),
         params: filters, time_zone: current_user.time_zone,
-        through_page: action_name == 'index' ? nil : params[:through_page]
+        through_page: redraw? ? params[:through_page] : nil
       ).load!
     end
     @unread_count = shown_organisations.sum { |organisation| organisation[:unread] }
+  end
+
+  # A redraw of a list already on the screen (a row action, the live redraw) keeps
+  # the pages the endless scroll has added; a full visit starts at its page.
+  def redraw?
+    action_name != 'index' || request.format.turbo_stream?
   end
 
   # With fewer than two organisations there is nothing above them: the inbox of

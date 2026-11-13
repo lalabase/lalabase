@@ -18,6 +18,9 @@ require 'action_view/record_identifier'
 class Notifications::BroadcastService
   include ActionView::RecordIdentifier
 
+  # The placeholder of the banner in organisations/notifications/index.
+  BANNER_ID = 'new_notifications_banner'
+
   def initialize(notification, precomputed_unread_count: nil)
     @notification = notification
     @precomputed_unread_count = precomputed_unread_count
@@ -59,19 +62,21 @@ class Notifications::BroadcastService
     Notifications::Streams.notifications(@notification.recipient_id, @notification.organisation_id)
   end
 
+  # The banner above the list of an organisation's inbox
+  # (notifications/_new_notifications_banner, shared with the inbox above the
+  # organisations). It REPLACES the empty, hidden placeholder: an update put the
+  # text into it and left it hidden, so until 2026-11-13 it was never seen.
+  # Rendered here, in the recipient's language: the broadcast job has none.
   def broadcast_new_notifications_banner
-    Turbo::StreamsChannel.broadcast_update_later_to(
-      notifications_stream,
-      target: 'new_notifications_banner',
-      html: <<~HTML
-        <div class="mb-4 p-3 bg-lime-100 border-2 border-black rounded-lg flex items-center justify-between shadow-[2px_2px_0_0_#000000]">
-          <span class="text-sm font-medium text-lime-900">Neue Benachrichtigungen verfügbar</span>
-          <a href="javascript:window.location.reload()" class="text-sm font-bold text-lime-900 underline hover:text-lime-700">
-            Aktualisieren
-          </a>
-        </div>
-      HTML
-    )
+    html = I18n.with_locale(recipient_locale) do
+      ApplicationController.render(partial: 'notifications/new_notifications_banner',
+                                   locals: { id: BANNER_ID })
+    end
+    Turbo::StreamsChannel.broadcast_replace_later_to(notifications_stream, target: BANNER_ID, html: html)
+  end
+
+  def recipient_locale
+    @notification.recipient.language_preference.presence || I18n.default_locale
   end
 
   def broadcast_badge_update

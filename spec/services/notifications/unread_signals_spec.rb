@@ -148,15 +148,52 @@ RSpec.describe Notifications::UnreadSignals, :ci_guard do
       expect(locals[:overflow_count]).to eq(1)
     end
 
+    describe 'the signal of the inbox above the organisations' do
+      let(:signals) { [] }
+
+      before do
+        allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to) { |stream, **opts| signals << [stream, opts] }
+      end
+
+      it 'sends the stamp of the page, on the stream of the person, and nothing else' do
+        notify(org_b, event_type: 'mention')
+
+        described_class.call(user: user)
+
+        reach = PersonalAccessToken::Reach.for_person(user)
+        expect(signals).to eq([[Notifications::Streams.all_inboxes(user),
+                                { target: 'all_inboxes_signal', partial: 'all_inboxes/signal',
+                                  locals: { stamp: Notifications::InboxQuery.stamp(user: user, reach: reach) } }]])
+      end
+
+      it 'carries no title, no organisation and no count' do
+        notify(org_b, event_type: 'mention')
+        allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to).and_call_original
+        payloads = []
+        allow(ActionCable.server).to receive(:broadcast) { |stream, payload| payloads << [stream, payload] }
+
+        described_class.call(user: user)
+
+        html = payloads.select { |stream, _| stream.include?('all_inboxes') }.map(&:last).join
+        expect(html).to include('data-stamp=')
+        expect(html).not_to include('Org B')
+        expect(Nokogiri::HTML(html).text.strip).to eq('')
+        expect(html.scan(/data-[a-z-]+=/).uniq.sort).to eq(%w[data-all-inboxes-live-target= data-stamp=])
+      end
+    end
+
     it 'sends nothing to a user with a single organisation' do
       single = create(:user)
       ActsAsTenant.with_tenant(org_a) do
         create(:membership, user: single, organisation: org_a, role: create(:role, organisation: org_a))
       end
 
+      allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+
       described_class.call(user: single)
 
       expect(rendered).to be_empty
+      expect(Turbo::StreamsChannel).not_to have_received(:broadcast_replace_to)
     end
 
     it 'renders the streams in the language of the user' do

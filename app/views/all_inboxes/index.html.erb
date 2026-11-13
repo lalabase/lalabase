@@ -1,12 +1,21 @@
 <% content_for :title, t('views.all_inboxes.title') %>
+<%# Back must not show an old copy of this list: a row read in its organisation
+    would still stand as unread. Turbo fetches the page again instead. %>
+<% content_for :head, tag.meta(name: 'turbo-cache-control', content: 'no-cache') %>
 
 <%# The inbox above the organisations (AllInboxesController): the list of the
     organisation's inbox, drawn by the same partials, over every organisation of
     the person. Each row names its organisation and leaves for that
     organisation's inbox; its "···" menu acts in place (update.turbo_stream.erb). On the shared list-and-lane grid like the inbox of one
     organisation, with the lane shut: this page has none yet, so nothing here
-    opens it. No stream either: the list is as fresh as its last visit. %>
-<div class="labor-layout-view people-page inbox-page" data-all-inboxes>
+    opens it.
+    Live: one signal per person (Notifications::Streams.all_inboxes) carries an
+    opaque stamp. all_inboxes_live_controller compares it with the stamp the list
+    was drawn with; when they differ it redraws the counts and shows the banner,
+    the list moves only on the banner's word (or when a hidden tab is shown
+    again). %>
+<div class="labor-layout-view people-page inbox-page" data-all-inboxes
+     data-controller="all-inboxes-live" data-all-inboxes-live-url-value="<%= all_inboxes_path %>">
   <%= render NeoTwoColumnGridComponent.new(
     context_type: :inbox,
     css_classes: 'hide-content hide-panel',
@@ -18,7 +27,13 @@
         <%= render 'organisations/notifications/list_head',
                    presenter: @presenter, projects: [], unread_count: @unread_count, organisations: @inbox_organisations %>
 
+        <%= turbo_stream_from Notifications::Streams.all_inboxes(current_user) %>
+        <%= render 'all_inboxes/signal', stamp: @stamp %>
+        <%= render 'notifications/new_notifications_banner',
+                   id: 'all_inboxes_banner', refresh_action: 'all-inboxes-live#refresh', shown: false %>
+
         <turbo-frame id="notifications_list_frame" class="block">
+          <%= render 'all_inboxes/drawn_stamp', stamp: @stamp %>
           <%= render 'organisations/notifications/master_list',
                      presenter: @presenter, selected_notification: nil,
                      organisation_names: @inbox_organisations.to_h { |organisation| [organisation[:id], organisation[:name]] } %>

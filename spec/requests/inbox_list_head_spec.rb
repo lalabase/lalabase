@@ -139,6 +139,24 @@ RSpec.describe 'Inbox list head', type: :request do
   # (NeoViewSwitchComponent), in the page head, before "···" and "?". It used
   # to stand in the tools row as a frame of its own, active in the selected
   # tone.
+  # Without ids the two routes of the bar act on the WHOLE inbox. The bar marks
+  # its requests (selection=1), so one that leaves without ids is refused
+  # (inbox_bulk_actions_spec) instead of reading or archiving everything.
+  describe 'the bulk bar' do
+    it 'marks both of its forms as requests of a selection, on the routes of this organisation' do
+      forms = doc_for(state_filters: %w[unread read]).css('.inbox-bulk form[data-inbox-bulk-select-target="form"]')
+
+      expect(forms.pluck('action')).to eq(
+        [mark_all_read_organisation_notifications_path(organisation), archive_all_organisation_notifications_path(organisation)]
+      )
+      forms.each do |form|
+        expect(form.at_css('input[type="hidden"][name="selection"]')['value']).to eq('1')
+        expect(form['data-action']).to include('submit->inbox-bulk-select#guardSubmit')
+        expect(form['data-inbox-bulk-select-confirm-param']).to be_nil
+      end
+    end
+  end
+
   describe 'the view switch' do
     def switch_label = I18n.t('views.organisations.notifications.filter.view_label')
 

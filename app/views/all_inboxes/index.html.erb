@@ -6,7 +6,8 @@
 <%# The inbox above the organisations (AllInboxesController): the list of the
     organisation's inbox, drawn by the same partials, over every organisation of
     the person. Each row names its organisation and leaves for that
-    organisation's inbox; its "···" menu acts in place (update.turbo_stream.erb). On the shared list-and-lane grid like the inbox of one
+    organisation's inbox; its "···" menu and the bulk bar act in place
+    (update.turbo_stream.erb). On the shared list-and-lane grid like the inbox of one
     organisation, with the lane shut: this page has none yet, so nothing here
     opens it.
     Live: one signal per person (Notifications::Streams.all_inboxes) carries an
@@ -23,7 +24,13 @@
     lane: true
   ) do |grid| %>
     <% grid.with_list do %>
-      <div class="inbox-list-column">
+      <%# inbox-bulk-select holds the selection of the bulk bar, as in the inbox
+          of an organisation. followAddress: its actions redraw the list from
+          the state their address carries, so a submit takes that state from
+          the address of the page (a search has changed it since the bar was
+          drawn). %>
+      <div class="inbox-list-column" data-controller="inbox-bulk-select"
+           data-inbox-bulk-select-follow-address-value="true">
         <%= render 'organisations/notifications/list_head',
                    presenter: @presenter, projects: [], unread_count: @unread_count, organisations: @inbox_organisations %>
 

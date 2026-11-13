@@ -2,6 +2,9 @@ en:
   views:
     all_inboxes:
       title: All inboxes
+      bulk:
+        confirm_mark_read: "Mark %{number} notifications from %{organisations} as read?"
+        confirm_archive: "Archive %{number} notifications from %{organisations}?"
       filter:
         organisation_label: Organisation
         all_organisations: All organisations

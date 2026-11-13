@@ -122,6 +122,78 @@ RSpec.describe 'Inbox bulk actions with ids[] filter', type: :request do
     end
   end
 
+  # One ticket is one row: a selected row stands for every notification about
+  # its ticket. The write is Actors::ChangeNotificationStates, shared with the
+  # inbox above the organisations (spec/services/actors/change_notification_states_spec.rb).
+  describe 'the bundle of a selected row' do
+    let(:project) { ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation) } }
+    let(:ticket) { ActsAsTenant.with_tenant(organisation) { create(:ticket, project: project) } }
+
+    def about_ticket(state: :delivered, **attributes)
+      ActsAsTenant.with_tenant(organisation) do
+        create(:notification, recipient: user, organisation: organisation, project: project, notifiable: ticket,
+                              channel: 'in_app', state: state, **attributes)
+      end
+    end
+
+    before { make_token_owner_a_member(user, organisation, projects: [project]) }
+
+    it 'reads the other notifications about the ticket along' do
+      selected = about_ticket
+      sibling = about_ticket
+
+      bulk_patch mark_all_read_organisation_notifications_path(organisation), params: { selection: '1', ids: [selected.id] }
+
+      expect([selected, sibling].map { |n| n.reload.state }).to all(eq('read'))
+      notifications.each { |n| expect(n.reload.state).to eq('delivered') }
+    end
+
+    it 'archives them along and leaves one that is already in the archive as it was' do
+      selected = about_ticket
+      sibling = about_ticket(state: :read, read_at: 1.hour.ago)
+      archived = about_ticket(state: :archived, read_at: 4.days.ago, archived_at: 3.days.ago)
+      archived_at = archived.reload.archived_at
+
+      bulk_patch archive_all_organisation_notifications_path(organisation), params: { selection: '1', ids: [selected.id] }
+
+      expect([selected, sibling].map { |n| n.reload.state }).to all(eq('archived'))
+      expect(archived.reload.archived_at).to eq(archived_at)
+    end
+
+    it 'says how many notifications changed' do
+      selected = about_ticket
+      about_ticket
+
+      bulk_patch mark_all_read_organisation_notifications_path(organisation),
+                 params: { selection: '1', ids: [selected.id] }, as: :json
+
+      expect(response.parsed_body['marked_count']).to eq(2)
+    end
+
+    it 'goes through the actor of the bulk bar, with the ids it found in this inbox' do
+      selected = about_ticket
+      foreign = ActsAsTenant.with_tenant(create(:organisation)) do
+        create(:notification, recipient: user, organisation: ActsAsTenant.current_tenant, channel: 'in_app', state: :delivered)
+      end
+      allow(Actors::ChangeNotificationStates).to receive(:new).and_call_original
+
+      bulk_patch archive_all_organisation_notifications_path(organisation),
+                 params: { selection: '1', ids: [selected.id, foreign.id, 'not-an-id'] }
+
+      expect(Actors::ChangeNotificationStates).to have_received(:new)
+        .with(ids_by_organisation: { organisation => [selected.id] }, change: 'archive', current_user: user)
+    end
+
+    it 'leaves the whole inbox to the path without ids: no actor there' do
+      allow(Actors::ChangeNotificationStates).to receive(:new).and_call_original
+
+      bulk_patch mark_all_read_organisation_notifications_path(organisation)
+
+      expect(Actors::ChangeNotificationStates).not_to have_received(:new)
+      notifications.each { |n| expect(n.reload.state).to eq('read') }
+    end
+  end
+
   # User-reported test case: filter=unread, select items, bulk
   # "Mark as read" → items must disappear from the list (now read,
   # no longer match the unread filter). We check the turbo_stream

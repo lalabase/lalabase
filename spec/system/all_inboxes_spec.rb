@@ -109,6 +109,113 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     expect(page).to have_current_path(all_inboxes_path)
   end
 
+  # The bulk bar (S2b): tick rows, mark them read or archive them, across
+  # organisations. What the request spec cannot click: the question before an
+  # action that crosses organisations, the selection that survives a "no", the
+  # sentence that says how many rows changed, and the list state a submit takes
+  # from the address of the page.
+  describe 'the bulk bar' do
+    let(:bar) { find('[data-inbox-bulk-select-target="bar"]', visible: :all) }
+
+    def tick(title)
+      row = find('.inbox-row', text: title)
+      row.hover
+      row.find('.inbox-row__check', visible: true).click
+    end
+
+    def north_row(title)
+      ActsAsTenant.with_tenant(north) do
+        project = Notification.find_by!(recipient: user, organisation: north).project
+        ticket = create(:ticket, project: project, title: title)
+        create(:notification, recipient: user, organisation: north, project: project, notifiable: ticket,
+                              event_type: 'ticket_assigned', channel: 'in_app', state: :delivered)
+      end
+    end
+
+    it 'asks before it archives rows of two organisations, and a "no" changes nothing' do
+      visit all_inboxes_path
+      tick('Regal wackelt')
+      tick('Paket fehlt')
+      expect(bar).to have_text('2 ausgewählt')
+
+      question = dismiss_confirm { within(bar) { click_button I18n.t('views.organisations.notifications.bulk.archive') } }
+
+      # The organisations in the order of their rows in the list.
+      expect(question).to eq(
+        I18n.t('views.all_inboxes.bulk.confirm_archive', number: 2, organisations: 'Suedhang AG und Nordwind GmbH')
+      )
+      expect(page).to have_css('.inbox-row', count: 2)
+      expect(page).to have_checked_field(class: 'inbox-row__check', count: 2)
+      expect(bar).to have_text('2 ausgewählt')
+      expect(ActsAsTenant.without_tenant { Notification.where(recipient: user).pluck(:state) }).to all(eq('delivered'))
+
+      accept_confirm { within(bar) { click_button I18n.t('views.organisations.notifications.bulk.archive') } }
+
+      expect(page).to have_no_css('.inbox-row')
+      expect(page).to have_css('#flash', text: I18n.t('flash.all_inboxes.archived', count: 2))
+      expect(page).to have_css('[data-inbox-bulk-select-target="bar"]', visible: :hidden)
+      expect(page).to have_current_path(all_inboxes_path)
+      within('[data-all-inboxes-nav]') do
+        expect(find('li', text: 'Nordwind GmbH')).to have_no_text(/\d/)
+        expect(find('li', text: 'Suedhang AG')).to have_no_text(/\d/)
+      end
+      expect(ActsAsTenant.without_tenant { Notification.where(recipient: user).pluck(:state) }).to all(eq('archived'))
+    end
+
+    it 'acts at once inside one organisation and leaves the other rows alone' do
+      north_row('Lampe flackert')
+      visit all_inboxes_path
+      tick('Regal wackelt')
+      tick('Lampe flackert')
+
+      # No question here: a dialog left open would fail the next step.
+      within(bar) { click_button I18n.t('views.organisations.notifications.bulk.mark_read') }
+
+      expect(page).to have_css('#flash', text: I18n.t('flash.all_inboxes.marked_read', count: 2))
+      expect(page).to have_css('.inbox-row', count: 3)
+      expect(page).to have_css('.inbox-row--unread', count: 1)
+      expect(page).to have_css('.inbox-row--unread', text: 'Paket fehlt')
+      expect(page).to have_css('#inbox_unread_count', text: '1', exact_text: true)
+      expect(page).to have_no_checked_field(class: 'inbox-row__check')
+    end
+
+    # The bar lies outside the frame the search reloads: its forms were drawn
+    # before the search. The submit takes the list state from the address.
+    it 'keeps the search the list was narrowed by after its action' do
+      north_row('Regal fehlt')
+      visit all_inboxes_path
+      find('[data-fb-search-open-button]').click
+      find('#inbox-search').send_keys('Regal')
+      expect(page).to have_css('.inbox-row', count: 2)
+      expect(page).to have_no_css('.inbox-row__title', text: 'Paket fehlt')
+
+      tick('Regal wackelt')
+      within(bar) { click_button I18n.t('views.organisations.notifications.bulk.mark_read') }
+
+      expect(page).to have_css('#flash', text: I18n.t('flash.all_inboxes.marked_read', count: 1))
+      expect(page).to have_css('.inbox-row', count: 2)
+      expect(page).to have_no_css('.inbox-row__title', text: 'Paket fehlt')
+      expect(page).to have_css('.inbox-row--unread', count: 1)
+    end
+
+    it 'opens from "···" in the head without a hover, the way in on a phone' do
+      visit all_inboxes_path
+      expect(page).to have_no_css('.inbox-row__check', visible: true)
+
+      find('.people-head summary.more-menu__trigger').click
+      click_button I18n.t('views.organisations.notifications.index.select_rows')
+
+      expect(page).to have_css('.inbox-row__check', visible: true, count: 2)
+      expect(bar).to have_text('0 ausgewählt')
+      within(bar) do
+        expect(page).to have_button(I18n.t('views.organisations.notifications.bulk.archive'), disabled: true)
+        click_button I18n.t('views.organisations.notifications.bulk.select_all')
+      end
+      expect(bar).to have_text('2 ausgewählt')
+      expect(page).to have_checked_field(class: 'inbox-row__check', count: 2)
+    end
+  end
+
   # Live (S2a). The test adapter of Action Cable reaches no browser, so the
   # signal the real sender broadcast is handed to the page as the cable source
   # would: Turbo renders the stream message.
@@ -281,6 +388,38 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('.inbox-row__title', text: 'Neu angekommen')
       expect(page).to have_no_css('#all_inboxes_banner', visible: :visible)
       expect(page).to have_current_path(all_inboxes_path)
+    end
+
+    it "raises no banner for the echo of the reader's own bulk action, and keeps the ticks over a redraw" do
+      visit all_inboxes_path
+      [%w[Regal wackelt], %w[Paket fehlt]].each do |words|
+        row = find('.inbox-row', text: words.join(' '))
+        row.hover
+        row.find('.inbox-row__check', visible: true).click
+      end
+      accept_confirm do
+        within('[data-inbox-bulk-select-target="bar"]') { click_button I18n.t('views.organisations.notifications.bulk.mark_read') }
+      end
+      expect(page).to have_css('#flash', text: I18n.t('flash.all_inboxes.marked_read', count: 2))
+
+      deliver_signal
+
+      expect(page).to have_css('#all_inboxes_signal', visible: :all)
+      expect(page).to have_no_css('#all_inboxes_banner', visible: :visible)
+
+      # A change from elsewhere while a row is ticked: the banner's redraw keeps the tick.
+      row = find('.inbox-row', text: 'Paket fehlt')
+      row.hover
+      row.find('.inbox-row__check', visible: true).click
+      new_south_row
+      deliver_signal
+      expect(page).to have_css('#all_inboxes_banner', visible: :visible)
+      within('#all_inboxes_banner') { click_button I18n.t('views.organisations.notifications.new_banner.refresh') }
+
+      expect(page).to have_css('.inbox-row', count: 3)
+      expect(page).to have_checked_field(class: 'inbox-row__check', count: 1)
+      expect(find('.inbox-row', text: 'Paket fehlt')).to have_checked_field(class: 'inbox-row__check')
+      expect(page).to have_css('[data-inbox-bulk-select-target="count"]', text: '1')
     end
 
     it "raises no banner for the echo of the reader's own action" do

@@ -1,4 +1,4 @@
-# Karte: app/services/notifications (Stand: 2026-11-13, S2a)
+# Karte: app/services/notifications (Stand: 2026-11-13, S2b)
 
 Verarbeitet OutboxEvents zu Notifications. Die Gesamtkette (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten.md`.
@@ -47,8 +47,7 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   geladen (`presenter.load!`), ein später nachgeladener Verweis wirft `NoTenantSet`. Sie setzt
   die Organisation der Sitzung nie; der Filter heißt deshalb `org` und nicht `organisation_id`
   (daraus liest `ApplicationController#load_tenant_from_session` den Mandanten). Eine Zeile
-  führt in die Inbox ihrer Organisation; eine eigene Bahn und Sammelaktionen hat die Seite
-  noch nicht. **Live (S2a):** `UnreadSignals.call` sendet nach den Punkten des Umschalters
+  führt in die Inbox ihrer Organisation; eine eigene Bahn hat die Seite noch nicht. **Live (S2a):** `UnreadSignals.call` sendet nach den Punkten des Umschalters
   ein Signal auf `Streams.all_inboxes`: nur `InboxQuery.stamp` (HMAC über geordnete
   Fingerprints jeder In-App-Zeile in Reichweite, inklusive Zustand und Änderungszeit).
   Ein Maximum pro Zustand übersieht ältere Schreibvorgänge, die später committen.
@@ -66,7 +65,32 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   `Actors::ChangeNotificationState`, denselben Actor wie in der Inbox einer Organisation: er
   nimmt die übrigen Meldungen zum selben Gegenstand mit (ein Ticket = eine Zeile), außer bei
   „ungelesen“. Der Listenzustand reist in der Adresse der Aktion mit, nicht im Referrer.
+  **Sammelaktionen (S2b):** die Leiste der Organisations-Inbox, auf eigenen Adressen
+  (`PATCH /inbox/selection/{mark_read,archive}`, in `routes.rb` VOR dem `:id`-Scope der Zeile).
+  Nur eine Auswahl: ohne IDs 422, die Seite kennt kein „alles“; über
+  `AllInboxesController::MAX_SELECTION` (500) ebenfalls 422. Die Zeilen findet
+  `selection.rb` (`Notifications::Selection`) OHNE `without_tenant`: je aktive Organisation der
+  Person unter `with_tenant` der Policy-Scope der Meldungen (was dort keine eigene, sichtbare
+  In-App-Zeile ist, fällt wortlos weg, die übrige Auswahl wird geändert). Der ganze Weg der
+  Sammelaktion vom Finden bis zum Schreiben bleibt damit im Mandanten; das Lesen der LISTE
+  (`InboxQuery.reading`, `.stamp`, `.row`) hebt ihn noch auf. Die
+  Policy wird unter dem Mandanten jeder berührten Organisation gefragt. Geschrieben wird über
+  `Actors::ChangeNotificationStates`, denselben Actor wie der IDs-Pfad der Leiste in einer
+  Organisation: eine Transaktion über alle Organisationen, in der Reihenfolge ihrer IDs, je
+  unter `with_tenant`; „gelesen“ ändert nur Ungelesenes, „archivieren“ nur, was nicht im Archiv
+  liegt, ein wiederholter Request ändert also nichts. **Was eine Zeile mitnimmt und wie gesperrt
+  wird, steht einmal** in `subject_bundle.rb` (`Notifications::SubjectBundle`: sichtbare
+  In-App-Meldungen zum selben Gegenstand, EINE Sperr-Anweisung in ID-Reihenfolge), für den
+  Zeilen- und den Sammel-Actor. Die Antwort nennt die Zahl der gefundenen ZEILEN (ein Ticket
+  zählt einmal) im Flash der Seite (`#flash`). Die Rückfrage vor einer Aktion über mehrere
+  Organisationen stellt der Browser (`inbox_bulk_select_controller`), der Server verlangt sie
+  nicht. ⚠️ Der Pfad OHNE IDs in einer Organisation (Glocken-Dropdown, ganze Inbox) und
+  `Api::V1::NotificationsController#mark_all_as_read` schreiben weiter selbst über
+  `bulk_transition!`, ohne Bündel und ohne Sperre.
   Wächter: `spec/requests/all_inboxes_spec.rb`, `spec/requests/all_inboxes_row_actions_spec.rb`,
+  `spec/requests/all_inboxes_bulk_actions_spec.rb`,
+  `spec/services/actors/change_notification_states_spec.rb` (auch `_concurrency_spec.rb`),
+  `spec/services/notifications/selection_spec.rb`,
   `spec/requests/all_inboxes_live_spec.rb`, `spec/services/notifications/inbox_query_stamp_spec.rb`,
   `spec/system/all_inboxes_spec.rb`.
 * **Eine Zählregel für „ungelesen in Organisation X“** (seit 02.10.2026): Cockpit-Kachel,

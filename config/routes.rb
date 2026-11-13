@@ -225,6 +225,12 @@ Rails.application.routes.draw do
   # organisation of the person, outside the org scope like the cockpit. The inbox
   # of one organisation stays at /org/:organisation_id/inbox.
   get 'inbox', to: 'all_inboxes#index', as: :all_inboxes
+  # The bulk bar of that inbox: the ticked rows, read or archived. Before the
+  # routes of a row, or "selection" would be taken for the id of one.
+  scope 'inbox/selection', controller: 'all_inboxes', as: :all_inboxes_selection do
+    patch :mark_read, action: :mark_selection_read
+    patch :archive, action: :archive_selection
+  end
   # The actions on a row of that inbox. Routes of its own: an address under
   # /org/:organisation_id would move the organisation of the session.
   scope 'inbox/:id', controller: 'all_inboxes', as: :all_inbox do

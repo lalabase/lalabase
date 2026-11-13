@@ -4,7 +4,8 @@
 # organisation's inbox with a wider reach, for a person with several organisations.
 # Every row names its organisation; a click leaves for that organisation's inbox
 # with the row open. The actions of a row (read, unread, archive, back from the
-# archive) work in place. The page follows changes made elsewhere through one
+# archive) work in place, and so does the bulk bar on the rows that are ticked
+# (read, archive). The page follows changes made elsewhere through one
 # signal per person (Notifications::Streams.all_inboxes) and its own redraw
 # (index as turbo_stream).
 #
@@ -42,6 +43,17 @@ class AllInboxesController < ApplicationController
     'unarchive' => { change: 'unarchive', query: :archive? }
   }.freeze
 
+  # The action of the bulk bar and the policy question it asks.
+  SELECTION_ACTIONS = {
+    'mark_selection_read' => { change: 'read', query: :mark_all_read?, said: 'marked_read' },
+    'archive_selection' => { change: 'archive', query: :archive_all?, said: 'archived' }
+  }.freeze
+
+  # The most rows one bulk action takes: ten pages of the list. More would hold
+  # locks on thousands of rows in one transaction, and far above it the request
+  # runs into the limit of parameters the server reads at all.
+  MAX_SELECTION = 500
+
   def index
     return redirect_to(single_inbox_path) if single_inbox_path
 
@@ -67,7 +79,74 @@ class AllInboxesController < ApplicationController
     define_method(name) { change_row(ROW_ACTIONS.fetch(name)) }
   end
 
+  # The actions of the bulk bar, on the rows that are ticked and on nothing else:
+  # this page has no action on "everything", so a request without ids is refused.
+  SELECTION_ACTIONS.each_key do |name|
+    define_method(name) { change_selection(SELECTION_ACTIONS.fetch(name)) }
+  end
+
   private
+
+  # The ticked rows are found per organisation, each under its own tenant
+  # (Notifications::Selection: the policy scope of every organisation the person
+  # is an active member of, no read across organisations). An id that is not the
+  # person's own visible in-app row there (foreign, hidden, gone, malformed) is
+  # left out without a word, so no answer tells one from the other. The policy
+  # is asked under the tenant of each organisation the selection touches, and
+  # the write (Actors::ChangeNotificationStates, one transaction over all of
+  # them) sets the tenant itself; the session keeps its organisation.
+  def change_selection(action)
+    ids = selected_ids
+    return refuse_selection(t('flash.notifications.nothing_selected')) if ids.empty?
+    return refuse_selection(t('flash.all_inboxes.too_many_selected', count: MAX_SELECTION)) if ids.size > MAX_SELECTION
+
+    # Reject an unreachable/malformed list filter before committing the write.
+    Notifications::InboxQuery.new(user: current_user, reach: reach, organisation_id: params[:org])
+
+    found = Notifications::Selection.call(user: current_user, ids: ids)
+    found.each_key { |organisation| ActsAsTenant.with_tenant(organisation) { authorize :notifications, action[:query] } }
+    result = Actors::ChangeNotificationStates.call(ids_by_organisation: found, change: action[:change],
+                                                   current_user: current_user)
+    raise Actors::ActorError, result.errors unless result.success?
+
+    # The number of rows the reader ticked and the write found: a ticket counts
+    # once, however many notifications about it went along.
+    rows = found.values.sum(&:size)
+    @said = rows.zero? ? t('flash.all_inboxes.none_changed') : t("flash.all_inboxes.#{action[:said]}", count: rows)
+    load_list
+
+    respond_to do |format|
+      format.turbo_stream { render :update }
+      format.html { redirect_to all_inboxes_path(list_address), notice: @said }
+    end
+  end
+
+  # The ids of the bulk bar: a list of strings, each once. Anything else (a
+  # single value, a nested hash) is no selection.
+  def selected_ids
+    Array(params.permit(ids: [])[:ids]).compact_blank.uniq
+  end
+
+  # Nothing was changed, and the list on the screen stays as it is.
+  def refuse_selection(message)
+    respond_to do |format|
+      format.turbo_stream do
+        @said = message
+        render :refused, status: :unprocessable_content
+      end
+      format.html do
+        redirect_to all_inboxes_path(Inbox::MasterListPresenter.clean_filters(filter_params.to_h).except('page')),
+                    alert: message
+      end
+    end
+  end
+
+  # The address of the list a redraw shows, for the answer without a stream.
+  def list_address
+    query = @presenter.query_context
+    query[:page] = @presenter.first_page if @presenter.first_page > 1
+    query
+  end
 
   # The row is found through the inbox reader (the person's own, within reach,
   # still visible): everything else is no row. Policy and write then run under
@@ -91,11 +170,7 @@ class AllInboxesController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream { render :update }
-      format.html do
-        query = @presenter.query_context
-        query[:page] = @presenter.first_page if @presenter.first_page > 1
-        redirect_to all_inboxes_path(query)
-      end
+      format.html { redirect_to all_inboxes_path(list_address) }
     end
   end
 

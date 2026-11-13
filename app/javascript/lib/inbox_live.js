@@ -19,7 +19,9 @@ export function liveStep({ signal, drawn, counted, hidden }) {
 }
 
 // The address of a redraw: the page's own address (filters, organisation, search,
-// period), the pages the endless scroll has loaded, and the part.
+// period), the pages the endless scroll has loaded, and the part. Also the
+// address of an action of the bulk bar (inbox_bulk_select_controller), whose
+// answer is such a redraw: there `path` is the action's.
 export function redrawAddress(pageAddress, { path, firstPage, throughPage, part }) {
   const address = new URL(pageAddress)
   address.pathname = path

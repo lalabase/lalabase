@@ -4,20 +4,19 @@
   <%# The gutter holds the unread dot and, in the same place, the bulk
       checkbox: the checkbox shows on hover and while rows are selected
       (inbox block of application.tailwind.css), the dot otherwise. A label,
-      so that a click or a tap beside the small box counts as well. %>
+      so that a click or a tap beside the small box counts as well. Above the
+      organisations the checkbox names its organisation: the bulk bar asks
+      before an action on rows of more than one (inbox_bulk_select_controller). %>
   <label class="inbox-row__gutter">
     <% if unread? %>
       <%= render Neo::UnreadMarkerComponent.new(count: 1, variant: :dot, class: 'inbox-row__dot',
                                                 label: t('views.organisations.notifications.item.unread_label')) %>
     <% end %>
-    <% unless above_organisations? %>
-    <input type="checkbox"
-           class="inbox-row__check"
-           aria-label="<%= t('views.organisations.notifications.item.select_aria', title: notifiable_title.presence || event_label) %>"
-           data-inbox-bulk-select-target="checkbox"
-           data-notification-id="<%= notification.id %>"
-           data-action="change->inbox-bulk-select#toggle click->inbox-bulk-select#stopRowClick">
-    <% end %>
+    <%= tag.input type: 'checkbox', class: 'inbox-row__check',
+                  aria: { label: t('views.organisations.notifications.item.select_aria', title: notifiable_title.presence || event_label) },
+                  data: { inbox_bulk_select_target: 'checkbox', notification_id: notification.id,
+                          action: 'change->inbox-bulk-select#toggle click->inbox-bulk-select#stopRowClick',
+                          **organisation_data } %>
   </label>
 
   <%# Clickable main area: for ticket notifications the lane loads by
@@ -46,8 +45,7 @@
       gutter, always on a touch screen (no hover there). The same buttons as
       the head of the lane. A <details>, so the menu opens without JavaScript
       too; details-autoclose closes it on a click outside and on Escape.
-      Above the organisations too: the row acts in place there, only the
-      bulk checkbox is missing. %>
+      Above the organisations too: the row acts in place there. %>
   <details class="more-menu inbox-row__menu" data-controller="details-autoclose">
     <summary class="more-menu__trigger" title="<%= menu_label %>" aria-label="<%= menu_label %>"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
     <div class="more-menu__items">

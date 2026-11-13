@@ -50,6 +50,7 @@ RSpec.describe NeoInboxMasterItemComponent, type: :component do
     expect(page).to have_css('.inbox-row:not(.inbox-row--unread)')
     expect(page).not_to have_css('[data-unread-marker]')
     expect(page).to have_css('input.inbox-row__check[data-inbox-bulk-select-target="checkbox"]')
+    expect(page).to have_no_css('input.inbox-row__check[data-organisation-id], input.inbox-row__check[data-organisation-name]')
   end
 
   # The inbox above the organisations (AllInboxesController).
@@ -72,8 +73,13 @@ RSpec.describe NeoInboxMasterItemComponent, type: :component do
       expect(link['data-inbox-master-item-fullview-url-value']).to be_present
     end
 
-    it 'has the row menu on the addresses of that inbox, and no bulk checkbox' do
-      expect(page).to have_no_css('.inbox-row__check')
+    it 'names its organisation at the bulk checkbox, for the question of the bulk bar' do
+      box = page.find('input.inbox-row__check[data-inbox-bulk-select-target="checkbox"]', visible: :all)
+      expect(box['data-organisation-id']).to eq(organisation.id)
+      expect(box['data-organisation-name']).to eq('Nordwind GmbH')
+    end
+
+    it 'has the row menu on the addresses of that inbox' do
       actions = page.all('.inbox-row__menu form', visible: :all).pluck(:action)
       expect(actions).to eq(["/inbox/#{notification.id}/mark_read", "/inbox/#{notification.id}/archive"])
     end

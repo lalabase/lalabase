@@ -46,6 +46,15 @@ Konventionen:
   verworfen. Vor dem synchronen Replace-Batch werden URL, Liste und Targets erneut geprüft.
   Ein inzwischen gewachsener Seitenbereich wird erneut geladen. Transiente Fehler werden
   mit wachsender Pause (maximal 30 Sekunden) wiederholt, solange der Kontext noch gilt.
+* `inbox_bulk_select` (Leiste der Inbox, seit S2b auch in der Gesamt-Inbox): hält die Auswahl
+  über jedes Neuzeichnen und über nachgeladene Seiten. In der Gesamt-Inbox
+  (`followAddress`) zwei Dinge mehr, beide beim Absenden in `guardSubmit`: Die Formularadresse
+  bekommt den Listenzustand aus der Adresse der SEITE und die geladenen Seiten
+  (`redrawAddress` aus `inbox_live`), denn die Leiste liegt außerhalb des Frames, den die
+  Suche neu lädt, und ihre gerenderte Adresse kann älter sein als die Liste. Und berührt die
+  Auswahl mehr als eine Organisation (`data-organisation-id` am Kästchen), setzt er
+  `data-turbo-confirm` am Formular, mit Anzahl und Namen; Turbo liest das Attribut erst nach
+  dem `submit`-Listener am Formular. Innerhalb einer Organisation keine Frage.
   Die Liste bewegt sich nie von selbst unter dem Leser.
   ⚠️ Ohne Zeile in `config/importmap.rb` lädt ein neuer Controller in Development
   (`pin_all_from`), aber NICHT in Test und Produktion; ein Browser-Spec war so zuerst rot.

@@ -8,8 +8,10 @@
     visits of the index.
     The inbox above the organisations (organisations: given, AllInboxesController)
     draws the same head with its own title and an organisation where the project
-    is. It has neither "···" nor the bulk bar: ticket exceptions and settings
-    belong to one organisation, and its rows act on nothing in place. %>
+    is. Its "···" holds the way into selecting and nothing else: ticket
+    exceptions and settings belong to one organisation. Its bulk bar is the
+    same bar on routes of its own (inbox_bulk_action_path), and it asks before
+    an action that crosses organisations. %>
 <% above = inbox_above_organisations? %>
 <div class="people-head">
   <%= render NeoTitleBoxComponent.new(title: above ? t('views.all_inboxes.title') : t('views.organisations.notifications.index.title'),
@@ -18,7 +20,6 @@
       <div class="flex items-center">
         <%= render 'organisations/notifications/view_switch', presenter: presenter %>
         <div class="flex items-center gap-2">
-          <% unless above %>
           <details class="more-menu" data-controller="details-autoclose">
             <summary class="more-menu__trigger" title="<%= t('views.organisations.notifications.index.more_actions') %>"
                      aria-label="<%= t('views.organisations.notifications.index.more_actions') %>"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
@@ -26,13 +27,14 @@
               <button type="button" data-action="click->inbox-bulk-select#startSelecting">
                 <%= t('views.organisations.notifications.index.select_rows') %>
               </button>
-              <%= link_to t('views.organisations.notifications.index.ticket_exceptions'),
-                          ticket_exceptions_organisation_notifications_path(current_organisation) %>
-              <%= link_to t('views.organisations.notifications.index.settings'),
-                          preferences_organisation_notifications_path(current_organisation) %>
+              <% unless above %>
+                <%= link_to t('views.organisations.notifications.index.ticket_exceptions'),
+                            ticket_exceptions_organisation_notifications_path(current_organisation) %>
+                <%= link_to t('views.organisations.notifications.index.settings'),
+                            preferences_organisation_notifications_path(current_organisation) %>
+              <% end %>
             </div>
           </details>
-          <% end %>
           <%= render 'common/contextual_help_menu', context: :inbox, quiet: true %>
         </div>
       </div>
@@ -66,7 +68,6 @@
     <%= hidden_field_tag :notification, params[:notification], id: nil if params[:notification].present? %>
   <% end %>
 
-  <% unless above %>
   <%# Selection row: lies over the tools row while rows are selected, so the
       list below never moves. Built like the selection row of the ticket list
       (tickets/_selection_row: quiet prose, the count in bold, text actions,
@@ -85,12 +86,19 @@
     </button>
     <%# selection=1 names the request as one of this bar: the routes refuse it
         without ids instead of acting on every notification, which the
-        header dropdown (no marker) still asks for on purpose. %>
-    <% { mark_all_read_organisation_notifications_path(current_organisation) => 'mark_read',
-         archive_all_organisation_notifications_path(current_organisation) => 'archive' }.each do |url, key| %>
-      <%= form_with url: url, method: :patch, class: 'inline',
-                    data: { inbox_bulk_select_target: 'form',
-                            action: 'submit->inbox-bulk-select#guardSubmit turbo:submit-end->inbox-bulk-select#onBulkSubmit' } do %>
+        header dropdown (no marker) still asks for on purpose. Above the
+        organisations the routes take a selection and nothing else, and the
+        form carries the question the bar asks when the ticked rows belong to
+        more than one organisation: the controller fills in the number and the
+        names ({number}, {organisations}). %>
+    <% %i[mark_read archive].each do |key| %>
+      <% form_data = { inbox_bulk_select_target: 'form',
+                       action: 'submit->inbox-bulk-select#guardSubmit turbo:submit-end->inbox-bulk-select#onBulkSubmit' } %>
+      <% if above %>
+        <% form_data[:inbox_bulk_select_confirm_param] =
+             t("views.all_inboxes.bulk.confirm_#{key}", number: '{number}', organisations: '{organisations}') %>
+      <% end %>
+      <%= form_with url: inbox_bulk_action_path(key), method: :patch, class: 'inline', data: form_data do %>
         <%= hidden_field_tag :selection, '1', id: nil %>
         <button type="submit" class="<%= text_action %>"><%= t("views.organisations.notifications.bulk.#{key}") %></button>
       <% end %>
@@ -99,5 +107,4 @@
       <%= t('views.organisations.notifications.bulk.clear') %>
     </button>
   </div>
-  <% end %>
 </div>

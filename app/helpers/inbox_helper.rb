@@ -23,6 +23,15 @@ module InboxHelper
     unarchive: { inside: :unarchive_organisation_notification_path, above: :all_inbox_unarchive_path }
   }.freeze
 
+  # The routes of the bulk bar, by action. Inside an organisation the routes
+  # act on the whole inbox when no id is sent (the bar marks its requests with
+  # selection=1); above the organisations they take a selection and nothing else
+  # (AllInboxesController::SELECTION_ACTIONS).
+  INBOX_BULK_ACTION_ROUTES = {
+    mark_read: { inside: :mark_all_read_organisation_notifications_path, above: :all_inboxes_selection_mark_read_path },
+    archive: { inside: :archive_all_organisation_notifications_path, above: :all_inboxes_selection_archive_path }
+  }.freeze
+
   # The list address with one status view: unread, all or archived.
   def inbox_status_view_url(view, query: nil)
     query = inbox_list_query(query).except('state', 'state_filters')
@@ -105,12 +114,23 @@ module InboxHelper
   def inbox_row_action_path(action, notification, query: nil)
     route = INBOX_ROW_ACTION_ROUTES.fetch(action)
     if inbox_above_organisations?
-      list = inbox_list_query(query)
-      page = (query || request.query_parameters).to_h.stringify_keys['page'].to_s.to_i
-      list['page'] = page if page > 1
-      public_send(route.fetch(:above), notification, list)
+      public_send(route.fetch(:above), notification, inbox_list_query_with_page(query))
     else
       public_send(route.fetch(:inside), current_organisation, notification)
+    end
+  end
+
+  # The address of an action of the bulk bar: mark_read, archive. Above the
+  # organisations it carries the list state as a row action does. The bar lies
+  # outside the list and the frame a search reloads, so the form takes the
+  # state again from the page's address when it leaves
+  # (inbox_bulk_select_controller); what is written here is the first draw.
+  def inbox_bulk_action_path(action)
+    route = INBOX_BULK_ACTION_ROUTES.fetch(action)
+    if inbox_above_organisations?
+      public_send(route.fetch(:above), inbox_list_query_with_page)
+    else
+      public_send(route.fetch(:inside), current_organisation)
     end
   end
 
@@ -134,6 +154,15 @@ module InboxHelper
     keys = inbox_above_organisations? ? INBOX_LIST_PARAMS + [INBOX_ORGANISATION_PARAM] : INBOX_LIST_PARAMS
     list = (query || request.query_parameters).to_h.deep_stringify_keys.slice(*keys)
     list.delete('event_type') unless Notification.event_types.key?(list['event_type'])
+    list
+  end
+
+  # The list state an action above the organisations carries: the dimensions
+  # of the list and the page it stands on.
+  def inbox_list_query_with_page(query = nil)
+    list = inbox_list_query(query)
+    page = (query || request.query_parameters).to_h.stringify_keys['page'].to_s.to_i
+    list['page'] = page if page > 1
     list
   end
 

@@ -71,4 +71,41 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     visit all_inboxes_path(state_filters: %w[archived])
     expect(page).to have_css('.inbox-row__title', text: 'Paket fehlt')
   end
+
+  it 'keeps the rows loaded by endless scroll after repeated row actions', :inbox_e2e do
+    ActsAsTenant.with_tenant(north) do
+      project = Notification.find_by!(recipient: user).project
+      51.times do |i|
+        ticket = create(:ticket, project: project, title: "Older ticket #{i}")
+        create(:notification, recipient: user, organisation: north, project: project, notifiable: ticket,
+                              event_type: 'ticket_assigned', channel: 'in_app', state: :delivered,
+                              created_at: (i + 1).hours.ago)
+      end
+    end
+    visit all_inboxes_path
+    expect(page).to have_css('.inbox-row', count: 50)
+    sentinel = find('[data-neo-endless-scroll-target="sentinel"]')
+    page.execute_script('arguments[0].scrollIntoView()', sentinel)
+    expect(page).to have_css('.inbox-row', count: 53)
+
+    row = find('.inbox-row', text: 'Older ticket 50')
+    row.hover
+    row.find('.inbox-row__menu summary').click
+    row.click_button I18n.t('views.organisations.notifications.actions.mark_read')
+
+    expect(page).to have_css('.inbox-row', count: 53)
+    expect(page).to have_css('.inbox-row:not(.inbox-row--unread)', text: 'Older ticket 50')
+    expect(page).to have_css('#inbox_master_list[data-neo-endless-scroll-page-value="2"]')
+    expect(page).to have_css('.inbox-row__title', text: 'Paket fehlt')
+
+    row = find('.inbox-row', text: 'Older ticket 50')
+    row.hover
+    row.find('.inbox-row__menu summary').click
+    row.click_button I18n.t('views.organisations.notifications.actions.archive')
+
+    expect(page).to have_css('.inbox-row', count: 52)
+    expect(page).to have_no_css('.inbox-row__title', text: 'Older ticket 50')
+    expect(page).to have_css('.inbox-row__title', text: 'Older ticket 49')
+    expect(page).to have_current_path(all_inboxes_path)
+  end
 end

@@ -10,10 +10,15 @@
 <div id="inbox_master_list"
      class="people-list inbox-list"
      data-controller="neo-endless-scroll"
+     data-action="<%= 'submit->neo-endless-scroll#preservePages' if inbox_above_organisations? %>"
      data-neo-endless-scroll-url-value="<%= inbox_list_path %>"
+     data-neo-endless-scroll-first-page-value="<%= presenter.first_page %>"
      data-neo-endless-scroll-page-value="<%= presenter.pagy.page %>"
      data-neo-endless-scroll-has-more-value="<%= presenter.pagy.next.present? %>">
   <% query_context = local_assigns[:query_context] %>
+  <% if inbox_above_organisations? %>
+    <% query_context = (query_context || request.query_parameters).to_h.merge('page' => presenter.first_page) %>
+  <% end %>
   <% selected_id = local_assigns[:selected_notification]&.id %>
   <% organisation_names = local_assigns[:organisation_names] %>
 

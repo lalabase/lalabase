@@ -62,6 +62,10 @@ class AllInboxesController < ApplicationController
     notification = Notifications::InboxQuery.row(user: current_user, reach: reach, id: params[:id])
     return head(:not_found) unless notification
 
+    # Reject an unreachable/malformed list filter before committing the write.
+    # InboxQuery owns this validation for the index and the refresh as well.
+    Notifications::InboxQuery.new(user: current_user, reach: reach, organisation_id: params[:org])
+
     ActsAsTenant.with_tenant(notification.organisation) do
       authorize notification, action[:query]
       result = Actors::ChangeNotificationState.call(notification: notification, change: action[:change],
@@ -73,7 +77,11 @@ class AllInboxesController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream { render :update }
-      format.html { redirect_to all_inboxes_path(@presenter.query_context) }
+      format.html do
+        query = @presenter.query_context
+        query[:page] = @presenter.first_page if @presenter.first_page > 1
+        redirect_to all_inboxes_path(query)
+      end
     end
   end
 
@@ -90,7 +98,8 @@ class AllInboxesController < ApplicationController
       @presenter = Inbox::MasterListPresenter.new(
         pagy_helper: self,
         scope: Inbox::MasterListPresenter.narrow(rows, filters, time_zone: current_user.time_zone),
-        params: filters, time_zone: current_user.time_zone
+        params: filters, time_zone: current_user.time_zone,
+        through_page: action_name == 'index' ? nil : params[:through_page]
       ).load!
     end
     @unread_count = shown_organisations.sum { |organisation| organisation[:unread] }

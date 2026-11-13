@@ -105,7 +105,10 @@ module InboxHelper
   def inbox_row_action_path(action, notification, query: nil)
     route = INBOX_ROW_ACTION_ROUTES.fetch(action)
     if inbox_above_organisations?
-      public_send(route.fetch(:above), notification, inbox_list_query(query))
+      list = inbox_list_query(query)
+      page = (query || request.query_parameters).to_h.stringify_keys['page'].to_s.to_i
+      list['page'] = page if page > 1
+      public_send(route.fetch(:above), notification, list)
     else
       public_send(route.fetch(:inside), current_organisation, notification)
     end

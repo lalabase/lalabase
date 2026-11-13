@@ -358,6 +358,84 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, ty
       act(:archive, north_row, org: create(:organisation).id)
 
       expect(response).to have_http_status(:not_found)
+      expect(state_of(north_row)).to eq('delivered')
+      expect(state_of(north_sibling)).to eq('delivered')
+    end
+
+    it 'refuses a malformed organisation filter before changing the row or its siblings' do
+      act(:mark_read, north_row, org: 'not-an-id')
+
+      expect(response).to have_http_status(:not_found)
+      expect(state_of(north_row)).to eq('delivered')
+      expect(state_of(north_sibling)).to eq('delivered')
+    end
+  end
+
+  describe 'pages already on screen' do
+    before do
+      Prosopite.pause do
+        101.times do |i|
+          ticket = ticket_in(north, north_project, "Page ticket #{i}")
+          row(north, north_project, ticket, created_at: (i + 1).minutes.ago)
+        end
+      end
+    end
+
+    def page_rows(number, **query)
+      get all_inboxes_path(page: number, **query)
+      Nokogiri::HTML(response.body).css('.inbox-row').pluck('data-notification-id')
+    end
+
+    %w[grouped chronological].each do |mode|
+      it "keeps a directly opened second page in #{mode} mode" do
+        shown = page_rows(2, view_mode: mode)
+        form = Nokogiri::HTML(response.body).at_css('.inbox-row__menu form')
+        patch form['action'], headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+
+        expect(response).to have_http_status(:ok)
+        expect(listed_ids).to eq(shown)
+        scroller = redrawn_list.at_css('#inbox_master_list')
+        expect(scroller['data-neo-endless-scroll-first-page-value']).to eq('2')
+        expect(scroller['data-neo-endless-scroll-page-value']).to eq('2')
+        next_action = redrawn_list.at_css('.inbox-row__menu form')['action']
+        expect(Rack::Utils.parse_nested_query(URI(next_action).query)['page']).to eq('2')
+      end
+    end
+
+    it 'redraws the accumulated pages and resumes scrolling at the next unseen page' do
+      shown = page_rows(1) + page_rows(2)
+      notification = ActsAsTenant.without_tenant { Notification.find(shown.last) }
+
+      act(:mark_read, notification, page: 1, through_page: 2)
+
+      expect(listed_ids).to eq(shown)
+      scroller = redrawn_list.at_css('#inbox_master_list')
+      expect(scroller['data-neo-endless-scroll-first-page-value']).to eq('1')
+      expect(scroller['data-neo-endless-scroll-page-value']).to eq('2')
+      expect(scroller['data-neo-endless-scroll-has-more-value']).to eq('true')
+      expect(state_of(notification)).to eq('read')
+      expect(page_rows(3) & shown).to be_empty
+    end
+
+    it 'clamps the window when archiving removes the final page' do
+      shown = page_rows(3)
+      Prosopite.pause { shown.drop(1).each { |id| act(:archive, id) } }
+      notification = ActsAsTenant.without_tenant { Notification.find(shown.first) }
+
+      act(:archive, notification, page: 2, through_page: 3)
+
+      expect(listed_ids.size).to eq(50)
+      scroller = redrawn_list.at_css('#inbox_master_list')
+      expect(scroller['data-neo-endless-scroll-first-page-value']).to eq('2')
+      expect(scroller['data-neo-endless-scroll-page-value']).to eq('2')
+      expect(scroller['data-neo-endless-scroll-has-more-value']).to eq('false')
+    end
+
+    it 'keeps the page on an HTML redirect too' do
+      shown = page_rows(2)
+      patch all_inbox_mark_read_path(shown.first, page: 2)
+
+      expect(response).to redirect_to(all_inboxes_path(page: 2))
     end
   end
 end

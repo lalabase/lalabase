@@ -24,12 +24,14 @@ module Organisations
 
     private
 
+    # Only a full page of the area counts (ApplicationController#full_page_request?, the
+    # same predicate the session's organisation follows).
     # NavigationHelper.section_key_for, not `helpers`: the helper proxy is memoised, and
     # built here it would keep the view assigns of this moment, before the controller's
     # own before_actions set @project and the like (the knowledge lane lost its project
     # that way on the first build of this).
     def remember_management_return
-      return unless request.get? && request.format.html? && !turbo_frame_request?
+      return unless full_page_request?
       return unless NavigationHelper.section_key_for(controller_name)
 
       path = management_referer_path

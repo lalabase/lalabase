@@ -124,6 +124,12 @@ module Organisations
       redirect_to new_user_session_path unless signed_in
     end
 
+    # A file is no page: opened in a tab it asks like one, but it must not move the
+    # session's organisation (ApplicationController#full_page_request?).
+    def serves_pages?
+      false
+    end
+
     # For a kind that names a version: says so to the browser, and answers 304 (true)
     # when the browser already holds it.
     def fresh_version?(config, record)

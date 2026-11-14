@@ -59,6 +59,21 @@ RSpec.describe 'Assistant ticket suggestions', type: :request do
     expect(response.body).to include("Ticket ##{ticket.number} angelegt", 'Ticket öffnen')
   end
 
+  it 'keeps the last page organisation when a result in another organisation refreshes' do
+    run = finish_run(start_run)
+    other_organisation = create(:organisation)
+    make_token_owner_a_member(user, other_organisation, projects: [])
+    get organisation_notifications_path(other_organisation, state_filters: %w[unread read])
+    expect(response).to have_http_status(:ok)
+    expect(session[:current_organisation_id]).to eq(other_organisation.id)
+
+    # The headers sent by assistant_suggestion_result_controller for polling and manual refresh.
+    get run_path(run), headers: { 'Accept' => 'text/html', 'X-Requested-With' => 'XMLHttpRequest' }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(meeting.title, 'Rechnung senden')
+    expect(session[:current_organisation_id]).to eq(other_organisation.id)
+  end
+
   it 'keeps accepted state when dismissing from a stale meeting display' do
     run = finish_run(start_run)
     suggestion = in_org { run.meeting_ticket_suggestions.first }

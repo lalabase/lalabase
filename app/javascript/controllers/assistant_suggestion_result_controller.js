@@ -95,7 +95,10 @@ export default class extends Controller {
       this.stale = false
       request = this.request = new AbortController()
       this.lastRefreshAt = Date.now()
-      const response = await fetch(this.urlValue, { signal: request.signal, headers: { Accept: "text/html" } })
+      const response = await fetch(this.urlValue, {
+        signal: request.signal,
+        headers: { Accept: "text/html", "X-Requested-With": "XMLHttpRequest" }
+      })
       if (generation !== this.generation) return
       if (!this.visible()) { this.stale = true; return }
       if (!response.ok) {

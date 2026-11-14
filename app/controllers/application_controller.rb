@@ -98,9 +98,10 @@ class ApplicationController < ActionController::Base
         @current_organisation = organisation
         @current_membership = current_user.active_memberships.find_by(organisation: organisation)
         # The tenant follows the address on every request; the session's organisation only
-        # follows the pages a person opens (full_page_request?). A frame, a write or a file
-        # under /org/B/ acts in B and leaves the back link where the person is.
-        session[:current_organisation_id] = organisation.id if full_page_request?
+        # follows the pages a person opens (full_page_request?), in an organisation they are an
+        # active member of. A frame, a write, a stream or a file under /org/B/ acts in B and
+        # leaves the back link where the person is.
+        session[:current_organisation_id] = organisation.id if full_page_request? && @current_membership
         return
       rescue ActiveRecord::RecordNotFound
         # Ignore and continue to other resolution strategies
@@ -132,13 +133,15 @@ class ApplicationController < ActionController::Base
   end
 
   # A full page of the application is opened: a GET or HEAD that asks for HTML, outside a
-  # turbo frame, answered by a controller that serves pages. The one answer to "is this a
-  # page" (doc: cross_org_inbox_s3_plan.md §5.1, §10): the session's organisation follows
-  # it, and so does the way back out of the management area
-  # (Organisations::ManagementReturn). A frame load, a write, a script's JSON and a file
-  # are no page.
+  # turbo frame, not from a script, answered by a controller that serves pages. The one
+  # answer to "is this a page" (doc: cross_org_inbox_s3_plan.md §5.1, §10): the session's
+  # organisation follows it, and so does the way back out of the management area
+  # (Organisations::ManagementReturn). A frame load, a write, a stream, a script's fetch
+  # and a file are no page. A stream asks for text/vnd.turbo-stream.html, which Rails
+  # counts as HTML, so it is named.
   def full_page_request?
-    (request.get? || request.head?) && request.format.html? && !turbo_frame_request? && serves_pages?
+    (request.get? || request.head?) && request.format.html? && !request.format.turbo_stream? &&
+      !request.xhr? && !turbo_frame_request? && serves_pages?
   end
 
   # A controller that answers with something other than a page (a file, a picture) says so

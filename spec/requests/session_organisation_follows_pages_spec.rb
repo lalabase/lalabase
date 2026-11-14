@@ -151,6 +151,45 @@ RSpec.describe 'The session organisation follows pages', :ci_guard, type: :reque
     expect(session[:management_return_path]).to eq(project_page)
   end
 
+  # Review S3a round 1: a stream answer asks for text/vnd.turbo-stream.html, which Rails
+  # counts as HTML (Mime[:turbo_stream].html? is true). A link with data-turbo-stream in the
+  # ticket's timeline asks like that.
+  it 'keeps it for a GET that asks for a turbo stream, which still answers for B' do
+    get inbox_b, headers: { 'Accept' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml' }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include('Paket fehlt')
+    expect(session[:current_organisation_id]).to eq(org_a.id)
+  end
+
+  it 'keeps it for a script that fetches HTML (an XHR), which still answers for B' do
+    get inbox_b, headers: { 'Accept' => 'text/html', 'X-Requested-With' => 'XMLHttpRequest' }
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include('Paket fehlt')
+    expect(session[:current_organisation_id]).to eq(org_a.id)
+  end
+
+  # Review S3a round 1: the session is a back link into an organisation; one the person is
+  # deactivated in leads only to the selection.
+  it 'keeps it for a page of an organisation the person was deactivated in' do
+    Membership.find_by(user: user, organisation: org_b).update!(active: false)
+    get inbox_b
+    expect(response).to redirect_to(select_organisation_path)
+    expect(session[:current_organisation_id]).to eq(org_a.id)
+  end
+
+  it 'keeps the way back out of the management area for a request that asks for no page' do
+    inbox_a = organisation_notifications_path(org_a, state_filters: %w[unread read])
+    get organisation_settings_path(org_a), headers: { 'Referer' => "http://www.example.com#{inbox_a}" }
+    expect(session[:management_return_path]).to eq(inbox_a)
+
+    project_page = organisation_project_tickets_path(org_a, project_a)
+    get organisation_settings_path(org_a),
+        headers: { 'Referer' => "http://www.example.com#{project_page}", 'Accept' => 'application/json' }
+    expect(session[:management_return_path]).to eq(inbox_a)
+  end
+
+  # A guard that already held before S3a (the membership lookup raises first): no right and
+  # no back link ever come from an organisation the person is not a member of.
   it 'changes nothing for a person who is no member of the organisation in the address' do
     org_c = create(:organisation, name: 'Fremd KG')
     get organisation_notifications_path(org_c, state_filters: %w[unread read])

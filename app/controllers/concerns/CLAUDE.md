@@ -127,12 +127,14 @@ Listenzeilen ebenso berücksichtigen wie Tabellenzeilen.
 ## Was eine Seite ist: `full_page_request?` (seit 14.11.2026)
 
 `ApplicationController#full_page_request?` ist die EINE Antwort auf „wird gerade eine Seite
-geöffnet": GET oder HEAD, fragt nach HTML, kein `Turbo-Frame`-Header, und der Controller liefert
-Seiten aus (`serves_pages?`, Standard wahr). Zwei Leser:
+geöffnet": GET oder HEAD, fragt nach HTML, kein Turbo-Stream (`text/vnd.turbo-stream.html` zählt
+für Rails als HTML, darum eigens genannt), kein Skript (`xhr?`), kein `Turbo-Frame`-Header, und
+der Controller liefert Seiten aus (`serves_pages?`, Standard wahr). Zwei Leser:
 
 * `load_tenant_from_session` setzt den Mandanten weiter bei JEDER Anfrage aus der Adresse, schreibt
-  `session[:current_organisation_id]` aber nur bei einer Seite. Ein Frame, ein Schreibvorgang,
-  JSON und eine Datei unter `/org/B/` handeln in B und lassen „Zurück zur Organisation" und die
+  `session[:current_organisation_id]` aber nur bei einer Seite einer Organisation mit aktiver
+  Mitgliedschaft. Ein Frame, ein Schreibvorgang, ein Stream, JSON und eine Datei unter `/org/B/`
+  handeln in B und lassen „Zurück zur Organisation" und die
   Hilfe, wo die Person ist (die Bahn der Gesamt-Inbox, `doc/cross_org_inbox_s3_plan.md` §5.1).
   `OrganisationsController#redirect_to_organisation` und `Users::SessionsController` schreiben
   die Sitzung weiter selbst.
@@ -141,5 +143,9 @@ Seiten aus (`serves_pages?`, Standard wahr). Zwei Leser:
 
 Ein Controller, der keine Seite ausliefert, sagt das selbst (`serves_pages?` → `false`), heute
 `Organisations::FileDownloadsController`: ein Bild fragt wie eine Seite. Kein Vergleich von
-Controllernamen im `ApplicationController`. Die Regel entscheidet nur, wohin ein Rückweg führt,
+Controllernamen im `ApplicationController`. Bekannt und hingenommen: einzelne Datei-Aktionen
+in Seiten-Controllern (`DocumentsController#download_plain_text`, der CSV-Export der Zeitgruppen)
+zählen als Seite; sie stehen nur auf Seiten derselben Organisation. Und ein Formular außerhalb
+jedes Frames, das per Redirect antwortet, zählt erst ab dem nächsten Klick (Turbo folgt mit
+Stream-Accept). Die Regel entscheidet nur, wohin ein Rückweg führt,
 nie ein Recht. Wächter: `spec/requests/session_organisation_follows_pages_spec.rb`.

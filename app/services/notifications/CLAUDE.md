@@ -60,7 +60,7 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   Anfrage. Schreiben geht an die Routen der Organisation; die Sitzung bleibt, weil sie nur
   Seiten folgt (`full_page_request?`). Kopf und 5-s-Timer der Bahn sind die Zeilenaktionen von
   `/inbox` (`open:` nennt die offene Zeile, ihre Antwort tauscht `#inbox_pane_status_pills`;
-  `quiet:` ohne Toast). Kein `without_tenant`, kein neuer Aufrufer von `InboxQuery`. Wächter:
+  `quiet:` ohne Toast). Die Bahn hebt den Mandanten nie auf und liest nicht über die Token-Inbox. Wächter:
   `spec/requests/all_inboxes_lane_spec.rb`. Zeilen anderer Art verlassen die Seite bis S4. **Live (S2a):** `UnreadSignals.call` sendet nach den Punkten des Umschalters
   ein Signal auf `Streams.all_inboxes`: nur `InboxQuery.stamp` (HMAC über geordnete
   Fingerprints jeder In-App-Zeile in Reichweite, inklusive Zustand und Änderungszeit).

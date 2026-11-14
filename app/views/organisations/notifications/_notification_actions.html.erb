@@ -11,7 +11,8 @@
     that page's own addresses, which carry the list state themselves (query:,
     the state a redrawn list was given); inbox_row_action_path decides.
     open: the head of the lane, whose row is the open one. %>
-<% form = { data: { turbo_frame: '_top' }, class: 'contents' } %>
+<% lane_head = open && inbox_above_organisations? %>
+<% form = { data: { turbo_frame: '_top', action: ('submit->inbox-lane-head#carry' if lane_head) }.compact, class: 'contents' } %>
 <% if notification.state_archived? %>
   <%= button_to inbox_row_action_path(:unarchive, notification, query: query, open: open),
                 method: :patch, form: form, class: button_class do %>

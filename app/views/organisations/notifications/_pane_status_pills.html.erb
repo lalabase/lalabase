@@ -10,7 +10,10 @@
     The actions name the row as the open one (open: true): above the
     organisations their answer swaps this area (all_inboxes/_redraw).
     Locals: notification, current_organisation, project, ticket. %>
-<div id="inbox_pane_status_pills" class="inbox-lane-actions">
+<%# Above the organisations inbox-lane-head carries the page's list state into the
+    actions when they leave (their answer redraws the list). %>
+<div id="inbox_pane_status_pills" class="inbox-lane-actions"
+     <%= tag.attributes(data: { controller: 'inbox-lane-head' }) if inbox_above_organisations? %>>
   <%= link_to organisation_project_ticket_path(current_organisation, project, ticket),
               target: '_top', class: 'inbox-lane-actions__open' do %>
     <%= t('views.organisations.notifications.pane.open_full_view') %>

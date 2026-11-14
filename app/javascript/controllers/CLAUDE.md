@@ -49,6 +49,12 @@ Konventionen:
 * `inbox_master_item` (Klick auf eine Inbox-Zeile): öffnet seit S3 (14.11.2026) auch in der
   Gesamt-Inbox die Bahn; der Wert `lane` ist gelöscht, beide Seiten verhalten sich gleich (breit:
   Frame laden, Adresse schreiben, Bahn öffnen; schmal: Vollansicht in der Organisation).
+* `inbox_lane_head` (S3, 14.11.2026) und `pane_mark_read_delay` mit `followAddress`: Kopf und
+  5-s-Timer der Bahn oben schreiben beim Absenden den Listenzustand der SEITE in ihre Adresse
+  (`listActionAddress` aus `lib/inbox_live.js`, Seiten des Endlos-Scrolls inklusive), behalten
+  aber die offene Zeile und `quiet` aus der eigenen Adresse (eine Suche nimmt `notification` aus
+  der Seitenadresse). Die Sammelleiste (`inbox_bulk_select#_carryListState`) folgt derselben Regel
+  mit eigener Kopie; zusammenlegen, wenn sie wieder angefasst wird.
 * `inbox_bulk_select` (Leiste der Inbox, seit S2b auch in der Gesamt-Inbox): hält die Auswahl
   über jedes Neuzeichnen und über nachgeladene Seiten. In der Gesamt-Inbox
   (`followAddress`) zwei Dinge mehr, beide beim Absenden in `guardSubmit`: Die Formularadresse

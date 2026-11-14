@@ -35,6 +35,7 @@
   <% if @selected_notification && @selected_notification.unread? %>
     <div data-controller="pane-mark-read-delay"
          data-pane-mark-read-delay-url-value="<%= inbox_row_action_path(:mark_read, @selected_notification, open: true, quiet: true) %>"
+         <%= tag.attributes(data: { pane_mark_read_delay_follow_address_value: 'true' }) if inbox_above_organisations? %>
          data-pane-mark-read-delay-delay-value="5000"></div>
   <% end %>
 

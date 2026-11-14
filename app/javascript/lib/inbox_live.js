@@ -32,3 +32,22 @@ export function redrawAddress(pageAddress, { path, firstPage, throughPage, part 
   if (part === "counts") address.searchParams.set("part", "counts")
   return address.toString()
 }
+
+// The address of an action whose answer redraws the list (the head and the 5 s
+// timer of the lane): the state the page's address names when the action leaves,
+// the pages the endless scroll has loaded (the list's own values), on the action's
+// path. `keep` names parameters the action's own address decides (the open row,
+// which a search drops from the page's address; quiet for the timer).
+export function listActionAddress(pageAddress, actionAddress, list, { keep = [] } = {}) {
+  const action = new URL(actionAddress, pageAddress)
+  const address = new URL(redrawAddress(pageAddress, {
+    path: action.pathname,
+    firstPage: list?.dataset?.neoEndlessScrollFirstPageValue,
+    throughPage: list?.dataset?.neoEndlessScrollPageValue
+  }))
+  keep.forEach((key) => {
+    address.searchParams.delete(key)
+    if (action.searchParams.has(key)) address.searchParams.set(key, action.searchParams.get(key))
+  })
+  return address.toString()
+}

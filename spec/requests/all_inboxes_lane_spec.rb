@@ -253,6 +253,18 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
       expect(Rack::Utils.parse_nested_query(timer.query))
         .to include('state_filters' => %w[read unread], 'notification' => south_row.id, 'quiet' => '1')
 
+      # They take the page's list state when they leave (review S3b round 2): the head through
+      # inbox-lane-head, the timer through followAddress. Inside an organisation neither.
+      head = doc(body).at_css('#inbox_pane_status_pills')
+      expect(head['data-controller']).to eq('inbox-lane-head')
+      expect(head.css('form').pluck('data-action')).to all(eq('submit->inbox-lane-head#carry'))
+      expect(doc(body).at_css('[data-pane-mark-read-delay-follow-address-value="true"]')).to be_present
+      get organisation_notifications_path(south, state_filters: %w[read unread], notification: south_row.id), headers: frame
+      inside = doc(response.body)
+      expect(inside.at_css('#inbox_pane_status_pills')).to be_present
+      expect(inside.at_css('#inbox_pane_status_pills')['data-controller']).to be_nil
+      expect(inside.at_css('[data-pane-mark-read-delay-follow-address-value]')).to be_nil
+
       # No inbox address under /org/ but the full view of the redrawn row, which a tap below lg
       # opens in its organisation, as on every row of this page (plan §5.4).
       inbox_addresses = addresses(body).grep(%r{/org/[^/]+/inbox/})
@@ -448,6 +460,20 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
       get organisation_notifications_path(south, state_filters: %w[read unread], notification: south_row.id), headers: frame
       expect(response.body).to include(I18n.t('views.organisations.notifications.pane.unauthorized_title'))
       expect(response.body).not_to include('Karton leer')
+    end
+
+    # Review S3b round 2: the shared loader finds the row through the policy scope, so the
+    # organisation's own lane answers a row of an area the person lost as missing, not as
+    # "not allowed" (which would say the row exists).
+    it 'answers a row of a lost area in the lane of the organisation as missing' do
+      get organisation_notifications_path(south, state_filters: %w[read unread], notification: south_row.id), headers: frame
+      expect(response.body).to include('Paket fehlt')
+      ActsAsTenant.with_tenant(south) do
+        ProjectPermission.find_by!(user: user, project: south_project).update!(tickets_access: 'no_access')
+      end
+      get organisation_notifications_path(south, state_filters: %w[read unread], notification: south_row.id), headers: frame
+      expect(response.body).to include(I18n.t('views.organisations.notifications.pane.missing_title'))
+      expect(response.body).not_to include(I18n.t('views.organisations.notifications.pane.unauthorized_title'))
     end
 
     it 'lists in-app rows only under "what was new", not their mail twins' do

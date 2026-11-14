@@ -262,7 +262,8 @@ class AllInboxesController < ApplicationController
     ticket = notification.notifiable
     return unless ticket.is_a?(Ticket) && ticket.project
 
-    { notification: notification.reload, organisation: notification.organisation,
+    # The actor has written the new state onto this same object (it locks and reloads it).
+    { notification: notification, organisation: notification.organisation,
       project: ticket.project, ticket: ticket }
   end
 

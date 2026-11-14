@@ -554,5 +554,31 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       back = find('a', text: I18n.t('navigation.back_to_organisation'))
       expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
     end
+
+    # Review S3b round 2: the head and the 5 s timer of the lane redraw the list. They take the
+    # list state the page's address names when they leave, as the bulk bar does, not the one
+    # of the moment the lane opened.
+    it 'keeps the search of the list when the head of the lane acts after it' do
+      visit all_inboxes_path(state_filters: %w[read unread])
+      find('.inbox-row', text: 'Karton leer').find('a.inbox-row__link').click
+      expect(page).to have_css('#ticket_pane .inbox-lane-content', text: 'Karton leer')
+
+      find('[data-fb-search-open-button]').click
+      find('#inbox-search').send_keys('Karton')
+      expect(page).to have_no_css('.inbox-row__title', text: 'Regal wackelt')
+      expect(page).to have_current_path(/search=Karton/)
+
+      # The 5 s read redraws the list in between; it keeps the search too.
+      expect(find('.inbox-row', text: 'Karton leer')).to have_no_css('[data-unread-marker]', wait: 10)
+      expect(page).to have_no_css('.inbox-row__title', text: 'Regal wackelt')
+
+      within('#inbox_pane_status_pills') { click_button I18n.t('views.organisations.notifications.actions.archive') }
+      expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.unarchive'),
+                                                           wait: 10)
+      expect(page).to have_no_css('.inbox-row__title', text: 'Karton leer')
+      expect(page).to have_no_css('.inbox-row__title', text: 'Regal wackelt')
+      expect(page).to have_no_css('.inbox-row__title', text: 'Paket fehlt')
+      expect(page).to have_current_path(/search=Karton/)
+    end
   end
 end

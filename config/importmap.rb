@@ -233,6 +233,7 @@ else
   pin 'controllers/notification_count_listener_controller', to: 'controllers/notification_count_listener_controller.js'
   pin 'controllers/page_outline_controller', to: 'controllers/page_outline_controller.js'
   pin 'controllers/pane_mark_read_delay_controller', to: 'controllers/pane_mark_read_delay_controller.js'
+  pin 'controllers/inbox_lane_head_controller', to: 'controllers/inbox_lane_head_controller.js'
   pin 'controllers/participant_link_modal_controller', to: 'controllers/participant_link_modal_controller.js'
   pin 'controllers/person_details_controller', to: 'controllers/person_details_controller.js'
   pin 'controllers/personal_tasks_drawer_controller', to: 'controllers/personal_tasks_drawer_controller.js'

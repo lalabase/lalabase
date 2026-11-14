@@ -129,7 +129,7 @@ Listenzeilen ebenso berücksichtigen wie Tabellenzeilen.
 `ApplicationController#full_page_request?` ist die EINE Antwort auf „wird gerade eine Seite
 geöffnet": GET oder HEAD, fragt nach HTML, kein Turbo-Stream (`text/vnd.turbo-stream.html` zählt
 für Rails als HTML, darum eigens genannt), kein Skript (`xhr?`), kein `Turbo-Frame`-Header, und
-der Controller liefert Seiten aus (`serves_pages?`, Standard wahr). Zwei Leser:
+der Controller liefert Seiten aus (`serves_pages?`, Standard wahr). Drei Leser:
 
 * `load_tenant_from_session` setzt den Mandanten weiter bei JEDER Anfrage aus der Adresse, schreibt
   `session[:current_organisation_id]` aber nur bei einer Seite einer Organisation mit aktiver
@@ -140,6 +140,13 @@ der Controller liefert Seiten aus (`serves_pages?`, Standard wahr). Zwei Leser:
   die Sitzung weiter selbst.
 * `Organisations::ManagementReturn#remember_management_return` merkt sich den Rückweg nur bei
   einer Seite des Verwaltungsbereichs.
+* `page_above_organisations?` (Gesamt-Inbox): Eine Seite nennt ihren Kontext selbst. Ein Fragment
+  (Kommentar, Ticket-Bearbeitung, Frame aus der Bahn von `/inbox`, beantwortet von einem
+  Controller der Organisation) behält die Seite, in die es gezeichnet wird, und die nennt der
+  Referrer: derselbe Host, derselbe Port, genau der Pfad `/inbox`. Sonst zeichnet das Fragment
+  den Assistenten-Knopf in eine Seite ohne Assistenten. Jeder Beinahe-Treffer (anderer Port,
+  Inbox einer Organisation, kaputte Adresse) lässt dem Fragment den Kontext seines Tickets.
+  Wächter: `spec/requests/all_inboxes_lane_spec.rb` („assistant context after lane writes").
 
 Ein Controller, der keine Seite ausliefert, sagt das selbst (`serves_pages?` → `false`), heute
 `Organisations::FileDownloadsController`: ein Bild fragt wie eine Seite. Kein Vergleich von

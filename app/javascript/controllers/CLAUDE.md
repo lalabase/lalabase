@@ -55,6 +55,13 @@ Konventionen:
   aber die offene Zeile und `quiet` aus der eigenen Adresse (eine Suche nimmt `notification` aus
   der Seitenadresse). Die Sammelleiste (`inbox_bulk_select#_carryListState`) folgt derselben Regel
   mit eigener Kopie; zusammenlegen, wenn sie wieder angefasst wird.
+  ⚠️ Der Timer zeichnet eine Antwort nur, wenn er noch die Bahn ist, die gefragt hat (`disconnect`
+  bricht die Anfrage ab; geschlossene Bahn, entferntes Element und eine überholte Anfrage
+  verwerfen sie). Oben wendet er die Streams selbst an, ohne Turbos Warteschlange: die Liste nur,
+  wenn Seitenadresse, Listenelement und Aktionsadresse noch dieselben sind, den Kopf über den
+  Selektor mit `data-notification-id`, also nie den Kopf einer anderen Meldung. Er kennt nur
+  `replace`: Trägt die stille Antwort eine andere Aktion, fällt sie ganz weg (Wächter auf der
+  Serverseite: „answers the timer with replace alone" in `all_inboxes_row_actions_spec.rb`).
 * `inbox_bulk_select` (Leiste der Inbox, seit S2b auch in der Gesamt-Inbox): hält die Auswahl
   über jedes Neuzeichnen und über nachgeladene Seiten. In der Gesamt-Inbox
   (`followAddress`) zwei Dinge mehr, beide beim Absenden in `guardSubmit`: Die Formularadresse

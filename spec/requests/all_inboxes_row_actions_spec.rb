@@ -439,14 +439,14 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :r
     end
   end
   # The head of the lane on this page (S3, plan §5.5): its actions and its 5 s timer are
-  # the row actions, and their address names the open row. The answer swaps the head of the
-  # lane when it acted on that row, and nothing else of the lane, so an open reply form
+  # the row actions. The answer targets only the matching notification head, even after
+  # search or a lane switch, and nothing else of the lane, so an open reply form
   # survives. The timer reads quietly.
   describe 'the head of the open lane' do
     let(:stream_targets) { ->(body) { Nokogiri::HTML(body).css('turbo-stream').map { |n| [n['action'], n['target']] } } }
 
     def pills(body)
-      Nokogiri::HTML(body).at_css('turbo-stream[action="replace"][target="inbox_pane_status_pills"] template')
+      Nokogiri::HTML(body).at_css('turbo-stream[action="replace"][targets^="#inbox_pane_status_pills["] template')
     end
 
     it 'swaps the head of the lane when the row acted on is the open one, and nothing else of the lane' do
@@ -462,9 +462,8 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :r
       expect(response.body).to include('all_inboxes_drawn_stamp')
     end
 
-    # Review S3b round 1: the "···" menu of the open row acts on an address without the open
-    # row (the list's links carry the list state only). The page's address names it, and the
-    # request carries that as its referrer, as in the inbox of an organisation.
+    # A menu action updates the matching head whether the page still names the
+    # open row in its referrer or a search has removed it.
     it 'swaps the head too when the menu of the open row acts, named by the page it came from' do
       lane_page = "http://www.example.com#{all_inboxes_path(state_filters: %w[read unread], notification: south_row.id)}"
       patch all_inbox_archive_path(south_row, state_filters: %w[read unread]),
@@ -476,26 +475,96 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :r
       expect(response.body).to include('notification-toast')
     end
 
-    it 'ignores a referrer that is not this page, and one that names another row' do
-      elsewhere = "http://www.example.com#{organisation_notifications_path(south, notification: south_row.id)}"
-      patch all_inbox_archive_path(south_row, state_filters: %w[read unread]),
-            headers: { 'Accept' => 'text/vnd.turbo-stream.html', 'Referer' => elsewhere }
-      expect(redrawn_list).to be_present
-      expect(pills(response.body)).to be_nil
+    it 'updates the matching head after search removed the open notification from the address' do
+      searched_page = "http://www.example.com#{all_inboxes_path(search: 'Paket', state_filters: %w[read unread])}"
+      patch all_inbox_archive_path(south_row, search: 'Paket', state_filters: %w[read unread]),
+            headers: { 'Accept' => 'text/vnd.turbo-stream.html', 'Referer' => searched_page }
 
-      other_open = "http://www.example.com#{all_inboxes_path(notification: north_row.id)}"
-      patch all_inbox_unarchive_path(south_row, state_filters: %w[read unread]),
-            headers: { 'Accept' => 'text/vnd.turbo-stream.html', 'Referer' => other_open }
-      expect(redrawn_list).to be_present
-      expect(pills(response.body)).to be_nil
+      expect(response).to have_http_status(:ok)
+      expect(state_of(south_row)).to eq('archived')
+      expect(pills(response.body).at_css('form')['action']).to include("/inbox/#{south_row.id}/unarchive?")
+      expect(pills(response.body).at_css('[data-notification-id]')['data-notification-id']).to eq(south_row.id)
     end
 
-    it 'leaves the head alone when another row is acted on' do
+    it 'cannot replace another notification head even when the request named it as open' do
       act(:archive, north_row, state_filters: %w[read unread], notification: south_row.id)
 
       expect(response).to have_http_status(:ok)
       expect(redrawn_list).to be_present
-      expect(pills(response.body)).to be_nil
+      stream = Nokogiri::HTML(response.body).at_css('turbo-stream[targets^="#inbox_pane_status_pills["]')
+      expect(stream['target']).to be_nil
+      # Apply the response selector to the head that could now be on screen.
+      current = Nokogiri::HTML.fragment(%(<div id="inbox_pane_status_pills" data-notification-id="#{south_row.id}"></div>))
+      expect(current.css(stream['targets'])).to be_empty
+      current.at_css('div')['data-notification-id'] = north_row.id
+      expect(current.css(stream['targets']).size).to eq(1)
+    end
+
+    # Every action of a row answers the head of its own notification, whether the address
+    # names an open row or not. The selector is the id whole: a prefix or a bare id would
+    # reach the head of a neighbour.
+    AllInboxesController::ROW_ACTIONS.each_key do |action|
+      it "addresses the head of the acted row alone after #{action}, without the address naming it" do
+        before_it = { 'mark_unread' => :mark_read, 'unarchive' => :archive }[action]
+        act(before_it, south_row, state_filters: %w[read unread]) if before_it
+        act(action, south_row, state_filters: %w[read unread])
+
+        expect(response).to have_http_status(:ok)
+        heads = Nokogiri::HTML(response.body).css('turbo-stream').select { |n| "#{n['target']}#{n['targets']}".include?('inbox_pane_status_pills') }
+        expect(heads.map { |n| [n['action'], n['target'], n['targets']] })
+          .to eq([['replace', nil, "#inbox_pane_status_pills[data-notification-id='#{south_row.id}']"]])
+        expect(heads.first.at_css('template > #inbox_pane_status_pills')['data-notification-id']).to eq(south_row.id)
+      end
+    end
+
+    # The two halves of the contract meet here: the head the lane draws and the selector
+    # an action answers with. Each alone can look right and still miss the other.
+    it 'sends a selector that finds the head the lane drew, and not the head of another lane' do
+      lane_of = lambda do |notification|
+        get all_inboxes_path(state_filters: %w[read unread], notification: notification.id), headers: { 'Turbo-Frame' => 'ticket_pane' }
+        expect(response).to have_http_status(:ok)
+        Nokogiri::HTML(response.body)
+      end
+      south_lane = lane_of.call(south_row)
+      north_lane = lane_of.call(north_row)
+      expect(north_lane.css('#inbox_pane_status_pills').size).to eq(1)
+
+      act(:archive, south_row, state_filters: %w[read unread])
+      selector = Nokogiri::HTML(response.body).at_css('turbo-stream[targets^="#inbox_pane_status_pills["]')['targets']
+
+      expect(south_lane.css(selector).pluck('id')).to eq(['inbox_pane_status_pills'])
+      expect(north_lane.css(selector)).to be_empty
+    end
+
+    # Since the head no longer waits for the address to name the row, every row action
+    # asks for one. A row that is no ticket has no lane and gets none.
+    it 'sends no head for a row that is no ticket' do
+      note_row = Prosopite.pause do
+        ActsAsTenant.with_tenant(south) do
+          ProjectPermission.find_by!(user: user, project: south_project).update!(notes_access: 'read_write')
+          create(:notification, recipient: user, organisation: south, project: south_project,
+                                notifiable: create(:note, project: south_project), event_type: 'system_message',
+                                channel: 'in_app', state: :delivered)
+        end
+      end
+      act(:mark_read, note_row, state_filters: %w[read unread], view_mode: 'chronological')
+
+      expect(response).to have_http_status(:ok)
+      expect(state_of(note_row)).to eq('read')
+      expect(redrawn_list).to be_present
+      expect(response.body).not_to include('inbox_pane_status_pills')
+    end
+
+    # The timer applies its answer by hand and knows "replace" alone: an answer that
+    # carries any other action is dropped whole, list and head with it
+    # (pane_mark_read_delay_controller.js and its test).
+    it 'answers the timer with replace alone' do
+      act(:mark_read, south_row, state_filters: %w[read unread], notification: south_row.id, quiet: '1')
+
+      expect(response).to have_http_status(:ok)
+      expect(pills(response.body)).to be_present
+      expect(redrawn_list).to be_present
+      expect(Nokogiri::HTML(response.body).css('turbo-stream').pluck('action').uniq).to eq(['replace'])
     end
 
     it 'reads quietly for the timer, while the menu says what it did' do

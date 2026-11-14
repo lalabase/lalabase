@@ -448,6 +448,8 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
   # session works in north, the ticket belongs to south. Reading, writing and closing
   # in the lane leave the list where it is and the session where it was.
   describe 'the lane' do
+    before { allow(ChatPolicy).to receive(:assistant_gate_open?).and_return(true) }
+
     let(:png) { Base64.decode64('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==') }
 
     let!(:south_ticket) do
@@ -510,6 +512,8 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       within(composer) { find("button[type='submit']").click }
       expect(page).to have_css('#ticket_pane', text: 'Antwort von oben', wait: 10)
 
+      expect(page).to have_no_css('#ticket_pane [data-controller~="assistant-trigger"]')
+
       # The status changes in the ticket's head.
       within('#ticket_pane [data-controller~="inline-status"]') do
         find('[data-action~="click->inline-status#toggle"]', match: :first).click
@@ -524,6 +528,7 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       find('.writing-surface button[type="submit"]').click
       expect(page).to have_no_css('.writing-surface', wait: 10)
       expect(page).to have_css('#ticket_pane', text: 'Karton ganz leer', wait: 10)
+      expect(page).to have_no_css('#ticket_pane [data-controller~="assistant-trigger"]')
       expect(page).to have_css('.inbox-row', count: 3)
       expect(page).to have_current_path(%r{\A/inbox\?})
 
@@ -558,7 +563,7 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     # Review S3b round 2: the head and the 5 s timer of the lane redraw the list. They take the
     # list state the page's address names when they leave, as the bulk bar does, not the one
     # of the moment the lane opened.
-    it 'keeps the search of the list when the head of the lane acts after it' do
+    it 'updates the open head when the searched row is archived from its menu' do
       visit all_inboxes_path(state_filters: %w[read unread])
       find('.inbox-row', text: 'Karton leer').find('a.inbox-row__link').click
       expect(page).to have_css('#ticket_pane .inbox-lane-content', text: 'Karton leer')
@@ -577,7 +582,10 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.mark_unread'),
                                                            wait: 10)
 
-      within('#inbox_pane_status_pills') { click_button I18n.t('views.organisations.notifications.actions.archive') }
+      searched_row = find('.inbox-row', text: 'Karton leer')
+      searched_row.find('a.inbox-row__link').send_keys(:tab)
+      searched_row.find('.inbox-row__menu summary').click
+      searched_row.click_button I18n.t('views.organisations.notifications.actions.archive')
       expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.unarchive'),
                                                            wait: 10)
       expect(page).to have_no_css('.inbox-row__title', text: 'Karton leer')

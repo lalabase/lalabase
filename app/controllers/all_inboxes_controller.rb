@@ -226,7 +226,10 @@ class AllInboxesController < ApplicationController
                                                     current_user: current_user)
       raise Actors::ActorError, result.errors unless result.success?
 
-      @open_lane = open_lane_head(notification) if open_notification_id == notification.id
+      # The browser matches this head by notification identity. The address may
+      # no longer name the lane after a search, or may name a newer lane by the
+      # time this response arrives.
+      @open_lane = open_lane_head(notification)
     end
     # The lane's 5 s timer reads quietly: no toast.
     @action_type = action_name if params[:quiet].blank?
@@ -238,26 +241,8 @@ class AllInboxesController < ApplicationController
     end
   end
 
-  # The row open in the lane of the page the action came from: the head of the lane
-  # and its timer name it in their address (InboxHelper#inbox_row_action_path open:),
-  # the "···" menu of a row does not, and the page's address does (the referrer), as
-  # in the inbox of an organisation (open_notification_from_referrer there).
-  def open_notification_id
-    named = params[:notification]
-    return named if named.is_a?(String) && named.present?
-
-    uri = URI.parse(request.referer.to_s)
-    return unless uri.path == all_inboxes_path
-
-    id = Rack::Utils.parse_nested_query(uri.query.to_s)['notification']
-    id if id.is_a?(String)
-  rescue URI::InvalidURIError, Rack::QueryParser::ParameterTypeError,
-         Rack::QueryParser::InvalidParameterError, Rack::QueryParser::ParamsTooDeepError
-    nil
-  end
-
-  # What the head of the open lane needs when the row acted on is the one the lane
-  # shows (open_notification_id): loaded here, under the row's tenant, never after it.
+  # Loaded under the acted row's tenant. The stream only replaces a head still
+  # showing this notification, never another ticket's head.
   def open_lane_head(notification)
     ticket = notification.notifiable
     return unless ticket.is_a?(Ticket) && ticket.project

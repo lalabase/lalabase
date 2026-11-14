@@ -44,7 +44,9 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   und blättert mit `Inbox::MasterListPresenter` und zeichnet mit den Partials von
   `organisations/notifications/` (ein Schalter: `InboxHelper#inbox_above_organisations?`; seit
   S3 eine Aussage des Controllers über die Seite, `page_above_organisations?`, nicht mehr
-  `current_organisation.nil?`). Beide Seiten teilen den Rahmen `_inbox_page`.
+  `current_organisation.nil?`; ein Fragment, das ein Controller der Organisation in diese Seite
+  liefert, liest sie aus dem Referrer, s. `app/controllers/concerns/CLAUDE.md`). Beide Seiten
+  teilen den Rahmen `_inbox_page`.
   ⚠️ Die Seite hat keinen Mandanten: alles, was eine Zeile zeigt, wird im Block von `reading`
   geladen (`presenter.load!`), ein später nachgeladener Verweis wirft `NoTenantSet`. Sie setzt
   die Organisation der Sitzung nie; der Filter heißt deshalb `org` und nicht `organisation_id`
@@ -59,8 +61,8 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   dieselbe `pane_missing`. Ein voller Aufruf zeichnet die Bahn offen und lädt sie mit eigener
   Anfrage. Schreiben geht an die Routen der Organisation; die Sitzung bleibt, weil sie nur
   Seiten folgt (`full_page_request?`). Kopf und 5-s-Timer der Bahn sind die Zeilenaktionen von
-  `/inbox` (`open:` nennt die offene Zeile, das „···“-Menü einer Zeile nennt sie über den Referrer;
-  die Antwort tauscht dann `#inbox_pane_status_pills`;
+  `/inbox` (die Antwort adressiert `#inbox_pane_status_pills` mit der Notification-ID, unabhängig
+  vom Referrer; verspätete Antworten treffen so keine andere Bahn;
   `quiet:` ohne Toast). Die Bahn hebt den Mandanten nie auf und liest nicht über die Token-Inbox. Wächter:
   `spec/requests/all_inboxes_lane_spec.rb`. Zeilen anderer Art verlassen die Seite bis S4. **Live (S2a):** `UnreadSignals.call` sendet nach den Punkten des Umschalters
   ein Signal auf `Streams.all_inboxes`: nur `InboxQuery.stamp` (HMAC über geordnete

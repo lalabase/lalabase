@@ -208,12 +208,16 @@ class ApplicationController < ActionController::Base
   end
   helper_method :assistant_available?
 
-  # Which page this is, a fact the controller states: the inbox above the
-  # organisations (AllInboxesController) answers true, every other page false. Not
-  # "no organisation is set": the lane of that page renders inside the organisation
-  # of its ticket, and must still lead to the page's own addresses and draw no
-  # assistant (its layout has no assistant panel).
+  # Full pages name their own context. Fragment responses retain the hosting
+  # page's context: comments and ticket edits on /inbox go through organisation
+  # controllers, but must not introduce assistant controls into a page without
+  # a panel. A normal full-page visit from /inbox still enables its own panel.
   def page_above_organisations?
+    return false if full_page_request?
+
+    source = URI.parse(request.referer.to_s)
+    source.host == request.host && source.port == request.port && source.path == all_inboxes_path
+  rescue URI::InvalidURIError
     false
   end
   helper_method :page_above_organisations?

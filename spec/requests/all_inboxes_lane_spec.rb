@@ -295,6 +295,81 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
     end
   end
 
+  describe 'assistant context after lane writes' do
+    let(:lane_referrer) { "http://www.example.com#{all_inboxes_path(notification: south_row.id)}" }
+    let(:write_headers) do
+      { 'Turbo-Frame' => 'writing_surface', 'Accept' => 'text/vnd.turbo-stream.html', 'Referer' => lane_referrer }
+    end
+
+    before { allow(ChatPolicy).to receive(:assistant_gate_open?).and_return(true) }
+
+    it 'keeps assistant controls absent after editing the ticket' do
+      expect(lane(south_row.id)).not_to include('data-controller="assistant-trigger"')
+      patch organisation_project_ticket_path(south, south_project, south_ticket),
+            params: { ticket: { title: 'Paket wiedergefunden' } }, headers: write_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('target="ticket_display_frame"', 'Paket wiedergefunden')
+      expect(response.body).not_to include('data-controller="assistant-trigger"', 'data-assistant-context')
+    end
+
+    it 'keeps assistant controls absent after posting a comment' do
+      action = doc(lane(south_row.id)).at_css(%(form[action$="/tickets/#{south_ticket.id}/posts"]))['action']
+      post action, params: { post: { content: '<div>Paket ist da</div>' } },
+                   headers: write_headers.merge('Turbo-Frame' => 'ticket_display_frame')
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Paket ist da')
+      expect(response.body).not_to include('data-controller="assistant-trigger"', 'data-assistant-context')
+    end
+
+    it 'enables the assistant when visiting the full ticket page from the inbox' do
+      get organisation_project_ticket_path(south, south_project, south_ticket), headers: { 'Referer' => lane_referrer }
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('data-controller="assistant-trigger"', 'data-assistant-context')
+    end
+
+    # A frame the lane loads is a GET and still no page: it keeps the page it is drawn on.
+    # The same frame from the organisation's own page draws the trigger, so its absence
+    # is the rule's answer and not the fragment's.
+    it 'keeps assistant controls absent in a frame loaded from this page' do
+      in_frame = { 'Turbo-Frame' => 'ticket_display_frame' }
+      own_page = "http://www.example.com#{organisation_project_tickets_path(south, south_project)}"
+      get organisation_project_ticket_path(south, south_project, south_ticket), headers: in_frame.merge('Referer' => own_page)
+      expect(response.body).to include('Paket fehlt', 'data-controller="assistant-trigger"')
+
+      get organisation_project_ticket_path(south, south_project, south_ticket), headers: in_frame.merge('Referer' => lane_referrer)
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Paket fehlt')
+      expect(response.body).not_to include('data-controller="assistant-trigger"', 'data-assistant-context')
+    end
+
+    # Only this page counts as the page above: the same host, the same port, the path of
+    # /inbox itself. Each line is one near miss, and each leaves the fragment the context
+    # of its ticket (the trigger is drawn). The lines are also the proof that the absent
+    # trigger in the examples above is the rule's answer.
+    {
+      'no referrer' => nil,
+      'another host' => 'http://elsewhere.example/inbox',
+      'another port of this host' => 'http://www.example.com:8080/inbox',
+      'the inbox of an organisation' => -> { "http://www.example.com#{organisation_notifications_path(south, notification: south_row.id)}" },
+      'a path that only begins like this page' => 'http://www.example.com/inboxes',
+      'a path below this page' => 'http://www.example.com/inbox/archive',
+      'a referrer that is no address' => 'http://www.example.com/in box'
+    }.each do |from, referrer|
+      it "leaves a fragment its own context when it comes from #{from}" do
+        referrer = instance_exec(&referrer) if referrer.respond_to?(:call)
+        headers = write_headers.except('Referer')
+        headers['Referer'] = referrer if referrer
+        patch organisation_project_ticket_path(south, south_project, south_ticket),
+              params: { ticket: { title: 'Paket da' } }, headers: headers
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include('Paket da', 'data-controller="assistant-trigger"')
+      end
+    end
+  end
+
   describe 'a ticket with everything on it' do
     let(:colleague) { create(:user, first_name: 'Kai', last_name: 'Kollege') }
     let(:png) { Base64.decode64('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==') }

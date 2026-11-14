@@ -625,6 +625,50 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
     end
 
+    # S4b: a document of the second organisation in the lane of this page. Its preview and the
+    # way back load into the lane's inner frame, under /org/<south>/, and the page stays /inbox.
+    it 'opens a document of the second organisation; its preview and the way back stay in the lane' do
+      colleague = create(:user, first_name: 'Kai', last_name: 'Kollege')
+      project = south_ticket.project
+      document = titled_document(south, project, 'Angebot Versand', creator: colleague, filename: 'angebot-versand.txt')
+      document_row = project_event_row(south, project, 'document_created', recipient: user, actor: colleague, secondary: document,
+                                                                           parameters: { 'document_title' => 'Angebot Versand' },
+                                                                           created_at: 20.minutes.ago)
+      version = ActsAsTenant.with_tenant(south) { document.current_version }
+
+      visit organisation_notifications_path(north, state_filters: %w[read unread])
+      expect(page).to have_css('.inbox-row', text: 'Regal wackelt')
+
+      visit all_inboxes_path(state_filters: %w[read unread], view_mode: 'chronological')
+      row = "[data-notification-item='#{document_row.id}']"
+      expect(page).to have_css("#{row} .inbox-row__title", text: 'Angebot Versand')
+      rows = all('.inbox-row').size
+      wait_for_stimulus("#{row} a.inbox-row__link", 'inbox-master-item')
+      find("#{row} a.inbox-row__link").click
+
+      lane = '#ticket_pane #ticket_display_frame'
+      expect(page).to have_css("#{lane} .document-content [data-lane-title]", text: 'Angebot Versand')
+      expect(page).to have_current_path(%r{\A/inbox\?.*notification=#{document_row.id}})
+      expect(page).to have_css('#ticket_pane [data-lane-close]', count: 1)
+
+      find("#{lane} [data-preview-link-for='#{version.id}']").click
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot-versand.txt')
+      expect(page).to have_css('.inbox-row', count: rows)
+      expect(URI(page.current_url).path).to eq('/inbox')
+      expect(page).to have_current_path(/notification=#{document_row.id}/)
+
+      find("#{lane} [data-lane-back-to-object]").click
+      expect(page).to have_css("#{lane} .document-content [data-lane-title]", text: 'Angebot Versand')
+      expect(page).to have_no_css("#{lane} .document-preview")
+      expect(page).to have_css('.inbox-row', count: rows)
+      expect(URI(page.current_url).path).to eq('/inbox')
+
+      # The session never left the first organisation.
+      visit edit_user_preferences_path
+      back = find('a', text: I18n.t('navigation.back_to_organisation'))
+      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+    end
+
     # Review S3b round 2: the head and the 5 s timer of the lane redraw the list. They take the
     # list state the page's address names when they leave, as the bulk bar does, not the one
     # of the moment the lane opened.

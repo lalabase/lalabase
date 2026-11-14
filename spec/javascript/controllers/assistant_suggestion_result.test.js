@@ -75,6 +75,24 @@ function resultFrame({ state = "open", open = false, actions = ["/accept", "/dis
 
 const successfulResponse = async () => ({ ok: true, text: async () => "result" })
 
+test("result refreshes identify themselves as background HTML requests", async () => {
+  const requests = []
+  const f = fixture(async (url, options) => {
+    requests.push({ url, headers: options.headers })
+    return { ok: false, status: 500 }
+  })
+  await f.c.refresh()
+  f.c.activeValue = false
+  await f.c.reload()
+
+  assert.equal(requests.length, 2)
+  for (const { url, headers } of requests) {
+    assert.equal(url, f.c.urlValue)
+    assert.equal(headers.Accept, "text/html")
+    assert.equal(headers["X-Requested-With"], "XMLHttpRequest")
+  }
+})
+
 test("a closed panel does not fetch result content", async () => {
   const f = fixture(() => assert.fail("closed panels must not fetch"))
   f.c.element.getClientRects = () => []

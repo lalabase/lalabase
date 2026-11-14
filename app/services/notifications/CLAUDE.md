@@ -1,4 +1,4 @@
-# Karte: app/services/notifications (Stand: 2026-11-14, S3)
+# Karte: app/services/notifications (Stand: 2026-11-14, S4a)
 
 Verarbeitet OutboxEvents zu Notifications. Die Gesamtkette (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten.md`.
@@ -64,7 +64,39 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   `/inbox` (die Antwort adressiert `#inbox_pane_status_pills` mit der Notification-ID, unabhängig
   vom Referrer; verspätete Antworten treffen so keine andere Bahn;
   `quiet:` ohne Toast). Die Bahn hebt den Mandanten nie auf und liest nicht über die Token-Inbox. Wächter:
-  `spec/requests/all_inboxes_lane_spec.rb`. Zeilen anderer Art verlassen die Seite bis S4. **Live (S2a):** `UnreadSignals.call` sendet nach den Punkten des Umschalters
+  `spec/requests/all_inboxes_lane_spec.rb`.
+  **Was eine Zeile öffnet (S4a, 14.11.2026):** nicht mehr „ist es ein Ticket“, sondern
+  `Inbox::LaneKind.for(notification)` (`app/services/inbox/lane_kind.rb`), der EINE Besitzer der
+  Frage für beide Inboxen: Lader (`InboxLane`), Zeile (`NeoInboxMasterItemComponent`), Seite oben
+  (`render_lane`, `open_lane_head`) und die Antworten der Zeilenaktionen. Die Art entscheidet das
+  EREIGNIS, nicht der Typ: eine Meldung hängt am Ticket oder am PROJEKT, und für ein Projekt ist
+  der Gegenstand `Activities::ProjectTarget.call(activity)` (die Aktivität aus
+  `payload['activity_id']`). ⚠️ Eine Meldung zu einer Notiz gibt es nicht: `notifiable.is_a?(Note)`
+  nimmt keine Zeile je. Drei Antworten: `:inline` (das Ticket, wie bisher von der Inbox gerendert),
+  `:frame` (ein Gegenstand mit eigener Anzeige, heute die Notiz: die Bahn hält
+  `turbo-frame#ticket_display_frame` mit der Rahmen-Adresse des Gegenstands als `src`, gezeichnet
+  von dessen eigenem Controller unter dessen Policy; die Inbox rendert und kopiert nichts davon),
+  `:card` (Ereignis ohne Anzeige: neues Mitglied, Rechte, gelöschtes Meeting; oder Gegenstand
+  gelöscht bzw. Aktivität von der Aufbewahrung entfernt: Karte „gibt es nicht mehr“, nie ein leerer
+  Rahmen). `nil` für einen Gegenstand ohne Eintrag (Person, Zeitgruppe, Repository, alte Zeile an
+  einer Notiz): die Zeile verlässt die Seite wie bisher. Das Register (`REGISTRY`, Klasse →
+  Eintrag) ist geschlossen und fail-closed, nie `constantize`. Eine neue Art = eine Zeile dort plus
+  ihr Audit (was die Anzeige in einer fremden Seite anfragt und beantwortet). Die Rahmen-Adresse
+  baut `Inbox::ObjectFrame`, auch für die Aktivitäten-Seite eines Projekts.
+  Rechte bleiben bei den bestehenden Regeln: die Zeile über die Policy-Scope der Meldungen (Bereich
+  des Ereignisses), der Gegenstand über `authorize target, :show?` im Lader, sein Controller fragt
+  beim Laden des Rahmens noch einmal. Oben ist jede Ablehnung dieselbe `pane_missing`.
+  **Nichts wird je Zeile geladen:** `for` liest nur die Meldung; Titel und Name des Gegenstands
+  kommen aus dem Payload (`Inbox::ActivityLine#object_title`, `#object_name`). Die Bahn liest
+  Aktivität und Gegenstand erst im Mandanten der Zeile. Eine Zeile für EIN Ereignis mit
+  Titel im Payload zeigt diesen Titel, ein Bündel den Projektnamen; die Bahn zeichnet die offene
+  Zeile mit derselben Bündelgröße neu (`Inbox::MasterListPresenter.bundle_size`). „Was war neu“
+  liest die ungelesenen Meldungen zum Gegenstand der gewählten Zeile (Ticket oder Projekt), weiter
+  über die Policy-Scope: ein Ereignis eines Bereichs, den die Person nicht lesen darf, ist keine
+  Zeile dort. Der Kopf der Bahn ist EIN Partial (`organisations/notifications/_pane`) um den
+  Inhalt der Art. Wächter: `spec/services/inbox/lane_kind_spec.rb` (auch: jedes Projekt-Ereignis
+  hat eine Antwort), `spec/requests/inbox_lane_kinds_spec.rb`, `all_inboxes_lane_spec.rb`.
+  **Live (S2a):** `UnreadSignals.call` sendet nach den Punkten des Umschalters
   ein Signal auf `Streams.all_inboxes`: nur `InboxQuery.stamp` (HMAC über geordnete
   Fingerprints jeder In-App-Zeile in Reichweite, inklusive Zustand und Änderungszeit).
   Ein Maximum pro Zustand übersieht ältere Schreibvorgänge, die später committen.

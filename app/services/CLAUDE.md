@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-09)
+# Karte: app/services (Stand: 2026-11-14)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -103,6 +103,11 @@ Verzeichnis-Übersicht (Auswahl):
   L7-Deckungszahl. Wer die Deckung eines Verlaufs aus EINER Area zieht
   (`coverage(area: :tickets)`), beschreibt die falsche Reichweite; gemessen: Antwort aus
   drei Projekten unter „Durchsucht: 0 von 3 Projekten".
+  Die Aktivitäten-SEITE zeigt den Gegenstand eines Ereignisses in
+  `turbo-frame#ticket_display_frame` per `src`. Diese Rahmen-Adresse baut seit 14.11.2026
+  `inbox/object_frame.rb` (`Inbox::ObjectFrame.path`), für die Seite und für die Bahn der Inbox
+  (`inbox/lane_kind.rb`, was eine Zeile der Inbox öffnet; Karte `notifications/CLAUDE.md`).
+  Keine zweite `case target`-Liste.
 * `assistant/` — die Bewohner der Artefakt-Lane (S3c T3, Plan §8.1). `panel_registry.rb`
   bildet Panel-Art auf Panel-Klasse ab, **fail-closed** wie `ContentAreaRegistry`: die Art
   kommt aus einer tippbaren Adresse, „unbekannt" ist also ein Produktionsfall. Der

@@ -703,6 +703,25 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
       expect(session[:current_organisation_id]).to eq(north.id)
     end
 
+    # The page above has no assistant panel. The note's frame is drawn by the note's own
+    # controller, which learns the page it is drawn on from the referrer (S3): the same frame
+    # from the organisation's own page draws the trigger, so its absence here is the rule's
+    # answer and not the fragment's.
+    it 'draws no assistant in the frame of the note although the gate of the organisation is open' do
+      allow(ChatPolicy).to receive(:assistant_gate_open?).and_return(true)
+      address = note_frame_of(lane(south_note_row.id))['src']
+      in_frame = { 'Turbo-Frame' => 'ticket_display_frame' }
+
+      get address, headers: in_frame.merge('Referer' => "http://www.example.com#{organisation_notifications_path(south)}")
+      expect(response.body).to include('Protokoll Versand', 'data-controller="assistant-trigger"', 'data-assistant-context')
+
+      get address, headers: in_frame.merge('Referer' => "http://www.example.com#{all_inboxes_path(notification: south_note_row.id)}")
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('Protokoll Versand')
+      expect(response.body).not_to include('data-controller="assistant-trigger"', 'data-assistant-context')
+      expect(session[:current_organisation_id]).to eq(north.id)
+    end
+
     it 'answers the card of a new member of another organisation' do
       member_row = Prosopite.pause do
         project_event_row(south, south_project, 'member_added', recipient: user, actor: colleague,

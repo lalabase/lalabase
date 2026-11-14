@@ -122,6 +122,22 @@ RSpec.describe 'The lane of the inbox for the kinds of things', :ci_guard, type:
       expect(redrawn.at_css('.inbox-row__title').text).to eq('Portal')
     end
 
+    # Review S4a round 1: the bundle of the open row is the bundle of the LIST the address
+    # names. Narrowed to one type, the row stands for one event although the project has two.
+    it 'keeps the title of the note on the open row when the list is narrowed to its one event' do
+      event_row('member_added', parameters: { 'user_name' => 'Kai Kollege' }, created_at: 2.hours.ago)
+      row.update!(event_type: 'document_added')
+
+      narrowed = lane(row, event_type: 'document_added')
+      stream = narrowed.at_css("turbo-stream[action='replace'][target='notification_#{row.id}']")
+      expect(Nokogiri::HTML.fragment(stream.at_css('template').inner_html).at_css('.inbox-row__title').text)
+        .to eq('Protokoll Kickoff')
+
+      whole = lane(row)
+      stream = whole.at_css("turbo-stream[action='replace'][target='notification_#{row.id}']")
+      expect(Nokogiri::HTML.fragment(stream.at_css('template').inner_html).at_css('.inbox-row__title').text).to eq('Portal')
+    end
+
     it 'answers the unauthorized pane when the policy of the note refuses, in the words of a note' do
       # No real state reaches this: the row is visible by the notes area of the note's
       # project, which is what NotePolicy#show? asks too. The refusal is therefore stubbed at

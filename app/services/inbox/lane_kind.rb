@@ -109,11 +109,12 @@ module Inbox
     end
 
     # Where the card leads: the object's own page while it exists and has one, else the
-    # project. [what the link names, its address].
+    # project. [what the link names, its address]. The object's page is in the project the
+    # object is in now (a meeting can move), as the head's link is.
     def card_link
       return unless body == :card
 
-      object_page = ObjectFrame.full_path(target, organisation: notification.organisation_id, project: project&.id) if worded_object?
+      object_page = ObjectFrame.full_path(target, organisation: notification.organisation_id, project: target.project_id) if worded_object?
       return [target.class.name.underscore.to_sym, object_page] if object_page
 
       [:project, Rails.application.routes.url_helpers.organisation_project_path(notification.organisation_id, subject)]

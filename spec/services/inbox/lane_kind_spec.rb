@@ -135,6 +135,31 @@ RSpec.describe Inbox::LaneKind do
       expect(kind.card_link).to eq([:meeting, "/org/#{organisation.id}/projects/#{project.id}/meetings/#{meeting.id}"])
     end
 
+    # Review S4a round 1: a meeting can move into another project. The card leads to where
+    # the meeting is now, as the head's link does for an object with a display.
+    it 'links the card of a meeting that moved to the project the meeting is in now' do
+      meeting = create(:meeting, project: project, organisation: organisation, title: 'Kickoff')
+      notification = row_for('meeting_created', secondary: meeting, parameters: { 'meeting_title' => 'Kickoff' })
+      elsewhere = create(:project, organisation: organisation, name: 'Lager')
+      meeting.update_column(:project_id, elsewhere.id)
+
+      kind = described_class.for(Notification.find(notification.id))
+
+      expect(kind.card_link).to eq([:meeting, "/org/#{organisation.id}/projects/#{elsewhere.id}/meetings/#{meeting.id}"])
+      # The lane's head still names the project the row is about.
+      expect(kind.project).to eq(project)
+    end
+
+    # Review S4a round 1: only a worded card names an object of its own. An event nobody has
+    # worded gets the default card, and that card leads to the project, whatever its object is.
+    it 'links the default card of an unworded event to the project, also when its object has a page' do
+      meeting = create(:meeting, project: project, organisation: organisation, title: 'Kickoff')
+      kind = described_class.for(row_for('meeting_moved_in', secondary: meeting, parameters: { 'meeting_title' => 'Kickoff' }))
+
+      expect(kind.card).to eq('default')
+      expect(kind.card_link).to eq([:project, "/org/#{organisation.id}/projects/#{project.id}"])
+    end
+
     it 'keeps a ticket that arrives through a project event on the default card' do
       ticket = create(:ticket, project: project, organisation: organisation, title: 'Login bricht ab')
       kind = described_class.for(row_for('ticket_created', secondary: ticket, parameters: { 'ticket_title' => ticket.title }))

@@ -249,12 +249,12 @@ class AllInboxesController < ApplicationController
   # the lane kind's answer (a ticket, a note, nothing for an event card); a row
   # without a kind has no lane and no head.
   def open_lane_head(notification)
+    # Asking for the project reads what the kind is about here, inside the tenant, and the
+    # kind keeps it: the view renders after this block and reads nothing more.
     kind = Inbox::LaneKind.for(notification)
     return unless kind&.project
 
     # The actor has written the new state onto this same object (it locks and reloads it).
-    # The kind reads what the head needs now, inside the tenant: the view renders after it.
-    kind.full_path
     { notification: notification, kind: kind }
   end
 

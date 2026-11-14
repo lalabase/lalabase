@@ -606,7 +606,7 @@ en:
           provider_hints_title: Provider-specific hints
           openai_label: 'OpenAI:'
           openai_key_format: 'API key format:'
-          openai_org_id: 'Organisation ID: %{code} (optional)'
+          openai_org_id_html: 'Organisation ID: %{code} (optional)'
           openai_models: 'Recommended models:'
           anthropic_label: 'Anthropic:'
           anthropic_key_format: 'API key format:'

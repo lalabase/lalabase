@@ -47,6 +47,45 @@ RSpec.describe 'Changelog', type: :request do
         expect(user.reload.changelog_last_read_at).to be_within(2.seconds).of(Time.current)
       end
 
+      # The page writes an entry's rendered Markdown through sanitize against the
+      # loader's own lists (until 13.11.2026 it marked the string html_safe in the
+      # view). What the renderer writes stays markup; anything else typed into an
+      # entry does not reach the reader.
+      context 'an entry\'s body' do
+        let(:entry) do
+          Changelog::EntryLoader::Entry.new(
+            slug: 'markup', title: 'Markup', date: Date.current, images: [], body: '',
+            body_html: '<p>Ein <strong>neuer</strong> <a href="https://example.com/x" target="_blank">Weg</a></p>' \
+                       '<table><tbody><tr><td>Zelle</td></tr></tbody></table>' \
+                       '<script>window.changelogProbe = 1</script><p onclick="probe()">Ende</p>'
+          )
+        end
+
+        before { allow(Changelog::EntryLoader).to receive(:call).and_return([entry]) }
+
+        it 'keeps the markup of the renderer and drops scripts and handlers' do
+          get organisation_changelog_path(organisation_id: organisation.id)
+
+          expect(response).to have_http_status(:success)
+          body = Nokogiri::HTML(response.body).at_css('.prose')
+          expect(body.at_css('p strong').text).to eq('neuer')
+          expect(body.at_css('a[href="https://example.com/x"][target="_blank"]').text).to eq('Weg')
+          expect(body.at_css('table td').text).to eq('Zelle')
+          expect(body.css('script')).to be_empty
+          expect(body.css('[onclick]')).to be_empty
+          expect(body.text).to include('Ende')
+          expect(response.body).not_to include('&lt;strong&gt;')
+        end
+
+        it 'allows every tag the real entries are rendered with' do
+          allow(Changelog::EntryLoader).to receive(:call).and_call_original
+          tags = Changelog::EntryLoader.call.flat_map { |loaded| Nokogiri::HTML5.fragment(loaded.body_html).css('*').map(&:name) }.uniq
+
+          expect(tags).not_to be_empty
+          expect(tags - Changelog::EntryLoader::ALLOWED_TAGS).to be_empty
+        end
+      end
+
       # The changelog "unread" indicator lives in the sidebar account menu (not as a
       # standalone megaphone next to the logo). It is a quiet dot, cleared once the
       # changelog has been read. A single fresh entry is stubbed so "unread" depends

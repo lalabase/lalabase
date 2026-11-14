@@ -414,6 +414,28 @@ sie tun einfach nichts:
 * Der Guard hat **keine Allowlist** — er startet bei null. Neue Ausnahme heißt: Eintrag anlegen
   **und** begründen, warum UJS-Semantik in einer App ohne UJS nötig ist.
 
+### View convention: no form inside a form
+
+**Binding** (guard spec: `spec/architecture/nested_form_guard_spec.rb`; runs through the
+directory entry `spec/architecture/` in the CI guard list, no allowlist):
+
+A `button_to`, or a Neo button with `form: { ... }`, is a form of its own. Inside a `form_with`
+block it is a form within a form, and what the browser makes of it depends on how the markup
+arrives. From a Turbo Stream the inner form survives, Chrome stops its submit event at the
+outer form, and Turbo never sees it: no `data-turbo-confirm` question, the browser posts the
+form itself. Until 2026-11-13 the delete buttons of the meeting and the note edit forms stood
+like that, and one click deleted the record.
+
+| ❌ inside `form_with` | ✅ |
+|---|---|
+| `Neo::Buttons::ButtonComponent.new(confirm: ..., form: { action: path, method: :delete })` | `Neo::Buttons::ButtonComponent.new(confirm: ..., url: path, data: { turbo_method: :delete })` |
+| `button_to path, method: :delete` | the same link, or the button behind the end of the form |
+
+* ⚠️ The guard reads one template at a time. It does NOT see a partial or a component
+  rendered inside a form that brings a form of its own. Browser guards:
+  `spec/system/note_edit_delete_spec.rb` and "deletes from the lane" in
+  `spec/system/meetings_overview_spec.rb` (a "no" must keep the record).
+
 ### View-Konvention: Seitenbreite nur über die Klasse
 **Verbindlich** (Guard-Spec: `spec/architecture/page_width_guard_spec.rb`; läuft über den
 Verzeichnis-Eintrag `spec/architecture/` automatisch in der CI-Guard-Liste):
@@ -704,6 +726,21 @@ und kündigt ihre Entfernung an. Der Zahlenwert bleibt in beiden Fällen gleich.
   ab und nicht `app/`.
 * Der Guard prüft gegen `Rack::Utils::SYMBOL_TO_STATUS_CODE` statt gegen eine Wortliste: was dort
   fehlt, ist veraltet. Die nächste Umbenennung fängt er ohne Pflege mit ab.
+
+### Browser specs: the window goes back after every example
+
+One Chrome per driver lives for the whole run, so a resized window outlives its example.
+`BrowserWindow` (`spec/support/capybara.rb`) names each driver's size once and puts the window
+back after every system example (guard: `spec/system/browser_window_reset_spec.rb`). Until
+2026-11-13 an example saw the size the file before it had left: green alone, red in the full
+run. A spec that needs another size still resizes for itself; it no longer has to undo it.
+
+* ⚠️ A width or a position read once is a frame of whatever is still moving. A lane slides
+  open in 0.25 s, a ranked column eases to zero in 0.25 s: wait for the cause
+  (`wait_until_still` in `spec/support/motion_helpers.rb`, `ranked_columns_at_rest` in
+  `column_picker_spec.rb`), not for a number of milliseconds.
+* ⚠️ After a Turbo visit the assistant panel may load its frame again and restore the draft
+  into a NEW composer: `turbo_visit_awaiting_panel_frame` (`spec/support/assistant_panel_helpers.rb`).
 
 ### Factory Patterns
 ```ruby

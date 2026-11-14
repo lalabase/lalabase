@@ -181,7 +181,7 @@ Capybara.register_driver :selenium_chrome_headless do |app|
   options.add_argument('--no-sandbox')
   options.add_argument('--disable-dev-shm-usage')
   options.add_argument('--disable-gpu')
-  options.add_argument('--window-size=1920,1080')
+  options.add_argument(BrowserWindow.size_argument(:selenium_chrome_headless))
   LocalChrome.with_mouse(options)
 
   Capybara::Selenium::Driver.new(app,

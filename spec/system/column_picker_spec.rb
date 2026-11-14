@@ -53,6 +53,35 @@ RSpec.describe 'Column picker', type: :system do
     end
   end
 
+  # The fit and the widths of the ranked header cells beyond it, in one reading,
+  # taken once the ranked columns stand still. A ranked column leaves by width:
+  # layout.css eases it to zero over 0.25 s. The server renders the table with an
+  # estimate of the fit (initial_column_fit) and the controller corrects it when it
+  # connects, so a width read inside that quarter second is a frame of the ease,
+  # not the state: 2 px instead of 0 in a full run on 13.11.2026. This waits for
+  # the cause, a transition still running on a ranked cell, and not for the
+  # result: at rest, a column beyond the fit that kept any width is still red.
+  def ranked_columns_at_rest
+    reading = nil
+    page.document.synchronize do
+      reading = page.evaluate_script(<<~JS)
+        (() => {
+          const table = document.querySelector('table[data-fit]')
+          const fit = Number(table.dataset.fit)
+          const cells = Array.from(table.querySelectorAll('th[data-rank], td[data-rank]'))
+          return {
+            fit: fit,
+            easing: cells.filter(cell => cell.getAnimations().length > 0).length,
+            beyond: Array.from(table.querySelectorAll('th[data-rank]'))
+              .filter(th => Number(th.dataset.rank) > fit).map(th => th.offsetWidth)
+          }
+        })()
+      JS
+      raise Capybara::ElementNotFound, "#{reading['easing']} ranked cells are still easing" if reading['easing'].positive?
+    end
+    reading
+  end
+
   it 'opens from the header, ticks a field into the table and the base view at once, moves it by keyboard and closes on Escape' do
     visit organisation_project_tickets_path(organisation, project)
     expect(page).to have_css('table[data-fit]', wait: 5)
@@ -192,8 +221,10 @@ RSpec.describe 'Column picker', type: :system do
     expect(page.evaluate_script("document.querySelector('td.title-column').offsetWidth")).to be >= 150
     # A rank beyond the fit is a 0 px column next to an open detail, not a
     # blank gap of its minimum width (the bug of 07.09.: two important widths).
-    hidden = page.evaluate_script("Array.from(document.querySelectorAll('th[data-rank]')).filter(th => Number(th.dataset.rank) > #{fit}).map(th => th.offsetWidth)")
-    expect(hidden).to all(eq(0))
+    at_rest = ranked_columns_at_rest
+    expect(at_rest['fit']).to eq(fit)
+    expect(at_rest['beyond']).not_to be_empty
+    expect(at_rest['beyond']).to all(eq(0))
 
     # More columns than fit, ticked while the detail is open: the list reloads
     # from a stream, the new table is measured again, the title keeps its room
@@ -202,8 +233,8 @@ RSpec.describe 'Column picker', type: :system do
     expect(page).to have_css('th[data-rank="5"]', visible: :all, wait: 5)
     sleep 0.3
     expect(page.evaluate_script("document.querySelector('td.title-column').offsetWidth")).to be >= 150
-    fit_after = page.find('table[data-fit]')['data-fit'].to_i
-    hidden_after = page.evaluate_script("Array.from(document.querySelectorAll('th[data-rank]')).filter(th => Number(th.dataset.rank) > #{fit_after}).map(th => th.offsetWidth)")
-    expect(hidden_after).to all(eq(0))
+    after = ranked_columns_at_rest
+    expect(after['beyond']).not_to be_empty
+    expect(after['beyond']).to all(eq(0))
   end
 end

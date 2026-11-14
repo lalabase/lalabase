@@ -28,7 +28,11 @@
             </div>
 
             <div class="prose prose-sm max-w-none">
-              <%= entry.body_html.html_safe %>
+              <%# Markdown of our own files, rendered by the loader; sanitized on
+                  output against what that renderer writes (help/_page does the same). %>
+              <%= sanitize entry.body_html,
+                    tags: Changelog::EntryLoader::ALLOWED_TAGS,
+                    attributes: Changelog::EntryLoader::ALLOWED_ATTRIBUTES %>
             </div>
 
             <% if entry.images.any? %>

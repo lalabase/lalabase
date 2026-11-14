@@ -44,8 +44,10 @@ RSpec.describe 'Moving a meeting', type: :system do
     page.send_keys(:escape)
 
     expect(page).to have_no_css('[role="dialog"]')
-    expect(page).to have_css("#meeting-move-trigger-#{meeting.id}")
-    expect(page.evaluate_script('document.activeElement.id')).to eq("meeting-move-trigger-#{meeting.id}")
+    # The dialog hands the focus back in a task of its own (returnFocus behind a
+    # setTimeout in meeting_move_modal_controller): a reading taken once, right
+    # after the dialog left, can come before it. So the focus is waited for.
+    expect(page).to have_css("#meeting-move-trigger-#{meeting.id}:focus")
   end
 
   it 'moves the meeting and opens it in its new project' do

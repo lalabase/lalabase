@@ -80,7 +80,7 @@ RSpec.describe 'Waiting filters in the filter bar', type: :system do
     page.send_keys(:escape)
     expect(page).to have_css('[data-filter-bar-target="filterMenu"].hidden', visible: :all, wait: 5)
     within('[data-filter-bar-target="saveRow"]') { click_on 'Als Ansicht sichern' }
-    field = find('input[name="smart_folder_name"]', wait: 3)
+    field = view_name_field
     field.set('Wartet nicht')
     field.send_keys(:enter)
 

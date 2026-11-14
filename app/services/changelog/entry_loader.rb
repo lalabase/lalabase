@@ -7,6 +7,16 @@ module Changelog
     CHANGELOG_DIR = Rails.root.join('app/changelog')
     FRONTMATTER_REGEX = /\A---\s*\n(.+?)\n---\s*\n(.*)/m
 
+    # What render_markdown below can write for an entry: the page sanitizes
+    # body_html against these lists on output (changelog/show), as the help
+    # pages do with theirs. The entries are our own files, so this is a second
+    # line, not the first: raw HTML typed into an entry does not reach a reader.
+    ALLOWED_TAGS = %w[
+      p br strong em del code pre ul ol li blockquote a img
+      h1 h2 h3 h4 h5 h6 hr table thead tbody tr th td
+    ].freeze
+    ALLOWED_ATTRIBUTES = %w[href title src alt target].freeze
+
     def self.call
       new.call
     end

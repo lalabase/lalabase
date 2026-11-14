@@ -222,9 +222,13 @@ RSpec.describe 'Organisations::MeetingsOverview lane', type: :request do
       save = form_doc.find("form[action='#{organisation_project_meeting_path(organisation, project_a, alpha, format: :turbo_stream)}']")
       expect(save).to have_css("input[name='list_context'][value='organisation']", visible: :all)
       expect(save).to have_css("input[name='search'][value='Kick']", visible: :all)
-      # The delete button's form sits inside the edit form, which the parser
-      # flattens: its action is read from the raw body.
-      delete_action = CGI.unescapeHTML(response.body[/<form[^>]*class="button_to"[^>]*action="([^"]+)"/, 1].to_s)
+      # The delete is a link Turbo turns into a request, not a form of its own:
+      # until 13.11.2026 a button_to stood inside the edit form here, and a form
+      # within a form deleted without its question (nested_form_guard_spec).
+      expect(response.body).not_to include('class="button_to"')
+      delete = form_doc.find("a[data-turbo-method='delete']", text: I18n.t('views.organisations.meetings.form.delete'))
+      expect(delete['data-neo-button-confirm-value']).to eq(I18n.t('views.confirm.are_you_sure'))
+      delete_action = delete['href']
       expect(URI(delete_action).path).to eq(organisation_project_meeting_path(organisation, project_a, alpha))
       expect(query_of(delete_action)).to include('list_context' => 'organisation', 'search' => 'Kick')
       cancel = form_doc.find('a', text: I18n.t('views.organisations.meetings.form.cancel'))

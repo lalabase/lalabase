@@ -105,8 +105,45 @@ de:
           unauthorized_title: Kein Zugriff auf dieses Ticket
           unauthorized_subtitle: Du bist diesem Projekt nicht zugeordnet.
           non_ticket_title: Diese Meldung öffnet sich in der Vollansicht
-          non_ticket_subtitle: Hier in der Spalte zeigt die Inbox nur Tickets.
+          non_ticket_subtitle: Für diese Meldung gibt es hier in der Spalte keine Anzeige.
           open_full_view: Im Ticket öffnen
+          open_full_view_of:
+            note: Notiz öffnen
+          unauthorized_title_of:
+            note: Kein Zugriff auf diese Notiz
+          event_card:
+            links:
+              project: Zum Projekt
+              document: Datei öffnen
+              meeting: Meeting öffnen
+            default:
+              title: In %{project} ist etwas passiert
+            gone:
+              title: Das gibt es nicht mehr
+            member_added:
+              title: Neues Mitglied
+              what: hat ein Mitglied hinzugefügt
+            member_removed:
+              title: Mitglied entfernt
+              what: hat ein Mitglied entfernt
+            permission_changed:
+              title: Rechte geändert
+              what: hat Rechte geändert
+            updated:
+              title: Projekt geändert
+              what: hat das Projekt geändert
+            note_created:
+              title: Neue Notiz
+              what: hat eine Notiz angelegt
+            document_created:
+              title: Neue Datei
+              what: hat eine Datei hinzugefügt
+            meeting_created:
+              title: Neues Meeting
+              what: hat ein Meeting angelegt
+            meeting_deleted:
+              title: Meeting gelöscht
+              what: hat ein Meeting gelöscht
           close: Schließen
         stats:
           title: Benachrichtigungs-Statistiken

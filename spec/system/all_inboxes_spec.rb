@@ -560,6 +560,71 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
     end
 
+    # S4: a row about a new note of the second organisation opens beside the list of this page.
+    # The note is drawn by its own controller under /org/<south>/, in a frame: the session
+    # stays in the organisation it was in. Real clicks, real time for the 5 s read.
+    it 'opens a note and a card of the second organisation in the lane, and the session stays in the first' do
+      colleague = create(:user, first_name: 'Kai', last_name: 'Kollege')
+      project = south_ticket.project
+      note = ActsAsTenant.with_tenant(south) do
+        create(:note, project: project, organisation: south, creator: colleague, title: 'Protokoll Versand').tap do |note|
+          note.update!(content: '<div>Der Versand zieht um.</div>')
+        end
+      end
+      note_row = project_event_row(south, project, 'note_created', recipient: user, actor: colleague, secondary: note,
+                                                                   parameters: { 'note_title' => note.title }, created_at: 20.minutes.ago)
+      member_row = project_event_row(south, project, 'member_added', recipient: user, actor: colleague,
+                                                                     parameters: { 'user_name' => 'Mia Neu' }, created_at: 2.days.ago)
+
+      visit organisation_notifications_path(north, state_filters: %w[read unread])
+      expect(page).to have_css('.inbox-row', text: 'Regal wackelt')
+
+      visit all_inboxes_path(state_filters: %w[read unread], view_mode: 'chronological')
+      row = "[data-notification-item='#{note_row.id}']"
+      expect(page).to have_css("#{row} .inbox-row__title", text: 'Protokoll Versand')
+      expect(page).to have_css("#{row} [data-unread-marker]")
+      rows = all('.inbox-row').size
+
+      # A row about a new member shows its card in the lane.
+      wait_for_stimulus("[data-notification-item='#{member_row.id}'] a.inbox-row__link", 'inbox-master-item')
+      find("[data-notification-item='#{member_row.id}'] a.inbox-row__link").click
+      card = '#ticket_pane [data-inbox-event-card="member_added"]'
+      expect(page).to have_css(card, text: 'Mia Neu')
+      expect(page).to have_no_css('#ticket_pane #ticket_display_frame')
+      expect(page).to have_current_path(%r{\A/inbox\?.*notification=#{member_row.id}})
+
+      # The row about the note opens the note in the same lane.
+      find("#{row} a.inbox-row__link").click
+
+      expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Versand')
+      expect(page).to have_css('#ticket_pane #ticket_display_frame', text: 'Der Versand zieht um.')
+      expect(page).to have_css('.inbox-row', count: rows)
+      expect(page).to have_current_path(%r{\A/inbox\?.*notification=#{note_row.id}})
+      expect(page).to have_css('#ticket_pane [data-lane-close]', count: 1)
+
+      # The 5 s read, in real time: the dot goes and the note stays. The dot is asked for
+      # in the markup (visible: :all): under the pointer the checkbox stands in its place.
+      expect(page).to have_css("#{row} .inbox-row--unread [data-unread-marker]", visible: :all)
+      expect(page).to have_no_css("#{row} .inbox-row--unread", wait: 10)
+      expect(page).to have_no_css("#{row} [data-unread-marker]", visible: :all)
+      expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.mark_unread'))
+      expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Versand')
+      expect(page).to have_css('.inbox-row.selected-row', count: 1)
+
+      # The lane's one close button shuts it; Back opens it again.
+      find('#ticket_pane [data-lane-close]').click
+      expect(page).to have_css('.layout.hide-content')
+      expect(page).to have_no_current_path(/notification=/)
+      page.go_back
+      expect(page).to have_current_path(/notification=#{note_row.id}/)
+      expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Versand', wait: 10)
+
+      # The session never left the first organisation.
+      visit edit_user_preferences_path
+      back = find('a', text: I18n.t('navigation.back_to_organisation'))
+      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+    end
+
     # Review S3b round 2: the head and the 5 s timer of the lane redraw the list. They take the
     # list state the page's address names when they leave, as the bulk bar does, not the one
     # of the moment the lane opened.

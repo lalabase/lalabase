@@ -148,6 +148,15 @@ der Controller liefert Seiten aus (`serves_pages?`, Standard wahr). Drei Leser:
   Inbox einer Organisation, kaputte Adresse) lässt dem Fragment den Kontext seines Tickets.
   Wächter: `spec/requests/all_inboxes_lane_spec.rb` („assistant context after lane writes").
 
+`InboxLane` (`inbox_lane.rb`, beide Inbox-Controller): der Lader der Bahn fragt seit S4a
+(14.11.2026) `Inbox::LaneKind`, was die Zeile öffnet, statt „ist es ein Ticket“. Zustände:
+`:ticket` (inline), `:kind` (Gegenstand mit eigener Anzeige im inneren Rahmen, nach
+`authorize target, :show?`), `:card` (Ereigniskarte), `:unauthorized`, `:non_ticket` (kein
+Eintrag), `:missing`. Die drei ersten zeichnet EIN Partial (`organisations/notifications/_pane`).
+Der einbindende Controller liefert `filter_params` (der Listenzustand der Bahn-Anfrage, für die
+Bündelgröße der neu gezeichneten Zeile). Der innere Rahmen einer Notiz wird von ihrem eigenen
+Controller gezeichnet und fragt den Schalter oben wie jedes Fragment über den Referrer.
+
 Ein Controller, der keine Seite ausliefert, sagt das selbst (`serves_pages?` → `false`), heute
 `Organisations::FileDownloadsController`: ein Bild fragt wie eine Seite. Kein Vergleich von
 Controllernamen im `ApplicationController`. Bekannt und hingenommen: einzelne Datei-Aktionen

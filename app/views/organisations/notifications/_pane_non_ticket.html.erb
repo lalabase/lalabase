@@ -1,6 +1,6 @@
-<%# V1: only tickets get the pane pattern. Other notifiables (documents,
-    posts, mentions without a ticket) get a hint and a link to the classic
-    full view. See spec 4.6. %>
+<%# A row whose subject the lane does not know (Inbox::LaneKind answers nil: a person, a
+    billing run, a repository, an old row filed under a note): a hint and a link to the
+    classic full view. See spec 4.6. %>
 <%= render 'organisations/notifications/pane_notice',
            title: t('views.organisations.notifications.pane.non_ticket_title'),
            body: t('views.organisations.notifications.pane.non_ticket_subtitle'),

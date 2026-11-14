@@ -93,7 +93,10 @@ RSpec.describe 'Inbox pane flow', type: :request do
       ActsAsTenant.with_tenant(organisation) do
         create(:notification,
                recipient: user, organisation: organisation, project: project,
-               notifiable: project, # Project as a stand-in for non-ticket
+               # A subject the lane has no kind for (Inbox::LaneKind). Until S4 the
+               # project stood in here; a row about a project opens an event card now
+               # (spec/requests/inbox_lane_kinds_spec.rb).
+               notifiable: create(:person, organisation: organisation),
                channel: 'in_app', state: :delivered)
       end
     end

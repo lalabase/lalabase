@@ -38,7 +38,7 @@ class Organisations::NotificationsController < Organisations::BaseController
 
     # Inbox pane: with ?notification=:id the associated ticket is shown in the
     # pane. Sets @selected_notification, @ticket, @project as well as
-    # @pane_state (:ticket / :missing / :unauthorized / :non_ticket).
+    # @pane_state (InboxLane#load_inbox_pane_context names the states).
     load_inbox_pane_context if params[:notification].present?
 
     respond_to do |format|
@@ -892,11 +892,11 @@ class Organisations::NotificationsController < Organisations::BaseController
     return unless @notification
 
     @selected_notification = open_notification_from_referrer
-    notifiable = @notification.notifiable
-    if @selected_notification&.id == @notification.id && notifiable.is_a?(Ticket)
-      @ticket = notifiable
-      @project = notifiable.project
-      @pane_state = :ticket
+    # What the lane shows for the acted row, when it is the open one (Inbox::LaneKind):
+    # the head of a ticket, of a note or of an event card gets its new buttons alike.
+    if @selected_notification&.id == @notification.id && (kind = Inbox::LaneKind.for(@notification))
+      @lane_kind = kind
+      @pane_state = LANE_STATES.fetch(kind.body)
     end
 
     # Derive active filters from the source URL, so that update.turbo_stream.erb

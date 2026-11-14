@@ -102,7 +102,18 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
     activity_line.label
   end
 
+  # What the row is titled with: the subject's own name (the ticket's title, the
+  # project's name). A row that stands for ONE event on a project whose object
+  # has a title (a new note, a new document, a meeting) shows that title, from
+  # the payload; a bundle of events keeps the project's name, it is about several
+  # things.
   def notifiable_title
+    return activity_line.object_title.presence || subject_title if single_event?
+
+    subject_title
+  end
+
+  def subject_title
     notifiable = notification.notifiable
     return nil unless notifiable
 
@@ -111,15 +122,28 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
       notifiable.try(:subject).presence
   end
 
+  # One notification that reports one event: no bundle in the list, no group of
+  # events merged into the notification (Notifications::GroupKeyBuilder).
+  def single_event?
+    group_count.to_i <= 1 && notification.group_count.to_i <= 1
+  end
+
   def project_name
     notification.project&.name
   end
 
-  # If the notifiable is a ticket → open the inbox pane (same URL, just
-  # with ?notification=:id, click loads the pane via Turbo frame).
+  # What the lane shows for this row (Inbox::LaneKind), or nil: asked once, and
+  # nothing is loaded for it. A row with a kind opens the inbox pane (same URL,
+  # just with ?notification=:id, click loads the pane via Turbo frame).
   # Otherwise → deep link as before (full view).
+  def lane_kind
+    return @lane_kind if defined?(@lane_kind)
+
+    @lane_kind = Inbox::LaneKind.for(notification)
+  end
+
   def link_url
-    if notification.notifiable.is_a?(Ticket)
+    if lane_kind
       # One builder for every address of the list (InboxHelper): only the
       # dimensions of the list travel, never a stray key of the address.
       helpers.inbox_notification_url(notification, query: @query_context.presence)
@@ -144,7 +168,7 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
   # browser URL is pushed to the link's href → back, reload, share
   # work. See doc/inbox_feature_spec.md chapter 4.8.
   def link_data
-    if notification.notifiable.is_a?(Ticket)
+    if lane_kind
       # NO turbo_action: 'advance' — that promotes the frame load to a
       # drive visit, which right after loading overwrites the freshly filled pane
       # with the placeholder (visible flicker). URL sync is instead done

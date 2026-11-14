@@ -537,8 +537,9 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :r
     end
 
     # Since the head no longer waits for the address to name the row, every row action
-    # asks for one. A row that is no ticket has no lane and gets none.
-    it 'sends no head for a row that is no ticket' do
+    # asks for one. A row the lane has no kind for (here an old row filed under a note:
+    # no event names it, Inbox::LaneKind answers nil) has no lane and gets none.
+    it 'sends no head for a row without a lane kind' do
       note_row = Prosopite.pause do
         ActsAsTenant.with_tenant(south) do
           ProjectPermission.find_by!(user: user, project: south_project).update!(notes_access: 'read_write')
@@ -553,6 +554,67 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :r
       expect(state_of(note_row)).to eq('read')
       expect(redrawn_list).to be_present
       expect(response.body).not_to include('inbox_pane_status_pills')
+    end
+
+    # S4: a row about a project's event has a lane too (a note in a frame, a card), and its
+    # head gets the new buttons like a ticket's: the head alone, never the lane, so the
+    # frame of the note does not load again.
+    describe 'for a row about a project event' do
+      let(:colleague) { create(:user, first_name: 'Kai', last_name: 'Kollege') }
+      let(:south_note) do
+        ActsAsTenant.with_tenant(south) { create(:note, project: south_project, organisation: south, creator: colleague, title: 'Protokoll Versand') }
+      end
+      let(:note_event_row) do
+        Prosopite.pause do
+          ActsAsTenant.with_tenant(south) do
+            ProjectPermission.find_by!(user: user, project: south_project).update!(notes_access: 'read_write', members_access: 'read_only')
+          end
+          project_event_row(south, south_project, 'note_created', recipient: user, actor: colleague, secondary: south_note,
+                                                                  parameters: { 'note_title' => south_note.title })
+        end
+      end
+      let(:member_event_row) do
+        note_event_row
+        Prosopite.pause do
+          project_event_row(south, south_project, 'member_added', recipient: user, actor: colleague,
+                                                                  parameters: { 'user_name' => 'Mia Neu' })
+        end
+      end
+
+      it 'swaps the head of an open note row to its new state and does not replace the lane' do
+        act(:mark_read, note_event_row, state_filters: %w[read unread], view_mode: 'chronological', notification: note_event_row.id)
+
+        expect(response).to have_http_status(:ok)
+        expect(state_of(note_event_row)).to eq('read')
+        head = pills(response.body)
+        expect(head.css('button').map { |button| button.text.squish })
+          .to eq([I18n.t('views.organisations.notifications.actions.mark_unread'), I18n.t('views.organisations.notifications.actions.archive')])
+        expect(head.at_css('a.inbox-lane-actions__open')['href'])
+          .to eq("/org/#{south.id}/projects/#{south_project.id}/notes/#{south_note.id}")
+        expect(stream_targets.call(response.body)).not_to include(%w[replace ticket_pane], %w[replace ticket_display_frame])
+        expect(response.body).not_to include('id="ticket_pane"')
+      end
+
+      it 'answers the timer of an open note row without a toast' do
+        act(:mark_read, note_event_row, state_filters: %w[read unread], view_mode: 'chronological', notification: note_event_row.id, quiet: '1')
+
+        expect(response).to have_http_status(:ok)
+        expect(pills(response.body)).to be_present
+        expect(redrawn_list).to be_present
+        expect(Nokogiri::HTML(response.body).css('turbo-stream').pluck('action').uniq).to eq(['replace'])
+        expect(response.body).not_to include('notification-toast')
+      end
+
+      it 'swaps the head of an open card row, which has no link of its own' do
+        act(:mark_read, member_event_row, state_filters: %w[read unread], view_mode: 'chronological', notification: member_event_row.id)
+
+        expect(response).to have_http_status(:ok)
+        head = pills(response.body)
+        expect(head.at_css('#inbox_pane_status_pills')['data-notification-id']).to eq(member_event_row.id)
+        expect(head.css('button').size).to eq(2)
+        expect(head.at_css('a')).to be_nil
+        expect(stream_targets.call(response.body)).not_to include(%w[replace ticket_pane])
+      end
     end
 
     # The timer applies its answer by hand and knows "replace" alone: an answer that

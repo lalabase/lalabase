@@ -8,14 +8,12 @@
 <%# If the affected notification is currently open in the inbox pane,
     swap ONLY the status pills in the pane header — NOT the whole
     pane (which would break an open reply form or timeline scrolling).
-    Stable ID for this: inbox_pane_status_pills. %>
-<% if @pane_state == :ticket && @selected_notification&.id == @notification.id %>
+    Stable ID for this: inbox_pane_status_pills. @lane_kind is set by the
+    action when the open row is the acted one and the lane shows it
+    (setup_pane_vars_from_action_notification): a ticket, a note, a card. %>
+<% if @lane_kind && @selected_notification&.id == @notification.id %>
   <%= turbo_stream.replace 'inbox_pane_status_pills' do %>
-    <%= render 'pane_status_pills',
-               notification: @selected_notification,
-               current_organisation: @current_organisation,
-               project: @project,
-               ticket: @ticket %>
+    <%= render 'organisations/notifications/pane_status_pills', notification: @selected_notification, kind: @lane_kind %>
   <% end %>
 <% end %>
 

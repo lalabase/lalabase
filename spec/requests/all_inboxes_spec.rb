@@ -87,7 +87,72 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
       expect(link['data-inbox-master-item-lane-value']).to be_nil
     end
 
-    it 'leaves for its organisation with a row that is no ticket, as before (S4)' do
+    # S4: a row about an event of a project opens in the lane of this page as well
+    # (Inbox::LaneKind; the lane itself: all_inboxes_lane_spec.rb). One event with a title
+    # titles the row, a bundle keeps the name of the project.
+    describe 'a row about an event of a project' do
+      let(:colleague) { create(:user, first_name: 'Kai', last_name: 'Kollege') }
+
+      def note_event(project, title, **options)
+        Prosopite.pause do
+          project_event_row(south, project, 'note_created', recipient: user, actor: colleague,
+                                                            parameters: { 'note_title' => title }, activity: false, **options)
+        end
+      end
+
+      before do
+        ActsAsTenant.with_tenant(south) do
+          ProjectPermission.find_by!(user: user, project: south_project).update!(notes_access: 'read_write', members_access: 'read_only')
+        end
+      end
+
+      it 'opens in the lane of this page and shows the title of the note' do
+        note_row = note_event(south_project, 'Protokoll Versand')
+
+        row = row_of(page, note_row)
+        link = row.at_css('a.inbox-row__link')
+        expect(URI(link['href']).path).to eq(all_inboxes_path)
+        expect(Rack::Utils.parse_nested_query(URI(link['href']).query)).to include('notification' => note_row.id)
+        expect(link['data-turbo-frame']).to eq('ticket_pane')
+        expect(link['data-controller']).to eq('inbox-master-item')
+        expect(row.at_css('.inbox-row__title').text).to eq('Protokoll Versand')
+      end
+
+      it 'titles a bundle of two events with the project, and each of them alone with its own title' do
+        newest = note_event(south_project, 'Protokoll Versand', created_at: 10.minutes.ago)
+        older = Prosopite.pause do
+          project_event_row(south, south_project, 'member_added', recipient: user, actor: colleague,
+                                                                  parameters: { 'user_name' => 'Mia Neu' }, activity: false,
+                                                                  created_at: 20.minutes.ago)
+        end
+
+        expect(row_of(page, newest).at_css('.inbox-row__title').text).to eq('Versand')
+        chronological = page(view_mode: 'chronological')
+        expect(row_of(chronological, newest).at_css('.inbox-row__title').text).to eq('Protokoll Versand')
+        expect(row_of(chronological, older).at_css('.inbox-row__title').text).to eq('Versand')
+      end
+
+      # What a row needs of its event stands in the payload: the list loads no activity and
+      # no object per row (above the organisations such a read would have no tenant).
+      it 'reads the same number of statements for ten such rows as for two' do
+        statements = lambda do
+          capture_sql { get all_inboxes_path(view_mode: 'chronological') }.size
+        end
+        2.times { |n| note_event(south_project, "Protokoll #{n}", created_at: n.minutes.ago) }
+        get all_inboxes_path(view_mode: 'chronological') # warm-up: caches of the first request
+        with_two = statements.call
+        expect(Nokogiri::HTML(response.body).css('.inbox-row').size).to eq(4)
+
+        8.times { |n| note_event(south_project, "Protokoll #{n + 2}", created_at: (n + 2).minutes.ago) }
+        with_ten = statements.call
+
+        expect(Nokogiri::HTML(response.body).css('.inbox-row').size).to eq(12)
+        expect(Nokogiri::HTML(response.body).css('.inbox-row__title').map(&:text)).to include('Protokoll 9')
+        expect(with_ten).to eq(with_two)
+      end
+    end
+
+    it 'leaves for its organisation with a row the lane has no kind for (an old row filed under a note)' do
       note_row = Prosopite.pause do
         ActsAsTenant.with_tenant(south) do
           ProjectPermission.find_by!(user: user, project: south_project).update!(notes_access: 'read_write')

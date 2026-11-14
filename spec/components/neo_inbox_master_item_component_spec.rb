@@ -88,4 +88,93 @@ RSpec.describe NeoInboxMasterItemComponent, type: :component do
       expect(actions).to eq(["/inbox/#{notification.id}/mark_read", "/inbox/#{notification.id}/archive"])
     end
   end
+
+  # S4: what a row opens is Inbox::LaneKind's answer, not "is it a ticket". A row about a
+  # project reports one of its events and opens in the lane like a ticket row; a subject the
+  # lane does not know keeps the plain visit.
+  describe 'a row about an event on a project' do
+    let(:colleague) { create(:user, first_name: 'Kai', last_name: 'Kollege') }
+
+    def event_row(action, parameters: {}, **attributes)
+      project_event_row(organisation, project, action, recipient: user, actor: colleague, parameters: parameters,
+                                                       activity: false, **attributes)
+    end
+
+    let(:note_row) { event_row('note_created', parameters: { 'note_title' => 'Protokoll Kickoff' }) }
+
+    it 'opens in the lane of the inbox, with the wiring of a ticket row' do
+      render_inline(described_class.new(notification: note_row))
+
+      link = page.find('a.inbox-row__link')
+      expect(link[:href]).to start_with("/org/#{organisation.id}/inbox?")
+      expect(link[:href]).to include("notification=#{note_row.id}")
+      expect(link['data-turbo-frame']).to eq('ticket_pane')
+      expect(link['data-controller']).to eq('inbox-master-item')
+      expect(link['data-action']).to eq('click->inbox-master-item#handleClick')
+      expect(link['data-inbox-master-item-fullview-url-value']).to start_with("/org/#{organisation.id}/inbox/#{note_row.id}/open")
+    end
+
+    it 'opens in the lane of the page above the organisations there' do
+      allow_any_instance_of(ApplicationController).to receive_messages(current_organisation: nil,
+                                                                       page_above_organisations?: true)
+      render_inline(described_class.new(notification: note_row, organisation_name: 'Nordwind GmbH'))
+
+      link = page.find('a.inbox-row__link')
+      expect(link[:href]).to start_with('/inbox?')
+      expect(link[:href]).to include("notification=#{note_row.id}")
+      expect(link['data-turbo-frame']).to eq('ticket_pane')
+      expect(link['data-controller']).to eq('inbox-master-item')
+    end
+
+    it 'opens a row about an event without a display in the lane too (its card)' do
+      render_inline(described_class.new(notification: event_row('member_added', parameters: { 'user_name' => 'Mia Neu' })))
+
+      expect(page.find('a.inbox-row__link')['data-turbo-frame']).to eq('ticket_pane')
+    end
+
+    it 'keeps the plain visit for a subject the lane has no kind for' do
+      person = create(:person, organisation: organisation)
+      row = create(:notification, recipient: user, organisation: organisation, notifiable: person, channel: 'in_app')
+      render_inline(described_class.new(notification: row))
+
+      link = page.find('a.inbox-row__link')
+      expect(link[:href]).to start_with("/org/#{organisation.id}/inbox/#{row.id}/open")
+      expect(link['data-turbo-frame']).to eq('_top')
+      expect(link['data-controller']).to be_nil
+    end
+
+    it 'shows the title of the note on a row that stands for one event' do
+      render_inline(described_class.new(notification: note_row))
+
+      expect(page).to have_css('.inbox-row__title', text: 'Protokoll Kickoff', exact_text: true)
+      expect(page).to have_css('.inbox-row__meta-text', text: project.name)
+    end
+
+    it 'shows the name of the project on a bundle of two events' do
+      render_inline(described_class.new(notification: note_row, group_count: 2, group_unread: 2))
+
+      expect(page).to have_css('.inbox-row__title', text: project.name, exact_text: true)
+      expect(page).to have_no_css('.inbox-row__title', text: 'Protokoll Kickoff')
+    end
+
+    it 'shows the name of the project on a notification that groups several events itself' do
+      note_row.update!(group_count: 2)
+      render_inline(described_class.new(notification: note_row))
+
+      expect(page).to have_css('.inbox-row__title', text: project.name, exact_text: true)
+    end
+
+    it 'shows the name of the project for an event whose object has no title (a new member)' do
+      render_inline(described_class.new(notification: event_row('member_added', parameters: { 'user_name' => 'Mia Neu' })))
+
+      expect(page).to have_css('.inbox-row__title', text: project.name, exact_text: true)
+    end
+
+    it 'never titles a ticket row from its payload' do
+      notification.update!(payload: { 'action' => 'post_added', 'parameters' => { 'note_title' => 'Nicht der Titel' } })
+      render_inline(described_class.new(notification: notification))
+
+      expect(page).to have_css('.inbox-row__title', text: ticket.title, exact_text: true)
+    end
+  end
 end

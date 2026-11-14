@@ -145,6 +145,22 @@ module InboxHelper
     t("views.organisations.notifications.periods.#{period}")
   end
 
+  # The words of the lane that name what it shows (Inbox::LaneKind#type_key, one of a
+  # closed list): the head's link to the full view and the title of the refusal. The
+  # ticket keeps the texts it had.
+  def inbox_lane_full_view_label(kind)
+    return t('views.organisations.notifications.pane.open_full_view') if kind.type_key == 'ticket'
+
+    t("views.organisations.notifications.pane.open_full_view_of.#{kind.type_key}")
+  end
+
+  def inbox_lane_unauthorized_title(kind)
+    type = kind&.type_key
+    return t('views.organisations.notifications.pane.unauthorized_title') if type.nil? || type == 'ticket'
+
+    t("views.organisations.notifications.pane.unauthorized_title_of.#{type}")
+  end
+
   private
 
   # A type that does not exist is no filter (the controller reads it the

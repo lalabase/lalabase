@@ -2,7 +2,8 @@
 
 # The inbox above the organisations ("Gesamt-Inbox", GET /inbox): the list of the
 # organisation's inbox with a wider reach, for a person with several organisations.
-# Every row names its organisation; a ticket row opens in the lane of this page
+# Every row names its organisation; a row the lane has a kind for (a ticket, a
+# note, an event of a project: Inbox::LaneKind) opens in the lane of this page
 # (the lane of the organisation's inbox, whole: InboxLane), other rows leave for
 # their organisation. The actions of a row (read, unread, archive, back from the
 # archive) work in place, and so does the bulk bar on the rows that are ticked
@@ -120,14 +121,16 @@ class AllInboxesController < ApplicationController
   # (no read across organisations); a row it does not find (another person's, a
   # hidden one, a mail row, an organisation the person left, a malformed id) gets
   # the missing pane, and so does a row the lane of the organisation would refuse
-  # or not show as a ticket: one body for every refusal on this page.
+  # or has no kind for (Inbox::LaneKind): one body for every refusal on this page.
+  # A row the lane shows (a ticket, an object in its own frame, an event card)
+  # gets the lane of the organisation, whole.
   def render_lane
     organisation = Notifications::Selection.call(user: current_user, ids: [params[:notification].to_s]).keys.first
     return render(partial: LANE_MISSING, layout: false) unless organisation
 
     in_lane_organisation(organisation) do
       load_inbox_pane_context
-      render partial: (@pane_state == :ticket ? inbox_pane_partial : LANE_MISSING), layout: false
+      render partial: (LANE_SHOWN_STATES.include?(@pane_state) ? inbox_pane_partial : LANE_MISSING), layout: false
     end
   end
 
@@ -242,14 +245,17 @@ class AllInboxesController < ApplicationController
   end
 
   # Loaded under the acted row's tenant. The stream only replaces a head still
-  # showing this notification, never another ticket's head.
+  # showing this notification, never another row's head. What the head links to is
+  # the lane kind's answer (a ticket, a note, nothing for an event card); a row
+  # without a kind has no lane and no head.
   def open_lane_head(notification)
-    ticket = notification.notifiable
-    return unless ticket.is_a?(Ticket) && ticket.project
+    # Asking for the project reads what the kind is about here, inside the tenant, and the
+    # kind keeps it: the view renders after this block and reads nothing more.
+    kind = Inbox::LaneKind.for(notification)
+    return unless kind&.project
 
     # The actor has written the new state onto this same object (it locks and reloads it).
-    { notification: notification, organisation: notification.organisation,
-      project: ticket.project, ticket: ticket }
+    { notification: notification, kind: kind }
   end
 
   def reach

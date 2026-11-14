@@ -123,7 +123,7 @@ test('a response body arriving after disconnect is also discarded', async () => 
 // no longer being that pane, and each holds on both pages: the checks stand before the
 // branch that tells the pane of an organisation from the lane above the organisations.
 // "Connected again" is the one case only the request itself tells apart: Stimulus keeps
-// the controller of an element that is moved, so every flag reads "connected" again.
+// the controller of an element that is moved, so the element reads as in the page again.
 const STALE = {
   'the pane disconnected': f => f.controller.disconnect(),
   'the lane shut in place': f => { f.controller.element.closest = () => ({}) },

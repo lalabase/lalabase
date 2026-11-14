@@ -25,13 +25,11 @@ export default class extends Controller {
   }
 
   connect() {
-    this.connected = true
     if (!this.urlValue) return
     this.timer = setTimeout(() => this.markRead(), this.delayValue)
   }
 
   disconnect() {
-    this.connected = false
     this.request?.abort()
     this.request = null
     if (this.timer) {
@@ -61,7 +59,9 @@ export default class extends Controller {
       })
       if (response.ok) {
         const html = await response.text()
-        if (!this.connected || !this.element.isConnected || this.request !== request ||
+        // disconnect() drops the request, so a pane that is gone, or gone and back, fails
+        // the comparison of the request: no flag of its own is needed for that.
+        if (!this.element.isConnected || this.request !== request ||
             this.element.closest(".layout.hide-content")) return
         if (!this.followAddressValue) {
           Turbo.renderStreamMessage(html)

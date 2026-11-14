@@ -568,9 +568,14 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_no_css('.inbox-row__title', text: 'Regal wackelt')
       expect(page).to have_current_path(/search=Karton/)
 
-      # The 5 s read redraws the list in between; it keeps the search too.
+      # The 5 s read redraws the list in between; it keeps the search too and still names the
+      # open row, so the head follows ("Als ungelesen"). Review S3b round 3; its quiet is pinned in
+      # spec/javascript/controllers/pane_mark_read_delay_controller.test.js (the toast's target
+      # does not exist in the layout, so a browser cannot see it either way).
       expect(find('.inbox-row', text: 'Karton leer')).to have_no_css('[data-unread-marker]', wait: 10)
       expect(page).to have_no_css('.inbox-row__title', text: 'Regal wackelt')
+      expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.mark_unread'),
+                                                           wait: 10)
 
       within('#inbox_pane_status_pills') { click_button I18n.t('views.organisations.notifications.actions.archive') }
       expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.unarchive'),

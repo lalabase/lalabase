@@ -495,6 +495,9 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(find('.inbox-row', text: 'Karton leer')).to have_no_css('[data-unread-marker]', wait: 10)
       expect(page).to have_css('#inbox_unread_count', exact_text: (before_count - 1).to_s, wait: 10)
       expect(page).to have_css('#all_inboxes_banner', visible: :hidden)
+      # The read redraws the whole list; the open row tints itself again from the address.
+      expect(page).to have_css('.inbox-row.selected-row', count: 1)
+      expect(page).to have_css('.inbox-row.selected-row', text: 'Karton leer')
 
       # A comment written in the lane shows in its timeline.
       composer = "#new-post-composer-#{south_ticket.id}"
@@ -536,6 +539,15 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       visit current_url
       expect(page).to have_css('#ticket_pane .inbox-lane-content', text: 'Karton ganz leer', wait: 10)
       expect(page).to have_css('.inbox-row', count: 3)
+
+      # The "···" menu of the open row archives it: the head of the lane follows (review S3b round 1).
+      open_row = find('.inbox-row.selected-row', text: 'Karton ganz leer')
+      open_row.hover
+      open_row.find('.inbox-row__menu summary').click
+      open_row.click_button I18n.t('views.organisations.notifications.actions.archive')
+      expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.unarchive'),
+                                                           wait: 10)
+      expect(page).to have_css('#ticket_pane', text: 'Karton ganz leer')
 
       # The promise of plan §3.2, read where a person reads it.
       visit edit_user_preferences_path

@@ -462,6 +462,34 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :r
       expect(response.body).to include('all_inboxes_drawn_stamp')
     end
 
+    # Review S3b round 1: the "···" menu of the open row acts on an address without the open
+    # row (the list's links carry the list state only). The page's address names it, and the
+    # request carries that as its referrer, as in the inbox of an organisation.
+    it 'swaps the head too when the menu of the open row acts, named by the page it came from' do
+      lane_page = "http://www.example.com#{all_inboxes_path(state_filters: %w[read unread], notification: south_row.id)}"
+      patch all_inbox_archive_path(south_row, state_filters: %w[read unread]),
+            headers: { 'Accept' => 'text/vnd.turbo-stream.html', 'Referer' => lane_page }
+
+      expect(response).to have_http_status(:ok)
+      expect(pills(response.body)).to be_present
+      expect(pills(response.body).at_css('form')['action']).to start_with("/inbox/#{south_row.id}/unarchive?")
+      expect(response.body).to include('notification-toast')
+    end
+
+    it 'ignores a referrer that is not this page, and one that names another row' do
+      elsewhere = "http://www.example.com#{organisation_notifications_path(south, notification: south_row.id)}"
+      patch all_inbox_archive_path(south_row, state_filters: %w[read unread]),
+            headers: { 'Accept' => 'text/vnd.turbo-stream.html', 'Referer' => elsewhere }
+      expect(redrawn_list).to be_present
+      expect(pills(response.body)).to be_nil
+
+      other_open = "http://www.example.com#{all_inboxes_path(notification: north_row.id)}"
+      patch all_inbox_unarchive_path(south_row, state_filters: %w[read unread]),
+            headers: { 'Accept' => 'text/vnd.turbo-stream.html', 'Referer' => other_open }
+      expect(redrawn_list).to be_present
+      expect(pills(response.body)).to be_nil
+    end
+
     it 'leaves the head alone when another row is acted on' do
       act(:archive, north_row, state_filters: %w[read unread], notification: south_row.id)
 

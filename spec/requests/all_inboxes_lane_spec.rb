@@ -430,4 +430,75 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
     expect(response.body).to include('turbo-stream action="prepend" target="flash"')
     expect(session[:current_organisation_id]).to eq(north.id)
   end
+
+  # Mutation probes of S3b (round 1) that no example caught, each pinned here.
+  describe 'what the probes asked for' do
+    # The notification stays readable (its project is), the ticket moved into a project the
+    # person cannot read: only `authorize @ticket, :show?` stands between them.
+    it 'refuses a ticket that moved into a project the person cannot read, and the organisation keeps its notice' do
+      hidden_project = project_in(south, name: 'Geheim')
+      ActsAsTenant.with_tenant(south) { south_ticket.update_column(:project_id, hidden_project.id) }
+
+      expect(lane(north_row.id)).to include('Regal wackelt')
+      expected = missing_body
+      body = lane(south_row.id)
+      expect(body).to eq(expected)
+      expect(body).not_to include('Paket fehlt', 'Karton leer')
+
+      get organisation_notifications_path(south, state_filters: %w[read unread], notification: south_row.id), headers: frame
+      expect(response.body).to include(I18n.t('views.organisations.notifications.pane.unauthorized_title'))
+      expect(response.body).not_to include('Karton leer')
+    end
+
+    it 'lists in-app rows only under "what was new", not their mail twins' do
+      Prosopite.pause do
+        row(south, south_project, south_ticket, created_at: 30.minutes.ago)
+        row(south, south_project, south_ticket, channel: 'email', created_at: 20.minutes.ago)
+      end
+      body = lane(south_row.id)
+      expect(doc(body).css('.inbox-new-activity__item').size).to eq(2)
+    end
+
+    it 'draws the page without ?notification= with the lane shut and its empty frame' do
+      get all_inboxes_path(**list_state)
+      page = doc
+      expect(page.at_css('[data-controller~="layout-toggle"]')['class']).not_to include('show-content')
+      expect(page.at_css('turbo-frame#ticket_pane')['src']).to be_nil
+      expect(page.at_css('.layout')['class']).to include('hide-content')
+    end
+
+    it 'draws the lane of an organisation open on a full load with ?notification=, on the shared frame' do
+      get organisation_notifications_path(south, state_filters: %w[read unread], notification: south_row.id)
+      page = doc
+      expect(page.at_css('[data-controller="layout-toggle index-page"]')['class']).to include('show-content')
+      expect(page.at_css('.layout')['class']).to include('show-content')
+      expect(page.at_css('turbo-frame#ticket_pane')).to be_present
+    end
+
+    # in_lane_organisation itself: inside the block the request has the lane's organisation
+    # (tenant, the instance variables the partials read, Current), afterwards what it had,
+    # also when the block raises. A request spec cannot see the restore: nothing renders
+    # after the block, and Rails resets the tenant after every request.
+    it 'gives the block the organisation of the lane and puts the request back afterwards, also after a raise' do
+      controller = AllInboxesController.new
+      allow(controller).to receive(:current_user).and_return(user)
+      controller.instance_variable_set(:@current_organisation, nil)
+      Current.organisation = nil
+      ActsAsTenant.current_tenant = nil
+
+      seen = nil
+      controller.send(:in_lane_organisation, south) do
+        seen = [ActsAsTenant.current_tenant, controller.instance_variable_get(:@current_organisation),
+                controller.instance_variable_get(:@current_membership)&.organisation_id, Current.organisation]
+      end
+      expect(seen).to eq([south, south, south.id, south])
+      expect([ActsAsTenant.current_tenant, controller.instance_variable_get(:@current_organisation),
+              controller.instance_variable_get(:@current_membership), Current.organisation]).to eq([nil, nil, nil, nil])
+
+      expect { controller.send(:in_lane_organisation, south) { raise ArgumentError, 'pane broke' } }
+        .to raise_error(ArgumentError)
+      expect([ActsAsTenant.current_tenant, controller.instance_variable_get(:@current_organisation),
+              Current.organisation]).to eq([nil, nil, nil])
+    end
+  end
 end

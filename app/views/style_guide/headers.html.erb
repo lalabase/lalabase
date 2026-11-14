@@ -1,5 +1,5 @@
 <div class="container mx-auto px-8 py-8 max-w-7xl">
-  
+
   <!-- Header -->
   <div class="mb-8">
     <h1 class="text-4xl font-black text-black uppercase mb-2">Headers & Navigation</h1>
@@ -62,7 +62,7 @@
   <!-- Project Navigation Component -->
   <div class="border-2 border-black rounded-lg bg-white p-6 mb-8 shadow-[2px_2px_0_0_#000000]">
     <h2 class="text-2xl font-bold mb-6">NeoProjectNavigationComponent</h2>
-    
+
     <div class="mb-6">
       <h3 class="text-lg font-bold mb-4 text-left clear-both">Live Beispiel</h3>
       <div class="bg-gray-50 border border-black rounded-lg p-4 overflow-hidden">
@@ -79,12 +79,12 @@
         </div>
       </div>
     </div>
-    
+
     <pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto text-sm"><code>&lt;%= render NeoProjectNavigationComponent.new(
   project: @project,
   current_tab: :tasks # optional, auto-detect
 ) %&gt;</code></pre>
-    
+
     <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="border border-black rounded-lg p-4 bg-cobalt-50">
         <h4 class="font-bold mb-2">Features</h4>
@@ -95,7 +95,7 @@
           <li>• <strong>Customizable:</strong> Override für current_tab</li>
         </ul>
       </div>
-      
+
       <div class="border border-black rounded-lg p-4 bg-green-50">
         <h4 class="font-bold mb-2">Parameters</h4>
         <ul class="text-sm space-y-1">
@@ -111,7 +111,7 @@
   <!-- TitleBox Component -->
   <div class="border-2 border-black rounded-lg bg-white p-6 mb-8 shadow-[2px_2px_0_0_#000000]">
     <h2 class="text-2xl font-bold mb-6">NeoTitleBoxComponent</h2>
-    
+
     <!-- Project Variant -->
     <div class="mb-8 clear-both">
       <h3 class="text-lg font-bold mb-4 text-left clear-both">Project Variant (Blue)</h3>
@@ -135,10 +135,10 @@
               </button>
             </div>
           <% end %>
-          
+
           <% c.with_right_content do %>
             <div class="flex items-center gap-2">
-              <input type="search" placeholder="Suche..." class="h-10 leading-5 relative text-sm py-2 px-4 border border-black rounded bg-white/60 focus:bg-white focus:outline-none focus:shadow-[2px_2px_0_0_#000000]">
+              <input type="search" autocomplete="off" placeholder="Suche..." class="h-10 leading-5 relative text-sm py-2 px-4 border border-black rounded bg-white/60 focus:bg-white focus:outline-none focus:shadow-[2px_2px_0_0_#000000]">
               <%= render Neo::Buttons::ButtonComponent.new(variant: :primary, size: :medium, icon: "plus-lg") do %>
                 Neu
               <% end %>
@@ -149,26 +149,26 @@
           <% end %>
         <% end %>
       </div>
-      
+
       <div class="border border-black rounded p-4 bg-gray-50">
         <h4 class="font-bold mb-2">Code</h4>
         <pre class="text-xs overflow-x-auto"><code>&lt;%= render NeoTitleBoxComponent.new(
   title: "Beispiel Projekt",
-  subtitle: "My Project", 
+  subtitle: "My Project",
   badge: "Intelligenter Ordner",
   variant: :project
 ) do |c| %&gt;
   &lt;% c.with_center_content do %&gt;
     &lt;!-- Toggle Controls --&gt;
   &lt;% end %&gt;
-  
+
   &lt;% c.with_right_content do %&gt;
     &lt;!-- Actions --&gt;
   &lt;% end %&gt;
 &lt;% end %&gt;</code></pre>
       </div>
     </div>
-    
+
     <!-- Organisation Variant -->
     <div class="mb-8 clear-both">
       <h3 class="text-lg font-bold mb-4 text-left clear-both">Organisation Variant (Red)</h3>
@@ -190,7 +190,7 @@
           <% end %>
         <% end %>
       </div>
-      
+
       <div class="border border-black rounded p-4 bg-gray-50">
         <h4 class="font-bold mb-2">Code</h4>
         <pre class="text-xs overflow-x-auto"><code>&lt;%= render NeoTitleBoxComponent.new(
@@ -204,7 +204,7 @@
 &lt;% end %&gt;</code></pre>
       </div>
     </div>
-    
+
     <!-- Simple Title Only -->
     <div class="mb-8 clear-both">
       <h3 class="text-lg font-bold mb-4 text-left clear-both">Simple Title Only</h3>
@@ -214,7 +214,7 @@
           variant: :project
         ) %>
       </div>
-      
+
       <div class="border border-black rounded p-4 bg-gray-50">
         <h4 class="font-bold mb-2">Code</h4>
         <pre class="text-xs overflow-x-auto"><code>&lt;%= render NeoTitleBoxComponent.new(
@@ -228,7 +228,7 @@
   <!-- Features -->
   <div class="border-2 border-black rounded-lg bg-white p-6 mb-8 shadow-[2px_2px_0_0_#000000]">
     <h2 class="text-2xl font-bold mb-6">Features & Slots</h2>
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="border border-black rounded-lg p-4 bg-cobalt-50">
         <h3 class="font-bold mb-2">Intelligent Layout</h3>
@@ -238,7 +238,7 @@
           <li>• Automatische Erkennung und Anpassung</li>
         </ul>
       </div>
-      
+
       <div class="border border-black rounded-lg p-4 bg-green-50">
         <h3 class="font-bold mb-2">Flexible Slots</h3>
         <ul class="text-sm space-y-1">
@@ -247,7 +247,7 @@
           <li>• <strong>Fallback:</strong> Content als right_content</li>
         </ul>
       </div>
-      
+
       <div class="border border-black rounded-lg p-4 bg-yellow-50">
         <h3 class="font-bold mb-2">Variants</h3>
         <ul class="text-sm space-y-1">
@@ -256,7 +256,7 @@
           <li>• Erweiterbar für weitere Kontexte</li>
         </ul>
       </div>
-      
+
       <div class="border border-black rounded-lg p-4 bg-purple-50">
         <h3 class="font-bold mb-2">Customization</h3>
         <ul class="text-sm space-y-1">
@@ -272,7 +272,7 @@
   <!-- Best Practices -->
   <div class="border-2 border-black rounded-lg bg-white p-6 mb-8 shadow-[2px_2px_0_0_#000000]">
     <h2 class="text-2xl font-bold mb-6">Best Practices</h2>
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="border-2 border-black rounded-lg p-4 bg-green-50">
         <h3 class="font-bold mb-3 text-green-800">Do's ✓</h3>
@@ -299,7 +299,7 @@
           </li>
         </ul>
       </div>
-      
+
       <div class="border-2 border-black rounded-lg p-4 bg-red-50">
         <h3 class="font-bold mb-3 text-red-800">Don'ts ✗</h3>
         <ul class="space-y-2 text-sm">
@@ -327,7 +327,7 @@
   <!-- Layout Guidelines -->
   <div class="border-2 border-black rounded-lg bg-white p-6 mb-8 shadow-[2px_2px_0_0_#000000]">
     <h2 class="text-2xl font-bold mb-6">Layout Guidelines für Header & Content</h2>
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="border border-black rounded-lg p-4 bg-gray-50">
         <h3 class="font-bold mb-3">Korrekte Struktur</h3>
@@ -341,7 +341,7 @@
   &lt;!-- Cards --&gt;
 &lt;/div&gt;</code></pre>
       </div>
-      
+
       <div class="border-2 border-red-500 rounded-lg p-4 bg-red-50">
         <h3 class="font-bold mb-3 text-red-800">Falsche Struktur ❌</h3>
         <pre class="text-xs overflow-x-auto bg-white p-3 border border-black rounded"><code>&lt;%= render NeoTitleBoxComponent.new(..., margin_top: "-mt-8") %&gt;
@@ -354,7 +354,7 @@
 &lt;/div&gt;</code></pre>
       </div>
     </div>
-    
+
     <div class="mt-6 p-4 bg-cobalt-50 border border-cobalt-300 rounded-lg">
       <h3 class="font-bold mb-2">Wichtige Regeln</h3>
       <ul class="text-sm space-y-1">
@@ -365,7 +365,7 @@
         <li>• <strong>Bündigkeit:</strong> Header und Content sind dadurch perfekt bündig</li>
       </ul>
     </div>
-    
+
     <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="border border-green-500 rounded-lg p-4 bg-green-50">
         <h4 class="font-bold mb-2 text-green-800">✓ Richtig: Bündige Ausrichtung</h4>
@@ -378,7 +378,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="border border-red-500 rounded-lg p-4 bg-red-50">
         <h4 class="font-bold mb-2 text-red-800">✗ Falsch: Mit Container</h4>
         <div class="bg-white border border-black rounded p-2 text-xs">

@@ -1,6 +1,6 @@
 <div class="mt-8">
   <h3 class="text-lg font-medium text-gray-900 mb-4">Organisation Memberships</h3>
-  
+
   <div class="bg-white shadow overflow-hidden sm:rounded-md">
     <ul class="divide-y divide-gray-200">
       <% @memberships.each do |membership| %>
@@ -26,10 +26,10 @@
                 Member since: <%= membership.created_at.strftime('%B %d, %Y') %>
               </p>
             </div>
-            
+
             <div class="ml-4">
-              <%= button_to "Remove from Organisation", 
-                  membership_admin_user_path(@user, membership), 
+              <%= button_to "Remove from Organisation",
+                  membership_admin_user_path(@user, membership),
                   method: :delete,
                   data: {
                     turbo_confirm: t('views.confirm.remove_membership', name: @user.full_name, organisation: membership.organisation.name)
@@ -39,7 +39,7 @@
           </div>
         </li>
       <% end %>
-      
+
       <% if @memberships.empty? %>
         <li class="px-6 py-4 text-center text-gray-500">
           User has no organisation memberships

@@ -607,7 +607,7 @@ de:
           provider_hints_title: Provider-spezifische Hinweise
           openai_label: 'OpenAI:'
           openai_key_format: 'API-Key Format:'
-          openai_org_id: 'Organisations-ID: %{code} (optional)'
+          openai_org_id_html: 'Organisations-ID: %{code} (optional)'
           openai_models: 'Empfohlene Models:'
           anthropic_label: 'Anthropic:'
           anthropic_key_format: 'API-Key Format:'

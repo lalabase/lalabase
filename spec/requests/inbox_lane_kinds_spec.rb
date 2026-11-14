@@ -256,6 +256,25 @@ RSpec.describe 'The lane of the inbox for the kinds of things', :ci_guard, type:
     end
   end
 
+  # Probe A15 (S4a): the activity page of a project shows the object of an event in the same
+  # frame, and it asks the same builder for the address. A second list of classes there would
+  # drift from the one the inbox reads.
+  describe 'the one builder of the frame address' do
+    it 'is what the activity page of a project loads its lane from' do
+      activity = project_event(organisation, project, 'note_created', actor: colleague, secondary: note,
+                                                                      parameters: { 'note_title' => note.title })
+      allow(Inbox::ObjectFrame).to receive(:path).and_call_original
+      allow(Inbox::ObjectFrame).to receive(:path).with(note, organisation: organisation, project: project)
+                                                 .and_return('/the-one-builder-answered')
+
+      get organisation_project_activities_path(organisation, project, activity_id: activity.id)
+
+      expect(response).to have_http_status(:ok)
+      frame = Nokogiri::HTML(response.body).at_css('turbo-frame#ticket_display_frame')
+      expect(frame['src']).to eq('/the-one-builder-answered')
+    end
+  end
+
   describe '"what was new"' do
     def lines(doc)
       doc.css('.inbox-new-activity__item').map { |item| item.text.squish }
@@ -276,6 +295,37 @@ RSpec.describe 'The lane of the inbox for the kinds of things', :ci_guard, type:
       expect(found[2]).to include('Kai Kollege', I18n.t("#{card}.member_added.what"), 'Mia Neu')
       # Plain lines, no links.
       expect(lane(newest).css('.inbox-new-activity a')).to be_empty
+    end
+
+    # Probe A06 (S4a): the block reads the row's own subject, not every subject of its type.
+    it 'lists the events of this project only, not those of another project' do
+      other_project = ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation, name: 'Lager') }
+      project_event_row(organisation, other_project, 'note_created', recipient: user, actor: colleague,
+                                                                     parameters: { 'note_title' => 'Inventur Lager' }, activity: false)
+      mine = note_row
+
+      found = lines(lane(mine))
+
+      expect(found.size).to eq(1)
+      expect(found.first).to include('Protokoll Kickoff')
+      expect(response.body).not_to include('Inventur Lager')
+    end
+
+    it 'lists the notifications of this ticket only, not those of another ticket' do
+      ticket_row = lambda do |title|
+        ActsAsTenant.with_tenant(organisation) do
+          ticket = create(:ticket, project: project, organisation: organisation, title: title)
+          create(:notification, recipient: user, actor: colleague, organisation: organisation, project: project,
+                                notifiable: ticket, event_type: 'ticket_commented', channel: 'in_app', state: :delivered)
+        end
+      end
+      ticket_row.call('Zahlung pruefen')
+      mine = ticket_row.call('Login bricht ab')
+
+      doc = lane(mine)
+
+      expect(doc.at_css('turbo-frame#ticket_pane').text).to include('Login bricht ab')
+      expect(lines(doc).size).to eq(1)
     end
 
     it 'leaves out a read event' do

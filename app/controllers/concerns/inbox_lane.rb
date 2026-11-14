@@ -56,13 +56,14 @@ module InboxLane
     # as a snapshot in the pane (the mark-read stream swaps only
     # pills + master, not the pane). No separate last_visit tracking
     # needed: the unread state IS the "since-last-visit" information.
-    @new_activities = current_user.notifications
-                                  .for_current_tenant_user(current_user)
-                                  .channel_in_app
-                                  .where(notifiable_type: 'Ticket', notifiable_id: @ticket.id)
-                                  .unread
-                                  .includes(:actor)
-                                  .recent
+    # Through the policy scope, the inbox rule (spec/architecture/notification_read_guard_spec.rb).
+    @new_activities = policy_scope(current_user.notifications)
+                      .for_current_tenant_user(current_user)
+                      .channel_in_app
+                      .where(notifiable_type: 'Ticket', notifiable_id: @ticket.id)
+                      .unread
+                      .includes(:actor)
+                      .recent
 
     # DELIBERATELY no more immediate mark_as_read — the user should be able to
     # glance briefly before the status is committed. A Stimulus

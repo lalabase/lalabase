@@ -141,12 +141,16 @@ RSpec.describe 'Meeting ticket suggestions in the assistant', type: :system do
       JS
       expect(find('select[aria-label="Meeting und Zielprojekt"]').value).to eq(second.id)
       find('textarea').set('Nur Budgetaufgaben.')
-      page.execute_script('Turbo.visit(arguments[0])', organisation_project_meetings_path(organisation, project, meeting_id: second.id))
+      # The thread still waits for an answer, so the visit makes the panel load
+      # its frame again and restore draft and mode into the new composer.
+      turbo_visit_awaiting_panel_frame(organisation_project_meetings_path(organisation, project, meeting_id: second.id))
     end
     expect(page).to have_css('#meeting-header', text: 'Budgetrunde')
     within '#assistant_panel' do
       expect(page).to have_css('textarea') { |field| field.value == 'Nur Budgetaufgaben.' }
-      expect(find('select[aria-label="Meeting und Zielprojekt"]').value).to eq(second.id)
+      # Waited for: the new composer fills its list from a request of its own,
+      # and until that answers the restored mode has no meeting to show.
+      expect(page).to have_css('select[aria-label="Meeting und Zielprojekt"]') { |select| select.value == second.id }
       find('textarea').send_keys(:enter)
       expect(page).to have_text('Aufgaben aus Budgetrunde werden abgeleitet')
     end

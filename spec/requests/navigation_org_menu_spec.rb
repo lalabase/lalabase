@@ -42,11 +42,22 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
     Capybara.string(response.body)
   end
 
-  # Names of the orgs offered as switch forms, in rendered (DOM) order. .text(:all) because the
-  # <details> is collapsed and its text is otherwise treated as hidden.
-  def switcher_org_names
+  # The switch buttons of the menu, in rendered (DOM) order.
+  def switcher_org_buttons
     page_doc.all("details form[action='#{set_organisation_path}'] button", visible: :all)
-            .map { |button| button.text(:all).strip }
+  end
+
+  # Names of the orgs offered as switch forms, in rendered (DOM) order. .text(:all) because the
+  # <details> is collapsed and its text is otherwise treated as hidden. A row of another
+  # organisation also carries its unread marker (Neo::UnreadMarkerComponent, live: true): at
+  # zero a hidden "0" that waits for a broadcast. It is a count, not part of the name, so it is
+  # taken out by the marker's own fingerprint before the text is read.
+  def switcher_org_names
+    switcher_org_buttons.map do |button|
+      row = button.native.dup
+      row.css('[data-unread-marker]').each(&:remove)
+      row.text.strip
+    end
   end
 
   # CSS for the org-management gear in the header. Icon-only, so it is matched by its aria-label
@@ -118,6 +129,12 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
     it 'lists only the active-membership orgs, never a foreign or dormant one' do
       expect(response).to have_http_status(:ok)
       expect(switcher_org_names).to contain_exactly('Home GmbH', 'Also GmbH')
+      # The other organisation's row keeps its marker in the page, hidden at zero; the row of
+      # the open organisation has none (its unread items are the sidebar's Inbox count).
+      other, current = switcher_org_buttons.partition { |button| button.has_css?('[data-unread-marker]', visible: :all) }
+      expect(other.size).to eq(1)
+      expect(other.first).to have_css("#org_attention_count_#{also.id}.hidden[data-unread-marker='count']", visible: :all, text: '0')
+      expect(current.size).to eq(1)
       expect(response.body).not_to include('Foreign Zzz GmbH')
       expect(response.body).not_to include('Dormant GmbH')
     end

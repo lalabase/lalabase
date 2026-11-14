@@ -32,7 +32,13 @@ RSpec.describe Organisations::DocumentsController, type: :controller do
 
     it 'has additional sortable columns' do
       expect(Organisations::DocumentsController.sortable_columns_list).to include('document_versions.title')
-      expect(Organisations::DocumentsController.sortable_columns_list).to include('users.email')
+    end
+
+    # The documents list offered a sort by the creator's login address until
+    # 29.10.2026. A sort order tells the reader about a value the page does not
+    # show, so no column of the users table may come back as a sort key.
+    it 'offers no sort by a column of the users table' do
+      expect(Organisations::DocumentsController.sortable_columns_list.grep(/\Ausers\./)).to be_empty
     end
 
     it 'has pagination set up with items_per_page' do

@@ -39,7 +39,7 @@ RSpec.describe 'Meeting filters and columns', type: :system do
     visit path(filter: { participant: ['Anna'] }, search: 'a', search_mode: 'title_only')
     expect(page).to have_css('[data-fb-hits-total="2"]')
     click_button 'Als Ansicht sichern'
-    fill_in 'smart_folder_name', with: 'Mit Anna'
+    view_name_field.set('Mit Anna')
     click_button 'Sichern'
     expect(page).to have_css('[role="tab"][aria-selected="true"]', text: 'Mit Anna')
     expect(find('input[name="search"]').value).to eq('a')

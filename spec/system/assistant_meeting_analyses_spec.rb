@@ -102,19 +102,10 @@ RSpec.describe 'Meeting analyses in the assistant', type: :system do
         # Navigation while another answer is outstanding replaces the frame.
         # Wait for that replacement; checking the old permanent DOM would pass
         # even when only the text, but no revision binding, gets restored.
-        page.execute_script(<<~JS)
-          window.__revisionFrameLoads = 0
-          document.addEventListener('turbo:frame-load', event => {
-            if (event.target.id === 'assistant_panel_body') window.__revisionFrameLoads += 1
-          })
-          Turbo.visit('#{organisation_project_meetings_path(organisation, project, meeting_id: first.id, viewport: width < 1024 ? 'mobile' : nil)}')
-        JS
+        turbo_visit_awaiting_panel_frame(organisation_project_meetings_path(organisation, project, meeting_id: first.id, viewport: width < 1024 ? 'mobile' : nil))
       end
       expect(page).to have_current_path(organisation_project_meetings_path(organisation, project), ignore_query: true)
       expect(page).to have_css('#meeting-header', text: 'Planungsrunde')
-      Timeout.timeout(Capybara.default_max_wait_time) do
-        sleep 0.05 until page.evaluate_script('window.__revisionFrameLoads') >= 1
-      end
       find('#meeting-header [data-controller="assistant-trigger"]').click if width < 1024
       within '#assistant_panel' do
         expect(find('textarea').value).to eq('Mach das bitte kürzer.')

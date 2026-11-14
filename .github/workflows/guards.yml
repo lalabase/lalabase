@@ -358,6 +358,8 @@ jobs:
           spec/system/list_tab_bar_wrap_spec.rb
           spec/system/preferences_page_spec.rb
           spec/system/account_layer_spec.rb
+          spec/system/browser_window_reset_spec.rb
+          spec/system/note_edit_delete_spec.rb
           spec/requests/account_layer_spec.rb
           spec/requests/org_switcher_signal_spec.rb
           spec/requests/notifications_avatar_preload_spec.rb

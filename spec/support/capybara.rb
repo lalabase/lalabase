@@ -80,6 +80,43 @@ module LocalChrome
   end
 end
 
+# The window a driver's browser opens with, and goes back to after every example.
+#
+# One Chrome per driver lives for the whole run, and a resize outlives the
+# example that made it. Until 13.11.2026 nothing put the window back, so what an
+# example saw depended on the files before it: all_inboxes_spec left 1440 x 1000
+# and column_picker_spec then measured a table whose columns were still easing,
+# session_timeout_spec left 1440 x 900 and ticket_waiting_list_spec lost the
+# column it looks for, which only fits beside the lane at 1920. Each of them was
+# green alone and red in the full run, in the same order every time.
+#
+# The sizes stand here once: the drivers below and in rails_helper.rb read their
+# --window-size from this table. A driver that is not listed (the marketing
+# screenshots bring their own) is left alone. Guard:
+# spec/system/browser_window_reset_spec.rb.
+module BrowserWindow
+  SIZES = {
+    selenium_chrome_headless: [1920, 1080],
+    selenium_chrome: [1920, 1080],
+    selenium_chrome_headless_full: [1440, 900]
+  }.freeze
+
+  def self.size_argument(driver)
+    "--window-size=#{SIZES.fetch(driver).join(',')}"
+  end
+
+  # The session an example ended with is the one whose window it may have
+  # changed (a driven_by in the group's own before block included).
+  def self.restore(session = Capybara.current_session)
+    size = SIZES[session.mode]
+    return unless size
+
+    window = session.driver.browser.manage.window
+    current = window.size
+    window.resize_to(*size) unless [current.width, current.height] == size
+  end
+end
+
 # On macOS nothing is found here and nothing is set: the universal binary works,
 # and Selenium Manager keeps doing its job.
 Selenium::WebDriver::Chrome::Service.driver_path = LocalChrome.driver_path if LocalChrome.driver_path
@@ -93,7 +130,7 @@ Capybara.register_driver :selenium_chrome_headless do |app|
   options.add_argument('--no-sandbox')
   options.add_argument('--disable-dev-shm-usage')
   options.add_argument('--disable-gpu')
-  options.add_argument('--window-size=1920,1080')
+  options.add_argument(BrowserWindow.size_argument(:selenium_chrome_headless))
   LocalChrome.with_mouse(options)
 
   # Disable images and CSS for faster tests
@@ -113,7 +150,7 @@ Capybara.register_driver :selenium_chrome do |app|
 
   options.add_argument('--no-sandbox')
   options.add_argument('--disable-dev-shm-usage')
-  options.add_argument('--window-size=1920,1080')
+  options.add_argument(BrowserWindow.size_argument(:selenium_chrome))
 
   Capybara::Selenium::Driver.new(
     app,
@@ -132,7 +169,7 @@ Capybara.register_driver :selenium_chrome_headless_full do |app|
   options.add_argument('--no-sandbox')
   options.add_argument('--disable-dev-shm-usage')
   options.add_argument('--disable-gpu')
-  options.add_argument('--window-size=1440,900')
+  options.add_argument(BrowserWindow.size_argument(:selenium_chrome_headless_full))
   LocalChrome.with_mouse(options)
   Capybara::Selenium::Driver.new(app, browser: :chrome, options: LocalChrome.apply_binary(options))
 end
@@ -186,5 +223,13 @@ RSpec.configure do |config|
     else
       driven_by :selenium_chrome_headless_full
     end
+  end
+
+  # An example leaves the window as it found it (BrowserWindow above). After,
+  # not before: a group may choose its driver in its own before block, which
+  # runs after every hook of this file, and only at the end is it known which
+  # browser the example used.
+  config.after(:each, type: :system) do
+    BrowserWindow.restore
   end
 end

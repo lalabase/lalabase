@@ -428,6 +428,13 @@ RSpec.describe 'Ticket relations on the ticket page', type: :system do
       within('#ticket_pane') { expect(page).to have_css('h2', text: 'Checkout bricht ab') }
       mark_page
 
+      # The row click opens the lane, and the ticket is in it before the lane has
+      # finished sliding (a warm server answers in 70 ms, the slide takes 250).
+      # The head's buttons travel with it, and when the lane head above them goes
+      # from two lines to one they jump 26 px in a single frame: at 1440 px that
+      # frame falls where this click does, and the click then lands under the
+      # button (MotionHelpers; measured 13.11.2026).
+      wait_until_still("#ticket_pane #ticket-header button[title='#{I18n.t('views.organisations.tickets.ticket_header_show.more_actions')}']")
       open_modal_from_menu('#ticket_pane #ticket-header')
       pick_and_link('blocked_by', 'Zahlungs', blocker.display_title)
       expect_modal_closed

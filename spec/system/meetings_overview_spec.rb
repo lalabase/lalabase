@@ -54,7 +54,7 @@ RSpec.describe 'Meetings overview', type: :system do
     page.send_keys(:escape)
 
     click_button 'Als Ansicht sichern'
-    fill_in 'smart_folder_name', with: 'Nur Alpha'
+    view_name_field.set('Nur Alpha')
     click_button 'Sichern'
     expect(page).to have_css('[role="tab"][aria-selected="true"]', text: 'Nur Alpha', wait: 5)
     expect_titles('Alpha Kickoff')
@@ -463,6 +463,17 @@ RSpec.describe 'Meetings overview', type: :system do
 
     def lane_title = find('#meeting_display_frame h2', wait: 5)
 
+    # The edit link of the open meeting. The lane slides open in 0.25 s and its
+    # head travels with it: a click measured in one frame landed on the move
+    # button beside the link in the next (13.11.2026, a full run).
+    def click_edit_in_lane
+      within('#meeting_display_frame') do
+        edit = "a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']"
+        wait_until_still(edit)
+        find(edit, match: :first).click
+      end
+    end
+
     # The lane decides on connect: a check before that sees only the server's markup.
     def wait_for_layout_toggle
       wait_for_stimulus('.labor-layout-view', 'layout-toggle')
@@ -488,7 +499,7 @@ RSpec.describe 'Meetings overview', type: :system do
       expect(page).to have_current_path(/meeting_id=#{meeting('Beta Retro').id}/)
       expect(page).to have_current_path(/filter%5Bparticipant%5D/)
 
-      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
+      click_edit_in_lane
       within('#meeting_display_frame') do
         fill_in 'meeting[title]', with: 'Beta Retro neu'
         click_button I18n.t('views.organisations.meetings.form.save')
@@ -540,12 +551,13 @@ RSpec.describe 'Meetings overview', type: :system do
         link.textContent = 'aktualisieren'
         document.getElementById('meeting_display_frame').append(link)
       JS
+      # The link sits in the lane, which may still be sliding open.
+      wait_until_still('#contextless-refresh')
       find('#contextless-refresh').click
       expect(page).to have_no_css('#contextless-refresh', wait: 5)
       expect(lane_title).to have_text('Beta Retro')
 
-      edit = "a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']"
-      within('#meeting_display_frame') { find(edit, match: :first).click }
+      click_edit_in_lane
       within('#meeting_display_frame') do
         fill_in 'meeting[title]', with: 'Beta Retro neu'
         click_button I18n.t('views.organisations.meetings.form.save')
@@ -563,7 +575,7 @@ RSpec.describe 'Meetings overview', type: :system do
       expect(lane_title).to have_text('Beta Retro')
 
       click_button 'Als Ansicht sichern'
-      fill_in 'smart_folder_name', with: 'Mit Anna'
+      view_name_field.set('Mit Anna')
       click_button 'Sichern'
 
       expect(page).to have_css('[role="tab"][aria-selected="true"]', text: 'Mit Anna', wait: 5)
@@ -578,7 +590,11 @@ RSpec.describe 'Meetings overview', type: :system do
       row_of('Alpha Kickoff').click
       expect(lane_title).to have_text('Alpha Kickoff')
 
-      find('[data-filter-bar-target="filterButton"]').click
+      # The list column narrows while the lane slides open, and the filter
+      # button travels with it: a click measured too early missed it.
+      filter_button = '[data-filter-bar-target="filterButton"]'
+      wait_until_still(filter_button)
+      find(filter_button).click
       find('[role="menuitem"][data-category="project"]').click
       within('[data-filter-bar-target="valueMenu"]') { find("input[type='checkbox'][data-filter-value='#{alpha.id}']").click }
       expect_titles('Alpha Kickoff', 'Alpha Ohne Anna')
@@ -587,7 +603,7 @@ RSpec.describe 'Meetings overview', type: :system do
       find('#meeting_display_frame h2').click
       expect(page).to have_css('#meeting_display_frame h2', text: 'Alpha Kickoff')
 
-      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
+      click_edit_in_lane
       within('#meeting_display_frame') do
         fill_in 'meeting[title]', with: 'Alpha Kickoff neu'
         click_button I18n.t('views.organisations.meetings.form.save')
@@ -625,8 +641,17 @@ RSpec.describe 'Meetings overview', type: :system do
       visit organisation_meetings_path(organisation, meeting_id: meeting('Beta Retro').id)
       expect(lane_title).to have_text('Beta Retro')
 
-      within('#meeting_display_frame') { find("a[title='#{I18n.t('views.organisations.meetings.show.edit_meeting')}']", match: :first).click }
-      accept_confirm { within('#meeting_display_frame') { click_button I18n.t('views.organisations.meetings.form.delete') } }
+      click_edit_in_lane
+      delete = I18n.t('views.organisations.meetings.form.delete')
+
+      # The delete asks first, and a "no" deletes nothing. Until 13.11.2026 it
+      # was a form inside the edit form: Chrome stops that form's submit event
+      # at the outer form, Turbo never asked, and one click deleted the meeting.
+      dismiss_confirm { within('#meeting_display_frame') { click_link delete } }
+      expect(lane_title).to have_text(I18n.t('views.organisations.meetings.show.edit_meeting'))
+      expect(meeting('Beta Retro')).to be_present
+
+      accept_confirm { within('#meeting_display_frame') { click_link delete } }
 
       expect_titles('Alpha Kickoff', 'Alpha Ohne Anna')
       expect(page).to have_no_css('#meeting_display_frame h2', wait: 5)

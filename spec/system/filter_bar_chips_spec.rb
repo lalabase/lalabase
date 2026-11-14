@@ -237,7 +237,7 @@ RSpec.describe 'FilterBar Chip-Zeile bei aktivem Smart Folder', type: :system do
 
     expect(page).to have_css('[data-fb-naming]', wait: 3)
     expect(page).not_to have_css('#filter-bar-save-modal')
-    field = find('input[name="smart_folder_name"]')
+    field = view_name_field
     expect(field.value).to eq('chip-spec-tag')
 
     field.set('Kundensachen')

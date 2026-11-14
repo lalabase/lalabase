@@ -53,6 +53,10 @@ RSpec.describe 'Inbox (System)', type: :system, inbox_e2e: true do
 
     visit inbox_path(state_filters: %w[read unread])
     expect(page).to have_css('.layout.hide-content')
+    # The first example of the file meets a cold browser: a click before the row's
+    # controller listens loads the lane and leaves the address alone (red on the
+    # unchanged base in two of four runs alone, 2026-11-14).
+    wait_for_stimulus("[data-notification-item='#{notification.id}'] a.inbox-row__link", 'inbox-master-item')
     find("[data-notification-item='#{notification.id}'] a.inbox-row__link").click
     expect(page).to have_css('#ticket_pane', text: 'Ausgewähltes Ticket')
     expect(page).to have_current_path(/notification=#{notification.id}/)
@@ -288,6 +292,95 @@ RSpec.describe 'Inbox (System)', type: :system, inbox_e2e: true do
     expect(page).to have_css('.layout.show-content')
     expect(page).to have_css('#ticket_pane', text: 'Bahn-Ticket')
     expect(page).to have_css("[data-notification-item='#{n.id}'] .inbox-row.selected-row")
+  end
+
+  # S4: a row that is not about a ticket opens beside the list as well: a note in the
+  # lane (drawn by the note's own controller in a nested frame), a card for an event
+  # without a display. Real clicks, real time for the 5 s read.
+  describe 'a row about an event of a project (S4)' do
+    let(:colleague) { create(:user, first_name: 'Kai', last_name: 'Kollege') }
+    let(:note) do
+      ActsAsTenant.with_tenant(organisation) do
+        create(:note, project: project, organisation: organisation, creator: colleague, title: 'Protokoll Kickoff').tap do |note|
+          note.update!(content: '<div>Wir starten im Mai.</div>')
+        end
+      end
+    end
+    let!(:note_row) do
+      project_event_row(organisation, project, 'note_created', recipient: user, actor: colleague, secondary: note,
+                                                               parameters: { 'note_title' => note.title }, created_at: 1.hour.ago)
+    end
+
+    before { page.current_window.resize_to(1440, 1000) }
+
+    it 'opens the note beside the list with one way out, and Back opens it again (K1)' do
+      visit inbox_path(state_filters: %w[read unread], view_mode: 'chronological')
+      expect(page).to have_css('.layout.hide-content')
+      row = find("[data-notification-item='#{note_row.id}']")
+      expect(row).to have_css('.inbox-row__title', text: 'Protokoll Kickoff')
+      wait_for_stimulus("[data-notification-item='#{note_row.id}'] a.inbox-row__link", 'inbox-master-item')
+      row.find('a.inbox-row__link').click
+
+      expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Kickoff')
+      expect(page).to have_css('#ticket_pane #ticket_display_frame', text: 'Wir starten im Mai.')
+      expect(page).to have_css('.layout.show-content')
+      expect(page).to have_css("[data-notification-item='#{note_row.id}'] .inbox-row.selected-row")
+      expect(page).to have_css('.inbox-row', count: 1)
+      expect(page).to have_current_path(/notification=#{note_row.id}/)
+      # The head of the lane names the project and leads to the note's own page.
+      expect(page).to have_css('#ticket_pane .inbox-lane-head__project', text: project.name.upcase)
+      expect(page).to have_link(I18n.t('views.organisations.notifications.pane.open_full_view_of.note'))
+
+      # One way out: the note's own close button is hidden, the lane's shuts the lane.
+      expect(page).to have_css('#ticket_pane [data-lane-close]', count: 1)
+      find('#ticket_pane [data-lane-close]').click
+      expect(page).to have_css('.layout.hide-content')
+      expect(page).to have_no_css('.inbox-row.selected-row')
+      expect(page).to have_no_current_path(/notification=/)
+
+      page.go_back
+      expect(page).to have_css('.layout.show-content')
+      expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Kickoff')
+      expect(page).to have_css("[data-notification-item='#{note_row.id}'] .inbox-row.selected-row")
+    end
+
+    it 'reads an unread note row after five seconds: the dot goes (K2)' do
+      visit inbox_path(state_filters: %w[read unread], view_mode: 'chronological')
+      row = "[data-notification-item='#{note_row.id}']"
+      expect(page).to have_css("#{row} [data-unread-marker]")
+      wait_for_stimulus("#{row} a.inbox-row__link", 'inbox-master-item')
+      find("#{row} a.inbox-row__link").click
+      expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Kickoff')
+      # The dot is asked for in the markup (visible: :all): under the pointer the
+      # checkbox stands in its place, and the row names its state by a class.
+      expect(page).to have_css("#{row} .inbox-row--unread [data-unread-marker]", visible: :all)
+
+      expect(page).to have_no_css("#{row} .inbox-row--unread", wait: 10)
+      expect(page).to have_no_css("#{row} [data-unread-marker]", visible: :all)
+      expect(page).to have_css("#{row} .inbox-row")
+      # The read swapped the head's buttons and left the note standing.
+      expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.mark_unread'))
+      expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Kickoff')
+      expect(note_row.reload).to be_state_read
+    end
+
+    it 'shows the card of a new member beside the list (K3)' do
+      member_row = project_event_row(organisation, project, 'member_added', recipient: user, actor: colleague,
+                                                                            parameters: { 'user_name' => 'Mia Neu' },
+                                                                            created_at: 30.minutes.ago)
+      visit inbox_path(state_filters: %w[read unread], view_mode: 'chronological')
+      wait_for_stimulus("[data-notification-item='#{member_row.id}'] a.inbox-row__link", 'inbox-master-item')
+      find("[data-notification-item='#{member_row.id}'] a.inbox-row__link").click
+
+      card = '#ticket_pane [data-inbox-event-card="member_added"]'
+      expect(page).to have_css(card, text: I18n.t('views.organisations.notifications.pane.event_card.member_added.title'))
+      expect(page).to have_css(card, text: 'Mia Neu')
+      expect(page).to have_css('.layout.show-content')
+      expect(page).to have_css('.inbox-row', count: 2)
+      expect(page).to have_current_path(/notification=#{member_row.id}/)
+      expect(page).to have_css('#ticket_pane [data-lane-close]', count: 1)
+      expect(find("#{card} a")[:href]).to end_with(organisation_project_path(organisation, project))
+    end
   end
 
   # L2 — Escape shuts the lane, as on the other list pages.

@@ -858,6 +858,38 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
         expect(session[:current_organisation_id]).to eq(north.id)
       end
 
+      # Review S4b round 1: "Textfassung" in the "···" of a version is a file the browser asks
+      # for like a page (turbo: false, no frame header, HTML accepted). The document's page of
+      # its own organisation and the activity page stand in that organisation anyway; this
+      # page does not, so the file must not count as a page.
+      it 'hands out the text version of a document without moving the session' do
+        ActsAsTenant.with_tenant(south) { south_document.current_version.update_column(:plain_text_version, 'Angebot als Text') }
+        frame_address = note_frame_of(lane(south_document_row.id))['src']
+        get frame_address, headers: { 'Turbo-Frame' => 'ticket_display_frame', 'Referer' => "http://www.example.com#{all_inboxes_path}" }
+        link = doc(response.body).css('a').pluck('href').compact.find { |href| href.include?('download_plain_text') }
+        expect(link).to start_with("/org/#{south.id}/")
+        expect(session[:current_organisation_id]).to eq(north.id)
+
+        get link, headers: { 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' }
+
+        expect(response).to have_http_status(:ok)
+        expect(response.media_type).to eq('text/plain')
+        expect(response.body).to eq('Angebot als Text')
+        expect(session[:current_organisation_id]).to eq(north.id)
+        # The page of the document itself still is a page of its organisation.
+        get organisation_project_knowledge_index_path(south, south_project, document_id: south_document.id)
+        expect(session[:current_organisation_id]).to eq(south.id)
+      end
+
+      # Probe B10 (S4b): above, a refused document answers the one body of every refusal.
+      it 'refuses a document row whose document the policy refuses, with the missing body' do
+        expect(note_frame_of(lane(south_document_row.id))['src']).to include("/documents/#{south_document.id}")
+        expected = missing_body
+        allow_any_instance_of(DocumentPolicy).to receive(:show?).and_return(false)
+
+        expect(lane(south_document_row.id)).to eq(expected)
+      end
+
       it 'refuses a document row once the person lost the documents area' do
         expect(note_frame_of(lane(south_document_row.id))['src']).to include("/documents/#{south_document.id}")
         expected = missing_body

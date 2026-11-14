@@ -86,6 +86,10 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   „Dokument löschen“ antworten mit einem Stream für `knowledge_display_frame`, den es nur auf der
   Wissensseite gibt. In der Bahn bleibt das Formular offen bzw. das gelöschte Dokument stehen, bis
   die Zeile neu geöffnet wird (dann: neue Version sichtbar bzw. Karte „gibt es nicht mehr“).
+  Dieselbe Klasse: „als aktuell setzen“ (Stream für `knowledge_display_frame`) und „Version
+  löschen“ (Redirect auf die Anzeige ohne `frame=content`).
+  Behoben, weil nur in der Bahn von `/inbox` falsch: „Textfassung“ einer Version ist eine Datei
+  und setzt die Organisation der Sitzung nicht mehr um (`DocumentsController#serves_pages?`).
   Die Vorschau einer Version schreibt `preview=` in die Adresse der Inbox und nimmt es wieder
   heraus; die Liste liest den Wert nicht. Die Rahmen-Adresse
   baut `Inbox::ObjectFrame`, auch für die Aktivitäten-Seite eines Projekts.

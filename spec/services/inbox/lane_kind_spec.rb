@@ -104,6 +104,15 @@ RSpec.describe Inbox::LaneKind do
       expect(kind.card_link).to eq([:project, "/org/#{organisation.id}/projects/#{project.id}"])
     end
 
+    # Probe B12 (S4b): the document without its activity (retention) is gone, like the note.
+    it 'answers the gone card for a document_created event whose activity is gone' do
+      kind = described_class.for(project_row('document_created', parameters: { 'document_title' => 'Angebot' }))
+
+      expect(kind.target).to be_nil
+      expect(kind.card).to eq('gone')
+      expect(kind.frame_path).to be_nil
+    end
+
     %w[member_added member_removed permission_changed updated meeting_deleted].each do |action|
       it "answers the card of #{action}, with the project as the place it leads to" do
         kind = described_class.for(row_for(action, parameters: { 'user_name' => 'Kai Kollege' }))
@@ -222,6 +231,15 @@ RSpec.describe Inbox::LaneKind do
       note = create(:note, project: project, organisation: organisation, creator: actor)
       notification = create(:notification, recipient: user, organisation: organisation, project: project,
                                            notifiable: note, channel: 'in_app')
+
+      expect(described_class.for(notification)).to be_nil
+    end
+
+    # Probe B13 (S4b): the same for a row filed under a document.
+    it 'answers nil for a row filed under a document (an old row: no event names it)' do
+      document = titled_document(organisation, project, 'Angebot', creator: actor)
+      notification = create(:notification, recipient: user, organisation: organisation, project: project,
+                                           notifiable: document, channel: 'in_app')
 
       expect(described_class.for(notification)).to be_nil
     end

@@ -368,6 +368,14 @@ class Organisations::DocumentsController < Organisations::BaseController
 
   private
 
+  # The text version is a file: the browser asks for it like a page (no Turbo, HTML
+  # accepted), but it must not move the session's organisation
+  # (ApplicationController#full_page_request?). Since the document stands in the lane of
+  # the inbox above the organisations, this link is on a page outside its organisation.
+  def serves_pages?
+    action_name != 'download_plain_text'
+  end
+
   # Detail frame of the Knowledge view, the only remaining detail display for
   # documents; callers may pass their own frame id through.
   def detail_frame_id

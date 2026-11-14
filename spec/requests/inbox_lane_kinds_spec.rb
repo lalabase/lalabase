@@ -211,6 +211,18 @@ RSpec.describe 'The lane of the inbox for the kinds of things', :ci_guard, type:
       expect(link.text.squish).to eq(I18n.t('views.organisations.notifications.pane.open_full_view_of.document'))
     end
 
+    # Probes B15 to B17 (S4b): the words of a document are its own, in both languages. Literal
+    # texts on purpose: a comparison with I18n.t would follow a copy of the note's text.
+    it 'has its own words for the link and the refusal, in German and in English' do
+      texts = %i[de en].index_with do |locale|
+        %w[open_full_view_of unauthorized_title_of].map do |key|
+          I18n.t("views.organisations.notifications.pane.#{key}.document", locale: locale, fallback: false, raise: true)
+        end
+      end
+
+      expect(texts).to eq(de: ['Datei öffnen', 'Kein Zugriff auf diese Datei'], en: ['Open file', 'No access to this file'])
+    end
+
     it 'shows the title of the document on the row of the list' do
       get organisation_notifications_path(organisation, state_filters: %w[read unread])
 

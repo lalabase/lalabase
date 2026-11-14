@@ -116,6 +116,41 @@ RSpec.describe 'The session organisation follows pages', :ci_guard, type: :reque
     expect(session[:current_organisation_id]).to eq(org_a.id)
   end
 
+  it 'keeps it for a POST that asks for HTML (a form without Turbo), which writes into B' do
+    expect do
+      post organisation_project_ticket_posts_path(org_b, project_b, ticket_b),
+           params: { post: { content: '<div>Ohne Turbo</div>' } },
+           headers: { 'Accept' => 'text/html,application/xhtml+xml' }
+    end.to change { ActsAsTenant.with_tenant(org_b) { ticket_b.posts.count } }.by(1)
+    expect(session[:current_organisation_id]).to eq(org_a.id)
+  end
+
+  # The tenant of a request under /org/B/ comes from its address whatever its kind, and so does
+  # the membership it is checked against: a person deactivated in B gets no frame of B, even
+  # with the session in A where the membership is active.
+  it 'refuses a frame of B to a person deactivated in B, as before' do
+    Membership.find_by(user: user, organisation: org_b).update!(active: false)
+    get inbox_b(notification: row_b.id), headers: { 'Turbo-Frame' => 'ticket_pane' }
+    expect(response).to redirect_to(select_organisation_path)
+    expect(session[:current_organisation_id]).to eq(org_a.id)
+  end
+
+  # The way back out of the management area asks the same predicate: a frame inside a
+  # management page does not overwrite the page the person came from.
+  it 'keeps the way back out of the management area through a frame request' do
+    inbox_a = organisation_notifications_path(org_a, state_filters: %w[unread read])
+    get organisation_settings_path(org_a), headers: { 'Referer' => "http://www.example.com#{inbox_a}" }
+    expect(session[:management_return_path]).to eq(inbox_a)
+
+    project_page = organisation_project_tickets_path(org_a, project_a)
+    get organisation_settings_path(org_a),
+        headers: { 'Referer' => "http://www.example.com#{project_page}", 'Turbo-Frame' => 'settings_frame' }
+    expect(session[:management_return_path]).to eq(inbox_a)
+
+    get organisation_settings_path(org_a), headers: { 'Referer' => "http://www.example.com#{project_page}" }
+    expect(session[:management_return_path]).to eq(project_page)
+  end
+
   it 'changes nothing for a person who is no member of the organisation in the address' do
     org_c = create(:organisation, name: 'Fremd KG')
     get organisation_notifications_path(org_c, state_filters: %w[unread read])

@@ -14,7 +14,6 @@ class Organisations::Projects::ActivitiesController < Organisations::BaseControl
   KNOWLEDGE_KEYS = (KNOWLEDGE_AREAS.flat_map do |area|
     Activities::AreaRegistry.keys_by_area.fetch(area, [])
   end + ['project.smart_folder_created']).freeze
-  DETAIL_FRAME_ID = 'ticket_display_frame'
 
   # Override ProjectController's authorize_project_access! with our own
   skip_before_action :authorize_project_access!
@@ -53,21 +52,11 @@ class Organisations::Projects::ActivitiesController < Organisations::BaseControl
     @selected_detail_url = selected_detail_url(Activities::ProjectTarget.call(@selected_activity)) if @selected_activity
   end
 
+  # The address of the object's own display in the lane's frame. One builder for this page
+  # and for the lane of the inbox (Inbox::ObjectFrame): the list of objects that have such a
+  # display is written there, once.
   def selected_detail_url(target)
-    route_options = { frame: 'content', frame_id: DETAIL_FRAME_ID }
-
-    case target
-    when Ticket
-      organisation_project_ticket_path(@current_organisation, @project, target, **route_options)
-    when Document
-      organisation_project_document_path(@current_organisation, @project, target, **route_options)
-    when Note
-      organisation_project_note_path(@current_organisation, @project, target, **route_options)
-    when Meeting
-      organisation_project_meeting_path(@current_organisation, @project, target, **route_options)
-    when TimeSession
-      organisation_project_time_session_path(@current_organisation, @project, target, **route_options)
-    end
+    Inbox::ObjectFrame.path(target, organisation: @current_organisation, project: @project)
   end
 
   def authorize_activities

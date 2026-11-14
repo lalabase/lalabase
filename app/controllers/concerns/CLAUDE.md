@@ -147,5 +147,6 @@ Controllernamen im `ApplicationController`. Bekannt und hingenommen: einzelne Da
 in Seiten-Controllern (`DocumentsController#download_plain_text`, der CSV-Export der Zeitgruppen)
 zählen als Seite; sie stehen nur auf Seiten derselben Organisation. Und ein Formular außerhalb
 jedes Frames, das per Redirect antwortet, zählt erst ab dem nächsten Klick (Turbo folgt mit
-Stream-Accept). Die Regel entscheidet nur, wohin ein Rückweg führt,
+Stream-Accept); so landet auch die Annahme einer Einladung (`AcceptInvitationsController#update`)
+in der neuen Organisation, ohne die Sitzung umzusetzen, bis zur ersten Seite dort. Die Regel entscheidet nur, wohin ein Rückweg führt,
 nie ein Recht. Wächter: `spec/requests/session_organisation_follows_pages_spec.rb`.

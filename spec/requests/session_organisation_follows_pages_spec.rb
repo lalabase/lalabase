@@ -3,9 +3,10 @@
 require 'rails_helper'
 
 # What: the session's organisation (session[:current_organisation_id]) follows the PAGES a
-#       person opens, not every request: a GET or HEAD that asks for HTML, outside a turbo
-#       frame, from a controller that serves pages. A frame load, a write, a file, a JSON
-#       read under /org/B/ leave it where it was, and still act in B themselves.
+#       person opens, not every request: a GET or HEAD that asks for HTML, no turbo stream,
+#       no script (XHR), outside a turbo frame, from a controller that serves pages, in an
+#       organisation the person is an active member of. A frame load, a write, a stream, a
+#       file, a JSON read under /org/B/ leave it where it was, and still act in B themselves.
 # Why:  the lane of the inbox above the organisations talks to the routes of the ticket's
 #       organisation (timeline frame, comment, status, files). Before this rule every one of
 #       those requests moved the session, so after working in the lane the help page and

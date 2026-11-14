@@ -409,4 +409,25 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
       expect(lane_notes).to eq(page_notes)
     end
   end
+
+  # Audit of the lane's writes on /inbox (plan §5.6), finding F1: a summary the instance cannot
+  # make (:not_configured) answered with redirect_back, which from the lane above is the whole
+  # page /inbox. Turbo follows it for the timeline frame, which that page does not draw (its
+  # lane loads by a request of its own), and the timeline showed "Content missing". It now
+  # answers in the stream, as every other refused summary does.
+  it 'keeps the timeline of the lane when the summary cannot be made' do
+    body = lane(south_row.id)
+    timeline = doc(body).at_css('turbo-frame[id^="ticket-timeline-"]')
+    allow_any_instance_of(TicketSummaryService).to receive(:call)
+      .and_return(TicketSummaryService::Result.new(status: :not_configured))
+
+    post create_summary_organisation_project_ticket_path(south, south_project, south_ticket),
+         headers: { 'Turbo-Frame' => timeline['id'], 'Accept' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml',
+                    'Referer' => "http://www.example.com#{all_inboxes_path(**list_state, notification: south_row.id)}" }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.media_type).to eq('text/vnd.turbo-stream.html')
+    expect(response.body).to include('turbo-stream action="prepend" target="flash"')
+    expect(session[:current_organisation_id]).to eq(north.id)
+  end
 end

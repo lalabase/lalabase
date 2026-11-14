@@ -876,8 +876,11 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
         expect(response.media_type).to eq('text/plain')
         expect(response.body).to eq('Angebot als Text')
         expect(session[:current_organisation_id]).to eq(north.id)
-        # The page of the document itself still is a page of its organisation.
-        get organisation_project_knowledge_index_path(south, south_project, document_id: south_document.id)
+        # The page of the document itself still is a page of its organisation: the same
+        # controller, asked without a frame (it redirects to the knowledge page with the
+        # document open). Only the file is no page.
+        get organisation_project_document_path(south, south_project, south_document)
+        expect(response).to redirect_to(%r{/org/#{south.id}/projects/#{south_project.id}/knowledge})
         expect(session[:current_organisation_id]).to eq(south.id)
       end
 

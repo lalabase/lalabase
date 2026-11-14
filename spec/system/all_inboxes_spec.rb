@@ -4,8 +4,8 @@ require 'rails_helper'
 
 # The inbox above the organisations in a real browser: what the request spec
 # (spec/requests/all_inboxes_spec.rb) cannot click. The sidebar narrows the list
-# to an organisation, and a row leaves for the inbox of ITS organisation, where
-# the ticket stands open in the lane.
+# to an organisation, and a ticket row opens in the lane of this page, the lane
+# of its organisation's inbox (the request: all_inboxes_lane_spec.rb).
 RSpec.describe 'Inbox above the organisations (System)', type: :system do
   # The full-page renders repeat lookups per row; not the scope of this spec.
   before { Prosopite.pause }
@@ -32,7 +32,7 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     page.current_window.resize_to(1440, 1000)
   end
 
-  it 'narrows to an organisation from the sidebar and opens a row in the inbox of its organisation' do
+  it 'narrows to an organisation from the sidebar and opens a row in the lane of this page' do
     visit all_inboxes_path
 
     expect(page).to have_css('.inbox-row', count: 2)
@@ -46,8 +46,10 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
 
     find('.inbox-row__link', text: 'Paket fehlt').click
 
-    expect(page).to have_current_path(%r{\A/org/#{south.id}/inbox\?})
     expect(page).to have_css('.inbox-lane-content', text: 'Paket fehlt')
+    expect(page).to have_current_path(%r{\A/inbox\?})
+    expect(Rack::Utils.parse_nested_query(URI(page.current_url).query)).to include('org' => south.id, 'notification' => be_present)
+    expect(page).to have_css('.inbox-row', count: 1)
   end
 
   # The "···" of a row acts in place: the row leaves the unread view, the counts
@@ -276,7 +278,10 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('.inbox-row', count: 2)
       hold_counts_response
 
-      find('.inbox-row__link', text: 'Regal wackelt').click
+      # A Turbo visit into an organisation's inbox (since S3 a ticket row opens the lane on
+      # this page instead of leaving it).
+      page.execute_script('window.Turbo.visit(arguments[0])',
+                          organisation_notifications_path(north, state_filters: %w[read unread]))
       expect(page).to have_current_path(%r{\A/org/#{north.id}/inbox\?})
       expect(page).to have_css('[data-inbox-tool="project"]')
       release_counts_response
@@ -436,6 +441,157 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('#all_inboxes_signal', visible: :all)
       expect(page).to have_no_css('#all_inboxes_banner', visible: :visible)
       expect(page).to have_css('.inbox-row', count: 1)
+    end
+  end
+
+  # The lane on this page, clicked for real and in real time (plan §7, browser): the
+  # session works in north, the ticket belongs to south. Reading, writing and closing
+  # in the lane leave the list where it is and the session where it was.
+  describe 'the lane' do
+    before { allow(ChatPolicy).to receive(:assistant_gate_open?).and_return(true) }
+
+    let(:png) { Base64.decode64('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==') }
+
+    let!(:south_ticket) do
+      ActsAsTenant.with_tenant(south) do
+        project = create(:project, organisation: south, name: 'Versand')
+        create(:ticket_attribute_definition,
+               project: project, name: 'status', field_type: 'select', system: true,
+               options: { 'allowed_values' => [
+                 { 'value' => 'Offen', 'labels' => { 'de' => 'Offen' }, 'system_functions' => ['is_new'] },
+                 { 'value' => 'Erledigt', 'labels' => { 'de' => 'Erledigt' }, 'system_functions' => ['is_completed'] }
+               ] })
+        ViewConfiguration.for_user_project(user, project).tap { |c| c.header_columns = %w[assignees status] }.save!
+        ticket = create(:ticket, project: project, title: 'Karton leer', custom_attributes: { 'status' => 'Offen' })
+        blob = ActiveStorage::Blob.create_and_upload!(io: StringIO.new(png), filename: 'karton.png', content_type: 'image/png')
+        picture = Post.new(ticket: ticket, user: user, organisation: south)
+        picture.content = %(<div>Foto vom Karton</div><action-text-attachment sgid="#{blob.attachable_sgid}" content-type="image/png" filename="karton.png" filesize="#{blob.byte_size}" width="1" height="1"></action-text-attachment>)
+        picture.save!(validate: false)
+        create(:notification, recipient: user, organisation: south, project: project, notifiable: ticket,
+                              event_type: 'ticket_assigned', channel: 'in_app', state: :delivered)
+        ticket
+      end
+    end
+
+    def unread_count
+      find('#inbox_unread_count').text.strip.to_i
+    end
+
+    it 'reads, writes and shuts in the lane, and the session stays in its organisation' do
+      visit organisation_notifications_path(north, state_filters: %w[read unread])
+      expect(page).to have_css('.inbox-row', text: 'Regal wackelt')
+
+      visit all_inboxes_path(state_filters: %w[read unread])
+      expect(page).to have_css('.inbox-row', count: 3)
+      row = find('.inbox-row', text: 'Karton leer')
+      expect(row).to have_css('[data-unread-marker]')
+      before_count = unread_count
+
+      row.find('a.inbox-row__link').click
+      expect(page).to have_css('#ticket_pane .inbox-lane-content', text: 'Karton leer')
+      expect(page).to have_css('.inbox-row', count: 3)
+      expect(page).to have_current_path(/notification=/)
+      expect(page).to have_css('#ticket_pane .lexxy-content img', wait: 10)
+
+      # The 5 s read, in real time: the dot goes, the count drops, no banner rises.
+      expect(find('.inbox-row', text: 'Karton leer')).to have_no_css('[data-unread-marker]', wait: 10)
+      expect(page).to have_css('#inbox_unread_count', exact_text: (before_count - 1).to_s, wait: 10)
+      expect(page).to have_css('#all_inboxes_banner', visible: :hidden)
+      # The read redraws the whole list; the open row tints itself again from the address.
+      expect(page).to have_css('.inbox-row.selected-row', count: 1)
+      expect(page).to have_css('.inbox-row.selected-row', text: 'Karton leer')
+
+      # A comment written in the lane shows in its timeline.
+      composer = "#new-post-composer-#{south_ticket.id}"
+      expect(page).to have_css("#{composer} [data-collapse-target='button']:not(.hidden)", wait: 10)
+      within(composer) { click_on 'Kommentar' }
+      editor = "#{composer} lexxy-editor[name='post[content]'] .lexxy-editor__content"
+      expect(page).to have_css(editor, wait: 10)
+      page.execute_script("document.querySelector(\"#{editor}\").focus()")
+      find(editor).send_keys('Antwort von oben')
+      within(composer) { find("button[type='submit']").click }
+      expect(page).to have_css('#ticket_pane', text: 'Antwort von oben', wait: 10)
+
+      expect(page).to have_no_css('#ticket_pane [data-controller~="assistant-trigger"]')
+
+      # The status changes in the ticket's head.
+      within('#ticket_pane [data-controller~="inline-status"]') do
+        find('[data-action~="click->inline-status#toggle"]', match: :first).click
+        find('[data-action~="click->inline-status#select"]', text: 'Erledigt').click
+      end
+      expect(page).to have_css('#ticket_pane [data-controller~="inline-status"]', text: 'Erledigt', wait: 10)
+
+      # The edit surface opens on this page and its save shows in the lane.
+      find('#ticket_pane a[href*="/edit"][data-turbo-frame="writing_surface"]', match: :first).click
+      expect(page).to have_css('turbo-frame#writing_surface .writing-surface', wait: 10)
+      find('.writing-surface input[name="ticket[title]"]').fill_in(with: 'Karton ganz leer')
+      find('.writing-surface button[type="submit"]').click
+      expect(page).to have_no_css('.writing-surface', wait: 10)
+      expect(page).to have_css('#ticket_pane', text: 'Karton ganz leer', wait: 10)
+      expect(page).to have_no_css('#ticket_pane [data-controller~="assistant-trigger"]')
+      expect(page).to have_css('.inbox-row', count: 3)
+      expect(page).to have_current_path(%r{\A/inbox\?})
+
+      # The close button shuts the lane; Back opens it again.
+      find('#ticket_pane [data-lane-close]').click
+      expect(page).to have_css('.layout.hide-content')
+      expect(page).to have_no_current_path(/notification=/)
+      page.go_back
+      expect(page).to have_current_path(/notification=/)
+      expect(page).to have_css('#ticket_pane .inbox-lane-content', text: 'Karton ganz leer', wait: 10)
+
+      # A reload with the lane open shows the ticket again.
+      visit current_url
+      expect(page).to have_css('#ticket_pane .inbox-lane-content', text: 'Karton ganz leer', wait: 10)
+      expect(page).to have_css('.inbox-row', count: 3)
+
+      # The "···" menu of the open row archives it: the head of the lane follows (review S3b round 1).
+      open_row = find('.inbox-row.selected-row', text: 'Karton ganz leer')
+      open_row.hover
+      open_row.find('.inbox-row__menu summary').click
+      open_row.click_button I18n.t('views.organisations.notifications.actions.archive')
+      expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.unarchive'),
+                                                           wait: 10)
+      expect(page).to have_css('#ticket_pane', text: 'Karton ganz leer')
+
+      # The promise of plan §3.2, read where a person reads it.
+      visit edit_user_preferences_path
+      back = find('a', text: I18n.t('navigation.back_to_organisation'))
+      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+    end
+
+    # Review S3b round 2: the head and the 5 s timer of the lane redraw the list. They take the
+    # list state the page's address names when they leave, as the bulk bar does, not the one
+    # of the moment the lane opened.
+    it 'updates the open head when the searched row is archived from its menu' do
+      visit all_inboxes_path(state_filters: %w[read unread])
+      find('.inbox-row', text: 'Karton leer').find('a.inbox-row__link').click
+      expect(page).to have_css('#ticket_pane .inbox-lane-content', text: 'Karton leer')
+
+      find('[data-fb-search-open-button]').click
+      find('#inbox-search').send_keys('Karton')
+      expect(page).to have_no_css('.inbox-row__title', text: 'Regal wackelt')
+      expect(page).to have_current_path(/search=Karton/)
+
+      # The 5 s read redraws the list in between; it keeps the search too and still names the
+      # open row, so the head follows ("Als ungelesen"). Review S3b round 3; its quiet is pinned in
+      # spec/javascript/controllers/pane_mark_read_delay_controller.test.js (the toast's target
+      # does not exist in the layout, so a browser cannot see it either way).
+      expect(find('.inbox-row', text: 'Karton leer')).to have_no_css('[data-unread-marker]', wait: 10)
+      expect(page).to have_no_css('.inbox-row__title', text: 'Regal wackelt')
+      expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.mark_unread'),
+                                                           wait: 10)
+
+      searched_row = find('.inbox-row', text: 'Karton leer')
+      searched_row.find('a.inbox-row__link').send_keys(:tab)
+      searched_row.find('.inbox-row__menu summary').click
+      searched_row.click_button I18n.t('views.organisations.notifications.actions.archive')
+      expect(page).to have_css('#inbox_pane_status_pills', text: I18n.t('views.organisations.notifications.actions.unarchive'),
+                                                           wait: 10)
+      expect(page).to have_no_css('.inbox-row__title', text: 'Karton leer')
+      expect(page).to have_no_css('.inbox-row__title', text: 'Regal wackelt')
+      expect(page).to have_no_css('.inbox-row__title', text: 'Paket fehlt')
+      expect(page).to have_current_path(/search=Karton/)
     end
   end
 end

@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-13)
+# Karte: app/javascript/controllers (Stand: 2026-11-14)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -46,6 +46,22 @@ Konventionen:
   verworfen. Vor dem synchronen Replace-Batch werden URL, Liste und Targets erneut geprüft.
   Ein inzwischen gewachsener Seitenbereich wird erneut geladen. Transiente Fehler werden
   mit wachsender Pause (maximal 30 Sekunden) wiederholt, solange der Kontext noch gilt.
+* `inbox_master_item` (Klick auf eine Inbox-Zeile): öffnet seit S3 (14.11.2026) auch in der
+  Gesamt-Inbox die Bahn; der Wert `lane` ist gelöscht, beide Seiten verhalten sich gleich (breit:
+  Frame laden, Adresse schreiben, Bahn öffnen; schmal: Vollansicht in der Organisation).
+* `inbox_lane_head` (S3, 14.11.2026) und `pane_mark_read_delay` mit `followAddress`: Kopf und
+  5-s-Timer der Bahn oben schreiben beim Absenden den Listenzustand der SEITE in ihre Adresse
+  (`listActionAddress` aus `lib/inbox_live.js`, Seiten des Endlos-Scrolls inklusive), behalten
+  aber die offene Zeile und `quiet` aus der eigenen Adresse (eine Suche nimmt `notification` aus
+  der Seitenadresse). Die Sammelleiste (`inbox_bulk_select#_carryListState`) folgt derselben Regel
+  mit eigener Kopie; zusammenlegen, wenn sie wieder angefasst wird.
+  ⚠️ Der Timer zeichnet eine Antwort nur, wenn er noch die Bahn ist, die gefragt hat (`disconnect`
+  bricht die Anfrage ab; geschlossene Bahn, entferntes Element und eine überholte Anfrage
+  verwerfen sie). Oben wendet er die Streams selbst an, ohne Turbos Warteschlange: die Liste nur,
+  wenn Seitenadresse, Listenelement und Aktionsadresse noch dieselben sind, den Kopf über den
+  Selektor mit `data-notification-id`, also nie den Kopf einer anderen Meldung. Er kennt nur
+  `replace`: Trägt die stille Antwort eine andere Aktion, fällt sie ganz weg (Wächter auf der
+  Serverseite: „answers the timer with replace alone" in `all_inboxes_row_actions_spec.rb`).
 * `inbox_bulk_select` (Leiste der Inbox, seit S2b auch in der Gesamt-Inbox): hält die Auswahl
   über jedes Neuzeichnen und über nachgeladene Seiten. In der Gesamt-Inbox
   (`followAddress`) zwei Dinge mehr, beide beim Absenden in `guardSubmit`: Die Formularadresse

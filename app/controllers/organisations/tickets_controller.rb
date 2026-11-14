@@ -673,8 +673,9 @@ class Organisations::TicketsController < Organisations::BaseController
     when :invalid_key
       render_summary_failure(t('flash.tickets.ai_invalid_key'))
     when :not_configured
-      flash[:alert] = t('flash.tickets.ai_not_configured')
-      redirect_back(fallback_location: organisation_project_tickets_path(current_organisation, @project))
+      # In the stream like every other refusal: redirect_back led the lane of the inbox above
+      # the organisations onto that whole page, and its timeline frame showed "Content missing".
+      render_summary_failure(t('flash.tickets.ai_not_configured'))
     else
       render_summary_failure(t('flash.tickets.ai_error'))
     end

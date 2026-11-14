@@ -179,6 +179,7 @@ else
   pin 'controllers/hover_reveal_controller', to: 'controllers/hover_reveal_controller.js'
   pin 'controllers/image_lightbox_controller', to: 'controllers/image_lightbox_controller.js'
   pin 'controllers/inbox_bulk_select_controller', to: 'controllers/inbox_bulk_select_controller.js'
+  pin 'controllers/inbox_lane_head_controller', to: 'controllers/inbox_lane_head_controller.js'
   pin 'controllers/inbox_master_item_controller', to: 'controllers/inbox_master_item_controller.js'
   pin 'controllers/index_page_controller', to: 'controllers/index_page_controller.js'
   pin 'controllers/inline_assignees_controller', to: 'controllers/inline_assignees_controller.js'

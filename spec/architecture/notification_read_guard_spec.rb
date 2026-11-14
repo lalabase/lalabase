@@ -42,11 +42,11 @@ module NotificationReadGuard
     'app/views/organisations/tickets/_ticket_display.html.erb' =>
       [1, 'unread marker of the ticket being displayed (ticket already authorized)'],
     'app/controllers/organisations/notifications_controller.rb' =>
-      [5, 'set_notification_for_open (2): its own row is authorized (NotificationPolicy, accessible_for) ' \
+      [4, 'set_notification_for_open (2): its own row is authorized (NotificationPolicy, accessible_for) ' \
           'before anything is shown; a foreign row only leads on to a ticket the person may read ' \
           '(policy show?); the broadcast after a mark-read re-sends rows ' \
-          'found through policy_scope; @new_activities reads the rows of a ticket that was authorized ' \
-          'first; @presenter.notifications is the inbox list the presenter built through policy_scope'],
+          'found through policy_scope; @presenter.notifications is the inbox list the presenter built ' \
+          'through policy_scope'],
     'app/controllers/api/v1/notifications_controller.rb' =>
       [1, 'writes: marks rows read whose ids came from the inbox query'],
     'app/controllers/organisations/projects_controller.rb' =>

@@ -77,10 +77,27 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
       expect(row_of(doc, south_row).at_css('.inbox-row__meta-text').text).to start_with('Suedhang AG · ')
     end
 
-    it 'leads a row into the inbox of its own organisation, with the row open' do
+    # S3: a ticket row opens in the lane of this page (all_inboxes_lane_spec.rb), as a row
+    # does inside an organisation; nothing on it leads into the organisation's inbox.
+    it 'opens a ticket row in the lane of this page, with the row named in the address' do
       link = row_of(page, south_row).at_css('a.inbox-row__link')
-      expect(link['href']).to start_with(organisation_notifications_path(south))
+      expect(URI(link['href']).path).to eq(all_inboxes_path)
       expect(Rack::Utils.parse_nested_query(URI(link['href']).query)).to include('notification' => south_row.id)
+      expect(link['data-turbo-frame']).to eq('ticket_pane')
+      expect(link['data-inbox-master-item-lane-value']).to be_nil
+    end
+
+    it 'leaves for its organisation with a row that is no ticket, as before (S4)' do
+      note_row = Prosopite.pause do
+        ActsAsTenant.with_tenant(south) do
+          ProjectPermission.find_by!(user: user, project: south_project).update!(notes_access: 'read_write')
+          create(:notification, recipient: user, organisation: south, project: south_project,
+                                notifiable: create(:note, project: south_project), event_type: 'system_message',
+                                channel: 'in_app', state: :delivered)
+        end
+      end
+      link = Prosopite.pause { row_of(page(view_mode: 'chronological'), note_row).at_css('a.inbox-row__link') }
+      expect(link['href']).to start_with(organisation_notifications_path(south))
       expect(link['data-turbo-frame']).to eq('_top')
     end
 
@@ -141,9 +158,11 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
       expect(page.at_css('.list-tab-bar__tabs').text).to match(/\b2\b/)
     end
 
-    it 'opens a row in the list it stood in: unread and read by default, the chosen view otherwise' do
+    it 'opens a row in the list it stood in: the view of the page by default, the chosen view otherwise' do
       default_link = row_of(page, south_row).at_css('a.inbox-row__link')['href']
-      expect(Rack::Utils.parse_nested_query(URI(default_link).query)['state_filters']).to eq(%w[read unread])
+      expect(Rack::Utils.parse_nested_query(URI(default_link).query)).to eq('notification' => south_row.id)
+      chosen_link = row_of(page(state_filters: %w[read unread]), south_row).at_css('a.inbox-row__link')['href']
+      expect(Rack::Utils.parse_nested_query(URI(chosen_link).query)['state_filters']).to eq(%w[read unread])
 
       archived = Prosopite.pause { ticket_row(south, south_project, 'Abgelegt', state: :archived) }
       archived_link = row_of(page(state_filters: %w[archived]), archived).at_css('a.inbox-row__link')['href']

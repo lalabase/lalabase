@@ -339,6 +339,7 @@ jobs:
           spec/requests/inbox_pagination_spec.rb
           spec/requests/all_inboxes_spec.rb
           spec/requests/session_organisation_follows_pages_spec.rb
+          spec/requests/all_inboxes_lane_spec.rb
           spec/requests/all_inboxes_row_actions_spec.rb
           spec/requests/all_inboxes_bulk_actions_spec.rb
           spec/services/actors/change_notification_states_spec.rb

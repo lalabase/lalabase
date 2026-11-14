@@ -56,7 +56,8 @@ RSpec.describe NeoInboxMasterItemComponent, type: :component do
   # The inbox above the organisations (AllInboxesController).
   context 'with the name of its organisation' do
     before do
-      allow_any_instance_of(ApplicationController).to receive(:current_organisation).and_return(nil)
+      allow_any_instance_of(ApplicationController).to receive_messages(current_organisation: nil,
+                                                                       page_above_organisations?: true)
       render_inline(described_class.new(notification: notification, organisation_name: 'Nordwind GmbH'))
     end
 
@@ -64,13 +65,16 @@ RSpec.describe NeoInboxMasterItemComponent, type: :component do
       expect(page.find('.inbox-row__meta-text').text).to start_with('Nordwind GmbH · ')
     end
 
-    it 'is a plain visit of the inbox of that organisation, the full view on a narrow screen' do
+    # S3: a ticket row opens in the lane of /inbox, as inside an organisation; below lg the
+    # click controller still opens the full view in the row's organisation.
+    it 'opens in the lane of this page, the full view on a narrow screen' do
       link = page.find('a.inbox-row__link')
-      expect(link[:href]).to start_with("/org/#{organisation.id}/inbox?")
+      expect(link[:href]).to start_with('/inbox?')
       expect(link[:href]).to include("notification=#{notification.id}")
-      expect(link['data-turbo-frame']).to eq('_top')
-      expect(link['data-inbox-master-item-lane-value']).to eq('false')
-      expect(link['data-inbox-master-item-fullview-url-value']).to be_present
+      expect(link['data-turbo-frame']).to eq('ticket_pane')
+      expect(link['data-controller']).to eq('inbox-master-item')
+      expect(link.native.attributes.keys).not_to include('data-inbox-master-item-lane-value')
+      expect(link['data-inbox-master-item-fullview-url-value']).to start_with("/org/#{organisation.id}/inbox/")
     end
 
     it 'names its organisation at the bulk checkbox, for the question of the bulk bar' do

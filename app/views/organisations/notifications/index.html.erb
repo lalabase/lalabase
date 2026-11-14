@@ -1,75 +1,38 @@
 <% content_for :title, t('navigation.notifications') %>
 
-<%# The inbox on the shared list-and-lane grid of "Personen" and "Alle
-    Meetings" (NeoTwoColumnGridComponent, lane: true): the list on the
-    left, the ticket of the chosen notification in the lane. Without a chosen
-    notification the lane is shut and the list takes the width; a click opens
-    it (inbox_master_item_controller loads the frame and writes the address).
-    The lane itself belongs to layout-toggle and index-page, as on those
-    pages: the ✕ of the lane head and Escape shut it and take ?notification=
-    out of the address, Back and Forward restore what the address names.
-    Without them an open lane had no way back, and with the assistant beside
-    it (the list yields to the two, layout.css) there was no list to go to.
-    Below lg the grid gives way to a plain page (the inbox block of application.tailwind.css): the list alone,
-    a click opens the ticket's full view (spec chapter 4.7). %>
-<% lane_open = @pane_state.present? %>
+<%# The inbox of one organisation on the frame both inboxes share
+    (organisations/notifications/_inbox_page). Its list header, its live
+    stream per organisation and its lane (the pane of the chosen notification,
+    or the empty frame the rows load into). %>
+<% head = capture do %>
+  <%= render 'organisations/notifications/list_head',
+             presenter: @presenter, projects: @projects, unread_count: @unread_count %>
 
-<div class="labor-layout-view people-page inbox-page <%= 'show-content' if lane_open %>"
-     data-controller="layout-toggle index-page"
-     data-layout-toggle-detail-frame-id-value="ticket_pane"
-     data-layout-toggle-content-selector-value=".inbox-lane-content"
-     data-layout-toggle-selected-row-selector-value=".selected-row[data-notification-id]"
-     data-layout-toggle-selection-params-value="<%= %w[notification].to_json %>"
-     data-layout-toggle-storage-key-value="layoutState:inbox"
-     data-index-page-param-name-value="notification"
-     data-index-page-frame-id-value="ticket_pane"
-     data-index-page-content-selector-value=".inbox-lane-content"
-     data-index-page-selected-row-selector-value=".selected-row[data-notification-id]">
-  <%= render NeoTwoColumnGridComponent.new(
-    context_type: :inbox,
-    css_classes: "#{lane_open ? 'show-content' : 'hide-content'} hide-panel",
-    chrome_height: NeoTwoColumnGridComponent::LANE_CHROME_HEIGHT_PX,
-    lane: true
-  ) do |grid| %>
-    <% grid.with_list do %>
-      <%# Stimulus scope of the bulk selection: the head (its "···" item and
-          the bulk bar) and the rows. %>
-      <div class="inbox-list-column" data-controller="inbox-bulk-select">
-        <%= render 'organisations/notifications/list_head',
-                   presenter: @presenter, projects: @projects, unread_count: @unread_count %>
+  <%= turbo_stream_from Notifications::Streams.notifications(current_user, current_organisation) %>
+<% end %>
 
-        <%= turbo_stream_from Notifications::Streams.notifications(current_user, current_organisation) %>
-
-        <turbo-frame id="notifications_list_frame" class="block">
-          <div id="new_notifications_banner" class="hidden"></div>
-          <%= render 'master_list', presenter: @presenter, selected_notification: @selected_notification %>
-          <%# The search reloads only this frame. The tools that carry the
-              search in their addresses stand outside it and come along as a
-              stream, INSIDE the frame: after </turbo-frame> Turbo drops it
-              (the time list's FRAME_DEPENDENT_REGIONS idiom). The view switch
-              in the page head carries it too. %>
-          <% if turbo_frame_request_id == 'notifications_list_frame' %>
-            <%= turbo_stream.replace 'inbox_list_tools' do %>
-              <%= render 'organisations/notifications/list_tools',
-                         presenter: @presenter, projects: @projects, unread_count: @unread_count %>
-            <% end %>
-            <%= turbo_stream.replace 'inbox_view_switch' do %>
-              <%= render 'organisations/notifications/view_switch', presenter: @presenter %>
-            <% end %>
-          <% end %>
-        </turbo-frame>
-      </div>
+<% list = capture do %>
+  <div id="new_notifications_banner" class="hidden"></div>
+  <%= render 'master_list', presenter: @presenter, selected_notification: @selected_notification %>
+  <%# The search reloads only this frame. The tools that carry the
+      search in their addresses stand outside it and come along as a
+      stream, INSIDE the frame: after </turbo-frame> Turbo drops it
+      (the time list's FRAME_DEPENDENT_REGIONS idiom). The view switch
+      in the page head carries it too. %>
+  <% if turbo_frame_request_id == 'notifications_list_frame' %>
+    <%= turbo_stream.replace 'inbox_list_tools' do %>
+      <%= render 'organisations/notifications/list_tools',
+                 presenter: @presenter, projects: @projects, unread_count: @unread_count %>
     <% end %>
-
-    <% grid.with_main_content do %>
-      <% if @pane_state %>
-        <%= render inbox_pane_partial %>
-      <% else %>
-        <%= render 'pane_empty' %>
-      <% end %>
+    <%= turbo_stream.replace 'inbox_view_switch' do %>
+      <%= render 'organisations/notifications/view_switch', presenter: @presenter %>
     <% end %>
   <% end %>
-</div>
+<% end %>
+
+<%= render 'organisations/notifications/inbox_page',
+           lane_open: @pane_state.present?, head: head, list: list,
+           lane: render(@pane_state ? inbox_pane_partial : 'pane_empty') %>
 
 <!-- Scroll to Top Button (Mobile only) -->
 <div class="sm:hidden" data-controller="scroll-to-top">

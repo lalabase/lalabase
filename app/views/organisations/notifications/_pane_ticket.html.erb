@@ -1,11 +1,14 @@
 <%# When the pane is freshly loaded via a Turbo Frame click, the
     master-list entry should also receive the selected state.
-    The turbo-stream element is applied document-wide by Turbo. %>
+    The turbo-stream element is applied document-wide by Turbo. Above the
+    organisations the row names its organisation, as every row of that page;
+    its links keep the list state of the request (the page's address). %>
 <% if @selected_notification %>
   <%= turbo_stream.replace dom_id(@selected_notification) do %>
     <div id="<%= dom_id(@selected_notification) %>"
          data-notification-item="<%= @selected_notification.id %>">
-      <%= render NeoInboxMasterItemComponent.new(notification: @selected_notification, selected: true) %>
+      <%= render NeoInboxMasterItemComponent.new(notification: @selected_notification, selected: true,
+                                                 organisation_name: (@current_organisation.name if inbox_above_organisations?)) %>
     </div>
   <% end %>
 <% end %>
@@ -26,10 +29,13 @@
       Stimulus fires a PATCH after 5s; the server responds with a
       turbo_stream that only swaps the pills (inbox_pane_status_pills) and the
       master item — NO full-pane reload, so that an already-open
-      reply form is not destroyed. %>
+      reply form is not destroyed. The address is the row action's
+      (inbox_row_action_path): above the organisations the page's own, with the
+      open row and quiet (no toast). %>
   <% if @selected_notification && @selected_notification.unread? %>
     <div data-controller="pane-mark-read-delay"
-         data-pane-mark-read-delay-url-value="<%= mark_read_organisation_notification_path(@current_organisation, @selected_notification) %>"
+         data-pane-mark-read-delay-url-value="<%= inbox_row_action_path(:mark_read, @selected_notification, open: true, quiet: true) %>"
+         <%= tag.attributes(data: { pane_mark_read_delay_follow_address_value: 'true' }) if inbox_above_organisations? %>
          data-pane-mark-read-delay-delay-value="5000"></div>
   <% end %>
 
@@ -44,7 +50,7 @@
     <div class="inbox-lane-head">
       <span class="inbox-lane-head__project"><%= @project.name %></span>
       <div class="inbox-lane-head__actions">
-        <%= render 'pane_status_pills',
+        <%= render 'organisations/notifications/pane_status_pills',
                    notification: @selected_notification,
                    current_organisation: @current_organisation,
                    project: @project,
@@ -55,7 +61,7 @@
 
     <%# "What was new" block: unread activities of this ticket (context
         for the row grouped in the list). %>
-    <%= render 'pane_new_activity', new_activities: @new_activities %>
+    <%= render 'organisations/notifications/pane_new_activity', new_activities: @new_activities %>
 
     <%# Ticket display in the ticket_display_frame — exactly like the standalone
         view (_index_desktop.html.erb). The "Edit" pencil opens the writing surface

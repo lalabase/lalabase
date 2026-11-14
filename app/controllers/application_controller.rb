@@ -203,10 +203,24 @@ class ApplicationController < ActionController::Base
   # (§13-2 pair: operator flag plus the use_assistant permission, both against an
   # ACTIVE membership); this is only its view-side door.
   def assistant_available?
-    user_signed_in? && current_organisation.present? &&
+    user_signed_in? && current_organisation.present? && !page_above_organisations? &&
       ChatPolicy.assistant_gate_open?(current_user, current_organisation)
   end
   helper_method :assistant_available?
+
+  # Full pages name their own context. Fragment responses retain the hosting
+  # page's context: comments and ticket edits on /inbox go through organisation
+  # controllers, but must not introduce assistant controls into a page without
+  # a panel. A normal full-page visit from /inbox still enables its own panel.
+  def page_above_organisations?
+    return false if full_page_request?
+
+    source = URI.parse(request.referer.to_s)
+    source.host == request.host && source.port == request.port && source.path == all_inboxes_path
+  rescue URI::InvalidURIError
+    false
+  end
+  helper_method :page_above_organisations?
 
   # The panel's open/width state as the browser last left it (§7.7). Read here so
   # the layout can render <main> ALREADY shifted, instead of the page jumping

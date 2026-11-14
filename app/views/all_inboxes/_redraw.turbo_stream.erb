@@ -46,8 +46,7 @@
 <% if open_lane %>
   <%= turbo_stream.replace_all "#inbox_pane_status_pills[data-notification-id='#{open_lane[:notification].id}']" do %>
     <%= render 'organisations/notifications/pane_status_pills',
-               notification: open_lane[:notification], current_organisation: open_lane[:organisation],
-               project: open_lane[:project], ticket: open_lane[:ticket] %>
+               notification: open_lane[:notification], kind: open_lane[:kind] %>
   <% end %>
 <% end %>
 

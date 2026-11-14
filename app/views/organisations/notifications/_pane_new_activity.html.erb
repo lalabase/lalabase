@@ -1,5 +1,7 @@
-<%# "Was war neu": the unread activities of this ticket, newest on top. Gives
-    back the context that the bundling in the list takes away. Snapshot on
+<%# "Was war neu": the unread notifications of the row's subject, newest on top. Gives
+    back the context that the bundling in the list takes away: a row about a project
+    stands for unlike events (a new note, a new member), so each line says what it was
+    and names its object from the payload. Plain lines, no links. Snapshot on
     opening: stays visible after the delayed mark-read.
     Locals: new_activities (Array<Notification>). %>
 <% if new_activities.present? %>
@@ -8,7 +10,7 @@
       <% line = Inbox::ActivityLine.new(activity) %>
       <li class="inbox-new-activity__item">
         <span class="inbox-new-activity__who"><%= line.actor_name %></span>
-        <span class="inbox-new-activity__what"><%= line.label %></span>
+        <span class="inbox-new-activity__what"><%= [line.event_words, line.object_name].compact_blank.join(' · ') %></span>
         <span class="inbox-new-activity__time"><%= line.time_ago %></span>
       </li>
     <% end %>

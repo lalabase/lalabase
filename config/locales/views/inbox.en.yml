@@ -105,8 +105,45 @@ en:
           unauthorized_title: No access to this ticket
           unauthorized_subtitle: You're not a member of this project.
           non_ticket_title: This notification opens in the full view
-          non_ticket_subtitle: This column shows tickets only.
+          non_ticket_subtitle: This column has no view for this notification.
           open_full_view: Open ticket
+          open_full_view_of:
+            note: Open note
+          unauthorized_title_of:
+            note: No access to this note
+          event_card:
+            links:
+              project: Go to project
+              document: Open file
+              meeting: Open meeting
+            default:
+              title: Something happened in %{project}
+            gone:
+              title: This no longer exists
+            member_added:
+              title: New member
+              what: added a member
+            member_removed:
+              title: Member removed
+              what: removed a member
+            permission_changed:
+              title: Permissions changed
+              what: changed permissions
+            updated:
+              title: Project changed
+              what: changed the project
+            note_created:
+              title: New note
+              what: created a note
+            document_created:
+              title: New file
+              what: added a file
+            meeting_created:
+              title: New meeting
+              what: created a meeting
+            meeting_deleted:
+              title: Meeting deleted
+              what: deleted a meeting
           close: Close
         stats:
           title: Notification Statistics

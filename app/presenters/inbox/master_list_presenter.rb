@@ -64,6 +64,37 @@ module Inbox
       scope.apply_filters(filters).created_in_period(filters['period'], time_zone: time_zone)
     end
 
+    # How many notifications the list bundles into the row of this notification's
+    # subject, under the filters the rows were narrowed with (group_total, asked for
+    # ONE row). For a caller that redraws a single row of the list (the lane marks
+    # its open row): the row decides its title by this number, like the row the list
+    # drew. 1 in the chronological list, where every row is one notification.
+    def self.bundle_size(notification, scope:, params:)
+      params = params.to_h.with_indifferent_access
+      return 1 unless (params[:view_mode].presence || 'grouped').to_s == 'grouped'
+
+      rows = with_states(scope, state_filters(params))
+      [rows.where(notifiable_type: notification.notifiable_type, notifiable_id: notification.notifiable_id).count, 1].max
+    end
+
+    # The state filters an address names: state_filters[], or the single `state`.
+    def self.state_filters(params)
+      arr = Array(params[:state_filters]).reject(&:blank?)
+      arr << params[:state] if arr.empty? && params[:state].present?
+      arr.uniq
+    end
+
+    # The rows in the states the filters name; without a filter everything but the archive.
+    def self.with_states(scope, filters)
+      return scope.where.not(state: Notification.states[:archived]) if filters.empty?
+
+      allowed = []
+      allowed += %w[queued sent delivered] if filters.include?('unread')
+      allowed << 'read'     if filters.include?('read')
+      allowed << 'archived' if filters.include?('archived')
+      scope.where(state: allowed)
+    end
+
     # The pagy helper needs a class instance that understands `params` and the
     # `pagy_*` helpers — the controller passes itself. time_zone: the zone the
     # reader's days run in (User#time_zone), for the period headings.
@@ -227,21 +258,11 @@ module Inbox
     end
 
     def derive_active_state_filters
-      arr = Array(@params[:state_filters]).reject(&:blank?)
-      arr << @params[:state] if arr.empty? && @params[:state].present?
-      arr.uniq
+      self.class.state_filters(@params)
     end
 
     def apply_state_filters(scope)
-      if active_state_filters.any?
-        allowed = []
-        allowed += %w[queued sent delivered] if active_state_filters.include?('unread')
-        allowed << 'read'     if active_state_filters.include?('read')
-        allowed << 'archived' if active_state_filters.include?('archived')
-        scope.where(state: allowed)
-      else
-        scope.where.not(state: Notification.states[:archived])
-      end
+      self.class.with_states(scope, active_state_filters)
     end
 
     # { [notifiable_type, notifiable_id] => count } over the scope.

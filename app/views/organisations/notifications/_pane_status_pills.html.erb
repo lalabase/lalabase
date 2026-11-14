@@ -1,23 +1,25 @@
-<%# The head of the open notification in the lane: the link to the ticket's
-    full view, then the actions on the notification in words ("Als gelesen" /
-    "Als ungelesen", "Archivieren"; archived: "Zurück in die Inbox"), the same
+<%# The head of the open notification in the lane: the link to the full view of what the
+    lane shows (the ticket's page, the note's; Inbox::LaneKind#full_path, none for an event
+    card, whose one link is its own), then the actions on the notification in words ("Als
+    gelesen" / "Als ungelesen", "Archivieren"; archived: "Zurück in die Inbox"), the same
     as in the "···" menu of its row (_notification_actions). Archiving keeps
-    the ticket open here, the row leaves the list, no jump to the next one.
+    the lane open here, the row leaves the list, no jump to the next one.
     The buttons share one form (F2: same height, same light edge): neither is
     the main action of the lane.
     Stable id "inbox_pane_status_pills": a state change swaps only this
     small area, never the whole lane (an open reply form would be lost).
     Above the organisations the stream also matches data-notification-id:
     a late answer cannot replace the head of another notification.
-    Locals: notification, current_organisation, project, ticket. %>
+    Locals: notification, kind (Inbox::LaneKind). %>
 <%# Above the organisations inbox-lane-head carries the page's list state into the
     actions when they leave (their answer redraws the list). %>
 <div id="inbox_pane_status_pills" class="inbox-lane-actions" data-notification-id="<%= notification.id %>"
      <%= tag.attributes(data: { controller: 'inbox-lane-head' }) if inbox_above_organisations? %>>
-  <%= link_to organisation_project_ticket_path(current_organisation, project, ticket),
-              target: '_top', class: 'inbox-lane-actions__open' do %>
-    <%= t('views.organisations.notifications.pane.open_full_view') %>
-    <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+  <% if (full_view = kind.full_path) %>
+    <%= link_to full_view, target: '_top', class: 'inbox-lane-actions__open' do %>
+      <%= inbox_lane_full_view_label(kind) %>
+      <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+    <% end %>
   <% end %>
   <%= render 'organisations/notifications/notification_actions',
              notification: notification, button_class: 'inbox-lane-actions__button', icons: true, open: true %>

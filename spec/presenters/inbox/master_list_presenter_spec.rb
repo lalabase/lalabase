@@ -143,4 +143,41 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(presenter.notifications.size).to eq(2)
     end
   end
+
+  # S4: the lane redraws its open row, and the row decides its title by the size of the bundle
+  # the LIST drew it for. One row asks the presenter's own rule.
+  describe '.bundle_size' do
+    let!(:newest) { notif(ticket_a, created_at: 1.hour.ago) }
+
+    before do
+      notif(ticket_a, created_at: 2.hours.ago, state: 'read')
+      notif(ticket_a, created_at: 3.hours.ago, state: 'archived')
+      notif(ticket_b, created_at: 4.hours.ago)
+    end
+
+    def size(params = {})
+      ActsAsTenant.with_tenant(organisation) { described_class.bundle_size(newest, scope: scope, params: params) }
+    end
+
+    it 'counts the notifications about the same subject the list shows: everything but the archive by default' do
+      expect(size).to eq(2)
+      expect(build.group_total(newest)).to eq(2)
+    end
+
+    it 'follows the state filters of the list' do
+      expect(size(state_filters: ['unread'])).to eq(1)
+      expect(size(state_filters: %w[read unread archived])).to eq(3)
+      expect(size('state' => 'read')).to eq(1)
+    end
+
+    it 'is 1 in the chronological list, where every row is one notification' do
+      expect(size(view_mode: 'chronological')).to eq(1)
+    end
+
+    it 'is never below 1, also for a row the filters leave out' do
+      expect(size(state_filters: ['archived'])).to eq(1)
+      newest.update_columns(state: 'archived')
+      expect(size(state_filters: ['unread'])).to eq(1)
+    end
+  end
 end

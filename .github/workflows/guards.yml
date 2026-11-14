@@ -329,6 +329,8 @@ jobs:
           spec/requests/inbox_nav_count_stream_spec.rb
           spec/requests/inbox_banner_and_state_change_spec.rb
           spec/requests/inbox_pane_flow_spec.rb
+          spec/requests/inbox_lane_kinds_spec.rb
+          spec/services/inbox/lane_kind_spec.rb
           spec/requests/inbox_url_redirect_spec.rb
           spec/requests/inbox_bulk_actions_spec.rb
           spec/requests/inbox_row_actions_spec.rb

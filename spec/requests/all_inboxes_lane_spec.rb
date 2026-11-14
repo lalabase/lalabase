@@ -602,4 +602,228 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
               Current.organisation]).to eq([nil, nil, nil])
     end
   end
+
+  # S4: a row that is not about a ticket. A row about a project reports one of its events;
+  # Inbox::LaneKind says what the lane shows for it. Above the organisations the lane's chrome
+  # is this page's, and the body of a note is a frame the NOTE's controller draws under
+  # /org/<the organisation of the row>/: a frame load, which does not move the session.
+  describe 'a row that is not about a ticket' do
+    let(:colleague) { create(:user, first_name: 'Kai', last_name: 'Kollege') }
+
+    def note_in(org, project, title)
+      ActsAsTenant.with_tenant(org) { create(:note, project: project, organisation: org, creator: colleague, title: title) }
+    end
+
+    def allow_areas(org, project, **areas)
+      ActsAsTenant.with_tenant(org) { ProjectPermission.find_by!(user: user, project: project).update!(**areas) }
+    end
+
+    def note_row_in(org, project, note, **options)
+      Prosopite.pause do
+        project_event_row(org, project, 'note_created', recipient: user, actor: colleague, secondary: note,
+                                                        parameters: { 'note_title' => note.title }, **options)
+      end
+    end
+
+    let(:south_note) { note_in(south, south_project, 'Protokoll Versand') }
+    let(:north_note) { note_in(north, north_project, 'Protokoll Lager') }
+    let!(:south_note_row) do
+      allow_areas(south, south_project, notes_access: 'read_write', members_access: 'read_only')
+      note_row_in(south, south_project, south_note, created_at: 30.minutes.ago)
+    end
+    let!(:north_note_row) do
+      allow_areas(north, north_project, notes_access: 'read_write')
+      note_row_in(north, north_project, north_note, created_at: 40.minutes.ago)
+    end
+
+    def note_frame_of(body)
+      doc(body).at_css('turbo-frame#ticket_pane turbo-frame#ticket_display_frame')
+    end
+
+    it 'answers the chrome of this page and a frame that loads the note under its organisation' do
+      body = lane(south_note_row.id, org: south.id)
+
+      expect(body).not_to include('<html', 'id="inbox_master_list"')
+      inner = note_frame_of(body)
+      path, query = inner['src'].split('?')
+      expect(path).to eq("/org/#{south.id}/projects/#{south_project.id}/notes/#{south_note.id}")
+      expect(Rack::Utils.parse_query(query)).to eq('frame' => 'content', 'frame_id' => 'ticket_display_frame')
+      expect(doc(body).at_css('.inbox-lane-head__project').text).to eq('Versand')
+
+      # The head's actions and the timer are this page's, with the list state and the open row.
+      forms = doc(body).css('#inbox_pane_status_pills form').pluck('action')
+      expect(forms).not_to be_empty
+      forms.each do |action|
+        uri = URI(action)
+        expect(uri.path).to match(%r{\A/inbox/#{south_note_row.id}/(mark_read|mark_unread|archive)\z})
+        expect(Rack::Utils.parse_nested_query(uri.query))
+          .to include('state_filters' => %w[read unread], 'org' => south.id, 'notification' => south_note_row.id)
+      end
+      timer = URI(doc(body).at_css('[data-pane-mark-read-delay-url-value]')['data-pane-mark-read-delay-url-value'])
+      expect(timer.path).to eq("/inbox/#{south_note_row.id}/mark_read")
+      expect(Rack::Utils.parse_nested_query(timer.query))
+        .to include('state_filters' => %w[read unread], 'notification' => south_note_row.id, 'quiet' => '1')
+      expect(doc(body).at_css('#inbox_pane_status_pills a.inbox-lane-actions__open')['href'])
+        .to eq("/org/#{south.id}/projects/#{south_project.id}/notes/#{south_note.id}")
+
+      # No inbox address under /org/ but the full view of the redrawn row (a tap below lg).
+      inbox_addresses = addresses(body).grep(%r{/org/[^/]+/inbox/})
+      expect(inbox_addresses).to eq(doc(body).css('[data-inbox-master-item-fullview-url-value]')
+                                             .map { |node| node['data-inbox-master-item-fullview-url-value'] })
+      expect(inbox_addresses).to all(end_with('/open?source=inbox'))
+      # The redrawn row names its organisation and keeps the title of the note.
+      template = doc(body).at_css(%(turbo-stream[action="replace"][target="notification_#{south_note_row.id}"] template))
+      expect(template.at_css('.inbox-row__meta-text').text).to start_with('Suedhang AG · ')
+      expect(template.at_css('.inbox-row__title').text).to eq('Protokoll Versand')
+    end
+
+    it 'keeps the session in the organisation it was in and leaves no tenant on the thread' do
+      lane(south_note_row.id)
+      expect(session[:current_organisation_id]).to eq(north.id)
+      expect(ActsAsTenant.current_tenant).to be_nil
+    end
+
+    it 'leaves no tenant on the thread when the pane of a note row raises' do
+      allow_any_instance_of(Inbox::LaneKind).to receive(:frame_path).and_raise(ArgumentError, 'pane broke')
+      expect { get all_inboxes_path(**list_state, notification: south_note_row.id), headers: frame }
+        .to raise_error(ActionView::Template::Error, /pane broke/)
+      expect(ActsAsTenant.current_tenant).to be_nil
+      expect(session[:current_organisation_id]).to eq(north.id)
+    end
+
+    it 'loads the note through its own controller, which leaves the session where it is' do
+      address = note_frame_of(lane(south_note_row.id))['src']
+
+      get address, headers: { 'Turbo-Frame' => 'ticket_display_frame', 'Referer' => "http://www.example.com#{all_inboxes_path}" }
+
+      expect(response).to have_http_status(:ok)
+      answer = doc(response.body)
+      expect(answer.at_css('turbo-frame#ticket_display_frame [data-lane-title]').text).to eq('Protokoll Versand')
+      expect(response.body).not_to include('<html')
+      expect(session[:current_organisation_id]).to eq(north.id)
+    end
+
+    it 'answers the card of a new member of another organisation' do
+      member_row = Prosopite.pause do
+        project_event_row(south, south_project, 'member_added', recipient: user, actor: colleague,
+                                                                parameters: { 'user_name' => 'Mia Neu' })
+      end
+
+      body = lane(member_row.id)
+
+      card = doc(body).at_css('turbo-frame#ticket_pane [data-inbox-event-card="member_added"]')
+      expect(card.at_css('.inbox-lane-notice__body').text).to include('Kai Kollege', 'Mia Neu')
+      expect(card.css('a').map { |a| a['href'] }).to eq(["/org/#{south.id}/projects/#{south_project.id}"])
+      expect(doc(body).css('#inbox_pane_status_pills form').pluck('action')).to all(start_with("/inbox/#{member_row.id}/"))
+      expect(note_frame_of(body)).to be_nil
+      expect(session[:current_organisation_id]).to eq(north.id)
+    end
+
+    # Each rule on the lane request for a NOTE row, each its own example: every refused row
+    # answers what a row that does not exist answers. Before each refusal the same example
+    # sees the lane of a readable note row.
+    describe 'that the person may not open' do
+      def expect_readable_note_row_opens
+        expect(note_frame_of(lane(north_note_row.id))['src']).to include("/notes/#{north_note.id}")
+      end
+
+      def expect_refused(notification_id)
+        expect_readable_note_row_opens
+        expected = missing_body
+        expect(expected).to include('id="ticket_pane"')
+        expect(lane(notification_id)).to eq(expected)
+      end
+
+      it 'refuses a note row of a project the person lost' do
+        hidden_project = project_in(south, name: 'Geheim')
+        hidden = note_row_in(south, hidden_project, note_in(south, hidden_project, 'Geheimes Protokoll'))
+        expect_refused(hidden.id)
+      end
+
+      it 'refuses a note row once the person lost the notes area' do
+        allow_areas(south, south_project, notes_access: 'no_access')
+        expect_refused(south_note_row.id)
+      end
+
+      it 'refuses a note row of an archived project' do
+        ActsAsTenant.with_tenant(south) { south_project.update!(archived_at: 1.day.ago) }
+        expect_refused(south_note_row.id)
+      end
+
+      it 'refuses a note row of an organisation the person was deactivated in' do
+        Membership.find_by(user: user, organisation: south).update!(active: false)
+        expect_refused(south_note_row.id)
+      end
+
+      it 'refuses a note row of an organisation the person was removed from' do
+        Membership.find_by(user: user, organisation: south).destroy!
+        expect_refused(south_note_row.id)
+      end
+
+      it "refuses another person's note row" do
+        other = create(:user)
+        theirs = Prosopite.pause do
+          make_token_owner_a_member(other, south, projects: [south_project], area: :notes)
+          project_event_row(south, south_project, 'note_created', recipient: other, actor: colleague, secondary: south_note,
+                                                                  parameters: { 'note_title' => south_note.title })
+        end
+        expect_refused(theirs.id)
+      end
+
+      it 'refuses the mail twin of a note row' do
+        mail = note_row_in(south, south_project, south_note, channel: 'email')
+        expect_refused(mail.id)
+      end
+
+      it 'refuses a malformed id' do
+        expect_refused('not-a-note-row')
+      end
+
+      # No real state reaches this (the row and the note ask the same area of the same
+      # project), so the note's policy is stubbed: the loader asks it, and above the answer
+      # is the one body of every refusal, not "not allowed" (which says the row exists).
+      it 'refuses a note row whose note the policy refuses' do
+        expect_readable_note_row_opens
+        expected = missing_body
+        allow_any_instance_of(NotePolicy).to receive(:show?).and_return(false)
+
+        expect(lane(south_note_row.id)).to eq(expected)
+      end
+
+      it 'refuses a row about a subject without an entry' do
+        person_row = Prosopite.pause do
+          ActsAsTenant.with_tenant(south) do
+            create(:notification, recipient: user, organisation: south, notifiable: create(:person, organisation: south),
+                                  channel: 'in_app', state: :delivered)
+          end
+        end
+        get organisation_notifications_path(south, state_filters: %w[read unread], notification: person_row.id), headers: frame
+        expect(response.body).to include(I18n.t('views.organisations.notifications.pane.non_ticket_title'))
+        get organisation_notifications_path(north, state_filters: %w[read unread])
+
+        expect_refused(person_row.id)
+      end
+    end
+
+    # No read with the tenant lifted, for the tables a note row touches: the notification,
+    # the activity its payload names, the project and the note.
+    it 'reads notifications, activities, projects and notes only under the tenant of an organisation of the person' do
+      reads = []
+      sub = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
+        table = payload[:sql][/FROM "(notifications|activities|projects|notes)"/, 1]
+        reads << [table, ActsAsTenant.current_tenant] if table
+      end
+      allow(ActsAsTenant).to receive(:without_tenant).and_call_original
+
+      lane(south_note_row.id)
+
+      expect(reads.map(&:first)).to include('notifications', 'activities', 'projects', 'notes')
+      expect(reads.map(&:last)).to all(be_present)
+      expect(reads.map(&:last).uniq - [north, south, west]).to eq([])
+      expect(reads.select { |table, _| %w[activities projects notes].include?(table) }.map(&:last).uniq).to eq([south])
+      expect(ActsAsTenant).not_to have_received(:without_tenant)
+    ensure
+      ActiveSupport::Notifications.unsubscribe(sub)
+    end
+  end
 end

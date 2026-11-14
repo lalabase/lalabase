@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-13)
+# Karte: app/javascript/controllers (Stand: 2026-11-14)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -46,6 +46,9 @@ Konventionen:
   verworfen. Vor dem synchronen Replace-Batch werden URL, Liste und Targets erneut geprüft.
   Ein inzwischen gewachsener Seitenbereich wird erneut geladen. Transiente Fehler werden
   mit wachsender Pause (maximal 30 Sekunden) wiederholt, solange der Kontext noch gilt.
+* `inbox_master_item` (Klick auf eine Inbox-Zeile): öffnet seit S3 (14.11.2026) auch in der
+  Gesamt-Inbox die Bahn; der Wert `lane` ist gelöscht, beide Seiten verhalten sich gleich (breit:
+  Frame laden, Adresse schreiben, Bahn öffnen; schmal: Vollansicht in der Organisation).
 * `inbox_bulk_select` (Leiste der Inbox, seit S2b auch in der Gesamt-Inbox): hält die Auswahl
   über jedes Neuzeichnen und über nachgeladene Seiten. In der Gesamt-Inbox
   (`followAddress`) zwei Dinge mehr, beide beim Absenden in `guardSubmit`: Die Formularadresse

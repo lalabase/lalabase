@@ -438,4 +438,55 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :r
       expect(response).to redirect_to(all_inboxes_path(page: 2))
     end
   end
+  # The head of the lane on this page (S3, plan §5.5): its actions and its 5 s timer are
+  # the row actions, and their address names the open row. The answer swaps the head of the
+  # lane when it acted on that row, and nothing else of the lane, so an open reply form
+  # survives. The timer reads quietly.
+  describe 'the head of the open lane' do
+    let(:stream_targets) { ->(body) { Nokogiri::HTML(body).css('turbo-stream').map { |n| [n['action'], n['target']] } } }
+
+    def pills(body)
+      Nokogiri::HTML(body).at_css('turbo-stream[action="replace"][target="inbox_pane_status_pills"] template')
+    end
+
+    it 'swaps the head of the lane when the row acted on is the open one, and nothing else of the lane' do
+      act(:archive, south_row, state_filters: %w[read unread], notification: south_row.id)
+
+      expect(response).to have_http_status(:ok)
+      head = pills(response.body)
+      expect(head).to be_present
+      expect(head.css('form').pluck('action')).to eq(["/inbox/#{south_row.id}/unarchive?#{{ notification: south_row.id, state_filters: %w[read unread] }.to_query}"])
+      expect(head.at_css('a.inbox-lane-actions__open')['href']).to eq("/org/#{south.id}/projects/#{south_project.id}/tickets/#{south_ticket.id}")
+      expect(stream_targets.call(response.body)).not_to include(%w[replace ticket_pane])
+      expect(response.body).not_to include('id="ticket_pane"')
+      expect(response.body).to include('all_inboxes_drawn_stamp')
+    end
+
+    it 'leaves the head alone when another row is acted on' do
+      act(:archive, north_row, state_filters: %w[read unread], notification: south_row.id)
+
+      expect(response).to have_http_status(:ok)
+      expect(redrawn_list).to be_present
+      expect(pills(response.body)).to be_nil
+    end
+
+    it 'reads quietly for the timer, while the menu says what it did' do
+      act(:mark_read, south_row, state_filters: %w[read unread], notification: south_row.id, quiet: '1')
+      expect(response).to have_http_status(:ok)
+      expect(state_of(south_row)).to eq('read')
+      expect(pills(response.body)).to be_present
+      expect(response.body).to include('all_inboxes_drawn_stamp')
+      expect(response.body).not_to include('notification-toast')
+
+      act(:mark_unread, south_row, state_filters: %w[read unread], notification: south_row.id)
+      expect(response.body).to include('notification-toast')
+    end
+
+    it 'keeps the organisation of the session' do
+      get organisation_notifications_path(north, state_filters: %w[read unread])
+      act(:mark_read, south_row, state_filters: %w[read unread], notification: south_row.id, quiet: '1')
+      expect(response).to have_http_status(:ok)
+      expect(session[:current_organisation_id]).to eq(north.id)
+    end
+  end
 end

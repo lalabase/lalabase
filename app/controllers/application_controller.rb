@@ -203,10 +203,20 @@ class ApplicationController < ActionController::Base
   # (§13-2 pair: operator flag plus the use_assistant permission, both against an
   # ACTIVE membership); this is only its view-side door.
   def assistant_available?
-    user_signed_in? && current_organisation.present? &&
+    user_signed_in? && current_organisation.present? && !page_above_organisations? &&
       ChatPolicy.assistant_gate_open?(current_user, current_organisation)
   end
   helper_method :assistant_available?
+
+  # Which page this is, a fact the controller states: the inbox above the
+  # organisations (AllInboxesController) answers true, every other page false. Not
+  # "no organisation is set": the lane of that page renders inside the organisation
+  # of its ticket, and must still lead to the page's own addresses and draw no
+  # assistant (its layout has no assistant panel).
+  def page_above_organisations?
+    false
+  end
+  helper_method :page_above_organisations?
 
   # The panel's open/width state as the browser last left it (§7.7). Read here so
   # the layout can render <main> ALREADY shifted, instead of the page jumping

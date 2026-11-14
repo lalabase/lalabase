@@ -2,8 +2,9 @@
 
 # The inbox above the organisations ("Gesamt-Inbox", GET /inbox): the list of the
 # organisation's inbox with a wider reach, for a person with several organisations.
-# Every row names its organisation; a click leaves for that organisation's inbox
-# with the row open. The actions of a row (read, unread, archive, back from the
+# Every row names its organisation; a ticket row opens in the lane of this page
+# (the lane of the organisation's inbox, whole: InboxLane), other rows leave for
+# their organisation. The actions of a row (read, unread, archive, back from the
 # archive) work in place, and so does the bulk bar on the rows that are ticked
 # (read, archive). The page follows changes made elsewhere through one
 # signal per person (Notifications::Streams.all_inboxes) and its own redraw
@@ -13,6 +14,12 @@
 # organisation: looking at a row of organisation B must not move the organisation
 # another tab works in. `org` (one organisation of the list) is therefore not
 # called organisation_id, the name ApplicationController reads the tenant from.
+# The lane is the one exception to "without a tenant": a request with the header
+# Turbo-Frame: ticket_pane and ?notification= renders the pane alone, inside
+# ActsAsTenant.with_tenant of the row's organisation, found per organisation
+# under its own tenant (Notifications::Selection). The session stays where it
+# is; what the lane writes goes to the organisation's own routes, which leave the
+# session alone too (ApplicationController#full_page_request?).
 #
 # The rows come from Notifications::InboxQuery, the reader of the token inbox
 # (API, MCP), with the reach of the person: recipient, in-app, and per
@@ -25,6 +32,8 @@
 # there raises NoTenantSet. Do not read a tenanted model in this action or its
 # views outside that block.
 class AllInboxesController < ApplicationController
+  include InboxLane
+
   skip_before_action :load_tenant_from_session
 
   # An organisation the person cannot reach, one that does not exist and a
@@ -54,12 +63,19 @@ class AllInboxesController < ApplicationController
   # runs into the limit of parameters the server reads at all.
   MAX_SELECTION = 500
 
+  # The lane's answer for every row it does not show (render_lane).
+  LANE_MISSING = 'organisations/notifications/pane_missing'
+
   def index
     return redirect_to(single_inbox_path) if single_inbox_path
+    return render_lane if lane_request?
 
     load_list
     respond_to do |format|
-      format.html
+      # With ?notification= the lane is drawn open and its frame loads this same
+      # address by a request of its own: the page reads no ticket and keeps having
+      # no organisation, the lane request has one (plan §5.4).
+      format.html { @lane_address = request.fullpath if params[:notification].present? }
       # The live redraw (all_inboxes_live_controller, after a signal on
       # Notifications::Streams.all_inboxes): the list and every count, or with
       # part=counts the counts alone. The same reader and the same list state in
@@ -86,6 +102,51 @@ class AllInboxesController < ApplicationController
   end
 
   private
+
+  # This page is the one above the organisations, whatever organisation a lane
+  # request renders in (InboxHelper#inbox_above_organisations? asks this).
+  def page_above_organisations?
+    true
+  end
+
+  # The lane alone: only the header of a frame load makes one. The live redraw
+  # (a stream) carries ?notification= in its address too and stays a redraw.
+  def lane_request?
+    turbo_frame_request_id == 'ticket_pane' && params[:notification].present?
+  end
+
+  # The pane of the chosen row, for the organisation of that row. Selection finds
+  # it under the tenant of each organisation the person is an active member of
+  # (no read across organisations); a row it does not find (another person's, a
+  # hidden one, a mail row, an organisation the person left, a malformed id) gets
+  # the missing pane, and so does a row the lane of the organisation would refuse
+  # or not show as a ticket: one body for every refusal on this page.
+  def render_lane
+    organisation = Notifications::Selection.call(user: current_user, ids: [params[:notification].to_s]).keys.first
+    return render(partial: LANE_MISSING, layout: false) unless organisation
+
+    in_lane_organisation(organisation) do
+      load_inbox_pane_context
+      render partial: (@pane_state == :ticket ? inbox_pane_partial : LANE_MISSING), layout: false
+    end
+  end
+
+  # The organisation of the lane as the current one of this request, for its
+  # tenant, the policies (they decide by the tenant of the thread) and the three
+  # readers in the ticket's partials (@current_organisation, current_organisation,
+  # Current.organisation). Set before anything builds the view context, and put
+  # back afterwards, also when the pane raises.
+  def in_lane_organisation(organisation)
+    saved = [@current_organisation, @current_membership, Current.organisation]
+    ActsAsTenant.with_tenant(organisation) do
+      @current_organisation = organisation
+      @current_membership = current_user.active_memberships.find_by(organisation: organisation)
+      Current.organisation = organisation
+      yield
+    end
+  ensure
+    @current_organisation, @current_membership, Current.organisation = saved
+  end
 
   # The ticked rows are found per organisation, each under its own tenant
   # (Notifications::Selection: the policy scope of every organisation the person
@@ -164,14 +225,28 @@ class AllInboxesController < ApplicationController
       result = Actors::ChangeNotificationState.call(notification: notification, change: action[:change],
                                                     current_user: current_user)
       raise Actors::ActorError, result.errors unless result.success?
+
+      @open_lane = open_lane_head(notification) if params[:notification].to_s == notification.id
     end
-    @action_type = action_name
+    # The lane's 5 s timer reads quietly: no toast.
+    @action_type = action_name if params[:quiet].blank?
     load_list
 
     respond_to do |format|
       format.turbo_stream { render :update }
       format.html { redirect_to all_inboxes_path(list_address) }
     end
+  end
+
+  # What the head of the open lane needs when the row acted on is the one the lane
+  # shows (the action's address names it, InboxHelper#inbox_row_action_path open:):
+  # loaded here, under the row's tenant, never after it.
+  def open_lane_head(notification)
+    ticket = notification.notifiable
+    return unless ticket.is_a?(Ticket) && ticket.project
+
+    { notification: notification.reload, organisation: notification.organisation,
+      project: ticket.project, ticket: ticket }
   end
 
   def reach

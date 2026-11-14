@@ -1,8 +1,11 @@
-<%# locals: (list:, action_type: nil, said: nil) %>
+<%# locals: (list:, action_type: nil, said: nil, open_lane: nil) %>
 <%# A redraw of the inbox above the organisations, for two callers:
 
     - the answer to an action on a row (AllInboxesController#change_row,
-      update.turbo_stream.erb): list, counts and a toast;
+      update.turbo_stream.erb): list, counts and a toast (none for the lane's
+      5 s timer); when the row is the one open in the lane (open_lane:, loaded
+      under the row's tenant by the action), the head of the lane and nothing
+      else of it, so an open reply form survives;
     - the answer to an action of the bulk bar (#change_selection, the same
       template): list, counts and a sentence that names the number of rows (said:);
     - the live redraw (index as turbo_stream, live.turbo_stream.erb) after a
@@ -38,6 +41,14 @@
 
 <%= turbo_stream.replace 'all_inboxes_nav' do %>
   <%= render 'common/navigation_all_inboxes', organisations: @inbox_organisations %>
+<% end %>
+
+<% if open_lane %>
+  <%= turbo_stream.replace 'inbox_pane_status_pills' do %>
+    <%= render 'organisations/notifications/pane_status_pills',
+               notification: open_lane[:notification], current_organisation: open_lane[:organisation],
+               project: open_lane[:project], ticket: open_lane[:ticket] %>
+  <% end %>
 <% end %>
 
 <% if action_type %>

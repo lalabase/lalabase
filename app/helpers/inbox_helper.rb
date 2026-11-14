@@ -86,11 +86,13 @@ module InboxHelper
   end
 
   # The inbox above the organisations (AllInboxesController) and the inbox of one
-  # organisation render the same list. What differs (where the list lives, whether
-  # a row names its organisation) hangs on this one question: a list rendered
-  # without an organisation is the one above them.
+  # organisation render the same list and the same lane. What differs (where the
+  # list lives, whether a row names its organisation, where the lane's actions
+  # lead) hangs on this one question, which the controller answers about its page
+  # (ApplicationController#page_above_organisations?). Not "no organisation is
+  # set": the lane above renders inside the organisation of its ticket.
   def inbox_above_organisations?
-    current_organisation.nil?
+    page_above_organisations?
   end
 
   # Where the list lives: the address its links, forms and paging lead to.
@@ -98,23 +100,20 @@ module InboxHelper
     inbox_above_organisations? ? all_inboxes_path : organisation_notifications_path(current_organisation)
   end
 
-  # A row of the inbox above the organisations leaves for the inbox of its
-  # organisation, with the row open in the lane and the status view kept.
-  def inbox_notification_in_organisation_url(notification, query: nil)
-    states = inbox_list_query(query)['state_filters'].presence || Inbox::MasterListPresenter::STATUS_VIEWS.fetch('all')
-    organisation_notifications_path(notification.organisation_id, state_filters: states, notification: notification.id)
-  end
-
   # The address of an action on a row ("···" menu, head of the lane):
   # mark_read, mark_unread, archive, unarchive. Above the organisations the
-  # action has an address of its own (one under /org/:id would move the
-  # session's organisation), and it carries the list state, which the answer
-  # redraws the list from. Inside an organisation the answer reads that state
-  # from the page's address (the referrer), as before.
-  def inbox_row_action_path(action, notification, query: nil)
+  # action has an address of its own, and it carries the list state, which the
+  # answer redraws the list from; from the head of the lane also the open row
+  # (open:, its answer then swaps the lane's head) and for the lane's 5 s timer
+  # quiet: (no toast). Inside an organisation the answer reads that state from
+  # the page's address (the referrer), as before.
+  def inbox_row_action_path(action, notification, query: nil, open: false, quiet: false)
     route = INBOX_ROW_ACTION_ROUTES.fetch(action)
     if inbox_above_organisations?
-      public_send(route.fetch(:above), notification, inbox_list_query_with_page(query))
+      list = inbox_list_query_with_page(query)
+      list['notification'] = notification.id if open
+      list['quiet'] = '1' if quiet
+      public_send(route.fetch(:above), notification, list)
     else
       public_send(route.fetch(:inside), current_organisation, notification)
     end

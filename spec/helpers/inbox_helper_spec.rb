@@ -14,6 +14,8 @@ RSpec.describe InboxHelper, type: :helper do
   before do
     org = organisation # the block runs as the helper, where the let is unknown
     helper.define_singleton_method(:current_organisation) { org }
+    # The page's own statement (ApplicationController#page_above_organisations?).
+    helper.define_singleton_method(:page_above_organisations?) { false }
     allow(helper).to receive(:organisation_notifications_path).with(organisation).and_return(inbox)
   end
 
@@ -165,6 +167,7 @@ RSpec.describe InboxHelper, type: :helper do
   describe 'above the organisations' do
     before do
       helper.define_singleton_method(:current_organisation) { nil }
+      helper.define_singleton_method(:page_above_organisations?) { true }
       allow(helper).to receive(:organisation_notifications_path).and_call_original
     end
 
@@ -182,14 +185,46 @@ RSpec.describe InboxHelper, type: :helper do
       expect(query_of(helper.inbox_reset_narrowing_url)).to eq('state_filters' => ['unread'])
     end
 
-    it 'leads a row into the inbox of its organisation, with the status view of the list' do
+    it 'opens a row in the lane of /inbox, over the list state of the page' do
       notification = instance_double(Notification, id: 'n1', organisation_id: 'o2')
-      with_query('org' => 'o1', 'state_filters' => ['archived'], 'search' => 'x')
+      with_query('org' => 'o1', 'state_filters' => ['archived'], 'search' => 'x', 'page' => '3')
 
-      url = helper.inbox_notification_in_organisation_url(notification)
-      expect(URI.parse(url).path).to eq('/org/o2/inbox')
-      expect(query_of(url)).to eq('state_filters' => ['archived'], 'notification' => 'n1')
+      url = helper.inbox_notification_url(notification)
+      expect(URI.parse(url).path).to eq('/inbox')
+      expect(query_of(url)).to eq('org' => 'o1', 'state_filters' => ['archived'], 'search' => 'x', 'notification' => 'n1')
     end
+
+    # The lane above renders inside the organisation of its ticket: the page's statement
+    # decides, not whether an organisation is set (plan §5.3).
+    it 'stays on /inbox inside the lane, where the request has the organisation of the ticket' do
+      org = organisation
+      helper.define_singleton_method(:current_organisation) { org }
+      notification = instance_double(Notification, id: 'n1', to_param: 'n1', organisation_id: org.id)
+      with_query('state_filters' => ['unread'], 'notification' => 'n1')
+
+      expect(URI.parse(helper.inbox_notification_url(notification)).path).to eq('/inbox')
+      expect(URI.parse(helper.inbox_row_action_path(:archive, notification)).path).to eq('/inbox/n1/archive')
+    end
+
+    it 'names the open row and the quiet timer in the address of a row action, when asked' do
+      notification = instance_double(Notification, id: 'n1', organisation_id: 'o2')
+      with_query('org' => 'o1', 'state_filters' => ['unread'], 'notification' => 'n1', 'page' => '2')
+
+      expect(query_of(helper.inbox_row_action_path(:mark_read, notification)))
+        .to eq('org' => 'o1', 'state_filters' => ['unread'], 'page' => '2')
+      expect(query_of(helper.inbox_row_action_path(:mark_read, notification, open: true, quiet: true)))
+        .to eq('org' => 'o1', 'state_filters' => ['unread'], 'page' => '2', 'notification' => 'n1', 'quiet' => '1')
+    end
+  end
+
+  # Inside an organisation the head of the lane and its timer keep the organisation's
+  # routes, whatever open: and quiet: say.
+  it 'keeps the route of the organisation for the head of the lane inside an organisation' do
+    notification = instance_double(Notification, id: 'n1', to_param: 'n1', organisation_id: organisation.id)
+    with_query('state_filters' => ['unread'], 'notification' => 'n1')
+
+    expect(helper.inbox_row_action_path(:mark_read, notification, open: true, quiet: true))
+      .to eq("/org/#{organisation.id}/inbox/n1/mark_read")
   end
 
   # The two actions of the bulk bar. Inside an organisation its own routes,
@@ -205,6 +240,7 @@ RSpec.describe InboxHelper, type: :helper do
 
     it 'is the route of a selection above the organisations, with the list state and the page' do
       helper.define_singleton_method(:current_organisation) { nil }
+      helper.define_singleton_method(:page_above_organisations?) { true }
       with_query('org' => 'o1', 'search' => 'x', 'state_filters' => ['unread'], 'page' => '2', 'notification' => 'n1')
 
       url = helper.inbox_bulk_action_path(:archive)

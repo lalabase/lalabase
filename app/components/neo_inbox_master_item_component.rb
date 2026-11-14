@@ -119,9 +119,7 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
   # with ?notification=:id, click loads the pane via Turbo frame).
   # Otherwise → deep link as before (full view).
   def link_url
-    if above_organisations? && notification.notifiable.is_a?(Ticket)
-      helpers.inbox_notification_in_organisation_url(notification, query: @query_context.presence)
-    elsif notification.notifiable.is_a?(Ticket)
+    if notification.notifiable.is_a?(Ticket)
       # One builder for every address of the list (InboxHelper): only the
       # dimensions of the list travel, never a stray key of the address.
       helpers.inbox_notification_url(notification, query: @query_context.presence)
@@ -146,17 +144,7 @@ class NeoInboxMasterItemComponent < ViewComponent::Base
   # browser URL is pushed to the link's href → back, reload, share
   # work. See doc/inbox_feature_spec.md chapter 4.8.
   def link_data
-    if above_organisations? && notification.notifiable.is_a?(Ticket)
-      # No lane on this page: on a wide screen the link is a plain visit of the
-      # organisation's inbox (lane: false), on a narrow one the full view as below.
-      {
-        turbo_frame: '_top',
-        controller: 'inbox-master-item',
-        action: 'click->inbox-master-item#handleClick',
-        inbox_master_item_fullview_url_value: fullview_url,
-        inbox_master_item_lane_value: false
-      }
-    elsif notification.notifiable.is_a?(Ticket)
+    if notification.notifiable.is_a?(Ticket)
       # NO turbo_action: 'advance' — that promotes the frame load to a
       # drive visit, which right after loading overwrites the freshly filled pane
       # with the placeholder (visible flicker). URL sync is instead done

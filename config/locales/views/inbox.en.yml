@@ -109,12 +109,13 @@ en:
           open_full_view: Open ticket
           open_full_view_of:
             note: Open note
+            document: Open file
           unauthorized_title_of:
             note: No access to this note
+            document: No access to this file
           event_card:
             links:
               project: Go to project
-              document: Open file
               meeting: Open meeting
             default:
               title: Something happened in %{project}

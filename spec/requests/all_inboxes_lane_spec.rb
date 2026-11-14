@@ -824,6 +824,77 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
       end
     end
 
+    # S4b: the document, the second kind with a display of its own.
+    describe 'about a new document' do
+      let(:south_document) { titled_document(south, south_project, 'Angebot Versand', creator: colleague) }
+      let!(:south_document_row) do
+        allow_areas(south, south_project, documents_access: 'read_write')
+        Prosopite.pause do
+          project_event_row(south, south_project, 'document_created', recipient: user, actor: colleague, secondary: south_document,
+                                                                      parameters: { 'document_title' => 'Angebot Versand' },
+                                                                      created_at: 10.minutes.ago)
+        end
+      end
+
+      it 'answers a frame that loads the document under its organisation, and its controller leaves the session' do
+        body = lane(south_document_row.id)
+
+        inner = note_frame_of(body)
+        path, query = inner['src'].split('?')
+        expect(path).to eq("/org/#{south.id}/projects/#{south_project.id}/documents/#{south_document.id}")
+        expect(Rack::Utils.parse_query(query)).to eq('frame' => 'content', 'frame_id' => 'ticket_display_frame')
+        expect(doc(body).css('#inbox_pane_status_pills form').pluck('action')).to all(start_with("/inbox/#{south_document_row.id}/"))
+        expect(doc(body).at_css('#inbox_pane_status_pills a.inbox-lane-actions__open')['href'])
+          .to eq("/org/#{south.id}/projects/#{south_project.id}/documents/#{south_document.id}")
+        expect(session[:current_organisation_id]).to eq(north.id)
+        expect(ActsAsTenant.current_tenant).to be_nil
+
+        get inner['src'], headers: { 'Turbo-Frame' => 'ticket_display_frame', 'Referer' => "http://www.example.com#{all_inboxes_path}" }
+        expect(response).to have_http_status(:ok)
+        answer = doc(response.body)
+        expect(answer.at_css('turbo-frame#ticket_display_frame [data-lane-title]').text).to eq('Angebot Versand')
+        # Every address the document draws into this page leads into its organisation or is the file proxy there.
+        expect(addresses(response.body).grep(%r{\A/}).grep_v(%r{\A/org/#{south.id}/})).to eq([])
+        expect(session[:current_organisation_id]).to eq(north.id)
+      end
+
+      it 'refuses a document row once the person lost the documents area' do
+        expect(note_frame_of(lane(south_document_row.id))['src']).to include("/documents/#{south_document.id}")
+        expected = missing_body
+        allow_areas(south, south_project, documents_access: 'no_access')
+
+        expect(lane(south_document_row.id)).to eq(expected)
+      end
+
+      it 'answers the gone card once the document is deleted' do
+        delete_document(south, south_document, by: colleague)
+
+        body = lane(south_document_row.id)
+
+        expect(doc(body).at_css('turbo-frame#ticket_pane [data-inbox-event-card="gone"]')).to be_present
+        expect(note_frame_of(body)).to be_nil
+        expect(body).not_to include("/documents/#{south_document.id}")
+      end
+
+      it 'reads documents only under the tenant of the organisation of the row' do
+        reads = []
+        sub = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
+          table = payload[:sql][/FROM "(notifications|activities|projects|documents|document_versions)"/, 1]
+          reads << [table, ActsAsTenant.current_tenant] if table
+        end
+        allow(ActsAsTenant).to receive(:without_tenant).and_call_original
+
+        lane(south_document_row.id)
+
+        expect(reads.map(&:first)).to include('notifications', 'activities', 'documents')
+        expect(reads.map(&:last)).to all(be_present)
+        expect(reads.select { |table, _| %w[activities documents document_versions].include?(table) }.map(&:last).uniq).to eq([south])
+        expect(ActsAsTenant).not_to have_received(:without_tenant)
+      ensure
+        ActiveSupport::Notifications.unsubscribe(sub)
+      end
+    end
+
     # No read with the tenant lifted, for the tables a note row touches: the notification,
     # the activity its payload names, the project and the note.
     it 'reads notifications, activities, projects and notes only under the tenant of an organisation of the person' do

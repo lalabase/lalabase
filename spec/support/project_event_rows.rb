@@ -26,10 +26,32 @@ module ProjectEventRows
                                          'parameters' => parameters.stringify_keys } }.merge(attributes))
     end
   end
+
+  # A document with one version, which carries its title and its file.
+  def titled_document(organisation, project, title, creator:, filename: 'angebot.txt')
+    ActsAsTenant.with_tenant(organisation) do
+      document = create(:document, project: project, organisation: organisation, creator: creator)
+      version = create(:document_version, document: document, organisation: organisation, user: creator, title: title,
+                                          document_version_file: Rack::Test::UploadedFile.new(
+                                            StringIO.new("#{title}, erste Fassung"), 'text/plain', true, original_filename: filename
+                                          ))
+      document.update!(current_version: version)
+      document
+    end
+  end
+
+  # Deletes a document the way the application does (the actor behind "delete document").
+  def delete_document(organisation, document, by:)
+    ActsAsTenant.with_tenant(organisation) do
+      result = Actors::DestroyDocument.call(document: document, current_user: by)
+      raise "document not deleted: #{result.errors.inspect}" unless result.success?
+    end
+  end
 end
 
 RSpec.configure do |config|
   config.include ProjectEventRows, type: :request
   config.include ProjectEventRows, type: :system
   config.include ProjectEventRows, type: :component
+  config.include ProjectEventRows, type: :service
 end

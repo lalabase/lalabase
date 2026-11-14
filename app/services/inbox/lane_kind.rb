@@ -17,7 +17,7 @@
 # For a ticket and for a project it answers a value that says what the lane draws:
 #
 #   body :inline  the ticket, rendered by the inbox itself as before
-#   body :frame   an object with a display of its own: the lane holds
+#   body :frame   an object with a display of its own (a note, a document): the lane holds
 #                 turbo-frame#ticket_display_frame with `frame_path` as its src, and the
 #                 object's own controller draws it under its own policy (Inbox::ObjectFrame)
 #   body :card    an event without a display (a new member), or one whose object is gone
@@ -38,8 +38,9 @@ module Inbox
       # The subject of a ticket notification. A ticket that arrives through a project event
       # (created, moved in or out) keeps the card until the lane takes those rows too.
       Ticket => Entry.new(key: 'ticket', body: :inline).freeze,
-      # The object of a project event, drawn by its own controller.
+      # The objects of a project event that are drawn by their own controller.
       Note => Entry.new(key: 'note', body: :frame).freeze,
+      Document => Entry.new(key: 'document', body: :frame).freeze,
       # The subject of every project event; as the object of one (a new member, a changed
       # right) it has no display, the event gets a card.
       Project => Entry.new(key: 'project', body: :card).freeze

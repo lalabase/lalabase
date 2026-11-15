@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-# What: every page of the application outside an organisation belongs to the level above
+# What: every page of the application outside /org/ belongs to the level above
 #       the organisations or to the account (navigation plan D4), through closed lists:
 #       NavigationHelper::LEVEL_PAGES, NavigationHelper::ACCOUNT_PAGES and, here, the pages
 #       that show no sidebar at all.
@@ -10,6 +10,9 @@ require 'rails_helper'
 #       outside an organisation that is in none of the lists would get a sidebar by accident
 #       (the level's), and an account page missing from ACCOUNT_PAGES would lose its list,
 #       its marked row and its way back. A new page is one entry in one list.
+# Not seen: a page under /org/ that runs without an organisation. The one known is the
+#       acceptance of an invitation (Organisations::AcceptInvitationsController), which shows
+#       a signed-in person the level, as any page outside an organisation.
 RSpec.describe 'Every page outside an organisation has a sidebar mode', type: :helper do
   # Controllers of a GET route outside /org/ that show no sidebar of the application, with
   # the reason. Closed: an entry for a controller no route names any more is red too.

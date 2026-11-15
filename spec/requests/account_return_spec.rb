@@ -175,6 +175,14 @@ RSpec.describe 'The way back out of the account area', :ci_guard, type: :request
     end
   end
 
+  # The management area shares ReturnPath; a path below the organisation that no route
+  # answers is no way out of it either (review PR 3 round 1).
+  it 'keeps no way out of the management area for a path no route answers' do
+    get organisation_memberships_path(north), headers: { 'Referer' => "#{host}/org/#{north.id}/gibt-es-nicht" }
+    expect(response).to have_http_status(:ok)
+    expect(session[Organisations::ManagementReturn::SESSION_KEY]).to be_nil
+  end
+
   it 'leaves the way out of the management area alone' do
     get organisation_memberships_path(north), headers: { 'Referer' => "#{host}/org/#{north.id}/projects" }
     expect(session[Organisations::ManagementReturn::SESSION_KEY]).to eq("/org/#{north.id}/projects")

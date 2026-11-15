@@ -107,6 +107,20 @@ RSpec.describe 'The header of the sidebar with the switcher (System)', type: :sy
     expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Sued AG')
   end
 
+  # Review PR 2 round 1: the rows are Turbo links now, so the page comes back from Turbo's
+  # snapshot. The menu must not stand open in it (F49: a change of page closes it).
+  it 'shows the menu closed after going back to the page it was opened on' do
+    visit organisation_root_path(organisation_id: north.id)
+    open_menu
+    within(menu_selector) { click_link 'Sued AG' }
+    expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Sued AG')
+
+    page.go_back
+
+    expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Nord GmbH')
+    expect(page).to have_no_css('#sidebar [data-sidebar-header] details[open]')
+  end
+
   it 'opens the inbox above the organisations from "Alle Organisationen" inside an organisation' do
     visit organisation_root_path(organisation_id: north.id)
     open_menu

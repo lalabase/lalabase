@@ -33,7 +33,9 @@
                 else
                   {}
                 end %>
-<div class="w-full mt-2 border-b border-cream-300" data-sidebar-header>
+<%# The id is the target of the inbox above the organisations: the answer to a row action
+    and the live redraw replace the header with the sidebar's counts (all_inboxes/_redraw). %>
+<div id="sidebar_header" class="w-full mt-2 border-b border-cream-300" data-sidebar-header>
   <details class="group" data-controller="details-autoclose" data-action="toggle->details-autoclose#onToggle">
     <summary class="flex items-center justify-between gap-2 px-6 py-2 cursor-pointer hover:bg-white/55 rounded transition-colors list-none"
              title="<%= organisation ? t('navigation.organisation') : t('navigation.all_organisations') %>">
@@ -106,7 +108,7 @@
             <%# In the management area the switch stays in the open section
                 (OrganisationsController#set checks it may). %>
             <%= form_with url: set_organisation_path, method: :post, data: { turbo: false } do %>
-              <%= hidden_field_tag :organisation_id, org.id %>
+              <%= hidden_field_tag :organisation_id, org.id, id: nil %>
               <%= hidden_field_tag :section, management_section_key, id: nil %>
               <%= button_tag row_content, type: :submit, "aria-current": (is_current ? 'true' : nil), class: row_classes,
                                           data: { switcher_org: org.id } %>

@@ -125,6 +125,46 @@ RSpec.describe 'The header of the sidebar with the switcher', :ci_guard, :real_t
       expect(names).not_to include('Sued AG')
     end
 
+    it 'marks the organisation inside a management section and gives it no number of its own' do
+      doc = doc_at(organisation_memberships_path(north))
+      current = menu(doc).css('[aria-current="true"]')
+      expect(current.size).to eq(1)
+      expect(current.first.text.squish).to start_with('Nord GmbH')
+      expect(current.first.at_css('.bi-check-lg')).to be_present
+      expect(menu(doc).at_css("#org_attention_count_#{north.id}")).to be_nil
+      expect(menu(doc).at_css("#org_attention_count_#{south.id}")).to be_present
+    end
+
+    it 'switches inside a management section as a full load, not through Turbo' do
+      doc = doc_at(organisation_memberships_path(north))
+      forms = menu(doc).css("form[action='#{set_organisation_path}']")
+      expect(forms.size).to eq(2)
+      expect(forms.pluck('data-turbo')).to all(eq('false'))
+    end
+
+    { 'the cockpit' => -> { select_organisation_path }, 'the inbox' => -> { all_inboxes_path } }.each do |where, path|
+      it "shows no dot of other organisations on #{where}: on the level every organisation counts in the menu" do
+        doc = doc_at(instance_exec(&path))
+        expect(menu(doc)).to be_present
+        expect(header(doc).at_css('#other_orgs_signal')).to be_nil
+      end
+    end
+
+    # Review PR 2 round 1: the answer to a row action redraws the counts of the level's
+    # sidebar; the header beside it must not keep the old number.
+    it 'redraws the counts of the header with the answer to a row action on the inbox' do
+      south_row = Prosopite.pause { ActsAsTenant.without_tenant { Notification.where(recipient: user, organisation: south).first } }
+      patch all_inbox_mark_read_path(south_row), headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+      expect(response).to have_http_status(:ok)
+      stream = Nokogiri::HTML(response.body).at_css('turbo-stream[target="sidebar_header"] template')
+      expect(stream).to be_present
+      rows = stream.css('[data-switcher-org]').to_h do |row|
+        marker = row.at_css('[data-unread-marker]')
+        [row['data-switcher-org'], marker && !marker['class'].to_s.split.include?('hidden') ? marker.text.squish : nil]
+      end
+      expect(rows).to eq(north.id => '1', south.id => '1')
+    end
+
     it 'draws the menu with a soft shadow (F29) and no written hard shadow' do
       doc = doc_at(organisation_root_path(organisation_id: north.id))
       expect(menu(doc)['class'].split).to include('shadow-md', 'bg-surface-raised', 'border-cream-300', 'rounded-lg')
@@ -162,6 +202,11 @@ RSpec.describe 'The header of the sidebar with the switcher', :ci_guard, :real_t
         orgs.each { |org| member_of(org) }
         2.times { unread_in(orgs.last) } # sorts past the cap
       end
+    end
+
+    it 'counts the hits beyond the cap at "Alle Organisationen" on the level as well' do
+      doc = doc_at(select_organisation_path)
+      expect(menu_rows(doc).first).to eq([I18n.t('navigation.all_organisations'), all_inboxes_path, '2', true])
     end
 
     it 'counts the hits beyond the cap at "Alle Organisationen"' do

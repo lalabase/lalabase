@@ -43,6 +43,12 @@
   <%= render 'common/navigation_level', organisations: @inbox_organisations %>
 <% end %>
 
+<%# The header with the switcher counts every organisation on this page too, from the same
+    numbers (ApplicationController#level_organisations): one count per organisation. %>
+<%= turbo_stream.replace 'sidebar_header' do %>
+  <%= render 'common/sidebar_header' %>
+<% end %>
+
 <% if open_lane %>
   <%= turbo_stream.replace_all "#inbox_pane_status_pills[data-notification-id='#{open_lane[:notification].id}']" do %>
     <%= render 'organisations/notifications/pane_status_pills',

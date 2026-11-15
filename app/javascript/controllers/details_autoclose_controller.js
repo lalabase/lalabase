@@ -29,8 +29,20 @@ export default class extends Controller {
     this.closeOnOutsideClick = this.closeOnOutsideClick.bind(this)
     this.closeOnEscape = this.closeOnEscape.bind(this)
     this.reposition = this.reposition.bind(this)
+    this.closeBeforeCache = this.closeBeforeCache.bind(this)
     document.addEventListener("pointerdown", this.closeOnOutsideClick)
     document.addEventListener("keydown", this.closeOnEscape)
+    document.addEventListener("turbo:before-cache", this.closeBeforeCache)
+  }
+
+  // A menu left open when the page changes would stand open again in Turbo's snapshot when the
+  // reader goes back (the switcher's rows are Turbo links since the navigation plan, PR 2).
+  // Closed before the snapshot is taken, as sidebar_layer_controller closes its layer.
+  closeBeforeCache() {
+    if (!this.element.open) return
+    this.element.open = false
+    this.untrack()
+    if (this.hasPanelTarget) this.panelTarget.style.opacity = ""
   }
 
   // A filter menu is placed again whenever its size changes, and whenever the
@@ -59,6 +71,7 @@ export default class extends Controller {
   disconnect() {
     document.removeEventListener("pointerdown", this.closeOnOutsideClick)
     document.removeEventListener("keydown", this.closeOnEscape)
+    document.removeEventListener("turbo:before-cache", this.closeBeforeCache)
     this.untrack()
   }
 

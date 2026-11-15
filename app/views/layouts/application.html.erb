@@ -120,7 +120,7 @@
         sidebar_layer_controller sits on the aside because it reaches the name at its
         foot, the layer and what the layer covers. An account page has none: its
         sidebar already is the list. %>
-    <% account_layer = %i[organisation management level].include?(mode) %>
+    <% account_layer = NavigationHelper.account_layer?(mode) %>
     <aside id="sidebar"
       class="fixed inset-y-0 start-0 sidebar flex flex-col w-64 lg:min-w-64 h-screen overflow-hidden <%= 'bg-cream-200' unless org_brand %> border-r border-cream-300 <%= 'border-s-[3px] border-s-brand' if org_brand %> transition-all duration-500 ease-in-out -translate-x-full lg:translate-x-0 max-lg:z-sidebar rtl:translate-x-full lg:rtl:translate-x-0"
       <% if org_brand %> style="background-color: <%= org_brand %>;"<% end %>

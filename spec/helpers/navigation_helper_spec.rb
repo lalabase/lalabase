@@ -350,6 +350,12 @@ RSpec.describe NavigationHelper, type: :helper do
       end
     end
 
+    it 'gives the account layer to every signed-in mode but the account, in one place' do
+      expect(%i[organisation management level account].select { |m| described_class.account_layer?(m) })
+        .to eq(%i[organisation management level])
+      expect(described_class.account_layer?(nil)).to be(false)
+    end
+
     it 'is called on the module, without a view' do
       expect(described_class).to respond_to(:sidebar_mode_for)
     end

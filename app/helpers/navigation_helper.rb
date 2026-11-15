@@ -215,6 +215,15 @@ module NavigationHelper
     end
   end
 
+  # The modes whose pages carry the account layer (F47) with the name as its handle: every
+  # signed-in page except an account page, whose sidebar already is the list. The layout and
+  # the name row both ask this, so the layer and its handle cannot part.
+  ACCOUNT_LAYER_MODES = %i[organisation management level].freeze
+
+  def self.account_layer?(mode)
+    ACCOUNT_LAYER_MODES.include?(mode)
+  end
+
   # True on a page of "Mein Konto" (ACCOUNT_PAGES), by its controller.
   def self.account_page?(controller_name)
     ACCOUNT_PAGE_CONTROLLERS.include?(controller_name)

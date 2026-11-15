@@ -79,9 +79,11 @@ RSpec.describe 'The account layer of the sidebar', type: :system do
 
     expect(page).to have_current_path(start)
     within(layer) do
-      %w[all_organisations profile billing_accounts data_export settings_api_tokens preferences logout].each do |key|
+      %w[profile billing_accounts data_export settings_api_tokens preferences logout].each do |key|
         expect(page).to have_link(I18n.t("navigation.#{key}"))
       end
+      # Since PR 3 of the navigation plan the level has its own sidebar: not in this list.
+      expect(page).to have_no_link(I18n.t('navigation.all_organisations'))
     end
   end
 
@@ -92,7 +94,7 @@ RSpec.describe 'The account layer of the sidebar', type: :system do
     expect_layer_open
 
     expect(page.evaluate_script("document.querySelector('#sidebar [data-sidebar-layer-target=\"covered\"]').inert")).to be(true)
-    expect(page.evaluate_script('document.activeElement.textContent.trim()')).to eq(I18n.t('navigation.all_organisations'))
+    expect(page.evaluate_script('document.activeElement.textContent.trim()')).to eq(I18n.t('navigation.profile'))
     on_top = page.evaluate_script(<<~JS)
       (() => {
         const rect = document.querySelector('#sidebar [data-sidebar-layer-target="covered"]').getBoundingClientRect()
@@ -194,6 +196,42 @@ RSpec.describe 'The account layer of the sidebar', type: :system do
       within(layer) { click_link I18n.t('navigation.profile') }
 
       expect(page).to have_current_path(edit_user_registration_path)
+    end
+  end
+
+  # Navigation plan PR 3 (D5, D6): an account page has "Zurück" to where the reader came from,
+  # and its name is no handle.
+  describe 'the way back from the account' do
+    let(:project) { ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation, name: 'Lager') } }
+
+    def back_via_profile
+      name_row.click
+      expect_layer_open
+      within(layer) { click_link I18n.t('navigation.profile') }
+      expect(page).to have_current_path(edit_user_registration_path)
+      within('#sidebar [data-account-sidebar]') { click_link I18n.t('navigation.account_back') }
+    end
+
+    it 'leads from the ticket list of a project to the profile and back to that list' do
+      tickets = organisation_project_tickets_path(organisation_id: organisation.id, project_id: project.id)
+      visit tickets
+      back_via_profile
+      expect(page).to have_current_path(tickets)
+    end
+
+    it 'leads from the cockpit to the profile and back to the cockpit' do
+      visit select_organisation_path
+      expect(page).to have_css('#sidebar [data-all-inboxes-nav]')
+      back_via_profile
+      expect(page).to have_current_path(select_organisation_path)
+    end
+
+    it 'opens no layer from the name on an account page' do
+      visit edit_user_preferences_path
+      expect(page).to have_css('#sidebar [data-account-sidebar]')
+      find('#sidebar [data-account-name]').click
+      expect(page).to have_no_css('#account-layer', visible: :all)
+      expect(page).to have_current_path(edit_user_preferences_path)
     end
   end
 

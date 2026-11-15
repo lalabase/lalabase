@@ -574,9 +574,9 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('#ticket_pane', text: 'Karton ganz leer')
 
       # The promise of plan §3.2, read where a person reads it.
-      visit edit_user_preferences_path
-      back = find('a', text: I18n.t('navigation.back_to_organisation'))
-      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+      # The help restores the session's organisation (HelpController); its header names it.
+      visit help_path
+      expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Nordwind GmbH')
     end
 
     # S4: a row about a new note of the second organisation opens beside the list of this page.
@@ -639,9 +639,9 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Versand', wait: 10)
 
       # The session never left the first organisation.
-      visit edit_user_preferences_path
-      back = find('a', text: I18n.t('navigation.back_to_organisation'))
-      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+      # The help restores the session's organisation (HelpController); its header names it.
+      visit help_path
+      expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Nordwind GmbH')
     end
 
     # S4b: a document of the second organisation in the lane of this page. Its preview and the
@@ -696,9 +696,9 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(URI(page.current_url).path).to eq('/inbox')
 
       # The session never left the first organisation.
-      visit edit_user_preferences_path
-      back = find('a', text: I18n.t('navigation.back_to_organisation'))
-      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+      # The help restores the session's organisation (HelpController); its header names it.
+      visit help_path
+      expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Nordwind GmbH')
     end
 
     # Review S3b round 2: the head and the 5 s timer of the lane redraw the list. They take the

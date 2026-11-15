@@ -214,6 +214,19 @@ RSpec.describe 'The header of the sidebar with the switcher', :ci_guard, :real_t
       end
     end
 
+    # Review PR 2 round 3 (test only): the live redraw of the inbox replaces exactly the
+    # numbers the header carries, the overflow included.
+    it 'redraws on the inbox exactly the numbers the header carries, the overflow included' do
+      page_ids = header(doc_at(all_inboxes_path)).css('[id^="org_attention_count_"]').pluck('id')
+      get all_inboxes_path(part: 'counts'), headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+      expect(response).to have_http_status(:ok)
+      streams = Nokogiri::HTML(response.body).css('turbo-stream[target^="org_attention_count_"]')
+      expect(streams.pluck('target')).to match_array(page_ids)
+      overflow = streams.find { |stream| stream['target'] == 'org_attention_count_overflow' }.at_css('template [data-unread-marker]')
+      expect(overflow.text.squish).to eq('2')
+      expect(overflow['class'].to_s.split).not_to include('hidden')
+    end
+
     it 'counts the hits beyond the cap at "Alle Organisationen" on the level as well' do
       doc = doc_at(select_organisation_path)
       expect(menu_rows(doc).first).to eq([I18n.t('navigation.all_organisations'), all_inboxes_path, '2', true])

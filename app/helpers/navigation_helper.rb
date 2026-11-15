@@ -175,6 +175,7 @@ module NavigationHelper
   # where calling `helpers` would freeze the instance variables (see section_key_for).
   def self.sidebar_mode_for(controller_name:, action_name:, organisation:, signed_in:)
     return nil unless signed_in
+
     if organisation.present?
       section_key_for(controller_name) ? :management : :organisation
     else

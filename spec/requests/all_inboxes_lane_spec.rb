@@ -824,6 +824,135 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
       end
     end
 
+    # S4b: the document, the second kind with a display of its own.
+    describe 'about a new document' do
+      let(:south_document) { titled_document(south, south_project, 'Angebot Versand', creator: colleague) }
+      let!(:south_document_row) do
+        allow_areas(south, south_project, documents_access: 'read_write')
+        Prosopite.pause do
+          project_event_row(south, south_project, 'document_created', recipient: user, actor: colleague, secondary: south_document,
+                                                                      parameters: { 'document_title' => 'Angebot Versand' },
+                                                                      created_at: 10.minutes.ago)
+        end
+      end
+
+      it 'answers a frame that loads the document under its organisation, and its controller leaves the session' do
+        body = lane(south_document_row.id)
+
+        inner = note_frame_of(body)
+        path, query = inner['src'].split('?')
+        expect(path).to eq("/org/#{south.id}/projects/#{south_project.id}/documents/#{south_document.id}")
+        expect(Rack::Utils.parse_query(query)).to eq('frame' => 'content', 'frame_id' => 'ticket_display_frame')
+        expect(doc(body).css('#inbox_pane_status_pills form').pluck('action')).to all(start_with("/inbox/#{south_document_row.id}/"))
+        expect(doc(body).at_css('#inbox_pane_status_pills a.inbox-lane-actions__open')['href'])
+          .to eq("/org/#{south.id}/projects/#{south_project.id}/documents/#{south_document.id}")
+        expect(session[:current_organisation_id]).to eq(north.id)
+        expect(ActsAsTenant.current_tenant).to be_nil
+
+        get inner['src'], headers: { 'Turbo-Frame' => 'ticket_display_frame', 'Referer' => "http://www.example.com#{all_inboxes_path}" }
+        expect(response).to have_http_status(:ok)
+        answer = doc(response.body)
+        expect(answer.at_css('turbo-frame#ticket_display_frame [data-lane-title]').text).to eq('Angebot Versand')
+        # Every address the document draws into this page leads into its organisation or is the file proxy there.
+        expect(addresses(response.body).grep(%r{\A/}).grep_v(%r{\A/org/#{south.id}/})).to eq([])
+        expect(session[:current_organisation_id]).to eq(north.id)
+      end
+
+      it 'restores the selected document preview without changing the session or leaking a tenant' do
+        version_id = south_document.current_version_id
+        inner = note_frame_of(lane(south_document_row.id, preview: version_id))
+        expect(inner['src']).to eq(preview_organisation_project_document_path(
+                                     south, south_project, south_document, version_id: version_id, frame: 'content', frame_id: 'ticket_display_frame'
+                                   ))
+        expect(ActsAsTenant.current_tenant).to be_nil
+        get inner['src'], headers: { 'Turbo-Frame' => 'ticket_display_frame', 'Referer' => "http://www.example.com#{all_inboxes_path}" }
+        expect(response).to have_http_status(:ok)
+        expect(doc.at_css('.document-preview [data-lane-title]').text).to include('angebot.txt')
+        expect(session[:current_organisation_id]).to eq(north.id)
+        expect(ActsAsTenant.current_tenant).to be_nil
+      end
+
+      it 'does not restore a version from another organisation' do
+        other = titled_document(north, north_project, 'Privat', creator: user)
+        inner = note_frame_of(lane(south_document_row.id, preview: other.current_version_id))
+        expect(inner['src']).to eq(organisation_project_document_path(
+                                     south, south_project, south_document, frame: 'content', frame_id: 'ticket_display_frame'
+                                   ))
+        expect(response.body).not_to include(other.id, other.current_version_id)
+      end
+
+      # Review S4b round 1: "Textfassung" in the "···" of a version is a file the browser asks
+      # for like a page (turbo: false, no frame header, HTML accepted). The document's page of
+      # its own organisation and the activity page stand in that organisation anyway; this
+      # page does not, so the file must not count as a page.
+      it 'hands out the text version of a document without moving the session' do
+        ActsAsTenant.with_tenant(south) { south_document.current_version.update_column(:plain_text_version, 'Angebot als Text') }
+        frame_address = note_frame_of(lane(south_document_row.id))['src']
+        get frame_address, headers: { 'Turbo-Frame' => 'ticket_display_frame', 'Referer' => "http://www.example.com#{all_inboxes_path}" }
+        link = doc(response.body).css('a').pluck('href').compact.find { |href| href.include?('download_plain_text') }
+        expect(link).to start_with("/org/#{south.id}/")
+        expect(session[:current_organisation_id]).to eq(north.id)
+
+        get link, headers: { 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' }
+
+        expect(response).to have_http_status(:ok)
+        expect(response.media_type).to eq('text/plain')
+        expect(response.body).to eq('Angebot als Text')
+        expect(session[:current_organisation_id]).to eq(north.id)
+        # The page of the document itself still is a page of its organisation: the same
+        # controller, asked without a frame (it redirects to the knowledge page with the
+        # document open). Only the file is no page.
+        get organisation_project_document_path(south, south_project, south_document)
+        expect(response).to redirect_to(%r{/org/#{south.id}/projects/#{south_project.id}/knowledge})
+        expect(session[:current_organisation_id]).to eq(south.id)
+      end
+
+      # Probe B10 (S4b): above, a refused document answers the one body of every refusal.
+      it 'refuses a document row whose document the policy refuses, with the missing body' do
+        expect(note_frame_of(lane(south_document_row.id))['src']).to include("/documents/#{south_document.id}")
+        expected = missing_body
+        allow_any_instance_of(DocumentPolicy).to receive(:show?).and_return(false)
+
+        expect(lane(south_document_row.id, preview: south_document.current_version_id)).to eq(expected)
+      end
+
+      it 'refuses a document row once the person lost the documents area' do
+        expect(note_frame_of(lane(south_document_row.id))['src']).to include("/documents/#{south_document.id}")
+        expected = missing_body
+        allow_areas(south, south_project, documents_access: 'no_access')
+
+        expect(lane(south_document_row.id, preview: south_document.current_version_id)).to eq(expected)
+      end
+
+      it 'answers the gone card once the document is deleted' do
+        delete_document(south, south_document, by: colleague)
+
+        body = lane(south_document_row.id)
+
+        expect(doc(body).at_css('turbo-frame#ticket_pane [data-inbox-event-card="gone"]')).to be_present
+        expect(note_frame_of(body)).to be_nil
+        expect(body).not_to include("/documents/#{south_document.id}")
+      end
+
+      it 'reads documents only under the tenant of the organisation of the row' do
+        reads = []
+        sub = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
+          table = payload[:sql][/FROM "(notifications|activities|projects|documents|document_versions)"/, 1]
+          reads << [table, ActsAsTenant.current_tenant] if table
+        end
+        allow(ActsAsTenant).to receive(:without_tenant).and_call_original
+
+        lane(south_document_row.id)
+
+        expect(reads.map(&:first)).to include('notifications', 'activities', 'documents')
+        expect(reads.map(&:last)).to all(be_present)
+        expect(reads.select { |table, _| %w[activities documents document_versions].include?(table) }.map(&:last).uniq).to eq([south])
+        expect(ActsAsTenant).not_to have_received(:without_tenant)
+      ensure
+        ActiveSupport::Notifications.unsubscribe(sub)
+      end
+    end
+
     # No read with the tenant lifted, for the tables a note row touches: the notification,
     # the activity its payload names, the project and the note.
     it 'reads notifications, activities, projects and notes only under the tenant of an organisation of the person' do

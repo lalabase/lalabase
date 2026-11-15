@@ -159,9 +159,11 @@ Controller gezeichnet und fragt den Schalter oben wie jedes Fragment über den R
 
 Ein Controller, der keine Seite ausliefert, sagt das selbst (`serves_pages?` → `false`), heute
 `Organisations::FileDownloadsController`: ein Bild fragt wie eine Seite. Kein Vergleich von
-Controllernamen im `ApplicationController`. Bekannt und hingenommen: einzelne Datei-Aktionen
-in Seiten-Controllern (`DocumentsController#download_plain_text`, der CSV-Export der Zeitgruppen)
-zählen als Seite; sie stehen nur auf Seiten derselben Organisation. Und ein Formular außerhalb
+Controllernamen im `ApplicationController`. Eine einzelne Datei-Aktion in einem Seiten-Controller
+sagt es für sich: `DocumentsController#download_plain_text` (seit S4b, 14.11.2026: das Dokument
+steht in der Bahn von `/inbox`, also auf einer Seite außerhalb seiner Organisation, und der Link
+„Textfassung“ fragt ohne Turbo wie eine Seite). Bekannt und hingenommen: der CSV-Export der
+Zeitgruppen zählt als Seite; er steht nur auf Seiten derselben Organisation. Und ein Formular außerhalb
 jedes Frames, das per Redirect antwortet, zählt erst ab dem nächsten Klick (Turbo folgt mit
 Stream-Accept); so landet auch die Annahme einer Einladung (`AcceptInvitationsController#update`)
 in der neuen Organisation, ohne die Sitzung umzusetzen, bis zur ersten Seite dort. Die Regel entscheidet nur, wohin ein Rückweg führt,

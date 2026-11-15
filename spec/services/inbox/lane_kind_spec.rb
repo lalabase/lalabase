@@ -11,6 +11,8 @@ require 'rails_helper'
 #       says so (never an empty frame), that an unknown class gets nothing (fail-closed), and
 #       that every project event there is has an answer, so a new event cannot fall through.
 RSpec.describe Inbox::LaneKind do
+  include ProjectEventRows
+
   let(:organisation) { create(:organisation, name: 'Nord GmbH') }
   let(:user) { create(:user) }
   let(:actor) { create(:user) }
@@ -70,6 +72,45 @@ RSpec.describe Inbox::LaneKind do
       expect(Rack::Utils.parse_query(query)).to eq('frame' => 'content', 'frame_id' => 'ticket_display_frame')
       expect(kind.project).to eq(project)
       expect(kind.type_key).to eq('note')
+    end
+
+    it 'answers the document of a document_created event, in a frame under the organisation of the row' do
+      document = titled_document(organisation, project, 'Angebot', creator: actor)
+      kind = described_class.for(row_for('document_created', secondary: document, parameters: { 'document_title' => 'Angebot' }))
+
+      expect(kind.target).to eq(document)
+      expect(kind.body).to eq(:frame)
+      expect(kind.card).to be_nil
+      document_page = "/org/#{organisation.id}/projects/#{project.id}/documents/#{document.id}"
+      expect(kind.full_path).to eq(document_page)
+      path, query = kind.frame_path.split('?')
+      expect(path).to eq(document_page)
+      expect(Rack::Utils.parse_query(query)).to eq('frame' => 'content', 'frame_id' => 'ticket_display_frame')
+      expect(kind.project).to eq(project)
+      expect(kind.type_key).to eq('document')
+    end
+
+    it 'answers the gone card for a document_created event whose document was deleted' do
+      document = titled_document(organisation, project, 'Angebot', creator: actor)
+      notification = row_for('document_created', secondary: document, parameters: { 'document_title' => 'Angebot' })
+      delete_document(organisation, document, by: actor)
+
+      kind = described_class.for(Notification.find(notification.id))
+
+      expect(kind.target).to be_nil
+      expect(kind.card).to eq('gone')
+      expect(kind.frame_path).to be_nil
+      expect(kind.full_path).to be_nil
+      expect(kind.card_link).to eq([:project, "/org/#{organisation.id}/projects/#{project.id}"])
+    end
+
+    # Probe B12 (S4b): the document without its activity (retention) is gone, like the note.
+    it 'answers the gone card for a document_created event whose activity is gone' do
+      kind = described_class.for(project_row('document_created', parameters: { 'document_title' => 'Angebot' }))
+
+      expect(kind.target).to be_nil
+      expect(kind.card).to eq('gone')
+      expect(kind.frame_path).to be_nil
     end
 
     %w[member_added member_removed permission_changed updated meeting_deleted].each do |action|
@@ -190,6 +231,15 @@ RSpec.describe Inbox::LaneKind do
       note = create(:note, project: project, organisation: organisation, creator: actor)
       notification = create(:notification, recipient: user, organisation: organisation, project: project,
                                            notifiable: note, channel: 'in_app')
+
+      expect(described_class.for(notification)).to be_nil
+    end
+
+    # Probe B13 (S4b): the same for a row filed under a document.
+    it 'answers nil for a row filed under a document (an old row: no event names it)' do
+      document = titled_document(organisation, project, 'Angebot', creator: actor)
+      notification = create(:notification, recipient: user, organisation: organisation, project: project,
+                                           notifiable: document, channel: 'in_app')
 
       expect(described_class.for(notification)).to be_nil
     end

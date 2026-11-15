@@ -364,6 +364,66 @@ RSpec.describe 'Inbox (System)', type: :system, inbox_e2e: true do
       expect(note_row.reload).to be_state_read
     end
 
+    # S4b: the document. Its preview and the way back load into the lane's inner frame.
+    it 'opens a document beside the list; its preview and the way back stay in the lane (K4)' do
+      document = titled_document(organisation, project, 'Angebot', creator: colleague)
+      document_row = project_event_row(organisation, project, 'document_created', recipient: user, actor: colleague,
+                                                                                  secondary: document,
+                                                                                  parameters: { 'document_title' => 'Angebot' },
+                                                                                  created_at: 30.minutes.ago)
+      version = ActsAsTenant.with_tenant(organisation) { document.current_version }
+      visit inbox_path(state_filters: %w[read unread], view_mode: 'chronological')
+      row = "[data-notification-item='#{document_row.id}']"
+      expect(page).to have_css("#{row} .inbox-row__title", text: 'Angebot')
+      wait_for_stimulus("#{row} a.inbox-row__link", 'inbox-master-item')
+      find("#{row} a.inbox-row__link").click
+
+      lane = '#ticket_pane #ticket_display_frame'
+      expect(page).to have_css("#{lane} .document-content [data-lane-title]", text: 'Angebot')
+      expect(page).to have_css('.layout.show-content')
+      expect(page).to have_current_path(/notification=#{document_row.id}/)
+      expect(page).to have_css('#ticket_pane [data-lane-close]', count: 1)
+      expect(page).to have_link(I18n.t('views.organisations.notifications.pane.open_full_view_of.document'))
+
+      find("#{lane} [data-preview-link-for='#{version.id}']").click
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot.txt')
+      expect(page).to have_css('.inbox-row', count: 2)
+      expect(page).to have_css('#ticket_pane .inbox-lane-head__project')
+      expect(URI(page.current_url).path).to eq(inbox_path)
+      expect(page).to have_current_path(/notification=#{document_row.id}/)
+
+      find("#{lane} [data-lane-back-to-object]").click
+      expect(page).to have_css("#{lane} .document-content [data-lane-title]", text: 'Angebot')
+      expect(page).to have_no_css("#{lane} .document-preview")
+      expect(page).to have_css('.inbox-row', count: 2)
+      expect(page).to have_current_path(/notification=#{document_row.id}/)
+
+      page.go_back
+      expect(page).to have_current_path(/preview=#{version.id}/)
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot.txt')
+      page.go_forward
+      expect(page).to have_css("#{lane} .document-content [data-lane-title]", text: 'Angebot')
+      expect(page).to have_no_css("#{lane} .document-preview")
+
+      # The real broadcast payload, delivered as Cable would (the test adapter has no browser).
+      stream = "#{ActionView::RecordIdentifier.dom_id(document)}_document_versions"
+      before_update = ActionCable.server.pubsub.broadcasts(stream).size
+      ActsAsTenant.with_tenant(organisation) { version.update!(embeddings_creation_flag: false) }
+      messages = ActionCable.server.pubsub.broadcasts(stream).drop(before_update)
+      expect(messages).not_to be_empty
+      messages.each { |message| page.execute_script('Turbo.renderStreamMessage(arguments[0])', ActiveSupport::JSON.decode(message)) }
+      expect(page).to have_css("#{lane} [data-index-state='failed']")
+      find("#{lane} [data-preview-link-for='#{version.id}']").click
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot.txt')
+      page.refresh
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot.txt')
+
+      # The lane's one close button still shuts the lane.
+      find('#ticket_pane [data-lane-close]').click
+      expect(page).to have_css('.layout.hide-content')
+      expect(URI(page.current_url).query.to_s).not_to include('notification=', 'preview=')
+    end
+
     it 'shows the card of a new member beside the list (K3)' do
       member_row = project_event_row(organisation, project, 'member_added', recipient: user, actor: colleague,
                                                                             parameters: { 'user_name' => 'Mia Neu' },

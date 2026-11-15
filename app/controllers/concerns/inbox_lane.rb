@@ -16,7 +16,7 @@ module InboxLane
   LANE_SHOWN_STATES = LANE_STATES.values.freeze
 
   included do
-    helper_method :inbox_pane_partial
+    helper_method :inbox_pane_partial, :inbox_lane_frame_path
   end
 
   private
@@ -105,6 +105,25 @@ module InboxLane
   rescue Pundit::NotAuthorizedError
     @pane_state = :unauthorized
     false
+  end
+
+  # Called only by the authorized pane. A preview belongs to its document, never
+  # to a version named independently by the address. A removed/foreign version
+  # falls back to the document, as on the knowledge page.
+  def inbox_lane_frame_path
+    target = @lane_kind.target
+    preview = params[KnowledgeFilterHelper::PREVIEW_PARAM]
+    if target.is_a?(Document) && preview.is_a?(String)
+      version = target.document_versions.find_by(id: preview)
+      if version
+        return preview_organisation_project_document_path(
+          target.organisation_id, target.project_id, target,
+          version_id: version.id, frame: 'content', frame_id: Inbox::ObjectFrame::FRAME_ID
+        )
+      end
+    end
+
+    @lane_kind.frame_path
   end
 
   def inbox_pane_partial

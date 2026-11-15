@@ -1,4 +1,4 @@
-# Karte: app/services/notifications (Stand: 2026-11-14, S4a)
+# Karte: app/services/notifications (Stand: 2026-11-14, S4b)
 
 Verarbeitet OutboxEvents zu Notifications. Die Gesamtkette (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten.md`.
@@ -73,7 +73,7 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   der Gegenstand `Activities::ProjectTarget.call(activity)` (die Aktivität aus
   `payload['activity_id']`). ⚠️ Eine Meldung zu einer Notiz gibt es nicht: `notifiable.is_a?(Note)`
   nimmt keine Zeile je. Drei Antworten: `:inline` (das Ticket, wie bisher von der Inbox gerendert),
-  `:frame` (ein Gegenstand mit eigener Anzeige, heute die Notiz: die Bahn hält
+  `:frame` (ein Gegenstand mit eigener Anzeige, heute Notiz und Dokument (S4b): die Bahn hält
   `turbo-frame#ticket_display_frame` mit der Rahmen-Adresse des Gegenstands als `src`, gezeichnet
   von dessen eigenem Controller unter dessen Policy; die Inbox rendert und kopiert nichts davon),
   `:card` (Ereignis ohne Anzeige: neues Mitglied, Rechte, gelöschtes Meeting; oder Gegenstand
@@ -81,7 +81,21 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   Rahmen). `nil` für einen Gegenstand ohne Eintrag (Person, Zeitgruppe, Repository, alte Zeile an
   einer Notiz): die Zeile verlässt die Seite wie bisher. Das Register (`REGISTRY`, Klasse →
   Eintrag) ist geschlossen und fail-closed, nie `constantize`. Eine neue Art = eine Zeile dort plus
-  ihr Audit (was die Anzeige in einer fremden Seite anfragt und beantwortet). Die Rahmen-Adresse
+  ihr Audit (was die Anzeige in einer fremden Seite anfragt und beantwortet).
+  ⚠️ Bekannt aus dem Audit des Dokuments, genauso auf der Aktivitäten-Seite: „Neue Version“ und
+  „Dokument löschen“ antworten mit einem Stream für `knowledge_display_frame`, den es nur auf der
+  Wissensseite gibt. In der Bahn bleibt das Formular offen bzw. das gelöschte Dokument stehen, bis
+  die Zeile neu geöffnet wird (dann: neue Version sichtbar bzw. Karte „gibt es nicht mehr“).
+  Dieselbe Klasse: „als aktuell setzen“ (Stream für `knowledge_display_frame`) und „Version
+  löschen“ (Redirect auf die Anzeige ohne `frame=content`).
+  Behoben, weil nur in der Bahn von `/inbox` falsch: „Textfassung“ einer Version ist eine Datei
+  und setzt die Organisation der Sitzung nicht mehr um (`DocumentsController#serves_pages?`).
+  Die Vorschau einer Version schreibt `preview=` in die Adresse der Inbox und nimmt es wieder
+  heraus. Die Bahn stellt sie bei Zurück/Vorwärts und beim Neuladen wieder her: über die
+  autorisierte Meldung, dann nur über die Versionen ihres Dokuments (`InboxLane#inbox_lane_frame_path`).
+  Fehlende oder fremde Versionen fallen auf die Dokumentansicht zurück. Versionszeilen bestimmen
+  mit `lane-link` und `_self` ihren umgebenden Frame beim Klick, auch nach einem Broadcast.
+  Die Rahmen-Adresse
   baut `Inbox::ObjectFrame`, auch für die Aktivitäten-Seite eines Projekts.
   Rechte bleiben bei den bestehenden Regeln: die Zeile über die Policy-Scope der Meldungen (Bereich
   des Ereignisses), der Gegenstand über `authorize target, :show?` im Lader, sein Controller fragt

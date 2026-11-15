@@ -180,6 +180,105 @@ RSpec.describe 'The lane of the inbox for the kinds of things', :ci_guard, type:
     end
   end
 
+  # S4b: the document is the second kind with a display of its own.
+  describe 'a row about a new document' do
+    let(:document) { titled_document(organisation, project, 'Angebot', creator: colleague) }
+    let!(:row) { event_row('document_created', secondary: document, parameters: { 'document_title' => 'Angebot' }) }
+
+    def document_page
+      organisation_project_document_path(organisation, project, document)
+    end
+
+    it 'answers the chrome of the lane and a frame that loads the document from its own controller' do
+      pane = lane(row).at_css('turbo-frame#ticket_pane')
+
+      expect(pane.at_css('.inbox-lane-head__project').text).to eq('Portal')
+      expect(pane.css('#inbox_pane_status_pills button').map { |button| button.text.squish })
+        .to eq([words(:mark_read), words(:archive)])
+      inner = pane.at_css('turbo-frame#ticket_display_frame')
+      path, query = inner['src'].split('?')
+      expect(path).to eq(document_page)
+      expect(Rack::Utils.parse_query(query)).to eq('frame' => 'content', 'frame_id' => 'ticket_display_frame')
+      expect(inner.children.text.strip).to eq('')
+      expect(pane.at_css('.document-content')).to be_nil
+      expect(pane.at_css('[data-inbox-event-card]')).to be_nil
+    end
+
+    it 'restores a preview through the document controller' do
+      version = document.current_version
+      inner = lane(row, preview: version.id).at_css('turbo-frame#ticket_display_frame')
+      expect(inner['src']).to eq(preview_organisation_project_document_path(
+                                   organisation, project, document, version_id: version.id, frame: 'content', frame_id: 'ticket_display_frame'
+                                 ))
+      get inner['src'], headers: { 'Turbo-Frame' => 'ticket_display_frame' }
+      expect(response).to have_http_status(:ok)
+      expect(Nokogiri::HTML(response.body).at_css('.document-preview [data-lane-title]').text).to include('angebot.txt')
+    end
+
+    it 'ignores a preview belonging to another document and malformed preview values' do
+      other = titled_document(organisation, project, 'Andere Datei', creator: colleague)
+      [other.current_version_id, SecureRandom.uuid, { id: document.current_version_id }].each do |preview|
+        inner = lane(row, preview: preview).at_css('turbo-frame#ticket_display_frame')
+        expect(inner['src']).to eq(organisation_project_document_path(
+                                     organisation, project, document, frame: 'content', frame_id: 'ticket_display_frame'
+                                   ))
+      end
+    end
+
+    it 'links the head to the page of the document, in its own words' do
+      link = lane(row).at_css('#inbox_pane_status_pills a.inbox-lane-actions__open')
+
+      expect(link['href']).to eq(document_page)
+      expect(link.text.squish).to eq(I18n.t('views.organisations.notifications.pane.open_full_view_of.document'))
+    end
+
+    # Probes B15 to B17 (S4b): the words of a document are its own, in both languages. Literal
+    # texts on purpose: a comparison with I18n.t would follow a copy of the note's text.
+    it 'has its own words for the link and the refusal, in German and in English' do
+      texts = %i[de en].index_with do |locale|
+        %w[open_full_view_of unauthorized_title_of].map do |key|
+          I18n.t("views.organisations.notifications.pane.#{key}.document", locale: locale, fallback: false, raise: true)
+        end
+      end
+
+      expect(texts).to eq(de: ['Datei öffnen', 'Kein Zugriff auf diese Datei'], en: ['Open file', 'No access to this file'])
+    end
+
+    it 'shows the title of the document on the row of the list' do
+      get organisation_notifications_path(organisation, state_filters: %w[read unread])
+
+      title = Nokogiri::HTML(response.body).at_css(".inbox-row[data-notification-id='#{row.id}'] .inbox-row__title")
+      expect(title.text).to eq('Angebot')
+    end
+
+    it 'answers the gone card and no frame once the document is deleted' do
+      expect(lane(row).at_css('turbo-frame#ticket_display_frame')).to be_present
+      delete_document(organisation, document, by: colleague)
+
+      pane = lane(row).at_css('turbo-frame#ticket_pane')
+
+      card = pane.at_css('[data-inbox-event-card="gone"]')
+      expect(card.at_css('.inbox-lane-notice__title').text).to eq(I18n.t('views.organisations.notifications.pane.event_card.gone.title'))
+      expect(card.at_css('.inbox-lane-notice__body').text)
+        .to include("Kai Kollege #{I18n.t('views.organisations.notifications.pane.event_card.document_created.what')}", 'Angebot')
+      expect(pane.at_css('turbo-frame#ticket_display_frame')).to be_nil
+      expect(response.body).not_to include(document_page)
+    end
+
+    it 'answers the unauthorized pane when the policy of the document refuses, in the words of a document' do
+      # Stubbed, as for the note: the row and the document ask the same area of the same project.
+      expect(lane(row).at_css('turbo-frame#ticket_display_frame')).to be_present
+      allow_any_instance_of(DocumentPolicy).to receive(:show?).and_return(false)
+
+      pane = lane(row).at_css('turbo-frame#ticket_pane')
+
+      expect(pane.at_css('.inbox-lane-notice__title').text)
+        .to eq(I18n.t('views.organisations.notifications.pane.unauthorized_title_of.document'))
+      expect(pane.at_css('turbo-frame#ticket_display_frame')).to be_nil
+      expect(response.body).not_to include(document_page)
+    end
+  end
+
   describe 'a row about a new member' do
     let!(:row) { event_row('member_added', parameters: { 'user_name' => 'Mia Neu' }) }
 
@@ -246,7 +345,7 @@ RSpec.describe 'The lane of the inbox for the kinds of things', :ci_guard, type:
   # registry, so an entry without that road is red.
   describe 'the registry against the controllers' do
     let(:objects) do
-      { Note => note }
+      { Note => note, Document => titled_document(organisation, project, 'Angebot', creator: colleague) }
     end
 
     it 'has an object of this spec for every entry with a display' do

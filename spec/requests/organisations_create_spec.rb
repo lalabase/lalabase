@@ -99,8 +99,13 @@ RSpec.describe 'Organisation Creation', type: :request do
         it 'does not create an organisation if membership creation fails' do
           # Raise a realistic RecordInvalid (with a record): Actors::BaseActor maps the
           # failure via e.record.errors, mirroring how Rails actually raises it.
-          allow_any_instance_of(User).to receive_message_chain(:memberships, :create!)
-            .and_raise(ActiveRecord::RecordInvalid.new(Membership.new))
+          # Keep the real association readable by the error page's sidebar.
+          # Only the write being rolled back should fail.
+          allow_any_instance_of(User).to receive(:memberships).and_wrap_original do |original, *args|
+            original.call(*args).tap do |memberships|
+              allow(memberships).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(Membership.new))
+            end
+          end
 
           expect do
             post create_organisation_path, params: { organisation: { name: 'Rollback Test Org' } }

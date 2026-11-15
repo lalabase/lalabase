@@ -19,10 +19,11 @@ module ReturnPath
 
   private
 
-  # The referer as a URI when it is a page of this host, else nil.
+  # The referer as a URI when it is a page of this host, else nil. Whether its path may be
+  # followed is ReturnPath.path?'s question, asked of what is kept.
   def same_host_referer
     uri = URI.parse(request.referer.to_s)
-    uri if uri.host == request.host && uri.path.to_s.start_with?('/') && !uri.path.start_with?('//')
+    uri if uri.host == request.host
   rescue URI::InvalidURIError
     nil
   end

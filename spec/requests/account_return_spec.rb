@@ -124,6 +124,29 @@ RSpec.describe 'The way back out of the account area', :ci_guard, type: :request
     end
   end
 
+  # The one rule of what may be followed, shared with the management area.
+  describe 'ReturnPath.path?' do
+    it 'accepts a path of this host within the limit, and nothing else' do
+      expect(ReturnPath.path?('/org/1/projects?view=board')).to be(true)
+      expect(ReturnPath.path?("/#{'x' * (ReturnPath::MAX_RETURN_PATH_BYTES - 1)}")).to be(true)
+      expect(ReturnPath.path?("/#{'x' * ReturnPath::MAX_RETURN_PATH_BYTES}")).to be(false)
+      expect(ReturnPath.path?('//elsewhere.example.com/org/1')).to be(false)
+      expect(ReturnPath.path?('https://elsewhere.example.com/org/1')).to be(false)
+      expect(ReturnPath.path?('org/1')).to be(false)
+      expect(ReturnPath.path?(nil)).to be(false)
+    end
+
+    it 'does not follow a stored value that is no path' do
+      visit_account(referer: "#{host}#{north_tickets}")
+      # A value the session could only hold if the rule above had let it in.
+      allow_any_instance_of(ActionDispatch::Request::Session).to receive(:[]).and_call_original
+      allow_any_instance_of(ActionDispatch::Request::Session).to receive(:[]).with(AccountReturn::SESSION_KEY)
+                                                                             .and_return('//elsewhere.example.com/x')
+      get edit_user_preferences_path, headers: { 'Referer' => "#{host}#{edit_user_registration_path}" }
+      expect(back_href).to eq(home)
+    end
+  end
+
   it 'keeps a path and never a host' do
     visit_account(referer: "#{host}#{north_tickets}")
     stored = session[AccountReturn::SESSION_KEY]

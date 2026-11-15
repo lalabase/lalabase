@@ -350,6 +350,8 @@ jobs:
           spec/services/notifications/subject_bundle_spec.rb
           spec/requests/all_inboxes_live_spec.rb
           spec/requests/level_sidebar_spec.rb
+          spec/requests/sidebar_header_spec.rb
+          spec/system/sidebar_header_spec.rb
           spec/requests/all_inboxes_entry_points_spec.rb
           spec/presenters/inbox/master_list_presenter_spec.rb
           spec/components/neo_inbox_master_item_component_spec.rb

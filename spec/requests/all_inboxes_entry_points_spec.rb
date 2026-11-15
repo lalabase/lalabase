@@ -61,14 +61,16 @@ RSpec.describe 'Ways to the inbox above the organisations', :real_transactions, 
       unread_in(north)
     end
 
-    it 'has a row in the switcher, without a count, and it leads to the page' do
+    # Navigation plan D7: the switcher's own row went; "Alle Organisationen" leads to the
+    # inbox above the organisations instead (level_home_path).
+    it 'has no row of its own in the switcher; "Alle Organisationen" leads to the page' do
       doc = doc_of(organisation_notifications_path(north, state_filters: %w[read unread]))
 
-      row = doc.at_css('[data-all-inboxes-entry="switcher"]')
-      expect(row).to be_present
+      expect(doc.at_css('[data-sidebar-header] details ul')).to be_present
+      expect(doc.at_css('[data-all-inboxes-entry="switcher"]')).to be_nil
+      row = doc.at_css('[data-level-entry="switcher"]')
       expect(row['href']).to eq(all_inboxes_path)
-      expect(row.text.squish).to eq(I18n.t('navigation.all_inboxes'))
-      expect(row.css('[id^="org_attention_count"]')).to be_empty
+      expect(row.text.squish).to start_with(I18n.t('navigation.all_organisations'))
       follow(row)
     end
 
@@ -111,6 +113,7 @@ RSpec.describe 'Ways to the inbox above the organisations', :real_transactions, 
 
       expect(doc.at_css('[data-controller~="details-autoclose"], nav')).to be_present
       expect(doc.at_css('[data-all-inboxes-entry="switcher"]')).to be_nil
+      expect(doc.at_css('[data-level-entry="switcher"]')['href']).to eq(select_organisation_path)
       expect(inbox_links(doc)).to be_empty
     end
 

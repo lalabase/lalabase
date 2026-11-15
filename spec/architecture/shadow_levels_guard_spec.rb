@@ -69,7 +69,6 @@ module ShadowLevels
     'app/views/billing_accounts/show.html.erb' => 2,
     'app/views/common/_button_container_standard_edit_form.html.erb' => 5,
     'app/views/common/_global_search_form.html.erb' => 3,
-    'app/views/common/_navigation_application.html.erb' => 4,
     'app/views/common/_sidebar_project_list.html.erb' => 2,
     'app/views/common/_upgrade_box.html.erb' => 3,
     'app/views/devise/shared/_error_messages.html.erb' => 1,

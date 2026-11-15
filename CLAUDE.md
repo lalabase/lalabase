@@ -313,7 +313,7 @@ stands apart by tone and edge (rule 5 in `doc/belegungstabelle_oberflaeche.md`, 
   blur; any prefix) in `app/views`, `app/components`, `app/javascript`, `app/helpers`,
   `app/services`, comments included. It is read with the classifier of the stylesheets:
   `shadow-[0_-4px_0_0_#14110c]` counts, a ring or `inset` does not. A legacy list holds a count
-  per file (90 values in 53 files on 2026-11-08) and only shrinks: a count too high or too low is
+  per file (65 values in 39 files on 2026-11-15) and only shrinks: a count too high or too low is
   red, so is a file with hits and no entry, or an entry without hits. Not read: `app/views/admin/`
   (its own style guide, decided 2026-06-01) and `app/views/style_guide/` (it shows samples).
 * **Inline values**: a hard `box-shadow` literal in the same files (a `style` attribute, a CSS

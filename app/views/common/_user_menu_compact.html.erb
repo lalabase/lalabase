@@ -1,8 +1,9 @@
 <!-- Compact User Menu for Sidebar -->
-<%# Branches on the sidebar's mode, as the layout does (NavigationHelper#sidebar_mode): an
-    account page shows the plain name, every page with the account layer (an
-    organisation, its management area, the level above the organisations) the handle. %>
-<% if sidebar_mode == :account %>
+<%# Branches on the sidebar's mode, as the layout does (NavigationHelper#sidebar_mode):
+    every page with the account layer (an organisation, its management area, the level
+    above the organisations) shows the name as its handle; an account page, and a page
+    nobody is signed in to (an invitation), the plain row. %>
+<% unless %i[organisation management level].include?(sidebar_mode) %>
   <!-- Account context: simplified menu (profile/settings are already in main nav) -->
   <div class="flex items-center gap-3 py-2 px-4">
     <i class="bi bi-person-fill"></i>

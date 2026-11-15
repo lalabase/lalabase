@@ -67,7 +67,7 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
 
     within('[data-all-inboxes-nav]') { click_link 'Suedhang AG' }
 
-    expect(page).to have_current_path(%r{\A#{Regexp.escape(organisation_root_path(organisation_id: south.id))}})
+    expect(page).to have_current_path(/\A#{Regexp.escape(organisation_root_path(organisation_id: south.id))}/)
     expect(page).to have_no_css('[data-all-inboxes-nav]')
   end
 

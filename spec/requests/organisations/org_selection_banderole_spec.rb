@@ -34,9 +34,11 @@ RSpec.describe 'Org recognition colour (selection page)', type: :request do
       get select_organisation_path
       expect(response.body).not_to include('background-color: off') # no sentinel leak
       # Proof that org_a is REALLY uncolored: exactly ONE toned tile (the other one),
-      # not two. (On the selection page @current_organisation is nil -> the sidebar colors
-      # nothing -> the only inline color source is the avatar boxes.)
-      expect(response.body.scan('background-color: #').size).to eq(1)
+      # not two. Counted in the page itself: since the header with the switcher stands on
+      # the selection page too (navigation plan PR 2), its menu rows carry the same colours.
+      main = Nokogiri::HTML(response.body).at_css('main')
+      expect(main.css('[style*="background-color"]')).not_to be_empty # the tiles are there
+      expect(main.to_html.scan('background-color: #').size).to eq(1)
     end
 
     it 'jede Kachel traegt IHRE Org-Farbe (beide Hexe erscheinen)' do

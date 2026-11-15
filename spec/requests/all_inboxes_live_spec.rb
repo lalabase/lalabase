@@ -115,12 +115,17 @@ RSpec.describe 'Live inbox above the organisations', :ci_guard, :real_transactio
   end
 
   describe 'the redraw' do
+    # The numbers of the switcher's rows in the header, never the header itself.
+    let(:header_targets) do
+      ["org_attention_count_#{north.id}", "org_attention_count_#{south.id}", 'org_attention_count_overflow']
+    end
+
     it 'redraws the list, the stamp and every count' do
       doc = redraw
 
       expect(response.headers['X-Inbox-Stamp']).to eq(stamp)
       expect(targets(doc)).to contain_exactly('inbox_master_list', 'all_inboxes_drawn_stamp', 'inbox_unread_count',
-                                              'inbox_list_tools', 'all_inboxes_nav')
+                                              'inbox_list_tools', 'all_inboxes_nav', *header_targets)
       expect(listed_ids(doc)).to eq([south_row.id, north_row.id])
       expect(doc.at_css('turbo-stream[target="all_inboxes_drawn_stamp"] template [data-stamp]')['data-stamp']).to eq(stamp)
       nav = doc.at_css('turbo-stream[target="all_inboxes_nav"] template')
@@ -135,7 +140,7 @@ RSpec.describe 'Live inbox above the organisations', :ci_guard, :real_transactio
     it 'redraws counts with an authoritative header stamp but leaves the drawn stamp alone' do
       doc = redraw(part: 'counts')
 
-      expect(targets(doc)).to contain_exactly('inbox_unread_count', 'inbox_list_tools', 'all_inboxes_nav')
+      expect(targets(doc)).to contain_exactly('inbox_unread_count', 'inbox_list_tools', 'all_inboxes_nav', *header_targets)
       expect(response.headers['X-Inbox-Stamp']).to eq(stamp)
     end
 

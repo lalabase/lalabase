@@ -42,9 +42,10 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
     Capybara.string(response.body)
   end
 
-  # The switch buttons of the menu, in rendered (DOM) order.
+  # The organisation rows of the menu, in rendered (DOM) order: links to their start pages
+  # (navigation plan D2), forms only inside the management area (management_sidebar_spec).
   def switcher_org_buttons
-    page_doc.all("details form[action='#{set_organisation_path}'] button", visible: :all)
+    page_doc.all('details [data-switcher-org]', visible: :all)
   end
 
   # Names of the orgs offered as switch forms, in rendered (DOM) order. .text(:all) because the
@@ -78,15 +79,16 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
       get organisation_root_path(acme)
     end
 
-    it 'lists every org as a one-click switch form with the current one marked' do
+    it 'lists every org as a link to its start page with the current one marked' do
       expect(response).to have_http_status(:ok)
       expect(page_doc).to have_css("details[data-controller='details-autoclose']")
-      expect(page_doc).to have_css("details form[action='#{set_organisation_path}']", count: 3, visible: :all)
-      [acme, beta, gamma].each { |o| expect(response.body).to include(o.name) }
+      expect(switcher_org_buttons.map { |row| [row.tag_name, row[:href]] })
+        .to eq([acme, beta, gamma].map { |o| ['a', organisation_root_path(organisation_id: o.id)] })
+      expect(page_doc).to have_no_css("details form[action='#{set_organisation_path}']", visible: :all)
       # Exactly ONE row is marked current, and it is the current org — guards a "mark every row"
       # regression (the count catches mark-all; the text catches marking the wrong row).
-      expect(page_doc).to have_css("details button[aria-current='true']", visible: :all, count: 1)
-      expect(page_doc).to have_css("details button[aria-current='true']", text: acme.name, visible: :all)
+      expect(page_doc).to have_css("details [aria-current='true']", visible: :all, count: 1)
+      expect(page_doc).to have_css("details a[aria-current='true']", text: acme.name, visible: :all)
     end
 
     it 'wires the floating-overlay behaviour (toggle handler + panel target)' do
@@ -97,8 +99,8 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
       expect(page_doc).to have_css("details ul[data-details-autoclose-target='panel']", visible: :all)
     end
 
-    it 'offers "Alle Organisationen" and "Mitglied einladen" in the menu footer' do
-      expect(page_doc).to have_css("details a[href='#{select_organisation_path}']",
+    it 'offers "Alle Organisationen" (the inbox above them) first and "Mitglied einladen" at the end' do
+      expect(page_doc).to have_css("details li:first-child a[href='#{all_inboxes_path}']",
                                    text: I18n.t('navigation.all_organisations'), visible: :all)
       expect(page_doc).to have_css(
         "details a[href='#{new_organisation_invitation_path(organisation_id: acme.id)}']",
@@ -163,10 +165,14 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
       get organisation_root_path(org)
     end
 
-    it 'renders the org name as static text with no switcher menu' do
+    # Navigation plan, finding 3: the header renders for everybody, so a person with one
+    # organisation reaches the level above it.
+    it 'renders the switcher with "Alle Organisationen" leading to the cockpit and the one org' do
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(org.name)
-      expect(page_doc).to have_no_css("details[data-controller='details-autoclose']")
+      expect(page_doc).to have_css("details[data-controller='details-autoclose'] summary", text: org.name)
+      expect(page_doc).to have_css("details a[href='#{select_organisation_path}']",
+                                   text: I18n.t('navigation.all_organisations'), visible: :all)
+      expect(switcher_org_names).to eq(['Solo GmbH'])
     end
 
     it 'shows neither "Verwaltung" nor "Mitglied einladen"' do
@@ -189,8 +195,8 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
     it 'renders the switcher with both orgs but no invite or management entry' do
       expect(response).to have_http_status(:ok)
       expect(page_doc).to have_css("details[data-controller='details-autoclose']")
-      expect(page_doc).to have_css("details form[action='#{set_organisation_path}']", count: 2, visible: :all)
-      expect(page_doc).to have_css("details a[href='#{select_organisation_path}']",
+      expect(switcher_org_buttons.size).to eq(2)
+      expect(page_doc).to have_css("details a[href='#{all_inboxes_path}']",
                                    text: I18n.t('navigation.all_organisations'), visible: :all)
       expect(response.body).not_to include(I18n.t('navigation.invite_member'))
       expect(page_doc).to have_no_css("a[href='#{organisation_settings_path(one)}']")
@@ -233,11 +239,10 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
     it 'caps the list at ORG_MENU_LIMIT rows and links to the full cockpit' do
       get organisation_root_path(orgs.min_by(&:name)) # current org sits inside the cap
 
-      expect(page_doc).to have_css("details form[action='#{set_organisation_path}']",
-                                   count: NavigationHelper::ORG_MENU_LIMIT, visible: :all)
+      expect(switcher_org_buttons.size).to eq(NavigationHelper::ORG_MENU_LIMIT)
       expect(response.body).to include('Org 07')      # last row still shown (n)
       expect(response.body).not_to include('Org 08')  # n+1 hidden behind "Alle Organisationen"
-      expect(page_doc).to have_css("details a[href='#{select_organisation_path}']",
+      expect(page_doc).to have_css("details a[href='#{all_inboxes_path}']",
                                    text: I18n.t('navigation.all_organisations'), visible: :all)
     end
 
@@ -250,11 +255,10 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
       get organisation_root_path(current)
 
       expect(page_doc).to have_css("details[data-controller='details-autoclose']")
-      expect(page_doc).to have_css("details form[action='#{set_organisation_path}']",
-                                   count: NavigationHelper::ORG_MENU_LIMIT, visible: :all)
-      expect(page_doc).to have_no_css("details button[aria-current='true']", visible: :all)
+      expect(switcher_org_buttons.size).to eq(NavigationHelper::ORG_MENU_LIMIT)
+      expect(page_doc).to have_no_css("details [aria-current='true']", visible: :all)
       expect(page_doc).to have_css('details summary', text: current.name)
-      expect(page_doc).to have_css("details a[href='#{select_organisation_path}']",
+      expect(page_doc).to have_css("details a[href='#{all_inboxes_path}']",
                                    text: I18n.t('navigation.all_organisations'), visible: :all)
     end
   end

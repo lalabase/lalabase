@@ -7,7 +7,7 @@ gem 'foreman'
 gem 'minitest', '~> 5.26'       # Keep Rails' test dependency on the Ruby-4-compatible 5.x line.
 gem 'pg', '~> 1.1'              # Use PostgreSQL as the database for Active Record
 gem 'pg_search'
-gem 'puma', '>= 8.0.2'          # Puma web server for production
+gem 'puma', '>= 8.0.3'          # Puma web server for production
 gem 'rails', '~> 8.1.4'
 gem 'sprockets-rails'           # The original asset pipeline for Rails
 

@@ -2,9 +2,10 @@
 
 require 'rails_helper'
 
-# Where the logo in the sidebar leads. With two or more organisations it is the way to
-# all of them (the cockpit, "Organisation auswählen"); with one it stays that
-# organisation's start page, because a cockpit of one tile is a detour.
+# Where the logo in the sidebar leads. With two or more organisations it is the start of
+# the level above them, the inbox above the organisations (user, 2026-11-14; navigation
+# plan D8, ApplicationController#level_home_path); with one it stays that organisation's
+# start page, because a cockpit of one tile is a detour.
 RSpec.describe 'The logo in the sidebar', type: :request do
   let(:user) { create(:user) }
   let(:first_org) { create(:organisation) }
@@ -25,12 +26,21 @@ RSpec.describe 'The logo in the sidebar', type: :request do
     sign_in user
   end
 
-  it 'leads to the organisation select page for someone in two organisations' do
+  it 'leads to the inbox above the organisations from a page of an organisation, for someone in two' do
     member_of(create(:organisation))
 
     get organisation_root_path(organisation_id: first_org.id)
 
-    expect(brand_link_href).to eq(select_organisation_path)
+    expect(brand_link_href).to eq(all_inboxes_path)
+  end
+
+  it 'leads to the inbox above the organisations from the cockpit, for someone in two' do
+    member_of(create(:organisation))
+
+    get select_organisation_path
+
+    expect(response).to have_http_status(:ok)
+    expect(brand_link_href).to eq(all_inboxes_path)
   end
 
   it 'stays on the organisation start page for someone in one organisation' do
@@ -51,11 +61,20 @@ RSpec.describe 'The logo in the sidebar', type: :request do
     expect(brand_link_href).to eq(organisation_root_path(organisation_id: first_org.id))
   end
 
-  it 'leads to the organisation select page from the account area as well' do
+  it 'leads to the inbox above the organisations from the account area as well' do
     member_of(create(:organisation))
 
     get edit_user_registration_path
 
-    expect(brand_link_href).to eq(select_organisation_path)
+    expect(brand_link_href).to eq(all_inboxes_path)
+  end
+end
+
+# Signed out, no page renders the application layout, so the rule is asked directly.
+RSpec.describe NavigationHelper, type: :helper do
+  it 'leads the logo to the root for a visitor who is not signed in' do
+    allow(helper).to receive(:user_signed_in?).and_return(false)
+
+    expect(helper.brand_link_path).to eq(root_path)
   end
 end

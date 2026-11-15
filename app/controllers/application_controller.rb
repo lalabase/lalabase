@@ -68,6 +68,16 @@ class ApplicationController < ActionController::Base
   end
   helper_method :user_home_path
 
+  # The start of the level above the organisations (navigation plan D8, first step): the
+  # inbox above them for a person with two or more active organisations, else the
+  # cockpit ("Übersicht"). The switcher's row "Alle Organisationen" and the logo lead
+  # here. Sign-in and the bare domain still ask user_home_path. The count reads the
+  # switcher's list, memoised per request, so it costs no query of its own.
+  def level_home_path
+    switcher_organisations(current_user).many? ? all_inboxes_path : select_organisation_path
+  end
+  helper_method :level_home_path
+
   include Pundit::Authorization
   include Pagy::Backend
   # selectable_projects belongs HERE, not only on Organisations::BaseController:
@@ -194,6 +204,12 @@ class ApplicationController < ActionController::Base
                              level_organisations_with(Notifications::UnreadSignals.counts_for(current_user, except: nil))
   end
   helper_method :level_organisations
+
+  # The same counts as { organisation_id => unread }, the form the switcher's rows read.
+  def level_unread_counts
+    level_organisations.to_h { |row| [row[:id], row[:unread].to_i] }
+  end
+  helper_method :level_unread_counts
 
   # The active organisations in the order of Organisation.by_name (the order of the
   # inbox's counts), each with its number from `counts` ({ organisation_id => count }).

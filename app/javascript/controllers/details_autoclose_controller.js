@@ -29,8 +29,20 @@ export default class extends Controller {
     this.closeOnOutsideClick = this.closeOnOutsideClick.bind(this)
     this.closeOnEscape = this.closeOnEscape.bind(this)
     this.reposition = this.reposition.bind(this)
+    this.closeBeforeCache = this.closeBeforeCache.bind(this)
     document.addEventListener("pointerdown", this.closeOnOutsideClick)
     document.addEventListener("keydown", this.closeOnEscape)
+    document.addEventListener("turbo:before-cache", this.closeBeforeCache)
+    window.addEventListener("pagehide", this.closeBeforeCache)
+  }
+
+  // Close before either Turbo's snapshot or the browser's back/forward cache keeps the page.
+  // Organisation changes load a full document; other links still use Turbo.
+  closeBeforeCache() {
+    if (!this.element.open) return
+    this.element.open = false
+    this.untrack()
+    if (this.hasPanelTarget) this.panelTarget.style.opacity = ""
   }
 
   // A filter menu is placed again whenever its size changes, and whenever the
@@ -59,6 +71,8 @@ export default class extends Controller {
   disconnect() {
     document.removeEventListener("pointerdown", this.closeOnOutsideClick)
     document.removeEventListener("keydown", this.closeOnEscape)
+    document.removeEventListener("turbo:before-cache", this.closeBeforeCache)
+    window.removeEventListener("pagehide", this.closeBeforeCache)
     this.untrack()
   }
 

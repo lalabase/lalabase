@@ -84,7 +84,7 @@ module DemoSeed
     result = Actors::CreateSignup.call(
       email: ADMIN_EMAIL, password: PASSWORD, password_confirmation: PASSWORD,
       first_name: 'Anna', last_name: 'Admin', language: LANGUAGE,
-      terms_accepted: true, organisation_name: ORGANISATION_NAME
+      terms_accepted: true, organisation_name: ORGANISATION_NAME, client_ip: nil
     )
     raise "Demo signup failed: #{result.errors.to_sentence}" unless result.success?
 

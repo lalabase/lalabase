@@ -52,6 +52,12 @@ RSpec.describe Signups::TakenAddressBrake do
     expect(described_class.banned?('2001:db8::1')).to be(true)
   end
 
+  it 'blocks the IPv4-mapped spelling of a banned IPv4 address' do
+    described_class::LIMIT.times { described_class.record(address) }
+
+    expect(described_class.banned?("::ffff:#{address}")).to be(true)
+  end
+
   # nil is what the provisioning endpoint passes when the website named no
   # visitor. A shared bucket for "nobody" would close the sign-up for all of them.
   [nil, '', 'not-an-address'].each do |nobody|

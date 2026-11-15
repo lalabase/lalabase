@@ -53,7 +53,9 @@ module Signups
       # and the provisioning endpoint (the visitor the website names) meet in
       # the same bucket.
       def bucket(client_ip)
-        "#{BUCKET}:#{IPAddr.new(client_ip.to_s)}"
+        address = IPAddr.new(client_ip.to_s)
+        address = address.native if address.ipv4_mapped?
+        "#{BUCKET}:#{address}"
       rescue ArgumentError
         nil
       end

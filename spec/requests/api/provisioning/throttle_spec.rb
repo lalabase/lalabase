@@ -139,5 +139,13 @@ RSpec.describe 'Provisioning signup throttling' do
                                    headers: { 'REMOTE_ADDR' => '203.0.113.7' }
       expect(response).to have_http_status(:too_many_requests)
     end
+
+    it 'shares the form bucket when the website names an IPv4-mapped visitor' do
+      collect_the_allowance(visitor_ip: '::ffff:203.0.113.7')
+
+      post user_registration_path, params: { user: { email: 'fresh@example.com' } },
+                                   headers: { 'REMOTE_ADDR' => '203.0.113.7' }
+      expect(response).to have_http_status(:too_many_requests)
+    end
   end
 end

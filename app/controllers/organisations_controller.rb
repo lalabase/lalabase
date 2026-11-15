@@ -18,6 +18,9 @@ class OrganisationsController < ApplicationController
       user: current_user, importance: current_user.preference_store.cockpit_importance
     )
     @unread_counts = @action_summary.unread_counts
+    # The level's sidebar shows the same numbers as the tiles, from this read
+    # (ApplicationController#level_organisations), not from a second one.
+    @level_organisations = level_organisations_with(@unread_counts)
 
     # User-private cross-org roll-up of open personal to-dos (Notizblock). Same per-org iteration;
     # scoped to the owner only. Lazy — the view renders nothing if there is nothing open.

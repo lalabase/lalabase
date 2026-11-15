@@ -3,7 +3,8 @@
     Without an effective color (one org / off / not set) NO override -> :root default applies. %>
 <html lang="<%= I18n.locale %>" class="theme-lime theme-pop"<% if (brand_style = brand_style_for(current_user, @current_organisation)) %> style="<%= brand_style %>"<% end %>>
   <head>
-    <title><%= t('application.title', default: 'Projektmanagement') %></title>
+    <%# A page may name itself (content_for :title), as the pages without a session do. %>
+    <title><%= content_for?(:title) ? yield(:title) : t('application.title', default: 'Projektmanagement') %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <%= csrf_meta_tags %> <%= csp_meta_tag %>
 
@@ -111,10 +112,15 @@
         are decided CENTRALLY; returns only valid hex (no 'off' leak as a CSS value).
         The line is gated (only when a color is present) -> default orgs: no line -> pixel-identical. %>
     <% org_brand = current_user&.org_colors&.effective_color(@current_organisation) if user_signed_in? && @current_organisation %>
-    <%# The account layer rises over this sidebar on an organisation's page
-        (common/_account_layer, F47); sidebar_layer_controller sits on the aside because
-        it reaches the name at its foot, the layer and what the layer covers. %>
-    <% account_layer = user_signed_in? && @current_organisation.present? %>
+    <%# What the sidebar's middle shows has ONE owner, NavigationHelper#sidebar_mode
+        (Belegungstabelle F44, F48); this layout only renders by it. %>
+    <% mode = sidebar_mode %>
+    <%# The account layer rises over this sidebar on an organisation's page and on the
+        level above the organisations (common/_account_layer, F47);
+        sidebar_layer_controller sits on the aside because it reaches the name at its
+        foot, the layer and what the layer covers. An account page has none: its
+        sidebar already is the list. %>
+    <% account_layer = %i[organisation management level].include?(mode) %>
     <aside id="sidebar"
       class="fixed inset-y-0 start-0 sidebar flex flex-col w-64 lg:min-w-64 h-screen overflow-hidden <%= 'bg-cream-200' unless org_brand %> border-r border-cream-300 <%= 'border-s-[3px] border-s-brand' if org_brand %> transition-all duration-500 ease-in-out -translate-x-full lg:translate-x-0 max-lg:z-sidebar rtl:translate-x-full lg:rtl:translate-x-0"
       <% if org_brand %> style="background-color: <%= org_brand %>;"<% end %>
@@ -152,10 +158,11 @@
         <div class="col-start-1 row-start-1 flex min-h-0 flex-col" data-sidebar-layer-target="covered">
         <!-- Scrollable middle section -->
         <div class="flex-1 overflow-y-auto scrollbars">
-          <% if user_signed_in? && @current_organisation.blank? && controller_name == 'all_inboxes' && @inbox_organisations %>
-            <%# The inbox above the organisations lists them, with their counts. %>
-            <%= render 'common/navigation_all_inboxes', organisations: @inbox_organisations %>
-          <% elsif user_signed_in? && @current_organisation.blank? %>
+          <% if mode == :level %>
+            <%# Above the organisations: the lists of the level and the organisations,
+                with the counts the page already loaded. %>
+            <%= render 'common/navigation_level', organisations: level_organisations %>
+          <% elsif mode == :account %>
             <%= render 'common/navigation_account' %>
           <% else %>
             <%= render 'common/navigation_application', current_organisation: @current_organisation %>
@@ -165,7 +172,7 @@
             <% end %>
             <%# No projects while the management area is open: the sidebar lists its
                 sections then (common/_navigation_management). %>
-            <% if user_signed_in? && @current_organisation.present? && !management_section_active? %>
+            <% if mode == :organisation %>
               <%= render 'common/sidebar_project_list' %>
             <% end %>
           <% end %>

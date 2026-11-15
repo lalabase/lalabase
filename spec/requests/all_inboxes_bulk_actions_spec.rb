@@ -386,6 +386,11 @@ RSpec.describe 'Bulk actions of the inbox above the organisations', :ci_guard, :
 
       expect(stream('inbox_unread_count').text.strip).to eq('2')
       nav = stream('all_inboxes_nav')
+      # The level's sidebar, with "Gesamt-Inbox" marked although the request is a bulk action.
+      current = nav.css('a[aria-current="page"]')
+      expect(current.map { |a| a.text.squish }).to eq([I18n.t('navigation.all_inboxes')])
+      expect(current.first['class']).to include('sidebar-row--active')
+      expect(nav.css('a').map { |a| a.text.squish }).to include(I18n.t('navigation.overview'))
       north_item = nav.css('li').find { |li| li.text.include?('Nordwind GmbH') }
       south_item = nav.css('li').find { |li| li.text.include?('Suedhang AG') }
       expect(north_item.text).not_to match(/\d/)

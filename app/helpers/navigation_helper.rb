@@ -155,6 +155,59 @@ module NavigationHelper
     SETTINGS_TABS.find { |tab| tab[:controller_name] == name }&.dig(:key) || MANAGEMENT_PAGE_SECTIONS[name]
   end
 
+  # The pages of the level above the organisations (Belegungstabelle F48), by controller and
+  # the actions that are pages of it (nil: every action). `key:` is the row of the level's
+  # sidebar that stands for the page; a page without a row of its own (the form for a new
+  # organisation, the help) marks none.
+  LEVEL_PAGES = {
+    'organisations' => { actions: %w[select new create], key: { 'select' => :overview } },
+    'all_inboxes' => { actions: nil, key: :all_inboxes },
+    'help' => { actions: nil, key: nil }
+  }.each_value(&:freeze).freeze
+
+  # What the sidebar's middle shows, the ONE answer the layout renders by:
+  #   :organisation  the app's entries and the projects of the organisation
+  #   :management    the sections of its management area (common/_navigation_management)
+  #   :level         the level above the organisations (common/_navigation_level)
+  #   :account       the pages of "Mein Konto" (common/_navigation_account)
+  #   nil            nobody is signed in
+  # A function of the module, without a view: a controller may ask it in a before_action,
+  # where calling `helpers` would freeze the instance variables (see section_key_for).
+  def self.sidebar_mode_for(controller_name:, action_name:, organisation:, signed_in:)
+    return nil unless signed_in
+
+    if organisation.present?
+      section_key_for(controller_name) ? :management : :organisation
+    else
+      level_page?(controller_name, action_name) ? :level : :account
+    end
+  end
+
+  def self.level_page?(controller_name, action_name)
+    page = LEVEL_PAGES[controller_name]
+    page.present? && (page[:actions].nil? || page[:actions].include?(action_name))
+  end
+
+  # The row of the level's sidebar the page stands for (:overview, :all_inboxes), nil on
+  # every other page. From the controller, never from the address: the sidebar of the
+  # inbox is also redrawn by a stream whose request is a row action or the live redraw.
+  def self.level_page_key_for(controller_name, action_name)
+    return nil unless level_page?(controller_name, action_name)
+
+    key = LEVEL_PAGES.dig(controller_name, :key)
+    key.is_a?(Hash) ? key[action_name] : key
+  end
+
+  # The mode of the page being rendered. Cheap (a hash lookup), so not memoised.
+  def sidebar_mode
+    NavigationHelper.sidebar_mode_for(controller_name: controller_name, action_name: action_name,
+                                      organisation: current_organisation, signed_in: user_signed_in?)
+  end
+
+  def level_page_key
+    NavigationHelper.level_page_key_for(controller_name, action_name)
+  end
+
   # True on any organisation-management page: a section, or a page below one. It switches
   # the sidebar to the management list and lights the gear in the organisation header.
   def management_section_active?

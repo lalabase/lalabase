@@ -123,7 +123,13 @@ RSpec.describe 'Live inbox above the organisations', :ci_guard, :real_transactio
                                               'inbox_list_tools', 'all_inboxes_nav')
       expect(listed_ids(doc)).to eq([south_row.id, north_row.id])
       expect(doc.at_css('turbo-stream[target="all_inboxes_drawn_stamp"] template [data-stamp]')['data-stamp']).to eq(stamp)
-      expect(doc.at_css('turbo-stream[target="all_inboxes_nav"]').inner_html).to include('Nordwind GmbH', 'Suedhang AG')
+      nav = doc.at_css('turbo-stream[target="all_inboxes_nav"] template')
+      expect(nav.inner_html).to include('Nordwind GmbH', 'Suedhang AG')
+      # The level's sidebar, "Gesamt-Inbox" marked although the request is the live redraw.
+      current = nav.css('a[aria-current="page"]')
+      expect(current.map { |a| a.text.squish }).to eq([I18n.t('navigation.all_inboxes')])
+      expect(current.first['class']).to include('sidebar-row--active')
+      expect(nav.css('a').map { |a| a.text.squish }).to include(I18n.t('navigation.overview'))
     end
 
     it 'redraws counts with an authoritative header stamp but leaves the drawn stamp alone' do

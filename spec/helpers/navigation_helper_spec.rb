@@ -289,4 +289,54 @@ RSpec.describe NavigationHelper, type: :helper do
       expect(capture_sql { helper.ai_section_tabs(org) }).to be_empty
     end
   end
+
+  # What the sidebar's middle shows (Belegungstabelle F44, F48): ONE owner, asked by the
+  # layout and callable without a view (a controller may ask it in a before_action).
+  describe '.sidebar_mode_for (the one owner of the sidebar middle)' do
+    let(:organisation) { build_stubbed(:organisation) }
+    # Every controller the router names, so a new controller is in the table by itself.
+    let(:controllers) do
+      Rails.application.routes.routes.filter_map { |route| route.defaults[:controller] }.uniq
+           .map { |path| path.split('/').last }.uniq
+    end
+
+    def mode(name, action = 'index', organisation: nil, signed_in: true)
+      described_class.sidebar_mode_for(controller_name: name, action_name: action,
+                                       organisation: organisation, signed_in: signed_in)
+    end
+
+    it 'answers :management on every controller section_key_for names, :organisation on every other, inside an organisation' do
+      expect(controllers.size).to be > 50
+      controllers.each do |name|
+        expected = described_class.section_key_for(name) ? :management : :organisation
+        expect(mode(name, organisation: organisation)).to eq(expected), "#{name} inside an organisation"
+      end
+    end
+
+    it 'names every section controller and every page below one :management' do
+      (described_class::SETTINGS_TAB_CONTROLLERS + described_class::MANAGEMENT_PAGE_SECTIONS.keys).each do |name|
+        expect(mode(name, organisation: organisation)).to eq(:management), name
+      end
+    end
+
+    it 'answers :level on the pages of the level, without an organisation' do
+      { 'organisations' => %w[select new create], 'all_inboxes' => %w[index], 'help' => %w[index show] }.each do |name, actions|
+        actions.each { |action| expect(mode(name, action)).to eq(:level), "#{name}##{action}" }
+      end
+    end
+
+    it 'keeps the account sidebar on every other page without an organisation' do
+      %w[registrations user_preferences billing_accounts user_data_exports personal_access_tokens account_deletions].each do |name|
+        expect(mode(name, 'edit')).to eq(:account), name
+      end
+    end
+
+    it 'answers nil for a visitor who is not signed in' do
+      expect(mode('organisations', 'select', signed_in: false)).to be_nil
+    end
+
+    it 'is called on the module, without a view' do
+      expect(described_class).to respond_to(:sidebar_mode_for)
+    end
+  end
 end

@@ -168,6 +168,35 @@ RSpec.describe 'The account layer of the sidebar', type: :system do
     expect_layer_closed
   end
 
+  # Navigation plan PR 1: the cockpit shows the level's sidebar, and the layer is the way
+  # to the account from there.
+  describe 'on the cockpit' do
+    before do
+      visit select_organisation_path
+      expect(page).to have_css('#sidebar [data-all-inboxes-nav]')
+    end
+
+    it 'opens on the name, closes on Escape and gives the focus back to the name' do
+      name_row.click
+      expect_layer_open
+
+      page.send_keys(:escape)
+
+      expect_layer_closed
+      expect(page.evaluate_script("document.activeElement.classList.contains('sidebar-layer__trigger')")).to be(true)
+      expect(page).to have_current_path(select_organisation_path)
+    end
+
+    it 'leads to the profile page' do
+      name_row.click
+      expect_layer_open
+
+      within(layer) { click_link I18n.t('navigation.profile') }
+
+      expect(page).to have_current_path(edit_user_registration_path)
+    end
+  end
+
   # Signing out from the layer is held by the request spec (the link, its method): the
   # test host answers the sign-out with a redirect to another origin, which no browser
   # follows, so a click here proves nothing about the layer.

@@ -32,17 +32,25 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     page.current_window.resize_to(1440, 1000)
   end
 
-  it 'narrows to an organisation from the sidebar and opens a row in the lane of this page' do
+  # Variant C (navigation plan D2): the select field at the list narrows; the sidebar
+  # marks nothing for it and keeps "Gesamt-Inbox" marked.
+  it 'narrows to an organisation from the select field and opens a row in the lane of this page' do
     visit all_inboxes_path
 
     expect(page).to have_css('.inbox-row', count: 2)
     expect(page).to have_css('.inbox-row__meta-text', text: 'Nordwind GmbH')
     expect(page).to have_css('.inbox-row__meta-text', text: 'Suedhang AG')
 
-    within('[data-all-inboxes-nav]') { click_link 'Suedhang AG' }
+    find('#inbox-organisation').find('option', text: /\ASuedhang AG/).select_option
 
     expect(page).to have_css('.inbox-row', count: 1)
     expect(page).to have_css('.inbox-row__title', text: 'Paket fehlt')
+    expect(page).to have_current_path(/org=#{south.id}/)
+    within('[data-all-inboxes-nav]') do
+      expect(page).to have_css('a.sidebar-row--active', count: 1)
+      expect(page).to have_css('a.sidebar-row--active[aria-current="page"]', text: I18n.t('navigation.all_inboxes'))
+      expect(page).to have_no_css('nav a.sidebar-row--active')
+    end
 
     find('.inbox-row__link', text: 'Paket fehlt').click
 
@@ -50,6 +58,17 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     expect(page).to have_current_path(%r{\A/inbox\?})
     expect(Rack::Utils.parse_nested_query(URI(page.current_url).query)).to include('org' => south.id, 'notification' => be_present)
     expect(page).to have_css('.inbox-row', count: 1)
+  end
+
+  # Variant C (navigation plan D2): an organisation of the sidebar opens it.
+  it 'opens the dashboard of an organisation clicked in the sidebar' do
+    visit all_inboxes_path
+    expect(page).to have_css('.inbox-row', count: 2)
+
+    within('[data-all-inboxes-nav]') { click_link 'Suedhang AG' }
+
+    expect(page).to have_current_path(/\A#{Regexp.escape(organisation_root_path(organisation_id: south.id))}/)
+    expect(page).to have_no_css('[data-all-inboxes-nav]')
   end
 
   # The "···" of a row acts in place: the row leaves the unread view, the counts

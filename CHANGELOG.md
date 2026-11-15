@@ -82,6 +82,12 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   reason. The sign-up form still says when an address is taken.
 - The unlock form has a rate limit of its own, 3 requests per minute and IP address, like the
   password reset and the confirmation resend. It mails an arbitrary address on request.
+- The sign-up closes for a day to a client address that was told five times in a day that an
+  email address already has an account (429, at the form and at the provisioning endpoint,
+  there per visitor). The form still gives that answer, because a new account is signed in at
+  once and a taken address cannot be; with a password too short on purpose it gave it 20
+  times an hour without writing anything. An instance that wants the answer gone closes
+  registration: then no address is looked at.
 
 ### Upgrade notes
 

@@ -724,6 +724,7 @@ jobs:
           spec/services/docs/help_link_rewriter_spec.rb
           spec/services/lalabase/llm/google_vertex_provider_spec.rb
           spec/services/signups/handoff_spec.rb
+          spec/services/signups/taken_address_brake_spec.rb
           spec/services/subscriptions/public_price_list_payload_spec.rb
           spec/services/service_convention_guard_spec.rb
           spec/requests/organisations/meeting_list_views_spec.rb

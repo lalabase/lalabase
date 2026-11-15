@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-14)
+# Karte: app/services (Stand: 2026-11-15)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -233,6 +233,12 @@ Verzeichnis-Übersicht (Auswahl):
   ist `User#claim_first_visit!` (`UPDATE ... WHERE last_seen_at IS NULL`); die App führt
   kein Devise `trackable`. ⚠️ Host aus `ActionMailer::Base.default_url_options`, nicht
   aus dem Config-Objekt: das ist unter RSpec leer.
+  `signups/taken_address_brake.rb` (15.11.2026) zählt die Antwort „Adresse vergeben" je
+  Client-Adresse: nach 5 an einem Tag ist die Registrierung für diese Adresse einen Tag zu
+  (429 von Rack::Attack, Regel `signup_taken/ip`, vor beiden Türen). Gezählt wird im Actor,
+  darum ist `client_ip:` dort Pflicht; `nil` zählt nichts (die Website nannte keinen
+  Besucher). ⚠️ An der Provisioning-Tür nie die Adresse der Website zählen oder sperren.
+  Die Antwort selbst bleibt: ein neues Konto ist sofort angemeldet, ein vergebenes nie.
 * `meetings/` (Auswahl, K4b, 05.11.2026) — `term_replacement.rb` ist die EINE Regel für Zählen
   und Ersetzen einer gehörten Form (ganze Wörter nach Unicode, NICHT `\b`; Fall wie markiert;
   mehrere Wörter nur innerhalb der Zeile; nie in der Sprecherbezeichnung, deren Regel

@@ -13,7 +13,8 @@ RSpec.describe Actors::CreateSignup do
   let(:arguments) do
     {
       email: email, password: 'password123', password_confirmation: 'password123',
-      first_name: 'Ada', last_name: 'Lovelace', language: 'de', terms_accepted: true
+      first_name: 'Ada', last_name: 'Lovelace', language: 'de', terms_accepted: true,
+      client_ip: nil
     }
   end
   let(:founder_fields) do
@@ -229,6 +230,36 @@ RSpec.describe Actors::CreateSignup do
         expect(created_user).to be_present
         expect(ActsAsTenant.without_tenant { created_user.organisations }).to be_present
       end
+    end
+  end
+
+  # The answer "address taken" says something about somebody else, so the actor
+  # counts it for the door that asked (Signups::TakenAddressBrake).
+  describe 'an address that already has an account' do
+    before { create(:user, email: email) }
+
+    it 'is counted for the client address, and still refused' do
+      expect(Signups::TakenAddressBrake).to receive(:record).with('203.0.113.9')
+
+      result = signup(client_ip: '203.0.113.9')
+
+      expect(result.code).to eq(:validation_failed)
+      expect(result.resource.errors.of_kind?(:email, :taken)).to be(true)
+    end
+
+    # The probe that writes nothing: a second error on purpose.
+    it 'is counted when the submission has other errors as well' do
+      expect(Signups::TakenAddressBrake).to receive(:record).with('203.0.113.9')
+
+      signup(client_ip: '203.0.113.9', password: 'x', password_confirmation: 'x')
+    end
+
+    it 'counts no other refusal' do
+      expect(Signups::TakenAddressBrake).not_to receive(:record)
+
+      expect(signup(client_ip: '203.0.113.9', email: 'fresh@example.com', password: 'x', password_confirmation: 'x').code)
+        .to eq(:validation_failed)
+      expect(signup(client_ip: '203.0.113.9', terms_accepted: false).code).to eq(:terms_not_accepted)
     end
   end
 end

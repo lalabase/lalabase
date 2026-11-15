@@ -47,7 +47,11 @@ module Api
             organisation_name: form[:organisation_name],
             acquisition: form[:acquisition]&.to_h&.stringify_keys,
             founder_signup: founder_signup_attributes(form[:founder_signup]),
-            request: visitor_context
+            request: visitor_context,
+            # The visitor as Rack::Attack reads it for this door, or nil. Never the
+            # website's own address: five visitors who met "address taken" would
+            # close the sign-up for everybody who comes through the website.
+            client_ip: Rack::Attack.provisioning_visitor_ip(request)
           }
         end
 

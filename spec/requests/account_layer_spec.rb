@@ -96,6 +96,16 @@ RSpec.describe 'Account layer of the sidebar', type: :request do
     end
   end
 
+  describe 'on a page of the management area' do
+    it 'keeps the name the handle of the layer' do
+      get organisation_memberships_path(organisation)
+      expect(response).to have_http_status(:ok)
+      expect(sidebar['data-controller'].to_s.split).to include('sidebar-layer')
+      expect(sidebar.at_css('[data-sidebar-layer-target="trigger"]')['aria-controls']).to eq('account-layer')
+      expect(sidebar.at_css('nav#account-layer[hidden]')).to be_present
+    end
+  end
+
   # Navigation plan, finding 6: once the cockpit shows the level's sidebar, only the layer
   # leads to the account from there. The level gets the layer of an organisation's page.
   describe 'on the level above the organisations', :real_transactions do

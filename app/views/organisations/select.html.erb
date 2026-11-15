@@ -14,7 +14,7 @@
 
   <%# The page is "Übersicht", the first row of the level's sidebar (navigation plan,
       decision 3): the same word in the sidebar, the heading and the browser title. %>
-  <% content_for :title, [t('navigation.overview'), Lalabase::PRODUCT_NAME].join(' | ') %>
+  <% content_for :title, t('navigation.overview') %>
   <div class="flex items-center justify-between gap-3 mb-2">
     <h1 class="text-sm font-semibold uppercase tracking-[0.14em] text-muted font-mono"><%= t('navigation.overview') %></h1>
     <button type="button"

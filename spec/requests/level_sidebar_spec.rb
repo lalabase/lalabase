@@ -122,6 +122,12 @@ RSpec.describe 'The sidebar of the level above the organisations', :ci_guard, :r
       expect(organisation_rows(doc).map(&:last)).to eq(%w[2 1])
     end
 
+    it 'shows the counts of the inbox on the inbox, from the read the page made' do
+      expect(Notifications::UnreadSignals).not_to receive(:counts_for)
+      doc = page_at(all_inboxes_path)
+      expect(organisation_rows(doc).map(&:last)).to eq(%w[2 1])
+    end
+
     it 'orders the organisations by name on the cockpit, as on the inbox' do
       Prosopite.pause { make_token_owner_a_member(user, create(:organisation, name: 'Alpen KG')) }
       expect(organisation_rows(page_at(select_organisation_path)).map(&:first)).to eq(['Alpen KG', 'Nord GmbH', 'Sued AG'])
@@ -133,7 +139,8 @@ RSpec.describe 'The sidebar of the level above the organisations', :ci_guard, :r
     it 'names it so in its heading and in the browser title, in German' do
       doc = page_at(select_organisation_path)
       expect(doc.at_css('main h1').text.squish).to eq('Übersicht')
-      expect(doc.at_css('title').text).to include('Übersicht')
+      # The title the page sets, in the form of the other pages that set one ("Gesamt-Inbox").
+      expect(doc.at_css('title').text).to eq('Übersicht')
     end
 
     it 'names it so in English' do
@@ -151,6 +158,41 @@ RSpec.describe 'The sidebar of the level above the organisations', :ci_guard, :r
     it 'shows "Übersicht" and the organisation, and no "Gesamt-Inbox"' do
       doc = page_at(select_organisation_path)
       expect(row_names(doc)).to eq([I18n.t('navigation.overview'), 'Nord GmbH'])
+    end
+  end
+
+  describe 'for a person without any active organisation' do
+    before { Prosopite.pause { Membership.where(user: user).update_all(active: false) } }
+
+    it 'shows "Übersicht" and no empty label of the organisations' do
+      doc = page_at(select_organisation_path)
+      expect(row_names(doc)).to eq([I18n.t('navigation.overview')])
+      expect(nav(doc).text).not_to include(I18n.t('navigation.organisations'))
+      expect(nav(doc).at_css('nav')).to be_nil
+    end
+  end
+
+  describe 'the help' do
+    def help_doc
+      get help_path
+      follow_redirect! while response.redirect?
+      expect(response).to have_http_status(:ok)
+      Nokogiri::HTML(response.body)
+    end
+
+    it 'shows the level sidebar without an organisation in the session' do
+      doc = help_doc
+      expect(row_names(doc)).to eq([I18n.t('navigation.overview'), I18n.t('navigation.all_inboxes'), 'Nord GmbH', 'Sued AG'])
+      expect(nav(doc).css('a[aria-current]')).to be_empty
+    end
+
+    it 'shows the organisation of the session, not the level' do
+      Prosopite.pause { get organisation_root_path(organisation_id: north.id) }
+      doc = Prosopite.pause { help_doc }
+      expect(doc.at_css('#sidebar')).to be_present
+      expect(doc.at_css('#sidebar [data-all-inboxes-nav]')).to be_nil
+      expect(doc.css('#sidebar [data-sidebar-layer-target="covered"] a').pluck('href'))
+        .to include(a_string_starting_with("/org/#{north.id}/"))
     end
   end
 

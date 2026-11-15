@@ -28,16 +28,19 @@
     <% end %>
   </ul>
 
-  <p class="px-3 pb-1.5 pt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"><%= t('navigation.organisations') %></p>
-  <nav aria-label="<%= t('navigation.organisations') %>">
-    <ul class="flex flex-col gap-1">
-      <% organisations.each do |organisation| %>
-        <%= render 'common/navigation_item',
-              name: organisation[:name],
-              path: organisation_root_path(organisation_id: organisation[:id]),
-              icon: 'bi bi-building',
-              count: organisation[:unread] %>
-      <% end %>
-    </ul>
-  </nav>
+  <%# Without an active organisation there is nothing to list: no label over an empty list. %>
+  <% if organisations.any? %>
+    <p class="px-3 pb-1.5 pt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"><%= t('navigation.organisations') %></p>
+    <nav aria-label="<%= t('navigation.organisations') %>">
+      <ul class="flex flex-col gap-1">
+        <% organisations.each do |organisation| %>
+          <%= render 'common/navigation_item',
+                name: organisation[:name],
+                path: organisation_root_path(organisation_id: organisation[:id]),
+                icon: 'bi bi-building',
+                count: organisation[:unread] %>
+        <% end %>
+      </ul>
+    </nav>
+  <% end %>
 </div>

@@ -398,9 +398,30 @@ RSpec.describe 'Inbox (System)', type: :system, inbox_e2e: true do
       expect(page).to have_css('.inbox-row', count: 2)
       expect(page).to have_current_path(/notification=#{document_row.id}/)
 
+      page.go_back
+      expect(page).to have_current_path(/preview=#{version.id}/)
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot.txt')
+      page.go_forward
+      expect(page).to have_css("#{lane} .document-content [data-lane-title]", text: 'Angebot')
+      expect(page).to have_no_css("#{lane} .document-preview")
+
+      # The real broadcast payload, delivered as Cable would (the test adapter has no browser).
+      stream = "#{ActionView::RecordIdentifier.dom_id(document)}_document_versions"
+      before_update = ActionCable.server.pubsub.broadcasts(stream).size
+      ActsAsTenant.with_tenant(organisation) { version.update!(embeddings_creation_flag: false) }
+      messages = ActionCable.server.pubsub.broadcasts(stream).drop(before_update)
+      expect(messages).not_to be_empty
+      messages.each { |message| page.execute_script('Turbo.renderStreamMessage(arguments[0])', ActiveSupport::JSON.decode(message)) }
+      expect(page).to have_css("#{lane} [data-index-state='failed']")
+      find("#{lane} [data-preview-link-for='#{version.id}']").click
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot.txt')
+      page.refresh
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot.txt')
+
       # The lane's one close button still shuts the lane.
       find('#ticket_pane [data-lane-close]').click
       expect(page).to have_css('.layout.hide-content')
+      expect(URI(page.current_url).query.to_s).not_to include('notification=', 'preview=')
     end
 
     it 'shows the card of a new member beside the list (K3)' do

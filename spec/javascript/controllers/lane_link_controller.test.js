@@ -21,7 +21,7 @@ const GROUPS = JSON.stringify({ selection: ["note_id", "document_id"], preview: 
 const ORIGIN = "http://lalabase.test"
 const INDEX = "/org/o1/projects/p1/knowledge"
 
-function fixture({ href, innerWidth = 1400, values }) {
+function fixture({ href, innerWidth = 1400, values, enclosingFrame = null }) {
   const log = { history: [], frameSrc: null, location: null, listeners: [], unmarked: [] }
   const markedRow = { classList: { remove: (...names) => log.unmarked.push(...names) } }
   const location = new URL(href, ORIGIN)
@@ -33,16 +33,20 @@ function fixture({ href, innerWidth = 1400, values }) {
     },
     history: { pushState: (state, title, url) => { log.history.push([state, url]); location.href = url } }
   }
-  const frame = { setAttribute: (name, value) => { if (name === "src") log.frameSrc = value }, querySelector: () => null }
+  const frame = { id: enclosingFrame || values.frame, setAttribute: (name, value) => { if (name === "src") log.frameSrc = value }, querySelector: () => null }
   const document = {
-    getElementById: (id) => (id === values.frame ? frame : null),
+    getElementById: (id) => (id === frame.id ? frame : null),
     querySelectorAll: (selector) => (selector === ".selected-row" ? [markedRow] : []),
     addEventListener: (name, fn) => log.listeners.push(name),
     removeEventListener: () => {}
   }
   const Controller = runInNewContext(`${source}\nLaneLinkController`, { Controller: class {}, ...address, ...params, window, document, URL, URLSearchParams })
   const controller = new Controller()
-  controller.element = { closest: (selector) => (selector === "[data-lane-params]" ? { dataset: { laneParams: GROUPS } } : null) }
+  controller.element = { closest: (selector) => {
+    if (selector === "[data-lane-params]") return { dataset: { laneParams: GROUPS } }
+    if (selector === "turbo-frame" && enclosingFrame) return frame
+    return null
+  } }
   for (const [key, value] of Object.entries(values)) controller[`${key}Value`] = value
   const click = (modifiers = {}) => {
     const event = { preventDefault: () => { log.prevented = true }, button: 0, ...modifiers }
@@ -113,4 +117,15 @@ test("a link that keeps the selection keeps the mark of the open row", () => {
   const { click, log } = fixture({ href: `${INDEX}?document_id=D&preview=V`, values: back })
   click()
   assert.deepEqual(log.unmarked, [])
+})
+
+// A broadcast is the same HTML for every subscriber: it cannot know whether
+// the document is in Knowledge, project activity or either inbox.
+test("broadcast preview links resolve the enclosing frame at click time", () => {
+  for (const frameId of ["ticket_display_frame", "knowledge_display_frame"]) {
+    const { click, log } = fixture({ href: `${INDEX}?document_id=D`, values: { ...open, frame: "_self" }, enclosingFrame: frameId })
+    click()
+    assert.equal(new URL(log.frameSrc).searchParams.get("frame_id"), frameId)
+    assert.equal(new URL(log.frameSrc).pathname, "/org/o1/projects/p1/documents/D/preview")
+  }
 })

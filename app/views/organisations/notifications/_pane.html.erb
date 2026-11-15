@@ -77,7 +77,7 @@
     <% when :inline %>
       <%= render 'organisations/notifications/pane_ticket' %>
     <% when :frame %>
-      <%= turbo_frame_tag Inbox::ObjectFrame::FRAME_ID, src: kind.frame_path, class: 'block' %>
+      <%= turbo_frame_tag Inbox::ObjectFrame::FRAME_ID, src: inbox_lane_frame_path, class: 'block' %>
     <% when :card %>
       <%= render 'organisations/notifications/pane_event_card', notification: notification, kind: kind %>
     <% end %>

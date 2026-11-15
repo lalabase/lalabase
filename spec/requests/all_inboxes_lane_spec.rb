@@ -858,6 +858,29 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
         expect(session[:current_organisation_id]).to eq(north.id)
       end
 
+      it 'restores the selected document preview without changing the session or leaking a tenant' do
+        version_id = south_document.current_version_id
+        inner = note_frame_of(lane(south_document_row.id, preview: version_id))
+        expect(inner['src']).to eq(preview_organisation_project_document_path(
+                                     south, south_project, south_document, version_id: version_id, frame: 'content', frame_id: 'ticket_display_frame'
+                                   ))
+        expect(ActsAsTenant.current_tenant).to be_nil
+        get inner['src'], headers: { 'Turbo-Frame' => 'ticket_display_frame', 'Referer' => "http://www.example.com#{all_inboxes_path}" }
+        expect(response).to have_http_status(:ok)
+        expect(doc.at_css('.document-preview [data-lane-title]').text).to include('angebot.txt')
+        expect(session[:current_organisation_id]).to eq(north.id)
+        expect(ActsAsTenant.current_tenant).to be_nil
+      end
+
+      it 'does not restore a version from another organisation' do
+        other = titled_document(north, north_project, 'Privat', creator: user)
+        inner = note_frame_of(lane(south_document_row.id, preview: other.current_version_id))
+        expect(inner['src']).to eq(organisation_project_document_path(
+                                     south, south_project, south_document, frame: 'content', frame_id: 'ticket_display_frame'
+                                   ))
+        expect(response.body).not_to include(other.id, other.current_version_id)
+      end
+
       # Review S4b round 1: "Textfassung" in the "···" of a version is a file the browser asks
       # for like a page (turbo: false, no frame header, HTML accepted). The document's page of
       # its own organisation and the activity page stand in that organisation anyway; this
@@ -890,7 +913,7 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
         expected = missing_body
         allow_any_instance_of(DocumentPolicy).to receive(:show?).and_return(false)
 
-        expect(lane(south_document_row.id)).to eq(expected)
+        expect(lane(south_document_row.id, preview: south_document.current_version_id)).to eq(expected)
       end
 
       it 'refuses a document row once the person lost the documents area' do
@@ -898,7 +921,7 @@ RSpec.describe 'The lane of the inbox above the organisations', :ci_guard, :real
         expected = missing_body
         allow_areas(south, south_project, documents_access: 'no_access')
 
-        expect(lane(south_document_row.id)).to eq(expected)
+        expect(lane(south_document_row.id, preview: south_document.current_version_id)).to eq(expected)
       end
 
       it 'answers the gone card once the document is deleted' do

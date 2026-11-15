@@ -54,6 +54,13 @@ module InboxHelper
     inbox_list_url(inbox_list_query(query).merge('notification' => notification.id))
   end
 
+  # History restores the outer pane through the inbox's authorization, then its
+  # inner frame loads the selected document version under the document policy.
+  def inbox_lane_preview_url
+    inbox_list_url('notification' => LaneHelper::SELECTION_PLACEHOLDER,
+                   KnowledgeFilterHelper::PREVIEW_PARAM => LaneHelper::PREVIEW_PLACEHOLDER)
+  end
+
   # The type filter has no control of its own any more: an old address or a
   # link from elsewhere sets it. The type that narrows the list now, or nil;
   # the head shows it as a chip that removes it.

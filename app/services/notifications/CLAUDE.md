@@ -91,7 +91,11 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   Behoben, weil nur in der Bahn von `/inbox` falsch: „Textfassung“ einer Version ist eine Datei
   und setzt die Organisation der Sitzung nicht mehr um (`DocumentsController#serves_pages?`).
   Die Vorschau einer Version schreibt `preview=` in die Adresse der Inbox und nimmt es wieder
-  heraus; die Liste liest den Wert nicht. Die Rahmen-Adresse
+  heraus. Die Bahn stellt sie bei Zurück/Vorwärts und beim Neuladen wieder her: über die
+  autorisierte Meldung, dann nur über die Versionen ihres Dokuments (`InboxLane#inbox_lane_frame_path`).
+  Fehlende oder fremde Versionen fallen auf die Dokumentansicht zurück. Versionszeilen bestimmen
+  mit `lane-link` und `_self` ihren umgebenden Frame beim Klick, auch nach einem Broadcast.
+  Die Rahmen-Adresse
   baut `Inbox::ObjectFrame`, auch für die Aktivitäten-Seite eines Projekts.
   Rechte bleiben bei den bestehenden Regeln: die Zeile über die Policy-Scope der Meldungen (Bereich
   des Ereignisses), der Gegenstand über `authorize target, :show?` im Lader, sein Controller fragt

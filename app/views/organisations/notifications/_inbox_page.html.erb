@@ -18,6 +18,8 @@
     follow_address (inbox-bulk-select takes the list state from the address). %>
 <div class="labor-layout-view people-page inbox-page <%= 'show-content' if lane_open %>"
      data-controller="layout-toggle index-page"
+     data-lane-params="<%= lane_params_json(selection: 'notification', preview: KnowledgeFilterHelper::PREVIEW_PARAM) %>"
+     data-lane-preview-url="<%= inbox_lane_preview_url %>"
      data-layout-toggle-detail-frame-id-value="ticket_pane"
      data-layout-toggle-content-selector-value=".inbox-lane-content"
      data-layout-toggle-selected-row-selector-value=".selected-row[data-notification-id]"

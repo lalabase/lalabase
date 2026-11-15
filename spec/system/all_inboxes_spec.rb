@@ -663,6 +663,19 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('.inbox-row', count: rows)
       expect(URI(page.current_url).path).to eq('/inbox')
 
+      page.go_back
+      expect(page).to have_current_path(/preview=#{version.id}/)
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot-versand.txt')
+      page.go_forward
+      expect(page).to have_css("#{lane} .document-content [data-lane-title]", text: 'Angebot Versand')
+      expect(page).to have_no_css("#{lane} .document-preview")
+      find("#{lane} [data-preview-link-for='#{version.id}']").click
+      expect(page).to have_css("#{lane} .document-preview")
+      page.refresh
+      expect(page).to have_css("#{lane} .document-preview [data-lane-title]", text: 'angebot-versand.txt')
+      expect(page).to have_css('.inbox-row', count: rows)
+      expect(URI(page.current_url).path).to eq('/inbox')
+
       # The session never left the first organisation.
       visit edit_user_preferences_path
       back = find('a', text: I18n.t('navigation.back_to_organisation'))

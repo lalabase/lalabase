@@ -14,7 +14,7 @@ import { readLaneParams, laneParamNames, withLaneState } from "lane/params"
 //
 // Values:
 //   url     the resource the frame fetches (/documents/D/preview?version_id=V, /documents/D)
-//   frame   the lane's frame
+//   frame   the lane's frame, or _self for the enclosing frame (broadcast links)
 //   set     the lane state to write   ({ preview: "V" })
 //   remove  the lane state to take away (["preview"])
 //   focus   a selector to focus once the frame has loaded (the way back returns
@@ -50,10 +50,10 @@ export default class extends Controller {
     window.history.pushState({ lane: true }, "", address.toString())
     if (this.removeValue.some(name => groups.selection.includes(name))) this.unmarkOpenRow()
 
-    const frame = document.getElementById(this.frameValue)
+    const frame = this.frameValue === "_self" ? this.element.closest("turbo-frame") : document.getElementById(this.frameValue)
     if (!frame) return
     if (this.focusValue) this.focusAfterLoad(frame, this.focusValue)
-    frame.setAttribute("src", detailAddress({ url: this.urlValue, current: address, frame: this.frameValue, params: laneParamNames(groups) }))
+    frame.setAttribute("src", detailAddress({ url: this.urlValue, current: address, frame: frame.id, params: laneParamNames(groups) }))
   }
 
   unmarkOpenRow() {

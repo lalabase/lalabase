@@ -204,6 +204,27 @@ RSpec.describe 'The lane of the inbox for the kinds of things', :ci_guard, type:
       expect(pane.at_css('[data-inbox-event-card]')).to be_nil
     end
 
+    it 'restores a preview through the document controller' do
+      version = document.current_version
+      inner = lane(row, preview: version.id).at_css('turbo-frame#ticket_display_frame')
+      expect(inner['src']).to eq(preview_organisation_project_document_path(
+                                   organisation, project, document, version_id: version.id, frame: 'content', frame_id: 'ticket_display_frame'
+                                 ))
+      get inner['src'], headers: { 'Turbo-Frame' => 'ticket_display_frame' }
+      expect(response).to have_http_status(:ok)
+      expect(Nokogiri::HTML(response.body).at_css('.document-preview [data-lane-title]').text).to include('angebot.txt')
+    end
+
+    it 'ignores a preview belonging to another document and malformed preview values' do
+      other = titled_document(organisation, project, 'Andere Datei', creator: colleague)
+      [other.current_version_id, SecureRandom.uuid, { id: document.current_version_id }].each do |preview|
+        inner = lane(row, preview: preview).at_css('turbo-frame#ticket_display_frame')
+        expect(inner['src']).to eq(organisation_project_document_path(
+                                     organisation, project, document, frame: 'content', frame_id: 'ticket_display_frame'
+                                   ))
+      end
+    end
+
     it 'links the head to the page of the document, in its own words' do
       link = lane(row).at_css('#inbox_pane_status_pills a.inbox-lane-actions__open')
 

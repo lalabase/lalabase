@@ -40,7 +40,7 @@
 <% end %>
 
 <%= turbo_stream.replace 'all_inboxes_nav' do %>
-  <%= render 'common/navigation_all_inboxes', organisations: @inbox_organisations %>
+  <%= render 'common/navigation_level', organisations: @inbox_organisations %>
 <% end %>
 
 <% if open_lane %>

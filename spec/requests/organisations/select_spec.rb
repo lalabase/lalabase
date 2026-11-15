@@ -179,7 +179,8 @@ RSpec.describe 'Organisations#select (cross-org cockpit)', type: :request do
       set_prefs('cockpit_layout' => 'rows_compact')
       get select_organisation_path
 
-      marker = Nokogiri::HTML(response.body).at_css('[data-unread-marker="count"]')
+      # In the page, not the level's sidebar, which carries the same marker per organisation.
+      marker = Nokogiri::HTML(response.body).at_css('main [data-unread-marker="count"]')
       expect(marker&.text).to eq('1')
       expect(marker['aria-label']).to eq(I18n.t('views.organisations.select.cockpit.unread_count', count: 1))
     end
@@ -214,7 +215,10 @@ RSpec.describe 'Organisations#select (cross-org cockpit)', type: :request do
       get select_organisation_path
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).not_to include('data-unread-marker') # no notification chip/dot without actions
+      # The page, not the level's sidebar (which counts every organisation, navigation plan D3).
+      main = Nokogiri::HTML(response.body).at_css('main')
+      expect(main.text).to include(org_a.name) # the page is there
+      expect(main.to_html).not_to include('data-unread-marker') # no notification chip/dot without actions
     end
 
     it 'hides the personal to-dos when show_todos is off' do

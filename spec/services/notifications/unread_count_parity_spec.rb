@@ -73,6 +73,31 @@ RSpec.describe 'Unread count parity across surfaces', :ci_guard do
     expect(counts.slice(*expected.keys)).to eq(expected)
   end
 
+  # The sidebar of the level above the organisations (common/_navigation_level) on the
+  # cockpit and on the inbox above them: the number at each organisation is the tile's.
+  describe 'the level sidebar', :real_transactions, type: :request do
+    def sidebar_counts(path)
+      sign_in user
+      get path
+      expect(response).to have_http_status(:ok)
+      nav = Nokogiri::HTML(response.body).at_css('[data-all-inboxes-nav]')
+      [org_admin, org_member].to_h do |org|
+        row = nav.css('a').find { |a| a['href'] == organisation_root_path(organisation_id: org.id) }
+        [org.id, row.text.squish[/ (\d+)\z/, 1].to_i]
+      end
+    end
+
+    it 'shows the cockpit tile number per organisation on the cockpit' do
+      tiles = Prosopite.pause { Dashboard::CrossOrgActionSummary.new(user: user, importance: 'all').unread_counts }
+      expect(sidebar_counts(select_organisation_path)).to eq(tiles.slice(*expected.keys)).and eq(expected)
+    end
+
+    it 'shows the cockpit tile number per organisation on the inbox above the organisations' do
+      tiles = Prosopite.pause { Dashboard::CrossOrgActionSummary.new(user: user, importance: 'all').unread_counts }
+      expect(sidebar_counts(all_inboxes_path)).to eq(tiles.slice(*expected.keys)).and eq(expected)
+    end
+  end
+
   it 'nav badge and live badge broadcast (User#unread_notifications_count)' do
     expect(per_organisation { |org| user.unread_notifications_count(org) }).to eq(expected)
   end

@@ -302,13 +302,16 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
   end
 
   describe 'one organisation of the list' do
-    it 'narrows the list to it and keeps the others in the sidebar with their counts' do
+    # Variant C (navigation plan D2): the select field narrows, the sidebar does not.
+    # Every organisation of the sidebar opens it, with or without a narrowed list.
+    it 'narrows the list to it and keeps every organisation in the sidebar as a way into it' do
       doc = page(org: north.id)
       expect(listed_ids(doc)).to eq([north_row.id])
       nav = doc.at_css('[data-all-inboxes-nav]')
       expect(nav.text).to include('Nordwind GmbH', 'Suedhang AG')
       south_link = nav.css('a').find { |a| a.text.include?('Suedhang AG') }
-      expect(south_link['href']).to eq(all_inboxes_path(org: south.id))
+      expect(south_link['href']).to eq(organisation_root_path(organisation_id: south.id))
+      expect(nav.css('a').pluck('href')).to all(satisfy { |href| !href.include?('org=') })
     end
 
     # North with two unread rows, south with one, a third organisation with none.
@@ -356,7 +359,7 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
       end
     end
 
-    it 'marks the open organisation in the sidebar and in the select, and "Gesamt-Inbox" only without one' do
+    it 'marks "Gesamt-Inbox" with and without a narrowed list, never an organisation; the select marks the choice' do
       marks = lambda do |doc|
         doc.at_css('[data-all-inboxes-nav]').css('a').to_h { |a| [a.text.squish.sub(/ \d+\z/, ''), a['aria-current']] }
       end
@@ -365,10 +368,10 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
                                           'Suedhang AG' => nil)
 
       doc = page(org: south.id)
-      expect(marks.call(doc)).to include(I18n.t('navigation.all_inboxes') => nil, 'Nordwind GmbH' => nil,
-                                         'Suedhang AG' => 'true')
+      expect(marks.call(doc)).to include(I18n.t('navigation.all_inboxes') => 'page', 'Nordwind GmbH' => nil,
+                                         'Suedhang AG' => nil)
       expect(doc.css('[data-all-inboxes-nav] a.sidebar-row--active').map { |a| a.text.squish.sub(/ \d+\z/, '') })
-        .to eq(['Suedhang AG'])
+        .to eq([I18n.t('navigation.all_inboxes')])
       expect(doc.css('select#inbox-organisation option[selected]').pluck('value')).to eq([south.id])
       expect(page.css('select#inbox-organisation option[selected]')).to be_empty
     end

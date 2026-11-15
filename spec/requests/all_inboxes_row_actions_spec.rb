@@ -311,6 +311,11 @@ RSpec.describe 'Row actions of the inbox above the organisations', :ci_guard, :r
 
       nav = doc.at_css('turbo-stream[target="all_inboxes_nav"] template')
       expect(nav.at_css('#all_inboxes_nav')).to be_present
+      # The level's sidebar, with "Gesamt-Inbox" marked although the request is a row action.
+      current = nav.css('a[aria-current="page"]')
+      expect(current.map { |a| a.text.squish }).to eq([I18n.t('navigation.all_inboxes')])
+      expect(current.first['class']).to include('sidebar-row--active')
+      expect(nav.css('a').map { |a| a.text.squish }).to include(I18n.t('navigation.overview'))
       north_item = nav.css('li').find { |li| li.text.include?('Nordwind GmbH') }
       south_item = nav.css('li').find { |li| li.text.include?('Suedhang AG') }
       expect(north_item.text).not_to match(/\d/)

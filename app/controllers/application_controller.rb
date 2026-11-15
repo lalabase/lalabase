@@ -181,6 +181,28 @@ class ApplicationController < ActionController::Base
   end
   helper_method :switcher_organisations
 
+  # The organisations of the level's sidebar (common/_navigation_level, Belegungstabelle
+  # F48): every active one, by name, with its unread count, as [{ id:, name:, unread: }].
+  # The counts come from what the page already has (doc: navigation plan D3), so the
+  # sidebar adds no read of its own where the page counted already: the inbox above the
+  # organisations hands the counts of its query (@inbox_organisations), the cockpit its
+  # tile counts (OrganisationsController#select). Any other page of the level asks
+  # Notifications::UnreadSignals, the reader of the switcher. The three agree
+  # (spec/services/notifications/unread_count_parity_spec.rb). Memoised per request.
+  def level_organisations
+    @level_organisations ||= @inbox_organisations ||
+                             level_organisations_with(Notifications::UnreadSignals.counts_for(current_user, except: nil))
+  end
+  helper_method :level_organisations
+
+  # The active organisations in the order of Organisation.by_name (the order of the
+  # inbox's counts), each with its number from `counts` ({ organisation_id => count }).
+  def level_organisations_with(counts)
+    current_user.active_organisations.by_name.pluck(:id, :name).map do |id, name|
+      { id: id, name: name, unread: counts[id].to_i }
+    end
+  end
+
   # Single source for the global-search access GATE: signed in, inside an organisation,
   # and allowed to read projects or time sessions. Shared by the search overlay (view)
   # and the search-pin toggle (SearchPinsController) so the two can never drift apart.

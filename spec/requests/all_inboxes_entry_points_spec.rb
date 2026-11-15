@@ -72,10 +72,10 @@ RSpec.describe 'Ways to the inbox above the organisations', :real_transactions, 
       follow(row)
     end
 
-    it 'has an entry in the account list of the cockpit' do
+    it 'has a row in the sidebar of the level on the cockpit' do
       doc = doc_of(select_organisation_path)
 
-      entry = doc.at_css("[data-account-nav-list] a[href='#{all_inboxes_path}']")
+      entry = doc.at_css("[data-all-inboxes-nav] a[href='#{all_inboxes_path}']")
       expect(entry).to be_present
       expect(entry.text.squish).to include(I18n.t('navigation.all_inboxes'))
       follow(entry)
@@ -114,9 +114,10 @@ RSpec.describe 'Ways to the inbox above the organisations', :real_transactions, 
       expect(inbox_links(doc)).to be_empty
     end
 
-    it 'has no entry in the account list and no link at the cockpit' do
+    it 'has no row in the sidebar of the level, no entry in the account list and no link at the cockpit' do
       doc = doc_of(select_organisation_path)
 
+      expect(doc.at_css('[data-all-inboxes-nav]')).to be_present
       expect(doc.at_css('[data-account-nav-list]')).to be_present
       expect(doc.at_css('#cockpit-summary-heading')).to be_present
       expect(inbox_links(doc)).to be_empty

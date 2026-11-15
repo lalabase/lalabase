@@ -116,14 +116,15 @@ module NavigationHelper
   }.merge(AI_AREA_CONTROLLERS.index_with { :ai }).freeze
 
   # Where the logo in the sidebar leads. Someone in two or more organisations gets the
-  # cockpit with all of them ("Organisation auswählen"); someone in one stays on that
-  # organisation's start page, and outside any organisation it is the root. The count
-  # comes from switcher_organisations (ApplicationController, memoised per request): the
-  # org switcher in the same sidebar reads the same list, so the logo costs no query of
-  # its own there.
+  # start of the level above them (ApplicationController#level_home_path: the inbox above
+  # the organisations, user, 2026-11-14); someone in one stays on that organisation's
+  # start page, and outside any organisation it is the root. The count comes from
+  # switcher_organisations (ApplicationController, memoised per request): the org
+  # switcher in the same sidebar reads the same list, so the logo costs no query of its
+  # own there.
   def brand_link_path
     return root_path unless user_signed_in?
-    return select_organisation_path if switcher_organisations(current_user).size >= 2
+    return level_home_path if switcher_organisations(current_user).size >= 2
 
     current_organisation.present? ? organisation_root_path(organisation_id: current_organisation.id) : root_path
   end

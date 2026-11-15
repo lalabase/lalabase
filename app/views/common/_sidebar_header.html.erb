@@ -57,7 +57,7 @@
                           end %>
         <%= link_to organisation_settings_path(organisation),
               title: t('navigation.management'), aria: { label: t('navigation.management') },
-              data: { controller: 'management-return', action: 'click->details-autoclose#stop turbo:before-fetch-request@document->management-return#refresh' },
+              data: { controller: 'return-referrer', action: 'click->details-autoclose#stop turbo:before-fetch-request@document->return-referrer#refresh' },
               class: "flex items-center justify-center w-6 h-6 rounded border shrink-0 transition-colors #{gear_classes}" do %>
           <i class="bi bi-gear text-xs" aria-hidden="true"></i>
         <% end %>
@@ -123,7 +123,7 @@
       <% if can_invite %>
         <li>
           <%= link_to new_organisation_invitation_path(organisation_id: organisation.id),
-                data: { controller: 'management-return', action: 'turbo:before-fetch-request@document->management-return#refresh' },
+                data: { controller: 'return-referrer', action: 'turbo:before-fetch-request@document->return-referrer#refresh' },
                 class: "#{row_base} border-t border-cream-200" do %>
             <i class="bi bi-person-plus" aria-hidden="true"></i><span><%= t('navigation.invite_member') %></span>
           <% end %>

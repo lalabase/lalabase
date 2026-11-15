@@ -32,7 +32,8 @@
     entry there. "Alle Organisationen" and "Gesamt-Inbox" are not here: the level above the
     organisations has its own sidebar (F48). Billing accounts are always listed: checking
     for an account would cost a role query per organisation on every page with the layer. %>
-<ul class="flex flex-col gap-1" data-account-nav-list>
+<ul class="flex flex-col gap-1" data-account-nav-list
+    data-controller="return-referrer" data-action="turbo:before-fetch-request@document->return-referrer#refresh">
   <% account_pages.each do |page| %>
     <%= render 'common/navigation_item', name: page[:label], path: page[:path], icon: page[:icon],
                                          active: page[:active], aria_current: ('page' if page[:active]) %>

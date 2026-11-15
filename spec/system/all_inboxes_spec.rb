@@ -60,6 +60,24 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     expect(page).to have_css('.inbox-row', count: 1)
   end
 
+  %w[profile preferences].each do |entry|
+    it "restores the selected notification after visiting account #{entry}" do
+      visit all_inboxes_path
+      expect(page).to have_css('#sidebar .sidebar-layer__trigger[role="button"]')
+      find('.inbox-row__link', text: 'Paket fehlt').click
+      expect(page).to have_css('.inbox-lane-content', text: 'Paket fehlt')
+      expect(page).to have_current_path(/notification=/)
+      selected_url = page.current_url
+
+      find('#sidebar .sidebar-layer__trigger').click
+      within('#account-layer') { click_link I18n.t("navigation.#{entry}") }
+      within('#sidebar [data-account-sidebar]') { click_link I18n.t('navigation.account_back') }
+
+      expect(page).to have_current_path(selected_url)
+      expect(page).to have_css('.inbox-lane-content', text: 'Paket fehlt')
+    end
+  end
+
   # Variant C (navigation plan D2): an organisation of the sidebar opens it.
   it 'opens the dashboard of an organisation clicked in the sidebar' do
     visit all_inboxes_path

@@ -32,13 +32,22 @@ module AccountReturn
     return unless NavigationHelper.account_page?(controller_name)
 
     uri = same_host_referer
-    return if uri && NavigationHelper.account_page?(controller_name_of(uri.path))
+    return if uri && account_referer?(uri.path)
 
-    path = uri && return_path_of(uri)
+    path = return_path_of(uri) if uri && controller_name_of(uri.path)
     if ReturnPath.path?(path)
       session[SESSION_KEY] = path
     else
       session.delete(SESSION_KEY)
+    end
+  end
+
+  # A refused non-Turbo form stays at its write URL (e.g. PUT /users). That is
+  # still inside the account even when no GET route exists at that address.
+  # Only GET routes may become a new return destination above.
+  def account_referer?(path)
+    %i[get post put patch delete].any? do |method|
+      NavigationHelper.account_page?(controller_name_of(path, method: method))
     end
   end
 end

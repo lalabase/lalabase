@@ -8,8 +8,9 @@
 # a path that a browser would read as a host ("//example.com"). The session lives in a 4 KB
 # encrypted cookie, so a kept path has a size limit, the same for both areas.
 module ReturnPath
-  # Leave room in the 4 KB encrypted session cookie for authentication and preferences.
-  MAX_RETURN_PATH_BYTES = 1024
+  # Both areas keep a path at once: 512 bytes each reserves at most 1 KB of raw
+  # paths, leaving room for authentication, flash and the encrypted cookie's encoding.
+  MAX_RETURN_PATH_BYTES = 512
 
   # True for a value that may be followed as a way back: a path of this host, within the limit.
   def self.path?(value)
@@ -34,8 +35,8 @@ module ReturnPath
   end
 
   # The controller_name of the page at `path`, nil for a path no route answers.
-  def controller_name_of(path)
-    Rails.application.routes.recognize_path(path)[:controller].to_s.split('/').last
+  def controller_name_of(path, method: :get)
+    Rails.application.routes.recognize_path(path, method: method)[:controller].to_s.split('/').last
   rescue ActionController::RoutingError
     nil
   end

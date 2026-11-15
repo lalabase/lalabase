@@ -80,6 +80,52 @@ RSpec.describe 'The way back out of the account area', :ci_guard, type: :request
     expect(back_href).to eq(select_organisation_path)
   end
 
+  describe 'return paths sharing the session cookie' do
+    %i[management account].each do |first|
+      it "keeps both maximum-length paths when #{first} is entered first" do
+        base = "#{north_tickets}&q="
+        longest = base + ('x' * (ReturnPath::MAX_RETURN_PATH_BYTES - base.bytesize))
+        visits = {
+          management: -> { get organisation_memberships_path(north), headers: { 'Referer' => "#{host}#{longest}" } },
+          account: -> { visit_account(referer: "#{host}#{longest}") }
+        }
+        [first, (visits.keys - [first]).first].each do |area|
+          visits.fetch(area).call
+          expect(response).to have_http_status(:ok)
+        end
+
+        # Read both values back from the browser cookie on a subsequent request.
+        visit_account(edit_user_registration_path, referer: "#{host}#{edit_user_preferences_path}")
+        expect(back_href).to eq(longest)
+        expect(session[Organisations::ManagementReturn::SESSION_KEY]).to eq(longest)
+      end
+    end
+  end
+
+  describe 'rejected account forms' do
+    {
+      profile: { page: :edit_user_registration_path, target: :user_registration_path, method: :put,
+                 params: { user: { first_name: 'Changed', current_password: 'wrong-password' } } },
+      password: { page: :edit_user_registration_password_path, target: :user_registration_path, method: :put,
+                  params: { account_tab: 'password', user: { password: 'new-password123', password_confirmation: 'new-password123',
+                                                             current_password: 'wrong-password' } } },
+      display: { page: :edit_user_registration_path, target: :user_registration_display_path, method: :patch,
+                 params: { user: { email_visibility: 'contact', contact_email: 'invalid' } } }
+    }.each do |name, form|
+      it "keeps the original return after a rejected #{name} update and another account page" do
+        page = public_send(form[:page])
+        target = public_send(form[:target])
+        visit_account(page, referer: "#{host}#{north_tickets}")
+        public_send(form[:method], target, params: form[:params], headers: { 'Referer' => "#{host}#{page}" })
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(back_href).to eq(north_tickets)
+
+        visit_account(referer: "#{host}#{target}")
+        expect(back_href).to eq(north_tickets)
+      end
+    end
+  end
+
   describe 'falls back to the reader home' do
     it 'on a direct visit without a referer' do
       visit_account
@@ -91,6 +137,12 @@ RSpec.describe 'The way back out of the account area', :ci_guard, type: :request
       visit_account(referer: "#{host}#{north_tickets}")
       visit_account
       expect(back_href).to eq(home)
+    end
+
+    it 'for a path no GET route answers' do
+      visit_account(referer: "#{host}/not-an-app-page")
+      expect(back_href).to eq(home)
+      expect(session[AccountReturn::SESSION_KEY]).to be_nil
     end
 
     it 'for a referer of a foreign host' do

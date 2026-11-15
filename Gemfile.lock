@@ -305,7 +305,7 @@ GEM
       railties (>= 7.1)
       stimulus-rails
       turbo-rails
-    msgpack (1.8.4)
+    msgpack (1.8.7)
     multipart-post (2.4.1)
     neighbor (0.5.2)
       activerecord (>= 7)
@@ -380,7 +380,7 @@ GEM
       date
       stringio
     public_suffix (6.0.1)
-    puma (8.0.2)
+    puma (8.0.3)
       nio4r (~> 2.0)
     pundit (2.5.0)
       activesupport (>= 3.0.0)
@@ -712,7 +712,7 @@ DEPENDENCIES
   pg_search
   prosopite
   pry-rails
-  puma (>= 8.0.2)
+  puma (>= 8.0.3)
   pundit (~> 2.3)
   pundit-matchers (~> 4.0)
   rack-attack (~> 6.7)

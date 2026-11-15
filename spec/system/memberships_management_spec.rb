@@ -67,13 +67,14 @@ RSpec.describe 'Membership management browser interactions', type: :system do
 
   it 'draws no keyboard ring on the close button after a mouse click, but keeps one for the keyboard' do
     visit organisation_memberships_path(@organisation)
+    wait_for_stimulus('#members_workspace', 'membership-workspace')
     close = '.members-panel a[aria-label="Mitgliedschaft schließen"]'
     outline_of_focus = 'getComputedStyle(document.activeElement).outlineStyle'
 
     # A click on the row, beside the name: the row opens the panel through the link.
     find("#membership_#{@membership.id} .members-col-since").click
     expect(page).to have_css('.members-panel', text: 'Anna Berg')
-    expect(page.evaluate_script("document.activeElement.closest('.members-panel') !== null")).to be true
+    expect(page).to have_css('.members-panel:focus, .members-panel :focus')
     expect(page.evaluate_script("getComputedStyle(document.querySelector('#{close}')).outlineStyle")).to eq('none')
     expect(page.evaluate_script(outline_of_focus)).to eq('none')
     page.driver.browser.action.send_keys(:escape).perform

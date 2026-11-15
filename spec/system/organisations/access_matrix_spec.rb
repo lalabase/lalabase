@@ -62,8 +62,11 @@ RSpec.describe 'Access matrix', type: :system do
     expect(page).to have_css('th.am-rowhead', text: 'Alice Ant')
     expect(page).to have_no_css('th.am-rowhead', text: 'Bob Bee')
     expect(page).to have_current_path(/q=alice/)
+    expect(page).to have_css('#access_matrix_grid[complete]:not([busy])')
 
     # The project pill narrows the columns and keeps the search.
+    wait_for_stimulus('[data-filter-pill="projects"]', 'details-autoclose')
+    wait_for_stimulus('[data-controller="query-toggle"]', 'query-toggle')
     find('[data-filter-pill="projects"] summary').click
     within('[data-filter-pill="projects"]') { click_link 'Beacon' }
     expect(page).to have_css("th[data-project-id='#{beacon.id}']")

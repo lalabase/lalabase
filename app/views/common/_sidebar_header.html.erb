@@ -8,6 +8,8 @@
     the level's start (level_home_path), then the organisations, then the invitation
     inside an organisation. An organisation row is a link to its start page: the full
     page moves the session's organisation (ApplicationController#load_tenant_from_session).
+    It loads without Turbo so the permanent assistant and the document's recognition colour
+    belong to the destination organisation, too.
     In the management area the row is a form instead (POST set_organisation_path with the
     open section): OrganisationsController#set keeps the reader in the same section of
     the other organisation, which a link cannot do.
@@ -116,7 +118,7 @@
             <% end %>
           <% else %>
             <%= link_to row_content, organisation_root_path(organisation_id: org.id),
-                        "aria-current": (is_current ? 'true' : nil), class: row_classes, data: { switcher_org: org.id } %>
+                        "aria-current": (is_current ? 'true' : nil), class: row_classes, data: { switcher_org: org.id, turbo: false } %>
           <% end %>
         </li>
       <% end %>

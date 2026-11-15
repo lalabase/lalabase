@@ -152,6 +152,26 @@ RSpec.describe 'The header of the sidebar with the switcher', :ci_guard, :real_t
     end
   end
 
+  describe 'more organisations than the menu holds' do
+    let(:orgs) do
+      (1..(NavigationHelper::ORG_MENU_LIMIT + 1)).map { |n| create(:organisation, name: format('Firma %02d', n)) }
+    end
+
+    before do
+      Prosopite.pause do
+        orgs.each { |org| member_of(org) }
+        2.times { unread_in(orgs.last) } # sorts past the cap
+      end
+    end
+
+    it 'counts the hits beyond the cap at "Alle Organisationen"' do
+      doc = doc_at(organisation_root_path(organisation_id: orgs.first.id))
+      rows = menu_rows(doc)
+      expect(rows.map(&:first)).not_to include(orgs.last.name)
+      expect(rows.first).to eq([I18n.t('navigation.all_organisations'), all_inboxes_path, '2', false])
+    end
+  end
+
   describe 'the invitation' do
     before { Prosopite.pause { member_of(north) } }
 

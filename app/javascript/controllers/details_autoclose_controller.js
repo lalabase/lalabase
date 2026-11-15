@@ -33,12 +33,11 @@ export default class extends Controller {
     document.addEventListener("pointerdown", this.closeOnOutsideClick)
     document.addEventListener("keydown", this.closeOnEscape)
     document.addEventListener("turbo:before-cache", this.closeBeforeCache)
+    window.addEventListener("pagehide", this.closeBeforeCache)
   }
 
-  // A menu left open when the page changes would stand open again in Turbo's snapshot when the
-  // reader goes back (the switcher's rows are Turbo links since the navigation plan, PR 2).
-  // Closed before Turbo takes a snapshot (a visit, also a same-page anchor or a refresh), as
-  // sidebar_layer_controller closes its layer. It applies to every menu of this controller.
+  // Close before either Turbo's snapshot or the browser's back/forward cache keeps the page.
+  // Organisation changes load a full document; other links still use Turbo.
   closeBeforeCache() {
     if (!this.element.open) return
     this.element.open = false
@@ -73,6 +72,7 @@ export default class extends Controller {
     document.removeEventListener("pointerdown", this.closeOnOutsideClick)
     document.removeEventListener("keydown", this.closeOnEscape)
     document.removeEventListener("turbo:before-cache", this.closeBeforeCache)
+    window.removeEventListener("pagehide", this.closeBeforeCache)
     this.untrack()
   }
 

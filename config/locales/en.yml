@@ -1464,7 +1464,7 @@ en:
     invite_member: Invite member
     account_section: My Account
     billing_accounts: Billing accounts
-    back_to_organisation: Back to organisation
+    account_back: Back
     delete_account: Delete account
     tasks: Tickets
     team: Team

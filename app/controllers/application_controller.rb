@@ -90,6 +90,9 @@ class ApplicationController < ActionController::Base
   # AFTER the callbacks above so it never runs ahead of the tenant/locale setup
   # for a signed-in request -- it skips those entirely anyway.
   include AcquisitionTracking
+  # The way back out of the account area ("Zurück" of an account page). After the tenant
+  # and session callbacks, so full_page_request? reads the request as the session does.
+  include AccountReturn
   # After switch_locale, so the refusal speaks the visitor's language.
   include DemoRestrictions
 

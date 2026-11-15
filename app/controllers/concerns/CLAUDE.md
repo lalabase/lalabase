@@ -1,4 +1,4 @@
-# Karte: app/controllers/concerns (Stand: 2026-11-14)
+# Karte: app/controllers/concerns (Stand: 2026-11-15)
 
 > Für die Ticket-**Domäne** (Attributsystem, Kanban, Actors, Fallen) gilt zusätzlich
 > `docs/architektur/tickets_lesepfad.md`. Diese Karte hier beschreibt nur den **Stack**.
@@ -60,6 +60,14 @@ Lese-Reihenfolge, um eine Listen-Seite wirklich zu verstehen:
    der Verwaltungs-Seitenleiste. ⚠️ Ein `before_action` ruft hier nie `helpers`: der Proxy
    ist memoisiert und behielte die Instanzvariablen dieses Moments (vor `@project` und Co.
    der Unterklasse); die Abschnittsfrage beantwortet `NavigationHelper.section_key_for`.
+   `account_return.rb` (15.11.2026, in `ApplicationController`): dasselbe für den Kontobereich,
+   „Zurück“ einer Kontoseite (`NavigationHelper#account_return_path`). Gemerkt wird der Referer
+   der ersten Kontoseite, eine weitere Kontoseite behält ihn, ein Eintritt von woanders ersetzt
+   ihn, ohne gültigen Referer greift `user_home_path`. Welche Seite eine Kontoseite ist, sagt
+   `NavigationHelper::ACCOUNT_PAGES` (Modulfunktion `account_page?`, kein `helpers`).
+   Beide teilen `return_path.rb` (`ReturnPath`): gleicher Host, nur ein Pfad, nie ein Pfad mit
+   `//` am Anfang, die eine Größengrenze `MAX_RETURN_PATH_BYTES` für den Sitzungs-Cookie.
+   Eine dritte Rückweg-Logik bindet `ReturnPath` ein, statt die Prüfungen abzuschreiben.
 
 Daneben liegen **Patches in Rails-eigene Controller**, die nicht per `include` im App-Controller,
 sondern über einen `to_prepare`-Initializer eingehängt werden: `direct_uploads_guard.rb` →

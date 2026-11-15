@@ -1,19 +1,11 @@
-<%# The sidebar's middle on an account page (no organisation): the pages of "Mein
-    Konto" (common/_account_nav_list, shared with the account layer) and, for someone
-    who came from an organisation, the way back to it. %>
-<div class="w-full px-4 pt-6">
+<%# The sidebar's middle on an account page (Belegungstabelle F44, navigation plan PR 3): a
+    section of its own, in the form of the management area. "Zurück" leads to the page the
+    reader came from (AccountReturn, NavigationHelper#account_return_path), then the label
+    MEIN KONTO and the pages (common/_account_nav_list, shared with the account layer). %>
+<div class="w-full px-4 pt-6" data-account-sidebar>
+  <ul class="mb-3 flex flex-col gap-1">
+    <%= render 'common/navigation_item', name: t('navigation.account_back'), path: account_return_path,
+                                         icon: 'bi bi-arrow-left' %>
+  </ul>
   <%= render 'common/account_nav_list' %>
-
-  <% if session[:current_organisation_id].present? %>
-    <% org = Organisation.find_by(id: session[:current_organisation_id]) %>
-    <% if org %>
-      <p class="px-3 pb-1.5 pt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"><%= t('navigation.organisation') %></p>
-      <ul class="flex flex-col gap-1">
-        <%= render 'common/navigation_item',
-              name: t('navigation.back_to_organisation'),
-              path: organisation_projects_path(organisation_id: org.id),
-              icon: 'bi bi-arrow-left' %>
-      </ul>
-    <% end %>
-  <% end %>
 </div>

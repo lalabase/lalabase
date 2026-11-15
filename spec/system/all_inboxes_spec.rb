@@ -60,6 +60,24 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     expect(page).to have_css('.inbox-row', count: 1)
   end
 
+  %w[profile preferences].each do |entry|
+    it "restores the selected notification after visiting account #{entry}" do
+      visit all_inboxes_path
+      expect(page).to have_css('#sidebar .sidebar-layer__trigger[role="button"]')
+      find('.inbox-row__link', text: 'Paket fehlt').click
+      expect(page).to have_css('.inbox-lane-content', text: 'Paket fehlt')
+      expect(page).to have_current_path(/notification=/)
+      selected_url = page.current_url
+
+      find('#sidebar .sidebar-layer__trigger').click
+      within('#account-layer') { click_link I18n.t("navigation.#{entry}") }
+      within('#sidebar [data-account-sidebar]') { click_link I18n.t('navigation.account_back') }
+
+      expect(page).to have_current_path(selected_url)
+      expect(page).to have_css('.inbox-lane-content', text: 'Paket fehlt')
+    end
+  end
+
   # Variant C (navigation plan D2): an organisation of the sidebar opens it.
   it 'opens the dashboard of an organisation clicked in the sidebar' do
     visit all_inboxes_path
@@ -574,9 +592,9 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('#ticket_pane', text: 'Karton ganz leer')
 
       # The promise of plan §3.2, read where a person reads it.
-      visit edit_user_preferences_path
-      back = find('a', text: I18n.t('navigation.back_to_organisation'))
-      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+      # The help restores the session's organisation (HelpController); its header names it.
+      visit help_path
+      expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Nordwind GmbH')
     end
 
     # S4: a row about a new note of the second organisation opens beside the list of this page.
@@ -639,9 +657,9 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(page).to have_css('#ticket_pane #ticket_display_frame [data-lane-title]', text: 'Protokoll Versand', wait: 10)
 
       # The session never left the first organisation.
-      visit edit_user_preferences_path
-      back = find('a', text: I18n.t('navigation.back_to_organisation'))
-      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+      # The help restores the session's organisation (HelpController); its header names it.
+      visit help_path
+      expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Nordwind GmbH')
     end
 
     # S4b: a document of the second organisation in the lane of this page. Its preview and the
@@ -696,9 +714,9 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       expect(URI(page.current_url).path).to eq('/inbox')
 
       # The session never left the first organisation.
-      visit edit_user_preferences_path
-      back = find('a', text: I18n.t('navigation.back_to_organisation'))
-      expect(URI(back[:href]).path).to eq(organisation_projects_path(organisation_id: north.id))
+      # The help restores the session's organisation (HelpController); its header names it.
+      visit help_path
+      expect(page).to have_css('#sidebar [data-sidebar-header] summary', text: 'Nordwind GmbH')
     end
 
     # Review S3b round 2: the head and the 5 s timer of the lane redraw the list. They take the

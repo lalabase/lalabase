@@ -13,7 +13,9 @@
     closes it (the name, the cross, Escape, a click outside), makes what it covers inert
     and gives the focus to its first entry; components/sidebar_layer.css is the slide.
 
-    Rendered hidden on every page of an organisation: six links and no query, so a click
+    Rendered hidden on every page except an account page (NavigationHelper#sidebar_mode: an
+    organisation, its management area, the level above the organisations): five links and
+    no query, so a click
     answers at once. Without JavaScript it stays hidden and the name is a plain link to
     the account page, whose sidebar shows the same list. %>
 <nav id="account-layer" class="sidebar-layer" hidden

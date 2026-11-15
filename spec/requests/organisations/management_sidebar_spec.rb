@@ -105,7 +105,8 @@ RSpec.describe 'Management sidebar', type: :request do
       end
     end
 
-    [1023, 1024].each do |bytes|
+    # The two return paths share the cookie: each gets half of the 1 KB path budget.
+    [511, 512].each do |bytes|
       it "preserves a #{bytes}-byte return address within the session budget" do
         prefix = "#{inbox}&q="
         path = prefix + 'a' * (bytes - prefix.bytesize)
@@ -114,7 +115,7 @@ RSpec.describe 'Management sidebar', type: :request do
       end
     end
 
-    [1025, 2800].each do |bytes|
+    [513, 1024, 2800].each do |bytes|
       it "replaces a #{bytes}-byte return address with the dashboard without overflowing the session cookie" do
         prefix = "#{inbox}&q="
         doc_for(organisation_settings_path(organisation), referer: inbox)

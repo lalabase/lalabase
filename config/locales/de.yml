@@ -1570,7 +1570,7 @@ de:
     invite_member: Mitglied einladen
     account_section: Mein Konto
     billing_accounts: Rechnungskonten
-    back_to_organisation: Zurück zur Organisation
+    account_back: Zurück
     delete_account: Konto löschen
     tasks: Tickets
     team: Team

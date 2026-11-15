@@ -13,10 +13,10 @@ module Organisations
   # current organisation.
   module ManagementReturn
     extend ActiveSupport::Concern
+    # The part both ways back share: same host, a path only, the size limit.
+    include ::ReturnPath
 
     SESSION_KEY = :management_return_path
-    # Leave room in the 4 KB encrypted session cookie for authentication and preferences.
-    MAX_RETURN_PATH_BYTES = 1024
 
     included do
       before_action :remember_management_return
@@ -41,19 +41,17 @@ module Organisations
     # The referer's path when it is an app page of this organisation (not one of the
     # management area itself), else nil.
     def management_referer_path
-      uri = URI.parse(request.referer.to_s)
-      return unless uri.host == request.host && current_organisation
+      uri = same_host_referer
+      return unless uri && current_organisation
 
       root = organisation_root_path(organisation_id: current_organisation.id)
       return unless uri.path == root || uri.path.start_with?("#{root}/")
 
-      route = Rails.application.routes.recognize_path(uri.path)
-      return if NavigationHelper.section_key_for(route[:controller].to_s.split('/').last)
+      name = controller_name_of(uri.path)
+      return if name.nil? || NavigationHelper.section_key_for(name)
 
-      path = [uri.path, uri.query].compact.join('?')
+      path = return_path_of(uri)
       path.bytesize <= MAX_RETURN_PATH_BYTES ? path : root
-    rescue URI::InvalidURIError, ActionController::RoutingError
-      nil
     end
   end
 end

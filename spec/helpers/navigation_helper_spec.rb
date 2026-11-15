@@ -300,9 +300,8 @@ RSpec.describe NavigationHelper, type: :helper do
            .map { |path| path.split('/').last }.uniq
     end
 
-    def mode(name, action = 'index', organisation: nil, signed_in: true)
-      described_class.sidebar_mode_for(controller_name: name, action_name: action,
-                                       organisation: organisation, signed_in: signed_in)
+    def mode(name, organisation: nil, signed_in: true)
+      described_class.sidebar_mode_for(controller_name: name, organisation: organisation, signed_in: signed_in)
     end
 
     it 'answers :management on every controller section_key_for names, :organisation on every other, inside an organisation' do
@@ -320,19 +319,41 @@ RSpec.describe NavigationHelper, type: :helper do
     end
 
     it 'answers :level on the pages of the level, without an organisation' do
-      { 'organisations' => %w[select new create], 'all_inboxes' => %w[index], 'help' => %w[index show] }.each do |name, actions|
-        actions.each { |action| expect(mode(name, action)).to eq(:level), "#{name}##{action}" }
-      end
+      %w[organisations all_inboxes help].each { |name| expect(mode(name)).to eq(:level), name }
     end
 
-    it 'keeps the account sidebar on every other page without an organisation' do
-      %w[registrations user_preferences billing_accounts user_data_exports personal_access_tokens account_deletions].each do |name|
-        expect(mode(name, 'edit')).to eq(:account), name
+    # PR 3: an account page is a controller ACCOUNT_PAGES names; every other page without an
+    # organisation is the level (spec/architecture/sidebar_mode_guard_spec.rb holds the rest).
+    it 'answers :account on every controller of ACCOUNT_PAGES and :level on every other, without an organisation' do
+      account = described_class::ACCOUNT_PAGES.flat_map { |page| page[:controller_names] }
+      expect(account).to contain_exactly('registrations', 'account_deletions', 'cancel_account_deletions',
+                                         'billing_accounts', 'user_data_exports', 'personal_access_tokens',
+                                         'user_preferences')
+      controllers.each do |name|
+        expect(mode(name)).to eq(account.include?(name) ? :account : :level), "#{name} without an organisation"
       end
     end
 
     it 'answers nil for a visitor who is not signed in' do
-      expect(mode('organisations', 'select', signed_in: false)).to be_nil
+      expect(mode('organisations', signed_in: false)).to be_nil
+    end
+
+    it 'keeps the account pages a frozen list in this order, each with a label, a path and an icon' do
+      expect(described_class::ACCOUNT_PAGES).to be_frozen
+      expect(described_class::ACCOUNT_PAGES.map { |page| page[:key] })
+        .to eq(%i[profile billing_accounts data_export api_tokens preferences])
+      described_class::ACCOUNT_PAGES.each do |page|
+        expect(page).to be_frozen
+        expect(I18n.t(page[:label_key], default: nil)).to be_present
+        expect(page[:icon]).to start_with('bi bi-')
+        expect(Rails.application.routes.url_helpers.public_send(page[:path_helper])).to start_with('/')
+      end
+    end
+
+    it 'gives the account layer to every signed-in mode but the account, in one place' do
+      expect(%i[organisation management level account].select { |m| described_class.account_layer?(m) })
+        .to eq(%i[organisation management level])
+      expect(described_class.account_layer?(nil)).to be(false)
     end
 
     it 'is called on the module, without a view' do

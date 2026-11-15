@@ -74,6 +74,14 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   there, where the caller may not write, and its answer could show data of that project.
   It is a 404 now, as if never found. A concurrent change to another attribute is no
   longer written back with its old value.
+- Password reset, confirmation resend, unlock and sign-in no longer tell whether an
+  address has an account (Devise's paranoid mode). The three forms said "not found" for an
+  unknown address, and sign-in said an account was locked even after a wrong password. A
+  locked person now reads "Invalid email or password" like everybody else and learns of the
+  lock from the unlock mail; the warning before the last attempt is gone for the same
+  reason. The sign-up form still says when an address is taken.
+- The unlock form has a rate limit of its own, 3 requests per minute and IP address, like the
+  password reset and the confirmation resend. It mails an arbitrary address on request.
 
 ### Upgrade notes
 

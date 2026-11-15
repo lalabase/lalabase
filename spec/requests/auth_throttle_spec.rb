@@ -190,6 +190,35 @@ RSpec.describe 'Auth endpoint throttling', type: :request do
     end
   end
 
+  # The unlock form mails an arbitrary address on request, like the reset and
+  # the confirmation resend. It had no limit of its own until 2026-11-15: only
+  # the global 300 per 5 minutes stood between it and a mail cannon, and before
+  # config.paranoid it also answered "not found" as fast as one could ask.
+  describe 'unlock (unlocks/ip, 3 per minute)' do
+    let(:params) { { user: { email: 'nobody@example.com' } } }
+
+    it 'lets the allowance through and throttles the next request' do
+      Prosopite.pause
+
+      Rack::Attack::CONFIRMATIONS_LIMIT.times { post user_unlock_path, params: params }
+      expect(response).not_to have_http_status(:too_many_requests)
+
+      post user_unlock_path, params: params
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    it 'cannot be bypassed with a format suffix or padded slashes' do
+      Prosopite.pause
+
+      post user_unlock_path(format: :html), params: params
+      post '/users/unlock/', params: params
+      post '//users/unlock', params: params
+      post user_unlock_path(format: :html), params: params
+
+      expect(response).to have_http_status(:too_many_requests)
+    end
+  end
+
   describe 'registration (registrations/ip)' do
     # No terms_accepted and no bot-trap params: the request is rejected long
     # before anything is written, which keeps the loop cheap. Rack::Attack runs

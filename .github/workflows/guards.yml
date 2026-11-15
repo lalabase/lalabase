@@ -575,6 +575,7 @@ jobs:
           spec/requests/help_inside_organisation_spec.rb
           spec/requests/acquisition_capture_spec.rb
           spec/requests/users/bot_trap_spec.rb
+          spec/requests/users/account_enumeration_spec.rb
           spec/requests/users/email_confirmation_spec.rb
           spec/requests/users/registration_invited_email_spec.rb
           spec/requests/users/registrations_consent_spec.rb

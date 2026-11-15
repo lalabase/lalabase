@@ -297,7 +297,7 @@ RSpec.describe NavigationHelper, type: :helper do
     # Every controller the router names, so a new controller is in the table by itself.
     let(:controllers) do
       Rails.application.routes.routes.filter_map { |route| route.defaults[:controller] }.uniq
-                                       .map { |path| path.split('/').last }.uniq
+           .map { |path| path.split('/').last }.uniq
     end
 
     def mode(name, action = 'index', organisation: nil, signed_in: true)

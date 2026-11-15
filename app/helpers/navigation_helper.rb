@@ -163,25 +163,66 @@ module NavigationHelper
   LEVEL_PAGES = {
     'organisations' => { actions: %w[select new create], key: { 'select' => :overview } },
     'all_inboxes' => { actions: nil, key: :all_inboxes },
-    'help' => { actions: nil, key: nil }
+    'help' => { actions: nil, key: nil },
+    # Reached from a link in a mail; signed in, it shows the level like any page outside an
+    # organisation.
+    'notification_unsubscribes' => { actions: nil, key: nil }
   }.each_value(&:freeze).freeze
+
+  # The pages of "Mein Konto" (Belegungstabelle F44, F47), ONE list in data for every place
+  # that asks (navigation plan D4): the account list (common/_account_nav_list, in the
+  # sidebar of an account page and in the account layer), the sidebar's mode (an account
+  # page shows this list) and the guard that every page without an organisation belongs to
+  # the level or to the account (spec/architecture/sidebar_mode_guard_spec.rb).
+  # `controller_names:` are the RAILS controller_names of the pages below the entry: the
+  # row stays marked on each of them (the password, the display and the deletion of the
+  # account belong to "Profil"). "Alle Organisationen" and "Gesamt-Inbox" are no account
+  # pages: the level above the organisations has a sidebar of its own (F48).
+  ACCOUNT_PAGES = [
+    { key: :profile,          label_key: 'navigation.profile',             path_helper: :edit_user_registration_path,
+      icon: 'bi bi-person-fill', controller_names: %w[registrations account_deletions cancel_account_deletions] },
+    # Billing accounts hang on the account, not on an organisation (K1 revised): an owner
+    # without any membership reaches them too.
+    { key: :billing_accounts, label_key: 'navigation.billing_accounts',    path_helper: :billing_accounts_path,
+      icon: 'bi bi-receipt', controller_names: %w[billing_accounts] },
+    { key: :data_export,      label_key: 'navigation.data_export',         path_helper: :user_data_export_path,
+      icon: 'bi bi-download', controller_names: %w[user_data_exports] },
+    { key: :api_tokens,       label_key: 'navigation.settings_api_tokens', path_helper: :users_personal_access_tokens_path,
+      icon: 'bi bi-key', controller_names: %w[personal_access_tokens] },
+    { key: :preferences,      label_key: 'navigation.preferences',         path_helper: :edit_user_preferences_path,
+      icon: 'bi bi-person-gear', controller_names: %w[user_preferences] }
+  ].each { |page| page[:controller_names].freeze }.each(&:freeze).freeze
+
+  # Every controller of an account page, derived from the list above.
+  ACCOUNT_PAGE_CONTROLLERS = ACCOUNT_PAGES.flat_map { |page| page[:controller_names] }.freeze
 
   # What the sidebar's middle shows, the ONE answer the layout renders by:
   #   :organisation  the app's entries and the projects of the organisation
   #   :management    the sections of its management area (common/_navigation_management)
-  #   :level         the level above the organisations (common/_navigation_level)
-  #   :account       the pages of "Mein Konto" (common/_navigation_account)
+  #   :account       a page of "Mein Konto" (ACCOUNT_PAGES): common/_navigation_account
+  #   :level         every other page without an organisation, the level above them
+  #                  (common/_navigation_level); LEVEL_PAGES names its rows
   #   nil            nobody is signed in
   # A function of the module, without a view: a controller may ask it in a before_action,
   # where calling `helpers` would freeze the instance variables (see section_key_for).
-  def self.sidebar_mode_for(controller_name:, action_name:, organisation:, signed_in:)
+  def self.sidebar_mode_for(controller_name:, organisation:, signed_in:)
     return nil unless signed_in
 
     if organisation.present?
       section_key_for(controller_name) ? :management : :organisation
     else
-      level_page?(controller_name, action_name) ? :level : :account
+      account_page?(controller_name) ? :account : :level
     end
+  end
+
+  # True on a page of "Mein Konto" (ACCOUNT_PAGES), by its controller.
+  def self.account_page?(controller_name)
+    ACCOUNT_PAGE_CONTROLLERS.include?(controller_name)
+  end
+
+  # The entry of ACCOUNT_PAGES a page belongs to (its key), nil elsewhere.
+  def self.account_page_key_for(controller_name)
+    ACCOUNT_PAGES.find { |page| page[:controller_names].include?(controller_name) }&.dig(:key)
   end
 
   def self.level_page?(controller_name, action_name)
@@ -201,12 +242,30 @@ module NavigationHelper
 
   # The mode of the page being rendered. Cheap (a hash lookup), so not memoised.
   def sidebar_mode
-    NavigationHelper.sidebar_mode_for(controller_name: controller_name, action_name: action_name,
-                                      organisation: current_organisation, signed_in: user_signed_in?)
+    NavigationHelper.sidebar_mode_for(controller_name: controller_name, organisation: current_organisation,
+                                      signed_in: user_signed_in?)
   end
 
   def level_page_key
     NavigationHelper.level_page_key_for(controller_name, action_name)
+  end
+
+  # The account pages, ready to render: label, path, icon and whether the page being
+  # rendered belongs to the entry (from the controller, never from typed paths).
+  def account_pages
+    current = NavigationHelper.account_page_key_for(controller_name)
+    ACCOUNT_PAGES.map do |page|
+      { key: page[:key], label: t(page[:label_key]), path: public_send(page[:path_helper]), icon: page[:icon],
+        active: sidebar_mode == :account && page[:key] == current }
+    end
+  end
+
+  # Where "Zurück" of an account page leads (navigation plan D5): the page the reader came
+  # from, kept as a path by AccountReturn when the account area was entered, else the
+  # reader's home (ApplicationController#user_home_path).
+  def account_return_path
+    stored = session[AccountReturn::SESSION_KEY]
+    ReturnPath.path?(stored) ? stored : user_home_path(current_user)
   end
 
   # True on any organisation-management page: a section, or a page below one. It switches

@@ -35,6 +35,7 @@ class Rack::Attack
   PROVISIONING_SIGNUPS_PATH = %r{\A/api/provisioning/v1/signups#{FORMAT_SUFFIX}\z}
   SIGNUP_HANDOFF_PATH = %r{\A/users/signup_handoff#{FORMAT_SUFFIX}\z}
   CONFIRMATION_PATH = %r{\A/users/confirmation#{FORMAT_SUFFIX}\z}
+  UNLOCK_PATH = %r{\A/users/unlock#{FORMAT_SUFFIX}\z}
   DATA_EXPORT_PATH = %r{\A/user_data_export#{FORMAT_SUFFIX}\z}
   MCP_PATH = %r{\A/api/mcp#{FORMAT_SUFFIX}\z}
   DETECT_PARTICIPANTS_PATH = %r{/meetings/detect_participants#{FORMAT_SUFFIX}\z}
@@ -100,6 +101,7 @@ class Rack::Attack
   # Confirmation resend mails an ARBITRARY address on request — without a limit
   # it is an open relay for harassment and the fastest way to burn the sender
   # reputation. Mirrors the password-reset limit, which has the same property.
+  # The unlock form has it too and shares these numbers (unlocks/ip).
   CONFIRMATIONS_LIMIT = 3
   CONFIRMATIONS_PERIOD = 60.seconds
 
@@ -201,6 +203,11 @@ class Rack::Attack
   ### Throttle confirmation resend per IP ###
   throttle('confirmations/ip', limit: CONFIRMATIONS_LIMIT, period: CONFIRMATIONS_PERIOD) do |req|
     req.ip if post_to?(req, CONFIRMATION_PATH)
+  end
+
+  ### Throttle unlock instructions per IP ###
+  throttle('unlocks/ip', limit: CONFIRMATIONS_LIMIT, period: CONFIRMATIONS_PERIOD) do |req|
+    req.ip if post_to?(req, UNLOCK_PATH)
   end
 
   ### Throttle GDPR data export requests per IP ###

@@ -86,10 +86,19 @@ Devise.setup do |config|
   # The realm used in Http Basic Authentication. 'Application' by default.
   # config.http_authentication_realm = 'Application'
 
-  # It will change confirmation, password recovery and other workflows
-  # to behave the same regardless if the e-mail provided was right or wrong.
-  # Does not affect registerable.
-  # config.paranoid = true
+  # Password reset, confirmation resend, unlock and sign-in answer the same
+  # whether an address has an account or not. Off until 2026-11-15: each of the
+  # three forms said "not found" for an unknown address, and the sign-in form
+  # said "locked" for a locked account even with a wrong password. For an agency
+  # the people of its clients are a list nobody should be able to probe.
+  # Pinned by spec/requests/users/account_enumeration_spec.rb.
+  #
+  # Also means: a locked person is told "invalid email or password" like
+  # everybody else. They learn of the lock from the unlock mail Devise sends
+  # when it locks (unlock_strategy :both), and the sign-in page links to the
+  # unlock form. Does not affect registerable: the sign-up form still says an
+  # address is taken.
+  config.paranoid = true
 
   # By default Devise will store the user in session. You can skip storage for
   # particular strategies by setting this option.
@@ -273,8 +282,10 @@ Devise.setup do |config|
   # Time interval to unlock the account if :time is enabled as unlock_strategy.
   config.unlock_in = 1.hour
 
-  # Warn on the last attempt before the account is locked.
-  config.last_attempt_warning = true
+  # No warning on the last attempt before the lock: it would say that the
+  # account exists. Devise ignores this setting under config.paranoid anyway;
+  # false says so instead of promising a warning that never shows.
+  config.last_attempt_warning = false
 
   # ==> Configuration for :recoverable
   #

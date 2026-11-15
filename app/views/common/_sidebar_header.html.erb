@@ -27,15 +27,16 @@
     (Notifications::UnreadSignals); on the level every organisation counts, from the counts
     the level's sidebar already holds (ApplicationController#level_organisations). %>
 <% org_counts = if organisation.nil?
-                  level_organisations.to_h { |row| [row[:id], row[:unread].to_i] }
+                  level_unread_counts
                 elsif menu_orgs.many?
                   Notifications::UnreadSignals.counts_for(current_user, except: organisation)
                 else
                   {}
                 end %>
-<%# The id is the target of the inbox above the organisations: the answer to a row action
-    and the live redraw replace the header with the sidebar's counts (all_inboxes/_redraw). %>
-<div id="sidebar_header" class="w-full mt-2 border-b border-cream-300" data-sidebar-header>
+<%# On the inbox above the organisations the answer to a row action and the live redraw
+    replace the numbers of the rows (org_attention_count_<id>, ..._overflow) with the counts of
+    the sidebar (all_inboxes/_redraw); the menu itself stays, open or not, with its focus. %>
+<div class="w-full mt-2 border-b border-cream-300" data-sidebar-header>
   <details class="group" data-controller="details-autoclose" data-action="toggle->details-autoclose#onToggle">
     <summary class="flex items-center justify-between gap-2 px-6 py-2 cursor-pointer hover:bg-white/55 rounded transition-colors list-none"
              title="<%= organisation ? t('navigation.organisation') : t('navigation.all_organisations') %>">

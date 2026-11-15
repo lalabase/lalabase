@@ -205,6 +205,12 @@ class ApplicationController < ActionController::Base
   end
   helper_method :level_organisations
 
+  # The same counts as { organisation_id => unread }, the form the switcher's rows read.
+  def level_unread_counts
+    level_organisations.to_h { |row| [row[:id], row[:unread].to_i] }
+  end
+  helper_method :level_unread_counts
+
   # The active organisations in the order of Organisation.by_name (the order of the
   # inbox's counts), each with its number from `counts` ({ organisation_id => count }).
   def level_organisations_with(counts)

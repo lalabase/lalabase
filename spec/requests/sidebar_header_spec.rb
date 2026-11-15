@@ -150,19 +150,29 @@ RSpec.describe 'The header of the sidebar with the switcher', :ci_guard, :real_t
       end
     end
 
-    # Review PR 2 round 1: the answer to a row action redraws the counts of the level's
-    # sidebar; the header beside it must not keep the old number.
-    it 'redraws the counts of the header with the answer to a row action on the inbox' do
+    # Review PR 2 rounds 1 and 2: the answer to a row action redraws the counts of the level's
+    # sidebar; the header beside it must not keep the old number, and only its numbers are
+    # replaced (the menu stays as the reader left it).
+    it 'carries the targets of its numbers on the inbox' do
+      doc = doc_at(all_inboxes_path)
+      expect(header(doc).at_css("#org_attention_count_#{north.id}")).to be_present
+      expect(header(doc).at_css("#org_attention_count_#{south.id}")).to be_present
+      expect(header(doc).at_css('#org_attention_count_overflow')).to be_present
+    end
+
+    it 'redraws the numbers of the header, and nothing else of it, with the answer to a row action' do
       south_row = Prosopite.pause { ActsAsTenant.without_tenant { Notification.where(recipient: user, organisation: south).first } }
       patch all_inbox_mark_read_path(south_row), headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
       expect(response).to have_http_status(:ok)
-      stream = Nokogiri::HTML(response.body).at_css('turbo-stream[target="sidebar_header"] template')
-      expect(stream).to be_present
-      rows = stream.css('[data-switcher-org]').to_h do |row|
-        marker = row.at_css('[data-unread-marker]')
-        [row['data-switcher-org'], marker && !marker['class'].to_s.split.include?('hidden') ? marker.text.squish : nil]
+      streams = Nokogiri::HTML(response.body).css('turbo-stream')
+      expect(streams.pluck('target')).not_to include('sidebar_header')
+      count_of = lambda do |id|
+        marker = streams.find { |stream| stream['target'] == id }.at_css('template [data-unread-marker]')
+        marker['class'].to_s.split.include?('hidden') ? nil : marker.text.squish
       end
-      expect(rows).to eq(north.id => '1', south.id => '1')
+      expect(count_of.call("org_attention_count_#{north.id}")).to eq('1')
+      expect(count_of.call("org_attention_count_#{south.id}")).to eq('1')
+      expect(count_of.call('org_attention_count_overflow')).to be_nil
     end
 
     it 'draws the menu with a soft shadow (F29) and no written hard shadow' do

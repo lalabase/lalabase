@@ -121,6 +121,36 @@ RSpec.describe 'The header of the sidebar with the switcher (System)', type: :sy
     expect(page).to have_no_css('#sidebar [data-sidebar-header] details[open]')
   end
 
+  # Review PR 2 round 2: the live redraw of the inbox replaces the numbers of the header, not
+  # the header: an open menu stays open under the reader, with the focus where it was.
+  it 'keeps the menu open and the focus in it while the inbox redraws its counts' do
+    visit all_inboxes_path
+    expect(page).to have_css('[data-controller~="all-inboxes-live"]')
+    # Nothing unread yet: the number of south waits hidden.
+    expect(page).to have_css("#sidebar [data-sidebar-header] #org_attention_count_#{south.id}.hidden", visible: :all)
+    open_menu
+    page.execute_script("document.querySelector('#{menu_selector} a[data-switcher-org]').focus()")
+
+    # Something new in south, then the redraw the live signal would ask for.
+    ActsAsTenant.with_tenant(south) do
+      project = create(:project, organisation: south)
+      create(:notification, recipient: user, organisation: south, project: project,
+                            notifiable: create(:ticket, project: project),
+                            event_type: 'ticket_commented', channel: 'in_app', state: :delivered)
+    end
+    ActsAsTenant.current_tenant = nil
+    page.execute_script(<<~JS)
+      const element = document.querySelector('[data-controller~="all-inboxes-live"]')
+      window.Stimulus.getControllerForElementAndIdentifier(element, 'all-inboxes-live').redraw('counts')
+    JS
+
+    # The redraw has landed when the number of south shows.
+    expect(page).to have_css("#sidebar [data-sidebar-header] #org_attention_count_#{south.id}:not(.hidden)", text: '1',
+                                                                                                             visible: :all)
+    expect(page).to have_css('#sidebar [data-sidebar-header] details[open]')
+    expect(page.evaluate_script("document.activeElement.matches('#{menu_selector} a[data-switcher-org]')")).to be(true)
+  end
+
   it 'opens the inbox above the organisations from "Alle Organisationen" inside an organisation' do
     visit organisation_root_path(organisation_id: north.id)
     open_menu

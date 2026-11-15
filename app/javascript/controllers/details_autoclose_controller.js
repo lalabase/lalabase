@@ -37,7 +37,8 @@ export default class extends Controller {
 
   // A menu left open when the page changes would stand open again in Turbo's snapshot when the
   // reader goes back (the switcher's rows are Turbo links since the navigation plan, PR 2).
-  // Closed before the snapshot is taken, as sidebar_layer_controller closes its layer.
+  // Closed before Turbo takes a snapshot (a visit, also a same-page anchor or a refresh), as
+  // sidebar_layer_controller closes its layer. It applies to every menu of this controller.
   closeBeforeCache() {
     if (!this.element.open) return
     this.element.open = false

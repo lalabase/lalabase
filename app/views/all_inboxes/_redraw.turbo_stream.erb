@@ -44,9 +44,19 @@
 <% end %>
 
 <%# The header with the switcher counts every organisation on this page too, from the same
-    numbers (ApplicationController#level_organisations): one count per organisation. %>
-<%= turbo_stream.replace 'sidebar_header' do %>
-  <%= render 'common/sidebar_header' %>
+    numbers (ApplicationController#level_unread_counts): one count per organisation. Only its
+    numbers are replaced, never the menu: a redraw must not close it under the reader. %>
+<% header_counts = level_unread_counts %>
+<% header_ids = switcher_organisations(current_user).map(&:id) %>
+<% header_ids.each do |organisation_id| %>
+  <%= turbo_stream.replace "org_attention_count_#{organisation_id}" do %>
+    <%= render 'notifications/org_attention_count', target_id: "org_attention_count_#{organisation_id}",
+                                                    count: header_counts[organisation_id].to_i %>
+  <% end %>
+<% end %>
+<%= turbo_stream.replace 'org_attention_count_overflow' do %>
+  <%= render 'notifications/org_attention_count', target_id: 'org_attention_count_overflow',
+                                                  count: Notifications::UnreadSignals.overflow_count(header_counts, header_ids) %>
 <% end %>
 
 <% if open_lane %>

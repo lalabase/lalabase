@@ -1,5 +1,8 @@
 <!-- Compact User Menu for Sidebar -->
-<% if current_organisation.blank? %>
+<%# Branches on the sidebar's mode, as the layout does (NavigationHelper#sidebar_mode): an
+    account page shows the plain name, every page with the account layer (an
+    organisation, its management area, the level above the organisations) the handle. %>
+<% if sidebar_mode == :account %>
   <!-- Account context: simplified menu (profile/settings are already in main nav) -->
   <div class="flex items-center gap-3 py-2 px-4">
     <i class="bi bi-person-fill"></i>
@@ -12,7 +15,7 @@
     <% end %>
   </div>
 <% else %>
-  <%# Organisation context: the name is the handle of the account layer
+  <%# Organisation and level: the name is the handle of the account layer
       (common/_account_layer, F47). A click raises the pages of "Mein Konto" over the
       sidebar and leaves the page alone. It is a link to the account page, which is
       what it does without JavaScript; sidebar_layer_controller makes it a button
@@ -27,7 +30,8 @@
     <span class="relative inline-flex">
       <i class="bi bi-person-fill" aria-hidden="true"></i>
       <%# Quiet unread marker for platform news (lime, not the red notification colour). %>
-      <% if changelog_in_navigation? && changelog_has_unread?(current_user) %>
+      <%# Only where the layer lists the news, inside an organisation. %>
+      <% if current_organisation.present? && changelog_in_navigation? && changelog_has_unread?(current_user) %>
         <span class="changelog-unread-dot absolute -top-1 -end-1 w-2 h-2 bg-lime-500 rounded-full border border-stroke"></span>
       <% end %>
     </span>

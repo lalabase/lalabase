@@ -96,6 +96,64 @@ RSpec.describe 'Account layer of the sidebar', type: :request do
     end
   end
 
+  # Navigation plan, finding 6: once the cockpit shows the level's sidebar, only the layer
+  # leads to the account from there. The level gets the layer of an organisation's page.
+  describe 'on the level above the organisations', :real_transactions do
+    let(:other) { create(:organisation, name: 'Sued AG') }
+
+    before do
+      ActsAsTenant.with_tenant(other) do
+        create(:membership, user: user, organisation: other, role: create(:admin_role, organisation: other), active: true)
+      end
+      ActsAsTenant.current_tenant = nil
+    end
+
+    # Until PR 3 the layer's list is the account list as it stands, which names the
+    # inbox above the organisations to a person with two of them.
+    def level_account_pages
+      account_pages.dup.insert(1, all_inboxes_path)
+    end
+
+    { 'the cockpit' => -> { select_organisation_path }, 'the inbox' => -> { all_inboxes_path } }.each do |where, path|
+      it "makes the name the handle of a hidden layer on #{where}, a plain link without a script" do
+        get instance_exec(&path)
+        expect(response).to have_http_status(:ok)
+        expect(sidebar.at_css('[data-all-inboxes-nav]')).to be_present
+        expect(sidebar['data-controller'].to_s.split).to include('sidebar-layer')
+
+        trigger = sidebar.at_css('[data-sidebar-layer-target="trigger"]')
+        expect(trigger.name).to eq('a')
+        expect(trigger['href']).to eq(edit_user_registration_path)
+        expect(trigger['data-action']).to eq('click->sidebar-layer#toggle')
+        expect(trigger['aria-controls']).to eq('account-layer')
+        expect(trigger.text.squish).to eq('lena')
+
+        layer = sidebar.at_css('nav#account-layer[data-sidebar-layer-target="panel"]')
+        expect(layer['hidden']).not_to be_nil
+        expect(layer.css('[data-account-nav-list] a').map { |a| a['href'] }).to eq(level_account_pages)
+        expect(layer.css('a').find { |a| a['href'] == destroy_user_session_path }['data-turbo-method']).to eq('delete')
+      end
+
+      it "marks what the layer covers on #{where}: the level's sidebar and the utility row, not the name" do
+        get instance_exec(&path)
+        covered = sidebar.css('[data-sidebar-layer-target="covered"]')
+        expect(covered.size).to eq(1)
+        expect(covered.first.at_css('[data-all-inboxes-nav]')).to be_present
+        expect(covered.first.at_css('[data-theme-set]')).to be_present
+        expect(covered.first.at_css('#account-layer, [data-sidebar-layer-target="trigger"]')).to be_nil
+        expect(covered.first.parent.at_css('> #account-layer')).to be_present
+      end
+
+      it "shows no news in the layer on #{where}: they belong to an organisation" do
+        stub_const('ApplicationHelper::CHANGELOG_IN_NAVIGATION', true)
+        get instance_exec(&path)
+        layer = sidebar.at_css('#account-layer')
+        expect(layer.css('[data-account-nav-list] a').map { |a| a['href'] }).to eq(level_account_pages)
+        expect(sidebar.at_css('.changelog-unread-dot')).to be_nil
+      end
+    end
+  end
+
   describe 'on a page of the account' do
     before do
       get organisation_root_path(organisation_id: organisation.id)

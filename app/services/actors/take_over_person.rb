@@ -47,9 +47,19 @@ module Actors
     # except the source, where they may create people. The same rule the
     # actor applies to the target it gets, asked under each tenant.
     def self.targets_for(viewer:, source:)
-      viewer.active_organisations.where.not(id: source.id).order(:name).to_a
-            .select { |organisation| creatable_in?(viewer, organisation) }
+      candidates(viewer, source).select { |organisation| creatable_in?(viewer, organisation) }
     end
+
+    # Whether the dialog would list any target: the same rule, but it stops at
+    # the first organisation that allows it (the card menu asks only this).
+    def self.any_target_for?(viewer:, source:)
+      candidates(viewer, source).any? { |organisation| creatable_in?(viewer, organisation) }
+    end
+
+    def self.candidates(viewer, source)
+      viewer.active_organisations.where.not(id: source.id).order(:name).to_a
+    end
+    private_class_method :candidates
 
     # PersonPolicy#create? reads the tenant of the thread, so it is asked inside
     # the organisation's own block.
@@ -138,6 +148,7 @@ module Actors
 
     def write_copy(target, source)
       refuse unless self.class.creatable_in?(current_user, target)
+      lock_name(target, source[:row])
       ask_about_duplicates(target, source[:row]) unless @confirm_duplicate
 
       result = Actors::SavePerson.call(organisation: target, params: source[:values], current_user: current_user)
@@ -150,12 +161,25 @@ module Actors
     # may read them there. The source row is only compared by its loaded
     # attributes (id, normalized_name, user_id); nothing of it is loaded here.
     def ask_about_duplicates(target, row)
-      names = People::Directory.new(viewer: current_user, organisation: target).duplicates_of(row).map(&:plain_name)
+      names = People::Directory.new(viewer: current_user, organisation: target).duplicates_of(row).map do |entry|
+        I18n.t('controllers.people.takeover.duplicate_name', name: entry.plain_name)
+      end
       return if names.empty?
 
       raise ActorError.new(I18n.t('controllers.people.takeover.duplicate', names: names.to_sentence,
                                                                            organisation: target.name),
                            code: DUPLICATE)
+    end
+
+    # Two takeovers of the same name into the same target, sent at once, would
+    # both find no duplicate and both write. Held until the transaction ends,
+    # so the second one asks about the first one's copy. The key is binds only.
+    # SELECT 1 FROM: the function returns void (unknown OID otherwise).
+    def lock_name(target, row)
+      Person.connection.select_value(
+        "SELECT 1 FROM pg_advisory_xact_lock(hashtextextended('people_takeover:' || $1 || ':' || $2, 0))",
+        'Actors::TakeOverPerson lock', [target.id.to_s, row.normalized_name.to_s]
+      )
     end
 
     def refuse

@@ -334,7 +334,8 @@ Verzeichnis-Übersicht (Auswahl):
   through `Lookup#entry`, the target from `active_organisations` (`.targets_for` is the
   dialog's list, same rule), values only from the source row filtered by `FIELDS`, notes only
   ticked, `Directory#duplicates_of(source_row)` in the target unless the request confirmed for
-  that same target. One refusal (`:not_found`) for every case; the target records nothing of
+  that same target, under an advisory lock on target and name (two takeovers at once ask
+  instead of both writing). One refusal (`:not_found`) for every case; the target records nothing of
   the source.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,

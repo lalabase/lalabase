@@ -101,7 +101,7 @@ module Organisations
 
       @person = source_row
       @targets = targets
-      return refuse if @person.nil? || token.nil?
+      return refuse if @person.nil? || token.nil? || @targets.empty?
 
       locals = dialog_locals(token: token).merge(question: question, confirm_target: scalar(:target))
       render turbo_stream: turbo_stream.replace(helpers.person_takeover_modal_instance_id(@person.id, token),

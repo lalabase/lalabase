@@ -334,16 +334,17 @@ module PeopleHelper
     "person-more-actions-#{person_id}"
   end
 
-  # The organisations the viewer may take a contact of this one to, once per
-  # request (Actors::TakeOverPerson.targets_for: active memberships, the right
-  # to create people there, never this one).
-  def people_takeover_targets
-    @people_takeover_targets ||= Actors::TakeOverPerson.targets_for(viewer: current_user, source: current_organisation)
+  # Whether the viewer may take a contact of this one anywhere, once per
+  # request (Actors::TakeOverPerson.any_target_for?: active memberships, the
+  # right to create people there, never this one; stops at the first).
+  # In a list, so a false answer is kept as well.
+  def people_takeover_target?
+    (@people_takeover_target ||= [Actors::TakeOverPerson.any_target_for?(viewer: current_user, source: current_organisation)]).first
   end
 
   # The menu item only for a contact whose row has no account (no member, no
   # row of a deactivated member) and only when there is somewhere to take it.
   def person_takeover_offered?(person)
-    person.user_id.nil? && people_takeover_targets.any?
+    person.user_id.nil? && people_takeover_target?
   end
 end

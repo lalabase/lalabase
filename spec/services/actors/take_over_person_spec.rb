@@ -323,6 +323,17 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
       expect(result.errors.join).not_to include('HERR SCHMIDT', 'Nord GmbH')
     end
 
+    it 'quotes every name on its own' do
+      takeover_person(south, name: 'Herr  Schmidt', email: 'third@example.com')
+
+      text = take_over.errors.join
+
+      quoted = ['herr schmidt', 'Herr Schmidt'].map { |name| I18n.t('controllers.people.takeover.duplicate_name', name: name) }
+      opening = I18n.t('controllers.people.takeover.duplicate_name', name: '|').split('|').first
+      expect(text).to include(*quoted)
+      expect(text.scan(opening).size).to eq(2)
+    end
+
     it 'creates the copy when the viewer confirmed' do
       result = nil
       expect { result = take_over(confirm_duplicate: true) }.to change { takeover_count(south) }.by(1)
@@ -380,6 +391,17 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
       targets = described_class.targets_for(viewer: user, source: north)
 
       expect(targets.map(&:id)).to eq([admin_org.id, south.id])
+      expect(ActsAsTenant.current_tenant).to be_nil
+    end
+
+    it 'answers whether there is any target by the same rule' do
+      user = takeover_join(create(:user), north, 'manage_people')
+      takeover_join(user, create(:organisation, name: 'West AG'), 'view_people')
+      takeover_join(user, create(:organisation, name: 'Ost AG'), 'manage_people', active: false)
+      expect(described_class.any_target_for?(viewer: user, source: north)).to be(false)
+
+      takeover_join(user, south, 'manage_people')
+      expect(described_class.any_target_for?(viewer: user, source: north)).to be(true)
       expect(ActsAsTenant.current_tenant).to be_nil
     end
   end

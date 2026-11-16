@@ -14,7 +14,8 @@ en:
       takeover:
         success: "Taken over from %{source}."
         failed: "This person could not be taken over."
-        duplicate: "%{organisation} already has “%{names}”. Create anyway?"
+        duplicate: "%{organisation} already has %{names}. Create anyway?"
+        duplicate_name: "“%{name}”"
   views:
     organisations:
       people:

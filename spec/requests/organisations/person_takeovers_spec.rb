@@ -302,7 +302,8 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.media_type).to eq('text/vnd.turbo-stream.html')
-      question = I18n.t('controllers.people.takeover.duplicate', organisation: 'Süd GmbH', names: 'Herr Schmidt')
+      name = I18n.t('controllers.people.takeover.duplicate_name', name: 'Herr Schmidt')
+      question = I18n.t('controllers.people.takeover.duplicate', organisation: 'Süd GmbH', names: name)
       expect(response.body).to include(CGI.escapeHTML(question), "person-takeover-modal-#{source.id}-#{token}",
                                        I18n.t('views.organisations.people.takeover.confirm'))
       confirm = Nokogiri::HTML(response.body).at_css('input[name="confirm_target"]')
@@ -322,6 +323,16 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
 
       expect(response).to redirect_to(organisation_people_path(north, person_id: source.id))
       expect(flash[:alert]).to include('Süd GmbH')
+    end
+
+    it 'refuses the question when no target is left by the time it is drawn' do
+      allow(Actors::TakeOverPerson).to receive(:targets_for).and_return([])
+
+      expect { submit }.not_to(change { counts })
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.body).not_to include(I18n.t('views.organisations.people.takeover.confirm'))
+      expect(response.body).to include(I18n.t('controllers.people.not_found'))
     end
 
     it 'asks again when the confirmation names another target' do

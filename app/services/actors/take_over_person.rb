@@ -9,7 +9,7 @@
 # other new row (PersonTrackable). The notice "taken over from ..." is the
 # controller's flash, for the viewer alone.
 #
-# Two tenant blocks, never without_tenant:
+# Two tenant blocks, one per organisation; nothing is read across tenants:
 #
 # * source, inside ActsAsTenant.with_tenant(source): People::Lookup#entry, the
 #   viewer's own right to read that directory. Only a contact whose row has no

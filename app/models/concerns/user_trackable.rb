@@ -35,14 +35,15 @@ module UserTrackable
 
   # Authentication Tracking
 
-  def track_login(request: nil, organisation: nil)
+  # login_method: `standard` is the web form, `app_session` the sign-in door of
+  # clients, which also names the device it made a token for.
+  def track_login(request: nil, organisation: nil, login_method: 'standard', device_name: nil)
+    metadata = { login_method: login_method, browser: browser_info(request) }
+    metadata[:device_name] = device_name if device_name.present?
     track_activity(UserActivity::ACTIONS[:login],
                    request: request,
                    organisation: organisation,
-                   metadata: {
-                     login_method: 'standard',
-                     browser: browser_info(request)
-                   })
+                   metadata: metadata)
   end
 
   def track_logout(request: nil)

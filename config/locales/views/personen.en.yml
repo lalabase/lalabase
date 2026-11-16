@@ -11,6 +11,9 @@ en:
         stale: "Someone else changed this person in the meantime. The current details are shown below, please make your change again."
       destroy:
         success: "Person deleted."
+      takeover:
+        success: "Taken over from %{source}."
+        duplicate: "%{organisation} already has “%{names}”. Create anyway?"
   views:
     organisations:
       people:

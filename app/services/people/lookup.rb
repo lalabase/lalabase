@@ -6,7 +6,7 @@
 # adapters). An adapter chooses how many rows it shows and whether a card carries the notes,
 # nothing else.
 #
-# Entry point: find / entry
+# Entry point: find / entry / listing
 module People
   # * Rights: PersonPolicy.view_allowed? (#allowed?), asked again by #find and #entry before
   #   anything is read, so an adapter that forgets to ask still reads nothing. It asks for an
@@ -21,6 +21,8 @@ module People
   #   with notes: true, which only the REST card passes (S3b E2 B): free text about a third
   #   person, never sent to an AI provider and never in a list.
   # * Tokens: .for_token, which organisations a Personal Access Token may read (S3b E1).
+  # * A list over several organisations (the people above the organisations) asks #listing,
+  #   once per organisation: everything it needs of this one, from ONE directory.
   #
   # The organisation's tenant is the caller's to set: the assistant runs under it, the MCP
   # tools and the REST controller set it before they call (People::Directory sets it again
@@ -39,6 +41,31 @@ module People
 
     # entries: the entries from offset on, at most limit; total: how many matched before the cut.
     Page = Data.define(:entries, :total)
+
+    # One organisation's part of a list over several: every entry, the matches of the
+    # search and the last contacts of a given list, all from ONE People::Directory, so the
+    # organisation is read once however the caller cuts its page. #find attaches a last
+    # contact to every match before it cuts; a list that merges organisations cuts after
+    # the merge and asks for the last contacts of the rows it shows.
+    class Listing
+      def initialize(directory:)
+        @directory = directory
+      end
+
+      # Every entry the viewer may see, sorted by name, without last contacts.
+      def entries
+        @directory.all_entries
+      end
+
+      # The entries matching the search (all of them without one), without last contacts:
+      # the same objects as in #entries.
+      def matches
+        @directory.candidates
+      end
+
+      # The last contact of each entry of a list, in the order given (nil: none).
+      delegate :last_contacts_for, to: :@directory
+    end
 
     attr_reader :organisation
 
@@ -83,6 +110,13 @@ module People
       people = directory
       found = choice.kind == :member ? people.member_entry(choice.id) : people.person_entry(choice.id)
       found&.tap { |entry| entry.last_contact = people.last_contacts_for([entry]).first }
+    end
+
+    # This organisation for a list over several, read through one directory (Listing).
+    # Nothing is read before the listing is asked.
+    def listing(query: nil)
+      check_allowed!
+      Listing.new(directory: directory(query: query))
     end
 
     def self.key_for(entry)

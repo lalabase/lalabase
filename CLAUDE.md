@@ -934,6 +934,24 @@ and `create_app_session_concurrency_spec.rb`,
 `spec/requests/auth_throttle_spec.rb` (the shared buckets), `spec/architecture/api_v1_error_body_guard_spec.rb`
 (the folder `api/auth`).
 
+**Sign-out `DELETE /api/v1/app_session` (K6c, 2026-11-16, API 1.15.0, capability
+`app_session.revoke`).** It revokes the token the request came with, a device token or a personal
+one, and no other: there is no id to name. It lives under `/api/v1` because a person with a token
+calls: `authorize current_token, :destroy?` through `PersonalAccessTokenPolicy`, the write is
+`Actors::RevokeAppSession` (`track_logout` with `logout_type: app_session` and the name of the
+token). A read-only token is stopped by the gate of the base (403 `read_only`) and stays alive.
+A second call with the same token gets 401, and a client reads 401 on a sign-out as done.
+
+* `PersonalAccessToken#revoke!` writes without validation. A token that no longer passes a
+  validation of its own (its only organisation is gone) still authenticates, so it must still
+  be revocable; a validating save refused it, on the token page as well.
+* ⚠️ **The Idempotency-Key is taken and its answer stored, but never replayed.** The replay sits
+  inside authentication, and the token is revoked by then, so a retry after a lost answer reads
+  401. Do not move a replay in front of authentication to change that: it would answer a
+  revoked token.
+
+Guard: `spec/requests/api/v1/app_session_spec.rb`.
+
 For the REST ticket member routes (including `GET /tickets/:ticket_id/posts/:id`) and the
 number route, `Api::V1::ReadableTicket` resolves tickets
 through the token's effective organisation/project reach and `TicketPolicy::Scope`:

@@ -179,11 +179,29 @@ RSpec.describe PersonalAccessToken, type: :model do
   end
 
   describe '#revoke!' do
+    include ActiveSupport::Testing::TimeHelpers
+
     let(:pat) { create(:personal_access_token, user: user, organisations: [organisation]) }
 
     it 'sets revoked_at and makes the token inactive' do
       expect { pat.revoke! }.to change { pat.reload.revoked? }.from(false).to(true)
       expect(pat).not_to be_active
+    end
+
+    # Revoking is the way out. A token whose only organisation is gone no longer
+    # passes its validation and still authenticates; a validating save left it
+    # impossible to revoke, on the token page and for a sign-out alike.
+    it 'revokes a token that no longer passes its validation' do
+      freeze_time do
+        PersonalAccessTokenOrganisation.where(personal_access_token_id: pat.id).delete_all
+        expect(pat.reload).not_to be_valid
+
+        pat.revoke!
+
+        expect(pat.reload).to have_attributes(revoked_at: Time.current, updated_at: Time.current)
+        # The control: every other save of such a token is still refused.
+        expect(pat.update(name: 'Renamed')).to be(false)
+      end
     end
   end
 

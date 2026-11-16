@@ -188,3 +188,6 @@ Drossel ändert, ändert damit auch, wie oft ein Gerät seinen Ablauf verlänger
 Die Anmelde-Tür der Clients (`Api::Auth::BaseController`, K6b, 16.11.2026) benutzt KEINEN dieser
 Concerns: kein `Api::TokenAuthenticatable`, kein `Api::V1::Idempotent`, kein Pundit. Nur die
 Fehlerform teilt sie (`Api::V1::ErrorBody`). Wächter: `spec/architecture/auth_api_contract_guard_spec.rb`.
+Abmelden (`Api::V1::AppSessionsController`, K6c, 16.11.2026) läuft dagegen durch alle Concerns von `/api/v1`:
+Token, Nur-Lese-Tor, Pundit, `idempotent :destroy`. Der gemerkte Schlüssel wird dort nie wiederholt, weil
+das widerrufene Token die Anmeldung davor nicht mehr besteht (`spec/requests/api/v1/app_session_spec.rb`).

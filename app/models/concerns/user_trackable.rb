@@ -46,12 +46,14 @@ module UserTrackable
                    metadata: metadata)
   end
 
-  def track_logout(request: nil)
+  # logout_type: `manual` is the web sign-out, `app_session` a client that
+  # revoked the token it called with (and names that token).
+  def track_logout(request: nil, logout_type: 'manual', device_name: nil)
+    metadata = { logout_type: logout_type }
+    metadata[:device_name] = device_name if device_name.present?
     track_activity(UserActivity::ACTIONS[:logout],
                    request: request,
-                   metadata: {
-                     logout_type: 'manual'
-                   })
+                   metadata: metadata)
   end
 
   def track_failed_login(request: nil, reason: nil)

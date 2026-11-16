@@ -149,8 +149,12 @@ class PersonalAccessToken < ApplicationRecord
     end
   end
 
+  # Without validation, like .revoke_all_for!: revoking is the way out, and a
+  # token that no longer passes a validation of its own (its only organisation
+  # is gone) still authenticates, so it must still be revocable.
   def revoke!
-    update!(revoked_at: Time.current)
+    now = Time.current
+    update_columns(revoked_at: now, updated_at: now)
   end
 
   def app_session?

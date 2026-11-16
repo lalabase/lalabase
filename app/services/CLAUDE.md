@@ -369,7 +369,9 @@ Verzeichnis-Übersicht (Auswahl):
   (`login_method: app_session`); unter derselben Sperre fragt er, ob das geprüfte Passwort noch gilt
   (`stale_credentials`). `request_facts.rb` ist, was das Aktivitäts-Protokoll vom Request liest, sicher
   gemacht: Nur ein bekanntes Konto wird notiert, also darf kein Header die Notiz zum Scheitern bringen.
-  Wächter: `spec/services/app_sessions/authentication_spec.rb`,
+  Abmelden (K6c, 16.11.2026) ist `actors/revoke_app_session.rb` (Tier 1): das Token der Anfrage widerrufen,
+  Logout notieren (`logout_type: app_session`); ein fremdes Token dort ist ein Fehler des Aufrufers und wirft.
+  Wächter: `spec/requests/api/v1/app_session_spec.rb`, `spec/services/app_sessions/authentication_spec.rb`,
   `spec/services/actors/create_app_session_spec.rb`, `spec/requests/api/auth/v1/app_sessions_spec.rb`.
 * `personal_access_tokens/` — `reach_listing.rb` (31.10.2026) is the ONE read of a token's
   organisations and projects as rows, for `GET /api/v1/organisations`, `GET /api/v1/projects` and

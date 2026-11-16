@@ -997,6 +997,9 @@ Rails.application.routes.draw do
     # Authenticated via Personal Access Token (Authorization: Bearer lalab_pat_...).
     namespace :v1 do
       resource :me, only: %i[show], controller: 'me'
+      # Signing out: revokes the token of the request. Signing in is not here
+      # but under /api/auth/v1, where nobody holds a token yet.
+      resource :app_session, only: :destroy
       resources :notifications, only: %i[index] do
         member do
           post :mark_as_read

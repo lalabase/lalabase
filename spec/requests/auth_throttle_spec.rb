@@ -273,19 +273,41 @@ RSpec.describe 'Auth endpoint throttling', type: :request do
     end
 
     # Rails reads three more content types as JSON (synonyms of its Mime type) and
-    # parses them; Rack reads the header as sent. The door takes application/json
-    # only, and the brake reads the address of this path whatever the type says,
-    # so the two cannot drift apart again.
+    # parses them; Rack reads the header as sent, and the brake found no address
+    # in such a request. The door takes application/json only, so under these
+    # types nobody is looked up; the per-IP bucket counts the request all the same.
     %w[text/x-json application/jsonrequest application/problem+json].each do |type|
-      it "counts the address under the content type #{type}, which only Rails reads as JSON" do
+      it "reaches no account under the content type #{type}, which only Rails reads as JSON" do
         Prosopite.pause
+        account = create(:user, email: 'person@example.com', password: 'password123')
         body = { user: { email: 'person@example.com', password: 'wrong-password' }, device: { name: 'iPhone' } }.to_json
 
-        5.times { |i| post app_path, params: body, headers: { 'CONTENT_TYPE' => type, 'REMOTE_ADDR' => "10.0.6.#{i + 1}" } }
+        8.times { |i| post app_path, params: body, headers: { 'CONTENT_TYPE' => type, 'REMOTE_ADDR' => "10.0.6.#{i + 1}" } }
         expect(response).to have_http_status(:unsupported_media_type)
+        expect(account.reload.failed_attempts).to eq(0)
 
-        post app_path, params: body, headers: { 'CONTENT_TYPE' => type, 'REMOTE_ADDR' => '10.0.6.99' }
+        6.times { post app_path, params: body, headers: { 'CONTENT_TYPE' => type, 'REMOTE_ADDR' => '10.0.6.99' } }
         expect(response).to have_http_status(:too_many_requests)
+
+        # The control: the same body as application/json is an attempt on the account.
+        app_attempt(email: 'person@example.com', ip: '10.0.6.100')
+        expect(response).to have_http_status(:unauthorized)
+        expect(account.reload.failed_attempts).to eq(1)
+      end
+
+      # Should such a body ever reach the brake again, it reads the address of this
+      # path whatever the type says: the door and the brake cannot drift apart.
+      it "reads the address of the app sign-in under #{type} in the brake itself" do
+        body = { user: { email: ' Person@Example.com' }, device: { name: 'iPhone' } }.to_json
+        request = lambda do |path, content_type|
+          Rack::Attack::Request.new(Rack::MockRequest.env_for(path, method: 'POST', input: body,
+                                                                    'CONTENT_TYPE' => content_type))
+        end
+
+        expect(Rack::Attack.login_email(request.call(app_path, type))).to eq('person@example.com')
+        # The control: on the web sign-in the type decides, as before.
+        expect(Rack::Attack.login_email(request.call('/users/sign_in', type))).to be_nil
+        expect(Rack::Attack.login_email(request.call('/users/sign_in', 'application/json'))).to eq('person@example.com')
       end
     end
 

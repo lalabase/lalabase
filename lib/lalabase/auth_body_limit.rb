@@ -16,6 +16,12 @@ module Lalabase
   #   a page of its own, and names its value in the error line of the log, at
   #   the level of production and past the parameter filter. Here that value
   #   may be a password.
+  # * A body that is not sent as application/json is taken away, not refused:
+  #   the door answers such a request itself (415, with its sentence), and no
+  #   parser reads the body before it does. Rails' form parser names a value it
+  #   cannot decode in the same error line ("invalid %-encoding"), and a
+  #   password with a per cent sign from a client that forgot its content type
+  #   is exactly such a value.
   #
   # In the public demo the door answers 404 to everything but the methods, and
   # so does this class: an instance without the door would not answer 413.
@@ -27,11 +33,16 @@ module Lalabase
       super(app, path_prefix: PATH_PREFIX, limit: MAX_BODY_BYTES)
     end
 
+    JSON_MEDIA_TYPE = 'application/json'
+
     def call(env)
       return @app.call(env) unless under_prefix?(env)
 
       refusal = refusal_for(env)
-      return @app.call(env) unless refusal
+      unless refusal
+        take_body_away(env) unless Rack::MediaType.type(env['CONTENT_TYPE']) == JSON_MEDIA_TYPE
+        return @app.call(env)
+      end
 
       status, error = Lalabase::Demo.enabled? ? [404, 'not_found'] : refusal
       body = Api::V1::ErrorBody.build(error: error, code: (error == 'body_too_large' ? 'invalid_input' : nil)).to_json
@@ -48,6 +59,13 @@ module Lalabase
       return [413, 'body_too_large'] if start.bytesize > MAX_BODY_BYTES
 
       [400, 'bad_request'] unless start.dup.force_encoding(Encoding::UTF_8).valid_encoding?
+    end
+
+    # The header stays: the door reads it to say what it takes.
+    def take_body_away(env)
+      env['rack.input'] = StringIO.new(''.b)
+      env['CONTENT_LENGTH'] = '0'
+      env.delete('HTTP_TRANSFER_ENCODING')
     end
 
     # One byte more than the limit, so a longer body shows. Rewound: the

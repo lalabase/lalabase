@@ -18,8 +18,9 @@ module Api
       # would be a second place for a password.
       wrap_parameters false
 
-      # A body that is not the JSON it claims to be. Raised when Rails first
-      # reads the parameters, before any callback below has run.
+      # A body that is not the JSON it claims to be. The request log swallows
+      # this error at its first read; it is raised when an action asks for the
+      # parameters, after the callbacks below.
       rescue_from ActionDispatch::Http::Parameters::ParseError, with: :unreadable_body
 
       around_action :in_request_language

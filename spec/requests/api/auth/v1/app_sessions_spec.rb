@@ -420,7 +420,10 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       'a User-Agent of bytes that are no UTF-8' => { 'User-Agent' => "App\xFF/1.0" },
       'a User-Agent with a NUL byte' => { 'User-Agent' => "App\u0000/1.0" },
       'a Client-IP that contradicts X-Forwarded-For' => { 'Client-IP' => '198.51.100.1',
-                                                          'X-Forwarded-For' => '198.51.100.2' }
+                                                          'X-Forwarded-For' => '198.51.100.2' },
+      # Rack then names the last entry of the list, whatever it is and however long.
+      'a forwarded entry that is no address' => { 'Client-IP' => '198.51.100.1',
+                                                  'X-Forwarded-For' => "198.51.100.2, #{'k6' * 3000}" }
     }.each do |name, headers|
       it "answers a known and an unknown address alike with #{name}, and still notes the attempt" do
         logging(level: :warn) do
@@ -436,6 +439,8 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
           sign_in_with(headers: headers)
           expect_signed_in
           expect(UserActivity.where(user: user, action: 'login').count).to eq(1)
+          # What is stored as the address is an address, or nothing.
+          UserActivity.where(user: user).pluck(:ip_address).compact_blank.each { |ip| expect { IPAddr.new(ip) }.not_to raise_error }
         end
       end
     end
@@ -764,6 +769,30 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       expect_signed_in
     end
 
+    # A body that is no JSON reaches no parser at all. Rails' form parser named the
+    # value it could not decode in its error line ("invalid %-encoding (...)"), at
+    # the level of production: a password with a per cent sign, sent by a client
+    # that forgot the content type.
+    {
+      'a form' => { 'CONTENT_TYPE' => 'application/x-www-form-urlencoded' },
+      'no content type' => { 'CONTENT_TYPE' => nil }
+    }.each do |name, headers|
+      it "holds no password of a body sent as #{name}, at the level of production" do
+        log = logging(level: :warn) do
+          post path, params: 'user[email]=person@example.com&user[password]=100%sicher-geheim&device[name]=iPhone',
+                     headers: headers
+        end
+
+        expect(response).to have_http_status(:unsupported_media_type)
+        expect(json['message']).to eq(I18n.t('services.app_sessions.unsupported_media_type', locale: :de))
+        expect(log).not_to include('sicher-geheim')
+        expect(user.reload.failed_attempts).to eq(0)
+
+        sign_in_with
+        expect_signed_in
+      end
+    end
+
     it 'holds no password of a failed attempt either' do
       log = logging { sign_in_with(password: 'a-wrong-secret-9') }
 
@@ -870,6 +899,8 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       expect(response).to have_http_status(:not_found)
       expect(json).to eq('error' => 'not_found', 'code' => 'not_found')
       post_raw(body_for.to_json.b.sub('iPhone'.b, "iPh\xFFone".b))
+      expect(response).to have_http_status(:not_found)
+      post path, params: 'user[password]=geheim%FFwort', headers: { 'CONTENT_TYPE' => 'application/x-www-form-urlencoded' }
       expect(response).to have_http_status(:not_found)
       post path, params: body_for
       expect(response).to have_http_status(:not_found)

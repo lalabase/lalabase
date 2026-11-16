@@ -139,5 +139,23 @@ RSpec.describe AppSessions::Authentication, :ci_guard do
     it 'notes nothing for an unknown address' do
       expect { attempt(email: 'nobody@example.com') }.not_to change(UserActivity, :count)
     end
+
+    # Only a known account is noted. A note that raised would be an answer an
+    # unknown address never gives, so it must not decide the refusal.
+    it 'refuses the same way when the note of a failed login raises, and still counts the attempt' do
+      allow_any_instance_of(User).to receive(:track_failed_login).and_raise(ActiveRecord::StatementInvalid, 'no')
+
+      wrong = attempt(password: 'wrong-password')
+      expect(wrong.failure).to eq(:invalid_credentials)
+      expect(user.reload.failed_attempts).to eq(1)
+
+      user.update_columns(active: false, failed_attempts: 0)
+      expect(attempt.failure).to eq(:account_deactivated)
+
+      # The control: without the failing note the same attempt is noted.
+      RSpec::Mocks.space.reset_all
+      user.update_columns(active: true)
+      expect { attempt(password: 'wrong-password') }.to change(UserActivity, :count).by(1)
+    end
   end
 end

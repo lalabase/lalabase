@@ -915,8 +915,10 @@ the next change:
 * **`Lalabase::AuthBodyLimit` refuses in front of the parser**: a body over 4 KB (claimed or
   measured, 413) and a body of bytes that are no UTF-8 (400, in the error shape). Rails refuses
   such bytes itself and names the value in the error line of its log, at the level of
-  production and past the parameter filter; here the value may be a password. In demo mode
-  the class answers 404 like the door. The brake reads an address it cannot decode as no
+  production and past the parameter filter; here the value may be a password. A body that is
+  not sent as `application/json` is taken away before any parser reads it (the form parser
+  names a value with a stray per cent sign the same way), and the door answers its 415. In
+  demo mode the class answers 404 like the door. The brake reads an address it cannot decode as no
   address (`Rack::Attack.login_email`; it raised there, on the web sign-in as well).
 * **The activity log reads the request through `AppSessions::RequestFacts`.** Only a known
   account is noted, so a header that made the note raise (a User-Agent the database refuses,

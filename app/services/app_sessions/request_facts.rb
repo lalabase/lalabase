@@ -12,7 +12,9 @@
 #   the database. It is scrubbed here, and cut to what a row should hold.
 # * A Client-IP that contradicts X-Forwarded-For makes Rails refuse to name the
 #   address at all (ActionDispatch::RemoteIp::IpSpoofAttackError). The note then
-#   takes the address the brake counts by (Rack's reading).
+#   takes the address the brake counts by (Rack's reading), if it is one: Rack
+#   hands on the last forwarded entry as it came, a host name or six thousand
+#   characters, and the column has an index a long value does not fit.
 #
 # Entry point: .wrap
 module AppSessions
@@ -34,7 +36,7 @@ module AppSessions
     def remote_ip
       @request.remote_ip
     rescue ActionDispatch::RemoteIp::IpSpoofAttackError
-      @request.ip
+      address_or_nil(@request.ip)
     end
 
     def user_agent
@@ -45,5 +47,13 @@ module AppSessions
     # The door has no session of its own; a caller that sends the cookie of a web
     # session is read as the web reads it.
     delegate :session, to: :@request
+
+    private
+
+    def address_or_nil(text)
+      IPAddr.new(text.to_s).to_s
+    rescue IPAddr::Error
+      nil
+    end
   end
 end

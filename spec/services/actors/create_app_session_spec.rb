@@ -88,6 +88,25 @@ RSpec.describe Actors::CreateAppSession, :ci_guard do
     expect(call(current_user: User.find(user.id))).to be_success
   end
 
+  # The question comes after the lock, not before it. Asked first, a change of the
+  # password could commit between the answer and the lock, and the token would be
+  # written after the change had revoked the others.
+  it 'asks for the password again only once it holds the lock' do
+    allow(PersonalAccessToken).to receive(:make_room_for_app_session!).and_wrap_original do |original, account|
+      User.find(account.id).update!(password: 'a-new-password-1', password_confirmation: 'a-new-password-1')
+      original.call(account)
+    end
+
+    result = call
+
+    expect(result.code).to eq(described_class::STALE_CREDENTIALS)
+    expect(PersonalAccessToken.active.where(user: user)).to be_empty
+
+    # The control: with nothing changing in between, the same call signs in.
+    RSpec::Mocks.space.reset_all
+    expect(call(current_user: User.find(user.id))).to be_success
+  end
+
   it 'leaves the devices of another account alone' do
     other = create(:user, organisation: organisation)
     theirs = Array.new(10) { |i| create(:personal_access_token, :app_session, user: other, last_used_at: (i + 1).days.ago) }

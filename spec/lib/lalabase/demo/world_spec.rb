@@ -27,12 +27,31 @@ RSpec.describe Lalabase::Demo::World do
       expect(organisation.name).to eq(described_class::ORGANISATION_NAME)
       expect(organisation.users.pluck(:email)).to match_array(fiction::PEOPLE.keys.map { fiction.email(_1) })
       expect(organisation.projects.pluck(:name)).to match_array(fiction::PROJECTS.values.map { _1[:en] })
-      expect(world.project(:deichblick).tickets.order(:created_at).pluck(:title)).to eq(fiction::TICKETS.map { _1[:en] })
+      expect(world.project(:deichblick).tickets.top_level.order(:created_at).pluck(:title))
+        .to eq(fiction::TICKETS.map { _1[:en] })
       expect(TimeSession.where(organisation: organisation).count).to eq(fiction::TIME.size)
       expect(world.notes.map(&:title)).to eq(fiction::NOTES.map { _1[:en] })
       expect(world.ticket(fiction::CHAT[:ticket]).posts.count).to eq(fiction::COMMENTS.size)
       chats = [world.chat, world.ticket_question, world.meeting_question]
       expect(Prosopite.pause { chats.map { _1.chatposts.count } }).to eq([2, 2, 2])
+    end
+
+    # What the pictures of the website's updates pages show: a trail of sub-tasks, a
+    # meeting linked to its ticket, contacts, a glossary, and a second organisation
+    # whose owner gives the signed-in person work.
+    it 'holds the sub-tasks, the meeting link, the contacts, the glossary and the client organisation' do
+      parent = world.ticket(fiction::SUBTASKS[:parent])
+      expect(world.subtasks.map(&:title)).to eq(fiction::SUBTASKS[:chain].map { _1[:en] })
+      expect(world.subtasks.map(&:parent_id)).to eq([parent.id, world.subtasks.first.id])
+      link = fiction::MEETING_TICKET_LINK
+      expect(world.meetings.fetch(link[:meeting]).outgoing_references.pluck(:target_id))
+        .to eq([world.ticket(link[:ticket]).id])
+      expect(Person.where(organisation:).pluck(:name)).to match_array(fiction::CONTACTS.pluck(:name))
+      expect(GlossaryTerm.where(organisation:).pluck(:term)).to match_array(fiction::GLOSSARY[:en].map(&:first))
+      expect(world.partner.name).to eq(fiction::PARTNER[:name])
+      expect(world.signed_in.memberships.where(organisation: world.partner, active: true)).to exist
+      expect(Ticket.where(organisation: world.partner).pluck(:title))
+        .to match_array(fiction::PARTNER[:tickets].map { _1[:en] })
     end
 
     # The demo signs a visitor in as this person: every right of the team, none of

@@ -26,7 +26,8 @@ module Lalabase
     class World
       ORGANISATION_NAME = 'Nordlicht Software GmbH'
 
-      attr_reader :organisation, :chat, :ticket_question, :meeting_question, :notes, :meetings
+      attr_reader :organisation, :chat, :ticket_question, :meeting_question, :notes, :meetings, :partner,
+                  :subtasks
 
       def initialize(locale:, now: Time.current, organisation: {}, embeddings: false, password: nil)
         @locale = locale.to_sym
@@ -50,6 +51,7 @@ module Lalabase
         I18n.with_locale(@locale) do
           create_organisation
           ActsAsTenant.with_tenant(@organisation) { build_inside }
+          add_partner_organisation
         end
         self
       end
@@ -71,6 +73,10 @@ module Lalabase
         add_comments
         add_meetings
         add_chats
+        add_subtasks
+        link_meeting_to_ticket
+        add_contacts
+        add_glossary
       end
 
       def create_organisation
@@ -232,6 +238,70 @@ module Lalabase
                                source_citations: citations.map(&:deep_stringify_keys))
         chat.chatposts.update_all(created_at: @now - minutes_ago.minutes)
         chat
+      end
+
+      # A chain of sub-tasks under one ticket, each the parent of the next, as the
+      # quick add on the ticket page creates them (Tickets::SubtasksController).
+      def add_subtasks
+        parent = ticket(Fiction::SUBTASKS[:parent])
+        @subtasks = Fiction::SUBTASKS[:chain].map do |entry|
+          params = { title: entry.fetch(@locale), parent_id: parent.id,
+                     assignee_ids: [person(entry[:assignee]).id] }
+          parent = succeed!(Actors::SaveTicket.call(project: parent.project, params: params, current_user: signed_in))
+        end
+      end
+
+      # Mirrors Organisations::MeetingTicketLinksController#create.
+      def link_meeting_to_ticket
+        meeting = @meetings.fetch(Fiction::MEETING_TICKET_LINK[:meeting])
+        target = ticket(Fiction::MEETING_TICKET_LINK[:ticket])
+        meeting.outgoing_references.create!(organisation: @organisation, target: target,
+                                            target_title_snapshot: target.display_title&.truncate(255))
+      end
+
+      def add_contacts
+        Fiction::CONTACTS.each do |entry|
+          params = entry.slice(:name, :company, :email, :phone)
+                        .merge(salutation: entry[:salutation].fetch(@locale), function: entry[:function].fetch(@locale))
+          succeed!(Actors::SavePerson.call(organisation: @organisation, params: params, current_user: signed_in))
+        end
+      end
+
+      def add_glossary
+        Fiction::GLOSSARY.fetch(@locale).each do |term, category|
+          succeed!(Actors::SaveGlossaryTerm.call(organisation: @organisation, params: { term:, category: },
+                                                 current_user: signed_in))
+        end
+      end
+
+      # The client's own organisation, owned by its contact, with the signed-in person
+      # as a member and two tickets the client gave her. Built after Nordlicht, under its
+      # own tenant.
+      def add_partner_organisation
+        spec = Fiction::PARTNER
+        password = random_password
+        owner = User.create!(**spec[:owner], password: password, password_confirmation: password,
+                                             language_preference: @locale.to_s, terms_accepted_at: @now,
+                                             &:skip_confirmation!)
+        @partner = Organisation.new(name: spec[:name], subdomain: spec[:subdomain], domain: spec[:domain])
+        succeed!(Actors::CreateOrganisation.call(organisation: @partner, owner: owner, current_user: owner))
+        ActsAsTenant.with_tenant(@partner) { build_partner_inside(owner) }
+      end
+
+      def build_partner_inside(owner)
+        role = @partner.roles.create!(title: Fiction::TEAM_ROLE[:title].fetch(@locale),
+                                      description: Fiction::TEAM_ROLE[:description].fetch(@locale))
+        Fiction::TEAM_ROLE[:permissions].each do |category, actions|
+          actions.each { |action| role.permissions.create!(category: category, action: action, allowed: true) }
+        end
+        signed_in.memberships.create!(organisation: @partner, role: role, active: true)
+        project = @partner.projects.create!(name: Fiction::PARTNER[:project].fetch(@locale))
+        Projects::DefaultAttributeService.new(project).call
+        project.project_permissions.create!(user: signed_in, **Fiction::PROJECT_ACCESS)
+        Fiction::PARTNER[:tickets].each do |entry|
+          params = { title: entry.fetch(@locale), assignee_ids: [signed_in.id] }
+          succeed!(Actors::SaveTicket.call(project: project, params: params, current_user: owner))
+        end
       end
 
       def random_password = SecureRandom.base58(24)

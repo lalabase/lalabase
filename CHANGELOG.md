@@ -32,6 +32,10 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ### Changed
 
+- The demo world (`LALABASE_DEMO=1`) holds two contacts, a glossary, a chain of sub-tasks, a
+  meeting linked to its ticket and a second organisation, the client's, where the published
+  login is a member and has two tickets. The demo login now lands in two organisations.
+
 - Synced documentation pages show their images from your instance. The sync copies them
   out of the repository, and they are served behind the right to read the documentation,
   so a reader no longer contacts the repository host and images from private repositories

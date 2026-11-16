@@ -38,6 +38,10 @@ module MarketingScreenshots
   # The screen for the pictures the website shows on a phone, where a desktop picture
   # shrinks to a fraction of its width and its text can no longer be read. A large
   # phone, emulated: Chrome keeps a window at least 500 px wide.
+  # The window for the pictures of the website's updates pages (/de/updates): one per
+  # entry that shows a screen, opened under its explanation, about 760 px wide there.
+  UPDATE_WIDTH = 1280
+  UPDATE_HEIGHT = 800
   PHONE_WIDTH = 430
   PHONE_HEIGHT = 932
   # A phone picture stands in a row of a long page and may not stretch it: at most
@@ -313,6 +317,108 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
         # No margin: around it are the borders of the neighbouring columns.
         capture(locale, :assistant, clip_to: '#assistant_panel_body', margin: 0,
                                     until_bottom_of: '#assistant_panel [data-testid="citation-list"]')
+      end
+
+      # The pictures of the website's updates pages: where a change of a release lives.
+      # The whole window with its sidebar unless a region says more, all named update_*
+      # so the website's import can take them alone.
+      context 'for the updates pages' do
+        before do
+          page.driver.browser.manage.window.resize_to(MarketingScreenshots::UPDATE_WIDTH,
+                                                      MarketingScreenshots::UPDATE_HEIGHT)
+        end
+
+        def sign_in_as_owner
+          sign_out world.signed_in
+          sign_in world.person(Lalabase::Demo::Fiction::OWNER)
+        end
+
+        it 'takes all meetings' do
+          visit organisation_meetings_path(world.organisation)
+          expect(page).to have_text(world.meetings.last.title)
+          capture(locale, :update_all_meetings)
+        end
+
+        it 'takes the preferences on one page' do
+          visit edit_user_preferences_path
+          expect(page).to have_css('main')
+          capture(locale, :update_preferences)
+        end
+
+        it 'takes the account with its tabs' do
+          visit edit_user_registration_path
+          expect(page).to have_field('user[email]')
+          capture(locale, :update_account)
+        end
+
+        it 'takes the people directory' do
+          sign_in_as_owner
+          visit organisation_people_path(world.organisation)
+          expect(page).to have_text(Lalabase::Demo::Fiction.full_name(Lalabase::Demo::Fiction::SIGNED_IN))
+          capture(locale, :update_people)
+        end
+
+        it 'takes the management area with its sidebar' do
+          sign_in_as_owner
+          visit organisation_settings_path(world.organisation)
+          expect(page).to have_css('nav, aside')
+          capture(locale, :update_management)
+        end
+
+        # The notifications the fanout would write in the background: the world only
+        # leaves the outbox events, and no job runs here.
+        def deliver_notifications
+          ActsAsTenant.without_tenant do
+            OutboxEvent.find_each { |event| ActsAsTenant.with_tenant(event.organisation) { event.process! } }
+          end
+        end
+
+        it 'takes the glossary' do
+          visit organisation_glossary_terms_path(world.organisation)
+          expect(page).to have_text(Lalabase::Demo::Fiction::GLOSSARY.fetch(locale).first.first)
+          capture(locale, :update_glossary)
+        end
+
+        it 'takes the inbox above all organisations' do
+          deliver_notifications
+          visit all_inboxes_path
+          expect(page).to have_text(Lalabase::Demo::Fiction::PARTNER[:tickets].first.fetch(locale))
+          capture(locale, :update_all_inboxes)
+        end
+
+        it 'takes the inbox with a notification open' do
+          deliver_notifications
+          notification = ActsAsTenant.with_tenant(world.organisation) do
+            Notification.where(recipient_id: world.signed_in.id, channel: 'in_app').order(:created_at).last
+          end
+          visit organisation_notifications_path(world.organisation, notification: notification.id)
+          expect(page).to have_no_css('.layout.hide-content')
+          capture(locale, :update_inbox)
+        end
+
+        it 'takes a sub-task with its trail' do
+          grandchild = world.subtasks.last
+          visit organisation_project_tickets_path(world.organisation, grandchild.project, ticket_id: grandchild.id)
+          expect(page).to have_text(Lalabase::Demo::Fiction::SUBTASKS[:chain].last.fetch(locale))
+          capture(locale, :update_subtasks)
+        end
+
+        it 'takes the meeting beside its ticket' do
+          link = Lalabase::Demo::Fiction::MEETING_TICKET_LINK
+          ticket = world.ticket(link[:ticket])
+          meeting = world.meetings.fetch(link[:meeting])
+          visit organisation_project_tickets_path(world.organisation, ticket.project, ticket_id: ticket.id)
+          within("#meeting-references-#{ticket.id}") { click_link meeting.title }
+          expect(page).to have_css('aside.column.panel h2', text: meeting.title)
+          capture(locale, :update_meeting_beside_ticket)
+        end
+
+        it 'takes the sign-in page' do
+          sign_out world.signed_in
+          visit new_user_session_path(locale:)
+          expect(page).to have_field('user[email]')
+          capture(locale, :update_sign_in, until_bottom_of: 'body')
+        end
       end
 
       # The motifs of the website's rows once more, for a phone and in the app's phone

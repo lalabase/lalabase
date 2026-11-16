@@ -20,6 +20,27 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ### Added
 
+- A glossary for each organisation: terms in their right spelling and the forms in which
+  speech recognition heard them wrong, on a page of its own reached from the meetings pages.
+  Two new role rights decide who may see and who may keep it, see the upgrade notes
+  (#113), (#114), (#140), (#145).
+- A misheard word in a meeting's transcript is corrected in place, only there or everywhere
+  in the meeting, and the correction is learnt for the glossary with its speaker and project
+  (#121). A meeting shows what a recording device replaced from the glossary (#127).
+- The glossary takes a pasted list of terms, checked line by line before the import (#128),
+  and suggests terms from tickets, comments, notes and documents, with the organisation's AI
+  model and a review list where a person accepts, merges or dismisses each one (#129), (#130).
+- Sub-tasks can have sub-tasks, to any depth. The ticket head shows the trail of its parents
+  (#97), (#100).
+- An organisation chooses an inbox project for meetings. Programs create meetings over
+  `POST /api/v1/organisations/:organisation_id/meetings` and the MCP tool `create_meeting`;
+  without a project they land in the inbox (#105), (#106).
+- An inbox above all organisations at `/inbox`: the notifications of every organisation a
+  person belongs to in one list, with unread counts per organisation, actions on a row and on
+  several rows at once, kept current while open. Tickets, notes, project events and documents
+  open in its lane (#166), (#167), (#168), (#169), (#173), (#174), (#175).
+- The inbox of an organisation has actions named in words on every row, a search while
+  typing, a "Read" view, a period filter and its views as tabs (#135), (#136), (#138), (#139).
 - The REST API reads meetings: `GET /api/v1/projects/:project_id/meetings` with search and
   pages, and `GET /api/v1/meetings/:id` with participants, summary, notes and transcript.
   API version 1.10.0.
@@ -31,6 +52,27 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   API version 1.11.0, MCP 0.18.0.
 
 ### Changed
+
+- The inbox has the list-and-lane design of the other list pages (#132), (#133).
+- The list pages share one look: the bar of the ticket list with views as tabs and the search
+  on the right on the inbox, people and glossary, one view switch in the page head, one column
+  head, the main action outermost in every head (#137), (#139), (#141), (#142), (#143),
+  (#145), (#146), (#165).
+- The management area has its own navigation in the sidebar, a section head with a crumb on
+  each page, and the AI section a tab row (#147), (#148), (#149), (#150), (#151), (#153),
+  (#154), (#156), (#160).
+- The level above the organisations and the account pages have sidebars of their own, and
+  the header with the organisation switcher shows on every level. For people in several
+  organisations the logo leads to the organisation select page (#155), (#163), (#177),
+  (#178), (#179).
+- The account page has three tabs: personal data, password, delete account. The picture
+  and the shown email moved to the profile. The preferences are one page with an outline
+  that saves every change at once (#152), (#158), (#159), (#161), (#162).
+- The sign-in, sign-up and password pages have the design of the public website (#122).
+- The news entry is out of the account menus while no news are written (#157).
+- The organisation a session returns to follows the pages a person opens, not every request
+  in the background (#172).
+- Hard shadows are kept to the main action and the clickable card (#131).
 
 - Synced documentation pages show their images from your instance. The sync copies them
   out of the repository, and they are served behind the right to read the documentation,
@@ -47,6 +89,14 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ### Fixed
 
+- The meeting and note edit forms ask before they delete (#170).
+- Cancelling or deleting in the note editor of the inbox keeps the editor's frame (#176).
+- A note mention in a rich text draws its chip again (#182).
+- A file opened without a login leads to the login page (#103).
+- A ticket description is plain text again (#104).
+- A project event reaches everyone who may read it, and a failed delivery heals on its next
+  run (#99).
+- Expired cache entries are swept every hour, and the file cache has its own directory (#115).
 - Input that answered a 500 on `/api/v1` and MCP is answered now. The ticket list takes the
   search together with a tag filter, and ignores a date bound with a year PostgreSQL cannot
   store, like any other unusable one. A page no list has, or a page sent as a list, is a 400
@@ -88,11 +138,17 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   once and a taken address cannot be; with a password too short on purpose it gave it 20
   times an hour without writing anything. An instance that wants the answer gone closes
   registration: then no address is looked at.
+- Updated dependencies: rack 3.2.8 (#98), addressable 2.9.2 (#109), Rails 8.1.4.1 with
+  nokogiri 1.19.7, loofah 2.25.3 and rails-html-sanitizer 1.7.2 (#116), together closing more
+  than 40 published advisories.
 
 ### Upgrade notes
 
 - Run `bin/rails documentation:resync_all` once after updating. Until then a page keeps
   its old image addresses, unless its repository receives a new commit.
+- No existing role gets the new rights `view_glossary` and `manage_glossary`. Account admins
+  need neither; for everyone else, grant them in the roles of the organisation. Glossary
+  suggestions need an AI model configured for the organisation.
 
 ## [2026.11.0] - 2026-10-31
 

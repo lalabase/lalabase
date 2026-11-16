@@ -12,6 +12,7 @@ RSpec.describe 'Taking a contact over into another organisation', :people_takeov
   let(:south) { create(:organisation, name: 'Süd GmbH') }
   let(:reader) { takeover_join(takeover_join(create(:user), north, 'view_people'), south, 'manage_people') }
   let!(:source) { takeover_person(north, name: 'Herr Schmidt', function: 'Technik', notes: 'Nur vormittags erreichbar') }
+  let(:menu_button) { "##{helper.person_more_actions_id(source.id)}" }
   let(:scope) { 'views.organisations.people.takeover' }
 
   before do
@@ -46,11 +47,36 @@ RSpec.describe 'Taking a contact over into another organisation', :people_takeov
     expect(page).to have_css('[role="dialog"] strong', text: 'Süd GmbH')
     expect(page).to have_unchecked_field(id: "#{helper.person_takeover_modal_id(source.id)}-field-notes")
 
+    expect(page).to have_no_css('details.more-menu[open]')
+
     page.send_keys(:escape)
 
     expect(page).to have_no_css('[role="dialog"]')
     expect(page).to have_css('.people-detail', text: 'Herr Schmidt')
-    expect(page.evaluate_script('document.activeElement.id')).to eq(helper.person_more_actions_id(source.id))
+    # The focus comes back after the frame emptied (a timeout in the modal
+    # controller): a retrying matcher, never one read of activeElement.
+    expect(page).to have_css("#{menu_button}:focus")
+    expect(page).to have_no_css('details.more-menu[open]')
+  end
+
+  it 'names the chosen target in the visibility sentence and drops a question asked for another target' do
+    west = create(:organisation, name: 'West AG')
+    takeover_join(reader, west, 'manage_people')
+    takeover_person(south, name: 'Herr Schmidt')
+    open_dialog
+
+    click_button I18n.t("#{scope}.submit")
+    expect(page).to have_css('[role="dialog"] [role="alert"]', text: 'Süd GmbH')
+    expect(page).to have_button(I18n.t("#{scope}.confirm"))
+
+    select 'West AG', from: 'target'
+
+    expect(page).to have_css('[role="dialog"] strong', text: 'West AG')
+    expect(page).to have_no_css('[role="dialog"] [role="alert"]')
+    click_button I18n.t("#{scope}.submit")
+
+    expect(page).to have_text(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
+    expect(ActsAsTenant.with_tenant(west) { Person.where(organisation: west, name: 'Herr Schmidt').count }).to eq(1)
   end
 
   it 'asks about a same-named entry, creates once on a double click and opens the copy in the target' do
@@ -65,7 +91,7 @@ RSpec.describe 'Taking a contact over into another organisation', :people_takeov
 
     expect(page).to have_text(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
     expect(page).to have_current_path(/\A#{Regexp.escape(organisation_people_path(south))}\?person_id=/, url: false)
-    expect(page).to have_css('.people-detail', text: 'Herr Schmidt')
+    expect(page).to have_css('.people-detail', text: 'Technik')
     expect(page).to have_no_css('.people-note', text: 'Nur vormittags')
     expect(copies_in_south).to eq(2)
   end

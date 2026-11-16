@@ -99,6 +99,14 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       expect(response.body).not_to include('West AG', 'Ost AG')
     end
 
+    it 'sends a visit without the frame to the card on the list' do
+      sign_in reader
+
+      get new_organisation_person_takeover_path(north, source)
+
+      expect(response).to redirect_to(organisation_people_path(north, person_id: source.id))
+    end
+
     it 'ticks every field but the notes' do
       sign_in reader
 
@@ -177,6 +185,16 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       expect(response).to have_http_status(:see_other)
     end
 
+    it 'names the reason when the copy fails validation, after every right was checked' do
+      ActsAsTenant.with_tenant(north) { source.update_column(:email, 'not an address') }
+
+      expect { submit(fields: %w[email]) }.not_to(change { counts })
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include(CGI.escapeHTML(I18n.t('controllers.people.takeover.failed')))
+      expect(response.body).not_to include(I18n.t('controllers.people.not_found'))
+    end
+
     it 'cannot bring a value the source row does not hold' do
       submit(fields: %w[department company salutation additional_details])
 
@@ -185,7 +203,10 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       expect(copy.additional_details).to eq([])
     end
 
-    it 'does not move the organisation of the session; the redirect to the target does' do
+    # The app's rule for writes: the POST keeps the session's organisation. A
+    # full page visit of the target moves it; in the browser Turbo renders the
+    # redirect's answer without one, so that happens on the next page visit.
+    it 'does not move the organisation of the session; a full page visit of the target does' do
       get organisation_people_path(north)
       expect(session[:current_organisation_id]).to eq(north.id)
 
@@ -292,6 +313,15 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       expect { submit(confirm_target: south.id) }.to change { takeover_count(south) }.by(1)
 
       expect(response).to have_http_status(:see_other)
+    end
+
+    it 'answers a plain HTML submit with the question as a notice on the list' do
+      expect do
+        post organisation_person_takeover_path(north, source), params: { target: south.id, fields: ['email'], modal_token: token }
+      end.not_to(change { counts })
+
+      expect(response).to redirect_to(organisation_people_path(north, person_id: source.id))
+      expect(flash[:alert]).to include('Süd GmbH')
     end
 
     it 'asks again when the confirmation names another target' do

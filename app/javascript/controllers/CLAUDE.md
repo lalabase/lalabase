@@ -29,8 +29,9 @@ Konventionen:
   (`participant_link_modal_controller.js`, seit 27.10.2026: nur das erste Feld ist anders;
   `term_correction_modal_controller.js`, seit 05.11.2026: Fokus aufs Feld „Richtig“, die Zahl
   lädt in ihren eigenen Frame nach; `person_takeover_modal_controller.js`, seit 16.11.2026:
-  Fokus aufs Ziel, der Satz zur Sichtbarkeit folgt der Auswahl, und weil der Auslöser in einem
-  `<details>`-Menü steht und mit ihm verschwindet, geht der Fokus immer an „···“ zurück,
+  Fokus aufs Ziel, der Satz zur Sichtbarkeit und die Dubletten-Frage folgen der Auswahl; der
+  Auslöser steht in einem `<details>`-Menü, das der Controller beim Öffnen schließt (ein Klick
+  darin schließt es nicht, Escape gehört dem Modal), und der Fokus geht immer an „···“ zurück,
   `returnIdFor` liefert nichts).
 * `transcript_selection` (K4b, 05.11.2026): eine Markierung im Transkript zeigt „Korrigieren“
   (über der Markierung, auf dem Telefon darunter, wo sonst das Systemmenü steht). Der Knopf ist

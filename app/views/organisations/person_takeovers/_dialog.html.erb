@@ -88,7 +88,10 @@
           </p>
 
           <% if question %>
-            <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+            <%# The question holds for the target it was asked for; choosing another
+                one hides it (the controller), and the server asks again there. %>
+            <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert"
+                 data-person-takeover-modal-target="question" data-confirm-target="<%= confirm_target %>">
               <p><%= question %></p>
             </div>
             <%= hidden_field_tag :confirm_target, confirm_target, id: nil %>
@@ -101,6 +104,8 @@
               <%= t("#{scope}.cancel") %>
             </button>
             <button type="submit" data-turbo-submits-with="<%= t("#{scope}.submitting") %>"
+                    data-person-takeover-modal-target="submit"
+                    data-submit-label="<%= t("#{scope}.submit") %>" data-confirm-label="<%= t("#{scope}.confirm") %>"
                     class="h-9 rounded border border-ink bg-lime-300 px-4 text-sm font-bold text-ink hover:bg-lime-400">
               <%= question ? t("#{scope}.confirm") : t("#{scope}.submit") %>
             </button>

@@ -13,6 +13,7 @@ en:
         success: "Person deleted."
       takeover:
         success: "Taken over from %{source}."
+        failed: "This person could not be taken over."
         duplicate: "%{organisation} already has “%{names}”. Create anyway?"
   views:
     organisations:

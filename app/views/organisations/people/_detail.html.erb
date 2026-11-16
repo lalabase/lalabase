@@ -27,7 +27,8 @@
   <%= render 'organisations/people/lane_head',
              edit_url: (edit_organisation_person_path(@current_organisation, person, list_state) if can_write),
              menu: (safe_join(items) if items.any?), menu_id: person_more_actions_id(person.id) %>
-  <%= turbo_frame_tag person_takeover_modal_id(person.id) if takeover %>
+  <%# contents: an empty frame takes no gap of the column; the dialog is fixed. %>
+  <%= turbo_frame_tag person_takeover_modal_id(person.id), class: 'contents' if takeover %>
 
   <div class="people-detail__body width-text">
     <%= render 'organisations/people/identity', name: name, user: member, line: person_kind_line(person, member) %>

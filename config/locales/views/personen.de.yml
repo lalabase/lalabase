@@ -13,6 +13,7 @@ de:
         success: "Person gelöscht."
       takeover:
         success: "Übernommen aus %{source}."
+        failed: "Diese Person ließ sich nicht übernehmen."
         duplicate: "In %{organisation} gibt es schon „%{names}“. Trotzdem anlegen?"
   views:
     organisations:

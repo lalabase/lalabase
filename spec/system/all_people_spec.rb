@@ -9,7 +9,7 @@ require 'rails_helper'
 # Why:  the search form, the list frame, the stream that redraws the tools inside the
 #       frame's answer and the links that have to leave the frame only meet in a browser.
 #       The request spec sees the markup, not whether a click inside a frame leaves it.
-RSpec.describe 'People above the organisations', type: :system do
+RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true do
   include AllPeopleHelpers
 
   let(:user) { create(:user, first_name: 'Vera', last_name: 'Viewer') }
@@ -80,6 +80,27 @@ RSpec.describe 'People above the organisations', type: :system do
     expect(list).to have_text('Sina Sued')
     expect(list).to have_text('Mara Mitglied')
     expect(page).to have_css('[data-all-people-count]', text: count_of(3))
+  end
+
+  it 'keeps organisation links inside a phone screen with long person and organisation names' do
+    shared.update!(first_name: 'Alexandra', last_name: 'von Hohenlohe-Schillingsfuerst')
+    south.update!(name: 'Sueddeutsche Beratungsgesellschaft AG')
+    page.driver.browser.execute_cdp('Emulation.setDeviceMetricsOverride', width: 390, height: 844,
+                                                                          deviceScaleFactor: 1, mobile: true)
+    visit all_people_path
+
+    row = find('tr[data-all-people-row]', text: shared.display_name)
+    expect(row).to have_css('a[data-organisation-chip]', count: 2)
+    widths = page.evaluate_script(<<~JS)
+      ({ page: document.documentElement.scrollWidth,
+         chips: [...document.querySelectorAll('[data-organisation-chip]')].map(chip => chip.getBoundingClientRect().right) })
+    JS
+    expect(widths['page']).to be <= 390
+    expect(widths['chips']).to all(be <= 390)
+    row.find('a[data-organisation-chip]', text: south.name).click
+    expect(page).to have_current_path(organisation_people_path(south, member_id: shared.id))
+  ensure
+    page.driver.browser.execute_cdp('Emulation.clearDeviceMetricsOverride')
   end
 
   it 'opens the people page of an organisation with the person in the lane, through the chip of a person of two' do

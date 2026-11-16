@@ -509,7 +509,7 @@
      column head (.column-head, F43) with the air of .people-columns. On a
      narrow screen function and last contact leave: name and organisations stay. */
   .all-people-count { @apply self-center whitespace-nowrap text-[13px] tabular-nums text-muted; }
-  .all-people-table { @apply mb-6 w-full border-collapse; }
+  .all-people-table { @apply mb-6 w-full table-fixed border-collapse; }
   .all-people-table th { @apply border-b border-ink pb-[15px] pe-4 pt-[31px] text-start; }
   .all-people-table td { @apply border-b border-cream-200 py-2.5 pe-4 align-middle text-sm text-heading; }
   .all-people-table :is(th, td):last-child { @apply pe-0 text-end; }
@@ -520,6 +520,7 @@
   .all-people-row__role { @apply text-[13px] text-muted; }
   .all-people-row__last { @apply whitespace-nowrap text-xs tabular-nums text-muted; }
   .all-people-chips { @apply flex flex-wrap gap-1.5; }
+  .all-people-chips .organisation-chip { max-width: min(16rem, 100%); }
   .all-people-paging { @apply flex items-center gap-4 pb-6 text-[13px] text-muted; }
   /* An organisation as a chip (shared/_organisation_chip): a square in the
      reader's recognition colour for it (an inline background, the sidebar

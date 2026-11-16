@@ -447,6 +447,7 @@ jobs:
           spec/services/actors/link_meeting_participant_spec.rb
           spec/services/meetings/account_participants_spec.rb
           spec/requests/organisations/note_editor_embed_spec.rb
+          spec/requests/organisations/note_mention_frame_spec.rb
           spec/requests/organisations/onboarding_banner_spec.rb
           spec/requests/organisations/panel_lane_markup_guard_spec.rb
           spec/requests/organisations/posts_create_composer_reset_spec.rb

@@ -360,6 +360,9 @@ Rails.application.routes.draw do
     # through members/:user_id (?member_id= on the page).
     resources :people do
       get 'members/:user_id', on: :collection, action: :member, as: :member
+      # Taking a contact over into another organisation of the viewer (a copy,
+      # People S0): new renders the dialog into its frame, create copies.
+      resource :takeover, only: %i[new create], controller: 'person_takeovers'
     end
 
     # The glossary of the organisation (K4a): one page with a lane, the shape

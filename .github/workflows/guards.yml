@@ -432,6 +432,9 @@ jobs:
           spec/services/glossary/lookup_spec.rb
           spec/services/list_paging_spec.rb
           spec/requests/organisations/people_spec.rb
+          spec/requests/organisations/person_takeovers_spec.rb
+          spec/services/actors/take_over_person_spec.rb
+          spec/services/actors/take_over_person_concurrency_spec.rb
           spec/requests/organisations/people_list_head_spec.rb
           spec/requests/organisations/shown_email_spec.rb
           spec/requests/users/registrations_display_email_spec.rb
@@ -785,6 +788,7 @@ jobs:
           spec/system/meeting_term_correction_spec.rb
           spec/system/document_glossary_source_spec.rb
           spec/system/people_review_74_spec.rb
+          spec/system/person_takeover_spec.rb
           spec/system/ticket_meeting_panel_spec.rb
           spec/system/ticket_meeting_panel_stages_spec.rb
           spec/system/ticket_meeting_panel_assistant_spec.rb

@@ -30,10 +30,14 @@ module Actors
     #   plus :marketing_consent (only true counts).
     # acquisition: the stored AcquisitionSource hash, cleaned by the follow-ups.
     # request: whatever UserActivity.track! reads (remote_ip, user_agent, session.id), or nil.
-    def initialize(email:, password:, first_name:, last_name:, language:, terms_accepted:,
+    # client_ip: the address the door's sign-up limits count, for Signups::TakenAddressBrake.
+    #   Required, so that a new door has to answer the question; nil is an answer and
+    #   counts nothing (the website named no visitor, a console, a spec).
+    def initialize(email:, password:, first_name:, last_name:, language:, terms_accepted:, client_ip:,
                    password_confirmation: nil, organisation_name: nil, acquisition: nil,
                    founder_signup: nil, request: nil, current_user: nil)
       super()
+      @client_ip = client_ip
       @email = email
       @password = password
       @password_confirmation = password_confirmation
@@ -101,8 +105,19 @@ module Actors
       @user = User.new(email: @email, password: @password, password_confirmation: @password_confirmation,
                        first_name: @first_name, last_name: @last_name,
                        language_preference: @language, terms_accepted_at: Time.current)
-      @user.save!
+      save_user!
       create_organisation!
+    end
+
+    # The one refusal that tells the sender something about somebody else: the address
+    # has an account. It is counted before it is answered (Signups::TakenAddressBrake),
+    # whatever else is wrong with the submission. A password too short on purpose got
+    # the same answer and wrote nothing.
+    def save_user!
+      return if @user.save
+
+      Signups::TakenAddressBrake.record(@client_ip) if @user.errors.of_kind?(:email, :taken)
+      raise ActiveRecord::RecordInvalid, @user
     end
 
     # Organisation names are unique across the instance, and both a submitted name and the

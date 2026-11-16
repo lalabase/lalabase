@@ -168,7 +168,10 @@ module Users
         language: I18n.locale.to_s, terms_accepted: terms_accepted? == true,
         organisation_name: user_form_scalar(:organisation_name),
         acquisition: stored_acquisition_source,
-        request: request
+        request: request,
+        # request.ip and not remote_ip: the address Rack::Attack keys this door's
+        # limits on, so the brake closes the bucket it counted in.
+        client_ip: request.ip
       }
     end
 

@@ -278,6 +278,74 @@ RSpec.describe 'Auth endpoint throttling', type: :request do
     end
   end
 
+  # The sign-up form says when an address already has an account, and it has to:
+  # a new account is signed in at once (the grace period), which an address that
+  # is taken can never be, so the two answers cannot look alike. What it must not
+  # be is a cheap way to run a list of addresses against the instance. Until
+  # 2026-11-15 only registrations/ip stood in the way: 20 answers an hour, 480 a
+  # day, and with a password too short on purpose none of them wrote anything.
+  # Signups::TakenAddressBrake closes the sign-up for an address that collected
+  # five such answers in a day.
+  describe 'sign-up answers "address taken" (signup_taken/ip, 5 per day)' do
+    let!(:known) { create(:user, email: 'known@example.com') }
+    let(:taken_message) { CGI.escapeHTML(known.errors.generate_message(:email, :taken)) }
+
+    before { Prosopite.pause }
+
+    # The password is too short on purpose: this is the probe that costs nothing,
+    # the form names both errors and no account is created for an unknown address.
+    def probe(email, ip: '203.0.113.9')
+      post user_registration_path,
+           params: { user: { first_name: 'Otto', last_name: 'Neuling', email: email,
+                             password: 'x', password_confirmation: 'x',
+                             terms_accepted: '1' } }.merge(bot_trap_params),
+           headers: { 'REMOTE_ADDR' => ip }
+    end
+
+    def collect_the_allowance(ip: '203.0.113.9')
+      Signups::TakenAddressBrake::LIMIT.times do
+        probe(known.email, ip: ip)
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include(taken_message)
+      end
+    end
+
+    it 'closes the sign-up after the fifth such answer, whatever address comes next' do
+      collect_the_allowance
+
+      probe('fresh@example.com')
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    # Otherwise this would be a second registrations/ip with a lower number, and
+    # a person who mistypes their password five times would be locked out.
+    it 'does not count a refusal that says nothing about an address' do
+      (Signups::TakenAddressBrake::LIMIT + 1).times do |index|
+        probe("nobody#{index}@example.com")
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).not_to include(taken_message)
+      end
+    end
+
+    it 'leaves another address alone' do
+      collect_the_allowance
+
+      probe(known.email, ip: '198.51.100.9')
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it 'opens again after a day' do
+      collect_the_allowance
+      probe(known.email)
+      expect(response).to have_http_status(:too_many_requests)
+
+      travel(Signups::TakenAddressBrake::PERIOD + 1.second)
+
+      probe(known.email)
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+  end
+
   # Rotating the last octet is free for an attacker and defeats the per-IP
   # limit completely: 20 signups per address becomes 5100 per /24.
   describe 'registration across one /24 (registrations/subnet)' do

@@ -205,6 +205,15 @@ class Rack::Attack
     req.ip if post_to?(req, CONFIRMATION_PATH)
   end
 
+  ### Close the sign-up to an address that kept asking which addresses are taken ###
+  # Not a throttle: Rack::Attack cannot count answers, only requests. The actor
+  # counts each "address taken" it gives (Signups::TakenAddressBrake, where the
+  # numbers and the reasons are), this rule only asks whether the door is shut.
+  # Both doors, one bucket per client address.
+  blocklist('signup_taken/ip') do |req|
+    Signups::TakenAddressBrake.banned?(signup_client_ip(req))
+  end
+
   ### Throttle unlock instructions per IP ###
   throttle('unlocks/ip', limit: CONFIRMATIONS_LIMIT, period: CONFIRMATIONS_PERIOD) do |req|
     req.ip if post_to?(req, UNLOCK_PATH)
@@ -399,6 +408,17 @@ class Rack::Attack
     provisioning_visitor_ip(req) || req.ip
   end
 
+  # Whose sign-up this request is, for the signup_taken/ip rule; nil for every
+  # other request. At the provisioning door only a visitor the website named:
+  # its own address is never closed out (the controller counts by the same rule).
+  def self.signup_client_ip(req)
+    if post_to?(req, REGISTRATION_PATH)
+      req.ip
+    elsif post_to?(req, PROVISIONING_SIGNUPS_PATH)
+      provisioning_visitor_ip(req)
+    end
+  end
+
   # Network part of an address: the first three octets for IPv4, the first four
   # groups (the /64, what a provider hands a single customer) for IPv6. Returns
   # nil for anything unparseable, which makes Rack::Attack skip the rule rather
@@ -430,6 +450,19 @@ class Rack::Attack
     nil
   end
 
+  # Bilingual on purpose: Rack::Attack runs in front of the locale middleware,
+  # so there is no reliable request locale here, and the app serves an English
+  # audience too. A single German line would be the only untranslated response
+  # a throttled visitor ever sees.
+  TOO_MANY_REQUESTS_BODY = "Zu viele Anfragen. Bitte versuchen Sie es später erneut. / Too many requests. Please try again later.\n"
+
+  ### Response on a closed door (signup_taken/ip) ###
+  # 429 like a throttle, not Rack::Attack's 403: the door opens again by itself.
+  # No RateLimit headers: they would say when, and how many answers are left.
+  self.blocklisted_responder = lambda do |_req|
+    [429, { 'Content-Type' => 'text/plain' }, [TOO_MANY_REQUESTS_BODY]]
+  end
+
   ### Response on rate limit ###
   self.throttled_responder = lambda do |req|
     match_data = req.env['rack.attack.match_data']
@@ -442,18 +475,14 @@ class Rack::Attack
       'Content-Type' => 'text/plain'
     }
 
-    # Bilingual on purpose: Rack::Attack runs in front of the locale middleware,
-    # so there is no reliable request locale here, and the app serves an English
-    # audience too. A single German line would be the only untranslated response
-    # a throttled visitor ever sees.
-    [429, headers, ["Zu viele Anfragen. Bitte versuchen Sie es später erneut. / Too many requests. Please try again later.\n"]]
+    [429, headers, [TOO_MANY_REQUESTS_BODY]]
   end
 end
 
 # Every limit above was invisible in the log: a throttled request answers 429
 # and disappears, and a track answers nothing at all. Without these two lines a
 # wave is only discoverable afterwards, in the database.
-%w[throttle track].each do |event_type|
+%w[throttle track blocklist].each do |event_type|
   ActiveSupport::Notifications.subscribe("#{event_type}.rack_attack") do |_name, _start, _finish, _id, payload|
     request = payload[:request]
     # .inspect the path: PATH_INFO arrives URL-decoded, so a request path

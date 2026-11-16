@@ -26,7 +26,8 @@ module Lalabase
     class World
       ORGANISATION_NAME = 'Nordlicht Software GmbH'
 
-      attr_reader :organisation, :chat, :ticket_question, :meeting_question, :notes, :meetings
+      attr_reader :organisation, :chat, :ticket_question, :meeting_question, :notes, :meetings, :partner,
+                  :subtasks
 
       def initialize(locale:, now: Time.current, organisation: {}, embeddings: false, password: nil)
         @locale = locale.to_sym
@@ -50,6 +51,7 @@ module Lalabase
         I18n.with_locale(@locale) do
           create_organisation
           ActsAsTenant.with_tenant(@organisation) { build_inside }
+          add_partner_organisation
         end
         self
       end
@@ -57,7 +59,7 @@ module Lalabase
       private
 
       def build_inside
-        role = add_team_role
+        role = add_team_role(@organisation)
         Fiction::PEOPLE.each_key do |key|
           next if key == Fiction::OWNER
 
@@ -71,6 +73,10 @@ module Lalabase
         add_comments
         add_meetings
         add_chats
+        add_subtasks
+        link_meeting_to_ticket
+        add_contacts
+        add_glossary
       end
 
       def create_organisation
@@ -81,47 +87,57 @@ module Lalabase
         succeed!(Actors::CreateOrganisation.call(organisation: @organisation, owner: owner, current_user: owner))
       end
 
-      # Confirmed right away: there is no inbox behind nordlicht.example.
       def add_user(key)
         password = key == Fiction::SIGNED_IN ? @password : random_password
-        User.create!(**Fiction::PEOPLE.fetch(key), email: Fiction.email(key),
-                                                   password: password, password_confirmation: password,
-                                                   language_preference: @locale.to_s, terms_accepted_at: @now,
-                                                   &:skip_confirmation!)
+        create_user(**Fiction::PEOPLE.fetch(key), email: Fiction.email(key), password: password)
       end
 
-      def add_team_role
+      # Confirmed right away: there is no inbox behind the fiction's domains.
+      def create_user(password: random_password, **attributes)
+        User.create!(**attributes, password: password, password_confirmation: password,
+                                   language_preference: @locale.to_s, terms_accepted_at: @now,
+                                   &:skip_confirmation!)
+      end
+
+      def add_team_role(organisation)
         definition = Fiction::TEAM_ROLE
-        role = @organisation.roles.create!(title: definition[:title].fetch(@locale),
-                                           description: definition[:description].fetch(@locale))
+        role = organisation.roles.create!(title: definition[:title].fetch(@locale),
+                                          description: definition[:description].fetch(@locale))
         definition[:permissions].each do |category, actions|
           actions.each { |action| role.permissions.create!(category: category, action: action, allowed: true) }
         end
         role
       end
 
-      # Mirrors Organisations::ProjectsController#create with default attributes ticked.
       def add_project(key)
         entry = Fiction::PROJECTS.fetch(key)
-        project = @organisation.projects.create!(name: entry.fetch(@locale),
-                                                 description: entry[:description].fetch(@locale))
-        Projects::DefaultAttributeService.new(project).call
-        Projects::DefaultSmartFolderService.new(project).call(signed_in)
+        project = create_project(@organisation, name: entry.fetch(@locale),
+                                                description: entry[:description].fetch(@locale))
         add_members(project)
         project
       end
 
-      # Mirrors Organisations::ProjectPermissionsController#create and its time
-      # settings, without the activity entries a person adding a colleague leaves.
+      # Mirrors Organisations::ProjectsController#create with default attributes ticked.
+      def create_project(organisation, **attributes)
+        project = organisation.projects.create!(**attributes)
+        Projects::DefaultAttributeService.new(project).call
+        Projects::DefaultSmartFolderService.new(project).call(signed_in)
+        project
+      end
+
       def add_members(project)
         @people.each do |key, user|
-          next if key == Fiction::OWNER
-
-          project.project_permissions.create!(user: user, **Fiction::PROJECT_ACCESS)
-          user.time_session_permission_for(project)
-              .update!(key == Fiction::SIGNED_IN ? Fiction::LEAD_TIME_RIGHTS : {})
-          Projects::DefaultSmartFolderService.new(project).create_my_tasks_for(user) unless key == Fiction::SIGNED_IN
+          add_member(project, key, user) unless key == Fiction::OWNER
         end
+      end
+
+      # Mirrors Organisations::ProjectPermissionsController#create and its time
+      # settings, without the activity entries a person adding a colleague leaves.
+      def add_member(project, key, user)
+        project.project_permissions.create!(user: user, **Fiction::PROJECT_ACCESS)
+        user.time_session_permission_for(project)
+            .update!(key == Fiction::SIGNED_IN ? Fiction::LEAD_TIME_RIGHTS : {})
+        Projects::DefaultSmartFolderService.new(project).create_my_tasks_for(user) unless key == Fiction::SIGNED_IN
       end
 
       def add_tickets
@@ -232,6 +248,64 @@ module Lalabase
                                source_citations: citations.map(&:deep_stringify_keys))
         chat.chatposts.update_all(created_at: @now - minutes_ago.minutes)
         chat
+      end
+
+      # A chain of sub-tasks under one ticket, each the parent of the next, as the
+      # quick add on the ticket page creates them (Tickets::SubtasksController).
+      def add_subtasks
+        parent = ticket(Fiction::SUBTASKS[:parent])
+        @subtasks = Fiction::SUBTASKS[:chain].map do |entry|
+          params = { title: entry.fetch(@locale), parent_id: parent.id,
+                     assignee_ids: [person(entry[:assignee]).id] }
+          parent = succeed!(Actors::SaveTicket.call(project: parent.project, params: params, current_user: signed_in))
+        end
+      end
+
+      # Mirrors Organisations::MeetingTicketLinksController#create.
+      def link_meeting_to_ticket
+        meeting = @meetings.fetch(Fiction::MEETING_TICKET_LINK[:meeting])
+        target = ticket(Fiction::MEETING_TICKET_LINK[:ticket])
+        meeting.outgoing_references.create!(organisation: @organisation, target: target,
+                                            target_title_snapshot: target.display_title&.truncate(255))
+      end
+
+      def add_contacts
+        Fiction::CONTACTS.each do |entry|
+          params = entry.slice(:name, :company, :email, :phone)
+                        .merge(salutation: entry[:salutation].fetch(@locale), function: entry[:function].fetch(@locale))
+          succeed!(Actors::SavePerson.call(organisation: @organisation, params: params, current_user: signed_in))
+        end
+      end
+
+      def add_glossary
+        Fiction::GLOSSARY.fetch(@locale).each do |term, category|
+          succeed!(Actors::SaveGlossaryTerm.call(organisation: @organisation, params: { term:, category: },
+                                                 current_user: signed_in))
+        end
+      end
+
+      # The client's own organisation, owned by its contact, with the signed-in person
+      # as a member and two tickets the client gave her. Built after Nordlicht, under its
+      # own tenant.
+      def add_partner_organisation
+        spec = Fiction::PARTNER
+        owner = create_user(**spec[:owner])
+        @partner = Organisation.new(name: spec[:name], subdomain: spec[:subdomain], domain: spec[:domain])
+        succeed!(Actors::CreateOrganisation.call(organisation: @partner, owner: owner, current_user: owner))
+        ActsAsTenant.with_tenant(@partner) { build_partner_inside(owner) }
+      end
+
+      def build_partner_inside(owner)
+        # Joined after Nordlicht, also when the clock stands still (the screenshots, the
+        # specs): the joined first is home (User#home_organisation).
+        signed_in.memberships.create!(organisation: @partner, role: add_team_role(@partner), active: true,
+                                      created_at: @now + 1.second)
+        project = create_project(@partner, name: Fiction::PARTNER[:project].fetch(@locale))
+        add_member(project, Fiction::SIGNED_IN, signed_in)
+        Fiction::PARTNER[:tickets].each do |entry|
+          params = { title: entry.fetch(@locale), assignee_ids: [signed_in.id] }
+          succeed!(Actors::SaveTicket.call(project: project, params: params, current_user: owner))
+        end
       end
 
       def random_password = SecureRandom.base58(24)

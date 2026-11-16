@@ -391,7 +391,7 @@ module Admin
     end
 
     def organisation_params
-      params.require(:organisation).permit(:name, :subdomain, :domain)
+      params.require(:organisation).permit(:name)
     end
 
     def prepare_new_form

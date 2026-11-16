@@ -130,7 +130,7 @@
       <div class="flex flex-col h-full">
         <!-- Fixed top section -->
         <div class="flex-shrink-0">
-          <!-- logo + changelog -->
+          <!-- logo -->
           <div class="flex items-center justify-between mx-7 pt-4 pb-4">
             <%# NavigationHelper#brand_link_path: the start of the level above the
                 organisations for someone in two or more (level_home_path), else the
@@ -143,8 +143,7 @@
                   the public chip's lime-300, so without a colour the two are one. %>
               <%= render 'shared/brand_mark', chip_class: 'bg-brand' %>
             <% end %>
-            <%# No header icons anymore: "Neuigkeiten" (changelog) moved into the account menu
-                (#109, common/_user_menu_compact); global search moved to a labelled "Suche"
+            <%# No header icons anymore: global search moved to a labelled "Suche"
                 nav item + body-level overlay (search_overlay). The logo stands alone here. %>
           </div>
         </div>

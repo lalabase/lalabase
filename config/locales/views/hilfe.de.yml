@@ -23,6 +23,3 @@ de:
           title: Hilfe-Seite nicht gefunden
           body: Diese Hilfe-Seite existiert nicht (mehr).
           home_link: Zur Hilfe-Startseite
-      changelog:
-        title: Neuigkeiten
-        empty: Noch keine Einträge vorhanden.

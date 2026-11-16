@@ -20,15 +20,46 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ### Added
 
+- A glossary for each organisation: terms in their right spelling and the forms in which
+  speech recognition heard them wrong, on a page of its own reached from the meetings pages.
+  Two new role rights decide who may see and who may keep it, see the upgrade notes
+  (#113), (#114), (#140), (#145).
+- A misheard word in a meeting's transcript is corrected in place, only there or everywhere
+  in the meeting, and the correction is learnt for the glossary with its speaker and project.
+  Without the right to keep the glossary it is a proposal there, which works nowhere until
+  someone with the right confirms it (#121). A meeting shows what a recording device replaced from the glossary (#127).
+- The glossary takes a pasted list of terms, checked line by line before the import (#128),
+  and suggests terms from tickets, public comments, notes and documents that the person who
+  starts it may read, with the organisation's AI model and a review list where a person accepts, merges or dismisses each one (#129), (#130).
+- Sub-tasks can have sub-tasks, to any depth. The ticket head shows the trail of its parents
+  (#97). A sub-task added in the ticket shows in the ticket list beside it at once (#100).
+- An organisation chooses an inbox project for meetings. Programs create meetings over
+  `POST /api/v1/organisations/:organisation_id/meetings` and the MCP tool `create_meeting`;
+  without a project they land in the inbox. API version 1.9.0, MCP 0.16.0 (#105), (#106).
+- A program that creates a meeting can send what it replaced from the glossary before
+  sending (`meeting[glossary_replacements]`: heard form, term, count, at most 500 rows). A
+  list that does not fit is refused as a whole as `invalid_input`. `GET /api/v1/meetings/:id`
+  gives the list back. Capability `meetings.glossary_replacements`, API version 1.12.0 (#127).
+- The MCP tool `get_meeting` reads one meeting whole: its head with the participants, and the
+  summary, notes and transcript in pages (`part`, `offset`). MCP 0.17.0 (#112).
+- An inbox above all organisations at `/inbox`: the notifications of every organisation a
+  person belongs to in one list, with unread counts per organisation, actions on a row and on
+  several rows at once, kept current while open. Tickets, notes, project events and documents
+  open in its lane (#166), (#167), (#168), (#169), (#173), (#174), (#175).
+- The inbox of an organisation has actions named in words on every row, a search while
+  typing, a "Read" view, a period filter and its views as tabs (#135), (#136), (#138), (#139).
 - The REST API reads meetings: `GET /api/v1/projects/:project_id/meetings` with search and
   pages, and `GET /api/v1/meetings/:id` with participants, summary, notes and transcript.
-  API version 1.10.0.
+  API version 1.10.0 (#111).
 - The REST API and the MCP server read the glossary of an organisation:
   `GET /api/v1/organisations/:organisation_id/terms` and the tool `get_glossary` give its
   confirmed terms with the heard forms speech recognition wrote instead, how often and by
   whom, in pages. A token limited to some projects gets every term, but the heard forms of
   its projects only; speakers are named only with the right to the people directory.
-  API version 1.11.0, MCP 0.18.0.
+  API version 1.11.0, MCP 0.18.0 (#124).
+- `TRADEMARKS.md` says what forks and hosts may do with the name and the logo: talk about
+  Lalabase, run it and build on it, but not call their own version or service Lalabase or
+  make it look official. The AGPL covers the code, not the name (#102).
 - Access tokens have a kind. A token made on the token page is `personal`, as every existing
   token is. The new kind `app_session` is the token of a device that signed in through an
   app: it reaches the whole account, may write, and expires 90 days after its last use, at
@@ -39,27 +70,67 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ### Changed
 
+- The inbox has the list-and-lane design of the other list pages (#132), (#133).
+- A click on a ticket description no longer opens its editor and the text no longer reacts to
+  hover; edit it with the pencil (#104).
+- The inbox of an organisation opens on "All" (unread and read) instead of "Unread" (#136).
+- A saved ticket keeps its parent. `PATCH /api/v1/tickets/:id` used to drop `parent_id` and
+  answer 200; another parent or an empty value is now a 422 `validation_failed`, the current
+  parent is no change. A web `PATCH` with `ticket[parent_id]` is refused as well. A script
+  that brings over a tree creates the parents before the children (#97).
+- The list pages share one look: the bar of the ticket list with views as tabs and the search
+  on the right on the inbox, people and glossary, one view switch in the page head, one column
+  head, the main action outermost in every head (#137), (#139), (#141), (#142), (#143),
+  (#145), (#146), (#165).
+- The management area has its own navigation in the sidebar, a section head with a crumb on
+  each page, and the AI section a tab row (#147), (#148), (#149), (#150), (#151), (#153),
+  (#154), (#156), (#160).
+- The level above the organisations and the account pages have sidebars of their own, and
+  the header with the organisation switcher shows on every level. For people in several
+  organisations the logo leads to the organisation select page (#155), (#163), (#177),
+  (#178), (#179).
+- The account page has three tabs: personal data, password, delete account. The picture
+  and the shown email moved to the profile. The preferences are one page with an outline
+  that saves every change at once (#152), (#158), (#159), (#161), (#162).
+- The sign-in, sign-up and password pages have the design of the public website (#122).
+- The news entry is out of the account menus while no news are written (#157).
+- The organisation a session returns to follows the pages a person opens, not every request
+  in the background (#172).
+- Hard shadows are kept to the main action and the clickable card (#131).
+- The demo world (`LALABASE_DEMO=1`) holds two contacts, a glossary, a chain of sub-tasks, a
+  meeting linked to its ticket and a second organisation, the client's, where the published
+  login is a member and has two tickets. The demo login now lands in two organisations (#185).
 - Synced documentation pages show their images from your instance. The sync copies them
   out of the repository, and they are served behind the right to read the documentation,
   so a reader no longer contacts the repository host and images from private repositories
   show. An image that cannot be served shows as its alt text, one with a full address
-  becomes a link. SVG is not shown yet. Limits: 5 MB per image, 200 images per set.
+  becomes a link. SVG is not shown yet. Limits: 5 MB per image, 200 images per set (#107).
 - The assistant's time report over a whole organisation reads the rights once and sums in
-  one query, instead of three queries and a sum for every project.
+  one query, instead of three queries and a sum for every project (#120).
 - The REST API refuses a `page` or `per_page` it cannot read with the same wording on every
   list that refuses one (people, knowledge, meetings and the glossary), in the language of
   the token's owner and naming the refused value. Before, people, knowledge and meetings
   answered in English only, in two different wordings. Status codes and error codes stay as
-  they were.
+  they were (#125).
 
 ### Fixed
 
+- The meeting and note edit forms ask before they delete (#170).
+- Cancelling or deleting in the note editor of the inbox keeps the editor's frame (#176).
+- A note mention in a rich text draws its chip again (#182).
+- A file opened without a login leads to the login page (#103).
+- A project event reaches everyone who may read it, and a run that created notifications and
+  failed halfway is rolled back and retried in full instead of leaving people out (#99).
+- Expired cache entries are swept every hour, and the file cache has its own directory (#115).
+- A person in two or more organisations who opens the bare domain, leaves the account area
+  without a way back, or is refused an action in the demo lands in the organisation they
+  joined first. It used to be whichever had the smaller random id (#185).
 - Input that answered a 500 on `/api/v1` and MCP is answered now. The ticket list takes the
   search together with a tag filter, and ignores a date bound with a year PostgreSQL cannot
   store, like any other unusable one. A page no list has, or a page sent as a list, is a 400
   on the ticket list and both time session lists, and invalid input in `list_tickets`. A
-  `time_session` that is no object is a 400.
-- The provisioning endpoint answers a body that is no JSON in its error envelope.
+  `time_session` that is no object is a 400 (#118).
+- The provisioning endpoint answers a body that is no JSON in its error envelope (#118).
 
 ### Security
 
@@ -67,39 +138,66 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   longer matches the text of comments. It matched every comment, private ones the reader may
   not read included, so a hit told the searcher what a private comment said. It now searches
   title and description, as `list_tickets` describes it. The search on the web pages was not
-  affected.
+  affected (#117).
 - `/api/mcp` refuses a JSON-RPC batch (an array of calls) before any call in it runs. Each
-  call was carried out, and the per-token rate limit counted the request once.
+  call was carried out, and the per-token rate limit counted the request once (#118).
 - `create_ticket` and `create_meeting` over MCP answer an unexpected failure with a fixed
   text instead of the exception message, as the other write tools do. `search_code_symbols`
   no longer passes on the message of a credential or embedding error, which named internal
-  ids.
+  ids (#118).
 - The code tools of the assistant (`search_code_symbols`, `get_symbol_details`) neutralise
-  code fences in the name and path of a symbol, which come from the repository.
+  code fences in the name and path of a symbol, which come from the repository (#118).
 - `PATCH /api/v1/tickets/:id` writes and answers under a lock on the ticket in the project
   it was authorized in. A ticket moved to another project in between used to be written
   there, where the caller may not write, and its answer could show data of that project.
   It is a 404 now, as if never found. A concurrent change to another attribute is no
-  longer written back with its old value.
+  longer written back with its old value (#119).
 - Password reset, confirmation resend, unlock and sign-in no longer tell whether an
   address has an account (Devise's paranoid mode). The three forms said "not found" for an
   unknown address, and sign-in said an account was locked even after a wrong password. A
   locked person now reads "Invalid email or password" like everybody else and learns of the
   lock from the unlock mail; the warning before the last attempt is gone for the same
-  reason. The sign-up form still says when an address is taken.
+  reason. The sign-up form still says when an address is taken (#180).
 - The unlock form has a rate limit of its own, 3 requests per minute and IP address, like the
-  password reset and the confirmation resend. It mails an arbitrary address on request.
+  password reset and the confirmation resend. It mails an arbitrary address on request (#180).
 - The sign-up closes for a day to a client address that was told five times in a day that an
   email address already has an account (429, at the form and at the provisioning endpoint,
   there per visitor). The form still gives that answer, because a new account is signed in at
   once and a taken address cannot be; with a password too short on purpose it gave it 20
   times an hour without writing anything. An instance that wants the answer gone closes
-  registration: then no address is looked at.
+  registration: then no address is looked at (#181).
+- Updated dependencies: rack 3.2.8 (#98), addressable 2.9.2 (#109), Rails 8.1.4.1 with
+  nokogiri 1.19.7, loofah 2.25.3 and rails-html-sanitizer 1.7.2 (#116), together closing more
+  than 40 published advisories.
+- View output that was marked as safe HTML by hand now goes through Rails' own escaping or
+  through `sanitize`: translations with markup, the rendered changelog entries, the style
+  guide and the preview of the email log. No known hole is closed by it; it is a second line
+  behind the inputs (#171).
 
 ### Upgrade notes
 
 - Run `bin/rails documentation:resync_all` once after updating. Until then a page keeps
-  its old image addresses, unless its repository receives a new commit.
+  its old image addresses, unless its repository receives a new commit (#107).
+- No existing role gets the new rights `view_glossary` and `manage_glossary`. Account admins
+  need neither; for everyone else, grant them in the roles of the organisation. Glossary
+  suggestions need an AI model configured for the organisation.
+- The Rails cache moves to `tmp/cache/store`, and an hourly job deletes its expired entries
+  (#115). With Docker, `compose.yml` has a new volume `cache`, mounted in `web` and `worker`:
+  if you changed your `compose.yml`, compare it with this one first. Without the shared
+  volume the worker never sweeps what the web container wrote. The cache starts empty once,
+  so rate limit counters start from zero.
+- Without Docker, the old cache entries stay in `tmp/cache/` in directories named by three
+  hex digits and are read by nobody. Remove them once, in your shared `tmp/cache`:
+  The directory is the `tmp/cache` your app server uses (with Capistrano `shared/tmp/cache`,
+  which `current/tmp/cache` links to; `-H` follows that link):
+  `find -H tmp/cache -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '.*/[0-9A-F]{3}' -exec rm -rf {} +`
+  (GNU `find`; with BSD `find` on macOS write `find -E -H tmp/cache ... -regex '.*/[0-9A-F]{3}'`
+  without `-regextype`).
+- If you build the image yourself (`compose.build.yml`), rebuild it: the Dockerfile changed
+  and creates the new cache directory (#115).
+- API clients: `PATCH /api/v1/tickets/:id` with another or an empty `parent_id` now answers
+  422 `validation_failed` instead of 200 and an unchanged parent (#97).
+- No new required environment variables.
 
 ## [2026.11.0] - 2026-10-31
 

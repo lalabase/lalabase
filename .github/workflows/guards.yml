@@ -251,6 +251,7 @@ jobs:
           spec/requests/active_storage/direct_uploads_guard_spec.rb
           spec/requests/active_storage/embed_link_expiry_spec.rb
           spec/requests/active_storage/tenant_bypass_in_controller_spec.rb
+          spec/requests/organisation_hosts_spec.rb
           spec/requests/admin/admin_only_gate_spec.rb
           spec/requests/admin/dashboard_spec.rb
           spec/requests/admin/organisations_spec.rb
@@ -341,6 +342,7 @@ jobs:
           spec/requests/inbox_status_filter_spec.rb
           spec/requests/inbox_pagination_spec.rb
           spec/requests/all_inboxes_spec.rb
+          spec/requests/all_people_spec.rb
           spec/requests/session_organisation_follows_pages_spec.rb
           spec/requests/all_inboxes_lane_spec.rb
           spec/requests/all_inboxes_row_actions_spec.rb
@@ -360,6 +362,7 @@ jobs:
           spec/helpers/inbox_helper_spec.rb
           spec/system/inbox_spec.rb
           spec/system/all_inboxes_spec.rb
+          spec/system/all_people_spec.rb
           spec/system/test_browser_pointer_spec.rb
           spec/system/page_title_edge_spec.rb
           spec/system/management_phone_spec.rb
@@ -433,12 +436,16 @@ jobs:
           spec/services/glossary/lookup_spec.rb
           spec/services/list_paging_spec.rb
           spec/requests/organisations/people_spec.rb
+          spec/requests/organisations/person_takeovers_spec.rb
+          spec/services/actors/take_over_person_spec.rb
+          spec/services/actors/take_over_person_concurrency_spec.rb
           spec/requests/organisations/people_list_head_spec.rb
           spec/requests/organisations/shown_email_spec.rb
           spec/requests/users/registrations_display_email_spec.rb
           spec/services/people/directory_spec.rb
           spec/services/people/contacts_spec.rb
           spec/services/people/lookup_spec.rb
+          spec/services/people/across_organisations_spec.rb
           spec/services/knowledge/lookup_spec.rb
           spec/requests/organisations/people_last_contact_spec.rb
           spec/services/lalabase/tools/find_people_spec.rb
@@ -448,6 +455,7 @@ jobs:
           spec/services/actors/link_meeting_participant_spec.rb
           spec/services/meetings/account_participants_spec.rb
           spec/requests/organisations/note_editor_embed_spec.rb
+          spec/requests/organisations/note_mention_frame_spec.rb
           spec/requests/organisations/onboarding_banner_spec.rb
           spec/requests/organisations/panel_lane_markup_guard_spec.rb
           spec/requests/organisations/posts_create_composer_reset_spec.rb
@@ -785,6 +793,7 @@ jobs:
           spec/system/meeting_term_correction_spec.rb
           spec/system/document_glossary_source_spec.rb
           spec/system/people_review_74_spec.rb
+          spec/system/person_takeover_spec.rb
           spec/system/ticket_meeting_panel_spec.rb
           spec/system/ticket_meeting_panel_stages_spec.rb
           spec/system/ticket_meeting_panel_assistant_spec.rb

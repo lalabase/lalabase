@@ -322,6 +322,24 @@ RSpec.describe NavigationHelper, type: :helper do
       %w[organisations all_inboxes help].each { |name| expect(mode(name)).to eq(:level), name }
     end
 
+    # The people above the organisations: a page of the level with a row of its own.
+    it 'answers :level on the people page above the organisations' do
+      expect(mode('all_people')).to eq(:level)
+      expect(described_class.level_page?('all_people', 'index')).to be(true)
+    end
+
+    it 'names the row of the level a page stands for, from its controller' do
+      key = ->(controller, action) { described_class.level_page_key_for(controller, action) }
+
+      expect(key.call('all_people', 'index')).to eq(:all_people)
+      expect(key.call('all_inboxes', 'index')).to eq(:all_inboxes)
+      expect(key.call('all_inboxes', 'mark_read')).to eq(:all_inboxes)
+      expect(key.call('organisations', 'select')).to eq(:overview)
+      expect(key.call('organisations', 'new')).to be_nil
+      expect(key.call('help', 'show')).to be_nil
+      expect(key.call('people', 'index')).to be_nil
+    end
+
     # PR 3: an account page is a controller ACCOUNT_PAGES names; every other page without an
     # organisation is the level (spec/architecture/sidebar_mode_guard_spec.rb holds the rest).
     it 'answers :account on every controller of ACCOUNT_PAGES and :level on every other, without an organisation' do

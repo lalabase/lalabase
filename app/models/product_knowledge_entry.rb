@@ -29,7 +29,7 @@
 #  product_knowledge_entries_locale_check  (locale IN ('de', 'en'))
 #
 
-# One of Lalabase's own texts (a help page; the news join in S3) as a searchable row
+# One of Lalabase's own texts (a help page) as a searchable row
 # (doc/product_knowledge_plan.md).
 #
 # GLOBAL table, no acts_as_tenant (D1): every organisation reads the same rows, and the

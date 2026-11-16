@@ -297,4 +297,91 @@ RSpec.describe People::Lookup, :ci_guard do
       end
     end
   end
+
+  # The part of ONE organisation in a list over several (GET /people): every entry, the
+  # matches of a search and the last contacts of a given list, from one directory.
+  describe '#listing' do
+    def meeting_with(participant, at:)
+      meeting = create(:meeting, organisation: organisation, project: project, occurred_at: at)
+      create(:meeting_participant, meeting: meeting, display_name: 'Gast', **participant)
+    end
+
+    it 'hands out every entry of the organisation, sorted by name, without last contacts' do
+      meeting_with({ person: contact }, at: 3.days.ago)
+
+      entries = lookup.listing.entries
+
+      expect(entries.map(&:plain_name)).to eq(['Carl Kollege', 'Doris Dienstleister', 'Vera Viewer'])
+      expect(entries.map(&:last_contact)).to all(be_nil)
+    end
+
+    it 'hands out the matches of the search beside every entry, the same entries' do
+      listing = lookup.listing(query: 'techn')
+
+      expect(listing.matches.map(&:plain_name)).to eq(['Doris Dienstleister'])
+      expect(listing.entries.map(&:plain_name)).to eq(['Carl Kollege', 'Doris Dienstleister', 'Vera Viewer'])
+      expect(listing.entries).to include(listing.matches.first)
+      expect(lookup.listing.matches.map(&:plain_name)).to eq(lookup.listing.entries.map(&:plain_name))
+    end
+
+    # The search of the page, as #find has it: the notes are never searched.
+    it 'searches as #find does' do
+      expect(lookup.listing(query: 'leitung').matches.map(&:plain_name)).to eq(names(lookup.find(query: 'leitung', limit: 10)))
+      expect(lookup.listing(query: 'vormittags').matches).to be_empty
+    end
+
+    it 'answers the last contacts of the list asked about, in its order' do
+      meeting_with({ person: contact }, at: 3.days.ago)
+      listing = lookup.listing
+      doris, carl = listing.entries.values_at(1, 0)
+
+      lasts = listing.last_contacts_for([carl, doris])
+
+      expect(lasts.size).to eq(2)
+      expect(lasts.first).to be_nil
+      expect(lasts.last.kind).to eq(:meeting)
+      expect(listing.last_contacts_for([])).to eq([])
+    end
+
+    it 'leaves out a member of a project the viewer cannot see, and that member\'s row' do
+      create(:person, organisation: organisation, user: stranger, name: 'Sven Fremd')
+
+      expect(lookup.listing.entries.map(&:plain_name)).to eq(['Carl Kollege', 'Doris Dienstleister', 'Vera Viewer'])
+    end
+
+    it 'serves all three from one directory, read once' do
+      allow(People::Directory).to receive(:new).and_call_original
+      people_reads = 0
+      counter = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
+        people_reads += 1 if payload[:sql].start_with?('SELECT "people".* FROM "people"') && !payload[:cached]
+      end
+
+      listing = lookup.listing(query: 'doris')
+      listing.entries
+      reads_of_one_pass = people_reads
+      listing.matches
+      listing.last_contacts_for(listing.matches)
+      listing.entries
+
+      expect(People::Directory).to have_received(:new).once
+      expect(reads_of_one_pass).to be_positive
+      expect(people_reads).to eq(reads_of_one_pass)
+    ensure
+      ActiveSupport::Notifications.unsubscribe(counter)
+    end
+
+    it 'refuses without the people right, before it reads anything' do
+      allow(People::Directory).to receive(:new).and_call_original
+
+      expect { lookup(colleague).listing }.to raise_error(People::Lookup::Refused)
+      expect { lookup(colleague).listing(query: 'doris') }.to raise_error(People::Lookup::Refused)
+      expect(People::Directory).not_to have_received(:new)
+    end
+
+    it 'refuses a deactivated member who still holds the right' do
+      Membership.find_by(user: viewer, organisation: organisation).update!(active: false)
+
+      expect { lookup(User.find(viewer.id)).listing }.to raise_error(People::Lookup::Refused)
+    end
+  end
 end

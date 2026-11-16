@@ -17,6 +17,8 @@ Rails.application.routes.draw do
         patch :toggle_code_indexing # operator flips whether repositories are indexed
         patch :toggle_assistant    # operator flips the per-org assistant (S3a, §13-2)
         patch :toggle_data_import  # operator flips the per-org CodebaseHQ import
+        # the subdomain the organisation is shown under (doc/org_subdomains_plan.md, S1)
+        patch :subdomain, to: 'organisation_subdomains#update'
       end
     end
 
@@ -225,6 +227,10 @@ Rails.application.routes.draw do
   # organisation of the person, outside the org scope like the cockpit. The inbox
   # of one organisation stays at /org/:organisation_id/inbox.
   get 'inbox', to: 'all_inboxes#index', as: :all_inboxes
+  # The people above the organisations: one list over the people of every
+  # organisation of the person, read only, beside the inbox above them. The
+  # people directory of one organisation stays at /org/:organisation_id/people.
+  get 'people', to: 'all_people#index', as: :all_people
   # The bulk bar of that inbox: the ticked rows, read or archived. Before the
   # routes of a row, or "selection" would be taken for the id of one.
   scope 'inbox/selection', controller: 'all_inboxes', as: :all_inboxes_selection do
@@ -360,6 +366,9 @@ Rails.application.routes.draw do
     # through members/:user_id (?member_id= on the page).
     resources :people do
       get 'members/:user_id', on: :collection, action: :member, as: :member
+      # Taking a contact over into another organisation of the viewer (a copy,
+      # People S0): new renders the dialog into its frame, create copies.
+      resource :takeover, only: %i[new create], controller: 'person_takeovers'
     end
 
     # The glossary of the organisation (K4a): one page with a lane, the shape
@@ -503,9 +512,6 @@ Rails.application.routes.draw do
       query = req.query_string.present? ? "?#{req.query_string}" : ''
       "/org/#{params[:organisation_id]}/inbox/#{params[:rest]}#{query}"
     }
-
-    # Changelog / News
-    get 'changelog', to: 'changelog#show', as: :changelog
 
     # Organisation Settings (name, domain, etc.)
     resource :settings, only: %i[show update], controller: 'organisation_settings'

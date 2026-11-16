@@ -387,4 +387,19 @@ RSpec.describe People::Directory, :ci_guard do
   it 'returns nothing without the right' do
     expect(entries(colleague)).to be_empty
   end
+
+  # The part of one organisation in a list over several (People::Lookup#listing).
+  describe '#all_entries' do
+    it 'hands out everyone the viewer sees, whatever the search and the kind say, without last contacts' do
+      directory = described_class.new(viewer: viewer, organisation: organisation, query: 'hosting', kind: 'members')
+
+      expect(names(directory.all_entries)).to eq(['Carl Kollege', 'Doris Dienstleister', 'Vera Viewer'])
+      expect(directory.all_entries.map(&:last_contact)).to all(be_nil)
+      expect(names(directory.candidates)).to eq(['Doris Dienstleister'])
+    end
+
+    it 'is empty without the right' do
+      expect(described_class.new(viewer: colleague, organisation: organisation).all_entries).to be_empty
+    end
+  end
 end

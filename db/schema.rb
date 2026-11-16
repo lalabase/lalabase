@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_16_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1077,6 +1077,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_120000) do
     t.index ["recipient_id", "project_id", "state"], name: "index_notifications_on_recipient_project_state"
     t.index ["recipient_id", "state", "created_at"], name: "idx_notifications_recipient_state"
     t.index ["recipient_id"], name: "index_notifications_on_recipient_id"
+  end
+
+  create_table "organisation_subdomains", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "organisation_id", null: false
+    t.string "subdomain", null: false
+    t.datetime "held_until"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organisation_id"], name: "index_organisation_subdomains_on_organisation_id"
+    t.index ["organisation_id"], name: "index_organisation_subdomains_one_current", unique: true, where: "(held_until IS NULL)"
+    t.index ["subdomain"], name: "index_organisation_subdomains_on_subdomain", unique: true
   end
 
   create_table "organisations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2253,6 +2264,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_120000) do
   add_foreign_key "notifications", "projects"
   add_foreign_key "notifications", "users", column: "actor_id"
   add_foreign_key "notifications", "users", column: "recipient_id"
+  add_foreign_key "organisation_subdomains", "organisations", on_delete: :cascade
   add_foreign_key "organisations", "accounts"
   add_foreign_key "organisations", "ai_packages"
   add_foreign_key "organisations", "embedding_spaces", column: "active_embedding_space_id", on_delete: :nullify

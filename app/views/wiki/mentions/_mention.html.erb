@@ -3,6 +3,10 @@
 <%# Shared by organisations/notes/_mention and organisations/documents/_mention. %>
 <%# A navigable link only when the viewer may open the target (note→document crosses %>
 <%# areas); otherwise an inert label, so a chip never backlinks to forbidden content. %>
+<%# ActionText hands the thin partials the attachment, not the record: it answers title %>
+<%# through delegation, but `is_a?` and `case` see the wrapper, so the path was nil and %>
+<%# link_to raised (a 500 on every page that showed a readable mention). Unwrap once here. %>
+<% mentionable = mentionable.attachable if mentionable.is_a?(ActionText::Attachment) %>
 <% mention_label = mentionable.title.presence || t("views.wiki.mentions.untitled") %>
 <% mention_icon = mentionable.is_a?(Document) ? "file-earmark-text" : "journal-text" %>
 <% if wiki_mention_readable?(mentionable) %>

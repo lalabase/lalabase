@@ -1,8 +1,9 @@
 <%# locals: (organisations:) %>
 <%# The sidebar's middle above the organisations (Belegungstabelle F48; variant C,
     user, 2026-11-14): the lists of the level in one fixed order ("Übersicht", the
-    cockpit; "Gesamt-Inbox" from two active organisations on; a later list of the
-    level is one more row here), then every organisation with an active membership
+    cockpit; "Gesamt-Inbox" and "Personen", the people of all organisations, from
+    two active organisations on; a later list of the level is one more row here),
+    then every organisation with an active membership
     and its unread count. An organisation row OPENS that organisation (its start
     page: the full page moves the session's organisation, ApplicationController#
     load_tenant_from_session). It never narrows a list and is never marked: the
@@ -25,6 +26,9 @@
       <%= render 'common/navigation_item', name: t('navigation.all_inboxes'), path: all_inboxes_path,
                                            icon: 'bi bi-bell', active: page == :all_inboxes,
                                            aria_current: ('page' if page == :all_inboxes) %>
+      <%= render 'common/navigation_item', name: t('navigation.people'), path: all_people_path,
+                                           icon: 'bi bi-people', active: page == :all_people,
+                                           aria_current: ('page' if page == :all_people) %>
     <% end %>
   </ul>
 

@@ -36,14 +36,21 @@ RSpec.describe PersonalAccessTokens::ReachListing, :ci_guard do
       make_token_owner_a_member(user, other_organisation)
     end
 
-    it 'names each organisation in reach, by name, with its scope' do
+    # subdomain is the name the organisation is shown under (organisation_subdomains), null
+    # without one; never the legacy column, which was typed in without a check and names
+    # no host (doc/org_subdomains_plan.md, open question 6).
+    it 'names each organisation in reach, by name, with its subdomain and its scope' do
       project = project_in(organisation)
+      organisation.update_columns(subdomain: 'legacy-beta')
+      other_organisation.update_columns(subdomain: 'legacy-alpha')
+      OrganisationSubdomain.create!(organisation: organisation, subdomain: 'beta')
+      OrganisationSubdomain.create!(organisation: organisation, subdomain: 'beta-alt', held_until: 1.day.from_now)
       token = create(:personal_access_token, user: user, organisations: [organisation, other_organisation],
                                              project_scopes: { organisation => [project] })
 
       expect(listing(token).organisations).to eq(
-        [{ id: other_organisation.id, name: 'Alpha', subdomain: other_organisation.subdomain, scope: 'all_projects' },
-         { id: organisation.id, name: 'Beta', subdomain: organisation.subdomain, scope: 'selected_projects' }]
+        [{ id: other_organisation.id, name: 'Alpha', subdomain: nil, scope: 'all_projects' },
+         { id: organisation.id, name: 'Beta', subdomain: 'beta', scope: 'selected_projects' }]
       )
     end
 

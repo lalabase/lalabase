@@ -17,6 +17,8 @@ Rails.application.routes.draw do
         patch :toggle_code_indexing # operator flips whether repositories are indexed
         patch :toggle_assistant    # operator flips the per-org assistant (S3a, §13-2)
         patch :toggle_data_import  # operator flips the per-org CodebaseHQ import
+        # the subdomain the organisation is shown under (doc/org_subdomains_plan.md, S1)
+        patch :subdomain, to: 'organisation_subdomains#update'
       end
     end
 

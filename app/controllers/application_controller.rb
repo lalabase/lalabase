@@ -63,7 +63,7 @@ class ApplicationController < ActionController::Base
   # Without an organisation this is the cockpit, NOT root_path -- that one is
   # remapped to /de, so a user in that state used to land on the marketing page.
   def user_home_path(user)
-    organisation = user.home_organisation
+    organisation = host_organisation_for(user) || user.home_organisation
     organisation ? organisation_root_path(organisation) : select_organisation_path
   end
   helper_method :user_home_path
@@ -93,6 +93,9 @@ class ApplicationController < ActionController::Base
   # The way back out of the account area ("Zurück" of an account page). After the tenant
   # and session callbacks, so full_page_request? reads the request as the session does.
   include AccountReturn
+  # After the tenant callbacks: a page of an organisation moves to that organisation's
+  # host only once load_tenant_from_session has found an active membership.
+  include OrganisationHost
   # After switch_locale, so the refusal speaks the visitor's language.
   include DemoRestrictions
 

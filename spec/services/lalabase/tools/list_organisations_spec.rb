@@ -31,11 +31,12 @@ RSpec.describe Lalabase::Tools::ListOrganisations do
   end
 
   it 'lists the organisations in reach and marks its authorization decision' do
+    OrganisationSubdomain.create!(organisation: organisation, subdomain: 'nordlicht')
     result = described_class.execute(args: {}, context: context)
 
     expect(JSON.parse(result.content)).to eq(
       'data' => [{ 'id' => organisation.id, 'name' => 'Nordlicht GmbH',
-                   'subdomain' => organisation.subdomain, 'scope' => 'all_projects' }]
+                   'subdomain' => 'nordlicht', 'scope' => 'all_projects' }]
     )
     expect(recorder).to be_authorized
   end

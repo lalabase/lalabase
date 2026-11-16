@@ -235,6 +235,7 @@ else
   pin 'controllers/pane_mark_read_delay_controller', to: 'controllers/pane_mark_read_delay_controller.js'
   pin 'controllers/participant_link_modal_controller', to: 'controllers/participant_link_modal_controller.js'
   pin 'controllers/person_details_controller', to: 'controllers/person_details_controller.js'
+  pin 'controllers/person_takeover_modal_controller', to: 'controllers/person_takeover_modal_controller.js'
   pin 'controllers/personal_tasks_drawer_controller', to: 'controllers/personal_tasks_drawer_controller.js'
   pin 'controllers/popover_controller', to: 'controllers/popover_controller.js'
   pin 'controllers/post_composer_controller', to: 'controllers/post_composer_controller.js'

@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-14)
+# Karte: app/javascript/controllers (Stand: 2026-11-16)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -28,7 +28,11 @@ Konventionen:
   Ein weiteres Modal derselben Form erbt den Controller statt ihn zu kopieren
   (`participant_link_modal_controller.js`, seit 27.10.2026: nur das erste Feld ist anders;
   `term_correction_modal_controller.js`, seit 05.11.2026: Fokus aufs Feld „Richtig“, die Zahl
-  lädt in ihren eigenen Frame nach).
+  lädt in ihren eigenen Frame nach; `person_takeover_modal_controller.js`, seit 16.11.2026:
+  Fokus aufs Ziel, der Satz zur Sichtbarkeit und die Dubletten-Frage folgen der Auswahl; der
+  Auslöser steht in einem `<details>`-Menü, das der Controller beim Öffnen schließt (ein Klick
+  darin schließt es nicht, Escape gehört dem Modal), und der Fokus geht immer an „···“ zurück,
+  `returnIdFor` liefert nichts).
 * `transcript_selection` (K4b, 05.11.2026): eine Markierung im Transkript zeigt „Korrigieren“
   (über der Markierung, auf dem Telefon darunter, wo sonst das Systemmenü steht). Der Knopf ist
   ein Link in den Frame des Dialogs; der Controller hält nur seine Adresse aktuell:

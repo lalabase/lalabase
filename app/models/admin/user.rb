@@ -67,6 +67,10 @@ require 'bcrypt'
 module Admin
   class User < ApplicationRecord
     self.table_name = 'users'
+    # `changelog_last_read_at` belonged to the removed news page. It is dropped in the next
+    # release; a running process that still SELECTs a dropped column answers 500, so it stops
+    # being selected here first. Declared on both twins because both read this table.
+    self.ignored_columns += %w[changelog_last_read_at]
 
     include PersonalDataErasure
 

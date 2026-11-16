@@ -14,6 +14,7 @@ Ausgenommene Subtrees mit eigenem Vertrag: `actors/`, `lalabase/tools/`).
 Einzel-`update!` ohne Side-Effects bleibt im Controller.
 
 * An actor writes and checks no rights. Exceptions lock first and authorize again under the lock (`AcceptTicketSuggestion`, `StartTicketSuggestionRun`, `CorrectMeetingTerm`).
+* A second exception spans two tenants: `TakeOverPerson` (People S0, 2026-11-16) asks `PersonPolicy#create?` under the TARGET's tenant, which only the actor opens, and reads the source through `People::Lookup` under the source's. ⚠️ A write into another tenant than the request's runs its whole transaction under that tenant (it overrides `with_actor_context`): commit callbacks (`Trackable`'s activity) run after `#perform`, and acts_as_tenant sets a new row's organisation from the thread's tenant.
 * Finding belongs to one object per domain (`Tickets::ReadableForToken`, `Tickets::RelationAccess`, `People::Lookup`, `Glossary::Lookup`); they share the question, not code. Where `nil` would drop a limit, the keyword is required.
 * The policy decides yes or no.
 * The caller words the answer (status, text, 404 form).
@@ -328,6 +329,32 @@ Verzeichnis-Übersicht (Auswahl):
   outside the token and a missing one look alike). The caller sets the tenant (the MCP twins
   and the controller do, before `authorize Person, :index?`); paging is the REST
   controller's (50, at most 100, a value outside refused).
+  S0 (2026-11-16): `Actors::TakeOverPerson` copies a contact (a row with `user_id` nil, no
+  member, no deactivated member's row) into another organisation of the viewer: the source
+  through `Lookup#entry`, the target from `active_organisations` (`.targets_for` is the
+  dialog's list, same rule), values only from the source row filtered by `FIELDS`, notes only
+  ticked, `Directory#duplicates_of(source_row)` in the target unless the request confirmed for
+  that same target, under an advisory lock on target and name (two takeovers at once ask
+  instead of both writing). One refusal (`:not_found`) for every case; the target records nothing of
+  the source.
+  The people above the organisations (16.11.2026, `GET /people`): `across_organisations.rb`
+  (`People::AcrossOrganisations.call(viewer:, query:, org:, page:)`) is the ONE read of a list
+  over several organisations. It walks `viewer.active_organisations` and reads each inside
+  `ActsAsTenant.with_tenant(organisation)` through `People::Lookup#listing` (new: every
+  entry, the matches of a search and the last contacts of a given list from ONE
+  `People::Directory`), skipped unless `#allowed?`. ⚠️ No read with the tenant lifted, in no
+  file of the feature: `spec/architecture/people_above_organisations_guard_spec.rb` names
+  the files, a later part (merging rows, the card) adds its own. A reference is not a
+  right: an organisation without the people right contributes nothing and is not named,
+  and as `org` it answers like an unknown one (`UnknownOrganisation`, a 404 in the
+  controller). Member entries with the same account are one row (computed, never stored); a
+  contact is always a row of its own. A search match on one entry shows the whole person.
+  The page is cut after the merge (50), last contacts are read for the rows shown only.
+  Plain values leave (`Row`, `Source` with the hash of `Lookup.row`, never `.card`), no
+  `Person`: the view runs without a tenant and must have nothing to load from. The one
+  record is `Row#avatar_user` (`User` is not tenanted). The loop per organisation is
+  declared in `spec/support/prosopite.rb` (`in_people_organisation`); what that could hide,
+  a read per row, is pinned by a statement count in the service spec.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem
@@ -682,9 +709,8 @@ Verzeichnis-Übersicht (Auswahl):
   und `plain_text.rb` (Schnipsel um einen Treffer).
   ⚠️ **Nichts hier rendert Markdown, und nichts liest `app/docs/`** — das Verzeichnis gibt
   es nicht mehr. Wer eine Doku-Seite ändern will, ändert sie im anderen Repo. Redcarpet und
-  Rouge bleiben im Gemfile: Changelog, `documentation/` und `Lalabase::SafeMarkdown` nutzen
-  sie weiter.
-* `product_knowledge/`: Lalabases EIGENE Texte (die In-App-Hilfe, später die Neuigkeiten)
+  Rouge bleiben im Gemfile: `documentation/` und `Lalabase::SafeMarkdown` nutzen sie weiter.
+* `product_knowledge/`: Lalabases EIGENE Texte (die In-App-Hilfe)
   als durchsuchbare Tabelle ohne Organisation (`doc/product_knowledge_plan.md`). Quelle ist
   seit D4 der **Katalog** (`Docs::Catalogue`), nicht mehr `app/docs/`; die Tabelle ist eine
   Kopie davon. `sources.rb` entscheidet fail-closed, was

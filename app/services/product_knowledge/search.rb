@@ -45,8 +45,8 @@ module ProductKnowledge
     # The language this search answers in, after the fallback for one it does not know.
     attr_reader :locale
 
-    # sources: what this caller reads. The help by default, so a source added later (the news
-    # in S3) never widens an existing caller by itself. limit: the tool wants MAX_RESULTS, the
+    # sources: what this caller reads. The help by default, so a source added later
+    # never widens an existing caller by itself. limit: the tool wants MAX_RESULTS, the
     # in-app help search (S4) its own.
     def initialize(locale:, sources: [Sources::HELP], limit: MAX_RESULTS)
       @locale = CONFIGS.key?(locale.to_s) ? locale.to_s : Docs::Contract::DEFAULT_LOCALE

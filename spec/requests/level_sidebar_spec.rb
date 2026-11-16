@@ -72,7 +72,7 @@ RSpec.describe 'The sidebar of the level above the organisations', :ci_guard, :r
       cockpit = page_at(select_organisation_path)
       inbox = page_at(all_inboxes_path)
 
-      expected = [I18n.t('navigation.overview'), I18n.t('navigation.all_inboxes'), 'Nord GmbH', 'Sued AG']
+      expected = [I18n.t('navigation.overview'), I18n.t('navigation.all_inboxes'), I18n.t('navigation.people'), 'Nord GmbH', 'Sued AG']
       expect(row_names(cockpit)).to eq(expected)
       expect(row_names(inbox)).to eq(expected)
       expect(organisation_rows(cockpit)).to eq(organisation_rows(inbox))
@@ -135,6 +135,43 @@ RSpec.describe 'The sidebar of the level above the organisations', :ci_guard, :r
     end
   end
 
+  # The people above the organisations (GET /people): a list of the level like the inbox,
+  # with a row of its own from two organisations on.
+  describe 'on the people above the organisations' do
+    { 'the people page' => -> { all_people_path }, 'the searched people page' => -> { all_people_path(q: 'niemand') } }.each do |where, path|
+      it "shows the rows of the level on #{where}, marks \"Personen\" and nothing else, and no link of the sidebar narrows" do
+        doc = page_at(instance_exec(&path))
+
+        expect(row_names(doc)).to eq([I18n.t('navigation.overview'), I18n.t('navigation.all_inboxes'),
+                                      I18n.t('navigation.people'), 'Nord GmbH', 'Sued AG'])
+        people = link(doc, I18n.t('navigation.people'))
+        expect(people['href']).to eq(all_people_path)
+        expect(people['aria-current']).to eq('page')
+        expect(people['class']).to include('sidebar-row--active')
+        expect(nav(doc).css('a.sidebar-row--active').size).to eq(1)
+        expect(nav(doc).css('a[aria-current]').size).to eq(1)
+        expect(organisation_rows(doc).map(&:second))
+          .to eq([organisation_root_path(organisation_id: north.id), organisation_root_path(organisation_id: south.id)])
+        expect(nav(doc).css('a').pluck('href')).to all(satisfy { |href| href.exclude?('org=') && href.exclude?('q=') })
+      end
+    end
+
+    { 'the cockpit' => -> { select_organisation_path }, 'the inbox' => -> { all_inboxes_path } }.each do |where, path|
+      it "leads to the people page from #{where} and does not mark \"Personen\" there" do
+        people = link(page_at(instance_exec(&path)), I18n.t('navigation.people'))
+
+        expect(people['href']).to eq(all_people_path)
+        expect(people['aria-current']).to be_nil
+        expect(people['class']).not_to include('sidebar-row--active')
+      end
+    end
+
+    # The page loads no counts of its own: the sidebar asks the reader of the switcher.
+    it 'shows the unread counts of the organisations on the people page' do
+      expect(organisation_rows(page_at(all_people_path)).map(&:last)).to eq(%w[2 1])
+    end
+  end
+
   describe 'the cockpit is "Übersicht"' do
     it 'names it so in its heading and in the browser title, in German' do
       doc = page_at(select_organisation_path)
@@ -159,6 +196,14 @@ RSpec.describe 'The sidebar of the level above the organisations', :ci_guard, :r
       doc = page_at(select_organisation_path)
       expect(row_names(doc)).to eq([I18n.t('navigation.overview'), 'Nord GmbH'])
     end
+
+    # A list above the organisations needs two of them: with one, neither row is offered.
+    it 'offers no "Personen" row either' do
+      doc = page_at(select_organisation_path)
+      expect(row_names(doc)).not_to include(I18n.t('navigation.people'), I18n.t('navigation.all_inboxes'))
+      expect(nav(doc).css('a').pluck('href')).not_to include(all_people_path)
+      expect(row_names(doc)).to include('Nord GmbH')
+    end
   end
 
   describe 'for a person without any active organisation' do
@@ -182,7 +227,8 @@ RSpec.describe 'The sidebar of the level above the organisations', :ci_guard, :r
 
     it 'shows the level sidebar without an organisation in the session' do
       doc = help_doc
-      expect(row_names(doc)).to eq([I18n.t('navigation.overview'), I18n.t('navigation.all_inboxes'), 'Nord GmbH', 'Sued AG'])
+      expect(row_names(doc)).to eq([I18n.t('navigation.overview'), I18n.t('navigation.all_inboxes'), I18n.t('navigation.people'),
+                                    'Nord GmbH', 'Sued AG'])
       expect(nav(doc).css('a[aria-current]')).to be_empty
     end
 

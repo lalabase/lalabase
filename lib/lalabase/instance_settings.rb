@@ -26,6 +26,11 @@ module Lalabase
     FORCE_SSL_VAR = 'LALABASE_FORCE_SSL'
     LOG_TO_STDOUT_VAR = 'RAILS_LOG_TO_STDOUT'
     MAILER_HOST_VAR = 'MAILER_DEFAULT_URL_HOST'
+    # The host organisations get their subdomains under (doc/org_subdomains_plan.md):
+    # with `lalabase.com`, an organisation is shown on `kunde.lalabase.com`. It is the
+    # host the instance answers on itself, named on its own because staging and the
+    # development machine do not read LALABASE_HOST. Unset: the feature is off.
+    TENANT_DOMAIN_VAR = 'LALABASE_TENANT_DOMAIN'
 
     # What our servers answer on. Only used while LALABASE_HOST is unset.
     OWN_HOST = 'lalabase.com'
@@ -51,7 +56,21 @@ module Lalabase
       # config.hosts. A String entry matches the host with any port, so
       # LALABASE_HOST=localhost also admits localhost:3000.
       def hosts(env = ENV)
-        self_hosted?(env) ? [bare_host(env)] : OWN_HOSTS.dup
+        base = self_hosted?(env) ? [bare_host(env)] : OWN_HOSTS.dup
+        domain = tenant_domain(env)
+        domain ? base + [tenant_host_pattern(domain)] : base
+      end
+
+      # nil while organisation subdomains are off. Lower case, without a port or a
+      # leading dot, so it compares with request.host as it is.
+      def tenant_domain(env = ENV)
+        env[TENANT_DOMAIN_VAR].to_s.strip.downcase.delete_prefix('.').sub(/:\d+\z/, '').presence
+      end
+
+      # Exactly one label below the tenant domain: `kunde.lalabase.com`, not
+      # `a.kunde.lalabase.com`.
+      def tenant_host_pattern(domain)
+        /\A[a-z0-9-]+\.#{Regexp.escape(domain)}\z/
       end
 
       # A self-hosted instance serves its assets itself unless ASSET_HOST

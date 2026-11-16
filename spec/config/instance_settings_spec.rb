@@ -327,3 +327,35 @@ RSpec.describe 'config/environments/production.rb' do
     end
   end
 end
+
+# Organisation subdomains (doc/org_subdomains_plan.md): off unless named, and then one
+# label below the named host, never two.
+RSpec.describe Lalabase::InstanceSettings, 'LALABASE_TENANT_DOMAIN' do
+  def host_allowed?(hosts, host)
+    app = ActionDispatch::HostAuthorization.new(->(_env) { [200, {}, ['ok']] }, hosts)
+    app.call(Rack::MockRequest.env_for('/', 'HTTP_HOST' => host)).first == 200
+  end
+
+  it 'is off when unset or blank' do
+    expect(described_class.tenant_domain({})).to be_nil
+    expect(described_class.tenant_domain('LALABASE_TENANT_DOMAIN' => ' ')).to be_nil
+  end
+
+  it 'reads the host in lower case, without a leading dot or a port' do
+    expect(described_class.tenant_domain('LALABASE_TENANT_DOMAIN' => ' .Example.TEST:3000 ')).to eq('example.test')
+  end
+
+  it 'adds the hosts one label below it to the allowed hosts' do
+    env = { 'LALABASE_HOST' => 'example.test', 'LALABASE_TENANT_DOMAIN' => 'example.test' }
+    hosts = described_class.hosts(env)
+
+    expect(host_allowed?(hosts, 'example.test')).to be(true)
+    expect(host_allowed?(hosts, 'kunde.example.test')).to be(true)
+    expect(host_allowed?(hosts, 'a.kunde.example.test')).to be(false)
+    expect(host_allowed?(hosts, 'kunde.example.test.evil')).to be(false)
+  end
+
+  it 'leaves the allowed hosts of our servers as they were while unset' do
+    expect(described_class.hosts({})).to eq(described_class::OWN_HOSTS)
+  end
+end

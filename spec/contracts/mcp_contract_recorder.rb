@@ -141,8 +141,17 @@ module McpContract
     end
 
     def build_world
-      @organisation = record { create(:organisation, id: id(:organisation), name: 'Nordlicht GmbH', subdomain: 'nordlicht', domain: 'nordlicht.example.com') }
-      @other_organisation = record { create(:organisation, id: id(:other_organisation), name: 'Fremdfirma AG', subdomain: 'fremdfirma', domain: 'fremdfirma.example.com') }
+      # The subdomain the organisation listing names comes from organisation_subdomains, not
+      # the legacy column, which stays empty here so a reader of the old column turns the
+      # contract red. Inside the same record step: each step moves the clock by a minute.
+      @organisation = record do
+        create(:organisation, id: id(:organisation), name: 'Nordlicht GmbH', subdomain: nil, domain: nil)
+          .tap { |org| OrganisationSubdomain.create!(organisation: org, subdomain: 'nordlicht') }
+      end
+      @other_organisation = record do
+        create(:organisation, id: id(:other_organisation), name: 'Fremdfirma AG', subdomain: nil, domain: nil)
+          .tap { |org| OrganisationSubdomain.create!(organisation: org, subdomain: 'fremdfirma') }
+      end
 
       @anna = record { create(:user, id: id(:anna), email: 'anna@example.com', first_name: 'Anna', last_name: 'Albers') }
       @ben = record { create(:user, id: id(:ben), email: 'ben@example.com', first_name: 'Ben', last_name: 'Berger') }

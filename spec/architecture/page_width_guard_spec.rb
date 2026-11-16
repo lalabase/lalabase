@@ -51,7 +51,6 @@ RSpec.describe 'page width guard' do
       'app/views/organisations/ai_settings/confirm_package.html.erb' => 1,
       'app/views/organisations/ai_settings/show.html.erb' => 2,
       'app/views/organisations/ai_usages/show.html.erb' => 2,
-      'app/views/organisations/changelog/show.html.erb' => 3,
       'app/views/organisations/codebase_import_files/preview_import.html.erb' => 1,
       'app/views/organisations/codebase_import_files/preview_tickets.html.erb' => 1,
       'app/views/organisations/codebase_import_files/preview_time_sessions.html.erb' => 1,

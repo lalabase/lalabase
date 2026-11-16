@@ -42,7 +42,6 @@ module ServiceConventionDetectors
     app/services/access_check/role_project_rights_service.rb
     app/services/ad_hoc_filter_service.rb
     app/services/bulk_customer_description_generator.rb
-    app/services/changelog/entry_loader.rb
     app/services/codebase_import/custom_attribute_import_service.rb
     app/services/codebase_import/custom_attribute_mapping_resolver.rb
     app/services/codebase_import/mapping_converter.rb

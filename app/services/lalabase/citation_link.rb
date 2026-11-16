@@ -34,7 +34,7 @@ module Lalabase
     end
 
     # A page of Lalabase's own texts, addressed by its source and slug (the citation's id).
-    # Branches on the source so the news (S3) get their own address rather than the help's.
+    # Branches on the source so another source could get its own address rather than the help's.
     def product_path(citation)
       slug = citation['id']
       return nil if slug.blank?

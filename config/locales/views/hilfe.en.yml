@@ -23,6 +23,3 @@ en:
           title: Help page not found
           body: This help page does not exist (anymore).
           home_link: Go to the help start page
-      changelog:
-        title: What's New
-        empty: No entries yet.

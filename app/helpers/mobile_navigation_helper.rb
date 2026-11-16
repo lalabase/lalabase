@@ -16,7 +16,6 @@ module MobileNavigationHelper
     'appearances' => 'settings.appearance',
     'archives' => 'settings.archive',
     'billing' => 'settings.billing',
-    'changelog' => 'navigation.changelog',
     'codebase_import_files' => 'mobile.page_titles.imports',
     'glossary' => 'navigation.glossary',
     'help' => 'mobile.help',

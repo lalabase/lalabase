@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-15)
+# Karte: app/services (Stand: 2026-11-16)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -14,6 +14,7 @@ Ausgenommene Subtrees mit eigenem Vertrag: `actors/`, `lalabase/tools/`).
 Einzel-`update!` ohne Side-Effects bleibt im Controller.
 
 * An actor writes and checks no rights. Exceptions lock first and authorize again under the lock (`AcceptTicketSuggestion`, `StartTicketSuggestionRun`, `CorrectMeetingTerm`).
+* A second exception spans two tenants: `TakeOverPerson` (People S0, 2026-11-16) asks `PersonPolicy#create?` under the TARGET's tenant, which only the actor opens, and reads the source through `People::Lookup` under the source's. ⚠️ A write into another tenant than the request's runs its whole transaction under that tenant (it overrides `with_actor_context`): commit callbacks (`Trackable`'s activity) run after `#perform`, and acts_as_tenant sets a new row's organisation from the thread's tenant.
 * Finding belongs to one object per domain (`Tickets::ReadableForToken`, `Tickets::RelationAccess`, `People::Lookup`, `Glossary::Lookup`); they share the question, not code. Where `nil` would drop a limit, the keyword is required.
 * The policy decides yes or no.
 * The caller words the answer (status, text, 404 form).
@@ -328,6 +329,13 @@ Verzeichnis-Übersicht (Auswahl):
   outside the token and a missing one look alike). The caller sets the tenant (the MCP twins
   and the controller do, before `authorize Person, :index?`); paging is the REST
   controller's (50, at most 100, a value outside refused).
+  S0 (2026-11-16): `Actors::TakeOverPerson` copies a contact (a row with `user_id` nil, no
+  member, no deactivated member's row) into another organisation of the viewer: the source
+  through `Lookup#entry`, the target from `active_organisations` (`.targets_for` is the
+  dialog's list, same rule), values only from the source row filtered by `FIELDS`, notes only
+  ticked, `Directory#duplicates_of(source_row)` in the target unless the request confirmed for
+  that same target. One refusal (`:not_found`) for every case; the target records nothing of
+  the source.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

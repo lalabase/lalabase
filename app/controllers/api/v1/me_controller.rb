@@ -44,7 +44,12 @@ module Api
           # Whether a write (an MCP tool marked mutating) is refused for this token,
           # so a client knows before it offers one (terminal client plan, S0 b).
           read_only: token.read_only?,
+          # `personal` (made on the token page) or `app_session` (a device, made by
+          # the sign-in door). A device's expires_at moves with its use and never
+          # past ends_at; a personal token has no ends_at (null).
+          kind: token.kind,
           expires_at: token.expires_at.iso8601,
+          ends_at: token.ends_at&.iso8601,
           last_used_at: token.last_used_at&.iso8601
         }
       end

@@ -84,6 +84,13 @@ RSpec.describe UserDataExports::Registry do
       expect(api_tokens.exported_keys).not_to include('token_hash')
     end
 
+    # A person sees in the export which of their tokens a device holds
+    # (app_session) and which they made themselves (personal).
+    it 'exports the kind of a token' do
+      api_tokens = described_class::SOURCES.find { |s| s.key == :api_tokens }
+      expect(api_tokens.exported_keys).to include('kind')
+    end
+
     # S3 KI-Kontingent: personal usage attribution is exported (what/when/credits),
     # internal cost/margin statistics (cost_cents, metadata, tokens) are NOT.
     it 'exports the AI usage action/credits but never the internal cost statistics' do

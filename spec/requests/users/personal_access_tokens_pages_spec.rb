@@ -148,4 +148,77 @@ RSpec.describe 'API token pages', type: :request do
       expect(doc.at_css('main [role="alert"]').text).to include(key('created.warning_title'))
     end
   end
+
+  # A device signed in through an app (kind app_session) stands in the same list. It is
+  # marked, it is revoked here, and it is never renamed or switched to read-only. The
+  # personal token beside it is the control of every refusal.
+  describe 'a device token' do
+    let!(:personal) { create(:personal_access_token, user: user, organisations: [organisation], name: 'Mein Token') }
+    let!(:device) { create(:personal_access_token, :app_session, user: user, name: 'iPhone') }
+
+    def row(name)
+      doc.css('main [data-token-list] > li').find { |li| li.at_css('h2').text.squish == name }
+    end
+
+    it 'is marked as an app in the list, a personal token is not' do
+      get users_personal_access_tokens_path
+
+      expect(row('iPhone').at_css('[data-token-kind="app_session"]').text.squish).to eq(key('index.kind_app_session'))
+      expect(row('Mein Token').at_css('[data-token-kind]')).to be_nil
+      expect_flat(doc.at_css('main [data-token-list]'))
+    end
+
+    it 'says that it expires after its last use and when it ends, with the days of the model' do
+      get users_personal_access_tokens_path
+
+      days = PersonalAccessToken::MAX_LIFETIME.in_days.to_i
+      expect(row('iPhone').at_css('[data-token-expiry="sliding"]').text.squish)
+        .to include(I18n.t('views.users.personal_access_tokens.index.expires_after_last_use', days: days))
+      expect(row('iPhone').text).to include(key('index.ends_at'), I18n.l(device.ends_at.to_date))
+      expect(row('Mein Token').at_css('[data-token-expiry="sliding"]')).to be_nil
+      expect(row('Mein Token').text).to include(I18n.l(personal.expires_at, format: :short))
+      expect(doc.at_css('main [data-explainer-point="devices"]').text.squish)
+        .to eq(I18n.t('views.users.personal_access_tokens.index.explainer.point_devices', days: days))
+    end
+
+    it 'offers revoke but no rename, a personal token offers both' do
+      get users_personal_access_tokens_path
+
+      expect(row('iPhone').css('a').map { |link| link['href'] }).to eq([users_personal_access_token_path(device)])
+      expect(row('Mein Token').css('a').map { |link| link['href'] })
+        .to eq([edit_users_personal_access_token_path(personal), users_personal_access_token_path(personal)])
+    end
+
+    it 'is revoked from the list' do
+      delete users_personal_access_token_path(device)
+
+      expect(response).to redirect_to(users_personal_access_tokens_path)
+      expect(device.reload).to be_revoked
+      expect(personal.reload).not_to be_revoked
+    end
+
+    it 'refuses the rename form' do
+      get edit_users_personal_access_token_path(device)
+      expect(response).to have_http_status(:redirect)
+      expect(flash[:alert]).to eq(I18n.t('shared.errors.not_authorized'))
+
+      get edit_users_personal_access_token_path(personal)
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'refuses a PATCH: neither the name nor read-only changes' do
+      patch users_personal_access_token_path(device),
+            params: { personal_access_token: { name: 'Renamed', read_only: '1' } }
+
+      expect(response).to have_http_status(:redirect)
+      expect(flash[:alert]).to eq(I18n.t('shared.errors.not_authorized'))
+      expect(device.reload).to have_attributes(name: 'iPhone', read_only: false)
+
+      # The control: the same PATCH changes a personal token.
+      patch users_personal_access_token_path(personal),
+            params: { personal_access_token: { name: 'Renamed', read_only: '0' } }
+      expect(response).to redirect_to(users_personal_access_tokens_path)
+      expect(personal.reload).to have_attributes(name: 'Renamed', read_only: false)
+    end
+  end
 end

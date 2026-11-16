@@ -29,6 +29,13 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   whom, in pages. A token limited to some projects gets every term, but the heard forms of
   its projects only; speakers are named only with the right to the people directory.
   API version 1.11.0, MCP 0.18.0.
+- Access tokens have a kind. A token made on the token page is `personal`, as every existing
+  token is. The new kind `app_session` is the token of a device that signed in through an
+  app: it reaches the whole account, may write, and expires 90 days after its last use, at
+  the latest a year after it was made. The token page marks such a device and revokes it,
+  but does not rename it. `GET /api/v1/me` names `token.kind` and `token.ends_at`, and the
+  data export lists the kind. No token changes by this update: nothing hands out a device
+  token yet. API version 1.13.0.
 
 ### Changed
 

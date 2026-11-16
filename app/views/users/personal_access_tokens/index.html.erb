@@ -40,6 +40,13 @@
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                   <h2 class="truncate text-sm font-semibold text-heading"><%= token.name %></h2>
                   <%= render 'status_badge', token: token %>
+                  <% if token.app_session? %>
+                    <%# A device signed in through an app, not a token its owner made here. %>
+                    <span class="inline-flex items-center gap-1 whitespace-nowrap text-xs text-muted" data-token-kind="app_session">
+                      <i class="bi bi-phone" aria-hidden="true"></i>
+                      <%= t('views.users.personal_access_tokens.index.kind_app_session') %>
+                    </span>
+                  <% end %>
                 </div>
                 <div class="mt-0.5 font-mono text-[12px] text-faint"><%= token.token_prefix %>…</div>
 
@@ -53,10 +60,24 @@
                     <dt><%= t('views.users.personal_access_tokens.index.col_created') %>:</dt>
                     <dd class="tabular-nums"><%= l(token.created_at, format: :short) %></dd>
                   </div>
-                  <div class="flex gap-1">
-                    <dt><%= t('views.users.personal_access_tokens.index.col_expires') %>:</dt>
-                    <dd class="tabular-nums"><%= l(token.expires_at, format: :short) %></dd>
-                  </div>
+                  <% if token.app_session? %>
+                    <%# A device's expiry moves with its use, so the rule says more than
+                        today's date; the days come from the model, never from the text. %>
+                    <div class="flex gap-1" data-token-expiry="sliding">
+                      <dt><%= t('views.users.personal_access_tokens.index.col_expires') %>:</dt>
+                      <dd><%= t('views.users.personal_access_tokens.index.expires_after_last_use',
+                                days: PersonalAccessToken::MAX_LIFETIME.in_days.to_i) %></dd>
+                    </div>
+                    <div class="flex gap-1">
+                      <dt><%= t('views.users.personal_access_tokens.index.ends_at') %>:</dt>
+                      <dd class="tabular-nums"><%= l(token.ends_at.to_date) %></dd>
+                    </div>
+                  <% else %>
+                    <div class="flex gap-1">
+                      <dt><%= t('views.users.personal_access_tokens.index.col_expires') %>:</dt>
+                      <dd class="tabular-nums"><%= l(token.expires_at, format: :short) %></dd>
+                    </div>
+                  <% end %>
                   <% if token.last_used_at %>
                     <div class="flex gap-1">
                       <dt><%= t('views.users.personal_access_tokens.index.col_last_used') %>:</dt>
@@ -68,13 +89,16 @@
 
               <% if token.active? %>
                 <div class="flex shrink-0 items-center gap-2">
-                  <%= render Neo::Buttons::ButtonComponent.new(
-                        variant: :secondary,
-                        size: :small,
-                        icon: 'pencil',
-                        url: edit_users_personal_access_token_path(token)
-                      ) do %>
-                    <%= t('views.users.personal_access_tokens.index.edit') %>
+                  <%# No rename for a device token: the policy refuses it. %>
+                  <% if policy(token).edit? %>
+                    <%= render Neo::Buttons::ButtonComponent.new(
+                          variant: :secondary,
+                          size: :small,
+                          icon: 'pencil',
+                          url: edit_users_personal_access_token_path(token)
+                        ) do %>
+                      <%= t('views.users.personal_access_tokens.index.edit') %>
+                    <% end %>
                   <% end %>
                   <%= render Neo::Buttons::ButtonComponent.new(
                         variant: :danger,

@@ -163,5 +163,82 @@ RSpec.describe 'API V1 Me', :ci_guard, type: :request do
         expect(orgs.first['scoped_project_ids']).to contain_exactly(project.id)
       end
     end
+
+    # A device token (kind app_session) is what the sign-in door hands to an app.
+    # It lives while it is used; a personal token beside it is the control.
+    context 'with a device token' do
+      include ActiveSupport::Testing::TimeHelpers
+
+      let(:device) do
+        build(:personal_access_token, :app_session, user: user, name: 'iPhone').tap(&:generate_token!)
+      end
+
+      def token_data(token)
+        get '/api/v1/me', headers: auth_headers(token)
+        expect(response).to have_http_status(:ok)
+        JSON.parse(response.body).dig('data', 'token')
+      end
+
+      it 'names the kind and the end of the token, and no end for a personal token' do
+        freeze_time do
+          expect(token_data(device.token)).to include(
+            'kind' => 'app_session', 'name' => 'iPhone', 'read_only' => false, 'all_organisations' => true,
+            'ends_at' => PersonalAccessToken::APP_SESSION_MAX_AGE.from_now.iso8601
+          )
+          personal = token_data(pat.token)
+          expect(personal).to include('kind' => 'personal')
+          expect(personal).to have_key('ends_at')
+          expect(personal['ends_at']).to be_nil
+        end
+      end
+
+      it 'moves the expiry of the device with a request, and never that of a personal token' do
+        made_at = Time.zone.local(2026, 1, 10, 12, 0, 0)
+        travel_to(made_at) do
+          device
+          pat
+        end
+
+        travel_to(made_at + 10.days) do
+          expect(token_data(device.token)['expires_at']).to eq((made_at + 100.days).iso8601)
+          expect(token_data(pat.token)['expires_at']).to eq((made_at + 30.days).iso8601)
+        end
+        expect(device.reload.expires_at).to eq(made_at + 100.days)
+        expect(pat.reload.expires_at).to eq(made_at + 30.days)
+      end
+
+      it 'moves the expiry at most once per minute, with last_used_at' do
+        device.update_columns(last_used_at: 30.seconds.ago, expires_at: 10.days.from_now)
+        expect { get '/api/v1/me', headers: auth_headers(device.token) }
+          .not_to(change { device.reload.expires_at })
+
+        device.update_columns(last_used_at: 2.minutes.ago)
+        expect { get '/api/v1/me', headers: auth_headers(device.token) }
+          .to(change { device.reload.expires_at })
+      end
+
+      it 'is revoked by a new password, like every token of the account' do
+        token = device.token
+        get '/api/v1/me', headers: auth_headers(token)
+        expect(response).to have_http_status(:ok)
+
+        user.update!(password: 'a-new-password-123', password_confirmation: 'a-new-password-123')
+
+        get '/api/v1/me', headers: auth_headers(token)
+        expect(response).to have_http_status(:unauthorized)
+        expect(device.reload).to be_revoked
+      end
+
+      it 'is revoked by a password reset' do
+        token = device.token
+        get '/api/v1/me', headers: auth_headers(token)
+        expect(response).to have_http_status(:ok)
+
+        user.reset_password('a-new-password-123', 'a-new-password-123')
+
+        get '/api/v1/me', headers: auth_headers(token)
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
   end
 end

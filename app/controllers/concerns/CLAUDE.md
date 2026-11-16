@@ -1,4 +1,4 @@
-# Karte: app/controllers/concerns (Stand: 2026-11-15)
+# Karte: app/controllers/concerns (Stand: 2026-11-16)
 
 > Für die Ticket-**Domäne** (Attributsystem, Kanban, Actors, Fallen) gilt zusätzlich
 > `docs/architektur/tickets_lesepfad.md`. Diese Karte hier beschreibt nur den **Stack**.
@@ -176,3 +176,11 @@ jedes Frames, das per Redirect antwortet, zählt erst ab dem nächsten Klick (Tu
 Stream-Accept); so landet auch die Annahme einer Einladung (`AcceptInvitationsController#update`)
 in der neuen Organisation, ohne die Sitzung umzusetzen, bis zur ersten Seite dort. Die Regel entscheidet nur, wohin ein Rückweg führt,
 nie ein Recht. Wächter: `spec/requests/session_organisation_follows_pages_spec.rb`.
+
+`Api::TokenAuthenticatable` (`api/token_authenticatable.rb`, `/api/v1` und `/api/mcp`): der Ausweis
+über ein Zugangstoken. Ein Token antwortet nur, solange sein Besitzer sich anmelden dürfte, sonst
+dasselbe 401 wie ein unbekanntes. Die Nutzung notiert höchstens einmal je Minute
+`PersonalAccessToken#record_use!` (seit K6a, 16.11.2026): `last_used_at`, und bei einem Geräte-Token
+(`kind` `app_session`) in derselben Anweisung der Ablauf, der mit der Nutzung vorrückt. Wer die
+Drossel ändert, ändert damit auch, wie oft ein Gerät seinen Ablauf verlängert. Wächter:
+`spec/requests/api/v1/me_spec.rb` („with a device token").

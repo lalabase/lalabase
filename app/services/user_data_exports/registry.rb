@@ -71,7 +71,7 @@ module UserDataExports
       source(key: :security_history, model: 'UserActivity', tenant_scoped: false,
              serializer: 'UserDataExports::Serializers::UserActivitiesSerializer'),
       source(key: :api_tokens, model: 'PersonalAccessToken', tenant_scoped: false,
-             attributes: %w[name token_prefix read_only last_used_at expires_at revoked_at created_at],
+             attributes: %w[name kind token_prefix read_only last_used_at expires_at revoked_at created_at],
              scope: ->(user) { PersonalAccessToken.where(user: user) }),
       source(key: :notification_preferences, model: 'NotificationPreference', tenant_scoped: false,
              attributes: %w[scope_type enabled created_at],

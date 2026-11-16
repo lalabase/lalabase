@@ -12,9 +12,7 @@
     agree. A new account page is one entry here and shows in both.
 
     layer: true adds what only the layer has: the cross that closes it (F20, at the
-    end of the label row as F41 has it) and, while the news are in the navigation
-    (ApplicationHelper#changelog_in_navigation?), the news of the organisation the
-    reader stands in. The label has the form of the sidebar's other labels
+    end of the label row as F41 has it). The label has the form of the sidebar's other labels
     ("PROJEKTE", "VERWALTUNG"). %>
 <div class="flex items-center justify-between gap-2 px-3 pb-1.5">
   <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"><%= t('navigation.account_section') %></p>
@@ -37,12 +35,5 @@
   <% account_pages.each do |page| %>
     <%= render 'common/navigation_item', name: page[:label], path: page[:path], icon: page[:icon],
                                          active: page[:active], aria_current: ('page' if page[:active]) %>
-  <% end %>
-
-  <% if layer && changelog_in_navigation? && current_organisation.present? %>
-    <%= render 'common/navigation_item',
-          name: changelog_nav_label(changelog_has_unread?(current_user)),
-          path: organisation_changelog_path(organisation_id: current_organisation.id),
-          icon: 'bi bi-megaphone' %>
   <% end %>
 </ul>

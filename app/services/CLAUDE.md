@@ -674,9 +674,8 @@ Verzeichnis-Übersicht (Auswahl):
   und `plain_text.rb` (Schnipsel um einen Treffer).
   ⚠️ **Nichts hier rendert Markdown, und nichts liest `app/docs/`** — das Verzeichnis gibt
   es nicht mehr. Wer eine Doku-Seite ändern will, ändert sie im anderen Repo. Redcarpet und
-  Rouge bleiben im Gemfile: Changelog, `documentation/` und `Lalabase::SafeMarkdown` nutzen
-  sie weiter.
-* `product_knowledge/`: Lalabases EIGENE Texte (die In-App-Hilfe, später die Neuigkeiten)
+  Rouge bleiben im Gemfile: `documentation/` und `Lalabase::SafeMarkdown` nutzen sie weiter.
+* `product_knowledge/`: Lalabases EIGENE Texte (die In-App-Hilfe)
   als durchsuchbare Tabelle ohne Organisation (`doc/product_knowledge_plan.md`). Quelle ist
   seit D4 der **Katalog** (`Docs::Catalogue`), nicht mehr `app/docs/`; die Tabelle ist eine
   Kopie davon. `sources.rb` entscheidet fail-closed, was

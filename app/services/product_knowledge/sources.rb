@@ -10,7 +10,7 @@ module ProductKnowledge
   #
   # Fail closed: a source not listed in KEYS is not read, and the sync deletes its rows. The
   # self-hosting docs are deliberately not in here -- they are not in the catalogue at all,
-  # because the writer over there builds it from the handbook alone. The news join in S3.
+  # because the writer over there builds it from the handbook alone.
   module Sources
     HELP = 'help'
     KEYS = [HELP].freeze

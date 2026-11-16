@@ -396,7 +396,7 @@ Rails/UnknownEnv:
   Exclude:
     - 'config/routes.rb'
 
-# Offense count: 71
+# Offense count: 70
 # This cop supports unsafe autocorrection (--autocorrect-all).
 # Configuration parameters: EnforcedStyle, EnforcedStyleForClasses, EnforcedStyleForModules.
 # SupportedStyles: nested, compact
@@ -434,7 +434,6 @@ Style/ClassAndModuleChildren:
     - 'app/controllers/organisations/ai_sync_statuses_controller.rb'
     - 'app/controllers/organisations/base_controller.rb'
     - 'app/controllers/organisations/briefings_controller.rb'
-    - 'app/controllers/organisations/changelog_controller.rb'
     - 'app/controllers/organisations/chat_style_preferences_controller.rb'
     - 'app/controllers/organisations/chatposts_controller.rb'
     - 'app/controllers/organisations/chats_controller.rb'
@@ -639,10 +638,9 @@ Style/StringConcatenation:
     - 'spec/services/lalabase/indexer/symbols/walker_spec.rb'
     - 'spec/services/lalabase/llm/factory_spec.rb'
 
-# Offense count: 3
+# Offense count: 2
 # This cop supports unsafe autocorrection (--autocorrect-all).
 Style/StructInheritance:
   Exclude:
-    - 'app/policies/changelog_policy.rb'
     - 'app/policies/notifications_policy.rb'
     - 'app/policies/power_search_policy.rb'

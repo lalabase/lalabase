@@ -389,13 +389,31 @@ RSpec.describe PersonalAccessToken, type: :model do
       expect(personal(kind: 'robot')).not_to be_valid
 
       token = personal.tap(&:save!)
-      expect { described_class.transaction(requires_new: true) { token.update_column(:kind, 'robot') } }
+      # Past the model: kind is read-only there, so only a bare statement reaches the table.
+      row = described_class.where(id: token.id)
+      expect { described_class.transaction(requires_new: true) { row.update_all(kind: 'robot') } }
         .to raise_error(ActiveRecord::StatementInvalid, /personal_access_tokens_kind_known/)
       expect(token.reload.kind).to eq('personal')
 
       # The control: a known kind passes the same statement.
-      expect { token.update_column(:kind, 'app_session') }.not_to raise_error
+      expect { row.update_all(kind: 'app_session') }.not_to raise_error
       expect(token.reload.kind).to eq('app_session')
+    end
+
+    # A personal token that became a device would reach the whole account, write and
+    # never run out while used; a device that became personal could be renamed.
+    it 'keeps its kind for life: a saved token never becomes the other kind' do
+      saved_personal = personal.tap(&:save!)
+      saved_device = device.tap(&:save!)
+
+      expect { saved_personal.update(kind: 'app_session', all_organisations: true, read_only: false) }
+        .to raise_error(ActiveRecord::ReadonlyAttributeError)
+      expect { saved_device.update(kind: 'personal') }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+      expect(saved_personal.reload.kind).to eq('personal')
+      expect(saved_device.reload.kind).to eq('app_session')
+
+      # The control: another attribute of the same token changes.
+      expect(saved_personal.update(name: 'Renamed')).to be(true)
     end
 
     describe 'the shape of a device token' do
@@ -420,6 +438,17 @@ RSpec.describe PersonalAccessToken, type: :model do
         expect(reading.errors.details[:base]).to include(error: :app_session_shape)
         # The control: a personal token for the whole account may be read-only.
         expect(build(:personal_access_token, :all_organisations, user: user, read_only: true)).to be_valid
+      end
+
+      it 'holds for a saved device token too, not only when it is made' do
+        saved = device.tap(&:save!)
+
+        expect(saved.update(read_only: true)).to be(false)
+        expect(saved.errors.details[:base]).to include(error: :app_session_shape)
+        expect(saved.reload).to have_attributes(read_only: false, all_organisations: true)
+        # The control: a personal token for the whole account takes the same change.
+        whole = create(:personal_access_token, :all_organisations, user: user, read_only: false)
+        expect(whole.update(read_only: true)).to be(true)
       end
 
       it 'has a message in both languages' do
@@ -521,6 +550,32 @@ RSpec.describe PersonalAccessToken, type: :model do
       end
     end
 
+    # A token that is over stays over. Noting a use moved the expiry of an expired
+    # device 90 days ahead, so one call would have brought it back to life.
+    describe '#record_use! on a token that is over' do
+      let(:made_at) { Time.zone.local(2026, 1, 10, 12, 0, 0) }
+
+      it 'never brings an expired or a revoked device back, and still moves a live one' do
+        expired, revoked, live = travel_to(made_at) { Array.new(3) { device.tap(&:generate_token!) } }
+
+        travel_to(made_at + 91.days) do
+          expect(expired.record_use!).to be(false)
+          expect(expired.reload).to have_attributes(expires_at: made_at + 90.days, last_used_at: nil)
+          expect(expired).not_to be_active
+        end
+
+        travel_to(made_at + 1.day) do
+          revoked.revoke!
+          expect(revoked.record_use!).to be(false)
+          expect(revoked.reload).to have_attributes(expires_at: made_at + 90.days, last_used_at: nil)
+
+          # The control: the same call moves a device that still works.
+          live.record_use!
+          expect(live.reload).to have_attributes(expires_at: made_at + 91.days, last_used_at: made_at + 1.day)
+        end
+      end
+    end
+
     describe '.make_room_for_app_session!' do
       let(:now) { Time.zone.local(2026, 3, 1, 12, 0, 0) }
 
@@ -561,6 +616,44 @@ RSpec.describe PersonalAccessToken, type: :model do
 
         expect(described_class.make_room_for_app_session!(user)).to eq([never_used])
         expect(revoked_among(devices)).to be_empty
+      end
+
+      # Revoked through a validating save, such a row raised, and no later sign-in
+      # of the account got through.
+      it 'revokes a device that no longer passes its validation' do
+        devices = Array.new(10) { |i| device_used(i + 1) }
+        stalest = devices.last
+        stalest.update_columns(read_only: true)
+        expect(stalest.reload).not_to be_valid
+
+        expect(described_class.make_room_for_app_session!(user)).to eq([stalest])
+        expect(revoked_among(devices)).to eq([stalest])
+      end
+
+      it 'revokes as many as it takes when more than ten are alive, the stalest first' do
+        devices = Array.new(12) { |i| device_used(i + 1) }
+
+        expect(described_class.make_room_for_app_session!(user)).to eq(devices.last(3).reverse)
+        expect(revoked_among(devices)).to match_array(devices.last(3))
+        expect(described_class.active.app_sessions.where(user: user).count)
+          .to eq(described_class::MAX_APP_SESSIONS - 1)
+      end
+
+      # Two sign-ins of one account at once count the same devices one after the
+      # other only if the row of the user is locked first. FOR NO KEY UPDATE: a row
+      # that merely points at the user (an activity) does not wait for a sign-in.
+      it 'locks the row of the user before it counts the devices' do
+        statements = []
+        subscriber = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
+          statements << payload[:sql]
+        end
+        described_class.make_room_for_app_session!(user)
+        ActiveSupport::Notifications.unsubscribe(subscriber)
+
+        lock = statements.index { |sql| sql.include?('FROM "users"') && sql.include?('FOR NO KEY UPDATE') }
+        count = statements.index { |sql| sql.include?('FROM "personal_access_tokens"') }
+        expect(lock).not_to be_nil
+        expect(count).to be > lock
       end
 
       it 'counts live devices only, and only those of this account' do

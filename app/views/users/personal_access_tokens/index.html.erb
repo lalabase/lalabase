@@ -60,9 +60,10 @@
                     <dt><%= t('views.users.personal_access_tokens.index.col_created') %>:</dt>
                     <dd class="tabular-nums"><%= l(token.created_at, format: :short) %></dd>
                   </div>
-                  <% if token.app_session? %>
+                  <% if token.app_session? && token.active? %>
                     <%# A device's expiry moves with its use, so the rule says more than
-                        today's date; the days come from the model, never from the text. %>
+                        today's date; the days come from the model, never from the text.
+                        A device that is over says when it ended, like every token. %>
                     <div class="flex gap-1" data-token-expiry="sliding">
                       <dt><%= t('views.users.personal_access_tokens.index.col_expires') %>:</dt>
                       <dd><%= t('views.users.personal_access_tokens.index.expires_after_last_use',

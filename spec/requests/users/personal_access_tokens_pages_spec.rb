@@ -181,6 +181,43 @@ RSpec.describe 'API token pages', type: :request do
         .to eq(I18n.t('views.users.personal_access_tokens.index.explainer.point_devices', days: days))
     end
 
+    # "Expired", then the rule of a live device and an end months ahead: the row of
+    # a device that is over contradicted itself. It says when it ended, like every token.
+    it 'shows when a device that is over ended, not the rule of a live one' do
+      expired = create(:personal_access_token, :app_session, user: user, name: 'Altes iPad', expires_at: 2.days.ago)
+      revoked = create(:personal_access_token, :app_session, user: user, name: 'Altes iPhone', revoked_at: 1.day.ago)
+
+      get users_personal_access_tokens_path
+
+      [expired, revoked].each do |token|
+        expect(row(token.name).at_css('[data-token-kind="app_session"]')).to be_present
+        expect(row(token.name).at_css('[data-token-expiry="sliding"]')).to be_nil
+        expect(row(token.name).text).to include(I18n.l(token.expires_at, format: :short))
+        expect(row(token.name).text).not_to include(key('index.ends_at'))
+      end
+      # The control: the live device beside them keeps its rule.
+      expect(row('iPhone').at_css('[data-token-expiry="sliding"]')).to be_present
+      expect(row('iPhone').text).to include(key('index.ends_at'))
+    end
+
+    # Nobody makes a device on the token page, and no form turns a token into one:
+    # `kind` is a parameter of neither form.
+    it 'makes a personal token whatever kind the form names, and renames one without changing it' do
+      post users_personal_access_tokens_path, params: {
+        current_password: user.password,
+        personal_access_token: { name: 'Geschmuggelt', kind: 'app_session', read_only: '0', expires_preset: '30',
+                                 organisation_mode: 'all' }
+      }
+      expect(response).to have_http_status(:ok)
+      expect(PersonalAccessToken.find_by!(name: 'Geschmuggelt')).to have_attributes(kind: 'personal')
+
+      patch users_personal_access_token_path(personal),
+            params: { personal_access_token: { name: 'Umbenannt', kind: 'app_session' } }
+      expect(response).to redirect_to(users_personal_access_tokens_path)
+      expect(personal.reload).to have_attributes(name: 'Umbenannt', kind: 'personal')
+      expect(PersonalAccessToken.app_sessions.where(user: user)).to contain_exactly(device)
+    end
+
     it 'offers revoke but no rename, a personal token offers both' do
       get users_personal_access_tokens_path
 

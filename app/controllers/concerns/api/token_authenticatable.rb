@@ -59,11 +59,12 @@ module Api
     end
 
     # Throttle: only once per minute per token, otherwise a write storm.
-    # update_column DELIBERATELY: no callbacks/validation, only the one column.
+    # PersonalAccessToken#record_use! writes without callbacks or validation:
+    # last_used_at, and for a device token the expiry that moves with its use.
     def touch_last_used_at(pat)
       return if pat.last_used_at && pat.last_used_at > LAST_USED_THROTTLE.ago
 
-      pat.update_column(:last_used_at, Time.current)
+      pat.record_use!
     end
 
     # The 401 body. Api::V1::BaseController overrides it to add the error code;

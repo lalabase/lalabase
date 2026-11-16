@@ -80,6 +80,29 @@ RSpec.describe PersonalAccessTokenPolicy, :ci_guard, type: :policy do
     end
   end
 
+  # A device token (kind app_session) is revoked, never changed: its name is the
+  # device's, and a read-only device could not send. The owner's personal token
+  # above is the control (update permitted).
+  describe 'member actions of the OWNER on a device token' do
+    subject(:policy) { described_class.new(owner, device_token) }
+
+    let(:device_token) { create(:personal_access_token, :app_session, user: owner) }
+
+    it 'forbids update and its edit? alias' do
+      expect(policy.update?).to be false
+      expect(policy.edit?).to be false
+    end
+
+    it 'permits show and destroy' do
+      expect(policy.show?).to be true
+      expect(policy.destroy?).to be true
+    end
+
+    it 'forbids destroy for another user' do
+      expect(described_class.new(other, device_token).destroy?).to be false
+    end
+  end
+
   describe 'without a user' do
     # ApplicationPolicy#initialize refuses a nil user outright (shared contract).
     it 'cannot even be constructed' do

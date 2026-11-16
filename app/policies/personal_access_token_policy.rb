@@ -28,8 +28,10 @@ class PersonalAccessTokenPolicy < ApplicationPolicy
     update?
   end
 
+  # A device token (kind app_session) is revoked, never changed: its name is the
+  # device's, and a read-only device could not send.
   def update?
-    owns_record?
+    owns_record? && !record.app_session?
   end
 
   def destroy?

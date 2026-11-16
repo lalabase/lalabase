@@ -7,6 +7,7 @@
 #  id                :uuid             not null, primary key
 #  all_organisations :boolean          default(FALSE), not null
 #  expires_at        :datetime         not null
+#  kind              :string           default("personal"), not null
 #  last_used_at      :datetime
 #  name              :string           not null
 #  read_only         :boolean          default(TRUE), not null
@@ -66,6 +67,15 @@ FactoryBot.define do
     # organisation links: pass no `organisations:` with this trait.
     trait :all_organisations do
       all_organisations { true }
+    end
+
+    # A device token as the sign-in door makes it: the whole account, writing,
+    # the longest lifetime. No organisation links: pass no `organisations:`.
+    trait :app_session do
+      kind { PersonalAccessToken::APP_SESSION }
+      all_organisations { true }
+      read_only { false }
+      expires_at { PersonalAccessToken::MAX_LIFETIME.from_now }
     end
 
     trait :revoked do

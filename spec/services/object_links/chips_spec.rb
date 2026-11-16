@@ -22,7 +22,7 @@ RSpec.describe ObjectLinks::Chips do
     Prosopite.pause do
       create(:membership, user: reader, organisation: organisation)
       create(:project_permission, user: reader, project: project, tickets_access: :read_write,
-                                  meetings_access: :read_only)
+                                  meetings_access: :read_only, notes_access: :read_only, documents_access: :read_only)
       tickets
       meetings
     end
@@ -36,7 +36,7 @@ RSpec.describe ObjectLinks::Chips do
 
   def address(record)
     base = "http://www.example.com/org/#{organisation.id}/projects/#{project.id}"
-    record.is_a?(Ticket) ? "#{base}/tickets/#{record.id}" : "#{base}/meetings/#{record.id}"
+    "#{base}/#{record.model_name.plural}/#{record.id}"
   end
 
   def html_for(records)
@@ -76,6 +76,39 @@ RSpec.describe ObjectLinks::Chips do
 
     expect(first).to be <= 2 * queries_per_type
     expect(second).to eq(0)
+  end
+
+  it 'loads the labels of every project type without transferring their body columns' do
+    note, document = Prosopite.pause do
+      note = create(:note, project: project, organisation: organisation, title: 'Note label')
+      document = create(:document, project: project, organisation: organisation)
+      version = create(:document_version, document: document, organisation: organisation, title: 'Document label')
+      document.update!(current_version: version)
+      [note, document]
+    end
+    returned_columns = []
+    # Inspect what the adapter actually returns, so both SELECT * and an explicit
+    # selection of a large body fail, whether the resolver instantiates records or plucks.
+    allow(ActiveRecord::Base.connection).to receive(:select_all).and_wrap_original do |method, *args, **kwargs|
+      result = method.call(*args, **kwargs)
+      returned_columns.concat(result.columns)
+      result
+    end
+
+    html = apply(html_for([tickets.first, meetings.first, note, document]))
+
+    expect(html.scan('object-chip--').size).to eq(4)
+    expect(html).to include('Note label', 'Document label')
+    expect(returned_columns).to include('title')
+    expect(returned_columns & %w[transcript plain_text_version generated_summary notes]).to be_empty
+  end
+
+  it 'keeps a readable document without a current version as an untitled chip' do
+    document = Prosopite.pause { create(:document, project: project, organisation: organisation) }
+
+    html = apply(html_for([document]))
+
+    expect(html).to include('object-chip--document', I18n.t('views.object_links.untitled'))
   end
 
   %i[uppercase undashed].each do |spelling|

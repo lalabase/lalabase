@@ -38,6 +38,15 @@ module ObjectLinks
       document: Document
     }.freeze
 
+    # A label needs no transcript, extracted text or summary. Keep those large fields
+    # out of the result even when a page batches many links into a single query.
+    LABEL_COLUMNS = {
+      # CustomAttributable's after_initialize reads this metadata even for a label.
+      ticket: %i[id project_id number title custom_attributes],
+      meeting: %i[id project_id occurred_at title],
+      note: %i[id project_id title]
+    }.freeze
+
     def initialize(viewer:, organisation:)
       @viewer = viewer
       @organisation = organisation
@@ -76,15 +85,24 @@ module ObjectLinks
       case type
       when :person then load_people(type, ids) { |id| directory.person_entry(id) }
       when :member then load_people(type, ids) { |id| directory.member_entry(id) }
+      when :document then load_documents(ids)
       else load_records(type, ids)
       end
     end
 
     def load_records(type, ids)
-      relation = scope_for(type).where(id: ids)
-      relation = relation.includes(:current_version) if type == :document
+      relation = scope_for(type).where(id: ids).select(*LABEL_COLUMNS.fetch(type))
       relation.each do |record|
         @found[type][record.id] = Found.new(target: target_for(type, record), project_id: record.project_id)
+      end
+    end
+
+    # A document's title belongs to its current version. Read just that title through
+    # the tenant-scoped association; the left join keeps documents without a version.
+    def load_documents(ids)
+      scope_for(:document).where(id: ids).left_joins(:current_version)
+                          .pluck(:id, :project_id, DocumentVersion.arel_table[:title]).each do |id, project_id, title|
+        @found[:document][id] = Found.new(target: titled(:document, title), project_id: project_id)
       end
     end
 

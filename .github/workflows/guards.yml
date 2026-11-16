@@ -340,6 +340,7 @@ jobs:
           spec/requests/inbox_status_filter_spec.rb
           spec/requests/inbox_pagination_spec.rb
           spec/requests/all_inboxes_spec.rb
+          spec/requests/all_people_spec.rb
           spec/requests/session_organisation_follows_pages_spec.rb
           spec/requests/all_inboxes_lane_spec.rb
           spec/requests/all_inboxes_row_actions_spec.rb
@@ -359,6 +360,7 @@ jobs:
           spec/helpers/inbox_helper_spec.rb
           spec/system/inbox_spec.rb
           spec/system/all_inboxes_spec.rb
+          spec/system/all_people_spec.rb
           spec/system/test_browser_pointer_spec.rb
           spec/system/page_title_edge_spec.rb
           spec/system/management_phone_spec.rb
@@ -441,6 +443,7 @@ jobs:
           spec/services/people/directory_spec.rb
           spec/services/people/contacts_spec.rb
           spec/services/people/lookup_spec.rb
+          spec/services/people/across_organisations_spec.rb
           spec/services/knowledge/lookup_spec.rb
           spec/requests/organisations/people_last_contact_spec.rb
           spec/services/lalabase/tools/find_people_spec.rb

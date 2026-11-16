@@ -138,6 +138,7 @@ else
   pin 'controllers/admin_user_form_controller', to: 'controllers/admin_user_form_controller.js'
   pin 'controllers/ai_configuration_fields_controller', to: 'controllers/ai_configuration_fields_controller.js'
   pin 'controllers/all_inboxes_live_controller', to: 'controllers/all_inboxes_live_controller.js'
+  pin 'controllers/all_people_filter_controller', to: 'controllers/all_people_filter_controller.js'
   pin 'controllers/analysis_result_controller', to: 'controllers/analysis_result_controller.js'
   pin 'controllers/assistant_analysis_controller', to: 'controllers/assistant_analysis_controller.js'
   pin 'controllers/assistant_panel_controller', to: 'controllers/assistant_panel_controller.js'

@@ -143,6 +143,10 @@ export default class extends Controller {
       firstPage: list?.dataset.neoEndlessScrollFirstPageValue,
       throughPage: list?.dataset.neoEndlessScrollPageValue
     }
+    // aria-busy while a redraw is on its way: its answer replaces the list tools
+    // (the organisation select among them) and the sidebar. A browser spec waits
+    // for it to clear before it touches them (wait_for_inbox_live_at_rest).
+    this.element.setAttribute("aria-busy", "true")
     const address = redrawAddress(window.location.href, {
       path: new URL(this.urlValue, window.location.origin).pathname,
       firstPage: request.firstPage,
@@ -188,6 +192,7 @@ export default class extends Controller {
       }
     } finally {
       if (this.request === request) this.request = null
+      if (!this.request) this.element.removeAttribute("aria-busy")
     }
   }
 }

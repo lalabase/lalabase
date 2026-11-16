@@ -95,7 +95,9 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
       expect(row.avatar_user).to eq(shared)
     end
 
+    # An empty field of a form is stored as an empty text, not as nothing: it is no value either.
     it 'takes function, department and company from the first source that has one' do
+      ActsAsTenant.with_tenant(north) { north_row.update!(function: '') }
       person_in(south, user: shared, name: 'Mara Mitglied', function: 'Beraterin', company: nil, department: 'Vertrieb')
 
       row = row_named(list, 'Mara Mitglied')

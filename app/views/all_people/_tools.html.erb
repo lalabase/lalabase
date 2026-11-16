@@ -10,8 +10,9 @@
   <p class="all-people-count" data-all-people-count><%= t('views.all_people.count', count: people.total) %></p>
   <div class="list-tab-bar__tools">
     <%= form_with url: all_people_path, method: :get,
-                  data: { turbo_frame: '_top', controller: 'auto-submit', all_people_tool: 'organisation' } do %>
-      <%= hidden_field_tag :q, all_people_list_state[:q], id: nil if all_people_list_state[:q] %>
+                  data: { turbo_frame: '_top', controller: 'auto-submit', all_people_tool: 'organisation',
+                          action: 'submit->all-people-filter#carrySearch' } do %>
+      <%= hidden_field_tag :q, all_people_list_state[:q], id: nil %>
       <% chosen = Lalabase::Uuid.dashed(all_people_list_state[:org].to_s) %>
       <label>
         <span class="sr-only"><%= t('views.all_people.filter.organisation_label') %></span>

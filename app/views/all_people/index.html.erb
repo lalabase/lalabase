@@ -16,7 +16,9 @@
       the search the last of them. It reloads only the list frame and writes the
       term into the address ("replace": a word typed letter by letter is one
       entry of history). %>
-  <div class="people-tools list-tab-bar filter-bar">
+  <div class="people-tools list-tab-bar filter-bar" data-controller="all-people-filter"
+       data-all-people-filter-search-id-value="all-people-search"
+       data-action="turbo:submit-start->all-people-filter#rememberSearch">
     <%= render 'all_people/tools', people: @people %>
     <%= render NeoListSearchComponent.new(
       url: all_people_path, name: :q, value: params[:q],

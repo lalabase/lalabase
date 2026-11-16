@@ -45,6 +45,17 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     expect(page).to have_css('#all-people-search', visible: true)
   end
 
+  def change_search_and_organisation(query, organisation)
+    page.execute_script(<<~JS, query, organisation.id)
+      const search = document.getElementById('all-people-search')
+      search.value = arguments[0]
+      search.dispatchEvent(new Event('input', { bubbles: true }))
+      const organisation = document.getElementById('all-people-organisation')
+      organisation.value = arguments[1]
+      organisation.dispatchEvent(new Event('change', { bubbles: true }))
+    JS
+  end
+
   it 'narrows the list while typing, and the organisation select keeps the search' do
     visit all_people_path
     expect(list).to have_text('Nora Nord')
@@ -80,6 +91,97 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     expect(list).to have_text('Sina Sued')
     expect(list).to have_text('Mara Mitglied')
     expect(page).to have_css('[data-all-people-count]', text: count_of(3))
+  end
+
+  # Both events happen in one browser task, before the search's debounce can fire.
+  # Waiting for a search response here would hide the stale hidden q of the select.
+  [[nil, 'Sina'], ['Nora', 'Sina'], ['Nora', '']].each do |previous, query|
+    it "keeps #{query.inspect} when switching organisation with #{previous.inspect} as the last rendered search" do
+      visit all_people_path(q: previous)
+      open_search unless previous
+      wait_for_stimulus('.all-people-search', 'auto-submit')
+      wait_for_stimulus('form[data-all-people-tool="organisation"]', 'auto-submit')
+
+      change_search_and_organisation(query, south)
+
+      expect(page).to have_current_path(/org=#{south.id}/)
+      expect(Rack::Utils.parse_nested_query(URI.parse(page.current_url).query)['q'].to_s).to eq(query)
+      expect(list).to have_text('Sina Sued')
+      expect(list).to have_no_text('Nora Nord')
+      expect(page).to have_css('[data-all-people-count]', text: count_of(query.empty? ? 3 : 1))
+    end
+  end
+
+  it 'keeps the current search and organisation when an earlier search response arrives late' do
+    ready = Queue.new
+    release = Queue.new
+    finished = Queue.new
+    allow(People::AcrossOrganisations).to receive(:call).and_wrap_original do |read, **arguments|
+      result = read.call(**arguments)
+      if arguments[:query] == 'Nora'
+        ready.push(true)
+        release.pop
+        finished.push(true)
+      end
+      result
+    end
+
+    visit all_people_path
+    open_search
+    wait_for_stimulus('.all-people-search', 'auto-submit')
+    wait_for_stimulus('form[data-all-people-tool="organisation"]', 'auto-submit')
+
+    # Hold the old read on the server until the new organisation page is shown.
+    find('#all-people-search').set('Nora')
+    Timeout.timeout(Capybara.default_max_wait_time) { ready.pop }
+    change_search_and_organisation('Sina', south)
+
+    expect(page).to have_current_path(/org=#{south.id}/)
+    expect(page).to have_css('[data-all-people-count]', text: count_of(1))
+    release.push(true)
+    Timeout.timeout(Capybara.default_max_wait_time) { finished.pop }
+    page.server.wait_for_pending_requests
+    expect(page).to have_current_path(/q=Sina/)
+    expect(page).to have_current_path(/org=#{south.id}/)
+    expect(list).to have_text('Sina Sued')
+    expect(list).to have_no_text('Nora Nord')
+    expect(page).to have_css('#all-people-search', visible: true)
+    expect(find('#all-people-search').value).to eq('Sina')
+  ensure
+    release&.push(true)
+  end
+
+  it 'cancels the pending search while the organisation visit is still waiting' do
+    visit all_people_path
+    open_search
+    wait_for_stimulus('.all-people-search', 'auto-submit')
+    wait_for_stimulus('form[data-all-people-tool="organisation"]', 'auto-submit')
+    page.execute_script <<~JS
+      window.peopleSearchRequests = 0
+      document.addEventListener('turbo:before-fetch-request', event => {
+        if (event.target.matches('.all-people-search')) window.peopleSearchRequests += 1
+        if (event.target.matches('form[data-all-people-tool="organisation"]')) {
+          event.preventDefault()
+          window.resumePeopleFilter = event.detail.resume
+          document.body.setAttribute('data-people-filter-waiting', 'true')
+        }
+      })
+    JS
+    change_search_and_organisation('Sina', south)
+    expect(page).to have_css('body[data-people-filter-waiting="true"]')
+
+    # Wait past the actual search debounce while the filter request is paused.
+    requests = page.evaluate_async_script <<~JS
+      const done = arguments[arguments.length - 1]
+      const form = document.querySelector('.all-people-search')
+      const search = window.Stimulus.getControllerForElementAndIdentifier(form, 'auto-submit')
+      setTimeout(() => done(window.peopleSearchRequests), search.debounceValue + 100)
+    JS
+    expect(requests).to eq(0)
+    page.execute_script('window.resumePeopleFilter()')
+    expect(page).to have_current_path(/org=#{south.id}/)
+    expect(page).to have_current_path(/q=Sina/)
+    expect(list).to have_text('Sina Sued')
   end
 
   it 'keeps organisation links inside a phone screen with long person and organisation names' do

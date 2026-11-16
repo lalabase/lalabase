@@ -2,21 +2,32 @@
 <%# One person row: the name with what it is, rows that may be the same
     person (read only), the ways to reach them and the other fields, the
     note, the meetings, and one line of who created it that unfolds the
-    history. Delete waits behind "···". For a member the row holds the extra
+    history. The rarer actions wait behind "···", a list of items: taking a
+    contact over into another organisation (a row without an account, for a
+    viewer with somewhere to take it, also a reader of this directory), and
+    delete for those who may write. For a member the row holds the extra
     details; name and email come from the account, and "delete" removes only
     those details (the account stays). The body ends at reading width. %>
 <% member = person_member_user(person) %>
 <% can_write = policy(person).update? %>
 <% name = person_display_name(person: person, user: member) %>
+<% takeover = person_takeover_offered?(person) %>
+<% items = [] %>
+<% if takeover %>
+  <% items << link_to(t('views.organisations.people.takeover.menu'), new_organisation_person_takeover_path(@current_organisation, person),
+                      data: { turbo_frame: person_takeover_modal_id(person.id) }) %>
+<% end %>
 <% if can_write %>
   <% key = member ? 'remove_details' : 'delete' %>
-  <% menu = button_to t("views.organisations.people.show.#{key}"), organisation_person_path(@current_organisation, person, list_state),
-                      method: :delete, class: 'more-menu__danger',
-                      form: { data: { turbo_frame: '_top', turbo_confirm: t("views.organisations.people.show.#{key}_confirm", name: name) } } %>
+  <% items << button_to(t("views.organisations.people.show.#{key}"), organisation_person_path(@current_organisation, person, list_state),
+                        method: :delete, class: 'more-menu__danger',
+                        form: { data: { turbo_frame: '_top', turbo_confirm: t("views.organisations.people.show.#{key}_confirm", name: name) } }) %>
 <% end %>
 <div class="people-detail">
   <%= render 'organisations/people/lane_head',
-             edit_url: (edit_organisation_person_path(@current_organisation, person, list_state) if can_write), menu: menu %>
+             edit_url: (edit_organisation_person_path(@current_organisation, person, list_state) if can_write),
+             menu: (safe_join(items) if items.any?), menu_id: person_more_actions_id(person.id) %>
+  <%= turbo_frame_tag person_takeover_modal_id(person.id) if takeover %>
 
   <div class="people-detail__body width-text">
     <%= render 'organisations/people/identity', name: name, user: member, line: person_kind_line(person, member) %>

@@ -317,4 +317,33 @@ module PeopleHelper
   def person_change_count(person)
     person.activities.where.not(action: 'created').count
   end
+
+  # Taking a contact over into another organisation (People S0): the frame of
+  # the dialog beside a card, one opening of it (a refused submit replaces
+  # exactly that, a late answer to a closed dialog finds nothing), and the
+  # "···" button the focus goes back to.
+  def person_takeover_modal_id(person_id)
+    "person-takeover-modal-#{person_id}"
+  end
+
+  def person_takeover_modal_instance_id(person_id, token)
+    "#{person_takeover_modal_id(person_id)}-#{token}"
+  end
+
+  def person_more_actions_id(person_id)
+    "person-more-actions-#{person_id}"
+  end
+
+  # The organisations the viewer may take a contact of this one to, once per
+  # request (Actors::TakeOverPerson.targets_for: active memberships, the right
+  # to create people there, never this one).
+  def people_takeover_targets
+    @people_takeover_targets ||= Actors::TakeOverPerson.targets_for(viewer: current_user, source: current_organisation)
+  end
+
+  # The menu item only for a contact whose row has no account (no member, no
+  # row of a deactivated member) and only when there is somewhere to take it.
+  def person_takeover_offered?(person)
+    person.user_id.nil? && people_takeover_targets.any?
+  end
 end

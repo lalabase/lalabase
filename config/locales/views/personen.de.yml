@@ -17,6 +17,22 @@ de:
   views:
     organisations:
       people:
+        takeover:
+          menu: "In andere Organisation übernehmen …"
+          title: "In andere Organisation übernehmen"
+          close: "Schließen"
+          target: "Ziel"
+          fields: "Felder"
+          always: "immer"
+          details_count:
+            one: "%{count} Angabe"
+            other: "%{count} Angaben"
+          visibility_html: "Sichtbar für alle mit Personen-Recht in %{organisation}."
+          copy_hint: "Es entsteht eine Kopie: spätere Änderungen hier ändern sie nicht."
+          submit: "Übernehmen"
+          submitting: "Wird übernommen …"
+          confirm: "Trotzdem anlegen"
+          cancel: "Abbrechen"
         index:
           title: "Personen"
           new_person: "Person anlegen"

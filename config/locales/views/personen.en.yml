@@ -17,6 +17,22 @@ en:
   views:
     organisations:
       people:
+        takeover:
+          menu: "Take over into another organisation …"
+          title: "Take over into another organisation"
+          close: "Close"
+          target: "Target"
+          fields: "Fields"
+          always: "always"
+          details_count:
+            one: "%{count} detail"
+            other: "%{count} details"
+          visibility_html: "Visible to everyone with the people right in %{organisation}."
+          copy_hint: "This makes a copy: later changes here do not change it."
+          submit: "Take over"
+          submitting: "Taking over …"
+          confirm: "Create anyway"
+          cancel: "Cancel"
         index:
           title: "People"
           new_person: "Add person"

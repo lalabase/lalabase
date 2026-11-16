@@ -269,6 +269,12 @@ Rails.application.routes.draw do
 
   # Client-side session liveness check + implicit Devise activity touch
   get 'session/touch', to: 'session_touch#show', as: :session_touch
+  # The login hand-off between the main host and an organisation host
+  # (doc/org_subdomains_plan.md, S3): start and claim on the organisation host, the token
+  # on the main host.
+  get 'session/start', to: 'sessions/handoff_starts#show', as: :session_handoff_start
+  get 'session/handoff', to: 'sessions/handoffs#show', as: :session_handoff
+  get 'session/claim', to: 'sessions/claims#show', as: :session_claim
 
   # Personal access tokens for API access (used by the MCP server, etc.)
   namespace :users do

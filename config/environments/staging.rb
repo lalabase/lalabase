@@ -3,6 +3,7 @@
 
 require 'active_support/core_ext/integer/time'
 require 'dotenv'
+require_relative '../../lib/lalabase/instance_settings'
 
 Dotenv.load('.env', '.env.staging')
 
@@ -63,12 +64,16 @@ Rails.application.configure do
   # Mount Action Cable outside main process or domain.
   # config.action_cable.mount_path = nil
   # For staging server - configure ActionCable URL and allowed origins
-  config.action_cable.url = 'wss://stage.lalabase.com/cable'
+  # With organisation subdomains (LALABASE_TENANT_DOMAIN) every host connects to its own
+  # /cable and the organisation hosts are allowed origins (doc/org_subdomains_plan.md, S3).
+  staging_tenant_domain = Lalabase::InstanceSettings.tenant_domain
+  config.action_cable.url = staging_tenant_domain ? nil : 'wss://stage.lalabase.com/cable'
   config.action_cable.allowed_request_origins = [
     'https://stage.lalabase.com',
     'http://stage.lalabase.com',
     %r{https?://stage\.lalabase\.com}
   ]
+  config.action_cable.allowed_request_origins << Lalabase::InstanceSettings.tenant_origin_pattern(staging_tenant_domain) if staging_tenant_domain
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   # Can be used together with config.force_ssl for Strict-Transport-Security and secure cookies.

@@ -296,6 +296,16 @@ class User < ApplicationRecord
   # Where the person lands when no page was asked for (ApplicationController#user_home_path):
   # the organisation they joined first. A bare `organisations.first` sorts by the random
   # UUID, so a person in two organisations landed in either.
+  # Log out everywhere (doc/org_subdomains_plan.md, S3): every host keeps a session of its
+  # own, and each compares this number on every request
+  # (config/initializers/session_version.rb). The published demo login is shared by every
+  # visitor of the demo, so one visitor signing out must not end the others' sessions.
+  def end_sessions_everywhere!
+    return if Lalabase::Demo.published_login?(email)
+
+    self.class.where(id: id).update_all('session_version = session_version + 1')
+  end
+
   def home_organisation
     organisations.order(Membership.arel_table[:created_at].asc, Membership.arel_table[:id].asc).first
   end

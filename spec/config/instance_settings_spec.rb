@@ -358,4 +358,21 @@ RSpec.describe Lalabase::InstanceSettings, 'LALABASE_TENANT_DOMAIN' do
   it 'leaves the allowed hosts of our servers as they were while unset' do
     expect(described_class.hosts({})).to eq(described_class::OWN_HOSTS)
   end
+
+  # S3: a page on an organisation host opens its socket on its own host, never on the main
+  # host, whose session is another one.
+  it 'lets Action Cable follow the page host and admits the organisation hosts as origins' do
+    env = { 'LALABASE_TENANT_DOMAIN' => 'lalabase.com' }
+    origins = described_class.cable_origins(env)
+
+    expect(described_class.cable_url(env)).to be_nil
+    expect(origins.any? { |o| o === 'https://kunde.lalabase.com' }).to be(true) # rubocop:disable Style/CaseEquality
+    expect(origins.any? { |o| o === 'https://a.kunde.lalabase.com' }).to be(false) # rubocop:disable Style/CaseEquality
+    expect(origins.any? { |o| o === 'https://kunde.lalabase.com.evil' }).to be(false) # rubocop:disable Style/CaseEquality
+  end
+
+  it 'keeps the cable address of our servers while unset' do
+    expect(described_class.cable_url({})).to eq(described_class::OWN_CABLE_URL)
+    expect(described_class.cable_origins({})).to eq(described_class::OWN_CABLE_ORIGINS)
+  end
 end

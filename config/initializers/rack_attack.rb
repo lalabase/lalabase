@@ -29,6 +29,10 @@ class Rack::Attack
   FORMAT_SUFFIX = '(\.[^/]+)?'
 
   SIGN_IN_PATH = %r{\A/users/sign_in#{FORMAT_SUFFIX}\z}
+  # The sign-in door of clients (e-mail and password for a device token). It
+  # counts in the buckets of the web sign-in, logins/ip and logins/email: a
+  # bucket of its own would double the guesses per address and per minute.
+  APP_SIGN_IN_PATH = %r{\A/api/auth/v1/app_sessions#{FORMAT_SUFFIX}\z}
   ADMIN_LOG_IN_PATH = %r{\A/admin/log_in#{FORMAT_SUFFIX}\z}
   PASSWORD_PATH = %r{\A/users/password#{FORMAT_SUFFIX}\z}
   REGISTRATION_PATH = %r{\A/users#{FORMAT_SUFFIX}\z}
@@ -106,8 +110,9 @@ class Rack::Attack
   CONFIRMATIONS_PERIOD = 60.seconds
 
   ### Throttle login attempts per IP ###
+  # Web and app sign-in share the bucket (APP_SIGN_IN_PATH).
   throttle('logins/ip', limit: 5, period: 60.seconds) do |req|
-    req.ip if post_to?(req, SIGN_IN_PATH)
+    req.ip if post_to?(req, SIGN_IN_PATH) || post_to?(req, APP_SIGN_IN_PATH)
   end
 
   ### Throttle login attempts per email ###
@@ -115,7 +120,7 @@ class Rack::Attack
   # signs in with that one address, and five of them a minute would lock out the
   # sixth. logins/ip still counts each of them.
   throttle('logins/email', limit: 5, period: 60.seconds) do |req|
-    email = login_email(req) if post_to?(req, SIGN_IN_PATH)
+    email = login_email(req) if post_to?(req, SIGN_IN_PATH) || post_to?(req, APP_SIGN_IN_PATH)
     email unless Lalabase::Demo.published_login?(email)
   end
 
@@ -354,10 +359,14 @@ class Rack::Attack
   # whole body; anything unparseable counts as no address (the IP rule stays).
   LOGIN_BODY_LIMIT = 4.kilobytes
 
+  # The app sign-in reads its JSON body and nothing else, so the brake reads the
+  # same: there a query string must not pick the bucket for an address the body
+  # does not name.
   def self.login_email(req)
-    email = req.params.dig('user', 'email')
+    email = req.params.dig('user', 'email') unless post_to?(req, APP_SIGN_IN_PATH)
     email ||= json_login_email(req) if req.media_type == 'application/json'
-    email.is_a?(String) ? email.downcase.strip : nil
+    # Bytes that are no UTF-8 name no account, and String#downcase raises on them.
+    email.is_a?(String) && email.valid_encoding? ? email.downcase.strip : nil
   end
 
   def self.json_login_email(req)

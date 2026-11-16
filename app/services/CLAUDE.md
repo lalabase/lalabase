@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-15)
+# Karte: app/services (Stand: 2026-11-16)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -357,6 +357,17 @@ Verzeichnis-Übersicht (Auswahl):
   without `format` stays byte for byte). Not a second rule: do not align them in one hull.
   Encodings: JSON and forms always give UTF-8; a multipart part may name its own charset,
   which an html body keeps (ActionText reads it, as before) and a plain body transcodes.
+* `app_sessions/` — `authentication.rb` (K6b, 16.11.2026) prüft E-Mail und Passwort für die Anmelde-Tür der
+  Clients (`POST /api/auth/v1/app_sessions`) und nennt den Benutzer oder den Grund (`invalid_credentials`,
+  `email_unconfirmed`, `account_deactivated`). Die Tür läuft NICHT über Warden: Das Objekt stellt Devises
+  Fragen in Devises Reihenfolge und tut von Hand, was sonst Hooks tun (bcrypt zum Schein bei unbekannter
+  Adresse, Zähler nach Erfolg zurücksetzen). ⚠️ Ein gesperrtes Konto liest sich immer als
+  `invalid_credentials`, auch mit dem richtigen Passwort; ein Grund, den das Objekt nicht kennt, ebenso.
+  Nie einen neuen Grund einführen, der mehr verrät als die Web-Anmeldung. Den Write danach besitzt
+  `actors/create_app_session.rb` (Tier 1): unter der Sperre der Benutzerzeile Platz schaffen
+  (`PersonalAccessToken.make_room_for_app_session!`), Geräte-Token anlegen, Login notieren
+  (`login_method: app_session`). Wächter: `spec/services/app_sessions/authentication_spec.rb`,
+  `spec/services/actors/create_app_session_spec.rb`, `spec/requests/api/auth/v1/app_sessions_spec.rb`.
 * `personal_access_tokens/` — `reach_listing.rb` (31.10.2026) is the ONE read of a token's
   organisations and projects as rows, for `GET /api/v1/organisations`, `GET /api/v1/projects` and
   the MCP tools `list_organisations` and `list_projects`. Reach (`PersonalAccessToken::Reach`) AND

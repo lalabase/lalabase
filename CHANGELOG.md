@@ -36,6 +36,16 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   but does not rename it. `GET /api/v1/me` names `token.kind` and `token.ends_at`, and the
   data export lists the kind. No token changes by this update: nothing hands out a device
   token yet. API version 1.13.0.
+- A client signs a person in with e-mail address and password:
+  `POST /api/auth/v1/app_sessions` answers a device token (kind `app_session`) once, and
+  `GET /api/auth/v1/methods` tells a client beforehand whether the instance offers this
+  sign-in. The password is checked and never stored; the person sees the device on the token
+  page and revokes it there. The door tells no more than the web sign-in: an unknown address,
+  a wrong password and a locked account read the same, failed attempts count towards the same
+  lock, and web and app share the limit of 5 attempts a minute per IP and per address. An
+  account keeps at most 10 live devices; one more signs out the device unused longest. The
+  door takes JSON of at most 4 KB and is closed in demo mode. `GET /api/v1/me` names the
+  capability `app_sessions`. API version 1.14.0.
 
 ### Changed
 
@@ -100,6 +110,10 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 - Run `bin/rails documentation:resync_all` once after updating. Until then a page keeps
   its old image addresses, unless its repository receives a new commit.
+- Do not run production with `RAILS_LOG_LEVEL=debug`. The new sign-in for clients
+  (`/api/auth/v1`) receives a password in its body; a body Rails cannot read as JSON is
+  written to the log at that level, and it may hold the password. The default level is
+  safe. Serve the instance over TLS only: the password travels in the request.
 
 ## [2026.11.0] - 2026-10-31
 

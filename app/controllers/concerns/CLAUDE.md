@@ -184,3 +184,7 @@ dasselbe 401 wie ein unbekanntes. Die Nutzung notiert höchstens einmal je Minut
 (`kind` `app_session`) in derselben Anweisung der Ablauf, der mit der Nutzung vorrückt. Wer die
 Drossel ändert, ändert damit auch, wie oft ein Gerät seinen Ablauf verlängert. Wächter:
 `spec/requests/api/v1/me_spec.rb` („with a device token").
+
+Die Anmelde-Tür der Clients (`Api::Auth::BaseController`, K6b, 16.11.2026) benutzt KEINEN dieser
+Concerns: kein `Api::TokenAuthenticatable`, kein `Api::V1::Idempotent`, kein Pundit. Nur die
+Fehlerform teilt sie (`Api::V1::ErrorBody`). Wächter: `spec/architecture/auth_api_contract_guard_spec.rb`.

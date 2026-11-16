@@ -841,13 +841,14 @@ bei substanzieller Änderung migrieren + streichen). Details: `app/services/CLAU
 
 ## API-Namensräume (Kern gegen getrennte Website)
 
-Drei Namensräume unter `/api`, und sie unterscheiden sich darin, **wer** ruft:
+Vier Namensräume unter `/api`, und sie unterscheiden sich darin, **wer** ruft:
 
 | Namensraum | Aufrufer | Ausweis | Vertrag |
 |---|---|---|---|
 | `Api::V1::*`, `Api::McpController` | ein Mensch mit Konto | persönliches Zugangstoken + Pundit | `doc/mcp_server_plan.md` |
 | `Api::Public::*` | jeder, auch niemand | keiner, nur lesend | `docs/api/public_v1.md` |
 | `Api::Provisioning::*` | die getrennte Website | ein geteiltes Geheimnis aus ENV | `docs/api/provisioning_v1.md` |
+| `Api::Auth::*` | ein Programm, das einen Menschen anmeldet, noch ohne Token | E-Mail und Passwort im Body, einmal | Absatz „Sign-in door" unten, die Specs unter `spec/requests/api/auth/` |
 
 * Beide neuen Namensräume erben von einer **eigenen** `ActionController::API`-Basis, nie von
   `ApplicationController`: keine Session, kein Pundit, kein Mandant aus der Sitzung. Wächter:
@@ -867,7 +868,55 @@ Drei Namensräume unter `/api`, und sie unterscheiden sich darin, **wer** ruft:
   20.09.2026 aus dem Kern-Formular verschwunden, `FounderSignup` und die Provisioning-Tür
   bleiben.
 * Antworten tragen **eine** Hülle: `data.<ding>` im Erfolg, `error.{code,messages}` im Fehler.
-  `code` ist maschinenlesbar, `messages` sind übersetzter Text.
+  `code` ist maschinenlesbar, `messages` sind übersetzter Text. Ausnahme mit Absicht: `Api::Auth`
+  antwortet im Fehler in der Form von `/api/v1` (`Api::V1::ErrorBody`), weil derselbe Client beide
+  Türen liest.
+
+**Sign-in door `/api/auth/v1` (K6b, 2026-11-16, API 1.14.0, capability `app_sessions`).** A client
+signs a person in with e-mail address and password and gets a device token
+(`PersonalAccessToken`, kind `app_session`) once. `GET /api/auth/v1/methods` says what the instance
+offers (`data.sign_in.methods`, the pages for reset, unlock and confirmation), names no version and
+no instance, and has no method in demo mode. `POST /api/auth/v1/app_sessions` takes
+`user.email`, `user.password` and `device.name` as `application/json` of at most 4 KB and answers
+201 with `data.token`, `data.session` and `data.user`, `Cache-Control: no-store`.
+`Api::Auth::BaseController` is its own `ActionController::API` base: no token, no Pundit, no
+tenant, no session, routes with `format: false`; the guard
+`spec/architecture/auth_api_contract_guard_spec.rb` checks the classes. Rules that must hold for
+the next change:
+
+* **The door never tells more than the web sign-in.** An unknown address, a wrong password and a
+  locked account answer the same 401 (`reason: invalid_credentials`), a locked account also for
+  the right password. There is no `account_locked` and no warning before the last attempt.
+  `email_unconfirmed` and `account_deactivated` (403) answer the right password only.
+* **It does not run through Warden.** `AppSessions::Authentication` asks Devise's questions in
+  Devise's order (`find_for_database_authentication`, `valid_for_authentication?` with the
+  password in the block, `active_for_authentication?`), hashes a password for nothing when the
+  address is unknown, and resets the counter itself after a success. Failed attempts count
+  towards the lock of the web.
+* **The language comes from `Accept-Language`, else the default, never from the account:** the
+  language of a refusal would tell whether the address exists.
+* **No `Idempotency-Key`.** The answer holds the token, and that store keeps answers. A client
+  that lost the answer signs in again.
+* **The brake is shared with the web.** `Rack::Attack::APP_SIGN_IN_PATH` counts in `logins/ip`
+  and `logins/email`; a bucket of its own would double the guesses. The address is read from the
+  JSON body only, so the door refuses any other content type (415) and a larger body (413,
+  `Lalabase::AuthBodyLimit`, a middleware in front of the parser like the provisioning limit).
+* **Closed in demo mode (404):** the demo account has a published password and is exempt from
+  the lock and the per-address brake.
+* The write is `Actors::CreateAppSession`: under a lock on the user's row it makes room (at most
+  `PersonalAccessToken::MAX_APP_SESSIONS` live devices, one more revokes the device unused
+  longest, never a personal token), creates the token and notes the login
+  (`login_method: app_session`, the device name). Two sign-ins at once wait for each other
+  on that lock (`create_app_session_concurrency_spec.rb`, two connections).
+* Raw bytes that are no UTF-8 in a field never reach the door: Rails answers 400 when it
+  first reads the parameters, outside the error shape, as under `/api/v1`. The brake reads
+  such an address as no address (`Rack::Attack.login_email`); it raised there until 2026-11-16.
+
+Guards: `spec/requests/api/auth/v1/{methods,app_sessions,body_limit}_spec.rb`,
+`spec/services/app_sessions/authentication_spec.rb`, `spec/services/actors/create_app_session_spec.rb`
+and `create_app_session_concurrency_spec.rb`,
+`spec/requests/auth_throttle_spec.rb` (the shared buckets), `spec/architecture/api_v1_error_body_guard_spec.rb`
+(the folder `api/auth`).
 
 For the REST ticket member routes (including `GET /tickets/:ticket_id/posts/:id`) and the
 number route, `Api::V1::ReadableTicket` resolves tickets

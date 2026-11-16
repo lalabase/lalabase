@@ -976,6 +976,16 @@ Rails.application.routes.draw do
       end
     end
 
+    # Signing in from a client: what this instance offers, and an e-mail address
+    # and a password for a device token. No token yet, so no personal-access-token
+    # or Pundit layer; format: false, so there is one address per call.
+    namespace :auth do
+      namespace :v1 do
+        get 'methods', to: 'methods#show', format: false
+        resources :app_sessions, only: :create, format: false
+      end
+    end
+
     resources :view_states, only: %i[show update]
 
     # MCP (Model Context Protocol) endpoint — stateless JSON-RPC, one request per

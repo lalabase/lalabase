@@ -944,7 +944,11 @@ A second call with the same token gets 401, and a client reads 401 on a sign-out
 
 * `PersonalAccessToken#revoke!` writes without validation. A token that no longer passes a
   validation of its own (its only organisation is gone) still authenticates, so it must still
-  be revocable; a validating save refused it, on the token page as well.
+  be revocable; a validating save refused it, on the token page as well. It writes only a row
+  that is not revoked yet and says whether it did: the first revocation keeps its moment, and
+  the actor notes one logout for two calls that both read the token before either wrote.
+* If the note of the logout fails, nothing happened: the write rolls back, the answer is 500
+  and no answer is kept for the key. A token of another account raises when the actor is made.
 * ⚠️ **The Idempotency-Key is taken and its answer stored, but never replayed.** The replay sits
   inside authentication, and the token is revoked by then, so a retry after a lost answer reads
   401. Do not move a replay in front of authentication to change that: it would answer a

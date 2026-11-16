@@ -188,6 +188,22 @@ RSpec.describe PersonalAccessToken, type: :model do
       expect(pat).not_to be_active
     end
 
+    # The first revocation is the one that happened. A second call, or one on a
+    # copy of the row read before the first, moved the moment.
+    it 'keeps its moment when it is revoked again, and says whether it revoked' do
+      copy = described_class.find(pat.id)
+
+      travel_to(Time.zone.local(2026, 3, 1, 12, 0, 0)) { expect(pat.revoke!).to be(true) }
+      first = pat.reload.revoked_at
+      travel_to(Time.zone.local(2026, 3, 1, 12, 0, 5)) do
+        expect(pat.revoke!).to be(false)
+        expect(copy.revoke!).to be(false)
+      end
+
+      expect(pat.reload.revoked_at).to eq(first)
+      expect(copy.revoked_at).to eq(first)
+    end
+
     # Revoking is the way out. A token whose only organisation is gone no longer
     # passes its validation and still authenticates; a validating save left it
     # impossible to revoke, on the token page and for a sign-out alike.

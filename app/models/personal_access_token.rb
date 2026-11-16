@@ -152,9 +152,17 @@ class PersonalAccessToken < ApplicationRecord
   # Without validation, like .revoke_all_for!: revoking is the way out, and a
   # token that no longer passes a validation of its own (its only organisation
   # is gone) still authenticates, so it must still be revocable.
+  #
+  # The first revocation is the one that happened: the statement writes only a
+  # row that is not revoked yet, so a second call, or one on a copy read before
+  # the first, keeps the moment.
+  #
+  # @return [Boolean] whether this call revoked the token
   def revoke!
     now = Time.current
-    update_columns(revoked_at: now, updated_at: now)
+    revoked = self.class.where(id: id, revoked_at: nil).update_all(revoked_at: now, updated_at: now)
+    reload
+    revoked == 1
   end
 
   def app_session?

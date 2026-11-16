@@ -370,7 +370,8 @@ Verzeichnis-Übersicht (Auswahl):
   (`stale_credentials`). `request_facts.rb` ist, was das Aktivitäts-Protokoll vom Request liest, sicher
   gemacht: Nur ein bekanntes Konto wird notiert, also darf kein Header die Notiz zum Scheitern bringen.
   Abmelden (K6c, 16.11.2026) ist `actors/revoke_app_session.rb` (Tier 1): das Token der Anfrage widerrufen,
-  Logout notieren (`logout_type: app_session`); ein fremdes Token dort ist ein Fehler des Aufrufers und wirft.
+  Logout notieren (`logout_type: app_session`), beides nur einmal, auch wenn zwei Aufrufe das Token vor dem
+  Schreiben gelesen haben; ein fremdes Token dort ist ein Fehler des Aufrufers und wirft schon beim Anlegen.
   Wächter: `spec/requests/api/v1/app_session_spec.rb`, `spec/services/app_sessions/authentication_spec.rb`,
   `spec/services/actors/create_app_session_spec.rb`, `spec/requests/api/auth/v1/app_sessions_spec.rb`.
 * `personal_access_tokens/` — `reach_listing.rb` (31.10.2026) is the ONE read of a token's

@@ -102,6 +102,7 @@ RSpec.describe 'App sign-out (DELETE /api/v1/app_session)', :ci_guard, type: :re
     it 'names nothing but the moment: no token, no account' do
       sign_out(device)
 
+      expect_signed_out(device)
       expect(response.body).not_to include(device.token, PersonalAccessToken::TOKEN_PREFIX, 'person@example.com')
     end
 
@@ -115,6 +116,27 @@ RSpec.describe 'App sign-out (DELETE /api/v1/app_session)', :ci_guard, type: :re
       sign_out(personal)
 
       expect_signed_out(personal)
+    end
+  end
+
+  # The revocation and its note are one write. If the note fails, nothing happened:
+  # the token works, no answer is kept for the key, and the call can be repeated.
+  # An answer of 200 here would name a moment for a token that is still alive.
+  describe 'a sign-out that cannot be noted' do
+    it 'answers 500 without the text of the error, leaves the token alive and keeps no answer' do
+      allow_any_instance_of(User).to receive(:track_logout).and_raise(ActiveRecord::RecordInvalid, UserActivity.new)
+
+      sign_out(device, headers: { 'Idempotency-Key' => 'sign-out-once' })
+
+      expect(response).to have_http_status(:internal_server_error)
+      expect(json).to eq('error' => 'internal_error', 'code' => 'refused', 'reason' => 'internal_error')
+      expect(PersonalAccessToken.find(device.id)).not_to be_revoked
+      expect(McpIdempotencyKey.count).to eq(0)
+
+      # The control: the same call with the same key signs out once the note works.
+      RSpec::Mocks.space.reset_all
+      sign_out(device, headers: { 'Idempotency-Key' => 'sign-out-once' })
+      expect_signed_out(device)
     end
   end
 
@@ -208,12 +230,38 @@ RSpec.describe 'App sign-out (DELETE /api/v1/app_session)', :ci_guard, type: :re
       expect(UserActivity.where(user: user, action: 'logout').sole.metadata).to eq('logout_type' => 'manual')
     end
 
+    it 'leaves the note of a sign-out on the web as it was' do
+      sign_in user
+      delete destroy_user_session_path
+
+      expect(UserActivity.where(user: user, action: 'logout').sole.metadata).to eq('logout_type' => 'manual')
+      expect(device.reload).not_to be_revoked
+    end
+
     # The note reads the request through AppSessions::RequestFacts, like the sign-in.
     it 'signs out under a User-Agent the database would refuse, and still notes it' do
       sign_out(device, headers: { 'User-Agent' => "App\u0000/1.0" })
 
       expect_signed_out(device)
       expect(UserActivity.where(user: user, action: 'logout').sole.user_agent).to eq('App/1.0')
+    end
+  end
+
+  # The base asks every action for an authorization. This controller answers with the
+  # policy of the token and must never switch the question off.
+  describe 'the authorization' do
+    it 'keeps the tripwire of the base and asks the policy of the token' do
+      filters = Api::V1::AppSessionsController._process_action_callbacks.select { |c| c.kind == :after }.map(&:filter)
+      expect(filters).to include(:verify_authorized, :verify_policy_scoped)
+
+      allow_any_instance_of(PersonalAccessTokenPolicy).to receive(:destroy?).and_return(false)
+      sign_out(device)
+      expect(response).to have_http_status(:forbidden)
+      expect(device.reload).not_to be_revoked
+
+      RSpec::Mocks.space.reset_all
+      sign_out(device)
+      expect_signed_out(device)
     end
   end
 

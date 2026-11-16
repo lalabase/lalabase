@@ -163,6 +163,8 @@ module NavigationHelper
   LEVEL_PAGES = {
     'organisations' => { actions: %w[select new create], key: { 'select' => :overview } },
     'all_inboxes' => { actions: nil, key: :all_inboxes },
+    # The people above the organisations (GET /people), a list of the level like the inbox.
+    'all_people' => { actions: nil, key: :all_people },
     'help' => { actions: nil, key: nil },
     # Reached from a link in a mail; signed in, it shows the level like any page outside an
     # organisation.
@@ -239,7 +241,7 @@ module NavigationHelper
     page.present? && (page[:actions].nil? || page[:actions].include?(action_name))
   end
 
-  # The row of the level's sidebar the page stands for (:overview, :all_inboxes), nil on
+  # The row of the level's sidebar the page stands for (:overview, :all_inboxes, :all_people), nil on
   # every other page. From the controller, never from the address: the sidebar of the
   # inbox is also redrawn by a stream whose request is a row action or the live redraw.
   def self.level_page_key_for(controller_name, action_name)

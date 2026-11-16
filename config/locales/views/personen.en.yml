@@ -17,6 +17,36 @@ en:
         duplicate: "%{organisation} already has %{names}. Create anyway?"
         duplicate_name: "“%{name}”"
   views:
+    all_people:
+      title: "People"
+      count:
+        one: "%{count} person"
+        other: "%{count} people"
+      search_label: "Search the people of all organisations"
+      search_placeholder: "Name, function or company"
+      filter:
+        organisation_label: "Organisation"
+        all_organisations: "All organisations"
+      columns:
+        name: "Name"
+        function: "Function"
+        organisations: "Organisations"
+        last_contact: "Last contact"
+      chip:
+        open: "Open %{name} in %{organisation}"
+      empty:
+        no_hits_title: "No person matches “%{query}”."
+        no_hits_text: "The search looks at name, function, department, company and email."
+        clear_search: "Clear search"
+        no_people_title: "No people yet"
+        no_people_text: "The people of all your organisations appear here as soon as there are any."
+        no_right_title: "No people to show"
+        no_right_text: "You may not see the people of any of your organisations. An administrator of the organisation grants that right."
+      paging:
+        label: "Pages of the list"
+        previous: "Previous"
+        next: "Next"
+        position: "Page %{page} of %{pages}"
     organisations:
       people:
         takeover:

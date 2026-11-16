@@ -337,6 +337,24 @@ Verzeichnis-Übersicht (Auswahl):
   that same target, under an advisory lock on target and name (two takeovers at once ask
   instead of both writing). One refusal (`:not_found`) for every case; the target records nothing of
   the source.
+  The people above the organisations (16.11.2026, `GET /people`): `across_organisations.rb`
+  (`People::AcrossOrganisations.call(viewer:, query:, org:, page:)`) is the ONE read of a list
+  over several organisations. It walks `viewer.active_organisations` and reads each inside
+  `ActsAsTenant.with_tenant(organisation)` through `People::Lookup#listing` (new: every
+  entry, the matches of a search and the last contacts of a given list from ONE
+  `People::Directory`), skipped unless `#allowed?`. ⚠️ No read with the tenant lifted, in no
+  file of the feature: `spec/architecture/people_above_organisations_guard_spec.rb` names
+  the files, a later part (merging rows, the card) adds its own. A reference is not a
+  right: an organisation without the people right contributes nothing and is not named,
+  and as `org` it answers like an unknown one (`UnknownOrganisation`, a 404 in the
+  controller). Member entries with the same account are one row (computed, never stored); a
+  contact is always a row of its own. A search match on one entry shows the whole person.
+  The page is cut after the merge (50), last contacts are read for the rows shown only.
+  Plain values leave (`Row`, `Source` with the hash of `Lookup.row`, never `.card`), no
+  `Person`: the view runs without a tenant and must have nothing to load from. The one
+  record is `Row#avatar_user` (`User` is not tenanted). The loop per organisation is
+  declared in `spec/support/prosopite.rb` (`in_people_organisation`); what that could hide,
+  a read per row, is pinned by a statement count in the service spec.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

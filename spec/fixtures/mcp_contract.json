@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "0591f9c1418d5e0431a47a70b9102f892bb53391",
+    "core_commit": "8ed30bb007212b7c9aba408726c43e887081c572",
     "core_dirty": false,
-    "contract_sha256": "8772a22eb06eb957438c5147c97fa3fa14c805899686ffd1155f00ffdecc641c"
+    "contract_sha256": "ad7f346714ea8323975085cf808edd4bf2bc6b44c04cbf029c19db68ba278bab"
   },
   "contract": {
     "mcp": {
@@ -5290,8 +5290,9 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.13.0",
+                "api_version": "1.14.0",
                 "capabilities": [
+                  "app_sessions",
                   "error_codes",
                   "idempotency",
                   "knowledge.search",
@@ -5363,8 +5364,9 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.13.0",
+                "api_version": "1.14.0",
                 "capabilities": [
+                  "app_sessions",
                   "error_codes",
                   "idempotency",
                   "knowledge.search",

@@ -51,6 +51,10 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ### Fixed
 
+- A person in two or more organisations who opens the bare domain, leaves the account area
+  without a way back, or is refused an action in the demo lands in the organisation they
+  joined first. It used to be whichever had the smaller random id.
+
 - Input that answered a 500 on `/api/v1` and MCP is answered now. The ticket list takes the
   search together with a tag filter, and ignores a date bound with a year PostgreSQL cannot
   store, like any other unusable one. A page no list has, or a page sent as a list, is a 400

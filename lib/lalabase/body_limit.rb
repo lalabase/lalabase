@@ -41,12 +41,14 @@ module Lalabase
       raise NotImplementedError, "#{self.class} must implement #rejection_body"
     end
 
+    def oversized?(env)
+      env['CONTENT_LENGTH'].to_i > @limit && under_prefix?(env)
+    end
+
     # Normalized like every throttle in rack_attack.rb: Rails routes a padded
     # path (a doubled slash) to the same action, so a raw prefix test would hand
     # it straight to the parser.
-    def oversized?(env)
-      return false unless env['CONTENT_LENGTH'].to_i > @limit
-
+    def under_prefix?(env)
       ActionDispatch::Journey::Router::Utils
         .normalize_path(env['PATH_INFO'].to_s)
         .start_with?(@path_prefix)

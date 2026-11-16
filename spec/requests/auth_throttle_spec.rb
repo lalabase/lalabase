@@ -250,24 +250,43 @@ RSpec.describe 'Auth endpoint throttling', type: :request do
     end
 
     # An address of bytes that are no UTF-8 used to raise in the brake itself
-    # (String#downcase), a 500 out of the middleware. It names no account, so it
-    # picks no bucket of an address; the per-IP rule counts the request all the same.
-    it 'reads bytes that are no UTF-8 as no address, never raises, and still counts the IP' do
+    # (String#downcase), a 500 out of the middleware, on the web sign-in as well.
+    # It names no account, so it picks no bucket of an address. The door refuses
+    # such a body before the brake sees it.
+    it 'reads bytes that are no UTF-8 as no address and never raises' do
       Prosopite.pause
       broken = { user: { email: 'person@example.com', password: 'wrong-password' }, device: { name: 'iPhone' } }
                .to_json.b.sub('person'.b, "per\xFFson".b)
 
-      5.times { post app_path, params: broken, headers: json_headers }
+      post app_path, params: broken, headers: json_headers
       expect(response).to have_http_status(:bad_request)
 
-      post app_path, params: broken, headers: json_headers
-      expect(response).to have_http_status(:too_many_requests)
-
-      # The web sign-in reads the same address through the same method.
       post user_session_path, params: 'user[email]=per%FFson@example.com&user[password]=wrong-password',
                               headers: { 'CONTENT_TYPE' => 'application/x-www-form-urlencoded', 'REMOTE_ADDR' => '10.0.5.1' }
       expect(response.status).to be < 500
       expect(response).not_to have_http_status(:too_many_requests)
+
+      # The control: an address that can be read is counted on both.
+      5.times { |i| app_attempt(email: 'person@example.com', ip: "10.0.5.#{i + 10}") }
+      web_attempt(email: 'person@example.com', ip: '10.0.5.99')
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    # Rails reads three more content types as JSON (synonyms of its Mime type) and
+    # parses them; Rack reads the header as sent. The door takes application/json
+    # only, and the brake reads the address of this path whatever the type says,
+    # so the two cannot drift apart again.
+    %w[text/x-json application/jsonrequest application/problem+json].each do |type|
+      it "counts the address under the content type #{type}, which only Rails reads as JSON" do
+        Prosopite.pause
+        body = { user: { email: 'person@example.com', password: 'wrong-password' }, device: { name: 'iPhone' } }.to_json
+
+        5.times { |i| post app_path, params: body, headers: { 'CONTENT_TYPE' => type, 'REMOTE_ADDR' => "10.0.6.#{i + 1}" } }
+        expect(response).to have_http_status(:unsupported_media_type)
+
+        post app_path, params: body, headers: { 'CONTENT_TYPE' => type, 'REMOTE_ADDR' => '10.0.6.99' }
+        expect(response).to have_http_status(:too_many_requests)
+      end
     end
 
     it 'does not count a GET on the methods, which is no attempt' do

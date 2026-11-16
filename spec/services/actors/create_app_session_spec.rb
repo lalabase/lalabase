@@ -68,6 +68,26 @@ RSpec.describe Actors::CreateAppSession, :ci_guard do
     expect(PersonalAccessToken.active.app_sessions.where(user: user).count).to eq(PersonalAccessToken::MAX_APP_SESSIONS)
   end
 
+  # The caller checked the password on the row it read. Under the lock the actor
+  # asks whether that is still the password: a change in between revoked every
+  # token of the account, and this one would have been written after it.
+  it 'refuses when the password changed after it was checked, and signs in when it did not' do
+    older = create(:personal_access_token, :app_session, user: user)
+    checked = User.find(user.id)
+    User.find(user.id).update!(password: 'a-new-password-1', password_confirmation: 'a-new-password-1')
+    expect(older.reload).to be_revoked
+
+    result = call(current_user: checked)
+
+    expect(result).not_to be_success
+    expect(result.code).to eq(described_class::STALE_CREDENTIALS)
+    expect(PersonalAccessToken.active.where(user: user)).to be_empty
+    expect(UserActivity.where(user: user, action: 'login')).to be_empty
+
+    # The control: the account as it is now signs in.
+    expect(call(current_user: User.find(user.id))).to be_success
+  end
+
   it 'leaves the devices of another account alone' do
     other = create(:user, organisation: organisation)
     theirs = Array.new(10) { |i| create(:personal_access_token, :app_session, user: other, last_used_at: (i + 1).days.ago) }

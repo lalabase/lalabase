@@ -908,9 +908,23 @@ the next change:
   longest, never a personal token), creates the token and notes the login
   (`login_method: app_session`, the device name). Two sign-ins at once wait for each other
   on that lock (`create_app_session_concurrency_spec.rb`, two connections).
-* Raw bytes that are no UTF-8 in a field never reach the door: Rails answers 400 when it
-  first reads the parameters, outside the error shape, as under `/api/v1`. The brake reads
-  such an address as no address (`Rack::Attack.login_email`); it raised there until 2026-11-16.
+* **The content type is read as sent** (`Rack::MediaType`), the way the brake reads it. Rails'
+  own reading takes `text/x-json`, `application/jsonrequest` and `application/problem+json` for
+  JSON and parses them; the door would have looked an account up where the brake found no
+  address. The brake also reads the body of this path whatever the type says.
+* **`Lalabase::AuthBodyLimit` refuses in front of the parser**: a body over 4 KB (claimed or
+  measured, 413) and a body of bytes that are no UTF-8 (400, in the error shape). Rails refuses
+  such bytes itself and names the value in the error line of its log, at the level of
+  production and past the parameter filter; here the value may be a password. In demo mode
+  the class answers 404 like the door. The brake reads an address it cannot decode as no
+  address (`Rack::Attack.login_email`; it raised there, on the web sign-in as well).
+* **The activity log reads the request through `AppSessions::RequestFacts`.** Only a known
+  account is noted, so a header that made the note raise (a User-Agent the database refuses,
+  a Client-IP that contradicts X-Forwarded-For) became an answer only a known address gave.
+  A note that still fails never decides the answer of a refusal.
+* **The password is asked once more under the lock** (`Actors::CreateAppSession`, code
+  `stale_credentials`, answered as `invalid_credentials`): a new password revokes every token
+  once, at the change, and a sign-in checked just before it must not write just after it.
 
 Guards: `spec/requests/api/auth/v1/{methods,app_sessions,body_limit}_spec.rb`,
 `spec/services/app_sessions/authentication_spec.rb`, `spec/services/actors/create_app_session_spec.rb`

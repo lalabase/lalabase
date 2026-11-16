@@ -94,4 +94,23 @@ RSpec.describe 'Auth API contract guard', :ci_guard do
     end
     expect(classes.select { |klass| klass.new.send(:answers_in_demo?) }).to eq([Api::Auth::V1::MethodsController])
   end
+
+  # The list of callbacks still names the bar when a controller skips it for one
+  # action, or overrides it. So every route is asked itself, with the demo on.
+  it 'answers 404 on every route but the methods while the demo is on' do
+    flag_was = ENV.fetch(Lalabase::Demo::ENV_FLAG, nil)
+    app = Rack::MockRequest.new(Rails.application)
+    ask = ->(route) { app.request(route.verb, route_path(route), 'HTTP_HOST' => 'www.example.com').status }
+    guarded = auth_api_routes.reject { |route| controller_class(route) == Api::Auth::V1::MethodsController }
+    expect(guarded).not_to be_empty
+
+    ENV[Lalabase::Demo::ENV_FLAG] = Lalabase::Demo::ENABLED_VALUE
+    expect(guarded.map(&ask)).to all(eq(404))
+
+    # The control: without the demo the same requests reach the door.
+    ENV[Lalabase::Demo::ENV_FLAG] = nil
+    expect(guarded.map(&ask)).to all(eq(415))
+  ensure
+    ENV[Lalabase::Demo::ENV_FLAG] = flag_was
+  end
 end

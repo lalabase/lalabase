@@ -55,6 +55,21 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     [response.status, response.body]
   end
 
+  # Runs the block with the application log at `level` and answers what was written.
+  def logging(level: :debug)
+    io = StringIO.new
+    logger = ActiveSupport::Logger.new(io)
+    logger.level = level
+    level_was = Rails.logger.level
+    Rails.logger.level = level
+    Rails.logger.broadcast_to(logger)
+    yield
+    io.string
+  ensure
+    Rails.logger.stop_broadcasting_to(logger)
+    Rails.logger.level = level_was
+  end
+
   def expect_signed_in
     expect(response).to have_http_status(:created)
     expect(json.dig('data', 'token')).to start_with(PersonalAccessToken::TOKEN_PREFIX)
@@ -137,7 +152,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan section 3.4, the rows that never reach an account.
+  # The requests that never reach an account.
   describe 'a request the door cannot read' do
     it 'answers 400 for a body that is no JSON, without the text of the exception' do
       post_raw('{"user": {"email": "person@example.com", "password": "password123"')
@@ -155,7 +170,13 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       {
         'a form' => [body_for, {}],
         'plain text' => [body_for.to_json, { 'CONTENT_TYPE' => 'text/plain' }],
-        'a JSON relative' => [body_for.to_json, { 'CONTENT_TYPE' => 'application/vnd.api+json' }]
+        'a JSON relative' => [body_for.to_json, { 'CONTENT_TYPE' => 'application/vnd.api+json' }],
+        # Rails reads these three as JSON (synonyms of its Mime type) and parses them;
+        # the per-address brake reads the header as sent and found no address in them.
+        'text/x-json' => [body_for.to_json, { 'CONTENT_TYPE' => 'text/x-json' }],
+        'application/jsonrequest' => [body_for.to_json, { 'CONTENT_TYPE' => 'application/jsonrequest' }],
+        'application/problem+json' => [body_for(password: 'wrong-password').to_json,
+                                       { 'CONTENT_TYPE' => 'application/problem+json' }]
       }.each do |name, (params, headers)|
         post path, params: params, headers: headers
 
@@ -164,6 +185,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
                            'message' => I18n.t('services.app_sessions.unsupported_media_type', locale: :de)), name
       end
       expect(device_tokens).to be_empty
+      expect(user.reload.failed_attempts).to eq(0)
 
       # The control: the same fields as JSON, with a charset parameter.
       post path, params: body_for.to_json, headers: { 'CONTENT_TYPE' => 'application/json; charset=utf-8' }
@@ -181,10 +203,11 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       expect_signed_in
     end
 
-    # Raw bytes that are no UTF-8 never reach the door: Rails refuses them when it
-    # first reads the parameters, before any callback (the same 400 for every
-    # account, outside the error shape like every such answer of /api/v1). The
-    # per-address brake used to raise on such an address before that, a 500.
+    # Raw bytes that are no UTF-8 never reach the parser: the middleware in front of
+    # it refuses them. Rails itself answered them with a page of its own and wrote
+    # "Invalid encoding for parameter: <the value>" into the log at the level of
+    # production, the password with it; before that the per-address brake raised on
+    # such an address, a 500.
     {
       'the address' => ['person@example.com', "per\xFFson@example.com"],
       'the password' => ['password123', "pass\xFFword123"],
@@ -194,6 +217,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
         post_raw(body_for.to_json.b.sub(text.b, broken.b))
 
         expect(response).to have_http_status(:bad_request)
+        expect(json).to eq('error' => 'bad_request', 'code' => 'invalid_input')
         expect(device_tokens).to be_empty
         expect(user.reload.failed_attempts).to eq(0)
         expect(UserActivity.count).to eq(0)
@@ -210,6 +234,9 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       get path
       expect(response).to have_http_status(:not_found)
       expect(device_tokens).to be_empty
+
+      sign_in_with
+      expect_signed_in
     end
   end
 
@@ -326,7 +353,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan section 5.1: nobody learns from this door whether an address has an account,
+  # Nobody learns from this door whether an address has an account,
   # or that an account is locked.
   describe 'what the door tells about an account' do
     it 'answers an unknown address and a wrong password alike: status, body and language' do
@@ -385,6 +412,57 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       end
     end
 
+    # The activity log notes the address and the User-Agent of an attempt on a known
+    # account, and of nobody else. A header that made that note raise turned into an
+    # answer only a known address gave. The level is the one of production: below it
+    # the request log reads the address of every caller itself.
+    {
+      'a User-Agent of bytes that are no UTF-8' => { 'User-Agent' => "App\xFF/1.0" },
+      'a User-Agent with a NUL byte' => { 'User-Agent' => "App\u0000/1.0" },
+      'a Client-IP that contradicts X-Forwarded-For' => { 'Client-IP' => '198.51.100.1',
+                                                          'X-Forwarded-For' => '198.51.100.2' }
+    }.each do |name, headers|
+      it "answers a known and an unknown address alike with #{name}, and still notes the attempt" do
+        logging(level: :warn) do
+          sign_in_with(email: 'nobody@example.com', headers: headers)
+          unknown = answer
+          expect_invalid_credentials
+
+          sign_in_with(password: 'wrong-password', headers: headers)
+          expect(answer).to eq(unknown)
+          expect(UserActivity.where(user: user, action: 'login_failed').count).to eq(1)
+
+          # The right password signs in under the same headers, and the login is noted.
+          sign_in_with(headers: headers)
+          expect_signed_in
+          expect(UserActivity.where(user: user, action: 'login').count).to eq(1)
+        end
+      end
+    end
+
+    # The password is checked on the row as it was read. A new password revokes every
+    # token of the account once, at the change: a sign-in that passed the check just
+    # before must not write its token just after.
+    it 'hands out no token when the password changed between the check and the write' do
+      sign_in_with(email: 'nobody@example.com')
+      unknown = answer
+
+      allow(AppSessions::Authentication).to receive(:call).and_wrap_original do |original, **arguments|
+        original.call(**arguments).tap do |attempt|
+          next unless attempt.success?
+
+          User.find(attempt.user.id).update!(password: 'a-new-password-1', password_confirmation: 'a-new-password-1')
+        end
+      end
+      sign_in_with
+      expect(answer).to eq(unknown)
+      expect(device_tokens.active).to be_empty
+
+      RSpec::Mocks.space.reset_all
+      sign_in_with(password: 'a-new-password-1')
+      expect_signed_in
+    end
+
     it 'never names a lock or a last attempt' do
       Prosopite.pause { 25.times { sign_in_with(password: 'wrong-password') } }
 
@@ -396,7 +474,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan sections 2.1a and 5.2: failed attempts through the door count like those on
+  # Failed attempts through the door count like those on
   # the web, and the lock holds against the right password too.
   describe 'the counter and the lock' do
     def fail_times(count)
@@ -469,7 +547,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan section 5.3. What state an account is in learns only who sends its right
+  # What state an account is in learns only who sends its right
   # password; with a wrong one every state reads as invalid_credentials.
   describe 'the states of an account' do
     def expect_refused(reason, message_key)
@@ -598,7 +676,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan section 3.2: at most ten live devices per account.
+  # At most ten live devices per account.
   describe 'the eleventh device' do
     it 'revokes the device unused longest, never a personal token' do
       personal = create(:personal_access_token, user: user, organisations: [organisation], last_used_at: 80.days.ago)
@@ -627,7 +705,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan section 3.4: the answer holds the token, so it is never remembered.
+  # The answer holds the token, so it is never remembered.
   describe 'the Idempotency-Key header' do
     it 'is not processed: no row keeps the answer, and the same key signs in twice' do
       headers = { 'Idempotency-Key' => 'a-key-sent-twice' }
@@ -655,22 +733,8 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan section 5.5: neither the password nor the token reaches the log.
+  # Neither the password nor the token reaches the log.
   describe 'the log' do
-    def logging(level: :debug)
-      io = StringIO.new
-      logger = ActiveSupport::Logger.new(io)
-      logger.level = level
-      level_was = Rails.logger.level
-      Rails.logger.level = level
-      Rails.logger.broadcast_to(logger)
-      yield
-      io.string
-    ensure
-      Rails.logger.stop_broadcasting_to(logger)
-      Rails.logger.level = level_was
-    end
-
     it 'holds neither the password nor the token of a sign-in, at level debug' do
       token = nil
       log = logging do
@@ -687,6 +751,19 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       expect(log).to include('[FILTERED]')
     end
 
+    # Rails names the value of a parameter it cannot decode in its error line, at
+    # the level of production and past the parameter filter.
+    it 'holds no part of a password of bytes that are no UTF-8, at the level of production' do
+      log = logging(level: :warn) { post_raw(body_for(password: 'geheim-wort-9').to_json.b.sub('-wort'.b, "\xE4wort".b)) }
+
+      expect(response).to have_http_status(:bad_request)
+      expect(log).not_to include('geheim')
+      expect(log).not_to include('wort-9')
+
+      sign_in_with
+      expect_signed_in
+    end
+
     it 'holds no password of a failed attempt either' do
       log = logging { sign_in_with(password: 'a-wrong-secret-9') }
 
@@ -695,7 +772,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       expect(log).not_to include('a-wrong-secret-9')
     end
 
-    # The open point of the plan (section 5.5), answered: Rails itself writes a body
+    # Rails itself writes a body
     # it cannot parse into the log at level debug, whole. It does not at level info.
     # That is why RAILS_LOG_LEVEL=debug does not belong on a production instance.
     it 'holds a body that is no JSON at level debug, and not at level info' do
@@ -712,7 +789,6 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan section 5.6.
   describe 'the activity of the account' do
     it 'notes a login with the method app_session and the device, without a session' do
       sign_in_with(device: 'iPhone', headers: { 'User-Agent' => 'Lalabase/1.0 (iPhone; iOS 19.0)', 'REMOTE_ADDR' => '203.0.113.7' })
@@ -724,8 +800,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       expect(activity.metadata).to include('login_method' => 'app_session', 'device_name' => 'iPhone')
     end
 
-    # The open point of the plan (section 5.6), answered: UserActivity.track! reads
-    # request.session.id. In this API-only controller that is nil for a caller
+    # UserActivity.track! reads request.session.id. In this API-only controller that is nil for a caller
     # without a cookie: nothing raises, no session is made and no cookie is set.
     it 'reads request.session.id in an API-only controller without making a session' do
       sign_in_with
@@ -733,6 +808,12 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       expect_signed_in
       expect(UserActivity.where(user: user).sole.session_id).to be_blank
       expect(response.headers['Set-Cookie']).to be_blank
+    end
+
+    it 'stores at most 255 characters of a User-Agent' do
+      sign_in_with(password: 'wrong-password', headers: { 'User-Agent' => "Lalabase/#{'9' * 3000}" })
+
+      expect(UserActivity.where(user: user).sole.user_agent).to eq("Lalabase/#{'9' * 246}")
     end
 
     it 'notes a failed login for a known account, and nothing for an unknown address' do
@@ -753,7 +834,7 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
     end
   end
 
-  # Plan section 5.2: every visitor of the public demo shares one account with a
+  # Every visitor of the public demo shares one account with a
   # published password, exempt from the lock and from the per-address brake.
   describe 'the public demo' do
     around do |example|
@@ -784,6 +865,11 @@ RSpec.describe 'App sign-in (POST /api/auth/v1/app_sessions)', :ci_guard, type: 
       demo(true)
 
       post_raw('{"user": ')
+      expect(response).to have_http_status(:not_found)
+      sign_in_with(device: 'x' * 5000)
+      expect(response).to have_http_status(:not_found)
+      expect(json).to eq('error' => 'not_found', 'code' => 'not_found')
+      post_raw(body_for.to_json.b.sub('iPhone'.b, "iPh\xFFone".b))
       expect(response).to have_http_status(:not_found)
       post path, params: body_for
       expect(response).to have_http_status(:not_found)

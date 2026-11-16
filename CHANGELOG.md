@@ -112,8 +112,9 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   its old image addresses, unless its repository receives a new commit.
 - Do not run production with `RAILS_LOG_LEVEL=debug`. The new sign-in for clients
   (`/api/auth/v1`) receives a password in its body; a body Rails cannot read as JSON is
-  written to the log at that level, and it may hold the password. The default level is
-  safe. Serve the instance over TLS only: the password travels in the request.
+  written to the log at that level, and it may hold the password. At the default level
+  no body and no parameter of that sign-in reaches the log. Serve the instance over TLS
+  only: the password travels in the request.
 
 ## [2026.11.0] - 2026-10-31
 

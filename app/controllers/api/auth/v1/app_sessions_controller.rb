@@ -43,23 +43,30 @@ module Api
 
           result = Actors::CreateAppSession.call(current_user: attempt.user, device_name: input.device_name,
                                                  request: request)
-          return render_error(error: 'internal_error', status: :internal_server_error) unless result.success?
+          return render_created(result.resource, attempt.user) if result.success?
+          # The password changed between the check and the write: it is no longer the password.
+          return refuse(:invalid_credentials) if result.code == Actors::CreateAppSession::STALE_CREDENTIALS
 
-          render json: { data: created_payload(result.resource, attempt.user) }, status: :created
+          render_error(error: 'internal_error', status: :internal_server_error)
         end
 
         private
 
+        # The header as sent, read the way the brake reads it (Rack). Rails'
+        # own reading takes three more types for JSON (text/x-json,
+        # application/jsonrequest, application/problem+json) and parses them,
+        # while the brake found no address in such a request.
         def require_json
-          return if request.media_type == JSON_MEDIA_TYPE
+          return if Rack::MediaType.type(request.get_header('CONTENT_TYPE')) == JSON_MEDIA_TYPE
 
           render_error(error: 'unsupported_media_type', code: 'invalid_input', status: :unsupported_media_type,
                        message: I18n.t('services.app_sessions.unsupported_media_type'))
         end
 
-        # Lalabase::AuthBodyLimit refuses what Content-Length admits to. A body
-        # sent without a length (chunked) passes it, so the size is measured here
-        # once more, before anybody is looked up.
+        # Lalabase::AuthBodyLimit refuses a larger body in front of the parser,
+        # by its claimed length and by its measured start. The size is measured
+        # here once more, before anybody is looked up: should that class ever
+        # let a body through, it is still no attempt.
         def refuse_oversized_body
           return unless request.raw_post.to_s.bytesize > Lalabase::AuthBodyLimit::MAX_BODY_BYTES
 
@@ -94,6 +101,10 @@ module Api
           refusal = REFUSALS.fetch(reason)
           render_error(error: refusal[:error], status: refusal[:status], reason: reason.to_s,
                        message: I18n.t(refusal[:message], authentication_keys: User.human_attribute_name(:email)))
+        end
+
+        def render_created(token, current_user)
+          render json: { data: created_payload(token, current_user) }, status: :created
         end
 
         # current_user is the person who just proved the password: the answer

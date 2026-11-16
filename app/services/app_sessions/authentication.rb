@@ -17,6 +17,9 @@
 # * Whether the account may sign in at all (confirmed, active) is asked only
 #   after the right password, so only its owner learns that state.
 # * A success resets the counter.
+# * What the activity log reads from the request is made safe to store first
+#   (RequestFacts): only a known account is noted, so a header that broke the
+#   note would tell a known address from an unknown one.
 #
 # A reason Devise names that this object does not know becomes
 # `invalid_credentials`, never a new value: a client must not meet a reason it
@@ -44,7 +47,7 @@ module AppSessions
     def initialize(email:, password:, request: nil)
       @email = email
       @password = password
-      @request = request
+      @request = RequestFacts.wrap(request)
     end
 
     def call
@@ -66,15 +69,25 @@ module AppSessions
 
     # A wrong password, or a locked account whatever the password.
     def wrong_password(user)
-      user.track_failed_login(request: @request, reason: 'Invalid password')
+      note_failed_login(user, 'Invalid password')
       refused(INVALID_CREDENTIALS)
     end
 
     # The right password on an account that may not sign in right now.
     def not_allowed(user)
       reason = INACTIVE_REASONS.fetch(user.inactive_message, INVALID_CREDENTIALS)
-      user.track_failed_login(request: @request, reason: reason.to_s.humanize)
+      note_failed_login(user, reason.to_s.humanize)
       refused(reason)
+    end
+
+    # Only a known account gets this note, so the note must never decide the
+    # answer: if it fails, the refusal stays the one an unknown address gets.
+    # The log names the class of the error and not its message, which may quote
+    # what the caller sent.
+    def note_failed_login(user, reason)
+      user.track_failed_login(request: @request, reason: reason)
+    rescue StandardError => e
+      Rails.logger.error("[AppSessions] failed login not noted: #{e.class}")
     end
 
     def refused(reason)

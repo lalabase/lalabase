@@ -361,10 +361,13 @@ class Rack::Attack
 
   # The app sign-in reads its JSON body and nothing else, so the brake reads the
   # same: there a query string must not pick the bucket for an address the body
-  # does not name.
+  # does not name. And it reads that body whatever the content type says: Rails
+  # takes more types for JSON than Rack does, and an address the door could
+  # parse while the brake could not would be guessed past this bucket.
   def self.login_email(req)
-    email = req.params.dig('user', 'email') unless post_to?(req, APP_SIGN_IN_PATH)
-    email ||= json_login_email(req) if req.media_type == 'application/json'
+    app_sign_in = post_to?(req, APP_SIGN_IN_PATH)
+    email = req.params.dig('user', 'email') unless app_sign_in
+    email ||= json_login_email(req) if app_sign_in || req.media_type == 'application/json'
     # Bytes that are no UTF-8 name no account, and String#downcase raises on them.
     email.is_a?(String) && email.valid_encoding? ? email.downcase.strip : nil
   end

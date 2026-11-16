@@ -176,6 +176,51 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
       expect { expect_refused(take_over(person_id: row.id)) }.not_to(change { counts })
     end
 
+    context 'for a viewer who sees every row of the source (an account admin there)' do
+      let(:admin) do
+        takeover_join(takeover_join(create(:user), north, title: Role::ACCOUNT_ADMIN_TITLE), south, 'manage_people')
+      end
+
+      it 'takes a contact over (the control)' do
+        expect { expect(take_over(user: admin)).to be_success }.to change { counts }.from([1, 0]).to([1, 1])
+      end
+
+      it 'answers a member whose row the viewer can read' do
+        member = takeover_join(create(:user), north)
+        row = takeover_person(north, name: 'Mia Mitglied', user: member)
+        expect(ActsAsTenant.with_tenant(north) { PersonPolicy.new(admin, row).show? }).to be(true)
+
+        expect { expect_refused(take_over(user: admin, person_id: row.id)) }.not_to(change { counts })
+      end
+
+      it "answers a deactivated member's row the viewer can read" do
+        member = takeover_join(create(:user), north)
+        row = takeover_person(north, name: 'Dora Deaktiviert', user: member)
+        ActsAsTenant.with_tenant(north) { Membership.find_by!(user: member, organisation: north).update!(active: false) }
+        expect(ActsAsTenant.with_tenant(north) { PersonPolicy.new(admin, row).show? }).to be(true)
+
+        expect { expect_refused(take_over(user: admin, person_id: row.id)) }.not_to(change { counts })
+      end
+    end
+
+    # The target comes from the viewer's active memberships on its own, not
+    # only through the policy: with the right to create taken for granted, a
+    # foreign target and a deactivated membership are still refused.
+    context 'when the right to create is taken for granted' do
+      before { allow(described_class).to receive(:creatable_in?).and_return(true) }
+
+      it 'still answers a target the viewer is no member of' do
+        expect { expect_refused(take_over(target: create(:organisation).id)) }.not_to(change { counts })
+      end
+
+      it 'still answers a target with a deactivated membership' do
+        east = create(:organisation)
+        takeover_join(viewer, east, 'manage_people', active: false)
+
+        expect { expect_refused(take_over(target: east.id)) }.not_to(change { counts })
+      end
+    end
+
     it 'answers a target the viewer is no member of' do
       foreign = create(:organisation)
 

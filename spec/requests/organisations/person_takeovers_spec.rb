@@ -156,6 +156,14 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
                'notes' => 'Nur vormittags erreichbar', 'user_id' => nil)
     end
 
+    it 'takes no value from the request for a field that is not ticked' do
+      submit(fields: %w[email], person: { function: 'Forged', department: 'Forged', notes: 'forged' },
+             function: 'Forged', notes: 'forged')
+
+      copy = copies.first
+      expect(copy.attributes.values_at('email', 'function', 'department', 'notes')).to eq(['schmidt@example.com', nil, nil, nil])
+    end
+
     it 'cannot bring a value the source row does not hold' do
       submit(fields: %w[department company salutation additional_details])
 
@@ -208,6 +216,7 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       takeover_join(reader, west, 'view_people')
       blind = takeover_join(takeover_join(create(:user), north), south, 'manage_people')
       both = takeover_join(takeover_join(create(:user), north, 'manage_people'), south, 'manage_people')
+      admin = takeover_join(takeover_join(create(:user), north, title: Role::ACCOUNT_ADMIN_TITLE), south, 'manage_people')
 
       answers = {
         unknown: answer_of(person_id: SecureRandom.uuid),
@@ -218,7 +227,9 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
         target_without_right: answer_of(target: west.id),
         source_as_target: answer_of(user: both, target: north.id),
         source_without_view_people: answer_of(user: blind),
-        malformed_target: answer_of(target: 'x')
+        malformed_target: answer_of(target: 'x'),
+        member_read_by_admin: answer_of(user: admin, person_id: member_row.id),
+        deactivated_member_read_by_admin: answer_of(user: admin, person_id: former_row.id)
       }
 
       expect(answers.values.uniq.size).to eq(1), answers.transform_values(&:last).inspect

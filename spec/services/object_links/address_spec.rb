@@ -80,6 +80,34 @@ RSpec.describe ObjectLinks::Address do
       expect(ref.id).to eq(object_id_value)
     end
 
+    it 'uses the last repeated scalar parameter, like the destination request' do
+      query = "meeting_id=#{project_id}&meeting_id=#{object_id_value}"
+
+      expect(parse("#{base}/meetings?#{query}"))
+        .to eq(described_class::Ref.new(type: :meeting, id: object_id_value, project_id: nil))
+    end
+
+    it 'keeps the note precedence when its parameter is repeated beside a document' do
+      query = "note_id=#{object_id_value}&note_id=#{object_id_value}&document_id=#{project_id}"
+
+      expect(parse("#{base}/projects/#{project_id}/knowledge?#{query}"))
+        .to eq(described_class::Ref.new(type: :note, id: object_id_value, project_id: project_id))
+    end
+
+    it 'leaves structured selections unchanged instead of naming a later parameter' do
+      %w[note_id[] note_id[id]].each do |key|
+        query = "#{key}=#{object_id_value}&document_id=#{project_id}"
+
+        expect(parse("#{base}/projects/#{project_id}/knowledge?#{query}")).to be_nil
+      end
+    end
+
+    it 'leaves invalid query encodings and conflicting parameter types unchanged' do
+      ["note_id=#{object_id_value}&note_id[]=#{object_id_value}", 'note_id=%FF', 'note_id=%ZZ'].each do |query|
+        expect(parse("#{base}/projects/#{project_id}/knowledge?#{query}")).to be_nil
+      end
+    end
+
     it 'names nothing for an overview without a selection' do
       expect(parse("#{base}/meetings")).to be_nil
       expect(parse("#{base}/projects/#{project_id}/tickets?status=open")).to be_nil

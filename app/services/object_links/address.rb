@@ -109,11 +109,18 @@ module ObjectLinks
     end
 
     def lane_ref(params, query, project_id)
-      values = Rack::Utils.parse_query(query.to_s)
+      # Use the destination request's parser: repeated scalar keys use their last value.
+      # Rack::Utils.parse_query collects them into arrays and can name a different object.
+      values = ActionDispatch::ParamBuilder.from_query_string(query.to_s)
       params.each do |name, type|
         value = values[name]
-        return build(type, value, project_id) if value.is_a?(String) && value.present?
+        next if value.blank?
+        return nil unless value.is_a?(String)
+
+        return build(type, value, project_id)
       end
+      nil
+    rescue ActionDispatch::ParamError
       nil
     end
 

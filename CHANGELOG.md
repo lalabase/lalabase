@@ -25,16 +25,21 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   Two new role rights decide who may see and who may keep it, see the upgrade notes
   (#113), (#114), (#140), (#145).
 - A misheard word in a meeting's transcript is corrected in place, only there or everywhere
-  in the meeting, and the correction is learnt for the glossary with its speaker and project
-  (#121). A meeting shows what a recording device replaced from the glossary (#127).
+  in the meeting, and the correction is learnt for the glossary with its speaker and project.
+  Without the right to keep the glossary it is a proposal there, which works nowhere until
+  someone with the right confirms it (#121). A meeting shows what a recording device replaced from the glossary (#127).
 - The glossary takes a pasted list of terms, checked line by line before the import (#128),
-  and suggests terms from tickets, comments, notes and documents, with the organisation's AI
-  model and a review list where a person accepts, merges or dismisses each one (#129), (#130).
+  and suggests terms from tickets, public comments, notes and documents that the person who
+  starts it may read, with the organisation's AI model and a review list where a person accepts, merges or dismisses each one (#129), (#130).
 - Sub-tasks can have sub-tasks, to any depth. The ticket head shows the trail of its parents
-  (#97), (#100).
+  (#97). A sub-task added in the ticket shows in the ticket list beside it at once (#100).
 - An organisation chooses an inbox project for meetings. Programs create meetings over
   `POST /api/v1/organisations/:organisation_id/meetings` and the MCP tool `create_meeting`;
   without a project they land in the inbox. API version 1.9.0, MCP 0.16.0 (#105), (#106).
+- A program that creates a meeting can send what it replaced from the glossary before
+  sending (`meeting[glossary_replacements]`: heard form, term, count, at most 500 rows). A
+  list that does not fit is refused as a whole as `invalid_input`. `GET /api/v1/meetings/:id`
+  gives the list back. Capability `meetings.glossary_replacements`, API version 1.12.0 (#127).
 - The MCP tool `get_meeting` reads one meeting whole: its head with the participants, and the
   summary, notes and transcript in pages (`part`, `offset`). MCP 0.17.0 (#112).
 - An inbox above all organisations at `/inbox`: the notifications of every organisation a
@@ -59,6 +64,8 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 ### Changed
 
 - The inbox has the list-and-lane design of the other list pages (#132), (#133).
+- A click on a ticket description no longer opens its editor and the text no longer reacts to
+  hover; edit it with the pencil (#104).
 - The inbox of an organisation opens on "All" (unread and read) instead of "Unread" (#136).
 - A saved ticket keeps its parent. `PATCH /api/v1/tickets/:id` used to drop `parent_id` and
   answer 200; another parent or an empty value is now a 422 `validation_failed`, the current
@@ -102,9 +109,8 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 - Cancelling or deleting in the note editor of the inbox keeps the editor's frame (#176).
 - A note mention in a rich text draws its chip again (#182).
 - A file opened without a login leads to the login page (#103).
-- A ticket description is plain text again (#104).
-- A project event reaches everyone who may read it, and a failed delivery heals on its next
-  run (#99).
+- A project event reaches everyone who may read it, and a run that created notifications and
+  failed halfway is rolled back and retried in full instead of leaving people out (#99).
 - Expired cache entries are swept every hour, and the file cache has its own directory (#115).
 - Input that answered a 500 on `/api/v1` and MCP is answered now. The ticket list takes the
   search together with a tag filter, and ignores a date bound with a year PostgreSQL cannot
@@ -169,8 +175,16 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   so rate limit counters start from zero.
 - Without Docker, the old cache entries stay in `tmp/cache/` in directories named by three
   hex digits and are read by nobody. Remove them once, in your shared `tmp/cache`:
-  `find tmp/cache -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '.*/[0-9A-F]{3}' -exec rm -rf {} +`
-  (GNU `find`).
+  The directory is the `tmp/cache` your app server uses (with Capistrano `shared/tmp/cache`,
+  which `current/tmp/cache` links to; `-H` follows that link):
+  `find -H tmp/cache -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '.*/[0-9A-F]{3}' -exec rm -rf {} +`
+  (GNU `find`; with BSD `find` on macOS write `find -E -H tmp/cache ... -regex '.*/[0-9A-F]{3}'`
+  without `-regextype`).
+- If you build the image yourself (`compose.build.yml`), rebuild it: the Dockerfile changed
+  and creates the new cache directory (#115).
+- API clients: `PATCH /api/v1/tickets/:id` with another or an empty `parent_id` now answers
+  422 `validation_failed` instead of 200 and an unchanged parent (#97).
+- No new required environment variables.
 
 ## [2026.11.0] - 2026-10-31
 

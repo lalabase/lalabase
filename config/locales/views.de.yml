@@ -6,6 +6,17 @@ de:
     formats:
       stamp: "%d.%m.%Y %H:%M"
   views:
+    # Object chips in rich text (ObjectLinks::Chips): the type is read out before the
+    # label, the icon alone says nothing to a screen reader.
+    object_links:
+      untitled: "Ohne Titel"
+      types:
+        ticket: "Ticket"
+        meeting: "Meeting"
+        person: "Person"
+        member: "Mitglied"
+        note: "Notiz"
+        document: "Dokument"
     action_text:
       embed_hint_not_image: "%{filename} ist kein Bild. In den Text passen nur PNG, JPEG, GIF und WebP."
       embed_hint_too_large: "%{filename} ist größer als %{max} MB und passt nicht in den Text."

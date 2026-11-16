@@ -36,7 +36,7 @@ module Organisations
 
     def create
       authorize Person, :index?
-      result = Actors::TakeOverPerson.call(source_organisation: current_organisation, person_id: params[:person_id].to_s,
+      result = Actors::TakeOverPerson.call(source_organisation: current_organisation, person_id: person_id.to_s,
                                            target_organisation_id: scalar(:target), fields: ticked_fields,
                                            confirm_duplicate: confirmed?, current_user: current_user)
       return taken_over(result.resource) if result.success?
@@ -47,11 +47,16 @@ module Organisations
 
     private
 
+    # The id of the address in one spelling (dashed, lower case), the one the
+    # dialog was drawn with and the actor's lookup compares; nil when it is none.
+    def person_id
+      @person_id ||= Lalabase::Uuid.dashed(params[:person_id])
+    end
+
     # A contact row of this organisation the viewer may read, or nil. The
     # actor reads it again on submit through People::Lookup.
     def source_row
-      id = Lalabase::Uuid.dashed(params[:person_id])
-      policy_scope(Person).find_by(id: id, user_id: nil) if id
+      policy_scope(Person).find_by(id: person_id, user_id: nil) if person_id
     end
 
     def targets
@@ -104,7 +109,8 @@ module Organisations
       message = t('controllers.people.not_found')
       if request.post? && request.format.turbo_stream?
         streams = [turbo_stream.prepend('flash', partial: 'layouts/flash', locals: { flash: { alert: message } })]
-        streams.unshift(turbo_stream.remove(helpers.person_takeover_modal_instance_id(params[:person_id], token))) if token
+        opening = helpers.person_takeover_modal_instance_id(person_id || params[:person_id].to_s, token)
+        streams.unshift(turbo_stream.remove(opening)) if token
         render turbo_stream: streams, status: :not_found
       elsif turbo_frame_request?
         render html: helpers.turbo_frame_tag(request.headers['Turbo-Frame']) {

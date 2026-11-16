@@ -221,6 +221,50 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
       end
     end
 
+    # Every refusal also holds for a submit that confirmed the duplicate
+    # question: nothing may hide behind "create anyway" (review round 1).
+    context 'with the duplicate question confirmed' do
+      let(:admin) do
+        takeover_join(takeover_join(create(:user), north, title: Role::ACCOUNT_ADMIN_TITLE), south, 'manage_people')
+      end
+
+      it 'answers a target without the right to create people' do
+        west = create(:organisation)
+        takeover_join(viewer, west, 'view_people')
+
+        expect { expect_refused(take_over(target: west.id, confirm_duplicate: true)) }.not_to(change { counts })
+      end
+
+      it 'answers a target with a deactivated membership' do
+        east = create(:organisation)
+        takeover_join(viewer, east, 'manage_people', active: false)
+
+        expect { expect_refused(take_over(target: east.id, confirm_duplicate: true)) }.not_to(change { counts })
+      end
+
+      it 'answers a foreign target, the source as target and an unreadable source' do
+        reader = takeover_join(takeover_join(create(:user), north), south, 'manage_people')
+        expect { expect_refused(take_over(target: create(:organisation).id, confirm_duplicate: true)) }.not_to(change { counts })
+        expect { expect_refused(take_over(target: north.id, confirm_duplicate: true)) }.not_to(change { counts })
+        expect { expect_refused(take_over(user: reader, confirm_duplicate: true)) }.not_to(change { counts })
+      end
+
+      it 'answers a member whose row the viewer can read' do
+        member = takeover_join(create(:user), north)
+        row = takeover_person(north, name: 'Mia Mitglied', user: member)
+
+        expect { expect_refused(take_over(user: admin, person_id: row.id, confirm_duplicate: true)) }.not_to(change { counts })
+      end
+
+      it "answers a deactivated member's row the viewer can read" do
+        former = takeover_join(create(:user), north)
+        row = takeover_person(north, name: 'Dora Deaktiviert', user: former)
+        ActsAsTenant.with_tenant(north) { Membership.find_by!(user: former, organisation: north).update!(active: false) }
+
+        expect { expect_refused(take_over(user: admin, person_id: row.id, confirm_duplicate: true)) }.not_to(change { counts })
+      end
+    end
+
     it 'answers a target the viewer is no member of' do
       foreign = create(:organisation)
 
@@ -290,6 +334,26 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
       take_over(confirm_duplicate: true)
 
       expect(take_over.code).to eq(:duplicate)
+    end
+
+    it 'refuses before it asks when the viewer may not create people in the target' do
+      reader = takeover_join(takeover_join(create(:user), north, 'view_people'), south, 'view_people')
+
+      result = take_over(user: reader)
+
+      expect([result.code, result.errors]).to eq([:not_found, [I18n.t('controllers.people.not_found')]])
+    end
+
+    it 'does not name a row of the target the viewer may not read' do
+      ActsAsTenant.with_tenant(south) { existing.destroy! }
+      hidden = takeover_join(create(:user), south)
+      takeover_person(south, name: 'Herr Schmidt', user: hidden)
+      visible = ActsAsTenant.with_tenant(south) { People::Directory.new(viewer: viewer, organisation: south).entries }
+      expect(visible.map(&:plain_name)).not_to include('Herr Schmidt')
+
+      result = take_over
+
+      expect(result).to be_success
     end
 
     it 'counts a member of the target with the same name' do

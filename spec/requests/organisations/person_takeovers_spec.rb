@@ -108,13 +108,20 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       expect(boxes).to eq('function' => true, 'company' => true, 'email' => true, 'phone' => true, 'notes' => false)
     end
 
-    it 'answers a member, an unknown row and a viewer without a target alike' do
+    it 'answers a member, an unknown row, a viewer without a target and one without the right alike' do
       member = takeover_join(create(:user), north)
       row = takeover_person(north, name: 'Mia Mitglied', user: member)
       alone = takeover_join(create(:user), north, 'manage_people')
+      admin = takeover_join(takeover_join(create(:user), north, title: Role::ACCOUNT_ADMIN_TITLE), south, 'manage_people')
+      former = takeover_join(create(:user), north)
+      former_row = takeover_person(north, name: 'Dora Deaktiviert', user: former)
+      ActsAsTenant.with_tenant(north) { Membership.find_by!(user: former, organisation: north).update!(active: false) }
+      blind = takeover_join(takeover_join(create(:user), north), south, 'manage_people')
       # Each request after the first runs with Prosopite paused: the same
       # queries for another user are a loop of requests, not an N+1.
-      answers = [[reader, row.id], [reader, SecureRandom.uuid], [alone, source.id]].each_with_index.map do |(user, id), index|
+      cases = [[reader, row.id], [reader, SecureRandom.uuid], [alone, source.id], [admin, row.id], [admin, former_row.id],
+               [blind, source.id]]
+      answers = cases.each_with_index.map do |(user, id), index|
         sign_in user
         request = -> { get new_organisation_person_takeover_path(north, id), headers: { 'Turbo-Frame' => 'person-takeover-modal-x' } }
         index.zero? ? request.call : Prosopite.pause(&request)
@@ -162,6 +169,12 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
 
       copy = copies.first
       expect(copy.attributes.values_at('email', 'function', 'department', 'notes')).to eq(['schmidt@example.com', nil, nil, nil])
+    end
+
+    it 'reads a person id in another spelling as the same row' do
+      expect { submit(person_id: source.id.upcase.delete('-')) }.to change { counts }.from([1, 0]).to([1, 1])
+
+      expect(response).to have_http_status(:see_other)
     end
 
     it 'cannot bring a value the source row does not hold' do
@@ -232,6 +245,19 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
         deactivated_member_read_by_admin: answer_of(user: admin, person_id: former_row.id)
       }
 
+      confirmed = answers.keys.to_h do |key|
+        options = { member: { person_id: member_row.id }, deactivated_member: { person_id: former_row.id },
+                    foreign_target: { target: others.id }, deactivated_target: { target: east.id },
+                    target_without_right: { target: west.id }, source_without_view_people: { user: blind },
+                    source_as_target: { user: both, target: north.id } }.fetch(key, nil)
+        next [key, nil] unless options
+
+        target = options.fetch(:target, south.id)
+        [:"#{key}_confirmed", answer_of(**options, confirm_target: target)]
+      end.compact.to_h
+      answers.merge!(confirmed.compact)
+
+      expect(answers.size).to eq(18)
       expect(answers.values.uniq.size).to eq(1), answers.transform_values(&:last).inspect
       status, media_type, body = answers.values.first
       expect([status, media_type]).to eq([404, 'text/vnd.turbo-stream.html'])

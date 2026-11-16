@@ -32,18 +32,20 @@
         <% end %>
       </nav>
     <% end %>
+  <%# Without the right in any organisation that is what the page says, also with a
+      search in the address: "nobody matches" would be the wrong reason. %>
+  <% elsif people.organisations.empty? %>
+    <div class="people-empty" data-all-people-empty="no-right">
+      <i class="bi bi-people people-empty__icon" aria-hidden="true"></i>
+      <p class="people-empty__title"><%= t('views.all_people.empty.no_right_title') %></p>
+      <p class="people-empty__text width-text"><%= t('views.all_people.empty.no_right_text') %></p>
+    </div>
   <% elsif all_people_list_state[:q] %>
     <div class="people-empty" data-all-people-empty="no-hits">
       <p class="people-empty__title"><%= t('views.all_people.empty.no_hits_title', query: all_people_list_state[:q]) %></p>
       <p class="people-empty__text"><%= t('views.all_people.empty.no_hits_text') %></p>
       <%= link_to t('views.all_people.empty.clear_search'), all_people_path(all_people_list_state.except(:q)),
                   class: 'people-text-action', data: { turbo_frame: '_top' } %>
-    </div>
-  <% elsif people.organisations.empty? %>
-    <div class="people-empty" data-all-people-empty="no-right">
-      <i class="bi bi-people people-empty__icon" aria-hidden="true"></i>
-      <p class="people-empty__title"><%= t('views.all_people.empty.no_right_title') %></p>
-      <p class="people-empty__text width-text"><%= t('views.all_people.empty.no_right_text') %></p>
     </div>
   <% else %>
     <div class="people-empty" data-all-people-empty="no-people">

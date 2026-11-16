@@ -126,10 +126,10 @@ module People
     end
 
     # The page asked for, held inside what there is, and the number of pages. Anything that
-    # is no whole number is the first page.
+    # is no whole number is the first page; a number beyond the list, however long, the last.
     def paging(total)
       pages = [(total / PER_PAGE.to_f).ceil, 1].max
-      number = @page.to_s.match?(/\A\d{1,9}\z/) ? @page.to_i : 1
+      number = @page.to_s.match?(/\A\d+\z/) ? @page.to_s.to_i : 1
       [number.clamp(1, pages), pages]
     end
 

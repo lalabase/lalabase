@@ -47,13 +47,15 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
     end
   end
 
-  # Before the rows below: a row of a member needs the membership.
+  # Before the rows below: a row of a member needs the membership. South comes first on
+  # purpose: the organisation with the later name is the older one, so the order by name
+  # (chips, the first source, the filter) is never the order of creation by accident.
   before do
     Prosopite.pause do
-      join_organisation(viewer, north, admin: true)
       join_organisation(viewer, south, admin: true)
-      join_organisation(shared, north)
+      join_organisation(viewer, north, admin: true)
       join_organisation(shared, south)
+      join_organisation(shared, north)
     end
   end
 
@@ -118,6 +120,20 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
 
       expect(rows.map { |row| [row.kind, organisations_of(row)] })
         .to contain_exactly(['member', ['Nord GmbH', 'Sued AG']], ['contact', ['Sued AG']])
+    end
+
+    # A deactivated membership: the directory lists that member's row as a contact, and a
+    # contact is alone, also when its account is a member elsewhere.
+    it 'keeps the row of a former member apart from the member with the same account elsewhere' do
+      south_row = person_in(south, user: shared, name: 'Mara Mitglied', function: 'Beraterin', company: nil)
+      Membership.find_by!(user: shared, organisation: south).update!(active: false)
+
+      rows = list.rows.select { |row| row.name == 'Mara Mitglied' }
+
+      expect(rows.map { |row| [row.kind, organisations_of(row), row.sources.map(&:lane)] }).to contain_exactly(
+        ['member', ['Nord GmbH'], [{ person_id: north_row.id }]],
+        ['contact', ['Sued AG'], [{ person_id: south_row.id }]]
+      )
     end
 
     it 'shows the newest last contact of the sources' do
@@ -261,6 +277,9 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
 
       expect(pages).to all(eq(1))
       expect(list(page: '999').page).to eq(2)
+      expect(list(page: '99999999999').page).to eq(2)
+      expect(list(page: '9' * 40).page).to eq(2)
+      expect(list(page: '0002').page).to eq(2)
       expect(list(page: 2).page).to eq(2)
     end
 

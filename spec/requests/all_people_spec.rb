@@ -22,10 +22,12 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
   # are what Prosopite watches.
   let!(:people) do
     Prosopite.pause do
-      join_organisation(user, north, admin: true)
+      # South first: the organisation with the later name is the older one, so the order
+      # by name on the page is not the order of creation.
       join_organisation(user, south, admin: true)
-      join_organisation(shared, north)
+      join_organisation(user, north, admin: true)
       join_organisation(shared, south)
+      join_organisation(shared, north)
       {
         north_row: person_in(north, user: shared, name: 'Mara Mitglied', function: 'Beraterin', company: nil,
                                     email: 'mara.lager@example.com', phone: '+49 30 5550100', notes: 'Nur dienstags im Haus.'),
@@ -178,6 +180,20 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
       expect(list(doc).at_css('[data-all-people-empty="no-right"]')).to be_present
       expect(filter_options(doc)).to eq([I18n.t('views.all_people.filter.all_organisations')])
       expect(list(doc).text).not_to include('Nord GmbH', 'Sued AG', 'Nora Nord')
+    end
+  end
+
+  describe 'a reference is not a right, with a search' do
+    # A search in the address (a bookmark) must not turn "you may not see people" into
+    # "nobody matches".
+    it 'still says that the right is missing when the person may see the people of no organisation' do
+      Prosopite.pause { [north, south].each { |organisation| take_people_right(user, organisation) } }
+
+      doc = page(q: 'nora')
+
+      expect(list(doc).at_css('[data-all-people-empty="no-right"]')).to be_present
+      expect(list(doc).at_css('[data-all-people-empty="no-hits"]')).to be_nil
+      expect(rows(doc)).to be_empty
     end
   end
 

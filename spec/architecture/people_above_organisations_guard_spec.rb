@@ -21,6 +21,7 @@ RSpec.describe 'The people above the organisations never lift the tenant' do
     app/services/people/across_organisations.rb
     app/services/people/lookup.rb
     app/services/people/directory.rb
+    app/services/people/contacts.rb
     app/views/all_people/index.html.erb
     app/views/all_people/_tools.html.erb
     app/views/all_people/_results.html.erb

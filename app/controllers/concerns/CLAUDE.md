@@ -155,6 +155,14 @@ der Controller liefert Seiten aus (`serves_pages?`, Standard wahr). Drei Leser:
   den Assistenten-Knopf in eine Seite ohne Assistenten. Jeder Beinahe-Treffer (anderer Port,
   Inbox einer Organisation, kaputte Adresse) lässt dem Fragment den Kontext seines Tickets.
   Wächter: `spec/requests/all_inboxes_lane_spec.rb` („assistant context after lane writes").
+  Seit 16.11.2026 nennt sich eine zweite Seite so: die Personen über den Organisationen
+  (`AllPeopleController`, `GET /people`). Sie zeichnet noch kein Fragment einer Organisation
+  in sich hinein, darum kennt die Referrer-Regel weiter nur `/inbox`. ⚠️ Wer dort eine Bahn
+  einbaut, deren Fragmente ein Controller der Organisation beantwortet, nimmt `/people` in
+  diese Regel auf, sonst zeichnet das Fragment den Assistenten-Knopf in eine Seite ohne
+  Assistenten. Eine neue Seite über den Organisationen braucht außerdem ihren Eintrag in
+  `NavigationHelper::LEVEL_PAGES` (Wächter `spec/architecture/sidebar_mode_guard_spec.rb`)
+  und nennt eine Organisation in ihrer Adresse nie `organisation_id` (hier `org`).
 
 `InboxLane` (`inbox_lane.rb`, beide Inbox-Controller): der Lader der Bahn fragt seit S4a
 (14.11.2026) `Inbox::LaneKind`, was die Zeile öffnet, statt „ist es ein Ticket“. Zustände:

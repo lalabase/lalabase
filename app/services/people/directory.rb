@@ -125,6 +125,13 @@ module People
       end
     end
 
+    # Every entry the viewer may see, before search and filter, without last
+    # contacts: the part of one organisation in a list over several
+    # (People::Lookup#listing), which merges and cuts its page itself.
+    def all_entries
+      everyone
+    end
+
     # The entries matching the search, without last contacts: the list of the
     # dialog that links a meeting participant (S2b).
     def candidates

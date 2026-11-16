@@ -11,9 +11,60 @@ de:
         stale: "Jemand anderes hat diese Person inzwischen geändert. Unten stehen die aktuellen Angaben, bitte noch einmal ändern."
       destroy:
         success: "Person gelöscht."
+      takeover:
+        success: "Übernommen aus %{source}."
+        failed: "Diese Person ließ sich nicht übernehmen."
+        duplicate: "In %{organisation} gibt es schon %{names}. Trotzdem anlegen?"
+        duplicate_name: "„%{name}“"
   views:
+    all_people:
+      title: "Personen"
+      count:
+        one: "%{count} Person"
+        other: "%{count} Personen"
+      search_label: "Personen aller Organisationen durchsuchen"
+      search_placeholder: "Name, Funktion oder Firma"
+      filter:
+        organisation_label: "Organisation"
+        all_organisations: "Alle Organisationen"
+      columns:
+        name: "Name"
+        function: "Funktion"
+        organisations: "Organisationen"
+        last_contact: "Letzter Kontakt"
+      chip:
+        open: "%{name} in %{organisation} öffnen"
+      empty:
+        no_hits_title: "Keine Person passt zu „%{query}“."
+        no_hits_text: "Gesucht wird in Name, Funktion, Abteilung, Firma und E-Mail."
+        clear_search: "Suche zurücksetzen"
+        no_people_title: "Noch keine Personen"
+        no_people_text: "Hier stehen die Personen aus allen deinen Organisationen, sobald es welche gibt."
+        no_right_title: "Keine Personen sichtbar"
+        no_right_text: "In keiner deiner Organisationen darfst du die Personen ansehen. Das Recht dazu vergibt ein Administrator der Organisation."
+      paging:
+        label: "Seiten der Liste"
+        previous: "Zurück"
+        next: "Weiter"
+        position: "Seite %{page} von %{pages}"
     organisations:
       people:
+        takeover:
+          menu: "In andere Organisation übernehmen …"
+          title: "In andere Organisation übernehmen"
+          close: "Schließen"
+          target: "Ziel"
+          fields: "Felder"
+          always: "immer"
+          details_count:
+            one: "%{count} Angabe"
+            other: "%{count} Angaben"
+          visibility_html: "Sichtbar für alle mit Personen-Recht in %{organisation}."
+          copy_hint: "Es entsteht eine Kopie: spätere Änderungen hier ändern sie nicht."
+          submit: "Übernehmen"
+          submitting: "Wird übernommen …"
+          confirm: "Trotzdem anlegen"
+          cancel: "Abbrechen"
         index:
           title: "Personen"
           new_person: "Person anlegen"

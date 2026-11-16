@@ -84,7 +84,6 @@ module ShadowLevels
     'app/views/organisations/_organisation_tiles.html.erb' => 4, # clickable tiles, may move to shadow-lift later
     'app/views/organisations/appearances/_color_swatch.html.erb' => 2,
     'app/views/organisations/briefings/_onboarding_banner.html.erb' => 2,
-    'app/views/organisations/changelog/show.html.erb' => 1,
     'app/views/organisations/codebase_import_files/show.html.erb' => 1,
     'app/views/organisations/meetings/_transcript_section.html.erb' => 1,
     'app/views/organisations/personal_tasks/_form.html.erb' => 1,

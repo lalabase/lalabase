@@ -42,14 +42,7 @@
         class: 'sidebar-layer__trigger flex items-center gap-3 rounded px-4 py-2 transition-colors hover:bg-cream-200',
         aria: { label: "#{t('navigation.account_section')}: #{account_name}", controls: 'account-layer' },
         data: { sidebar_layer_target: 'trigger', action: 'click->sidebar-layer#toggle' } do %>
-    <span class="relative inline-flex">
-      <i class="bi bi-person-fill" aria-hidden="true"></i>
-      <%# Quiet unread marker for platform news (lime, not the red notification colour). %>
-      <%# Only where the layer lists the news, inside an organisation. %>
-      <% if current_organisation.present? && changelog_in_navigation? && changelog_has_unread?(current_user) %>
-        <span class="changelog-unread-dot absolute -top-1 -end-1 w-2 h-2 bg-lime-500 rounded-full border border-stroke"></span>
-      <% end %>
-    </span>
+    <i class="bi bi-person-fill" aria-hidden="true"></i>
     <span class="flex-1 truncate"><%= account_name %></span>
     <i class="bi bi-chevron-down sidebar-layer__chevron text-[10px] text-muted" aria-hidden="true"></i>
   <% end %>

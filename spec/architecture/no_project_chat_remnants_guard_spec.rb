@@ -108,12 +108,8 @@ RSpec.describe 'No project-chat remnants', type: :model do
     %w[.rb .erb .js .yml .yaml .rake .md .css .json .html].include?(File.extname(path))
   end
 
-  # app/changelog/ is excluded permanently: those files announce a release on a date
-  # and are history by construction, the same allowance the ticket-chat guard made for
-  # the design document it was named after. Rewriting a shipped announcement would be
-  # a lie about what happened in June.
   def scanned?(path)
-    text_source?(path) && !path.start_with?('app/changelog/')
+    text_source?(path)
   end
 
   def relative_files(globs)

@@ -1,0 +1,36 @@
+<%# locals: (row:) %>
+<%# One person (People::AcrossOrganisations::Row). A person of one organisation:
+    the name is the link to that organisation's people page with the person
+    open, the chip only names the organisation. A person of several: the name is
+    text and each chip is the link into its organisation. The chip of the
+    picture says member or contact, as on the people page of an organisation. %>
+<% single = row.sources.first if row.sources.one? %>
+<% kind_word = t("views.organisations.people.show.kind.#{row.kind}") %>
+<% last = all_people_last_contact(row) %>
+<tr data-all-people-row data-person-key="<%= row.sources.first.fields[:id] %>">
+  <td>
+    <div class="all-people-row__person">
+      <%= render Neo::Users::AvatarComponent.new(user: row.avatar_user, size: :small, fallback_initials: person_initials(row.name), title: kind_word,
+                                                  class: "people-avatar #{'people-avatar--contact' unless row.kind == 'member'}") %>
+      <% if single %>
+        <%= link_to row.name, all_people_source_path(single), class: 'all-people-row__name', data: { turbo_frame: '_top' } %>
+      <% else %>
+        <span class="all-people-row__name"><%= row.name %></span>
+      <% end %>
+      <span class="sr-only">, <%= kind_word %></span>
+    </div>
+  </td>
+  <td class="all-people-table__wide all-people-row__role"><%= all_people_role(row) %></td>
+  <td>
+    <div class="all-people-chips">
+      <% row.sources.each do |source| %>
+        <%= render 'shared/organisation_chip',
+                   name: source.organisation_name,
+                   color: current_user.org_colors.effective_color(source.organisation_id),
+                   url: (all_people_source_path(source) unless single),
+                   label: (t('views.all_people.chip.open', name: row.name, organisation: source.organisation_name) unless single) %>
+      <% end %>
+    </div>
+  </td>
+  <%= tag.td(last ? last[:age] : '', class: 'all-people-table__wide all-people-row__last', title: (last[:date] if last)) %>
+</tr>

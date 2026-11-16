@@ -100,6 +100,12 @@ class Organisation < ApplicationRecord
 
   # Associations
   has_many :memberships, dependent: :destroy
+  # The subdomain it is shown under, and the old names it still holds
+  # (doc/org_subdomains_plan.md). The foreign key deletes them with the organisation
+  # (ON DELETE CASCADE), also on the admin twin, which declares no association for them.
+  has_many :subdomains, class_name: 'OrganisationSubdomain', inverse_of: :organisation, dependent: :delete_all
+  has_one :current_subdomain, -> { current }, class_name: 'OrganisationSubdomain',
+                                              inverse_of: :organisation, dependent: nil
   has_many :users, through: :memberships
   has_many :invitations, dependent: :destroy
   has_many :roles, dependent: :destroy

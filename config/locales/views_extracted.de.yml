@@ -94,10 +94,6 @@ de:
           create_new_organisation: Neue Organisation erstellen
           add_to_existing_organisation: Zu bestehender Organisation hinzufügen
           organisation_name: Name der Organisation
-          subdomain_optional: Subdomain (optional)
-          subdomain_hint: Wird für URL-Zugriff verwendet (z.B. muster-gmbh.lalabase.com)
-          custom_domain_optional: Custom Domain (optional)
-          custom_domain_hint: Custom Domain für die Organisation
           select_organisation: Organisation auswählen...
           select_organisation_first: Bitte zuerst eine Organisation auswählen.
           back_to_overview: Zurück zur Übersicht

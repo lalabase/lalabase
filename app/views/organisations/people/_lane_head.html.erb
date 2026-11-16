@@ -1,6 +1,7 @@
-<%# locals: (edit_url: nil, edit_link: nil, menu: nil) %>
+<%# locals: (edit_url: nil, edit_link: nil, menu: nil, menu_id: nil) %>
 <%# The head of an open person: "Bearbeiten" for those who may write, the
-    rarer actions behind "···" (menu: the items, captured by the caller), and
+    rarer actions behind "···" (menu: the items, captured by the caller; menu_id:
+    the id a dialog opened from the menu returns the focus to), and
     the way out. What the person is stands under the name, not here. The ✕
     closes the lane in place (layout-toggle); on a phone the mobile view
     brings its own way back. %>
@@ -12,7 +13,7 @@
   <% end %>
   <% if menu.present? %>
     <details class="more-menu" data-controller="details-autoclose">
-      <summary class="more-menu__trigger" title="<%= t('views.organisations.people.show.more_actions') %>"
+      <summary class="more-menu__trigger" <%= tag.attributes(id: menu_id) %> title="<%= t('views.organisations.people.show.more_actions') %>"
                aria-label="<%= t('views.organisations.people.show.more_actions') %>"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
       <div class="more-menu__items"><%= menu %></div>
     </details>

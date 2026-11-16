@@ -46,7 +46,9 @@ module Lalabase
           'projects' => %w[change_project_properties create_new_projects read_access_documentation_all_projects] +
                         ALL_PROJECTS,
           'users' => %w[view_user_full_name view_user_contact_details],
-          'assistant' => %w[use_assistant]
+          'assistant' => %w[use_assistant],
+          'people' => %w[manage_people],
+          'glossary' => %w[manage_glossary]
         }
       }.freeze
 
@@ -296,6 +298,51 @@ module Lalabase
         meeting: 0,
         ticket: 3,
         model: 'mistral-medium-latest'
+      }.freeze
+
+      # Sub-tasks of the ticket at `parent`, each the parent of the next: the trail the
+      # ticket head shows (#4 › #12 › #13).
+      SUBTASKS = {
+        parent: 3,
+        chain: [
+          { de: 'Summen je Mieter berechnen', en: 'Compute the totals per tenant', assignee: :ole },
+          { de: 'Eigene Seite pro Mieter mit Logo', en: 'One page per tenant with the logo', assignee: :ole }
+        ]
+      }.freeze
+
+      # The weekly call is linked to the ticket it talks about, so the ticket can open it
+      # beside itself.
+      MEETING_TICKET_LINK = { meeting: 0, ticket: 3 }.freeze
+
+      # Contacts without a login in the people directory: the people at the two clients.
+      CONTACTS = [
+        { name: 'Kerstin Möller', salutation: { de: 'Frau', en: 'Ms' }, company: 'Deichblick Immobilien',
+          function: { de: 'Objektverwaltung', en: 'Property management' },
+          email: 'kerstin.moeller@deichblick.example', phone: '0431 000 1200' },
+        { name: 'Jörn Albers', salutation: { de: 'Herr', en: 'Mr' }, company: 'Fährhaus Logistik',
+          function: { de: 'Disposition', en: 'Dispatch' },
+          email: 'joern.albers@faehrhaus.example', phone: '0461 000 3400' }
+      ].freeze
+
+      # The right spellings speech recognition gets wrong, per language.
+      GLOSSARY = {
+        de: [%w[Nebenkostenabrechnung domain], %w[Schadensmeldung domain], %w[Mieterportal product],
+             ['Deichblick Immobilien', 'company'], ['Fährhaus Logistik', 'company'], ['Kerstin Möller', 'person']],
+        en: [['service charge statement', 'domain'], ['damage report', 'domain'], ['tenant portal', 'product'],
+             ['Deichblick Immobilien', 'company'], ['Fährhaus Logistik', 'company'], ['Kerstin Möller', 'person']]
+      }.freeze
+
+      # A second organisation the signed-in person belongs to: the client's own, where it
+      # asks the agency for things. It makes the inbox above all organisations worth
+      # opening.
+      PARTNER = {
+        name: 'Deichblick Immobilien GmbH', subdomain: 'deichblick', domain: 'deichblick.example',
+        owner: { first_name: 'Kerstin', last_name: 'Möller', email: 'kerstin.moeller@deichblick.example' },
+        project: { de: 'Abnahme Mieterportal', en: 'Tenant portal acceptance' },
+        tickets: [
+          { de: 'Abnahmetermin für das Mieterportal festlegen', en: 'Schedule the acceptance of the tenant portal' },
+          { de: 'Testzugänge für drei Hausmeister', en: 'Test accounts for three caretakers' }
+        ]
       }.freeze
 
       module_function

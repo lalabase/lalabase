@@ -49,8 +49,9 @@ RSpec.describe Lalabase::Demo::Reset, :ci_guard do
     it 'empties what visitors wrote and builds the world again' do
       world = reset
 
-      expect(Organisation.pluck(:id)).to eq([world.organisation.id])
-      expect(User.pluck(:email)).to match_array(fiction::PEOPLE.keys.map { fiction.email(_1) })
+      expect(Organisation.pluck(:id)).to match_array([world.organisation.id, world.partner.id])
+      expect(User.pluck(:email)).to match_array(fiction::PEOPLE.keys.map { fiction.email(_1) } +
+                                                [fiction::PARTNER[:owner][:email]])
       expect(PromptPersona.exists?(visitor_persona.id)).to be(false)
       expect(ActiveStorage::Blob.exists?(visitor_file.id)).to be(false)
       expect(stored?(visitor_file)).to be(false)

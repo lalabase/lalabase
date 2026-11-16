@@ -63,7 +63,7 @@ class ApplicationController < ActionController::Base
   # Without an organisation this is the cockpit, NOT root_path -- that one is
   # remapped to /de, so a user in that state used to land on the marketing page.
   def user_home_path(user)
-    organisation = user.organisations.first
+    organisation = user.home_organisation
     organisation ? organisation_root_path(organisation) : select_organisation_path
   end
   helper_method :user_home_path

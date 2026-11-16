@@ -156,6 +156,17 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
       expect(result.total).to eq(1)
     end
 
+    # The match may sit on any entry, not only on the one the row takes its name from.
+    it 'shows the whole person for a match on the entry of the organisation that comes later by name' do
+      person_in(south, user: shared, name: 'Mara Mitglied', function: 'Beraterin', company: nil)
+
+      result = list(query: 'beraterin')
+
+      expect(names(result)).to eq(['Mara Mitglied'])
+      expect(organisations_of(result.rows.first)).to eq(['Nord GmbH', 'Sued AG'])
+      expect(result.rows.first.function).to eq('Beraterin')
+    end
+
     it 'searches every organisation with the search of its directory' do
       expect(list(query: 'kai').rows.map { |row| organisations_of(row) }).to eq([['Nord GmbH'], ['Sued AG']])
       expect(names(list(query: 'suedwind'))).to eq(['Kai Kontakt'])
@@ -373,12 +384,26 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
       ActiveSupport::Notifications.unsubscribe(counter)
     end
 
-    # People at the end of the list, so that the first page holds the same kinds of entry
-    # (members and contacts of both organisations) however many there are.
+    # Contacts AND members, numbered before their kind and their organisation: sorted by
+    # name, the first page then holds contacts and members of both organisations however
+    # many there are, so the two runs ask for the same kinds of last contact and only the
+    # number of rows differs. A read per contact row or per member row shows as a difference.
     def fill(organisation, count)
       Prosopite.pause do
-        count.times { |index| person_in(organisation, name: "Zora Beispiel #{organisation.name} #{index.to_s.rjust(2, '0')}") }
+        ActsAsTenant.with_tenant(organisation) do
+          role = create(:role, organisation: organisation)
+          count.times do |index|
+            number = index.to_s.rjust(2, '0')
+            create(:person, organisation: organisation, name: "Anton #{number} Beispiel #{organisation.name}")
+            account = create(:user, first_name: 'Anton', last_name: "#{number} Mitglied #{organisation.name}")
+            create(:membership, user: account, organisation: organisation, role: role)
+          end
+        end
       end
+    end
+
+    def members_on_page(result)
+      result.rows.count { |row| row.kind == 'member' }
     end
 
     it 'builds one directory per organisation, also for a search and a later page' do
@@ -413,7 +438,21 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
       expect(few.grep(/FROM "people"/).size).to eq(4)
       expect(many.grep(/FROM "people"/).size).to eq(4)
       expect(many.size).to eq(few.size)
-      expect(list.total).to eq(101)
+      expect(list.total).to eq(197)
+    end
+
+    # The same count again, read as a rule about members: the first page of the long list
+    # shows more members than the whole short list, for the same number of statements.
+    it 'asks no statement per member on the page' do
+      [north, south].each { |organisation| fill(organisation, 2) }
+      few_members = members_on_page(list)
+      few = statements { list }
+      [north, south].each { |organisation| fill(organisation, 20) }
+      many_members = members_on_page(list)
+      many = statements { list }
+
+      expect([few_members, many_members]).to eq([6, 24])
+      expect(many.size).to eq(few.size)
     end
   end
 end

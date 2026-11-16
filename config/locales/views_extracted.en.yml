@@ -93,10 +93,6 @@ en:
           create_new_organisation: Create new organisation
           add_to_existing_organisation: Add to existing organisation
           organisation_name: Organisation name
-          subdomain_optional: Subdomain (optional)
-          subdomain_hint: Used for URL access (e.g. muster-gmbh.lalabase.com)
-          custom_domain_optional: Custom domain (optional)
-          custom_domain_hint: Custom domain for the organisation
           select_organisation: Select organisation...
           select_organisation_first: Please select an organisation first.
           back_to_overview: Back to overview

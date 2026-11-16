@@ -241,6 +241,30 @@ from this project": refuse, or answer as if it were not found.
 * Lock order: the meeting before a booking, an analysis or a glossary term, never the other way
   round.
 
+### The host never grants access
+
+**Binding** (guard spec: `spec/requests/organisation_hosts_spec.rb`, `:ci_guard`, own entry in
+the CI guard list):
+
+An organisation can be shown on a subdomain of its own (`kunde.lalabase.com`), switched on by
+`LALABASE_TENANT_DOMAIN` (the instance's own host; organisations sit one label below it).
+Which host a request came in on decides only **where** a page is shown, never **whether** the
+person may see it. Rights stay the membership and policy checks of every request.
+
+* Never resolve the tenant, a record or a right from `request.host`. The address is typed by
+  the visitor (and Rails reads it from `X-Forwarded-Host` when that header is present).
+* One owner for "which host shows which organisation": `Organisations::Hosts` (`.call(host:)`,
+  `.host_for(organisation)`). The names live in `organisation_subdomains`: a row without
+  `held_until` is the current name, a row with it an old name held for the organisation.
+  The legacy columns `organisations.subdomain` and `organisations.domain` name no host.
+* A full page of organisation X moves to X's host only after `load_tenant_from_session` found
+  an active membership in X (`OrganisationHost`). Someone who is not a member gets what they
+  got before, on whatever host they asked, and learns no subdomain from a redirect.
+* `Lalabase::OrganisationHostGate` answers in front of the controllers: an unknown subdomain
+  is 404, an old one redirects GET and HEAD to the current host, and API, MCP, admin,
+  webhooks and `/up` exist on the main host only.
+* Only the instance admin sets a subdomain (`Actors::AssignOrganisationSubdomain`).
+
 ---
 
 ## ViewComponent & Design System

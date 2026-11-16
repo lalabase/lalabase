@@ -250,6 +250,7 @@ jobs:
           spec/requests/active_storage/direct_uploads_guard_spec.rb
           spec/requests/active_storage/embed_link_expiry_spec.rb
           spec/requests/active_storage/tenant_bypass_in_controller_spec.rb
+          spec/requests/organisation_hosts_spec.rb
           spec/requests/admin/admin_only_gate_spec.rb
           spec/requests/admin/dashboard_spec.rb
           spec/requests/admin/organisations_spec.rb

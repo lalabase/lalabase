@@ -26,7 +26,8 @@ module PersonalAccessTokens
     # @return [Array<Hash>] one row per organisation in reach, in the order of the
     #   org switcher
     def organisations
-      Organisation.where(id: @reach.organisation_ids).by_name.map { |organisation| organisation_row(organisation) }
+      Organisation.where(id: @reach.organisation_ids).includes(:current_subdomain).by_name
+                  .map { |organisation| organisation_row(organisation) }
     end
 
     # @param viewer [User] the token's owner
@@ -69,7 +70,10 @@ module PersonalAccessTokens
       {
         id: organisation.id,
         name: organisation.name,
-        subdomain: organisation.subdomain,
+        # The name the organisation is shown under (organisation_subdomains), null without
+        # one. Not the legacy column organisations.subdomain: that was typed in without any
+        # check and names no host (doc/org_subdomains_plan.md, open question 6).
+        subdomain: organisation.current_subdomain&.subdomain,
         scope: @reach.project_ids_for(organisation.id).nil? ? 'all_projects' : 'selected_projects'
       }
     end

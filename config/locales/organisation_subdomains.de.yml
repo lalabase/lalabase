@@ -1,0 +1,37 @@
+# Organisation subdomains (doc/org_subdomains_plan.md): the model, the admin form and its
+# flash messages, in one file.
+de:
+  activerecord:
+    models:
+      organisation_subdomain: Subdomain
+    attributes:
+      organisation_subdomain:
+        subdomain: Subdomain
+    errors:
+      models:
+        organisation_subdomain:
+          attributes:
+            subdomain:
+              invalid: darf nur Kleinbuchstaben, Ziffern und Bindestriche enthalten und nicht mit einem Bindestrich beginnen oder enden
+              encoded: darf an dritter und vierter Stelle keine zwei Bindestriche haben (kodierte Namen wie xn-- sind nicht erlaubt)
+              exclusion: ist reserviert
+              taken: ist bereits vergeben oder für eine andere Organisation reserviert
+              too_short: ist zu kurz (mindestens %{count} Zeichen)
+              too_long: ist zu lang (höchstens %{count} Zeichen)
+  admin:
+    organisations:
+      subdomain:
+        title: Subdomain
+        current: "Die Organisation ist unter %{host} erreichbar."
+        none: "Die Organisation hat keine eigene Subdomain, ihre Seiten liegen unter %{host}."
+        label: Subdomain
+        hint: "Leer lassen entfernt die Subdomain. Ein alter Name bleibt %{days} Tage für diese Organisation reserviert und leitet so lange auf die neue Adresse weiter."
+        save: Speichern
+        held_title: Reservierte alte Namen
+        held_until: "%{host}, reserviert bis %{date}"
+        "off": "Subdomains für Organisationen sind auf dieser Instanz ausgeschaltet (LALABASE_TENANT_DOMAIN ist nicht gesetzt)."
+  flash:
+    admin:
+      organisations:
+        subdomain_updated: "Subdomain für %{name} wurde gespeichert."
+        subdomain_failed: "Subdomain wurde nicht gespeichert: %{errors}"

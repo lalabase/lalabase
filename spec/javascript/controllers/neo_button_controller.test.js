@@ -59,3 +59,60 @@ test("a form without a question: loading at once, as before", () => {
   controller.handleClick({ preventDefault() {}, stopPropagation() {} })
   assert.equal(button.classList.contains("pointer-events-none"), true)
 })
+
+// A link that writes and asks through Turbo (data-turbo-confirm): Turbo submits a form of
+// its own, appended to <body>, whose action is the link's address without its query.
+function linkFixture() {
+  const docListeners = {}
+  const document = {
+    addEventListener: (type, fn) => { (docListeners[type] ||= []).push(fn) },
+    removeEventListener: (type, fn) => { docListeners[type] = (docListeners[type] || []).filter(f => f !== fn) },
+    dispatch: (type, target) => (docListeners[type] || []).slice().forEach(fn => fn({ type, target })),
+    listeners: type => (docListeners[type] || []).length
+  }
+  class HTMLFormElement {
+    constructor(action) { Object.assign(this, element("FORM"), { action }) }
+  }
+  const Controller = runInNewContext(`${source}\nNeoButtonController`, {
+    Controller: class {}, confirm: () => { throw new Error("the link must not ask by itself") }, document, HTMLFormElement, URL
+  })
+  const link = element("A", { turboMethod: "delete", turboConfirm: "Sicher?" })
+  link.href = "https://lalabase.test/org/o/projects/p/notes/n?frame_id=knowledge_display_frame"
+  const controller = new Controller()
+  controller.element = link
+  controller.loadingValue = false
+  controller.confirmValue = ""
+  controller.hasSpinnerTarget = false
+  controller.hasContentTarget = false
+  controller.connect()
+  const turboForm = action => new HTMLFormElement(action)
+  return { controller, link, document, turboForm }
+}
+
+test("a link that asks through Turbo: no loading state and no question of its own at the click", () => {
+  const { controller, link } = linkFixture()
+  controller.handleClick({ preventDefault() {}, stopPropagation() {} })
+  assert.equal(link.classList.contains("pointer-events-none"), false)
+})
+
+test("a link that asks through Turbo: loading once its form submits, back when it ends", () => {
+  const { controller, link, document, turboForm } = linkFixture()
+  controller.handleClick({ preventDefault() {}, stopPropagation() {} })
+  document.dispatch("turbo:submit-start", turboForm("https://lalabase.test/org/o/projects/p/notes/other"))
+  assert.equal(link.classList.contains("pointer-events-none"), false, "another form's submit is not this link's")
+  const form = turboForm("https://lalabase.test/org/o/projects/p/notes/n")
+  document.dispatch("turbo:submit-start", form)
+  assert.equal(link.classList.contains("pointer-events-none"), true)
+  assert.equal(document.listeners("turbo:submit-start"), 0)
+  form.dispatch("turbo:submit-end")
+  assert.equal(link.classList.contains("pointer-events-none"), false)
+})
+
+test("a link that asks through Turbo: a second click replaces the wait, disconnect ends it", () => {
+  const { controller, document } = linkFixture()
+  controller.handleClick({ preventDefault() {}, stopPropagation() {} })
+  controller.handleClick({ preventDefault() {}, stopPropagation() {} })
+  assert.equal(document.listeners("turbo:submit-start"), 1)
+  controller.disconnect()
+  assert.equal(document.listeners("turbo:submit-start"), 0)
+})

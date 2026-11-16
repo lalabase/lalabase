@@ -164,12 +164,18 @@ module Neo
 
         if @interactive
           attrs[:data] ||= {}
-          attrs[:data].merge!(
-            controller: 'neo-button',
-            neo_button_loading_value: @loading.to_s,
-            neo_button_confirm_value: @confirm
-          )
-          attrs[:data][:action] = 'click->neo-button#handleClick' if @tag == :button || (@tag == :a && attrs[:data][:turbo_method])
+          writing_link = @tag == :a && attrs[:data][:turbo_method]
+          attrs[:data].merge!(controller: 'neo-button', neo_button_loading_value: @loading.to_s)
+          # A link that writes asks through Turbo (data-turbo-confirm), when Turbo
+          # submits the form it makes of the click. The button's own confirm() ran
+          # inside the click, before that form existed; after it, headless Chrome on
+          # Linux dropped the submit Turbo sends a frame later, and "OK" did nothing.
+          if writing_link && @confirm.present?
+            attrs[:data][:turbo_confirm] = @confirm
+          else
+            attrs[:data][:neo_button_confirm_value] = @confirm
+          end
+          attrs[:data][:action] = 'click->neo-button#handleClick' if @tag == :button || writing_link
         end
 
         attrs

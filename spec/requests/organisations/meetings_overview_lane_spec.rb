@@ -227,7 +227,9 @@ RSpec.describe 'Organisations::MeetingsOverview lane', type: :request do
       # within a form deleted without its question (nested_form_guard_spec).
       expect(response.body).not_to include('class="button_to"')
       delete = form_doc.find("a[data-turbo-method='delete']", text: I18n.t('views.organisations.meetings.form.delete'))
-      expect(delete['data-neo-button-confirm-value']).to eq(I18n.t('views.confirm.are_you_sure'))
+      # It asks through Turbo when Turbo submits it (Neo::Buttons::Base, a writing link).
+      expect(delete['data-turbo-confirm']).to eq(I18n.t('views.confirm.are_you_sure'))
+      expect(delete['data-neo-button-confirm-value']).to be_nil
       delete_action = delete['href']
       expect(URI(delete_action).path).to eq(organisation_project_meeting_path(organisation, project_a, alpha))
       expect(query_of(delete_action)).to include('list_context' => 'organisation', 'search' => 'Kick')

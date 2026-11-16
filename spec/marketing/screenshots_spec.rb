@@ -417,6 +417,11 @@ RSpec.describe 'Marketing screenshots', :marketing_screenshots, type: :system do
           sign_out world.signed_in
           visit new_user_session_path(locale:)
           expect(page).to have_field('user[email]')
+          # The drawn window names the host of the request, here the test server's
+          # address. The fiction's own stands in for it.
+          page.execute_script(<<~JS)
+            document.querySelector('.lp-auth-win-url').textContent = '#{Lalabase::Demo::Fiction::DOMAIN}/inbox'
+          JS
           capture(locale, :update_sign_in, until_bottom_of: 'body')
         end
       end

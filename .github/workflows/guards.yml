@@ -787,6 +787,7 @@ jobs:
           spec/system/meeting_term_correction_spec.rb
           spec/system/document_glossary_source_spec.rb
           spec/system/people_review_74_spec.rb
+          spec/system/person_takeover_spec.rb
           spec/system/ticket_meeting_panel_spec.rb
           spec/system/ticket_meeting_panel_stages_spec.rb
           spec/system/ticket_meeting_panel_assistant_spec.rb

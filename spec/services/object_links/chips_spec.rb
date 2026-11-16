@@ -78,6 +78,16 @@ RSpec.describe ObjectLinks::Chips do
     expect(second).to eq(0)
   end
 
+  %i[uppercase undashed].each do |spelling|
+    it "prefetches addresses with an #{spelling} organisation UUID" do
+      org_id = spelling == :uppercase ? organisation.id.upcase : organisation.id.delete('-')
+      html = html_for(tickets).gsub(organisation.id, org_id)
+      described_class.prefetch(htmls: [html], viewer: reader, organisation: organisation, hosts: hosts)
+
+      expect(queries_during { expect(apply(html).scan('object-chip--').size).to eq(5) }).to eq(0)
+    end
+  end
+
   it "resolves the reader's reach once per type, so a second text pays only its load" do
     apply(html_for(tickets.first(1)))
 

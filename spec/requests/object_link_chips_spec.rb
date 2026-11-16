@@ -70,6 +70,23 @@ RSpec.describe 'Object links as chips in rich text', :ci_guard, type: :request d
   end
 
   describe 'a readable target' do
+    %i[uppercase undashed].each do |spelling|
+      it "chips a working ticket address with an #{spelling} organisation UUID" do
+        org_id = spelling == :uppercase ? organisation.id.upcase : organisation.id.delete('-')
+        address = target_url.sub(organisation.id, org_id)
+        sign_in reader
+        get address
+        expect(response).to have_http_status(:ok)
+        comment_with(link(address))
+
+        chip = timeline_as(reader).at_css('a.object-chip--ticket')
+
+        expect(chip).to be_present
+        expect(chip['href']).to eq(address)
+        expect(chip.text).to include('Spring release plan')
+      end
+    end
+
     it 'labels the same note the knowledge page opens with repeated selection parameters' do
       path = organisation_project_knowledge_index_path(organisation, project)
       address = url("#{path}?note_id=#{note.id}&note_id=#{note.id}&document_id=#{document.id}")

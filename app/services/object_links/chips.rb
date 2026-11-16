@@ -32,7 +32,7 @@ module ObjectLinks
     # @return [String] the html, html_safe; the input itself when nothing was replaced
     def apply(html:, viewer:, organisation:, hosts:)
       text = html.to_s
-      return html unless candidate_text?(text, organisation)
+      return html unless candidate_text?(text)
 
       fragment = Nokogiri::HTML5::DocumentFragment.parse(text)
       links = own_links(fragment, organisation, hosts)
@@ -50,7 +50,7 @@ module ObjectLinks
     # @param htmls [Array<String>] the stored bodies (ActionText::Content#to_html)
     def prefetch(htmls:, viewer:, organisation:, hosts:)
       refs = htmls.flat_map do |text|
-        next [] unless candidate_text?(text.to_s, organisation)
+        next [] unless candidate_text?(text.to_s)
 
         own_links(Nokogiri::HTML5::DocumentFragment.parse(text.to_s), organisation, hosts).map(&:last)
       end
@@ -74,10 +74,10 @@ module ObjectLinks
       html.html_safe # rubocop:disable Rails/OutputSafety
     end
 
-    # A text that holds no path into the organisation holds no address Address could read:
-    # no parsing, no query.
-    def candidate_text?(text, organisation)
-      text.include?("/org/#{organisation.id}/")
+    # Only rule out texts without an organisation path. Address owns the organisation
+    # check, including uppercase and undashed UUID spellings of the same id.
+    def candidate_text?(text)
+      text.include?('/org/')
     end
 
     # [[anchor, ref], ...] for the links whose text is their own address and that name an

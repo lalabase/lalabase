@@ -178,6 +178,34 @@ RSpec.describe PersonalAccessToken, type: :model do
     end
   end
 
+  # The sign-out repeats its stored answer to the token it revoked, and finds that
+  # token here. Never a way in: it answers revoked tokens only.
+  describe '.find_revoked' do
+    def issued(**attrs)
+      build(:personal_access_token, user: user, organisations: [organisation], **attrs).tap do |token|
+        token.token_hash = nil
+        token.token_prefix = nil
+        token.generate_token!
+      end
+    end
+
+    it 'finds a revoked token by its plaintext, and no token that is not revoked' do
+      revoked = issued.tap(&:revoke!)
+      live = issued
+      expired = issued.tap { |token| token.update_columns(expires_at: 1.day.ago) }
+
+      expect(described_class.find_revoked(revoked.token)).to eq(revoked)
+      expect(described_class.authenticate(revoked.token)).to be_nil
+
+      expect(described_class.find_revoked(live.token)).to be_nil
+      expect(described_class.find_revoked(expired.token)).to be_nil
+      expect(described_class.find_revoked(nil)).to be_nil
+      expect(described_class.find_revoked('')).to be_nil
+      expect(described_class.find_revoked(revoked.token.delete_prefix(described_class::TOKEN_PREFIX))).to be_nil
+      expect(described_class.find_revoked("#{described_class::TOKEN_PREFIX}#{'x' * 32}")).to be_nil
+    end
+  end
+
   describe '#revoke!' do
     include ActiveSupport::Testing::TimeHelpers
 

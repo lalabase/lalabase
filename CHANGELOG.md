@@ -48,7 +48,8 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   capability `app_sessions`. API version 1.14.0.
 - A client signs out: `DELETE /api/v1/app_session` revokes the token the request came with,
   a device token or a personal one, and no other. A read-only token gets 403 and stays
-  alive; a second call with the same token gets 401. The sign-out is noted in the activity
+  alive; a second call with the same token gets 401, and a retry with the same
+  `Idempotency-Key` reads the first answer again. The sign-out is noted in the activity
   of the account. Revoking no longer fails for a token whose only organisation is gone, on
   the token page and for a sign-out. `GET /api/v1/me` names the capability
   `app_session.revoke`. API version 1.15.0.

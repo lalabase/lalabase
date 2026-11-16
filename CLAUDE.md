@@ -949,10 +949,14 @@ A second call with the same token gets 401, and a client reads 401 on a sign-out
   the actor notes one logout for two calls that both read the token before either wrote.
 * If the note of the logout fails, nothing happened: the write rolls back, the answer is 500
   and no answer is kept for the key. A token of another account raises when the actor is made.
-* ⚠️ **The Idempotency-Key is taken and its answer stored, but never replayed.** The replay sits
-  inside authentication, and the token is revoked by then, so a retry after a lost answer reads
-  401. Do not move a replay in front of authentication to change that: it would answer a
-  revoked token.
+* ⚠️ **The one step of `/api/v1` in front of authentication.** A retry with the same
+  Idempotency-Key reads the first answer again, as on every write. But this write revokes the
+  token the retry comes with, and the replay of the base sits behind authentication. So this
+  action, and no other, looks for its stored answer first (`#replay_stored_sign_out`,
+  `PersonalAccessToken.find_revoked`): the token must be revoked, the row its own, under this
+  key, of this action and of the same request. It answers a revoked token only with what that
+  token was told before. Every other call with it gets 401. Do not copy the step to another
+  action: there a stored answer may hold more than a moment.
 
 Guard: `spec/requests/api/v1/app_session_spec.rb`.
 

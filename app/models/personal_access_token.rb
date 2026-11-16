@@ -101,6 +101,16 @@ class PersonalAccessToken < ApplicationRecord
     active.find_by(token_hash: digest)
   end
 
+  # Finds a REVOKED token by its plaintext string. Never a way in: it exists for
+  # the one caller that answers a token after its end, the sign-out, which
+  # repeats its stored answer to the token it revoked.
+  def self.find_revoked(plaintext)
+    return nil if plaintext.blank?
+    return nil unless plaintext.start_with?(TOKEN_PREFIX)
+
+    where.not(revoked_at: nil).find_by(token_hash: Digest::SHA256.hexdigest(plaintext))
+  end
+
   # Generates a plaintext token and sets the derived fields, WITHOUT saving.
   # Useful when the controller wants to save the token + scope links in one transaction.
   def assign_token!

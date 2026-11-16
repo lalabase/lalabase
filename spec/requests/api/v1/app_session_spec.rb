@@ -183,22 +183,100 @@ RSpec.describe 'App sign-out (DELETE /api/v1/app_session)', :ci_guard, type: :re
     end
   end
 
-  # Every write of /api/v1 takes the header. Here its answer is stored like any
-  # other, and nobody can ask for it again: the replay sits inside authentication,
-  # and the token is revoked by then.
+  # Every write of /api/v1 takes the header and replays its first answer to a retry.
+  # Here the write revokes the very token a retry comes with, and the replay of the
+  # base sits behind authentication. So this one action looks for the stored answer
+  # first: a client that lost the answer and repeats the call with its key reads the
+  # same 200, and every other call with the revoked token reads 401.
   describe 'the Idempotency-Key header' do
-    it 'is taken and its answer stored, and a repeat with the revoked token gets 401' do
-      headers = { 'Idempotency-Key' => 'sign-out-once' }
+    let(:key) { { 'Idempotency-Key' => 'sign-out-once' } }
 
-      expect { sign_out(device, headers: headers) }.to change(McpIdempotencyKey, :count).by(1)
+    it 'gives a repeat with the same key the stored answer, and revokes and notes nothing twice' do
+      travel_to(Time.zone.local(2026, 3, 1, 12, 0, 0)) do
+        expect { sign_out(device, headers: key) }.to change(McpIdempotencyKey, :count).by(1)
+      end
       expect_signed_out(device)
-      first = response.body
+      first = [response.status, response.body]
       stored = JSON.parse(McpIdempotencyKey.where(personal_access_token_id: device.id).sole.response_content)
-      expect(stored).to eq('status' => 200, 'body' => first)
+      expect(stored).to eq('status' => 200, 'body' => first.last)
       expect(stored['body']).not_to include(PersonalAccessToken::TOKEN_PREFIX)
 
-      expect { sign_out(device, headers: headers) }.not_to change(McpIdempotencyKey, :count)
+      travel_to(Time.zone.local(2026, 3, 1, 12, 0, 30)) do
+        expect { sign_out(device, headers: key) }.not_to change(McpIdempotencyKey, :count)
+      end
+
+      expect([response.status, response.body]).to eq(first)
+      expect(device.reload.revoked_at).to eq(Time.zone.local(2026, 3, 1, 12, 0, 0))
+      expect(UserActivity.where(user: user, action: 'logout').count).to eq(1)
+    end
+
+    it 'answers 401 to every other call with the revoked token: no key, another key, another request' do
+      sign_out(device, headers: key)
+      expect_signed_out(device)
+
+      sign_out(device)
       expect(response).to have_http_status(:unauthorized)
+      sign_out(device, headers: { 'Idempotency-Key' => 'another-key' })
+      expect(response).to have_http_status(:unauthorized)
+      # The same key under another request (its fingerprint holds method, path and parameters).
+      delete "#{path}?again=1", headers: bearer(device, key)
+      expect(response).to have_http_status(:unauthorized)
+      delete "#{path}.json", headers: bearer(device, key)
+      expect(response).to have_http_status(:unauthorized)
+      # The stored answer opens nothing else: the token stays revoked for every other call.
+      get '/api/v1/me', headers: bearer(device, key)
+      expect(response).to have_http_status(:unauthorized)
+
+      # The control: the repeat itself still reads the stored answer.
+      sign_out(device, headers: key)
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'gives the stored answer to its own token only' do
+      other_device = issue(:app_session, name: 'iPad')
+      stranger = create(:user, email: 'person2@example.com')
+      strangers_revoked = issue(:app_session, :revoked, owner: stranger, name: 'iPhone')
+      never_signed_out = issue(:app_session, :revoked, name: 'Altes iPhone')
+      sign_out(device, headers: key)
+      expect_signed_out(device)
+
+      # A revoked token that never stored an answer under the key, of this account or another one.
+      sign_out(never_signed_out, headers: key)
+      expect(response).to have_http_status(:unauthorized)
+      sign_out(strangers_revoked, headers: key)
+      expect(response).to have_http_status(:unauthorized)
+
+      # A live token of the same account under the same key is no repeat: it signs itself out.
+      sign_out(other_device, headers: key)
+      expect_signed_out(other_device)
+      expect(McpIdempotencyKey.where(idempotency_key: 'sign-out-once').count).to eq(2)
+    end
+
+    # Signed out is signed out, whatever happened to the account since. The stored
+    # answer names a moment the same token was already told.
+    it 'gives the stored answer also when the account is locked meanwhile' do
+      sign_out(device, headers: key)
+      first = [response.status, response.body]
+      user.lock_access!(send_instructions: false)
+
+      sign_out(device, headers: key)
+      expect([response.status, response.body]).to eq(first)
+
+      # The control: without the key the locked account reads 401 like every call.
+      sign_out(device)
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'keeps no answer for a read-only token, so its repeat is refused again' do
+      2.times do
+        sign_out(read_only, headers: key)
+        expect(response).to have_http_status(:forbidden)
+      end
+      expect(McpIdempotencyKey.count).to eq(0)
+      expect(read_only.reload).not_to be_revoked
+
+      sign_out(personal, headers: key)
+      expect_signed_out(personal)
     end
 
     it 'refuses a key the store cannot hold before anything is revoked, and signs out with a good one' do
@@ -208,7 +286,7 @@ RSpec.describe 'App sign-out (DELETE /api/v1/app_session)', :ci_guard, type: :re
       expect(json).to include('error' => 'invalid_idempotency_key', 'code' => 'invalid_input')
       expect(device.reload).not_to be_revoked
 
-      sign_out(device, headers: { 'Idempotency-Key' => 'sign-out-once' })
+      sign_out(device, headers: key)
       expect_signed_out(device)
     end
   end

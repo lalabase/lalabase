@@ -261,6 +261,29 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     page.driver.browser.execute_cdp('Emulation.clearDeviceMetricsOverride')
   end
 
+  # The table has fixed columns, so a word that cannot break would run out of its cell
+  # and lie over the organisations beside it.
+  it 'keeps a long word of function and company inside its column' do
+    person_in(north, name: 'Lars Lang', function: 'Softwareentwicklungsabteilungsleiterin',
+                     company: 'Musterberatungsgesellschaft-mbH')
+    page.driver.browser.manage.window.resize_to(1000, 900)
+    visit all_people_path
+
+    row = find('tr[data-all-people-row]', text: 'Lars Lang')
+    expect(row).to have_css('.all-people-row__role', text: 'Softwareentwicklungsabteilungsleiterin')
+    boxes = page.evaluate_script(<<~JS)
+      (() => {
+        const row = [...document.querySelectorAll('tr[data-all-people-row]')].find(tr => tr.textContent.includes('Lars Lang'))
+        const role = row.querySelector('.all-people-row__role')
+        return { content: role.scrollWidth, cell: role.clientWidth,
+                 roleRight: role.getBoundingClientRect().right,
+                 chipLeft: row.querySelector('[data-organisation-chip]').getBoundingClientRect().left }
+      })()
+    JS
+    expect(boxes['content']).to be <= boxes['cell']
+    expect(boxes['roleRight']).to be <= boxes['chipLeft']
+  end
+
   it 'opens the people page of an organisation with the person in the lane, through the chip of a person of two' do
     visit all_people_path
     row = find('tr[data-all-people-row]', text: 'Mara Mitglied')

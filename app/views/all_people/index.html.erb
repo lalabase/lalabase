@@ -1,4 +1,8 @@
 <% content_for :title, t('views.all_people.title') %>
+<%# Back must not show an old copy of this page: Turbo's copy keeps the option chosen in
+    the select and the text typed into the search, and they would no longer match the
+    address. Turbo fetches the page again instead, as on the inbox above the organisations. %>
+<% content_for :head, tag.meta(name: 'turbo-cache-control', content: 'no-cache') %>
 <%# The people above the organisations (AllPeopleController): one list over the
     people of every organisation the reader is an active member of and may see
     the people of. Search and the organisation select narrow it; a person of one

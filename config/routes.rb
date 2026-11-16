@@ -504,9 +504,6 @@ Rails.application.routes.draw do
       "/org/#{params[:organisation_id]}/inbox/#{params[:rest]}#{query}"
     }
 
-    # Changelog / News
-    get 'changelog', to: 'changelog#show', as: :changelog
-
     # Organisation Settings (name, domain, etc.)
     resource :settings, only: %i[show update], controller: 'organisation_settings'
 

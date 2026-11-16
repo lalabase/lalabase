@@ -87,16 +87,6 @@ RSpec.describe 'Account layer of the sidebar', type: :request do
       expect(covered.first.at_css('[data-sidebar-layer-target="trigger"]')).to be_nil
       expect(covered.first.parent.at_css('> #account-layer')).to be_present
     end
-
-    it 'shows the news in the layer only while the news are in the navigation' do
-      news = organisation_changelog_path(organisation_id: organisation.id)
-      expect(sidebar.css('a').map { |a| a['href'] }).not_to include(news)
-
-      stub_const('ApplicationHelper::CHANGELOG_IN_NAVIGATION', true)
-      get organisation_root_path(organisation_id: organisation.id)
-
-      expect(sidebar.css('#account-layer [data-account-nav-list] a').map { |a| a['href'] }).to eq(account_pages + [news])
-    end
   end
 
   describe 'on a page of the management area' do
@@ -154,14 +144,6 @@ RSpec.describe 'Account layer of the sidebar', type: :request do
         expect(covered.first.at_css('[data-theme-set]')).to be_present
         expect(covered.first.at_css('#account-layer, [data-sidebar-layer-target="trigger"]')).to be_nil
         expect(covered.first.parent.at_css('> #account-layer')).to be_present
-      end
-
-      it "shows no news in the layer on #{where}: they belong to an organisation" do
-        stub_const('ApplicationHelper::CHANGELOG_IN_NAVIGATION', true)
-        get instance_exec(&path)
-        layer = sidebar.at_css('#account-layer')
-        expect(layer.css('[data-account-nav-list] a').map { |a| a['href'] }).to eq(level_account_pages)
-        expect(sidebar.at_css('.changelog-unread-dot')).to be_nil
       end
     end
   end

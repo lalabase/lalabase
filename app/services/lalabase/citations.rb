@@ -266,8 +266,8 @@ module Lalabase
     # area and no project: the help is the same for everyone who may log in, so an answer drawn
     # on it stays ungated, the way a code citation does, and its link needs neither. id is the
     # slug, the page's identity across languages and syncs (the row id is not: a sync may
-    # delete a row and create it again). source says which of Lalabase's texts it is, so the
-    # news (S3) can get their own link; locale is the language that was read. Takes a
+    # delete a row and create it again). source says which of Lalabase's texts it is, so
+    # another source could get its own link; locale is the language that was read. Takes a
     # ProductKnowledgeEntry or a ProductKnowledge::Search::Hit, which answer the same four.
     def help_page(page)
       { type: 'help_page', source: page.source, id: page.slug, locale: page.locale, title: page.title }

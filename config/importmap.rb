@@ -151,7 +151,6 @@ else
   pin 'controllers/avatar_fallback_controller', to: 'controllers/avatar_fallback_controller.js'
   pin 'controllers/billing_form_controller', to: 'controllers/billing_form_controller.js'
   pin 'controllers/billing_modal_controller', to: 'controllers/billing_modal_controller.js'
-  pin 'controllers/changelog_lightbox_controller', to: 'controllers/changelog_lightbox_controller.js'
   pin 'controllers/chat_scroll_controller', to: 'controllers/chat_scroll_controller.js'
   pin 'controllers/clamp_toggle_controller', to: 'controllers/clamp_toggle_controller.js'
   pin 'controllers/clickable_row_controller', to: 'controllers/clickable_row_controller.js'

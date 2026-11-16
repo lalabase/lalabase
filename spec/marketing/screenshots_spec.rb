@@ -35,13 +35,13 @@ module MarketingScreenshots
   # The window for the README pictures with the assistant open. GitHub shows a picture
   # about 840 px wide; from a 1600 px window its text came out too small to read.
   README_WIDTH = 1280
-  # The screen for the pictures the website shows on a phone, where a desktop picture
-  # shrinks to a fraction of its width and its text can no longer be read. A large
-  # phone, emulated: Chrome keeps a window at least 500 px wide.
   # The window for the pictures of the website's updates pages (/de/updates): one per
   # entry that shows a screen, opened under its explanation, about 760 px wide there.
   UPDATE_WIDTH = 1280
   UPDATE_HEIGHT = 800
+  # The screen for the pictures the website shows on a phone, where a desktop picture
+  # shrinks to a fraction of its width and its text can no longer be read. A large
+  # phone, emulated: Chrome keeps a window at least 500 px wide.
   PHONE_WIDTH = 430
   PHONE_HEIGHT = 932
   # A phone picture stands in a row of a long page and may not stretch it: at most

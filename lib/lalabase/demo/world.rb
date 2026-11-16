@@ -59,7 +59,7 @@ module Lalabase
       private
 
       def build_inside
-        role = add_team_role
+        role = add_team_role(@organisation)
         Fiction::PEOPLE.each_key do |key|
           next if key == Fiction::OWNER
 
@@ -87,47 +87,57 @@ module Lalabase
         succeed!(Actors::CreateOrganisation.call(organisation: @organisation, owner: owner, current_user: owner))
       end
 
-      # Confirmed right away: there is no inbox behind nordlicht.example.
       def add_user(key)
         password = key == Fiction::SIGNED_IN ? @password : random_password
-        User.create!(**Fiction::PEOPLE.fetch(key), email: Fiction.email(key),
-                                                   password: password, password_confirmation: password,
-                                                   language_preference: @locale.to_s, terms_accepted_at: @now,
-                                                   &:skip_confirmation!)
+        create_user(**Fiction::PEOPLE.fetch(key), email: Fiction.email(key), password: password)
       end
 
-      def add_team_role
+      # Confirmed right away: there is no inbox behind the fiction's domains.
+      def create_user(password: random_password, **attributes)
+        User.create!(**attributes, password: password, password_confirmation: password,
+                                   language_preference: @locale.to_s, terms_accepted_at: @now,
+                                   &:skip_confirmation!)
+      end
+
+      def add_team_role(organisation)
         definition = Fiction::TEAM_ROLE
-        role = @organisation.roles.create!(title: definition[:title].fetch(@locale),
-                                           description: definition[:description].fetch(@locale))
+        role = organisation.roles.create!(title: definition[:title].fetch(@locale),
+                                          description: definition[:description].fetch(@locale))
         definition[:permissions].each do |category, actions|
           actions.each { |action| role.permissions.create!(category: category, action: action, allowed: true) }
         end
         role
       end
 
-      # Mirrors Organisations::ProjectsController#create with default attributes ticked.
       def add_project(key)
         entry = Fiction::PROJECTS.fetch(key)
-        project = @organisation.projects.create!(name: entry.fetch(@locale),
-                                                 description: entry[:description].fetch(@locale))
-        Projects::DefaultAttributeService.new(project).call
-        Projects::DefaultSmartFolderService.new(project).call(signed_in)
+        project = create_project(@organisation, name: entry.fetch(@locale),
+                                                description: entry[:description].fetch(@locale))
         add_members(project)
         project
       end
 
-      # Mirrors Organisations::ProjectPermissionsController#create and its time
-      # settings, without the activity entries a person adding a colleague leaves.
+      # Mirrors Organisations::ProjectsController#create with default attributes ticked.
+      def create_project(organisation, **attributes)
+        project = organisation.projects.create!(**attributes)
+        Projects::DefaultAttributeService.new(project).call
+        Projects::DefaultSmartFolderService.new(project).call(signed_in)
+        project
+      end
+
       def add_members(project)
         @people.each do |key, user|
-          next if key == Fiction::OWNER
-
-          project.project_permissions.create!(user: user, **Fiction::PROJECT_ACCESS)
-          user.time_session_permission_for(project)
-              .update!(key == Fiction::SIGNED_IN ? Fiction::LEAD_TIME_RIGHTS : {})
-          Projects::DefaultSmartFolderService.new(project).create_my_tasks_for(user) unless key == Fiction::SIGNED_IN
+          add_member(project, key, user) unless key == Fiction::OWNER
         end
+      end
+
+      # Mirrors Organisations::ProjectPermissionsController#create and its time
+      # settings, without the activity entries a person adding a colleague leaves.
+      def add_member(project, key, user)
+        project.project_permissions.create!(user: user, **Fiction::PROJECT_ACCESS)
+        user.time_session_permission_for(project)
+            .update!(key == Fiction::SIGNED_IN ? Fiction::LEAD_TIME_RIGHTS : {})
+        Projects::DefaultSmartFolderService.new(project).create_my_tasks_for(user) unless key == Fiction::SIGNED_IN
       end
 
       def add_tickets
@@ -279,25 +289,19 @@ module Lalabase
       # own tenant.
       def add_partner_organisation
         spec = Fiction::PARTNER
-        password = random_password
-        owner = User.create!(**spec[:owner], password: password, password_confirmation: password,
-                                             language_preference: @locale.to_s, terms_accepted_at: @now,
-                                             &:skip_confirmation!)
+        owner = create_user(**spec[:owner])
         @partner = Organisation.new(name: spec[:name], subdomain: spec[:subdomain], domain: spec[:domain])
         succeed!(Actors::CreateOrganisation.call(organisation: @partner, owner: owner, current_user: owner))
         ActsAsTenant.with_tenant(@partner) { build_partner_inside(owner) }
       end
 
       def build_partner_inside(owner)
-        role = @partner.roles.create!(title: Fiction::TEAM_ROLE[:title].fetch(@locale),
-                                      description: Fiction::TEAM_ROLE[:description].fetch(@locale))
-        Fiction::TEAM_ROLE[:permissions].each do |category, actions|
-          actions.each { |action| role.permissions.create!(category: category, action: action, allowed: true) }
-        end
-        signed_in.memberships.create!(organisation: @partner, role: role, active: true)
-        project = @partner.projects.create!(name: Fiction::PARTNER[:project].fetch(@locale))
-        Projects::DefaultAttributeService.new(project).call
-        project.project_permissions.create!(user: signed_in, **Fiction::PROJECT_ACCESS)
+        # Joined after Nordlicht, also when the clock stands still (the screenshots, the
+        # specs): the joined first is home (User#home_organisation).
+        signed_in.memberships.create!(organisation: @partner, role: add_team_role(@partner), active: true,
+                                      created_at: @now + 1.second)
+        project = create_project(@partner, name: Fiction::PARTNER[:project].fetch(@locale))
+        add_member(project, Fiction::SIGNED_IN, signed_in)
         Fiction::PARTNER[:tickets].each do |entry|
           params = { title: entry.fetch(@locale), assignee_ids: [signed_in.id] }
           succeed!(Actors::SaveTicket.call(project: project, params: params, current_user: owner))

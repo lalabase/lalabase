@@ -288,6 +288,13 @@ class User < ApplicationRecord
   # Notification Methods
   # ==========================================================================
 
+  # Where the person lands when no page was asked for (ApplicationController#user_home_path):
+  # the organisation they joined first. A bare `organisations.first` sorts by the random
+  # UUID, so a person in two organisations landed in either.
+  def home_organisation
+    organisations.order(Membership.arel_table[:created_at].asc, Membership.arel_table[:id].asc).first
+  end
+
   def unread_notifications_count(organisation = nil)
     return notifications.channel_in_app.unread.count unless organisation
 

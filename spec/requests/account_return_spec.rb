@@ -43,8 +43,7 @@ RSpec.describe 'The way back out of the account area', :ci_guard, type: :request
   end
 
   def user_home_path_for(person)
-    organisation = person.organisations.first
-    organisation_root_path(organisation)
+    organisation_root_path(person.home_organisation)
   end
 
   let(:north_tickets) { "/org/#{north.id}/projects?view=board" }

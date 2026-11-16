@@ -52,6 +52,13 @@ RSpec.describe Lalabase::Demo::World do
       expect(world.signed_in.memberships.where(organisation: world.partner, active: true)).to exist
       expect(Ticket.where(organisation: world.partner).pluck(:title))
         .to match_array(fiction::PARTNER[:tickets].map { _1[:en] })
+      # The partner's project is set up like Nordlicht's: smart folders and time rights.
+      partner_project = Project.find_by!(organisation: world.partner)
+      expect(SmartFolder.where(project: partner_project, user: world.signed_in)).to exist
+      expect(world.signed_in.time_session_permission_for(partner_project).attributes)
+        .to include(fiction::LEAD_TIME_RIGHTS.stringify_keys)
+      # Home stays Nordlicht, the organisation the demo login joined first.
+      expect(world.signed_in.home_organisation).to eq(world.organisation)
     end
 
     # The demo signs a visitor in as this person: every right of the team, none of

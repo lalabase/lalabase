@@ -1,0 +1,32 @@
+<% content_for :title, t('views.all_people.title') %>
+<%# The people above the organisations (AllPeopleController): one list over the
+    people of every organisation the reader is an active member of and may see
+    the people of. Search and the organisation select narrow it; a person of one
+    organisation leads to that organisation's people page, a person of several
+    through the chip of each. Everything shown is a plain value of
+    People::AcrossOrganisations: this page runs without a tenant and reads no
+    model. The wrapper carries people-page for the tone of the chips and the
+    focus ring of the people pages. %>
+<div class="people-page all-people-page" data-all-people>
+  <div class="people-head">
+    <%= render NeoTitleBoxComponent.new(title: t('views.all_people.title'), margin_bottom: nil) %>
+  </div>
+
+  <%# The bar of the people page of one organisation: the tools at the right end,
+      the search the last of them. It reloads only the list frame and writes the
+      term into the address ("replace": a word typed letter by letter is one
+      entry of history). %>
+  <div class="people-tools list-tab-bar filter-bar">
+    <%= render 'all_people/tools', people: @people %>
+    <%= render NeoListSearchComponent.new(
+      url: all_people_path, name: :q, value: params[:q],
+      input_id: 'all-people-search', frame: AllPeopleController::LIST_FRAME_ID, turbo_action: 'replace',
+      form_class: 'all-people-search',
+      label: t('views.all_people.search_label'), placeholder: t('views.all_people.search_placeholder')
+    ) do %>
+      <%= hidden_field_tag :org, all_people_list_state[:org], id: nil if all_people_list_state[:org] %>
+    <% end %>
+  </div>
+
+  <%= render 'all_people/results', people: @people %>
+</div>

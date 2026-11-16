@@ -503,6 +503,32 @@
   .participant-link-modal .people-avatar { @apply font-mono font-normal; }
   .people-page .people-avatar--contact,
   .participant-link-modal .people-avatar--contact { @apply border-cream-300 bg-surface-raised text-cream-600; }
+  /* The people above the organisations (all_people): four columns the reader
+     compares (name, function, organisations, last contact), so a table at full
+     width, not the two-line row of the list beside a lane. Its heads wear the
+     column head (.column-head, F43) with the air of .people-columns. On a
+     narrow screen function and last contact leave: name and organisations stay. */
+  .all-people-count { @apply self-center whitespace-nowrap text-[13px] tabular-nums text-muted; }
+  .all-people-table { @apply mb-6 w-full border-collapse; }
+  .all-people-table th { @apply border-b border-ink pb-[15px] pe-4 pt-[31px] text-start; }
+  .all-people-table td { @apply border-b border-cream-200 py-2.5 pe-4 align-middle text-sm text-heading; }
+  .all-people-table :is(th, td):last-child { @apply pe-0 text-end; }
+  .all-people-table__wide { @apply hidden sm:table-cell; }
+  .all-people-row__person { @apply flex min-w-0 items-center gap-3; }
+  .all-people-row__name { @apply min-w-0 truncate font-medium text-heading no-underline; }
+  a.all-people-row__name:hover { @apply underline; }
+  .all-people-row__role { @apply text-[13px] text-muted; }
+  .all-people-row__last { @apply whitespace-nowrap text-xs tabular-nums text-muted; }
+  .all-people-chips { @apply flex flex-wrap gap-1.5; }
+  .all-people-paging { @apply flex items-center gap-4 pb-6 text-[13px] text-muted; }
+  /* An organisation as a chip (shared/_organisation_chip): a square in the
+     reader's recognition colour for it (an inline background, the sidebar
+     header's way; neutral without one) and its name. Flat: a chip is no main
+     action, also where it is a link. */
+  .organisation-chip { @apply inline-flex max-w-[16rem] items-center gap-1.5 rounded-full border border-cream-300 bg-surface-raised px-2 py-0.5 text-xs text-heading no-underline; }
+  a.organisation-chip:hover { @apply border-cream-600; }
+  .organisation-chip__swatch { @apply h-2.5 w-2.5 shrink-0 rounded-sm border border-cream-300 bg-cream-200; }
+  .organisation-chip__name { @apply truncate; }
   .people-empty { @apply flex flex-col items-start gap-2.5 pt-8; }
   .people-empty__icon { @apply text-2xl text-cream-500; }
   .people-empty__title { @apply text-[15px] font-semibold text-heading; }

@@ -323,6 +323,42 @@ RSpec.describe Actors::MergePeople, :ci_guard do
     end
   end
 
+  describe 'a row named twice, merged further through one of its lines only' do
+    # The same two groups as above, but the next merge names only the row and a new entry
+    # (a takeover does that, and a ticked row whose other part is hidden just now). The
+    # group of the line by account must not fall apart: its other entry stays in the person.
+    it 'keeps the other entry of the group whose line by account goes' do
+      Prosopite.pause { join_organisation(shared, north) }
+      row_of_member = person_in(north, name: 'Mara Mitglied')
+      Prosopite.pause { join_organisation(viewer, east, rights: ['view_people']) }
+      expect(merge(member(north, shared), row(south_row))).to be_success
+      expect(merge(row(row_of_member), row(west_row))).to be_success
+      ActsAsTenant.with_tenant(north) { row_of_member.update!(user: shared) }
+
+      result = merge(row(row_of_member), row(east_row))
+
+      expect(result).to be_success
+      expect(PersonGroup.count).to eq(1)
+      expect(stored).to contain_exactly([north.id, row_of_member.id, nil], [south.id, south_row.id, nil],
+                                        [west.id, west_row.id, nil], [east.id, east_row.id, nil])
+    end
+
+    it 'refuses instead of losing an entry when the two groups cannot be one' do
+      Prosopite.pause { join_organisation(shared, north) }
+      row_of_member = person_in(north, name: 'Mara Mitglied')
+      other_south = person_in(south, name: 'Noch jemand')
+      Prosopite.pause { join_organisation(viewer, east, rights: ['view_people']) }
+      expect(merge(member(north, shared), row(south_row))).to be_success
+      expect(merge(row(row_of_member), row(other_south))).to be_success
+      ActsAsTenant.with_tenant(north) { row_of_member.update!(user: shared) }
+      result = nil
+
+      expect { result = merge(row(row_of_member), row(east_row)) }.not_to nothing_written
+      expect(result.code).to eq(:same_organisation)
+      expect(stored.size).to eq(4)
+    end
+  end
+
   describe 'leftovers' do
     it 'deletes the groups of the caller left with fewer than two entries, and no one else\'s' do
       merge(row(north_row), row(south_row))

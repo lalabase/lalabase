@@ -16,6 +16,7 @@ RSpec.describe 'A merge follows a person through the changes of a membership', :
   let(:south) { create(:organisation, name: 'Sued AG') }
   let(:viewer) { create(:user, first_name: 'Vera', last_name: 'Viewer') }
   let(:mara) { create(:user, first_name: 'Mara', last_name: 'Mitglied') }
+  let(:west) { create(:organisation, name: 'West KG') }
   let!(:south_contact) { person_in(south, name: 'M. Mitglied (privat)') }
 
   before do
@@ -125,6 +126,40 @@ RSpec.describe 'A merge follows a person through the changes of a membership', :
     entries = PersonGroupEntry.where(owner_id: viewer.id, organisation_id: north.id)
     expect(entries.pluck(:person_id, :user_id)).to eq([[row.id, nil]])
     expect(entries.sole.person_group_id).to eq(second.id)
+  end
+
+  # The owner's two notes about one human, by account in one group and by the row in
+  # another. When the member leaves, the line by account goes; what it was merged with
+  # must not fall out of the person for that.
+  it 'moves what was merged with the account over to the group of the row when the member leaves' do
+    merge_member_with_contact
+    row = person_in(north, user: mara, name: 'Mara Mitglied')
+    Prosopite.pause { join_organisation(viewer, west, admin: true) }
+    western = person_in(west, name: 'Mara M. (West)')
+    second = create(:person_group, owner: viewer)
+    create(:person_group_entry, person_group: second, organisation: north, person_id: row.id)
+    create(:person_group_entry, person_group: second, organisation: west, person_id: western.id)
+
+    remove_membership(mara, north)
+
+    expect(PersonGroupEntry.where(person_group_id: second.id).pluck(:organisation_id, :person_id))
+      .to contain_exactly([north.id, row.id], [west.id, western.id], [south.id, south_contact.id])
+    expect(people).to include(['Mara Mitglied', ['Nord GmbH', 'Sued AG', 'West KG']])
+  end
+
+  it 'leaves an entry behind that the group of the row has no room for (one source per organisation)' do
+    merge_member_with_contact
+    row = person_in(north, user: mara, name: 'Mara Mitglied')
+    other_southern = person_in(south, name: 'Andere Person')
+    second = create(:person_group, owner: viewer)
+    create(:person_group_entry, person_group: second, organisation: north, person_id: row.id)
+    create(:person_group_entry, person_group: second, organisation: south, person_id: other_southern.id)
+
+    expect { remove_membership(mara, north) }.not_to raise_error
+
+    expect(PersonGroupEntry.where(person_group_id: second.id).pluck(:person_id)).to contain_exactly(row.id, other_southern.id)
+    expect(PersonGroupEntry.where(owner_id: viewer.id, person_id: south_contact.id)).to exist
+    expect(PersonGroupEntry.where(user_id: mara.id)).not_to exist
   end
 
   it 'does the same when the operator removes the membership in the admin backend' do

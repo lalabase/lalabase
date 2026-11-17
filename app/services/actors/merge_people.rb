@@ -125,8 +125,11 @@ module Actors
     end
 
     def join(chosen)
-      stored = settled(stored_for(chosen))
+      stored = stored_for(chosen)
+      # Before the lines by account go: their groups are part of this merge too, or what
+      # they hold would fall out of the person without a word.
       groups = groups_of(stored.values.flatten)
+      stored = settled(stored)
       added = chosen.select { |entry| stored[entry].empty? }
       return if groups.empty? && same_account?(chosen)
 
@@ -148,7 +151,8 @@ module Actors
     # One line per chosen entry. A row that was linked to a member AFTER two merges were
     # written can be named twice by one owner, by the row in one group and by the account
     # in another; the read shows both groups as one person. The line by account goes, the
-    # row wins, and the two groups are joined like any others.
+    # row wins. Both groups were counted in before (#join), so they are joined like any
+    # others, or the merge is refused when they cannot be one.
     def settled(stored)
       twice = stored.values.select { |lines| lines.size > 1 }
       return stored if twice.empty?

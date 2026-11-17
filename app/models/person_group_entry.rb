@@ -42,16 +42,32 @@ class PersonGroupEntry < ApplicationRecord
   # A member leaves the organisation and their row loses its link to the account
   # (PersonLinkRelease): the entries that named them by account name the row from now on,
   # for every owner. rows: the relation of that row (at most one: an account has one row
-  # per organisation), named by the caller while the row still carries the account. An
-  # owner who holds an entry for that row already keeps that one; their entry by account
-  # goes first, the unique index would refuse the rewrite. Without a row nothing changes.
-  # Two statements, no row is loaded.
+  # per organisation), named by the caller while the row still carries the account.
+  # Without a row nothing changes. No row is loaded.
+  #
+  # An owner who holds an entry for that row already keeps that one (the unique index would
+  # refuse a second). Their entry by account gives way first (#give_way_to): what it was
+  # merged with moves over to the group of the row, so the person stays whole.
   def self.follow_to_row(organisation_id:, user_id:, rows:)
     by_account = where(organisation_id: organisation_id, user_id: user_id)
-    row_id = rows.select(:id)
-    by_account.where(owner_id: where(organisation_id: organisation_id, person_id: row_id).select(:owner_id)).delete_all
+    by_row = where(organisation_id: organisation_id, person_id: rows.select(:id))
+    by_account.where(owner_id: by_row.select(:owner_id)).find_each do |line|
+      line.give_way_to(by_row.find_by!(owner_id: line.owner_id))
+    end
     by_account.where(rows.arel.exists)
-              .update_all(person_id: Arel::Nodes::Grouping.new(row_id.arel), user_id: nil, updated_at: Time.current)
+              .update_all(person_id: Arel::Nodes::Grouping.new(rows.select(:id).arel), user_id: nil, updated_at: Time.current)
+  end
+
+  # This line and `kept` name the same human for one owner, in two groups. The other
+  # entries of this line's group move to the group of `kept`, each unless that group holds
+  # a source of its organisation already (one source per organisation; such an entry stays
+  # where it is). Then this line goes. A group left with fewer than two entries is ignored
+  # by the read and deleted by the next merge or split of its owner.
+  def give_way_to(kept)
+    taken = self.class.where(person_group_id: kept.person_group_id).select(:organisation_id)
+    self.class.where(person_group_id: person_group_id).where.not(id: id).where.not(organisation_id: taken)
+        .update_all(person_group_id: kept.person_group_id, updated_at: Time.current)
+    delete
   end
 
   # The columns a key is made of, for a read that plucks them instead of loading entries.

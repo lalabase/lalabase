@@ -14,6 +14,13 @@ module People
   # * One person per account: member entries with the same account are one row with several
   #   sources. Computed here on every read, stored nowhere. A contact is a row of its own,
   #   whatever its name: two rows called alike in two organisations stay two.
+  # * The viewer's own merges (PersonGroup) join more: every entry a group names that this
+  #   read returned joins the other entries of that group. A group is held by id against
+  #   the entries of the directories, never loaded from: an entry the viewer cannot see
+  #   just now (no right there any more, the row gone) is not shown and not counted, and
+  #   a group with one visible entry is an ordinary row. The group itself stays as it is.
+  #   The account rule comes first and is never undone; an entry joins a person only while
+  #   that person has no source of its organisation yet (one source per organisation).
   # * The search is the directory's own (People::Directory#matches?), asked per organisation.
   #   A match on any entry shows the whole person: the other sources come from the full
   #   directory of their organisation, not from the filtered one.
@@ -24,6 +31,9 @@ module People
   #   People::Lookup.row (who it is and what they do, no contact details, no notes). No
   #   Person leaves, so a view cannot load more from one after the tenant is gone. The one
   #   record is Row#avatar_user, a member's account for the picture: User carries no tenant.
+  # * The writes of a merge ask this read what the list shows (#part, #person_with,
+  #   #names?, #merges_shown_with): they act on the people as they are shown, not on the
+  #   lines as they are stored, and the rule of who is shown as one person stays here.
   class AcrossOrganisations
     PER_PAGE = 50
 
@@ -39,19 +49,38 @@ module People
     # One person. name, kind: of the first source (the sources stand in the order of the
     # organisations' names). function, department, company: of the first source that has
     # one. last_contact: { on:, kind: } of People::Lookup.row, the newest of the sources.
-    Row = Data.define(:name, :kind, :function, :department, :company, :last_contact, :sources, :avatar_user)
+    # merge_id: the id of the viewer's merge that joined sources of this row, nil for a row
+    # no merge joined (also one the account rule alone made).
+    Row = Data.define(:name, :kind, :function, :department, :company, :last_contact, :sources, :avatar_user, :merge_id)
 
     # One entry of one organisation. fields: People::Lookup.row of the entry, its :id the
     # entry's address ("person:<uuid>" or "member:<uuid>"). lane: what opens the entry on
     # that organisation's people page ({ person_id: } or { member_id: }).
     Source = Data.define(:organisation_id, :organisation_name, :lane, :fields)
 
+    # One entry as a write of a merge stores it (Actors::MergePeople): where it is, its
+    # address (PersonGroupEntry.address_of) and the keys a stored entry names it by
+    # (PersonGroupEntry.keys_for). Ids only.
+    Part = Data.define(:organisation_id, :address, :keys) do
+      # The account behind the entry (a member's, or the one a deactivated member's row
+      # still carries), nil for a contact.
+      def account
+        keys.filter_map { |_organisation_id, kind, id| id if kind == :account }.first
+      end
+    end
+
     # One entry while the list is built: never handed out.
-    Candidate = Struct.new(:organisation, :listing, :entry, :group, :matched)
+    Candidate = Struct.new(:organisation, :listing, :entry, :group, :matched, :merge_id)
     private_constant :Candidate
 
     def self.call(viewer:, query: nil, org: nil, page: 1)
       new(viewer: viewer, query: query, org: org, page: page).call
+    end
+
+    # Membership release uses the same visible row/account aliases as the reader. No
+    # private fields or records leave an organisation's tenant, only address triples.
+    def self.aliases_for(viewer:)
+      new(viewer: viewer).entry_aliases
     end
 
     def initialize(viewer:, query: nil, org: nil, page: 1)
@@ -70,16 +99,87 @@ module People
                  page: page, pages: pages, per_page: PER_PAGE, organisations: named(open))
     end
 
+    def entry_aliases
+      open_listings.flat_map do |organisation, listing|
+        in_people_organisation(organisation) do
+          listing.entries.filter_map { |entry| row_alias(organisation, entry) }
+        end
+      end
+    end
+
+    # What a write of a merge asks (Actors::MergePeople, Actors::SplitPerson), of ONE
+    # instance without search, filter or page: every directory is read once for all of it.
+    # #entry_aliases, #part and #names? read no merge. #person_with and #merges_shown_with
+    # read the stored merges at their first call and keep the answer, so a write settles
+    # its lines before it asks them (PersonGroupEntry.settle_for_owner).
+
+    # The entry an id names in the directory of an organisation, as the viewer may read it
+    # there. nil for everything else: an organisation that does not contribute (not the
+    # viewer's, a deactivated membership, no people right), an unknown or malformed id.
+    def part(organisation_id, id)
+      organisation, listing = open_listings.find { |one, _listing| one.id == organisation_id }
+      return unless listing
+
+      entry = in_people_organisation(organisation) { listing.entry(id) }
+      candidate = every_candidate.find { |one| one.entry.equal?(entry) } if entry
+      part_of(candidate) if candidate
+    rescue People::Lookup::InvalidArgument
+      nil
+    end
+
+    # The person the list shows a part in: every source of that row. The same object for
+    # every part of one person, so a caller holds two people apart by identity.
+    def person_with(part)
+      list = shown_people.fetch(@candidate_of.fetch(part))
+      (@people ||= {}.compare_by_identity)[list] ||= list.map { |candidate| part_of(candidate) }.freeze
+    end
+
+    # Whether a stored entry with this key (PersonGroupEntry#key) names an entry the viewer
+    # can see just now, in any organisation.
+    def names?(key)
+      @named ||= every_candidate.flat_map { |one| PersonGroupEntry.keys_for(one.organisation.id, one.entry) }.to_set
+      @named.include?(key)
+    end
+
+    # The merges that join the person a merge joins, itself included: what "undo" has to
+    # take apart for the row to fall apart. Empty for a merge the list does not show.
+    def merges_shown_with(merge_id)
+      shown_people
+      @merges_of.each_value.find { |ids| ids.include?(merge_id) } || []
+    end
+
     private
 
     # The organisations that contribute, by name, each with the listing of its ONE
     # directory. Only the rights question is asked here; a listing reads when it is asked.
     def open_listings
-      @viewer.active_organisations.by_name.to_a.filter_map do |organisation|
+      @open_listings ||= @viewer.active_organisations.by_name.to_a.filter_map do |organisation|
         in_people_organisation(organisation) do
           lookup = People::Lookup.new(viewer: @viewer, organisation: organisation)
           [organisation, lookup.listing(query: @query)] if lookup.allowed?
         end
+      end
+    end
+
+    # For the writes: every entry of every organisation once, and the person each is shown in.
+    def every_candidate
+      @every_candidate ||= open_listings.flat_map { |organisation, listing| candidates_in(organisation, listing) }
+    end
+
+    def shown_people
+      @shown_people ||= joined_by_merges(every_candidate).each_with_object({}.compare_by_identity) do |list, found|
+        list.each { |candidate| found[candidate] = list }
+      end
+    end
+
+    def part_of(candidate)
+      @candidate_of ||= {}.compare_by_identity
+      (@part_of ||= {}.compare_by_identity)[candidate] ||= begin
+        organisation_id = candidate.organisation.id
+        part = Part.new(organisation_id: organisation_id, address: PersonGroupEntry.address_of(candidate.entry).freeze,
+                        keys: PersonGroupEntry.keys_for(organisation_id, candidate.entry).freeze)
+        @candidate_of[part] = candidate
+        part
       end
     end
 
@@ -103,8 +203,83 @@ module People
     # listed when the search matched any of their entries.
     def merged_people(open)
       candidates = open.flat_map { |organisation, listing| candidates_in(organisation, listing) }
-      people = candidates.group_by(&:group).values.select { |sources| sources.any?(&:matched) }
+      people = joined_by_merges(candidates).select { |sources| sources.any?(&:matched) }
       people.each_with_index.sort_by { |sources, index| [sources.first.entry.sort_name, index] }.map(&:first)
+    end
+
+    # The account rule first (one list per account or contact), then the viewer's merges on
+    # top of it. The sources of a person keep the order of the organisations' names, and
+    # the people the order of their first source.
+    def joined_by_merges(candidates)
+      # The merges that joined a person, by the list of its candidates (#merges_shown_with).
+      @merges_of = {}.compare_by_identity
+      people = candidates.group_by(&:group).values
+      merges = merges_among(candidates)
+      return people if merges.empty?
+
+      order = candidates.each_with_index.to_h.compare_by_identity
+      person_of = people.each_with_object({}.compare_by_identity) { |list, found| list.each { |one| found[one] = list } }
+      in_list_order(merges, order).each { |merge_id, named| join(named, merge_id, person_of) }
+      person_of.values.uniq(&:object_id).each { |list| list.sort_by! { |one| order[one] } }
+               .sort_by { |list| order[list.first] }
+    end
+
+    # The candidates of every merge in the order of the list (the organisations' names,
+    # then the names inside one), and the merges in the order of their first candidate. A
+    # merge that collides with the account rule or with another merge (#join) is then
+    # decided by what the viewer sees, the same way on every read: the order the entries
+    # are stored in is the order of their random ids and must decide nothing.
+    # Row/account aliases have already been settled, before the visibility cutoff. Then
+    # the rest of the candidates decides, and at last the id, so the order is total.
+    def in_list_order(merges, order)
+      merges.map { |merge_id, named| [merge_id, named.sort_by { |candidate| order[candidate] }] }
+            .sort_by { |merge_id, named| [order[named.first], named.map { |candidate| order[candidate] }, merge_id.to_s] }
+    end
+
+    # The viewer's merges as [merge id, the candidates it names]. ONE statement on a table
+    # without a tenant; the entries are held by id against what the directories returned
+    # (PersonGroupEntry.keys_for). With fewer than two organisations in the list there is
+    # nothing a merge could join.
+    def merges_among(candidates)
+      return [] if candidates.map(&:organisation).uniq.size < 2
+
+      named = PersonGroupEntry.owned_by(@viewer).pluck(:person_group_id, *PersonGroupEntry::KEY_COLUMNS)
+      return [] if named.empty?
+
+      by_key = candidates.each_with_object({}) do |candidate, found|
+        PersonGroupEntry.keys_for(candidate.organisation.id, candidate.entry).each { |key| found[key] = candidate }
+      end
+      aliases = candidates.filter_map { |candidate| row_alias(candidate.organisation, candidate.entry) }
+      named = PersonGroupEntry.settled_lines(named, aliases: aliases)
+      named.group_by(&:first).filter_map { |merge_id, lines| merge_of(merge_id, lines, by_key) }
+    end
+
+    def row_alias(organisation, entry)
+      account = PersonGroupEntry.account_of(entry)
+      [organisation.id, entry.person.id, account] if entry.person && account
+    end
+
+    # One merge held against the candidates; nil when it names fewer than two of them.
+    def merge_of(merge_id, lines, by_key)
+      visible = lines.filter_map { |_id, *address| by_key[PersonGroupEntry.key_of(*address)] }.uniq(&:object_id)
+      [merge_id, visible] if visible.size > 1
+    end
+
+    # Joins the people of the candidates one merge names into the person of the first. A
+    # person that already holds a source of the same organisation stays apart: the account
+    # rule may have brought that source since the merge was written.
+    def join(named, merge_id, person_of)
+      target = person_of[named.first]
+      named.drop(1).each do |candidate|
+        other = person_of[candidate]
+        next if other.equal?(target) || target.map(&:organisation).intersect?(other.map(&:organisation))
+
+        @merges_of[target] = [*@merges_of[target], *@merges_of.delete(other), merge_id].uniq
+        target.concat(other).each do |one|
+          person_of[one] = target
+          one.merge_id ||= merge_id
+        end
+      end
     end
 
     # Every entry of the organisation, marked when the search matched it. Without a search
@@ -135,7 +310,9 @@ module People
 
     def rows_of(people)
       sources = sources_by_candidate(people.flatten)
-      people.map { |candidates| row_of(candidates.first.entry.user, sources.values_at(*candidates)) }
+      people.map do |candidates|
+        row_of(candidates.first.entry.user, sources.values_at(*candidates), candidates.first.merge_id)
+      end
     end
 
     # The sources of the page are read per organisation, under that tenant.
@@ -164,9 +341,10 @@ module People
                  lane: lane, fields: People::Lookup.row(entry).freeze)
     end
 
-    def row_of(account, sources)
+    def row_of(account, sources, merge_id)
       fields = sources.map(&:fields)
       Row.new(name: fields.first[:name], kind: fields.first[:kind], sources: sources.freeze, avatar_user: account,
+              merge_id: merge_id,
               last_contact: fields.filter_map { |row| row[:last_contact] }.max_by { |last| last[:on] },
               **first_values(fields))
     end

@@ -88,6 +88,20 @@ module UserDataExports
              attributes: %w[action credits_used used_at created_at],
              computed: { organisation_name: ->(r) { r.organisation&.name } },
              scope: ->(user) { AiUsage.where(user_id: user.id).includes(:organisation) }),
+      # The merges of the people above the organisations (PersonGroup): which
+      # entries of which organisations the user declared one person, as
+      # references only (the group, the organisation's name, the address of
+      # the entry in its directory); a group holds no field of a person.
+      # ⚠️ Scoped by owner_id and by NOTHING else. An entry also carries
+      # user_id, the account it NAMES: exported to that account, it would tell
+      # a person that somebody else merged them. A merge is its owner's
+      # private note; the named account learns of it nowhere.
+      source(key: :merged_people, model: 'PersonGroupEntry', tenant_scoped: false,
+             attributes: %w[created_at],
+             computed: { group: lambda(&:person_group_id),
+                         organisation_name: ->(r) { r.organisation&.name },
+                         entry: ->(r) { r.person_id ? "person:#{r.person_id}" : "member:#{r.user_id}" } },
+             scope: ->(user) { PersonGroupEntry.where(owner_id: user.id).includes(:organisation) }),
 
       # ── per organisation (inside organisations/<folder>/) ────────────────
       # Own structured data — exported in FULL:
@@ -294,6 +308,9 @@ module UserDataExports
                                     'metadata on org infrastructure, like documentation_sync_runs',
       'glossary_proposals' => 'Org-wide proposals for the glossary (K5b, role model); decided_by_id is editor ' \
                               'metadata on shared org knowledge, like glossary_terms.created_by_id',
+      'person_groups' => 'A merge of the people above the organisations has no field of its own (owner_id and ' \
+                         'timestamps); what it joins is exported from its entries as merged_people.json, ' \
+                         "in the OWNER's export only",
       'user_deletions' => 'Deletion audit log, metadata only by design; core state is in account.json',
       'user_data_exports' => 'The export mechanism itself; state is visible on the export page',
       'attachment_deletion_records' => 'Deletion proof owed to the CONTROLLER, not to the user ' \

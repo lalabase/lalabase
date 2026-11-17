@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_17_090100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1182,6 +1182,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
     t.datetime "updated_at", null: false
     t.string "salutation"
     t.jsonb "additional_details", default: [], null: false
+    t.index ["id", "organisation_id"], name: "index_people_on_id_and_organisation_id", unique: true
     t.index ["organisation_id", "normalized_name"], name: "index_people_on_organisation_id_and_normalized_name"
     t.index ["organisation_id", "user_id"], name: "index_people_on_organisation_id_and_user_id", unique: true, where: "(user_id IS NOT NULL)"
     t.index ["user_id"], name: "index_people_on_user_id"
@@ -1196,6 +1197,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["role_id", "category", "action"], name: "index_permissions_on_role_id_and_category_and_action", unique: true
+  end
+
+  create_table "person_group_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "person_group_id", null: false
+    t.uuid "owner_id", null: false
+    t.uuid "organisation_id", null: false
+    t.uuid "person_id"
+    t.uuid "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["organisation_id", "user_id"], name: "index_person_group_entries_on_organisation_and_account"
+    t.index ["owner_id", "organisation_id", "person_id"], name: "index_person_group_entries_on_owner_and_person", unique: true, where: "(person_id IS NOT NULL)"
+    t.index ["owner_id", "organisation_id", "user_id"], name: "index_person_group_entries_on_owner_and_account", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["owner_id"], name: "index_person_group_entries_on_owner_id"
+    t.index ["person_group_id", "organisation_id"], name: "index_person_group_entries_on_group_and_organisation", unique: true
+    t.index ["person_id", "organisation_id"], name: "index_person_group_entries_on_person"
+    t.index ["user_id"], name: "index_person_group_entries_on_user_id"
+    t.check_constraint "num_nonnulls(person_id, user_id) = 1", name: "person_group_entries_one_address"
+  end
+
+  create_table "person_groups", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "owner_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["id", "owner_id"], name: "index_person_groups_on_id_and_owner_id", unique: true
+    t.index ["owner_id"], name: "index_person_groups_on_owner_id"
   end
 
   create_table "personal_access_token_organisations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2294,6 +2321,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
   add_foreign_key "people", "users", column: "updater_id", on_delete: :nullify
   add_foreign_key "people", "users", on_delete: :nullify
   add_foreign_key "permissions", "roles"
+  add_foreign_key "person_group_entries", "organisations", on_delete: :cascade
+  add_foreign_key "person_group_entries", "people", column: ["person_id", "organisation_id"], primary_key: ["id", "organisation_id"], on_delete: :cascade
+  add_foreign_key "person_group_entries", "person_groups", column: ["person_group_id", "owner_id"], primary_key: ["id", "owner_id"], on_delete: :cascade
+  add_foreign_key "person_group_entries", "users"
+  add_foreign_key "person_groups", "users", column: "owner_id"
   add_foreign_key "personal_access_token_organisations", "organisations"
   add_foreign_key "personal_access_token_organisations", "personal_access_tokens"
   add_foreign_key "personal_access_token_projects", "personal_access_tokens"

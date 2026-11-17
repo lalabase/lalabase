@@ -379,6 +379,123 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
     end
   end
 
+  # From the merges on (People S2) a takeover also writes the viewer's own note that the
+  # source and its copy are one person: two rows in tables without a tenant. No
+  # organisation learns of it, and a merge that cannot be written leaves the copy.
+  describe 'the merge of the source and its copy' do
+    def merged
+      PersonGroupEntry.where(owner_id: viewer.id).pluck(:organisation_id, :person_id)
+    end
+
+    def people_of(user)
+      People::AcrossOrganisations.call(viewer: User.find(user.id)).rows
+                                 .map { |row| [row.name, row.sources.map(&:organisation_name)] }
+    end
+
+    it 'makes the source and the copy one person in the list of the viewer, and of nobody else' do
+      colleague = takeover_join(takeover_join(create(:user), north, 'view_people'), south, 'view_people')
+
+      result = take_over
+
+      expect([result.success?, result.code]).to eq([true, :ok])
+      expect(merged).to contain_exactly([north.id, source.id], [south.id, result.resource.id])
+      expect(PersonGroup.sole.owner_id).to eq(viewer.id)
+      expect(people_of(viewer)).to include(['Herr Schmidt', ['Nord GmbH', 'Süd GmbH']])
+      expect(people_of(colleague)).to include(['Herr Schmidt', ['Nord GmbH']], ['Herr Schmidt', ['Süd GmbH']])
+    end
+
+    it 'writes the merge in the transaction of the copy: without the copy there is none' do
+      allow(Actors::SavePerson).to receive(:call).and_wrap_original do |original, **arguments|
+        original.call(**arguments).tap { raise Actors::ActorError.new('nein', code: :validation_failed) }
+      end
+
+      expect { take_over }.not_to(change { [takeover_count(south), PersonGroup.count, PersonGroupEntry.count] })
+    end
+
+    it 'writes no merge for a refused takeover' do
+      expect { take_over(target: create(:organisation).id) }.not_to(change { [PersonGroup.count, PersonGroupEntry.count] })
+    end
+
+    # The source already stands merged with another row of the target, and a group holds
+    # one source per organisation: the copy is created all the same, and the result says
+    # that it was not merged.
+    it 'still creates the copy when the merge cannot be written, and says so' do
+      other = takeover_person(south, name: 'H. Schmidt (alt)')
+      takeover_join(viewer, create(:organisation, name: 'Ost eG'), 'view_people')
+      group = create(:person_group, owner: viewer)
+      create(:person_group_entry, person_group: group, organisation: north, person_id: source.id)
+      create(:person_group_entry, person_group: group, organisation: south, person_id: other.id)
+
+      result = nil
+      expect { result = take_over }.to change { takeover_count(south) }.by(1)
+
+      expect([result.success?, result.code]).to eq([true, described_class::NOT_MERGED])
+      expect(copy_of(result).name).to eq('Herr Schmidt')
+      expect(merged).to contain_exactly([north.id, source.id], [south.id, other.id])
+      expect(PersonGroup.count).to eq(1)
+    end
+
+    # A real refusal of the database: the entries inserted twice run into the unique index.
+    # The statement that failed is undone alone (a savepoint), so the copy survives it.
+    # The code is not the one of a source that stands merged already: until 2026-11-17
+    # every merge that failed carried it, and the notice named a reason that was not true.
+    it 'still creates the copy when the merge collides with another write, under a code of its own' do
+      allow(PersonGroupEntry).to receive(:insert_all!).and_wrap_original do |insert, rows|
+        insert.call(rows)
+        insert.call(rows)
+      end
+
+      result = nil
+      expect { result = take_over }.to change { takeover_count(south) }.by(1)
+
+      expect([result.success?, result.code]).to eq([true, described_class::MERGE_FAILED])
+      expect([PersonGroup.count, PersonGroupEntry.count]).to eq([0, 0])
+    end
+
+    # The takeover locks the viewer's account only, before it writes the copy. A source that
+    # got an account meanwhile would make the merge lock one more, after the owner's lock:
+    # the order an erasure waits in. The merge refuses that instead, and the copy stays.
+    it 'still creates the copy and writes no merge when the source got an account meanwhile' do
+      member = takeover_join(create(:user), north)
+      # An account admin of the source sees the member's row, so the merge can read it.
+      ActsAsTenant.with_tenant(north) do
+        Membership.find_by!(user: viewer, organisation: north).role.update!(title: Role::ACCOUNT_ADMIN_TITLE)
+      end
+      merge_result = nil
+      allow(Actors::MergePeople).to receive(:call).and_wrap_original do |call, **arguments|
+        ActsAsTenant.with_tenant(north) { Person.where(id: source.id).update_all(user_id: member.id) }
+        merge_result = call.call(**arguments)
+      end
+
+      result = nil
+      expect { result = take_over }.to change { takeover_count(south) }.by(1)
+
+      expect(merge_result.code).to eq(Actors::MergePeople::CONFLICT)
+      expect([result.success?, result.code]).to eq([true, described_class::MERGE_FAILED])
+      expect([PersonGroup.count, PersonGroupEntry.count]).to eq([0, 0])
+    end
+
+    it 'carries that code as well when the merge cannot read the copy' do
+      allow(Actors::MergePeople).to receive(:call)
+        .and_return(Actors::BaseActor::Result.new(success: false, errors: ['x'], code: Actors::MergePeople::NOT_FOUND))
+
+      result = nil
+      expect { result = take_over }.to change { takeover_count(south) }.by(1)
+
+      expect([result.success?, result.code]).to eq([true, described_class::MERGE_FAILED])
+    end
+
+    it 'records nothing about the merge in either organisation' do
+      activities = -> { Prosopite.pause { Activity.unscoped.group(:organisation_id, :action).count } }
+      before_takeover = activities.call
+
+      take_over
+
+      added = activities.call.to_h { |key, count| [key, count - before_takeover.fetch(key, 0)] }.reject { |_key, count| count.zero? }
+      expect(added).to eq([south.id, 'created'] => 1)
+    end
+  end
+
   describe 'the dialog targets' do
     it 'lists the organisations where the viewer may create people, never the source' do
       user = takeover_join(create(:user), north, 'manage_people')

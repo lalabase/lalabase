@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-11-16)
+# Karte: app/models (Stand: 2026-11-17)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -103,6 +103,22 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   schickt immer `person[additional_details][sent]` mit (`FORM_MARKER`): ohne ihn ließe das
   Entfernen der letzten Angabe die Liste stehen. Fehlt der Key ganz, bleibt die Liste
   unberührt. Check-Constraint `people_additional_details_shape` hält Liste und Grenze.
+  Merges above the organisations (2026-11-17, `GET /people`): `person_group` and
+  `person_group_entry` are ONE person's private note that rows of different organisations
+  are the same human. ⚠️ No tenant, no field of a person, no tracking, and an organisation
+  must never learn of a merge: only the files listed in
+  `spec/architecture/people_above_organisations_guard_spec.rb` (second group) name the two
+  models or their tables; a new reader is red there until it is decided.
+  ⚠️ `PersonGroupEntry` has NO `belongs_to :person` (Person is tenanted and raises outside a
+  tenant): an entry is held by id against a directory (`.keys_for`, `#key`), with one
+  address, and the row wins (`.address_of`). The table's constraints are the rule.
+  Written by `Actors::MergePeople`, `Actors::SplitPerson` and the release of a membership
+  (`concerns/person_link_release.rb`: `.prepare_release`, `.follow_to_row`), each under
+  `PersonGroup.lock_for(owner)`. ⚠️ Account locks (`PersonalDataErasure.lock_accounts`)
+  come before the owner lock, and never a row lock on users. ⚠️ The release runs inside
+  the removal of a membership and an account erasure and never raises for a note
+  (`.quietly`). The rules and their reasons stand in the headers of `person_group_entry.rb`,
+  `person_link_release.rb` and `personal_data_erasure.rb`, not here.
 * **Glossar** (K4a, 04.11.2026): `glossary_term` (ein Begriff je Organisation, nicht je Projekt;
   eindeutig nach `normalized_term`, Status `proposed`/`confirmed`/`rejected`), `term_correction`
   (eine gehörte Form je Korrektur: Sprecher als Person ODER Mitglied, Check

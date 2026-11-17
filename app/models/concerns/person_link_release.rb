@@ -13,18 +13,54 @@
 # update_all, without tenant: the person's own validations and tracking have
 # nothing to say about a link the membership took with it, and the callback may
 # run with any tenant set (or none, in the admin backend).
+#
+# The merges of the people above the organisations follow the row
+# (PersonGroupEntry.follow_to_row): an entry that named the member by account
+# names the row from now on, for every owner. This is the one moment such an
+# entry would lose its target while a row exists; with the link gone, the
+# account no longer leads to the row. So the entries are rewritten FIRST, while
+# the row still carries the account, by statements that find the row
+# themselves. Those tables carry no tenant; the row is named inside the block
+# below, the one place of this callback where the tenant is lifted. The
+# rewrite never raises for what the database refuses (see there): a private
+# note of somebody else must not stop a member from leaving.
 module PersonLinkRelease
   extend ActiveSupport::Concern
 
   included do
+    before_destroy :prepare_person_link_release, prepend: true
     after_destroy :release_person_link
   end
 
   private
 
+  # Removal also updates the linked row and may mark the account for deletion review.
+  # Enter the account protocol before DELETE or any owner lock, so an erasure cannot
+  # read a row that this transaction is about to unlink (and then destroy a stale row).
+  def lock_account_for_release
+    PersonalDataErasure.lock_account(user_id, shared: true)
+  end
+
+  # A membership whose organisation row is gone (memberships carries no foreign key to
+  # it) has no directory left to read and no entry left to settle: the entries went with
+  # the organisation. Without the row there is no tenant to read under either.
+  def prepare_person_link_release
+    lock_account_for_release
+    tenant = organisation
+    return unless tenant
+
+    ActsAsTenant.with_tenant(tenant) do
+      rows = Person.where(organisation_id: organisation_id, user_id: user_id)
+      @failed_person_group_owners = PersonGroupEntry.prepare_release(organisation_id: organisation_id, user_id: user_id, rows: rows)
+    end
+  end
+
   def release_person_link
     ActsAsTenant.without_tenant do
-      Person.where(organisation_id: organisation_id, user_id: user_id).update_all(user_id: nil, updated_at: Time.current)
+      rows = Person.where(organisation_id: organisation_id, user_id: user_id)
+      PersonGroupEntry.follow_to_row(organisation_id: organisation_id, user_id: user_id, rows: rows,
+                                     failed_owners: @failed_person_group_owners || [])
+      rows.update_all(user_id: nil, updated_at: Time.current)
     end
   end
 end

@@ -19,6 +19,18 @@ module AllPeopleHelper
     organisation_people_path(source.organisation_id, source.lane)
   end
 
+  # What the tick of a row sends to the merge: every source of the row as
+  # "<organisation id>/<address>", joined by a comma (AllPeople::MergesController reads it).
+  # A row that stands for several organisations already is merged as all of them.
+  def all_people_row_value(row)
+    row.sources.map { |source| "#{source.organisation_id}/#{source.fields[:id]}" }.join(',')
+  end
+
+  # The list state as the parameters of an address that comes back to this page.
+  def all_people_return_state(people)
+    all_people_list_state.merge(page: (people.page if people.page > 1)).compact
+  end
+
   # Function and company of a row, as the line under a name on an organisation's page.
   def all_people_role(row)
     [row.function, row.company].compact_blank.join(' · ')

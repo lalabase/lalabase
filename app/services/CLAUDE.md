@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-16)
+# Karte: app/services (Stand: 2026-11-17)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -363,6 +363,27 @@ Verzeichnis-Übersicht (Auswahl):
   record is `Row#avatar_user` (`User` is not tenanted). The loop per organisation is
   declared in `spec/support/prosopite.rb` (`in_people_organisation`); what that could hide,
   a read per row, is pinned by a statement count in the service spec.
+  Merging (2026-11-17): the read joins the viewer's own merges (`PersonGroup`, card of
+  `app/models`) on top of the account rule. ⚠️ A reference is not a right: a part the
+  viewer cannot see just now is not shown and not counted, and nothing is written while
+  reading. `Actors::MergePeople.call(entries: [{ org:, id: }], current_user:)` and
+  `Actors::SplitPerson.call(group_id:, current_user:)` act on the PEOPLE THE LIST SHOWS,
+  asked of the read itself (`AcrossOrganisations#part`, `#person_with`, `#names?`,
+  `#merges_shown_with`), never on the stored lines alone: a line the list does not show
+  must not refuse a merge, and undo takes apart every group that joins the row. One
+  refusal for everything the caller cannot name (`:not_found`). ⚠️ `entries` are the ROWS:
+  a row of several organisations is a list of sources, and fewer than two rows are refused
+  however many sources they hold (the controller keeps the rows apart). `Actors::TakeOverPerson`
+  writes the merge of source and copy in a savepoint (the copy stays either way:
+  `:not_merged` when the source stands merged with a row of the target already,
+  `:merge_failed` for any other reason, and only the first notice names a reason);
+  `PersonTakeoversController` offers "merge instead" under the duplicate question.
+  ⚠️ Those offers are submit buttons above the main button: the form opens with a default
+  button that is drawn (`sr-only`), never `hidden`, or Enter merges in an older Safari. ⚠️ A
+  controller shows an actor's text only for the codes in its `REFUSALS`; any other failure
+  carries the message of an exception. The rules, the lock order and their reasons stand
+  in the headers of `across_organisations.rb`, `merge_people.rb`, `split_person.rb` and
+  `take_over_person.rb`, not here.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

@@ -11,8 +11,20 @@ en:
         stale: "Someone else changed this person in the meantime. The current details are shown below, please make your change again."
       destroy:
         success: "Person deleted."
+      merge:
+        success: "Merged. Only you see this; nothing changes in the organisations."
+        too_few: "Choose at least two people."
+        same_organisation: "Two entries of the same organisation cannot be merged. Clean up duplicates in the directory of the organisation."
+        conflict: "This collided with another change. Please try again."
+        failed: "Merging did not work. Please try again."
+      split:
+        success: "Merge undone. The entries stand on their own in your list again."
+        failed: "The merge could not be undone. Please try again."
       takeover:
-        success: "Taken over from %{source}."
+        success: "Taken over from %{source}. The original and the copy are one person for you now."
+        success_not_merged: "Taken over from %{source}. The original and the copy were not merged. That works only while the original is not merged with another entry of this organisation."
+        success_merge_failed: "Taken over from %{source}. The original and the copy were not merged. You can merge them yourself under “People” above all organisations."
+        merged_instead: "Merged instead of taken over. Only you see this, under “People” above all organisations."
         failed: "This person could not be taken over."
         duplicate: "%{organisation} already has %{names}. Create anyway?"
         duplicate_name: "“%{name}”"
@@ -32,6 +44,17 @@ en:
         function: "Function"
         organisations: "Organisations"
         last_contact: "Last contact"
+        select: "Selection"
+        actions: "Actions"
+      merge:
+        select: "Select %{name}"
+        selected: "selected"
+        submit: "Merge"
+        submitting: "Merging …"
+        hint: "Only you see this. Nothing changes in the organisations."
+        clear: "Clear selection"
+        more_actions: "More actions for %{name}"
+        split: "Undo merge"
       chip:
         open: "Open %{name} in %{organisation}"
       empty:
@@ -64,6 +87,9 @@ en:
           submit: "Take over"
           submitting: "Taking over …"
           confirm: "Create anyway"
+          merge_instead: "Merge with “%{name}” instead"
+          merge_instead_hint: "Merging creates nothing: both entries are one person for you then. Nothing changes in the organisations."
+          merging: "Merging …"
           cancel: "Cancel"
         index:
           title: "People"

@@ -235,6 +235,7 @@ de:
       delete_ai_credential: Sind Sie sicher, dass Sie dieses AI-Credential löschen möchten?
       delete_ai_package: Sind Sie sicher, dass Sie dieses KI-Paket löschen möchten? Die Stufen werden mitgelöscht.
       delete_admin_user: Sind Sie sicher, dass Sie diesen Admin-Benutzer löschen möchten?
+      split_merged_person: "Zusammenführung von %{name} aufheben? Die Einträge stehen danach wieder einzeln in deiner Liste. In den Organisationen ändert sich nichts."
     admin:
       email_logs:
         index:

@@ -4,10 +4,19 @@
 #
 # Takes a contact of one organisation over into another one of the viewer's:
 # a copy of the fields they ticked, as an ordinary new row of the target
-# (People S0). Nothing links the two rows afterwards, and the target records
-# nothing about the source: its history says only "created a person", like any
-# other new row (PersonTrackable). The notice "taken over from ..." is the
-# controller's flash, for the viewer alone.
+# (People S0). Nothing in either organisation links the two rows afterwards,
+# and the target records nothing about the source: its history says only
+# "created a person", like any other new row (PersonTrackable). The notice
+# "taken over from ..." is the controller's flash, for the viewer alone.
+#
+# For the VIEWER the two rows are one person from then on: the same transaction
+# writes the merge of the source and its copy (Actors::MergePeople, the
+# viewer's private note, in tables without a tenant; no organisation learns of
+# it). A merge that cannot be written leaves the copy as it is, and the result
+# says why: :not_merged when the source already stands merged with another row
+# of the target (a group holds one source per organisation), :merge_failed for
+# anything else (it met another change, an entry could not be read). The
+# notice names the first reason and no reason for the second.
 #
 # Two tenant blocks, one per organisation; nothing is read across tenants:
 #
@@ -42,6 +51,12 @@ module Actors
     DEFAULT_FIELDS = (FIELDS - %w[notes]).freeze
     NOT_FOUND = :not_found
     DUPLICATE = :duplicate
+    # A success whose copy was written and whose merge was not: the source already
+    # stands merged with another row of the target ...
+    NOT_MERGED = :not_merged
+    # ... or the merge failed for any other reason. Two codes, because the notice
+    # of the first one names its reason, and that reason is true for it alone.
+    MERGE_FAILED = :merge_failed
 
     # The organisations the dialog lists as targets: the viewer's active ones
     # except the source, where they may create people. The same rule the
@@ -67,6 +82,14 @@ module Actors
       ActsAsTenant.with_tenant(organisation) { PersonPolicy.new(viewer, Person).create? }
     end
 
+    # The entries of the target that carry the name of the source row, as the
+    # viewer may read them there: what the duplicate question names, and what
+    # "merge instead" offers. Asked under the target's tenant. The source row is
+    # compared by its loaded attributes (id, normalized_name, user_id) only.
+    def self.duplicates_in(viewer:, target:, row:)
+      ActsAsTenant.with_tenant(target) { People::Directory.new(viewer: viewer, organisation: target).duplicates_of(row) }
+    end
+
     def initialize(source_organisation:, person_id:, target_organisation_id:, fields:, confirm_duplicate:, current_user:)
       super()
       @source_organisation = source_organisation
@@ -82,10 +105,18 @@ module Actors
     end
 
     def perform
-      source = read_source
-      refuse unless @target && source
+      # This belongs to the OUTER transaction: a refused merge rolls its savepoint
+      # back but keeps the copy. Erasure must wait for that copy's transaction too.
+      PersonalDataErasure.lock_account(current_user.id, shared: true)
+      User.uncached do
+        @current_user = User.find_by(id: current_user.id)
+        refuse unless current_user
+        @target = target_organisation
+        source = read_source
+        refuse unless @target && source
 
-      ActsAsTenant.with_tenant(@target) { write_copy(@target, source) }
+        ActsAsTenant.with_tenant(@target) { write_copy(@target, source) }
+      end
     end
 
     private
@@ -155,13 +186,37 @@ module Actors
       raise ActorError.new(result.errors, code: result.code) unless result.success?
 
       @copy = result.resource
+      @unmerged = merge_with_source(target)
+    end
+
+    # Source and copy as one person of the viewer. Inside a savepoint: a merge
+    # that is refused, also by a unique index, is undone alone and the copy
+    # stays. The merge reads both rows again with the viewer's right, each under
+    # its own tenant; the copy is visible to it inside this transaction.
+    # nil when the merge is written, else the code that says why it is not.
+    def merge_with_source(target)
+      merge = nil
+      ActiveRecord::Base.transaction(requires_new: true) do
+        merge = Actors::MergePeople.call(
+          entries: [{ org: @source_organisation.id, id: "person:#{@person_id}" }, { org: target.id, id: "person:#{@copy.id}" }],
+          current_user: current_user, account_lock_ids: [current_user.id]
+        )
+        raise ActiveRecord::Rollback unless merge.success?
+      end
+      return if merge.success?
+
+      merge.code == Actors::MergePeople::SAME_ORGANISATION ? NOT_MERGED : MERGE_FAILED
+    end
+
+    # The copy is there either way; the code says whether the merge is too.
+    def success(resource)
+      Result.new(success: true, resource: resource, code: @unmerged)
     end
 
     # The target's own entries with the same normalized name, as the viewer
-    # may read them there. The source row is only compared by its loaded
-    # attributes (id, normalized_name, user_id); nothing of it is loaded here.
+    # may read them there (.duplicates_in).
     def ask_about_duplicates(target, row)
-      names = People::Directory.new(viewer: current_user, organisation: target).duplicates_of(row).map do |entry|
+      names = self.class.duplicates_in(viewer: current_user, target: target, row: row).map do |entry|
         I18n.t('controllers.people.takeover.duplicate_name', name: entry.plain_name)
       end
       return if names.empty?

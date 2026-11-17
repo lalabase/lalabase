@@ -11,8 +11,20 @@ de:
         stale: "Jemand anderes hat diese Person inzwischen geändert. Unten stehen die aktuellen Angaben, bitte noch einmal ändern."
       destroy:
         success: "Person gelöscht."
+      merge:
+        success: "Zusammengeführt. Das siehst nur du; in den Organisationen ändert sich nichts."
+        too_few: "Wähle mindestens zwei Personen aus."
+        same_organisation: "Zwei Einträge derselben Organisation lassen sich nicht zusammenführen. Dubletten bereinigst du im Verzeichnis der Organisation."
+        conflict: "Das hat sich mit einer anderen Änderung überschnitten. Bitte versuche es noch einmal."
+        failed: "Das Zusammenführen hat nicht geklappt. Bitte versuche es noch einmal."
+      split:
+        success: "Zusammenführung aufgehoben. Die Einträge stehen wieder einzeln in deiner Liste."
+        failed: "Die Zusammenführung ließ sich nicht aufheben. Bitte versuche es noch einmal."
       takeover:
-        success: "Übernommen aus %{source}."
+        success: "Übernommen aus %{source}. Original und Kopie sind für dich jetzt eine Person."
+        success_not_merged: "Übernommen aus %{source}. Original und Kopie wurden nicht zusammengeführt. Das geht nur, solange das Original mit keinem anderen Eintrag dieser Organisation zusammengeführt ist."
+        success_merge_failed: "Übernommen aus %{source}. Original und Kopie wurden nicht zusammengeführt. Du kannst sie unter „Personen“ über allen Organisationen selbst zusammenführen."
+        merged_instead: "Zusammengeführt statt übernommen. Das siehst nur du, unter „Personen“ über allen Organisationen."
         failed: "Diese Person ließ sich nicht übernehmen."
         duplicate: "In %{organisation} gibt es schon %{names}. Trotzdem anlegen?"
         duplicate_name: "„%{name}“"
@@ -32,6 +44,17 @@ de:
         function: "Funktion"
         organisations: "Organisationen"
         last_contact: "Letzter Kontakt"
+        select: "Auswahl"
+        actions: "Aktionen"
+      merge:
+        select: "%{name} auswählen"
+        selected: "ausgewählt"
+        submit: "Zusammenführen"
+        submitting: "Wird zusammengeführt …"
+        hint: "Nur für dich sichtbar. In den Organisationen ändert sich nichts."
+        clear: "Auswahl aufheben"
+        more_actions: "Weitere Aktionen für %{name}"
+        split: "Zusammenführung aufheben"
       chip:
         open: "%{name} in %{organisation} öffnen"
       empty:
@@ -64,6 +87,9 @@ de:
           submit: "Übernehmen"
           submitting: "Wird übernommen …"
           confirm: "Trotzdem anlegen"
+          merge_instead: "Stattdessen mit „%{name}“ zusammenführen"
+          merge_instead_hint: "Zusammenführen legt nichts an: Beide Einträge sind dann für dich eine Person. In den Organisationen ändert sich nichts."
+          merging: "Wird zusammengeführt …"
           cancel: "Abbrechen"
         index:
           title: "Personen"

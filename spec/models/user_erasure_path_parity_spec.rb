@@ -249,6 +249,45 @@ RSpec.describe 'Account erasure path parity', type: :model do
       end
     end
 
+    # The merges of the people above the organisations: private notes of one person that
+    # rows of different organisations are the same human. A soft delete fires no foreign
+    # key, so both halves are an explicit step (erase_person_groups!).
+    describe 'merges of the people above the organisations' do
+      let(:row) { create(:person, organisation: organisation) }
+      let(:other_row) do
+        ActsAsTenant.with_tenant(other_organisation) { create(:person, organisation: other_organisation) }
+      end
+
+      def merge_of(owner, *entries)
+        create(:person_group, owner: owner).tap do |group|
+          entries.each { |org, address| create(:person_group_entry, person_group: group, organisation: org, **address) }
+        end
+      end
+
+      it 'deletes the groups the account owns with their entries, and those of no other owner' do
+        merge_of(user, [organisation, { person_id: row.id }], [other_organisation, { person_id: other_row.id }])
+        kept = merge_of(colleague, [organisation, { person_id: row.id }], [other_organisation, { person_id: other_row.id }])
+
+        record.soft_delete_and_anonymize!
+
+        expect(PersonGroup.where(owner_id: user.id)).not_to exist
+        expect(PersonGroupEntry.where(owner_id: user.id)).not_to exist
+        expect(PersonGroup.pluck(:id)).to eq([kept.id])
+        expect(PersonGroupEntry.where(person_group_id: kept.id).count).to eq(2)
+      end
+
+      it 'deletes every entry of another owner that names the account, by account and by its row' do
+        create(:membership, user: user, organisation: other_organisation)
+        linked = create(:person, organisation: organisation, user: user)
+        foreign = merge_of(colleague, [organisation, { person_id: linked.id }], [other_organisation, { user_id: user.id }])
+
+        record.soft_delete_and_anonymize!
+
+        expect(PersonGroupEntry.where(person_group_id: foreign.id)).not_to exist
+        expect(PersonGroupEntry.where(user_id: user.id)).not_to exist
+      end
+    end
+
     # K4a: the heard form stays as knowledge of the organisation, only the
     # speaker link to the erased account goes (plan §3.3, like a deleted person).
     describe 'glossary heard forms the account spoke' do

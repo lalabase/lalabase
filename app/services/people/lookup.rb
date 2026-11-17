@@ -63,6 +63,15 @@ module People
         @directory.candidates
       end
 
+      # The entry an id names, without its last contact, or nil: Lookup#entry for a caller
+      # that holds the listing already. One of the objects of #entries.
+      def entry(id)
+        choice = Meetings::ParticipantLinkChoice.parse(id.to_s)
+        raise InvalidArgument, ID_ERROR unless choice && ADDRESSES.include?(choice.kind)
+
+        choice.kind == :member ? @directory.member_entry(choice.id) : @directory.person_entry(choice.id)
+      end
+
       # The last contact of each entry of a list, in the order given (nil: none).
       delegate :last_contacts_for, to: :@directory
     end
@@ -104,11 +113,8 @@ module People
     # The entry an id names, with its last contact, or nil.
     def entry(id)
       check_allowed!
-      choice = Meetings::ParticipantLinkChoice.parse(id.to_s)
-      raise InvalidArgument, ID_ERROR unless choice && ADDRESSES.include?(choice.kind)
-
       people = directory
-      found = choice.kind == :member ? people.member_entry(choice.id) : people.person_entry(choice.id)
+      found = Listing.new(directory: people).entry(id)
       found&.tap { |entry| entry.last_contact = people.last_contacts_for([entry]).first }
     end
 

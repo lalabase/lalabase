@@ -418,6 +418,25 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
         expect(ActsAsTenant.current_tenant).to be_nil
       end
 
+      it 'refuses a member whose other visible membership overlaps the source organisation' do
+        namesake = create(:user, first_name: 'Herr', last_name: 'Schmidt')
+        Prosopite.pause do
+          [north, south].each do |organisation|
+            takeover_join(namesake, organisation)
+            ActsAsTenant.with_tenant(organisation) do
+              Membership.find_by!(user: reader, organisation: organisation).role.update!(title: Role::ACCOUNT_ADMIN_TITLE)
+            end
+          end
+        end
+
+        expect { submit(merge_with: "member:#{namesake.id}") }.not_to(change { [counts, merges] })
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include(CGI.escapeHTML(I18n.t('controllers.people.merge.same_organisation')),
+                                         %(<turbo-stream action="remove" target="person-takeover-modal-#{source.id}-#{token}">))
+        expect(response.body).not_to include(I18n.t('controllers.people.takeover.merged_instead'))
+      end
+
       it 'answers an entry it cannot merge with like every refusal, and writes nothing' do
         submit(target: create(:organisation).id)
         refusal = [response.status, response.media_type, response.body.gsub(/flash_\h{8}/, 'flash_X')]

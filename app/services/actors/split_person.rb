@@ -32,6 +32,9 @@ module Actors
       @group = PersonGroup.owned_by(current_user).find_by(id: @group_id) if @group_id
       raise ActorError.new(I18n.t('controllers.people.not_found'), code: NOT_FOUND) unless @group
 
+      # The displayed group may contain sources virtually transferred from an account
+      # alias. Persist that same grouping before deleting it, or undo leaves them joined.
+      PersonGroupEntry.settle_for_owner(current_user.id)
       @group.destroy!
       PersonGroup.owned_by(current_user).leftover.delete_all
     end

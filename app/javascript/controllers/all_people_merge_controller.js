@@ -17,7 +17,7 @@ import { Controller } from "@hotwired/stimulus"
 //   out of sight as fields added to the form as it leaves.
 // A full visit (another page of the list, another organisation) starts from nothing.
 export default class extends Controller {
-  static targets = ["tick", "counter", "count", "names", "submit"]
+  static targets = ["tick", "counter", "count", "names", "submit", "carried"]
 
   initialize() {
     this.chosen = new Map()
@@ -49,6 +49,7 @@ export default class extends Controller {
 
   // The form of the bar leaves: the chosen rows the list does not show go along.
   carry(event) {
+    this.removeCarried()
     const form = event.target
     const ticked = new Set(this.tickTargets.filter((tick) => tick.checked).map((tick) => tick.value))
     this.chosen.forEach((_name, value) => {
@@ -58,14 +59,22 @@ export default class extends Controller {
       field.type = "hidden"
       field.name = "rows[]"
       field.value = value
+      field.dataset.allPeopleMergeTarget = "carried"
       form.append(field)
     })
   }
 
   clear() {
+    this.removeCarried()
     this.chosen.clear()
     this.tickTargets.forEach((tick) => { tick.checked = false })
     this.show()
+  }
+
+  // Turbo keeps the form after a network failure. Each attempt must contain only the
+  // current selection, including when the user cleared or unticked rows since then.
+  removeCarried() {
+    this.carriedTargets.forEach((field) => field.remove())
   }
 
   show() {

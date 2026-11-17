@@ -28,6 +28,42 @@ RSpec.describe PersonGroupEntry, :ci_guard do
     statement { described_class.insert_all!([row.merge(columns)]) }
   end
 
+  describe '.settled_lines' do
+    it 'settles into a one-line recipient before visibility filtering, without mutating the stored lines' do
+      lines = [['donor', 'A', 'early', nil], ['donor', 'B', nil, 'user'], ['kept', 'B', 'row', nil]]
+      original = lines.map(&:dup)
+
+      result = described_class.settled_lines(lines, aliases: [%w[B row user]])
+
+      expect(result).to contain_exactly(['kept', 'A', 'early', nil], ['kept', 'B', 'row', nil])
+      expect(lines).to eq(original)
+    end
+
+    it 'keeps conflicting leftovers merged and counts invisible recipient lines as occupied organisations' do
+      lines = [['donor', 'A', 'early', nil], ['donor', 'B', nil, 'user'], ['donor', 'C', 'C1', nil], ['donor', 'D', 'D1', nil],
+               ['kept', 'B', 'row', nil], ['kept', 'C', 'hidden-C2', nil], ['kept', 'D', 'D2', nil]]
+
+      result = described_class.settled_lines(lines, aliases: [%w[B row user]])
+
+      expect(result.select { |line| line.first == 'donor' }).to contain_exactly(['donor', 'C', 'C1', nil], ['donor', 'D', 'D1', nil])
+      expect(result.select { |line| line.first == 'kept' }).to contain_exactly(['kept', 'A', 'early', nil], ['kept', 'B', 'row', nil],
+                                                                               ['kept', 'C', 'hidden-C2', nil], ['kept', 'D', 'D2', nil])
+    end
+
+    it 'uses immutable alias order for cycles, independently of pluck order, and is idempotent' do
+      lines = [['one', 'A', 'row-A', nil], ['one', 'B', nil, 'user-B'], ['one', 'C', 'C1', nil],
+               ['two', 'A', nil, 'user-A'], ['two', 'B', 'row-B', nil], ['two', 'C', 'C2', nil]]
+      aliases = [%w[A row-A user-A], %w[B row-B user-B]]
+      expected = [['two', 'A', 'row-A', nil], ['two', 'B', 'row-B', nil], ['two', 'C', 'C2', nil], ['one', 'C', 'C1', nil]]
+
+      [lines, lines.reverse, lines.rotate(2)].each do |ordered|
+        result = described_class.settled_lines(ordered, aliases: aliases.reverse)
+        expect(result).to match_array(expected)
+        expect(described_class.settled_lines(result, aliases: aliases)).to eq(result)
+      end
+    end
+  end
+
   describe 'exactly one address' do
     it 'takes an entry that names a row, and one that names an account' do
       expect { insert(person_id: row.id) }.to change(described_class, :count).by(1)

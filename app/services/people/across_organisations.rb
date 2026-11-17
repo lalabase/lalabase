@@ -63,6 +63,12 @@ module People
       new(viewer: viewer, query: query, org: org, page: page).call
     end
 
+    # Membership release uses the same visible row/account aliases as the reader. No
+    # private fields or records leave an organisation's tenant, only address triples.
+    def self.aliases_for(viewer:)
+      new(viewer: viewer).entry_aliases
+    end
+
     def initialize(viewer:, query: nil, org: nil, page: 1)
       @viewer = viewer
       @query = query.is_a?(String) ? query.strip.presence : nil
@@ -77,6 +83,14 @@ module People
 
       Result.new(rows: rows_of(people.slice((page - 1) * PER_PAGE, PER_PAGE)), total: people.size,
                  page: page, pages: pages, per_page: PER_PAGE, organisations: named(open))
+    end
+
+    def entry_aliases
+      open_listings.flat_map do |organisation, listing|
+        in_people_organisation(organisation) do
+          listing.entries.filter_map { |entry| row_alias(organisation, entry) }
+        end
+      end
     end
 
     private
@@ -136,15 +150,12 @@ module People
     # merge that collides with the account rule or with another merge (#join) is then
     # decided by what the viewer sees, the same way on every read: the order the entries
     # are stored in is the order of their random ids and must decide nothing.
-    # Two merges that start at the same candidate name one entry twice, by its row and by
-    # the account behind it: the one by the row goes first, as the row wins wherever two
-    # such lines are settled (Actors::MergePeople, PersonGroupEntry.follow_to_row). Then
-    # the rest of their candidates decides, and at last the id, so the order is total.
+    # Row/account aliases have already been settled, before the visibility cutoff. Then
+    # the rest of the candidates decides, and at last the id, so the order is total.
     def in_list_order(merges, order)
       merges.map { |merge_id, named, by_row| [merge_id, named.sort_by { |candidate| order[candidate] }, by_row] }
-            .sort_by do |merge_id, named, by_row|
-              first_by_row = by_row.any? { |candidate| candidate.equal?(named.first) }
-              [order[named.first], first_by_row ? 0 : 1, named.map { |candidate| order[candidate] }, merge_id.to_s]
+            .sort_by do |merge_id, named, _by_row|
+              [order[named.first], named.map { |candidate| order[candidate] }, merge_id.to_s]
             end
     end
 
@@ -161,7 +172,14 @@ module People
       by_key = candidates.each_with_object({}) do |candidate, found|
         PersonGroupEntry.keys_for(candidate.organisation.id, candidate.entry).each { |key| found[key] = candidate }
       end
+      aliases = candidates.filter_map { |candidate| row_alias(candidate.organisation, candidate.entry) }
+      named = PersonGroupEntry.settled_lines(named, aliases: aliases)
       named.group_by(&:first).filter_map { |merge_id, lines| merge_of(merge_id, lines, by_key) }
+    end
+
+    def row_alias(organisation, entry)
+      account = entry.user&.id || entry.person&.user_id
+      [organisation.id, entry.person.id, account] if entry.person && account
     end
 
     # One merge held against the candidates; nil when it names fewer than two of them.

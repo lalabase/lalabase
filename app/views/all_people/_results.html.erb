@@ -4,33 +4,33 @@
     and the menu of a merged row behind it. The search reloads only this frame;
     every link and form in it leaves the frame (_top). %>
 <turbo-frame id="<%= AllPeopleController::LIST_FRAME_ID %>">
-  <% if people.rows.any? %>
-    <%# The bar of the ticked rows. The ticks stand in the table and belong to this
-        form by its id (the form attribute), so no form lies around the rows and
-        the form of a row's menu is none inside another. The stylesheet shows the
-        bar once a row is ticked; the refusal of a single row is the server's.
-        The controller (all-people-merge) keeps the chosen rows through a search,
-        which draws this frame again: it counts and names them here and adds the
-        ones out of sight to the form as it leaves. The address of the answer is
-        the list as it stands here. %>
-    <%= form_with url: all_people_merges_path, method: :post, id: 'all-people-merge', class: 'all-people-merge',
-                  data: { turbo_frame: '_top', all_people_merge_bar: true, action: 'submit->all-people-merge#carry' } do %>
-      <% all_people_return_state(people).each do |name, value| %>
-        <%= hidden_field_tag name, value, id: nil %>
-      <% end %>
-      <span class="all-people-merge__count" data-all-people-merge-target="counter" hidden>
-        <span data-all-people-merge-target="count">0</span> <%= t('views.all_people.merge.selected') %><span class="all-people-merge__names">: <span data-all-people-merge-target="names"></span></span>
-      </span>
-      <button type="submit" class="people-secondary-action" data-all-people-merge-target="submit"
-              data-turbo-submits-with="<%= t('views.all_people.merge.submitting') %>">
-        <i class="bi bi-intersect" aria-hidden="true"></i>
-        <%= t('views.all_people.merge.submit') %>
-      </button>
-      <span class="all-people-merge__hint"><%= t('views.all_people.merge.hint') %></span>
-      <button type="button" class="people-quiet-action all-people-merge__clear" data-action="all-people-merge#clear">
-        <%= t('views.all_people.merge.clear') %>
-      </button>
+  <%# The bar of the ticked rows. The ticks stand in the table and belong to this
+      form by its id (the form attribute), so no form lies around the rows and
+      the form of a row's menu is none inside another. The stylesheet shows the
+      bar once a row is ticked; the refusal of a single row is the server's.
+      The controller (all-people-merge) keeps the chosen rows through a search,
+      which draws this frame again: it counts and names them here and adds the
+      ones out of sight to the form as it leaves. The address of the answer is
+      the list as it stands here. %>
+  <%= form_with url: all_people_merges_path, method: :post, id: 'all-people-merge', class: 'all-people-merge',
+                data: { turbo_frame: '_top', all_people_merge_bar: true, action: 'submit->all-people-merge#carry' } do %>
+    <% all_people_return_state(people).each do |name, value| %>
+      <%= hidden_field_tag name, value, id: nil %>
     <% end %>
+    <span class="all-people-merge__count" data-all-people-merge-target="counter" hidden>
+      <span data-all-people-merge-target="count">0</span> <%= t('views.all_people.merge.selected') %><span class="all-people-merge__names">: <span data-all-people-merge-target="names"></span></span>
+    </span>
+    <button type="submit" class="people-secondary-action" data-all-people-merge-target="submit"
+            data-turbo-submits-with="<%= t('views.all_people.merge.submitting') %>">
+      <i class="bi bi-intersect" aria-hidden="true"></i>
+      <%= t('views.all_people.merge.submit') %>
+    </button>
+    <span class="all-people-merge__hint"><%= t('views.all_people.merge.hint') %></span>
+    <button type="button" class="people-quiet-action all-people-merge__clear" data-action="all-people-merge#clear">
+      <%= t('views.all_people.merge.clear') %>
+    </button>
+  <% end %>
+  <% if people.rows.any? %>
     <table class="all-people-table">
       <thead>
         <tr>

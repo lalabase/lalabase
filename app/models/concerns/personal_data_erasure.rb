@@ -31,9 +31,31 @@
 module PersonalDataErasure
   include PersonalChatErasure
 
+  # One namespace for User and Admin::User. Writers take shared locks before their
+  # other locks; erasure takes the exclusive lock before cleanup. Advisory locks avoid
+  # blocking ordinary account updates made by membership removal while it holds locks
+  # on private notes. All callers hold a transaction through their final write.
+  def self.lock_account(id, shared: false)
+    lock_accounts([id], shared: shared)
+  end
+
+  def self.lock_accounts(ids, shared: false)
+    function = shared ? 'pg_advisory_xact_lock_shared' : 'pg_advisory_xact_lock'
+    # A SELECT that acquires a lock must run even if this connection asked for the
+    # same account earlier (for example in a savepoint that was rolled back).
+    User.uncached do
+      User.connection.select_all(
+        'SELECT 1 FROM (SELECT unnest($1::uuid[]) AS id ORDER BY id) accounts ' \
+        "CROSS JOIN LATERAL #{function}(hashtextextended('personal_data_erasure:' || accounts.id::text, 0))",
+        'Personal data erasure locks', ["{#{ids.uniq.join(',')}}"]
+      )
+    end
+  end
+
   private
 
   def erase_personal_data!
+    PersonalDataErasure.lock_account(id)
     erase_data_exports!
     erase_avatar!
     erase_meeting_analyses!

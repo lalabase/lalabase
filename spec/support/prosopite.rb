@@ -29,6 +29,8 @@ Prosopite.allow_stack_paths = [
   'schedule_processing',             # OutboxEvent after_create_commit → Solid Queue job enqueue
   'purge_detached_blobs',            # DestroyPost: one ActiveStorage PurgeJob per detached blob (bounded by attachments per post)
   'with_advisory_lock',              # GroupKeyBuilder: per-recipient advisory lock (intentional)
+  'lock_account_for_release',        # One transaction advisory lock per membership destruction, before DELETE. Erasure repeats this reentrant lock for each membership; it is synchronization, not a per-record data read. Keep the exception on this callback, not on merge reads or the shared lock helper.
+  'prepare_person_link_release',     # Membership before_destroy: one organisation and affected-owner lookup per removal, then normalization under each affected owner's lock using authorised per-organisation directories. Like follow_to_row below, this callback repeats for memberships.destroy_all; it must run before each DELETE to preserve the member's visibility rules.
   'reconcile_existing_post_reads',   # One notification row lock per recipient, required to serialize grouping against acknowledgements; the shared post lock is acquired once outside the recipient loop
   'schedule_delivery',               # FanoutService: per-recipient job enqueue (solid_queue_jobs lookup)
   'batch_schedule_delivery',         # FanoutService: per-recipient delivery batch

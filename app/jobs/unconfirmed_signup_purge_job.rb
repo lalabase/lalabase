@@ -246,11 +246,16 @@ class UnconfirmedSignupPurgeJob < ApplicationJob
       # between the wipe and the rename can no longer leave the email-derived name
       # behind on either the organisation or its account.
       erased_here = false
-      user.with_lock do
-        if user.confirmed_at.blank?
-          user.soft_delete_and_anonymize!
-          neutralize_pii(organisations)
-          erased_here = true
+      User.transaction do
+        # Take the erasure lock before the row lock: writers holding the shared lock
+        # may still need the users row for a foreign-key check before they commit.
+        PersonalDataErasure.lock_account(user.id)
+        user.with_lock do
+          if user.confirmed_at.blank?
+            user.soft_delete_and_anonymize!
+            neutralize_pii(organisations)
+            erased_here = true
+          end
         end
       end
       return false unless erased_here

@@ -28,15 +28,32 @@ module PersonLinkRelease
   extend ActiveSupport::Concern
 
   included do
+    before_destroy :prepare_person_link_release, prepend: true
     after_destroy :release_person_link
   end
 
   private
 
+  # Removal also updates the linked row and may mark the account for deletion review.
+  # Enter the account protocol before DELETE or any owner lock, so an erasure cannot
+  # read a row that this transaction is about to unlink (and then destroy a stale row).
+  def lock_account_for_release
+    PersonalDataErasure.lock_account(user_id, shared: true)
+  end
+
+  def prepare_person_link_release
+    lock_account_for_release
+    ActsAsTenant.with_tenant(organisation) do
+      rows = Person.where(organisation_id: organisation_id, user_id: user_id)
+      @failed_person_group_owners = PersonGroupEntry.prepare_release(organisation_id: organisation_id, user_id: user_id, rows: rows)
+    end
+  end
+
   def release_person_link
     ActsAsTenant.without_tenant do
       rows = Person.where(organisation_id: organisation_id, user_id: user_id)
-      PersonGroupEntry.follow_to_row(organisation_id: organisation_id, user_id: user_id, rows: rows)
+      PersonGroupEntry.follow_to_row(organisation_id: organisation_id, user_id: user_id, rows: rows,
+                                     failed_owners: @failed_person_group_owners || [])
       rows.update_all(user_id: nil, updated_at: Time.current)
     end
   end

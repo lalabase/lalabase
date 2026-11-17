@@ -39,6 +39,21 @@ class PersonGroupEntry < ApplicationRecord
      ([organisation_id, :account, account] if account)].compact
   end
 
+  # Normalize while membership visibility still applies. After DELETE a formerly
+  # hidden member's linked row becomes a visible contact, so resolving aliases then
+  # would use a relationship the owner was never allowed to see.
+  def self.prepare_release(organisation_id:, user_id:, rows:)
+    row_owners = where(organisation_id: organisation_id, person_id: rows.select(:id)).select(:owner_id)
+    where(organisation_id: organisation_id, user_id: user_id, owner_id: row_owners).order(:owner_id).pluck(:owner_id).filter_map do |owner_id|
+      settled = quietly do
+        PersonGroup.lock_for(owner_id)
+        settle_for_owner(owner_id)
+        true
+      end
+      owner_id unless settled
+    end
+  end
+
   # A member leaves the organisation and their row loses its link to the account
   # (PersonLinkRelease): the entries that named them by account name the row from now on,
   # for every owner. rows: the relation of that row (at most one: an account has one row
@@ -55,8 +70,8 @@ class PersonGroupEntry < ApplicationRecord
   # savepoint of its own, and a step the database refuses is undone alone (.quietly). The
   # lines it concerned then stay as they are; they name the account, which no longer leads
   # to the row, until that member comes back.
-  def self.follow_to_row(organisation_id:, user_id:, rows:)
-    by_account = where(organisation_id: organisation_id, user_id: user_id)
+  def self.follow_to_row(organisation_id:, user_id:, rows:, failed_owners: [])
+    by_account = where(organisation_id: organisation_id, user_id: user_id).where.not(owner_id: failed_owners)
     by_row = where(organisation_id: organisation_id, person_id: rows.select(:id))
     by_account.where(owner_id: by_row.select(:owner_id)).order(:owner_id).pluck(:owner_id).each do |owner_id|
       quietly { give_way(owner_id, by_account, by_row) }
@@ -70,12 +85,34 @@ class PersonGroupEntry < ApplicationRecord
   # One owner who names the leaving member twice, by account and by row. Under the lock a
   # merge or a split of that owner takes (PersonGroup.lock_for), and only then read: a
   # merge of theirs that is being written is waited for, and what it stored is seen. The
-  # owners are taken in the order of their ids, so two removals never wait for each other.
+  # owners are taken in the order of their ids to avoid reversing that lock order.
   def self.give_way(owner_id, by_account, by_row)
     PersonGroup.lock_for(owner_id)
     line = by_account.find_by(owner_id: owner_id)
     kept = by_row.find_by(owner_id: owner_id)
-    line.give_way_to(kept) if line && kept
+    # An alias the owner cannot see must not join visible people on their behalf. Its
+    # account line can still go: the row line already preserves that hidden address.
+    line.delete if line && kept
+  end
+
+  # Call only under PersonGroup.lock_for(owner_id), in the write's transaction. Merge,
+  # split and membership release must all act on the grouping the reader displayed.
+  def self.settle_for_owner(owner_id)
+    User.uncached do
+      viewer = User.find_by(id: owner_id)
+      return unless viewer
+
+      stored = owned_by(viewer).pluck(:id, :person_group_id, *KEY_COLUMNS)
+      row_organisations = stored.filter_map { |_, _, organisation_id, person_id, _| organisation_id if person_id }.to_set
+      return unless stored.any? { |_, _, organisation_id, _, user_id| user_id && row_organisations.include?(organisation_id) }
+
+      ids = stored.to_h { |id, _group, *address| [key_of(*address), id] }
+      aliases = People::AcrossOrganisations.aliases_for(viewer: viewer)
+      settled_lines(stored.map { |_, *line| line }, aliases: aliases) do |removed, destination, moved|
+        where(id: moved.map { |key| ids.fetch(key) }).update_all(person_group_id: destination, updated_at: Time.current) if moved.any?
+        where(id: ids.fetch(removed)).delete_all
+      end
+    end
   end
 
   # A step in a savepoint of its own; what the database refuses (a unique index, a row that
@@ -88,16 +125,30 @@ class PersonGroupEntry < ApplicationRecord
   end
   private_class_method :give_way, :quietly
 
-  # This line and `kept` name the same human for one owner, in two groups. The other
-  # entries of this line's group move to the group of `kept`, each unless that group holds
-  # a source of its organisation already (one source per organisation; such an entry stays
-  # where it is). Then this line goes. A group left with fewer than two entries is ignored
-  # by the read and deleted by the next merge or split of its owner.
-  def give_way_to(kept)
-    taken = self.class.where(person_group_id: kept.person_group_id).select(:organisation_id)
-    self.class.where(person_group_id: person_group_id).where.not(id: id).where.not(organisation_id: taken)
-        .update_all(person_group_id: kept.person_group_id, updated_at: Time.current)
-    delete
+  # Pure normalization shared by the read and membership release. A row wins over its
+  # account alias wherever it stands in a group. Move only sources whose organisations
+  # are free in the recipient; conflicting leftovers remain grouped in the donor.
+  # Resolve ALL visible aliases in immutable key order before releasing any one member:
+  # crossed row/account references otherwise choose a different winner by release order.
+  # Keep invisible lines as occupancy, but aliases come only from authorised directories.
+  # The optional block persists the same steps under an owner lock; reads only get copies.
+  def self.settled_lines(lines, aliases:)
+    remaining = lines.map(&:dup)
+    by_key = remaining.index_by { |line| key_of(*line.drop(1)) }
+    aliases.sort.each do |organisation_id, person_id, user_id|
+      account_key = [organisation_id, :account, user_id]
+      line = by_key[account_key]
+      kept = by_key[[organisation_id, :person, person_id]]
+      next unless line && kept
+
+      taken = remaining.select { |other| other.first == kept.first }.map { |other| other[1] }.to_set
+      moving = remaining.select { |other| other.first == line.first && !taken.include?(other[1]) }
+      yield account_key, kept.first, moving.map { |other| key_of(*other.drop(1)) } if block_given?
+      moving.each { |other| other[0] = kept.first }
+      remaining.delete(line)
+      by_key.delete(account_key)
+    end
+    remaining
   end
 
   # The columns a key is made of, for a read that plucks them instead of loading entries.

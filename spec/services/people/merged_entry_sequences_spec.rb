@@ -63,6 +63,149 @@ RSpec.describe 'A merge follows a person through the changes of a membership', :
     ['Mara Mitglied', ['Nord GmbH', 'Sued AG']]
   end
 
+  # The directory address changes from member: to person: on release, but the source
+  # row and the undo action must keep their identity.
+  def identities
+    list.rows.map { |row| [row.sources.map { |source| [source.organisation_id, source.lane] }, row.merge_id] }.sort_by(&:to_s)
+  end
+
+  def colliding_groups(recipient_contact: true)
+    Prosopite.pause { join_organisation(viewer, west, admin: true) }
+    western = person_in(west, name: 'West Kontakt')
+    row = person_in(north, name: 'Mara Mitglied')
+    other = person_in(south, name: 'Anderer Kontakt') if recipient_contact
+    first = [{ org: north.id, id: "member:#{mara.id}" }, { org: south.id, id: "person:#{south_contact.id}" },
+             { org: west.id, id: "person:#{western.id}" }]
+    expect(Actors::MergePeople.call(entries: first, current_user: viewer)).to be_success
+    recipient = create(:person_group, owner: viewer)
+    create(:person_group_entry, person_group: recipient, organisation: north, person_id: row.id)
+    create(:person_group_entry, person_group: recipient, organisation: south, person_id: other.id) if other
+    [row, western, other, recipient]
+  end
+
+  it 'merges a contact left apart by a collision with the newly selected contact, not with the other person' do
+    row, _western, other, = colliding_groups
+    ActsAsTenant.with_tenant(north) { row.update!(user: mara) }
+    fourth = create(:organisation, name: 'Vierte GmbH')
+    Prosopite.pause { join_organisation(viewer, fourth, admin: true) }
+    newcomer = person_in(fourth, name: 'Neu')
+
+    result = Actors::MergePeople.call(entries: [{ org: south.id, id: "person:#{south_contact.id}" },
+                                                { org: fourth.id, id: "person:#{newcomer.id}" }], current_user: viewer)
+
+    expect(result).to be_success
+    expect(result.resource.entries.pluck(:person_id)).to contain_exactly(south_contact.id, newcomer.id)
+    merged = list.rows.find { |person| person.sources.any? { |source| source.lane == { person_id: newcomer.id } } }
+    expect(merged.sources.map(&:lane)).to contain_exactly({ person_id: south_contact.id }, { person_id: newcomer.id })
+    expect(merged.sources.map(&:lane)).not_to include({ person_id: other.id })
+  end
+
+  it 'undoes a displayed merge whose row recipient had only one stored source' do
+    row, _western, _other, recipient = colliding_groups(recipient_contact: false)
+    ActsAsTenant.with_tenant(north) { row.update!(user: mara) }
+    expect(list.rows.find(&:merge_id).merge_id).to eq(recipient.id)
+
+    expect(Actors::SplitPerson.call(group_id: recipient.id, current_user: viewer)).to be_success
+
+    expect(list.rows.map(&:merge_id)).to all(be_nil)
+    expect(PersonGroupEntry.where(owner_id: viewer.id)).not_to exist
+  end
+
+  it 'uses visibility before membership deletion when a hidden member becomes a visible contact' do
+    row, western, _other, = colliding_groups
+    ActsAsTenant.with_tenant(north) do
+      role = create(:role, organisation: north)
+      create(:permission, role: role, category: 'people', action: 'view_people', allowed: true)
+      Membership.find_by!(user: viewer, organisation: north).update!(role: role)
+      row.update!(user: mara)
+    end
+    before = list.rows.find { |person| person.sources.any? { |source| source.lane == { person_id: western.id } } }
+    expect(before.sources.map(&:lane)).to contain_exactly({ person_id: western.id }, { person_id: south_contact.id })
+
+    remove_membership(mara, north)
+
+    after = list.rows.find { |person| person.sources.any? { |source| source.lane == { person_id: western.id } } }
+    expect(after.sources.map(&:lane)).to eq(before.sources.map(&:lane))
+    expect(after.merge_id).to eq(before.merge_id)
+  end
+
+  [Membership, Admin::Membership].each do |membership_class|
+    it "keeps the row group's contacts when #{membership_class} releases a shared source after an earlier source" do
+      earlier = create(:organisation, name: 'Aachen GmbH')
+      Prosopite.pause { join_organisation(viewer, earlier, admin: true) }
+      first = person_in(earlier, name: 'Früher Kontakt')
+      row = person_in(north, name: 'Mara Mitglied')
+      other = person_in(south, name: 'Gewählt über Zeile')
+      entries = [{ org: earlier.id, id: "person:#{first.id}" }, { org: north.id, id: "member:#{mara.id}" },
+                 { org: south.id, id: "person:#{south_contact.id}" }]
+      expect(Actors::MergePeople.call(entries: entries, current_user: viewer)).to be_success
+      second = Actors::MergePeople.call(entries: [{ org: north.id, id: "person:#{row.id}" }, { org: south.id, id: "person:#{other.id}" }],
+                                        current_user: viewer)
+      expect(second).to be_success
+      ActsAsTenant.with_tenant(north) { row.update!(user: mara) }
+      before = identities
+      merged = list.rows.find { |person| person.sources.any? { |source| source.lane == { person_id: first.id } } }
+      expect(merged.merge_id).to eq(second.resource.id)
+      expect(merged.sources.map(&:lane)).to contain_exactly({ person_id: first.id }, { person_id: row.id }, { person_id: other.id })
+
+      remove_membership(mara, north, through: membership_class)
+
+      expect(identities).to eq(before)
+    end
+  end
+
+  %i[north west].each do |first_release|
+    it "settles crossed aliases identically when the #{first_release} membership leaves first" do
+      other_member = create(:user, first_name: 'Wanda', last_name: 'West')
+      Prosopite.pause do
+        join_organisation(viewer, west, admin: true)
+        join_organisation(other_member, west)
+      end
+      northern = person_in(north, name: 'Mara Mitglied')
+      western = person_in(west, name: 'Wanda West')
+      other_contact = person_in(south, name: 'Anderer Kontakt')
+      first = [{ org: north.id, id: "person:#{northern.id}" }, { org: west.id, id: "member:#{other_member.id}" },
+               { org: south.id, id: "person:#{south_contact.id}" }]
+      second = [{ org: north.id, id: "member:#{mara.id}" }, { org: west.id, id: "person:#{western.id}" },
+                { org: south.id, id: "person:#{other_contact.id}" }]
+      Prosopite.pause do
+        [first, second].each { |entries| expect(Actors::MergePeople.call(entries: entries, current_user: viewer)).to be_success }
+      end
+      ActsAsTenant.with_tenant(north) { northern.update!(user: mara) }
+      ActsAsTenant.with_tenant(west) { western.update!(user: other_member) }
+      before = identities
+      expect(list.rows.count(&:merge_id)).to eq(1)
+
+      releases = { north: [mara, north], west: [other_member, west] }
+      Prosopite.pause do
+        [first_release, *(releases.keys - [first_release])].each do |key|
+          remove_membership(*releases.fetch(key))
+          expect(identities).to eq(before)
+        end
+      end
+    end
+  end
+
+  it 'does not move visible contacts through an alias in a directory the owner cannot read' do
+    Prosopite.pause { join_organisation(viewer, west, admin: true) }
+    western = person_in(west, name: 'West Kontakt')
+    row = person_in(north, name: 'Mara Mitglied')
+    other = person_in(south, name: 'Anderer Kontakt')
+    first = [{ org: north.id, id: "member:#{mara.id}" }, { org: south.id, id: "person:#{south_contact.id}" },
+             { org: west.id, id: "person:#{western.id}" }]
+    second = [{ org: north.id, id: "person:#{row.id}" }, { org: south.id, id: "person:#{other.id}" }]
+    expect(Actors::MergePeople.call(entries: first, current_user: viewer)).to be_success
+    expect(Actors::MergePeople.call(entries: second, current_user: viewer)).to be_success
+    ActsAsTenant.with_tenant(north) { row.update!(user: mara) }
+    take_people_right(viewer, north)
+    before = identities
+
+    remove_membership(mara, north)
+
+    expect(identities).to eq(before)
+    expect(PersonGroupEntry.where(user_id: mara.id)).not_to exist
+  end
+
   it 'stores a member without a row by the account, and shows the merge' do
     merge_member_with_contact
 

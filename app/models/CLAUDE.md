@@ -121,12 +121,26 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   check `person_group_entries_one_address`, and three unique indexes (one entry per owner
   and row, one per owner, organisation and account, one source per organisation in a group).
   Written only by `Actors::MergePeople`/`SplitPerson` under `PersonGroup.lock_for(owner)`.
+  Merge creation first takes shared transaction advisory locks for its owner and every
+  resolved account, in UUID order (`PersonalDataErasure.lock_accounts`). Erasure takes
+  the exclusive account lock before cleanup. After BOTH waits the merge uses uncached
+  reads and a fresh viewer to revalidate access and account identities. Do not substitute
+  user row locks: membership removal updates that row while holding an owner lock.
   `concerns/person_link_release.rb` rewrites the entries by account to the row BEFORE it
   drops the link (`.follow_to_row`, every owner; the one moment such an entry would lose its
   target). An owner who holds an entry for the row already keeps that one: the entry by
-  account gives way (`#give_way_to`), and what it was merged with moves to the group of the
+  account gives way (`.settled_lines`), and what it was merged with moves to the group of the
   row first, unless that group has a source of the same organisation. ⚠️ A line that goes
   must never take the rest of its group out of a person without a word (review round 1).
+  The reader settles copied raw lines by the same rule before its visibility cutoff.
+  Merge and split persist that same grouping under the owner lock before editing it;
+  otherwise adding to a displayed leftover attaches the new source to the wrong person,
+  and undoing a virtual recipient can leave the donor's merge intact.
+  Release normalizes ALL aliases visible to that owner BEFORE the membership DELETE,
+  in immutable address order, so
+  crossed aliases choose the same contacts whichever member leaves first. Invisible lines
+  still occupy an organisation; invisible aliases never join visible people. A duplicate
+  invisible account line is removed without moving the rest of its group.
   ⚠️ That callback runs inside the removal of a membership, also in an account erasure, and
   must never raise for a note: it moves entries only under `PersonGroup.lock_for(owner)`,
   taken BEFORE it reads (a merge of that owner being written is waited for), and every step
@@ -135,6 +149,13 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   merge committed (review round 2, `person_link_release_concurrency_spec.rb`). `PersonalDataErasure#erase_person_groups!` deletes the groups an
   account owns and every entry that names it. A group left with fewer than two entries is
   ignored by the read and deleted by the next merge or split of its owner; no job.
+  Membership destruction takes the shared account lock and resolves visible aliases in
+  a prepended `before_destroy`, before deleting. Resolving after DELETE would expose a
+  previously hidden member's link as the row becomes an ordinary contact. The account
+  lock precedes owner locks and also prevents erasure from destroying a
+  stale linked row while removal unlinks it. Signup purge takes the exclusive account
+  lock before its existing confirmation row lock; takeover holds the owner's shared lock
+  in its outer transaction, including when its nested merge savepoint rolls back.
 * **Glossar** (K4a, 04.11.2026): `glossary_term` (ein Begriff je Organisation, nicht je Projekt;
   eindeutig nach `normalized_term`, Status `proposed`/`confirmed`/`rejected`), `term_correction`
   (eine gehörte Form je Korrektur: Sprecher als Person ODER Mitglied, Check

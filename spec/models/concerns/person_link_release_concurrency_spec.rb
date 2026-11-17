@@ -48,14 +48,13 @@ RSpec.describe PersonLinkRelease, :ci_guard do
     join_organisation(mara, north)
     row = person_in(north, user: mara, name: 'Mara Mitglied')
     east_one = person_in(east, name: 'Ost Eins')
-    east_two = person_in(east, name: 'Ost Zwei')
     western = person_in(west, name: 'Wanda West')
     by_account = group_of([north, { user_id: mara.id }], [east, { person_id: east_one.id }])
     by_row = group_of([north, { person_id: row.id }], [west, { person_id: western.id }])
 
-    # The merge of the owner: the western row with the second eastern one. It gives the
-    # group of the row a source of east, and waits before its transaction ends.
-    merge = Actors::MergePeople.new(entries: [{ org: west.id, id: "person:#{western.id}" }, { org: east.id, id: "person:#{east_two.id}" }],
+    # The merge persists the grouping already displayed: the account group's eastern
+    # source moves into the row group. The removal must wait for that uncommitted move.
+    merge = Actors::MergePeople.new(entries: [{ org: west.id, id: "person:#{western.id}" }, { org: east.id, id: "person:#{east_one.id}" }],
                                     current_user: User.find(owner.id))
     ready = Queue.new
     release = Queue.new
@@ -80,10 +79,8 @@ RSpec.describe PersonLinkRelease, :ci_guard do
 
     expect(Membership.where(user_id: mara.id, organisation_id: north.id)).not_to exist
     expect(ActsAsTenant.with_tenant(north) { Person.find(row.id).user_id }).to be_nil
-    # The group of the row took the merge's eastern row first; the other eastern row had no
-    # room there and stays where it was. No line names the account any more.
-    expect(entries_of(by_row)).to contain_exactly([north.id, row.id, nil], [west.id, western.id, nil], [east.id, east_two.id, nil])
-    expect(entries_of(by_account)).to eq([[east.id, east_one.id, nil]])
+    expect(entries_of(by_row)).to contain_exactly([north.id, row.id, nil], [west.id, western.id, nil], [east.id, east_one.id, nil])
+    expect(entries_of(by_account)).to be_empty
     expect(PersonGroupEntry.where(user_id: mara.id)).not_to exist
   ensure
     release << true if release

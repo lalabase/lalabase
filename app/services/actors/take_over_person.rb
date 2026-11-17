@@ -100,10 +100,18 @@ module Actors
     end
 
     def perform
-      source = read_source
-      refuse unless @target && source
+      # This belongs to the OUTER transaction: a refused merge rolls its savepoint
+      # back but keeps the copy. Erasure must wait for that copy's transaction too.
+      PersonalDataErasure.lock_account(current_user.id, shared: true)
+      User.uncached do
+        @current_user = User.find_by(id: current_user.id)
+        refuse unless current_user
+        @target = target_organisation
+        source = read_source
+        refuse unless @target && source
 
-      ActsAsTenant.with_tenant(@target) { write_copy(@target, source) }
+        ActsAsTenant.with_tenant(@target) { write_copy(@target, source) }
+      end
     end
 
     private
@@ -185,7 +193,7 @@ module Actors
       ActiveRecord::Base.transaction(requires_new: true) do
         merged = Actors::MergePeople.call(
           entries: [{ org: @source_organisation.id, id: "person:#{@person_id}" }, { org: target.id, id: "person:#{@copy.id}" }],
-          current_user: current_user
+          current_user: current_user, account_lock_ids: [current_user.id]
         ).success?
         raise ActiveRecord::Rollback unless merged
       end

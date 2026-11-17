@@ -146,10 +146,11 @@ RSpec.describe Actors::MergePeople, :ci_guard do
     it 'finds the line of a member stored by the account again once that member has a row' do
       merge(member(south, shared), row(west_row))
       person_in(south, user: shared, name: 'Mara Mitglied')
+      Prosopite.pause { join_organisation(viewer, east, rights: ['view_people']) }
 
-      expect { merge(member(south, shared), row(north_row)) }.to change(PersonGroupEntry, :count).by(1)
+      expect { merge(member(south, shared), row(east_row)) }.to change(PersonGroupEntry, :count).by(1)
       expect(PersonGroup.count).to eq(1)
-      expect(stored).to include([south.id, nil, shared.id], [north.id, north_row.id, nil])
+      expect(stored).to include([south.id, nil, shared.id], [east.id, east_row.id, nil])
     end
   end
 
@@ -263,6 +264,50 @@ RSpec.describe Actors::MergePeople, :ci_guard do
       expect(result.code).to eq(:same_organisation)
       expect(PersonGroup.count).to eq(2)
     end
+
+    it 'refuses an implicit membership of an account that overlaps a chosen contact' do
+      Prosopite.pause { [north, south].each { |organisation| join_organisation(shared, organisation) } }
+      result = nil
+
+      expect { result = merge(row(north_row), member(south, shared)) }.not_to nothing_written
+
+      expect(result.code).to eq(:same_organisation)
+      expect(merge(row(west_row), member(south, shared))).to be_success
+    end
+
+    it 'checks the implicit memberships of accounts already stored in a group' do
+      Prosopite.pause { join_organisation(shared, south) }
+      expect(merge(member(south, shared), row(west_row))).to be_success
+      Prosopite.pause { join_organisation(shared, north) }
+      result = nil
+
+      expect { result = merge(row(west_row), row(north_row)) }.not_to nothing_written
+
+      expect(result.code).to eq(:same_organisation)
+    end
+
+    it 'does not treat a deactivated membership as an implicit source' do
+      Prosopite.pause do
+        join_organisation(shared, north, active: false)
+        join_organisation(shared, south)
+      end
+
+      expect(merge(row(north_row), member(south, shared))).to be_success
+    end
+
+    it 'does not infer an implicit source from a member the viewer cannot see' do
+      Prosopite.pause do
+        [north, south].each { |organisation| join_organisation(shared, organisation) }
+        ActsAsTenant.with_tenant(north) do
+          membership = Membership.find_by!(user: viewer, organisation: north)
+          role = create(:role, organisation: north)
+          create(:permission, role: role, category: 'people', action: 'view_people', allowed: true)
+          membership.update!(role: role)
+        end
+      end
+
+      expect(merge(row(north_row), member(south, shared))).to be_success
+    end
   end
 
   describe 'entries that are in a group already' do
@@ -343,7 +388,7 @@ RSpec.describe Actors::MergePeople, :ci_guard do
                                         [west.id, west_row.id, nil], [east.id, east_row.id, nil])
     end
 
-    it 'refuses instead of losing an entry when the two groups cannot be one' do
+    it 'adds to the displayed row group without rejoining the conflicting contact shown separately' do
       Prosopite.pause { join_organisation(shared, north) }
       row_of_member = person_in(north, name: 'Mara Mitglied')
       other_south = person_in(south, name: 'Noch jemand')
@@ -351,11 +396,13 @@ RSpec.describe Actors::MergePeople, :ci_guard do
       expect(merge(member(north, shared), row(south_row))).to be_success
       expect(merge(row(row_of_member), row(other_south))).to be_success
       ActsAsTenant.with_tenant(north) { row_of_member.update!(user: shared) }
-      result = nil
+      result = merge(row(row_of_member), row(east_row))
 
-      expect { result = merge(row(row_of_member), row(east_row)) }.not_to nothing_written
-      expect(result.code).to eq(:same_organisation)
-      expect(stored.size).to eq(4)
+      expect(result).to be_success
+      expect(result.resource.entries.pluck(:person_id)).to contain_exactly(row_of_member.id, other_south.id, east_row.id)
+      listed = People::AcrossOrganisations.call(viewer: User.find(viewer.id))
+      separate = listed.rows.find { |person| person.sources.any? { |source| source.lane == { person_id: south_row.id } } }
+      expect(separate.sources.size).to eq(1)
     end
   end
 

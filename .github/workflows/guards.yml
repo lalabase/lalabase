@@ -459,6 +459,7 @@ jobs:
           spec/models/person_group_spec.rb
           spec/models/person_group_entry_spec.rb
           spec/services/actors/merge_people_spec.rb
+          spec/services/actors/merge_people_erasure_concurrency_spec.rb
           spec/services/actors/split_person_spec.rb
           spec/models/concerns/person_link_release_spec.rb
           spec/models/concerns/person_link_release_concurrency_spec.rb

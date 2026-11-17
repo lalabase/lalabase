@@ -371,16 +371,24 @@ Verzeichnis-Übersicht (Auswahl):
   nothing is written while reading. The account rule is never undone, and an entry joins a
   person only while that person has no source of its organisation yet; such a collision is
   decided in the order of the list (the organisations' names), never in the order the
-  entries are stored in (random ids): the merges go by their first source, a merge that
-  names a shared entry by its row before one that names it by the account, then by the rest
-  of their sources (`#in_list_order`, a total order). `Row#merge_id` is
+  entries are stored in (random ids): first settle row/account aliases through
+  `PersonGroupEntry.settled_lines`, before discarding groups with fewer than two visible
+  sources. The row group takes sources from the account group only for unoccupied
+  organisations; blocked leftovers stay grouped. Merge and split persist the same grouping
+  before editing it. Release uses the same normalization BEFORE deleting the membership,
+  including shared sources beyond the first position and crossed aliases. Remaining
+  merges go by their first source, then the rest (`#in_list_order`, a total order). `Row#merge_id` is
   set only when a merge joined people the account rule had not.
   `Actors::MergePeople.call(entries: [{ org:, id: }], current_user:)` takes an organisation
   from `active_organisations` only and reads every entry again through `Lookup#entry` inside
   `with_tenant`; an unknown, foreign, invisible or malformed entry and a missing
   organisation are ONE refusal (`:not_found`). Two entries of one organisation are refused
   on the ids as sent (`:same_organisation`, before anything is read), and so is a join that
-  would give a group two rows of one organisation. An entry one owner names twice (by the
+  would give a group two rows of one organisation, including the extra visible sources
+  that an active account brings along. Resolve stored notes through authorised directory
+  entries too; never infer hidden memberships from a raw cross-organisation query.
+  Account locks precede the owner lock; fresh authorization and account resolution happen
+  after both waits (`PersonalDataErasure`, model card). An entry one owner names twice (by the
   row and by the account, after a row was linked to a member) keeps the line by the row;
   the groups of BOTH lines are part of the merge. Groups are joined into the oldest;
   `RecordNotUnique` and `InvalidForeignKey` are `:conflict`, never an exception. The entries
@@ -389,7 +397,9 @@ Verzeichnis-Übersicht (Auswahl):
   another person's and a missing one answer alike. Both take `PersonGroup.lock_for(owner)`.
   `Actors::TakeOverPerson` writes the merge of source and copy in a savepoint of its own
   transaction; a merge that cannot be written leaves the copy (`Result#code`
-  `:not_merged`). `PersonTakeoversController` offers "merge instead" with `merge_with`
+  `:not_merged`). Its owner account lock belongs to the outer transaction and the nested
+  merge cannot expand that lock set after the copy was written (`account_lock_ids`).
+  `PersonTakeoversController` offers "merge instead" with `merge_with`
   under the duplicate question and calls `MergePeople` itself. ⚠️ Those offers are submit
   buttons of the dialog's form and stand above its main button: the form opens with a
   hidden default button, or Enter in a field would merge (the first submit button in the

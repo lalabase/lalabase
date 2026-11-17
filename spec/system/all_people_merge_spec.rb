@@ -176,4 +176,61 @@ RSpec.describe 'Merging people above the organisations', type: :system, inbox_e2
     rows_named('Kai Kontakt').sole.find('input[type="checkbox"]').uncheck
     expect(page).to have_css(bar, visible: :hidden)
   end
+
+  it 'keeps the selection controls when the search has no results' do
+    open_list
+    tick('Kai Kontakt')
+    tick('Kai Kontakt (Sued)')
+    wait_for_stimulus('[data-all-people] [data-fb-search]', 'search-disclosure')
+    find('[data-all-people] button[data-fb-search-open-button]').click
+    find('#all-people-search').send_keys('NobodyMatchesThisSearch')
+
+    expect(page).to have_css('[data-all-people-empty="no-hits"]')
+    expect(page).to have_no_css('tr[data-all-people-row]')
+    expect(find("#{bar} [data-all-people-merge-target='count']")).to have_text('2', exact: true)
+    expect(page).to have_button(merge_button, disabled: false)
+
+    click_button I18n.t('views.all_people.merge.clear')
+
+    expect(page).to have_css(bar, visible: :hidden)
+    expect(PersonGroup.count).to eq(0)
+  end
+
+  it 'retries a failed request with only the new selection after clearing the old one' do
+    west = create(:organisation, name: 'West KG')
+    east = create(:organisation, name: 'Ost eG')
+    [west, east].each { |organisation| join_organisation(user, organisation, admin: true) }
+    retry_west = person_in(west, name: 'Retry West')
+    retry_east = person_in(east, name: 'Retry Ost')
+    visit all_people_path
+    wait_for_stimulus('[data-all-people]', 'all-people-merge')
+    tick('Kai Kontakt')
+    tick('Kai Kontakt (Sued)')
+    wait_for_stimulus('[data-all-people] [data-fb-search]', 'search-disclosure')
+    find('[data-all-people] button[data-fb-search-open-button]').click
+    find('#all-people-search').send_keys('Retry')
+    expect(page).to have_css('tr[data-all-people-row]', count: 2)
+
+    # A network failure leaves the form in place, including the off-screen rows carry()
+    # added. Retrying that same form must not submit people the user has since discarded.
+    page.driver.browser.execute_cdp('Network.enable')
+    page.driver.browser.execute_cdp('Network.setBlockedURLs', urls: ['*people/merges*'])
+    click_button merge_button
+    expect(page).to have_button(merge_button, disabled: false)
+    expect(page).to have_css("#{bar} input[type='hidden'][name='rows[]']", count: 2, visible: :all)
+    expect(PersonGroup.count).to eq(0)
+    page.driver.browser.execute_cdp('Network.setBlockedURLs', urls: [])
+
+    click_button I18n.t('views.all_people.merge.clear')
+    tick('Retry West')
+    tick('Retry Ost')
+    expect(find("#{bar} [data-all-people-merge-target='count']")).to have_text('2', exact: true)
+    click_button merge_button
+
+    expect(page).to have_text(I18n.t('controllers.people.merge.success'))
+    expect(PersonGroup.count).to eq(1)
+    expect(PersonGroupEntry.pluck(:person_id)).to contain_exactly(retry_west.id, retry_east.id)
+  ensure
+    page.driver.browser.execute_cdp('Network.setBlockedURLs', urls: [])
+  end
 end

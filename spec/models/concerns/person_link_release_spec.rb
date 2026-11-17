@@ -125,6 +125,20 @@ RSpec.describe PersonLinkRelease, type: :model do
         expect(address(theirs)).to eq([row.id, nil])
       end
 
+      it 'does not delete the donor after its normalization alone was rolled back' do
+        allow(PersonGroupEntry).to receive(:settle_for_owner).and_wrap_original do |settle, id|
+          settle.call(id)
+          PersonGroupEntry.insert_all!([by_row.attributes.except('id')])
+        end
+
+        expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
+
+        expect(address(entry)).to eq([nil, user.id])
+        expect(address(by_row)).to eq([row.id, nil])
+        expect(address(theirs)).to eq([row.id, nil])
+        expect(row.reload.user_id).to be_nil
+      end
+
       # A split of that owner that ended while the removal waited for the lock: the group of
       # the row is gone, so the entry by account simply follows the row like any other.
       it 'rewrites the entry by account when the line by row went while it waited for the lock' do

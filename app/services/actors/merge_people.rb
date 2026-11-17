@@ -51,10 +51,11 @@ module Actors
     Chosen = Struct.new(:organisation_id, :address, :account, :keys)
     private_constant :Chosen
 
-    def initialize(entries:, current_user:)
+    def initialize(entries:, current_user:, account_lock_ids: nil)
       super()
       @entries = wanted(entries)
       @current_user = current_user
+      @account_lock_ids = account_lock_ids
     end
 
     # The group the entries are in afterwards; nil when nothing had to be stored.
@@ -66,8 +67,19 @@ module Actors
       refuse(TOO_FEW, 'too_few') if @entries.size < 2
       refuse(SAME_ORGANISATION, 'same_organisation') if repeated?(@entries.filter_map(&:first))
 
+      chosen = read_entries
+      locked_accounts = lock_accounts(chosen)
       PersonGroup.lock_for(current_user)
-      join(read_entries)
+      # Either wait may have changed access or the account a row resolves to. Use fresh
+      # queries AND a fresh viewer (policies cache memberships on that instance).
+      User.uncached do
+        refuse(CONFLICT, 'conflict') unless User.where(id: locked_accounts).count == locked_accounts.size
+        @current_user = User.find(current_user.id)
+        chosen = read_entries
+        refuse(CONFLICT, 'conflict') unless (accounts_of(chosen) - locked_accounts).empty?
+        PersonGroupEntry.settle_for_owner(current_user.id)
+        join(chosen)
+      end
       sweep
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey
       refuse(CONFLICT, 'conflict')
@@ -76,6 +88,23 @@ module Actors
     private
 
     attr_reader :current_user
+
+    # Shared locks allow concurrent merges; erasure takes their exclusive counterpart
+    # before any cleanup (PersonalDataErasure). Take every account lock BEFORE
+    # the owner advisory lock: erasure also removes memberships whose callbacks need
+    # owner locks. Reversing those two levels would deadlock.
+    def lock_accounts(chosen)
+      ids = accounts_of(chosen)
+      # A takeover already wrote its copy under the owner's lock. It may not expand
+      # its lock set here if the source acquired an account in the meantime.
+      refuse(CONFLICT, 'conflict') if @account_lock_ids && (ids - @account_lock_ids).any?
+      PersonalDataErasure.lock_accounts(ids, shared: true)
+      ids
+    end
+
+    def accounts_of(chosen)
+      ([current_user.id] + chosen.flat_map { |entry| entry.keys.filter_map { |_, kind, id| id if kind == :account } }).uniq.sort
+    end
 
     # Pairs of [organisation id, address], each once. Anything of another shape stays in
     # the list as a pair that names nothing, so it is refused like an unknown entry
@@ -112,8 +141,7 @@ module Actors
       entry = People::Lookup.new(viewer: current_user, organisation: organisation).entry(id)
       refuse_unknown unless entry
 
-      Chosen.new(organisation.id, PersonGroupEntry.address_of(entry), (entry.user.id if entry.member?),
-                 PersonGroupEntry.keys_for(organisation.id, entry))
+      chosen_entry(organisation, entry)
     rescue People::Lookup::Refused, People::Lookup::InvalidArgument
       refuse_unknown
     end
@@ -122,6 +150,11 @@ module Actors
     # organisation in the Prosopite stack, bounded by the viewer's organisations.
     def in_people_organisation(organisation, &)
       ActsAsTenant.with_tenant(organisation, &)
+    end
+
+    def chosen_entry(organisation, entry)
+      Chosen.new(organisation.id, PersonGroupEntry.address_of(entry), (entry.user.id if entry.member?),
+                 PersonGroupEntry.keys_for(organisation.id, entry))
     end
 
     def join(chosen)
@@ -176,8 +209,34 @@ module Actors
     # also those the viewer cannot see just now (they are the viewer's own notes), and
     # the entries added.
     def one_source_per_organisation!(groups, added)
-      stored = PersonGroupEntry.where(person_group_id: groups.map(&:id)).pluck(:organisation_id)
-      refuse(SAME_ORGANISATION, 'same_organisation') if repeated?(stored + added.map(&:organisation_id))
+      stored = PersonGroupEntry.where(person_group_id: groups.map(&:id)).pluck(*PersonGroupEntry::KEY_COLUMNS)
+      refuse_overlap! if repeated?(stored.map(&:first) + added.map(&:organisation_id))
+
+      # A member brings every visible membership of their account into the displayed
+      # person, even when the dialog submitted only one of them. Resolve the stored
+      # notes through the same directories too: a linked row may now name a member.
+      sources = stored.map { |values| PersonGroupEntry.key_of(*values) } + added.map { |entry| entry.keys.first }
+      visible = visible_entries
+      by_key = visible.flat_map { |entry| entry.keys.map { |key| [key, entry] } }.to_h
+      accounts = sources.filter_map { |key| by_key[key]&.account }.to_set
+      expanded = visible.select { |entry| entry.account && accounts.include?(entry.account) }.map { |entry| entry.keys.first }
+      canonical = sources.map { |key| by_key[key]&.keys&.first || key }
+      refuse_overlap! if repeated?((canonical + expanded).uniq.map(&:first))
+    end
+
+    # Only sources the viewer can actually read contribute account-derived entries;
+    # a raw query across memberships would expose hidden members through a refusal.
+    def visible_entries
+      current_user.active_organisations.by_name.flat_map do |organisation|
+        in_people_organisation(organisation) do
+          lookup = People::Lookup.new(viewer: current_user, organisation: organisation)
+          lookup.allowed? ? lookup.listing.entries.map { |entry| chosen_entry(organisation, entry) } : []
+        end
+      end
+    end
+
+    def refuse_overlap!
+      refuse(SAME_ORGANISATION, 'same_organisation')
     end
 
     def absorb(groups)

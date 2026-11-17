@@ -103,59 +103,22 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   schickt immer `person[additional_details][sent]` mit (`FORM_MARKER`): ohne ihn ließe das
   Entfernen der letzten Angabe die Liste stehen. Fehlt der Key ganz, bleibt die Liste
   unberührt. Check-Constraint `people_additional_details_shape` hält Liste und Grenze.
-  Merges above the organisations (2026-11-17, `GET /people`): `person_group` (owner, nothing
-  else) and `person_group_entry` are ONE person's private note that rows of different
-  organisations are the same human. ⚠️ Neither carries a tenant, a field of a person or
-  tracking, and an organisation must never learn of a merge: only the eight files listed in
+  Merges above the organisations (2026-11-17, `GET /people`): `person_group` and
+  `person_group_entry` are ONE person's private note that rows of different organisations
+  are the same human. ⚠️ No tenant, no field of a person, no tracking, and an organisation
+  must never learn of a merge: only the files listed in
   `spec/architecture/people_above_organisations_guard_spec.rb` (second group) name the two
-  models or their tables. No tool of the assistant, no API, no page of an organisation, no
-  admin page and no search reads them; a new reader is red there until it is decided.
-  ⚠️ `PersonGroupEntry` has NO `belongs_to :person` (Person is tenanted and raises outside
-  a tenant). An entry is held by id against the entries of an organisation's directory:
-  `.keys_for(organisation_id, entry)` and `#key` are the one matching rule (a row by its id;
-  an account by `entry.user&.id || entry.person&.user_id`, which also finds the row of a
-  deactivated member). Exactly one address, and the row wins: `.address_of(entry)` stores
-  `person_id` whenever there is a row, `user_id` only for a member without one. The database
-  holds the rest: composite foreign keys (the owner of an entry is its group's, its
-  organisation is its row's; a deleted row, organisation or group takes the entry along), the
-  check `person_group_entries_one_address`, and three unique indexes (one entry per owner
-  and row, one per owner, organisation and account, one source per organisation in a group).
-  Written only by `Actors::MergePeople`/`SplitPerson` under `PersonGroup.lock_for(owner)`.
-  Merge creation first takes shared transaction advisory locks for its owner and every
-  resolved account, in UUID order (`PersonalDataErasure.lock_accounts`). Erasure takes
-  the exclusive account lock before cleanup. After BOTH waits the merge uses uncached
-  reads and a fresh viewer to revalidate access and account identities. Do not substitute
-  user row locks: membership removal updates that row while holding an owner lock.
-  `concerns/person_link_release.rb` rewrites the entries by account to the row BEFORE it
-  drops the link (`.follow_to_row`, every owner; the one moment such an entry would lose its
-  target). An owner who holds an entry for the row already keeps that one: the entry by
-  account gives way (`.settled_lines`), and what it was merged with moves to the group of the
-  row first, unless that group has a source of the same organisation. ⚠️ A line that goes
-  must never take the rest of its group out of a person without a word (review round 1).
-  The reader settles copied raw lines by the same rule before its visibility cutoff.
-  Merge and split persist that same grouping under the owner lock before editing it;
-  otherwise adding to a displayed leftover attaches the new source to the wrong person,
-  and undoing a virtual recipient can leave the donor's merge intact.
-  Release normalizes ALL aliases visible to that owner BEFORE the membership DELETE,
-  in immutable address order, so
-  crossed aliases choose the same contacts whichever member leaves first. Invisible lines
-  still occupy an organisation; invisible aliases never join visible people. A duplicate
-  invisible account line is removed without moving the rest of its group.
-  ⚠️ That callback runs inside the removal of a membership, also in an account erasure, and
-  must never raise for a note: it moves entries only under `PersonGroup.lock_for(owner)`,
-  taken BEFORE it reads (a merge of that owner being written is waited for), and every step
-  stands in a savepoint whose refusal by the database is undone alone (`.quietly`; the lines
-  then stay as they are). Without the lock the move ran into the unique index once the
-  merge committed (review round 2, `person_link_release_concurrency_spec.rb`). `PersonalDataErasure#erase_person_groups!` deletes the groups an
-  account owns and every entry that names it. A group left with fewer than two entries is
-  ignored by the read and deleted by the next merge or split of its owner; no job.
-  Membership destruction takes the shared account lock and resolves visible aliases in
-  a prepended `before_destroy`, before deleting. Resolving after DELETE would expose a
-  previously hidden member's link as the row becomes an ordinary contact. The account
-  lock precedes owner locks and also prevents erasure from destroying a
-  stale linked row while removal unlinks it. Signup purge takes the exclusive account
-  lock before its existing confirmation row lock; takeover holds the owner's shared lock
-  in its outer transaction, including when its nested merge savepoint rolls back.
+  models or their tables; a new reader is red there until it is decided.
+  ⚠️ `PersonGroupEntry` has NO `belongs_to :person` (Person is tenanted and raises outside a
+  tenant): an entry is held by id against a directory (`.keys_for`, `#key`), with one
+  address, and the row wins (`.address_of`). The table's constraints are the rule.
+  Written by `Actors::MergePeople`, `Actors::SplitPerson` and the release of a membership
+  (`concerns/person_link_release.rb`: `.prepare_release`, `.follow_to_row`), each under
+  `PersonGroup.lock_for(owner)`. ⚠️ Account locks (`PersonalDataErasure.lock_accounts`)
+  come before the owner lock, and never a row lock on users. ⚠️ The release runs inside
+  the removal of a membership and an account erasure and never raises for a note
+  (`.quietly`). The rules and their reasons stand in the headers of `person_group_entry.rb`,
+  `person_link_release.rb` and `personal_data_erasure.rb`, not here.
 * **Glossar** (K4a, 04.11.2026): `glossary_term` (ein Begriff je Organisation, nicht je Projekt;
   eindeutig nach `normalized_term`, Status `proposed`/`confirmed`/`rejected`), `term_correction`
   (eine gehörte Form je Korrektur: Sprecher als Person ODER Mitglied, Check

@@ -242,6 +242,46 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
       post all_people_merges_path
       expect(flash[:alert]).to eq(I18n.t('controllers.people.merge.too_few'))
     end
+
+    # A row that stands for several organisations sends several sources. Until 2026-11-17
+    # the sources were counted, not the rows: ONE ticked row of a member of two
+    # organisations (or of an earlier merge) passed, nothing was written, and the answer
+    # said "merged". Without the script nothing stops the button under two rows.
+    it 'refuses one row that stands for two organisations, as it refuses any single row' do
+      value = row_of(page, 'Vera Viewer').at_css('input[name="rows[]"]')['value']
+      expect(value.split(',').size).to eq(2)
+
+      expect { merge(value) }.not_to(change { stored })
+
+      expect(flash[:notice]).to be_nil
+      expect(flash[:alert]).to eq(I18n.t('controllers.people.merge.too_few'))
+    end
+
+    it 'refuses the one row of an earlier merge the same way, and keeps the merge' do
+      merge(source(people[:north]), source(people[:south]))
+      value = row_of(page, 'Kai Kontakt').at_css('input[name="rows[]"]')['value']
+      expect(value.split(',').size).to eq(2)
+
+      expect { merge(value) }.not_to(change { stored })
+
+      expect(flash[:notice]).to be_nil
+      expect(flash[:alert]).to eq(I18n.t('controllers.people.merge.too_few'))
+    end
+
+    it 'takes a row of two organisations together with a second row' do
+      western = Prosopite.pause do
+        mara = create(:user, first_name: 'Mara', last_name: 'Mitglied')
+        [north, south].each { |organisation| join_organisation(mara, organisation) }
+        west = create(:organisation, name: 'West KG')
+        join_organisation(user, west, admin: true)
+        person_in(west, name: 'Wanda West')
+      end
+      value = row_of(page, 'Mara Mitglied').at_css('input[name="rows[]"]')['value']
+      expect(value.split(',').size).to eq(2)
+
+      expect { merge(value, source(western)) }.to change { stored }.to([1, 3])
+      expect(flash[:notice]).to eq(I18n.t('controllers.people.merge.success'))
+    end
   end
 
   # Outside production an actor raises what it did not expect. In production it answers

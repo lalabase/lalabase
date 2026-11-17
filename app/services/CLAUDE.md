@@ -371,7 +371,9 @@ Verzeichnis-Übersicht (Auswahl):
   asked of the read itself (`AcrossOrganisations#part`, `#person_with`, `#names?`,
   `#merges_shown_with`), never on the stored lines alone: a line the list does not show
   must not refuse a merge, and undo takes apart every group that joins the row. One
-  refusal for everything the caller cannot name (`:not_found`). `Actors::TakeOverPerson`
+  refusal for everything the caller cannot name (`:not_found`). ⚠️ `entries` are the ROWS:
+  a row of several organisations is a list of sources, and fewer than two rows are refused
+  however many sources they hold (the controller keeps the rows apart). `Actors::TakeOverPerson`
   writes the merge of source and copy in a savepoint (`:not_merged` leaves the copy);
   `PersonTakeoversController` offers "merge instead" under the duplicate question.
   ⚠️ Those offers are submit buttons above the main button: the form opens with a default

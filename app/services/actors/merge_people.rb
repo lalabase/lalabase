@@ -8,9 +8,12 @@
 # PersonGroupEntry). Nothing in an organisation changes, nothing is tracked, and no
 # organisation learns of it.
 #
-# entries: a list of { org:, id: }, the organisation's id and the address of the entry in
-# its directory ("person:<uuid>" or "member:<uuid>", People::Lookup). Nothing of it is
-# trusted:
+# entries: the rows to join. A row is a source { org:, id: }, the organisation's id and the
+# address of the entry in its directory ("person:<uuid>" or "member:<uuid>",
+# People::Lookup), or a list of sources: a row of the list that stands for several
+# organisations already (one account, an earlier merge) is sent with all of them. Fewer
+# than two ROWS are refused, however many sources one row has: a single row joins
+# nothing. Nothing of it is trusted:
 #
 # * an organisation comes from the viewer's ACTIVE memberships, never from the id as sent;
 # * every entry is read again inside ActsAsTenant.with_tenant(organisation), through
@@ -63,7 +66,8 @@ module Actors
 
     def initialize(entries:, current_user:, account_lock_ids: nil)
       super()
-      @entries = wanted(entries)
+      @rows = wanted(entries)
+      @entries = @rows.flatten(1).uniq
       @current_user = current_user
       @account_lock_ids = account_lock_ids
     end
@@ -74,7 +78,7 @@ module Actors
     end
 
     def perform
-      refuse(TOO_FEW, 'too_few') if @entries.size < 2
+      refuse(TOO_FEW, 'too_few') if @rows.size < 2
       refuse(SAME_ORGANISATION, 'same_organisation') if repeated?(@entries.filter_map(&:first))
 
       locked_accounts = lock_accounts(accounts_named)
@@ -117,13 +121,14 @@ module Actors
       ([current_user.id] + named.compact).uniq.sort
     end
 
-    # Pairs of [organisation id, address], each once. Anything of another shape stays in
-    # the list as a pair that names nothing, so it is refused like an unknown entry
-    # instead of being dropped without a word.
+    # The rows as sent, each once: a row is its pairs of [organisation id, address]. A
+    # source of another shape stays in its row as a pair that names nothing, so it is
+    # refused like an unknown entry instead of being dropped without a word. A row
+    # without any source is no row.
     def wanted(entries)
       return [] unless entries.is_a?(Array)
 
-      entries.map { |entry| pair(entry) }.uniq
+      entries.map { |row| (row.is_a?(Array) ? row : [row]).map { |source| pair(source) }.uniq }.reject(&:empty?).uniq
     end
 
     def pair(entry)

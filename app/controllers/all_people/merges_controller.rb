@@ -50,16 +50,19 @@ module AllPeople
       true
     end
 
-    # { org:, id: } per source of every ticked row. Only a list of texts counts; what
-    # cannot be read as a source stays in the list and is refused by the actor like an
-    # unknown entry.
+    # The ticked rows, each a list of { org:, id: }, one per source. The rows stay apart:
+    # the actor refuses fewer than two ROWS, and one row of a person in two organisations
+    # has two sources. Only a list of texts counts; what cannot be read as a source stays
+    # in its row and is refused by the actor like an unknown entry.
     def entries
       rows = params[:rows]
       return [] unless rows.is_a?(Array)
 
-      rows.grep(String).flat_map { |row| row.split(SOURCE_SEPARATOR) }.map do |source|
-        organisation_id, id = source.split(PART_SEPARATOR, 2)
-        { org: organisation_id, id: id }
+      rows.grep(String).map do |row|
+        row.split(SOURCE_SEPARATOR).map do |source|
+          organisation_id, id = source.split(PART_SEPARATOR, 2)
+          { org: organisation_id, id: id }
+        end
       end
     end
 

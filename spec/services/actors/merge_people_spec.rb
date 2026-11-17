@@ -224,6 +224,35 @@ RSpec.describe Actors::MergePeople, :ci_guard do
       end
       expect(PersonGroup.count).to eq(0)
     end
+
+    # The list sends a row with all its sources (AllPeople::MergesController): a member of
+    # two organisations, or an earlier merge, is ONE row with two of them. What counts is
+    # the rows. Until 2026-11-17 the sources were counted, and one such row was a success
+    # that wrote nothing.
+    it 'refuses one row of several sources, and the same row twice' do
+      Prosopite.pause do
+        join_organisation(shared, north)
+        join_organisation(shared, south)
+      end
+      one_row = [member(north, shared), member(south, shared)]
+
+      [[one_row], [one_row, one_row], [one_row, []]].each do |entries|
+        result = Prosopite.pause { described_class.call(entries: entries, current_user: viewer) }
+
+        expect([result.code, result.errors]).to eq([:too_few, [I18n.t('controllers.people.merge.too_few')]]), entries.inspect
+      end
+      expect(PersonGroup.count).to eq(0)
+    end
+
+    it 'merges a row of several sources with a second row' do
+      Prosopite.pause do
+        join_organisation(shared, north)
+        join_organisation(shared, south)
+      end
+
+      expect(described_class.call(entries: [[member(north, shared), member(south, shared)], row(west_row)], current_user: viewer)).to be_success
+      expect(stored).to contain_exactly([north.id, nil, shared.id], [south.id, nil, shared.id], [west.id, west_row.id, nil])
+    end
   end
 
   describe 'one source per organisation' do

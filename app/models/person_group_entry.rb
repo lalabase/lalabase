@@ -34,9 +34,15 @@ class PersonGroupEntry < ApplicationRecord
   # behind it (the member's, or the one a deactivated member's row still carries). A
   # stored entry names the directory entry when its #key is one of them.
   def self.keys_for(organisation_id, entry)
-    account = entry.user&.id || entry.person&.user_id
+    account = account_of(entry)
     [([organisation_id, :person, entry.person.id] if entry.person),
      ([organisation_id, :account, account] if account)].compact
+  end
+
+  # The account behind a directory entry: the member's, or the one the row of a
+  # deactivated member still carries. nil for a contact.
+  def self.account_of(entry)
+    entry.user&.id || entry.person&.user_id
   end
 
   # Normalize while membership visibility still applies. After DELETE a formerly
@@ -97,17 +103,22 @@ class PersonGroupEntry < ApplicationRecord
 
   # Call only under PersonGroup.lock_for(owner_id), in the write's transaction. Merge,
   # split and membership release must all act on the grouping the reader displayed.
-  def self.settle_for_owner(owner_id)
+  # aliases: of a caller that read the owner's directories already
+  # (People::AcrossOrganisations#entry_aliases); without them they are read here, and
+  # only when a line by account stands beside a line by row in one organisation.
+  def self.settle_for_owner(owner_id, aliases: nil)
     User.uncached do
-      viewer = User.find_by(id: owner_id)
-      return unless viewer
-
-      stored = owned_by(viewer).pluck(:id, :person_group_id, *KEY_COLUMNS)
+      stored = where(owner_id: owner_id).pluck(:id, :person_group_id, *KEY_COLUMNS)
       row_organisations = stored.filter_map { |_, _, organisation_id, person_id, _| organisation_id if person_id }.to_set
       return unless stored.any? { |_, _, organisation_id, _, user_id| user_id && row_organisations.include?(organisation_id) }
 
+      aliases ||= begin
+        viewer = User.find_by(id: owner_id)
+        return unless viewer
+
+        People::AcrossOrganisations.aliases_for(viewer: viewer)
+      end
       ids = stored.to_h { |id, _group, *address| [key_of(*address), id] }
-      aliases = People::AcrossOrganisations.aliases_for(viewer: viewer)
       settled_lines(stored.map { |_, *line| line }, aliases: aliases) do |removed, destination, moved|
         where(id: moved.map { |key| ids.fetch(key) }).update_all(person_group_id: destination, updated_at: Time.current) if moved.any?
         where(id: ids.fetch(removed)).delete_all

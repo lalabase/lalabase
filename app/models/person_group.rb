@@ -11,9 +11,12 @@
 #   organisations name this model (spec/architecture/people_above_organisations_guard_spec.rb).
 # * No tracking: an activity would tell an organisation that somebody knows its person
 #   elsewhere.
-# * Written by Actors::MergePeople and Actors::SplitPerson only. A group left with fewer
-#   than two entries (a row, an organisation or an entry went) is ignored by the read
-#   and deleted by the next of those writes.
+# * A group is created by Actors::MergePeople and deleted by it, by Actors::SplitPerson and
+#   with its owner's account. Its entries are also moved and rewritten when a member
+#   leaves (PersonGroupEntry.prepare_release, .follow_to_row). A group left with fewer
+#   than two entries (a row, an organisation or an entry went, or a merge took the lines
+#   of a person out of it) is ignored by the read and deleted by the next merge or split
+#   of its owner.
 class PersonGroup < ApplicationRecord
   belongs_to :owner, class_name: 'User'
   # The foreign key takes the entries along as well (ON DELETE CASCADE), for a group

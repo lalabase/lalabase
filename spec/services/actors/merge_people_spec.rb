@@ -406,6 +406,127 @@ RSpec.describe Actors::MergePeople, :ci_guard do
     end
   end
 
+  # The merge acts on the people the list shows. A stored line the list does not show (the
+  # member it names left without a row, or the account rule took its row into another
+  # person) once refused every new merge with a source of its organisation, and the row had
+  # no menu to take that line away.
+  describe 'a stored line the list does not show' do
+    def shown_with(person)
+      People::AcrossOrganisations.call(viewer: User.find(viewer.id)).rows
+                                 .find { |shown| shown.sources.any? { |source| source.lane == { person_id: person.id } } }
+    end
+
+    it 'gives way to a new merge when the member it names left without a row' do
+      Prosopite.pause { join_organisation(shared, south) }
+      expect(merge(row(north_row), member(south, shared))).to be_success
+      ActsAsTenant.with_tenant(south) { Membership.find_by!(user: shared, organisation: south).destroy! }
+      expect(stored).to include([south.id, nil, shared.id])
+      expect(shown_with(north_row).merge_id).to be_nil
+
+      result = merge(row(north_row), row(south_row))
+
+      expect(result).to be_success
+      expect(stored).to contain_exactly([north.id, north_row.id, nil], [south.id, south_row.id, nil])
+      expect(PersonGroup.pluck(:id)).to eq([result.resource.id])
+      expect(shown_with(north_row).sources.map(&:lane)).to eq([{ person_id: north_row.id }, { person_id: south_row.id }])
+    end
+
+    it 'keeps a line that names nothing just now while no source of its organisation is merged' do
+      Prosopite.pause { join_organisation(shared, south) }
+      first = merge(row(north_row), member(south, shared)).resource
+      ActsAsTenant.with_tenant(south) { Membership.find_by!(user: shared, organisation: south).destroy! }
+
+      result = merge(row(north_row), row(west_row))
+
+      expect(result.resource).to eq(first)
+      expect(stored).to contain_exactly([north.id, north_row.id, nil], [south.id, nil, shared.id], [west.id, west_row.id, nil])
+    end
+
+    it 'lets a row merge anew that the account rule took out of its merge' do
+      Prosopite.pause { [north, south].each { |organisation| join_organisation(shared, organisation) } }
+      expect(merge(row(north_row), row(south_row))).to be_success
+      ActsAsTenant.with_tenant(north) { north_row.update!(user: shared) }
+      newcomer = person_in(north, name: 'Kai K. (neu)')
+      expect(shown_with(south_row).sources.size).to eq(1)
+
+      result = merge(row(south_row), row(newcomer))
+
+      expect(result).to be_success
+      expect(stored).to contain_exactly([south.id, south_row.id, nil], [north.id, newcomer.id, nil])
+      expect(shown_with(south_row).sources.map(&:lane)).to eq([{ person_id: newcomer.id }, { person_id: south_row.id }])
+      expect(shown_with(north_row).sources.map(&:organisation_id)).to eq([north.id, south.id])
+      expect(shown_with(north_row).merge_id).to be_nil
+    end
+  end
+
+  # Members with one account are one person in the list. A merge that named one of them
+  # found only the lines of that entry: it wrote a second group for the person the list
+  # showed as one, or a merge the list never showed.
+  describe 'an entry of an account that is merged through another organisation' do
+    before do
+      Prosopite.pause do
+        [north, south].each { |organisation| join_organisation(shared, organisation) }
+        join_organisation(viewer, east, rights: ['view_people'])
+      end
+    end
+
+    let!(:first) { merge(member(north, shared), row(west_row)).resource }
+
+    it 'adds to the merge of that person and writes no second group' do
+      result = merge(member(south, shared), row(east_row))
+
+      expect(result).to be_success
+      expect(result.resource).to eq(first)
+      expect(PersonGroup.count).to eq(1)
+      listed = People::AcrossOrganisations.call(viewer: User.find(viewer.id)).rows.select(&:merge_id)
+      expect(listed.map { |person| person.sources.map(&:organisation_id) }).to eq([[north.id, east.id, south.id, west.id]])
+
+      expect(Actors::SplitPerson.call(group_id: listed.first.merge_id, current_user: viewer)).to be_success
+      expect(People::AcrossOrganisations.call(viewer: User.find(viewer.id)).rows.filter_map(&:merge_id)).to be_empty
+    end
+
+    it 'refuses a second row of an organisation that person has a source of, and writes nothing' do
+      second_west = person_in(west, name: 'K. Kontakt (alt)')
+      result = nil
+
+      expect { result = merge(member(south, shared), row(second_west)) }.not_to nothing_written
+
+      expect(result.code).to eq(:same_organisation)
+    end
+
+    it 'makes one group of two that the account rule shows as one person' do
+      second = create(:person_group, owner: viewer)
+      create(:person_group_entry, person_group: second, organisation: south, user_id: shared.id)
+      create(:person_group_entry, person_group: second, organisation: east, person_id: east_row.id)
+
+      result = merge(member(north, shared), row(east_row))
+
+      expect(result).to be_success
+      expect(result.resource).to eq(first)
+      expect(PersonGroup.pluck(:id)).to eq([first.id])
+      expect(stored.map(&:first)).to contain_exactly(north.id, south.id, west.id, east.id)
+    end
+  end
+
+  # A merge once read the chosen directories four times and every other one twice, each
+  # entry with a last contact nobody asked for, most of it under the owner's lock and the
+  # account locks that a leaving member and an erasure wait for.
+  describe 'what a merge reads' do
+    it 'reads every directory once under the locks, the chosen ones once more before, and no last contact' do
+      built = Hash.new(0)
+      allow(People::Directory).to receive(:new).and_wrap_original do |build, **arguments|
+        built[arguments.fetch(:organisation).id] += 1
+        build.call(**arguments)
+      end
+      allow(People::Contacts).to receive(:new).and_call_original
+
+      expect(merge(row(north_row), row(south_row))).to be_success
+
+      expect(built).to eq(north.id => 2, south.id => 2, west.id => 1)
+      expect(People::Contacts).not_to have_received(:new)
+    end
+  end
+
   describe 'leftovers' do
     it 'deletes the groups of the caller left with fewer than two entries, and no one else\'s' do
       merge(row(north_row), row(south_row))

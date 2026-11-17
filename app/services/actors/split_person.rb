@@ -11,11 +11,18 @@
 # person). Members with the same account stay one person: that is computed by the read
 # and stored nowhere, so there is nothing here to take apart.
 #
+# What goes is the merge AS THE LIST SHOWS IT: every group of the viewer that joins the
+# row this group joins (People::AcrossOrganisations#merges_shown_with). Two groups can
+# join one row, when the entries they name turned out to be one account; with one of them
+# left behind the row would still stand merged after "undo".
+#
 # The owner's groups left with fewer than two entries are deleted on the way, under the
 # lock a merge of the same owner takes (Actors::MergePeople).
 module Actors
   class SplitPerson < BaseActor
     NOT_FOUND = :not_found
+    # The codes whose text is written for the viewer (see Actors::MergePeople::REFUSALS).
+    REFUSALS = [NOT_FOUND].freeze
 
     def initialize(group_id:, current_user:)
       super()
@@ -29,18 +36,30 @@ module Actors
 
     def perform
       PersonGroup.lock_for(current_user)
-      @group = PersonGroup.owned_by(current_user).find_by(id: @group_id) if @group_id
+      mine = PersonGroup.owned_by(current_user)
+      @group = mine.find_by(id: @group_id) if @group_id
       raise ActorError.new(I18n.t('controllers.people.not_found'), code: NOT_FOUND) unless @group
 
-      # The displayed group may contain sources virtually transferred from an account
-      # alias. Persist that same grouping before deleting it, or undo leaves them joined.
-      PersonGroupEntry.settle_for_owner(current_user.id)
-      @group.destroy!
-      PersonGroup.owned_by(current_user).leftover.delete_all
+      mine.where(id: [@group.id, *shown_with_it(mine)]).delete_all
+      mine.leftover.delete_all
     end
 
     private
 
     attr_reader :current_user
+
+    # The other groups that join the same row. Only a second group makes the list worth
+    # reading: with one group there is nothing to settle and nothing else to take apart.
+    # The displayed group may contain sources virtually transferred from an account alias:
+    # that grouping is persisted first, or undo would leave them joined.
+    def shown_with_it(mine)
+      return [] unless mine.where.not(id: @group.id).exists?
+
+      User.uncached do
+        shown = People::AcrossOrganisations.new(viewer: User.find(current_user.id))
+        PersonGroupEntry.settle_for_owner(current_user.id, aliases: shown.entry_aliases)
+        shown.merges_shown_with(@group.id)
+      end
+    end
   end
 end

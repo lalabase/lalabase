@@ -38,6 +38,9 @@ class CreatePersonGroups < ActiveRecord::Migration[8.1]
                                                     name: 'index_person_group_entries_on_owner_and_account'
       t.index %i[person_group_id organisation_id], unique: true,
                                                    name: 'index_person_group_entries_on_group_and_organisation'
+      # The lines of one owner: every read of the list, every merge, split and release. The
+      # two unique indexes above begin with the owner but are partial, so neither serves it.
+      t.index :owner_id
       # For the cascades and for the rewrite when a member leaves.
       t.index %i[person_id organisation_id], name: 'index_person_group_entries_on_person'
       t.index %i[organisation_id user_id], name: 'index_person_group_entries_on_organisation_and_account'

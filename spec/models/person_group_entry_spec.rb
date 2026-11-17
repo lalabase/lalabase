@@ -173,6 +173,17 @@ RSpec.describe PersonGroupEntry, :ci_guard do
       expect(index&.unique).to be(true)
     end
 
+    # Every read of the list, every merge, split and release asks for the lines of ONE
+    # owner. The two unique indexes begin with the owner, but each holds the lines of one
+    # kind of address only (a partial index), and a query that does not repeat that
+    # condition cannot use either: without this index it reads the lines of everybody.
+    it 'holds an index that serves "the lines of one owner"' do
+      serving = described_class.connection.indexes(:person_group_entries)
+                               .select { |index| Array(index.columns).first == 'owner_id' && index.where.nil? }
+
+      expect(serving.map(&:name)).to eq(['index_person_group_entries_on_owner_id'])
+    end
+
     it 'holds both composite foreign keys with ON DELETE CASCADE' do
       keys = described_class.connection.foreign_keys(:person_group_entries)
                             .to_h { |key| [key.to_table, [Array(key.column), Array(key.primary_key), key.on_delete]] }

@@ -1210,6 +1210,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_090100) do
     t.index ["organisation_id", "user_id"], name: "index_person_group_entries_on_organisation_and_account"
     t.index ["owner_id", "organisation_id", "person_id"], name: "index_person_group_entries_on_owner_and_person", unique: true, where: "(person_id IS NOT NULL)"
     t.index ["owner_id", "organisation_id", "user_id"], name: "index_person_group_entries_on_owner_and_account", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["owner_id"], name: "index_person_group_entries_on_owner_id"
     t.index ["person_group_id", "organisation_id"], name: "index_person_group_entries_on_group_and_organisation", unique: true
     t.index ["person_id", "organisation_id"], name: "index_person_group_entries_on_person"
     t.index ["user_id"], name: "index_person_group_entries_on_user_id"

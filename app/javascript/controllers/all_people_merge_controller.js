@@ -10,7 +10,7 @@ import { Controller } from "@hotwired/stimulus"
 // The search redraws the rows, and new rows come unticked: every row that comes or goes
 // counts again.
 export default class extends Controller {
-  static targets = ["tick", "count", "submit"]
+  static targets = ["tick", "counter", "count", "submit"]
 
   connect() {
     this.count()
@@ -27,6 +27,9 @@ export default class extends Controller {
   count() {
     const ticked = this.tickTargets.filter((tick) => tick.checked).length
     this.countTargets.forEach((element) => { element.textContent = ticked })
+    // The number stays out of sight until somebody counts: without this controller the
+    // bar says only what it does.
+    this.counterTargets.forEach((element) => { element.hidden = false })
     this.submitTargets.forEach((button) => { button.disabled = ticked < 2 })
   }
 

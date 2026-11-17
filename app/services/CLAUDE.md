@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-16)
+# Karte: app/services (Stand: 2026-11-17)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -363,6 +363,30 @@ Verzeichnis-Übersicht (Auswahl):
   record is `Row#avatar_user` (`User` is not tenanted). The loop per organisation is
   declared in `spec/support/prosopite.rb` (`in_people_organisation`); what that could hide,
   a read per row, is pinned by a statement count in the service spec.
+  Merging (2026-11-17): the read joins the viewer's own merges (`PersonGroup`, card of
+  `app/models`) on top of the account rule: one statement plucks the entries, each is held
+  against the candidates by key, and only what the directories returned joins. ⚠️ A
+  reference is not a right: a part the viewer cannot see just now is not shown and not
+  counted, a group with one visible entry is an ordinary row (`Row#merge_id` nil), and
+  nothing is written while reading. The account rule is never undone, and an entry joins a
+  person only while that person has no source of its organisation yet. `Row#merge_id` is
+  set only when a merge joined people the account rule had not.
+  `Actors::MergePeople.call(entries: [{ org:, id: }], current_user:)` takes an organisation
+  from `active_organisations` only and reads every entry again through `Lookup#entry` inside
+  `with_tenant`; an unknown, foreign, invisible or malformed entry and a missing
+  organisation are ONE refusal (`:not_found`). Two entries of one organisation are refused
+  on the ids as sent (`:same_organisation`, before anything is read), and so is a join that
+  would give a group two rows of one organisation. Groups are joined into the oldest;
+  `RecordNotUnique` and `InvalidForeignKey` are `:conflict`, never an exception. The entries
+  are written with `insert_all!` (no validation: the table's constraints are the rule).
+  `Actors::SplitPerson.call(group_id:, current_user:)` deletes a group of the caller;
+  another person's and a missing one answer alike. Both take `PersonGroup.lock_for(owner)`.
+  `Actors::TakeOverPerson` writes the merge of source and copy in a savepoint of its own
+  transaction; a merge that cannot be written leaves the copy (`Result#code`
+  `:not_merged`). `PersonTakeoversController` offers "merge instead" with `merge_with`
+  under the duplicate question and calls `MergePeople` itself.
+  `AllPeople::MergesController` (`POST /people/merges`, `DELETE /people/merges/:id`) runs
+  without a tenant and answers every case with a redirect to the list.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

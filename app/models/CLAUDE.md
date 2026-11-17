@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-11-16)
+# Karte: app/models (Stand: 2026-11-17)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -103,6 +103,29 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   schickt immer `person[additional_details][sent]` mit (`FORM_MARKER`): ohne ihn ließe das
   Entfernen der letzten Angabe die Liste stehen. Fehlt der Key ganz, bleibt die Liste
   unberührt. Check-Constraint `people_additional_details_shape` hält Liste und Grenze.
+  Merges above the organisations (2026-11-17, `GET /people`): `person_group` (owner, nothing
+  else) and `person_group_entry` are ONE person's private note that rows of different
+  organisations are the same human. ⚠️ Neither carries a tenant, a field of a person or
+  tracking, and an organisation must never learn of a merge: only the eight files listed in
+  `spec/architecture/people_above_organisations_guard_spec.rb` (second group) name the two
+  models or their tables. No tool of the assistant, no API, no page of an organisation, no
+  admin page and no search reads them; a new reader is red there until it is decided.
+  ⚠️ `PersonGroupEntry` has NO `belongs_to :person` (Person is tenanted and raises outside
+  a tenant). An entry is held by id against the entries of an organisation's directory:
+  `.keys_for(organisation_id, entry)` and `#key` are the one matching rule (a row by its id;
+  an account by `entry.user&.id || entry.person&.user_id`, which also finds the row of a
+  deactivated member). Exactly one address, and the row wins: `.address_of(entry)` stores
+  `person_id` whenever there is a row, `user_id` only for a member without one. The database
+  holds the rest: composite foreign keys (the owner of an entry is its group's, its
+  organisation is its row's; a deleted row, organisation or group takes the entry along), the
+  check `person_group_entries_one_address`, and three unique indexes (one entry per owner
+  and row, one per owner, organisation and account, one source per organisation in a group).
+  Written only by `Actors::MergePeople`/`SplitPerson` under `PersonGroup.lock_for(owner)`.
+  `concerns/person_link_release.rb` rewrites the entries by account to the row BEFORE it
+  drops the link (`.follow_to_row`, two statements, every owner; the one moment such an entry
+  would lose its target). `PersonalDataErasure#erase_person_groups!` deletes the groups an
+  account owns and every entry that names it. A group left with fewer than two entries is
+  ignored by the read and deleted by the next merge or split of its owner; no job.
 * **Glossar** (K4a, 04.11.2026): `glossary_term` (ein Begriff je Organisation, nicht je Projekt;
   eindeutig nach `normalized_term`, Status `proposed`/`confirmed`/`rejected`), `term_correction`
   (eine gehörte Form je Korrektur: Sprecher als Person ODER Mitglied, Check

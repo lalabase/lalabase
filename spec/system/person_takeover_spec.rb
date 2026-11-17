@@ -95,4 +95,32 @@ RSpec.describe 'Taking a contact over into another organisation', :people_takeov
     expect(page).to have_no_css('.people-note', text: 'Nur vormittags')
     expect(copies_in_south).to eq(2)
   end
+
+  # The question offers to merge with the entry that is there already (People S2): a second
+  # submit of the same form. Only a browser shows that Turbo sends the button that was
+  # clicked, and that the button leaves with the question when the target changes.
+  it 'merges with the same-named entry instead of creating a second one, and stays on the card' do
+    existing = takeover_person(south, name: 'Herr Schmidt', email: 'other@example.com')
+    west = create(:organisation, name: 'West AG')
+    takeover_join(reader, west, 'manage_people')
+    open_dialog
+    click_button I18n.t("#{scope}.submit")
+    merge = I18n.t("#{scope}.merge_instead", name: 'Herr Schmidt')
+    expect(page).to have_css('[role="dialog"] [role="alert"]', text: 'Süd GmbH')
+    expect(page).to have_button(merge)
+
+    # The offer belongs to the target it was asked for.
+    select 'West AG', from: 'target'
+    expect(page).to have_no_button(merge)
+    select 'Süd GmbH', from: 'target'
+
+    click_button merge
+
+    expect(page).to have_text(I18n.t('controllers.people.takeover.merged_instead'))
+    expect(page).to have_current_path(organisation_people_path(north, person_id: source.id))
+    expect(page).to have_no_css('[role="dialog"]')
+    expect(copies_in_south).to eq(1)
+    expect(PersonGroupEntry.where(owner_id: reader.id).pluck(:organisation_id, :person_id))
+      .to contain_exactly([north.id, source.id], [south.id, existing.id])
+  end
 end

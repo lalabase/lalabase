@@ -372,6 +372,7 @@ jobs:
           spec/system/inbox_spec.rb
           spec/system/all_inboxes_spec.rb
           spec/system/all_people_spec.rb
+          spec/system/all_people_merge_spec.rb
           spec/system/test_browser_pointer_spec.rb
           spec/system/page_title_edge_spec.rb
           spec/system/management_phone_spec.rb
@@ -463,6 +464,7 @@ jobs:
           spec/services/people/merged_entry_sequences_spec.rb
           spec/services/user_data_exports/merged_people_spec.rb
           spec/requests/all_people_merges_spec.rb
+          spec/requests/people_merge_invisible_to_organisation_spec.rb
           spec/services/knowledge/lookup_spec.rb
           spec/requests/organisations/people_last_contact_spec.rb
           spec/services/lalabase/tools/find_people_spec.rb

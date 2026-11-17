@@ -373,6 +373,7 @@ jobs:
           spec/system/all_inboxes_spec.rb
           spec/system/all_people_spec.rb
           spec/system/all_people_merge_spec.rb
+          spec/system/all_people_card_spec.rb
           spec/system/test_browser_pointer_spec.rb
           spec/system/page_title_edge_spec.rb
           spec/system/management_phone_spec.rb

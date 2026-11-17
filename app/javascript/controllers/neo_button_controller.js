@@ -23,6 +23,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.stopAwaitingLinkSubmission()
     this.element.removeEventListener("turbo:submit-end", this.boundReset)
     if (this.form) {
       this.form.removeEventListener("turbo:submit-end", this.boundReset)
@@ -55,8 +56,40 @@ export default class extends Controller {
       return
     }
 
+    // A link that writes and asks first (data-turbo-confirm): Turbo makes a form
+    // of the click and asks when it submits it. Loading starts only when that
+    // form really submits; a "no" leaves the link as it was.
+    if (this.element.tagName === "A" && this.element.dataset.turboConfirm) {
+      this.awaitLinkSubmission()
+      return
+    }
+
     // For forms and turbo-method links, show loading state
     this.showLoading()
+  }
+
+  // Turbo's form for a link carries the link's address without its query as the
+  // action (the query becomes hidden fields) and is appended to <body>, so its
+  // events never pass this element. The listener waits for the next submit of
+  // that address; a "no" leaves it for the next click to replace.
+  awaitLinkSubmission() {
+    this.stopAwaitingLinkSubmission()
+    const action = new URL(this.element.href)
+    action.search = ""
+    this.boundLinkSubmitStart = (event) => {
+      const form = event.target
+      if (!(form instanceof HTMLFormElement) || form.action !== action.href) return
+      this.stopAwaitingLinkSubmission()
+      this.showLoading()
+      form.addEventListener("turbo:submit-end", this.boundReset, { once: true })
+    }
+    document.addEventListener("turbo:submit-start", this.boundLinkSubmitStart)
+  }
+
+  stopAwaitingLinkSubmission() {
+    if (!this.boundLinkSubmitStart) return
+    document.removeEventListener("turbo:submit-start", this.boundLinkSubmitStart)
+    this.boundLinkSubmitStart = null
   }
   
   showLoading() {

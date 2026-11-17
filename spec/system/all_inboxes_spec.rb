@@ -40,6 +40,8 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
     expect(page).to have_css('.inbox-row', count: 2)
     expect(page).to have_css('.inbox-row__meta-text', text: 'Nordwind GmbH')
     expect(page).to have_css('.inbox-row__meta-text', text: 'Suedhang AG')
+    # The counts redraw right after the page shows replaces the select (InboxLiveHelpers).
+    wait_for_inbox_live_at_rest
 
     find('#inbox-organisation').find('option', text: /\ASuedhang AG/).select_option
 
@@ -548,6 +550,11 @@ RSpec.describe 'Inbox above the organisations (System)', type: :system do
       find(editor).send_keys('Antwort von oben')
       within(composer) { find("button[type='submit']").click }
       expect(page).to have_css('#ticket_pane', text: 'Antwort von oben', wait: 10)
+      # The answer is several streams, one per frame (posts_controller#create): the
+      # comment first, then the ticket's head, then a fresh composer. Its button
+      # shows again only once the head is replaced; a click into the old head lands
+      # on an element that is gone (stale on the CI runner).
+      expect(page).to have_css("#{composer} [data-collapse-target='button']:not(.hidden)", wait: 10)
 
       expect(page).to have_no_css('#ticket_pane [data-controller~="assistant-trigger"]')
 

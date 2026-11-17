@@ -309,6 +309,23 @@ RSpec.describe Neo::Buttons::ButtonComponent, type: :component do
     end
   end
 
+  # A link that writes (turbo_method) asks through Turbo, not through the button's own
+  # confirm(). Turbo turns the click into a form and submits it a frame later; after a
+  # dialog the button had shown inside the click, headless Chrome on Linux dropped that
+  # submit, so "delete" and "OK" deleted nothing (spec/system/note_edit_delete_spec.rb,
+  # red on the CI runner from 2026-11-14 to 2026-11-16).
+  describe 'link that writes, with confirmation' do
+    let(:options) { { confirm: 'Delete this?', url: '/things/1', data: { turbo_method: :delete } } }
+
+    it 'asks once, through Turbo on the link' do
+      rendered_component
+
+      expect(page).to have_css("a[href='/things/1'][data-turbo-method='delete'][data-turbo-confirm='Delete this?']")
+      expect(page).to have_css("a[data-controller='neo-button'][data-action='click->neo-button#handleClick']")
+      expect(page).to have_no_css('a[data-neo-button-confirm-value]')
+    end
+  end
+
   describe 'complex scenarios' do
     context 'form submit button with icon and confirmation' do
       let(:options) do

@@ -41,9 +41,15 @@ module PersonLinkRelease
     PersonalDataErasure.lock_account(user_id, shared: true)
   end
 
+  # A membership whose organisation row is gone (memberships carries no foreign key to
+  # it) has no directory left to read and no entry left to settle: the entries went with
+  # the organisation. Without the row there is no tenant to read under either.
   def prepare_person_link_release
     lock_account_for_release
-    ActsAsTenant.with_tenant(organisation) do
+    tenant = organisation
+    return unless tenant
+
+    ActsAsTenant.with_tenant(tenant) do
       rows = Person.where(organisation_id: organisation_id, user_id: user_id)
       @failed_person_group_owners = PersonGroupEntry.prepare_release(organisation_id: organisation_id, user_id: user_id, rows: rows)
     end

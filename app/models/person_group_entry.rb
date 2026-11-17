@@ -127,11 +127,26 @@ class PersonGroupEntry < ApplicationRecord
   end
 
   # A step in a savepoint of its own; what the database refuses (a unique index, a row that
-  # went, a deadlock it broke) is undone alone and noted without any personal data.
+  # went, a deadlock it broke, a statement or a lock it gave up waiting for) is undone alone
+  # and noted without any personal data.
+  #
+  # A step also reads the directories of ANOTHER person, the owner of the lines
+  # (.settle_for_owner), and whatever that read raises is not the leaving member's
+  # business either. Outside production it is raised, as an actor raises what it did not
+  # expect (config.x.actors.reraise_unexpected): a bug shows. In production it is undone
+  # like a refusal and logged as an error, by its class alone (a message may quote a row).
+  REFUSALS = [ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey, ActiveRecord::TransactionRollbackError,
+              ActiveRecord::QueryCanceled, ActiveRecord::LockWaitTimeout].freeze
+
   def self.quietly(&)
     transaction(requires_new: true, &)
-  rescue ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey, ActiveRecord::Deadlocked => e
+  rescue *REFUSALS => e
     Rails.logger.warn("[PersonGroupEntry] a merge entry stays as it is: #{e.class}")
+    nil
+  rescue StandardError => e
+    raise if Rails.application.config.x.actors.reraise_unexpected
+
+    Rails.logger.error("[PersonGroupEntry] a merge entry stays as it is, unexpectedly: #{e.class}")
     nil
   end
   private_class_method :give_way, :quietly

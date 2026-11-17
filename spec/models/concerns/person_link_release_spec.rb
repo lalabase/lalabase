@@ -139,6 +139,49 @@ RSpec.describe PersonLinkRelease, type: :model do
         expect(row.reload.user_id).to be_nil
       end
 
+      # The step reads the directories of ANOTHER person, the owner of the two lines. What
+      # that read raises is not the leaving member's business either: until 2026-11-17 only
+      # three refusals of the database were undone, and anything else stopped the removal
+      # (and with it the erasure of an account, which removes every membership).
+      it 'treats a statement the database gave up on like any other refusal' do
+        allow(PersonGroupEntry).to receive(:settle_for_owner)
+          .and_raise(ActiveRecord::QueryCanceled, 'canceling statement due to statement timeout')
+
+        expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
+
+        expect(Membership.where(user: user, organisation: organisation)).not_to exist
+        expect(row.reload.user_id).to be_nil
+        expect(address(entry)).to eq([nil, user.id])
+        expect(address(theirs)).to eq([row.id, nil])
+      end
+
+      context 'when the read of that owner raises something the database did not refuse' do
+        before { allow(People::AcrossOrganisations).to receive(:aliases_for).and_raise(NoMethodError, 'kaputt') }
+
+        it 'raises outside production, so that a bug shows' do
+          expect { Membership.find_by(user: user, organisation: organisation).destroy! }.to raise_error(NoMethodError)
+        end
+
+        it 'keeps the two lines in production, removes the membership and rewrites for everybody else' do
+          loud = Rails.application.config.x.actors.reraise_unexpected
+          Rails.application.config.x.actors.reraise_unexpected = false
+          allow(Rails.logger).to receive(:error)
+
+          expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
+
+          expect(Membership.where(user: user, organisation: organisation)).not_to exist
+          expect(row.reload.user_id).to be_nil
+          expect(address(entry)).to eq([nil, user.id])
+          expect(address(by_row)).to eq([row.id, nil])
+          expect(address(theirs)).to eq([row.id, nil])
+          # By its class alone: the message of an exception may quote a row.
+          expect(Rails.logger).to have_received(:error).with(/PersonGroupEntry.*NoMethodError/)
+          expect(Rails.logger).not_to have_received(:error).with(/kaputt/)
+        ensure
+          Rails.application.config.x.actors.reraise_unexpected = loud
+        end
+      end
+
       # A split of that owner that ended while the removal waited for the lock: the group of
       # the row is gone, so the entry by account simply follows the row like any other.
       it 'rewrites the entry by account when the line by row went while it waited for the lock' do
@@ -166,6 +209,17 @@ RSpec.describe PersonLinkRelease, type: :model do
       ensure
         ActiveSupport::Notifications.unsubscribe(counter)
       end
+    end
+
+    # memberships carries no foreign key to its organisation. Without the row there is no
+    # tenant to read under, and nothing left to settle: the entries went with the
+    # organisation. The step asked for the tenant all the same and raised.
+    it 'removes a membership whose organisation row is gone' do
+      membership = Membership.find_by(user: user, organisation: other_organisation)
+      membership.update_column(:organisation_id, SecureRandom.uuid)
+
+      expect { membership.reload.destroy! }.not_to raise_error
+      expect(Membership.where(id: membership.id)).not_to exist
     end
 
     it 'leaves the entry by account alone when the member has no row to follow' do

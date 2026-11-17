@@ -234,6 +234,7 @@ en:
       delete_ai_credential: Are you sure you want to delete this AI credential?
       delete_ai_package: Are you sure you want to delete this AI package? Its tiers will be deleted with it.
       delete_admin_user: Are you sure you want to delete this admin user?
+      split_merged_person: "Undo the merge of %{name}? The entries will stand on their own in your list again. Nothing changes in the organisations."
     admin:
       email_logs:
         index:

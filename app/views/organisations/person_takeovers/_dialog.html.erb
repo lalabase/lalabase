@@ -19,10 +19,17 @@
     reader chooses another target, and are disabled then: a hidden button
     must not be sent.
 
-    ⚠️ Enter in a field sends a form through its FIRST submit button in the
-    markup, shown or not. The offers stand above the main button, so the form
-    opens with a default button of its own (hidden, no name): Enter takes over
-    or creates anyway, as the main button does, and never merges. %>
+    ⚠️ Enter in a field sends a form through its default button, and which one
+    that is depends on the browser: the FIRST submit button in the markup for
+    Chrome, shown or not, the first one that is DRAWN for Safari up to
+    version 16 at least (WebKit asked for a renderer there; its current source
+    no longer does). The offers stand above the main button, so the form opens
+    with a default button of its own, without a name: Enter takes over or
+    creates anyway, as the main button does, and never merges. It is drawn and
+    clipped (sr-only), never taken out with the hidden attribute: a button
+    without a box is no default button for those Safaris, and Enter would
+    merge there. Nobody reaches it: out of the tab order, and not in the
+    accessibility tree. %>
 <% scope = 'views.organisations.people.takeover' %>
 <% modal_id = person_takeover_modal_id(person.id) %>
 <% selected = targets.find { |organisation| organisation.id == target_id } || targets.first %>
@@ -57,7 +64,7 @@
         <%= form_with url: organisation_person_takeover_path(current_organisation, person), method: :post,
                       id: "#{modal_id}-form", class: 'space-y-4 p-5', data: { turbo_frame: '_top' } do %>
           <%= hidden_field_tag :modal_token, token, id: nil %>
-          <button type="submit" hidden tabindex="-1" data-person-takeover-default></button>
+          <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true" data-person-takeover-default></button>
 
           <div>
             <label for="<%= modal_id %>-target" class="mb-1 block text-sm font-medium text-cream-800"><%= t("#{scope}.target") %></label>

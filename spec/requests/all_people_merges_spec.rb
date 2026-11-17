@@ -161,7 +161,7 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
 
       expect(menu['action']).to eq(all_people_merge_path(PersonGroup.sole.id))
       expect(menu.at_css('input[name="_method"]')['value']).to eq('delete')
-      expect(menu['data-turbo-confirm']).to eq(I18n.t('views.all_people.merge.split_confirm', name: 'Kai Kontakt'))
+      expect(menu['data-turbo-confirm']).to eq(I18n.t('views.confirm.split_merged_person', name: 'Kai Kontakt'))
       expect(doc.css('form[action^="/people/merges/"]').size).to eq(1)
     end
 
@@ -240,6 +240,43 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
       expect(flash[:alert]).to eq(I18n.t('controllers.people.merge.too_few'))
 
       post all_people_merges_path
+      expect(flash[:alert]).to eq(I18n.t('controllers.people.merge.too_few'))
+    end
+  end
+
+  # Outside production an actor raises what it did not expect. In production it answers
+  # with the message of the exception, and both actions put that into the flash: the text
+  # of the database, with its process ids and its statement, on the page.
+  describe 'a failure nobody wrote a text for' do
+    let(:detail) { 'PG::TRDeadlockDetected: ERROR: deadlock detected DETAIL: Process 4711 waits for ShareLock' }
+
+    before do
+      allow_any_instance_of(Actors::BaseActor).to receive(:raise_unexpected?).and_return(false)
+      allow(Rails.logger).to receive(:error)
+    end
+
+    it 'answers a merge with one sentence of ours and writes nothing' do
+      allow(PersonGroup).to receive(:lock_for).and_raise(ActiveRecord::Deadlocked, detail)
+
+      expect { merge(source(people[:north]), source(people[:south])) }.not_to(change { stored })
+
+      expect(response).to redirect_to(all_people_path)
+      expect(flash[:alert]).to eq(I18n.t('controllers.people.merge.failed'))
+    end
+
+    it 'answers a split the same way and keeps the merge' do
+      merge(source(people[:north]), source(people[:south]))
+      allow(PersonGroup).to receive(:lock_for).and_raise(ActiveRecord::Deadlocked, detail)
+
+      expect { delete all_people_merge_path(PersonGroup.sole.id) }.not_to(change { stored })
+
+      expect(response).to redirect_to(all_people_path)
+      expect(flash[:alert]).to eq(I18n.t('controllers.people.split.failed'))
+    end
+
+    it 'still names the refusals the actor wrote a text for' do
+      merge(source(people[:north]))
+
       expect(flash[:alert]).to eq(I18n.t('controllers.people.merge.too_few'))
     end
   end

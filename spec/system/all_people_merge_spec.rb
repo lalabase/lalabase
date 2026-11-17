@@ -93,7 +93,7 @@ RSpec.describe 'Merging people above the organisations', type: :system, inbox_e2
 
     # "No" keeps the merge.
     menu = open_menu('Kai Kontakt')
-    dismiss_confirm(I18n.t('views.all_people.merge.split_confirm', name: 'Kai Kontakt')) { menu.click_button split_button }
+    dismiss_confirm(I18n.t('views.confirm.split_merged_person', name: 'Kai Kontakt')) { menu.click_button split_button }
     expect(chips('Kai Kontakt')).to eq(['Nord GmbH', 'Sued AG'])
     expect(PersonGroup.count).to eq(1)
 

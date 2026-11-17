@@ -126,7 +126,9 @@ RSpec.describe 'Taking a contact over into another organisation', :people_takeov
 
   # Enter in a field of the form sends the form through its FIRST submit button. The offers
   # to merge instead are submit buttons of the same form and stand above the main one, so
-  # the form carries a default button of its own in front of them.
+  # the form carries a default button of its own in front of them. This is Chrome's rule;
+  # an older Safari takes the first button that is drawn, which the request spec holds in
+  # the markup ("opens the form with a default button that is drawn", person_takeovers_spec.rb).
   describe 'Enter in the dialog' do
     let!(:existing) { takeover_person(south, name: 'Herr Schmidt', email: 'other@example.com') }
     let(:function_tick) { "##{helper.person_takeover_modal_id(source.id)}-field-function" }

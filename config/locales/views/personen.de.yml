@@ -16,8 +16,10 @@ de:
         too_few: "Wähle mindestens zwei Personen aus."
         same_organisation: "Zwei Einträge derselben Organisation lassen sich nicht zusammenführen. Dubletten bereinigst du im Verzeichnis der Organisation."
         conflict: "Das hat sich mit einer anderen Änderung überschnitten. Bitte versuche es noch einmal."
+        failed: "Das Zusammenführen hat nicht geklappt. Bitte versuche es noch einmal."
       split:
         success: "Zusammenführung aufgehoben. Die Einträge stehen wieder einzeln in deiner Liste."
+        failed: "Die Zusammenführung ließ sich nicht aufheben. Bitte versuche es noch einmal."
       takeover:
         success: "Übernommen aus %{source}. Original und Kopie sind für dich jetzt eine Person."
         success_not_merged: "Übernommen aus %{source}. Original und Kopie wurden nicht zusammengeführt. Das geht nur, solange das Original mit keinem anderen Eintrag dieser Organisation zusammengeführt ist."
@@ -52,7 +54,6 @@ de:
         clear: "Auswahl aufheben"
         more_actions: "Weitere Aktionen für %{name}"
         split: "Zusammenführung aufheben"
-        split_confirm: "Zusammenführung von %{name} aufheben? Die Einträge stehen danach wieder einzeln in deiner Liste. In den Organisationen ändert sich nichts."
       chip:
         open: "%{name} in %{organisation} öffnen"
       empty:

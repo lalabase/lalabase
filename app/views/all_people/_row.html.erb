@@ -55,7 +55,7 @@
         </summary>
         <div class="more-menu__items">
           <%= button_to t('views.all_people.merge.split'), all_people_merge_path(row.merge_id, return_state), method: :delete,
-                        form: { data: { turbo_frame: '_top', turbo_confirm: t('views.all_people.merge.split_confirm', name: row.name) } } %>
+                        form: { data: { turbo_frame: '_top', turbo_confirm: t('views.confirm.split_merged_person', name: row.name) } } %>
         </div>
       </details>
     <% end %>

@@ -16,6 +16,9 @@
 # travels as q, org and page), with a notice or the reason. One answer for everything the
 # reader cannot name: an unknown entry, one of an organisation that is not theirs or where
 # they lack the people right, a malformed id, another person's group, a missing one.
+# A failure the actor did not write a text for (in production BaseActor hands on the
+# message of an exception, which may quote a statement or a lock) shows one sentence of
+# ours instead (#reason).
 module AllPeople
   class MergesController < ApplicationController
     skip_before_action :load_tenant_from_session
@@ -27,14 +30,14 @@ module AllPeople
 
     def create
       result = Actors::MergePeople.call(entries: entries, current_user: current_user)
-      return back(alert: result.errors.to_sentence) unless result.success?
+      return back(alert: reason(result, Actors::MergePeople::REFUSALS, 'merge')) unless result.success?
 
       back(notice: t('controllers.people.merge.success'))
     end
 
     def destroy
       result = Actors::SplitPerson.call(group_id: params[:id].to_s, current_user: current_user)
-      return back(alert: result.errors.to_sentence) unless result.success?
+      return back(alert: reason(result, Actors::SplitPerson::REFUSALS, 'split')) unless result.success?
 
       back(notice: t('controllers.people.split.success'))
     end
@@ -58,6 +61,11 @@ module AllPeople
         organisation_id, id = source.split(PART_SEPARATOR, 2)
         { org: organisation_id, id: id }
       end
+    end
+
+    # The actor's own text for a refusal it names, one sentence of ours for anything else.
+    def reason(result, refusals, action)
+      refusals.include?(result.code) ? result.errors.to_sentence : t("controllers.people.#{action}.failed")
     end
 
     def back(**flash)

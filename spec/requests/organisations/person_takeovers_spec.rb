@@ -460,6 +460,40 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
         expect(answers.values.uniq).to eq([refusal]), answers.inspect
       end
 
+      # In production an actor answers a failure it did not expect with the message of
+      # the exception. That is no reason for a reader: the dialog closes with one sentence
+      # of ours.
+      it 'closes the dialog with a sentence of ours when the merge fails for a reason nobody wrote a text for' do
+        allow_any_instance_of(Actors::MergePeople).to receive(:raise_unexpected?).and_return(false)
+        allow(Rails.logger).to receive(:error)
+        allow(PersonGroup).to receive(:lock_for).and_raise(ActiveRecord::Deadlocked, 'Process 4711 waits for ShareLock')
+
+        expect { submit(merge_with: "person:#{existing.id}") }.not_to(change { [counts, merges] })
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include(CGI.escapeHTML(I18n.t('controllers.people.merge.failed')))
+        expect(response.body).not_to include('4711')
+      end
+
+      # Enter sends a form through its default button. For Safari up to version 16 at
+      # least that is the first submit button that is DRAWN (read in WebKit's source of
+      # that release, not tried in the browser): one taken out with the hidden attribute
+      # has no box, and Enter went to the first offer to merge. The browser spec runs
+      # Chrome, which takes the first button in the markup whatever it looks like, so the
+      # markup is held here.
+      it 'opens the form with a default button that is drawn, unnamed and out of reach' do
+        submit
+
+        buttons = Nokogiri::HTML(response.body).css('form button[type="submit"]')
+        default = buttons.first
+        expect(buttons.size).to be > 2
+        expect(default['name']).to be_nil
+        expect(default.attribute('hidden')).to be_nil
+        expect(default['style'].to_s).not_to match(/display\s*:\s*none/)
+        expect(default['class'].to_s.split).to eq(['sr-only'])
+        expect([default['tabindex'], default['aria-hidden']]).to eq(%w[-1 true])
+      end
+
       it 'closes the dialog with the reason when the source already stands merged with a row of the target' do
         group = create(:person_group, owner: reader)
         other = takeover_person(south, name: 'H. Schmidt (alt)')

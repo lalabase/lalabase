@@ -117,10 +117,17 @@ module Organisations
         current_user: current_user
       )
       return refuse if result.code == Actors::MergePeople::NOT_FOUND
-      return failed_merge(result.errors.to_sentence) unless result.success?
+      return failed_merge(merge_refusal(result)) unless result.success?
 
       redirect_to organisation_people_path(current_organisation, person_id: person_id), status: :see_other,
                                                                                         notice: t('controllers.people.takeover.merged_instead')
+    end
+
+    # The actor's text for a refusal it names; a failure it did not expect carries the
+    # message of an exception, which is not for a page.
+    def merge_refusal(result)
+      named = Actors::MergePeople::REFUSALS.include?(result.code)
+      named ? result.errors.to_sentence : t('controllers.people.merge.failed')
     end
 
     def failed_merge(message)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_16_130100) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -1229,9 +1229,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_130100) do
     t.datetime "updated_at", null: false
     t.boolean "read_only", default: true, null: false
     t.boolean "all_organisations", default: false, null: false
+    t.string "kind", default: "personal", null: false
     t.index ["token_hash"], name: "index_personal_access_tokens_on_token_hash", unique: true
     t.index ["user_id", "created_at"], name: "index_personal_access_tokens_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_personal_access_tokens_on_user_id"
+    t.check_constraint "kind::text = ANY (ARRAY['personal'::character varying, 'app_session'::character varying]::text[])", name: "personal_access_tokens_kind_known"
   end
 
   create_table "personal_tasks", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

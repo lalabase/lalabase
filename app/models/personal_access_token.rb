@@ -7,6 +7,7 @@
 #  id                :uuid             not null, primary key
 #  all_organisations :boolean          default(FALSE), not null
 #  expires_at        :datetime         not null
+#  kind              :string           default("personal"), not null
 #  last_used_at      :datetime
 #  name              :string           not null
 #  read_only         :boolean          default(TRUE), not null
@@ -35,6 +36,19 @@ class PersonalAccessToken < ApplicationRecord
   # so this is how long a stolen session can keep reading after it was ended.
   MAX_LIFETIME = 90.days
 
+  # Who made the token. `personal`: its owner, on the token page, with a reach and
+  # an expiry of their choice. `app_session`: the sign-in door, for one device
+  # (its name is the device's). A device token always reaches the whole account
+  # and may write, and it lives while the device is used: every use moves
+  # expires_at to MAX_LIFETIME from now (#record_use!), never past
+  # APP_SESSION_MAX_AGE after it was made (#ends_at). A personal token never moves.
+  KINDS = %w[personal app_session].freeze
+  APP_SESSION = 'app_session'
+  APP_SESSION_MAX_AGE = 365.days
+  # Live device tokens per account. One more revokes the device unused longest
+  # (.make_room_for_app_session!), so a password cannot mint tokens without end.
+  MAX_APP_SESSIONS = 10
+
   belongs_to :user
 
   has_many :personal_access_token_organisations, dependent: :destroy, inverse_of: :personal_access_token
@@ -59,6 +73,12 @@ class PersonalAccessToken < ApplicationRecord
   validates :expires_at, presence: true
   # On create only: tokens made before the limit keep working until they expire.
   validate :expires_within_max_lifetime, on: :create
+  validates :kind, inclusion: { in: KINDS }
+  # Set when the token is made and never after: a personal token must not turn
+  # into a device (the whole account, writing, an expiry that moves), nor a
+  # device into a token its owner may rename.
+  attr_readonly :kind
+  validate :app_session_reaches_the_account_and_writes
   validate :must_have_at_least_one_organisation_scope
   validate :no_organisation_links_with_all_organisations
   validate :scoped_projects_must_belong_to_scoped_organisations
@@ -66,6 +86,8 @@ class PersonalAccessToken < ApplicationRecord
   scope :active, lambda {
     where(revoked_at: nil).where('expires_at > ?', Time.current)
   }
+
+  scope :app_sessions, -> { where(kind: APP_SESSION) }
 
   attr_reader :token
 
@@ -103,8 +125,57 @@ class PersonalAccessToken < ApplicationRecord
     where(user_id: user.id, revoked_at: nil).update_all(revoked_at: Time.current)
   end
 
+  # Revokes the live device tokens of the user that were unused longest, until
+  # one more fits under MAX_APP_SESSIONS. Never a personal token: its owner made
+  # it on purpose and set its expiry. A device never used counts from the day it
+  # was made. Locks the user's row first, so two sign-ins at once count the same
+  # devices one after the other; call it inside the transaction that creates the
+  # new token. The lock is FOR NO KEY UPDATE: it holds another sign-in back, and
+  # not a row that only points at the user (an activity, a notification).
+  #
+  # Revokes in one statement without validation, like .revoke_all_for!: a device
+  # row that no longer passes a validation must still make room, or every later
+  # sign-in of the account would fail on it.
+  #
+  # @return [Array<PersonalAccessToken>] the tokens revoked, as read before the write
+  def self.make_room_for_app_session!(user)
+    transaction do
+      User.where(id: user.id).lock('FOR NO KEY UPDATE').pick(:id)
+      live = active.app_sessions.where(user_id: user.id)
+                   .order(Arel.sql('COALESCE(last_used_at, created_at) ASC, created_at ASC, id ASC')).to_a
+      surplus = live.first([live.size - MAX_APP_SESSIONS + 1, 0].max)
+      where(id: surplus.map(&:id)).update_all(revoked_at: Time.current) if surplus.any?
+      surplus
+    end
+  end
+
   def revoke!
     update!(revoked_at: Time.current)
+  end
+
+  def app_session?
+    kind == APP_SESSION
+  end
+
+  # The moment a device token ends whatever its use. nil for a personal token,
+  # which ends at expires_at and nowhere else.
+  def ends_at
+    return nil unless app_session?
+
+    (created_at || Time.current) + APP_SESSION_MAX_AGE
+  end
+
+  # Notes a use of the token. For a device token the same statement moves
+  # expires_at: MAX_LIFETIME from now, at most #ends_at. update_columns on
+  # purpose: no callbacks and no validation, the caller throttles it
+  # (Api::TokenAuthenticatable). A token that is over stays over: without this
+  # check a use would move an expired device back into its 90 days.
+  def record_use!(now = Time.current)
+    return false unless active?
+
+    changes = { last_used_at: now }
+    changes[:expires_at] = [now + MAX_LIFETIME, ends_at].min if app_session?
+    update_columns(changes)
   end
 
   def active?
@@ -233,6 +304,15 @@ class PersonalAccessToken < ApplicationRecord
     return if expires_at.blank? || expires_at <= MAX_LIFETIME.from_now
 
     errors.add(:expires_at, :beyond_max_lifetime, days: MAX_LIFETIME.in_days.to_i)
+  end
+
+  # A device token that could only read could not send, and one limited to some
+  # organisations would need somebody to keep that list.
+  def app_session_reaches_the_account_and_writes
+    return unless app_session?
+    return if all_organisations? && !read_only?
+
+    errors.add(:base, :app_session_shape)
   end
 
   def must_have_at_least_one_organisation_scope

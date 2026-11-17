@@ -225,6 +225,7 @@ en:
           no_organisation_scope: "At least one organisation must be selected."
           project_outside_scoped_organisations: "Projects must belong to one of the selected organisations."
           organisation_links_with_all_organisations: "A token for all organisations cannot also select single organisations or projects."
+          app_session_shape: "A device's token always reaches all organisations and may write."
         document_version:
           attributes:
             document_version_file:

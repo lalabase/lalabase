@@ -1,9 +1,9 @@
 {
   "header": {
     "regenerate": "RAILS_ENV=test bin/rails mcp:contract",
-    "core_commit": "6035dcdfbb940b476f3505d45000844fd258acee",
+    "core_commit": "0591f9c1418d5e0431a47a70b9102f892bb53391",
     "core_dirty": false,
-    "contract_sha256": "33df61c255e2c300ca0fdbf4f5b679ff0c4e7f024910c4dd1589b92e62375145"
+    "contract_sha256": "8772a22eb06eb957438c5147c97fa3fa14c805899686ffd1155f00ffdecc641c"
   },
   "contract": {
     "mcp": {
@@ -5278,7 +5278,9 @@
                   "prefix": "lalab_pat_Wr",
                   "all_organisations": false,
                   "read_only": false,
+                  "kind": "personal",
                   "expires_at": "2026-02-04T09:34:00Z",
+                  "ends_at": null,
                   "last_used_at": "2026-01-05T09:36:00Z"
                 },
                 "scoped_organisations": [
@@ -5288,7 +5290,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.12.0",
+                "api_version": "1.13.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",
@@ -5349,7 +5351,9 @@
                   "prefix": "lalab_pat_Rd",
                   "all_organisations": false,
                   "read_only": true,
+                  "kind": "personal",
                   "expires_at": "2026-02-04T09:35:00Z",
+                  "ends_at": null,
                   "last_used_at": "2026-01-05T09:36:00Z"
                 },
                 "scoped_organisations": [
@@ -5359,7 +5363,7 @@
                     "all_projects": true
                   }
                 ],
-                "api_version": "1.12.0",
+                "api_version": "1.13.0",
                 "capabilities": [
                   "error_codes",
                   "idempotency",

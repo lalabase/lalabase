@@ -65,6 +65,9 @@ en:
           status_active: Active
           status_expired: Expired
           status_revoked: Revoked
+          kind_app_session: App
+          expires_after_last_use: "%{days} days after the last use"
+          ends_at: Ends at the latest
           scope_all_projects: All projects
           scope_all_organisations: All organisations (including future ones)
           scope_n_projects:
@@ -81,6 +84,7 @@ en:
             point_purpose: Only for connecting external programs, such as an AI assistant that works directly with your projects.
             point_scope: "You decide exactly what a token may access: which organisations and projects, read-only or read-write, and how long it stays valid."
             point_permissions: A token can never see or do more than you can yourself. You can revoke it at any time.
+            point_devices: "When you sign in from an app, its access shows here as a device. It reaches all your organisations, may write, and expires %{days} days after its last use. Revoking it signs the device out."
             not_title: What this is NOT
             not_body: Not a login and not an invitation for colleagues. For normal use of Lalabase in your browser you don't need anything here.
             reassure: Not sure whether you need this? Then you very likely don't.

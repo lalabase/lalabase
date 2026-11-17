@@ -60,6 +60,13 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 - `TRADEMARKS.md` says what forks and hosts may do with the name and the logo: talk about
   Lalabase, run it and build on it, but not call their own version or service Lalabase or
   make it look official. The AGPL covers the code, not the name (#102).
+- Access tokens have a kind. A token made on the token page is `personal`, as every existing
+  token is. The new kind `app_session` is the token of a device that signed in through an
+  app: it reaches the whole account, may write, and expires 90 days after its last use, at
+  the latest a year after it was made. The token page marks such a device and revokes it,
+  but does not rename it. `GET /api/v1/me` names `token.kind` and `token.ends_at`, and the
+  data export lists the kind. No token changes by this update: nothing hands out a device
+  token yet. API version 1.13.0.
 
 ### Changed
 

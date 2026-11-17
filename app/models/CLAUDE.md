@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-11-12)
+# Karte: app/models (Stand: 2026-11-16)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -267,7 +267,13 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   welche Organisationen ein Token erreicht, beantwortet NUR `#organisation_scopes`, auch für
   `all_organisations`, nie die Verknüpfungszeilen selbst; `#deactivated_member_of?` (K4c) öffnet nichts,
   es sagt einer Tür nur, dass eine genannte Organisation wegen deaktivierter Mitgliedschaft fehlt, damit
-  das Glossar sie als fehlendes Recht ablehnt, 403 statt 404),
+  das Glossar sie als fehlendes Recht ablehnt, 403 statt 404; seit K6a (16.11.2026) hat ein Token eine
+  Art, `kind`: `personal` von der Token-Seite, `app_session` für ein Gerät. Ein Geräte-Token gilt immer
+  für das ganze Konto und schreibt (das Modell prüft die Form), sein `expires_at` rückt bei Nutzung vor
+  (`#record_use!`: 90 Tage ab jetzt, höchstens `#ends_at` = ein Jahr nach `created_at`), ein persönliches
+  rückt nie vor. `.make_room_for_app_session!` widerruft unter einer Sperre der Benutzerzeile das am
+  längsten unbenutzte Gerät, sobald das elfte käme, nie ein persönliches Token. Ändern darf ein Gerät
+  niemand: `PersonalAccessTokenPolicy#update?`),
   `content_embedding` (Sidecar-Vektor je Record je Raum), `embedding_space` (ein von der Org
   GEHALTENER Vektorraum: Tripel + verschlüsselter Credential-Snapshot; welcher davon die Suche
   bedient, sagt `organisations.active_embedding_space_id`),

@@ -24,8 +24,10 @@ module Api
       # (R8); 1.11.0 adds terms.list, the working terms of an organisation's
       # glossary (K4c); 1.12.0 adds meetings.glossary_replacements, the list of
       # what a device replaced from the glossary, on meetings.create and
-      # meetings.show (K4d).
-      API_VERSION = '1.12.0'
+      # meetings.show (K4d); 1.13.0 adds token.kind and token.ends_at on me.show,
+      # fields and no capability: a device token (kind app_session) lives while
+      # it is used, until ends_at.
+      API_VERSION = '1.13.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {

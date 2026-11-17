@@ -233,6 +233,7 @@ de:
           no_organisation_scope: "Mindestens eine Organisation muss ausgewählt sein."
           project_outside_scoped_organisations: "Projekte müssen zu einer der ausgewählten Organisationen gehören."
           organisation_links_with_all_organisations: "Ein Zugang für alle Organisationen kann keine einzelnen Organisationen oder Projekte auswählen."
+          app_session_shape: "Der Zugang eines Geräts gilt immer für alle Organisationen und darf schreiben."
         document_version:
           attributes:
             document_version_file:

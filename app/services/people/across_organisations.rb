@@ -14,6 +14,13 @@ module People
   # * One person per account: member entries with the same account are one row with several
   #   sources. Computed here on every read, stored nowhere. A contact is a row of its own,
   #   whatever its name: two rows called alike in two organisations stay two.
+  # * The viewer's own merges (PersonGroup) join more: every entry a group names that this
+  #   read returned joins the other entries of that group. A group is held by id against
+  #   the entries of the directories, never loaded from: an entry the viewer cannot see
+  #   just now (no right there any more, the row gone) is not shown and not counted, and
+  #   a group with one visible entry is an ordinary row. The group itself stays as it is.
+  #   The account rule comes first and is never undone; an entry joins a person only while
+  #   that person has no source of its organisation yet (one source per organisation).
   # * The search is the directory's own (People::Directory#matches?), asked per organisation.
   #   A match on any entry shows the whole person: the other sources come from the full
   #   directory of their organisation, not from the filtered one.
@@ -39,7 +46,9 @@ module People
     # One person. name, kind: of the first source (the sources stand in the order of the
     # organisations' names). function, department, company: of the first source that has
     # one. last_contact: { on:, kind: } of People::Lookup.row, the newest of the sources.
-    Row = Data.define(:name, :kind, :function, :department, :company, :last_contact, :sources, :avatar_user)
+    # merge_id: the id of the viewer's merge that joined sources of this row, nil for a row
+    # no merge joined (also one the account rule alone made).
+    Row = Data.define(:name, :kind, :function, :department, :company, :last_contact, :sources, :avatar_user, :merge_id)
 
     # One entry of one organisation. fields: People::Lookup.row of the entry, its :id the
     # entry's address ("person:<uuid>" or "member:<uuid>"). lane: what opens the entry on
@@ -47,7 +56,7 @@ module People
     Source = Data.define(:organisation_id, :organisation_name, :lane, :fields)
 
     # One entry while the list is built: never handed out.
-    Candidate = Struct.new(:organisation, :listing, :entry, :group, :matched)
+    Candidate = Struct.new(:organisation, :listing, :entry, :group, :matched, :merge_id)
     private_constant :Candidate
 
     def self.call(viewer:, query: nil, org: nil, page: 1)
@@ -103,8 +112,58 @@ module People
     # listed when the search matched any of their entries.
     def merged_people(open)
       candidates = open.flat_map { |organisation, listing| candidates_in(organisation, listing) }
-      people = candidates.group_by(&:group).values.select { |sources| sources.any?(&:matched) }
+      people = joined_by_merges(candidates).select { |sources| sources.any?(&:matched) }
       people.each_with_index.sort_by { |sources, index| [sources.first.entry.sort_name, index] }.map(&:first)
+    end
+
+    # The account rule first (one list per account or contact), then the viewer's merges on
+    # top of it. The sources of a person keep the order of the organisations' names, and
+    # the people the order of their first source.
+    def joined_by_merges(candidates)
+      people = candidates.group_by(&:group).values
+      merges = merges_among(candidates)
+      return people if merges.empty?
+
+      order = candidates.each_with_index.to_h.compare_by_identity
+      person_of = people.each_with_object({}.compare_by_identity) { |list, found| list.each { |one| found[one] = list } }
+      merges.each { |merge_id, named| join(named, merge_id, person_of) }
+      person_of.values.uniq(&:object_id).map { |list| list.sort_by { |one| order[one] } }
+               .sort_by { |list| order[list.first] }
+    end
+
+    # The viewer's merges as lists of the candidates they name, oldest merge first:
+    # [[merge id, candidates]]. ONE statement on a table without a tenant; the entries are
+    # held by id against what the directories returned (PersonGroupEntry.keys_for). With
+    # fewer than two organisations in the list there is nothing a merge could join.
+    def merges_among(candidates)
+      return [] if candidates.map(&:organisation).uniq.size < 2
+
+      named = PersonGroupEntry.owned_by(@viewer).order(:created_at, :id).pluck(:person_group_id, *PersonGroupEntry::KEY_COLUMNS)
+      return [] if named.empty?
+
+      by_key = candidates.each_with_object({}) do |candidate, found|
+        PersonGroupEntry.keys_for(candidate.organisation.id, candidate.entry).each { |key| found[key] = candidate }
+      end
+      named.group_by(&:first).filter_map do |merge_id, lines|
+        visible = lines.filter_map { |_id, *columns| by_key[PersonGroupEntry.key_of(*columns)] }.uniq(&:object_id)
+        [merge_id, visible] if visible.size > 1
+      end
+    end
+
+    # Joins the people of the candidates one merge names into the person of the first. A
+    # person that already holds a source of the same organisation stays apart: the account
+    # rule may have brought that source since the merge was written.
+    def join(named, merge_id, person_of)
+      target = person_of[named.first]
+      named.drop(1).each do |candidate|
+        other = person_of[candidate]
+        next if other.equal?(target) || target.map(&:organisation).intersect?(other.map(&:organisation))
+
+        target.concat(other).each do |one|
+          person_of[one] = target
+          one.merge_id ||= merge_id
+        end
+      end
     end
 
     # Every entry of the organisation, marked when the search matched it. Without a search
@@ -135,7 +194,9 @@ module People
 
     def rows_of(people)
       sources = sources_by_candidate(people.flatten)
-      people.map { |candidates| row_of(candidates.first.entry.user, sources.values_at(*candidates)) }
+      people.map do |candidates|
+        row_of(candidates.first.entry.user, sources.values_at(*candidates), candidates.first.merge_id)
+      end
     end
 
     # The sources of the page are read per organisation, under that tenant.
@@ -164,9 +225,10 @@ module People
                  lane: lane, fields: People::Lookup.row(entry).freeze)
     end
 
-    def row_of(account, sources)
+    def row_of(account, sources, merge_id)
       fields = sources.map(&:fields)
       Row.new(name: fields.first[:name], kind: fields.first[:kind], sources: sources.freeze, avatar_user: account,
+              merge_id: merge_id,
               last_contact: fields.filter_map { |row| row[:last_contact] }.max_by { |last| last[:on] },
               **first_values(fields))
     end

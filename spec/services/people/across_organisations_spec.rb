@@ -65,6 +65,7 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
   end
   let!(:north_contact) { person_in(north, name: 'Kai Kontakt', function: 'Einkauf', company: 'Nordlicht AG') }
   let!(:south_contact) { person_in(south, name: 'Kai Kontakt', function: 'Vertrieb', company: 'Suedwind AG') }
+  let(:west_contact) { person_in(west, name: 'Wanda West') }
   let!(:north_only) do
     person_in(north, name: 'Nora Nord', function: 'Leitung IT', company: 'Hosting AG',
                      email: 'nora@example.com', phone: '+49 30 5550199', notes: 'Bitte nicht vor zehn anrufen.')
@@ -146,6 +147,184 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
 
       expect(row.last_contact).to eq(on: 2.days.ago.in_time_zone.to_date.iso8601, kind: 'meeting')
       expect(row_named(list, 'Nora Nord').last_contact).to be_nil
+    end
+  end
+
+  # The viewer's own merges (PersonGroup): rows of different organisations they declared one
+  # human. A merge is held by id against what the directories returned, nothing is loaded
+  # from it.
+  describe 'the merges of the viewer' do
+    def merge_of(owner, *entries)
+      create(:person_group, owner: owner).tap do |group|
+        entries.each { |organisation, address| create(:person_group_entry, person_group: group, organisation: organisation, **address) }
+      end
+    end
+
+    def sources_of(result, name)
+      result.rows.select { |row| row.name == name }.map { |row| row.sources.map { |source| [source.organisation_name, source.fields[:id]] } }
+    end
+
+    it 'makes a group over two organisations one row with two sources, and names the merge' do
+      group = merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }])
+
+      result = list
+
+      expect(sources_of(result, 'Kai Kontakt'))
+        .to eq([[['Nord GmbH', "person:#{north_contact.id}"], ['Sued AG', "person:#{south_contact.id}"]]])
+      expect(row_named(result, 'Kai Kontakt').merge_id).to eq(group.id)
+      expect(result.total).to eq(4)
+      expect(names(result)).to eq(['Kai Kontakt', 'Mara Mitglied', 'Nora Nord', 'Vera Viewer'])
+    end
+
+    it 'shows the merge to its owner alone' do
+      merge_of(create(:user), [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }])
+
+      expect(sources_of(list, 'Kai Kontakt').size).to eq(2)
+      expect(list.rows.filter_map(&:merge_id)).to be_empty
+    end
+
+    it 'names no merge on a row the account rule alone made' do
+      result = list
+
+      expect(organisations_of(row_named(result, 'Mara Mitglied'))).to eq(['Nord GmbH', 'Sued AG'])
+      expect(result.rows.map(&:merge_id)).to all(be_nil)
+    end
+
+    # The union with the account rule: the group names the member in north only, and the
+    # same account in south comes along. The member of south has no row: named by account.
+    it 'pulls in the same account of another organisation when a group names a member' do
+      group = merge_of(viewer, [north, { person_id: north_row.id }], [west, { person_id: west_contact.id }])
+      Prosopite.pause { join_organisation(viewer, west, admin: true) }
+
+      row = row_named(list, 'Mara Mitglied')
+
+      expect(row.sources.map { |source| [source.organisation_name, source.fields[:id]] })
+        .to eq([['Nord GmbH', "member:#{shared.id}"], ['Sued AG', "member:#{shared.id}"], ['West KG', "person:#{west_contact.id}"]])
+      expect(row.merge_id).to eq(group.id)
+      expect(names(list)).not_to include('Wanda West')
+    end
+
+    # An entry stored by the account (the member had no row when the merge was written)
+    # names the member entry, whether that member has a row by now or not.
+    it 'matches a member stored by the account, without a row and with one' do
+      Prosopite.pause { join_organisation(viewer, west, admin: true) }
+      without_row = merge_of(viewer, [south, { user_id: shared.id }], [west, { person_id: west_contact.id }])
+
+      expect(organisations_of(row_named(list, 'Mara Mitglied'))).to eq(['Nord GmbH', 'Sued AG', 'West KG'])
+      expect(row_named(list, 'Mara Mitglied').merge_id).to eq(without_row.id)
+
+      without_row.destroy!
+      with_row = merge_of(viewer, [north, { user_id: shared.id }], [west, { person_id: west_contact.id }])
+
+      expect(organisations_of(row_named(list, 'Mara Mitglied'))).to eq(['Nord GmbH', 'Sued AG', 'West KG'])
+      expect(row_named(list, 'Mara Mitglied').merge_id).to eq(with_row.id)
+    end
+
+    context 'when a part of a group cannot be seen' do
+      let!(:group) do
+        merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }])
+      end
+
+      def expect_north_part_alone(result)
+        expect(sources_of(result, 'Kai Kontakt')).to eq([[['Nord GmbH', "person:#{north_contact.id}"]]])
+        expect(row_named(result, 'Kai Kontakt').merge_id).to be_nil
+        expect(leaves(result).grep(String)).not_to include('Sued AG', south.id, south_contact.id, "person:#{south_contact.id}")
+        expect(PersonGroupEntry.where(person_group_id: group.id).count).to eq(2)
+      end
+
+      it 'shows the visible part as an ordinary row when the people right is gone, and keeps the group' do
+        take_people_right(viewer, south)
+
+        result = list
+
+        expect_north_part_alone(result)
+        expect(result.total).to eq(4)
+      end
+
+      it 'does the same for a deactivated membership, and shows the merge again once it is active' do
+        membership = Membership.find_by!(user: viewer, organisation: south)
+        membership.update!(active: false)
+
+        expect_north_part_alone(list)
+
+        membership.update!(active: true)
+
+        expect(sources_of(list, 'Kai Kontakt').first.map(&:first)).to eq(['Nord GmbH', 'Sued AG'])
+      end
+
+      it 'drops the entry of a deleted row with the row and shows the other one alone' do
+        ActsAsTenant.with_tenant(south) { south_contact.destroy! }
+
+        result = list
+
+        expect(sources_of(result, 'Kai Kontakt')).to eq([[['Nord GmbH', "person:#{north_contact.id}"]]])
+        expect(row_named(result, 'Kai Kontakt').merge_id).to be_nil
+      end
+    end
+
+    it 'counts and shows three visible sources of a group of three' do
+      Prosopite.pause { join_organisation(viewer, west, admin: true) }
+      merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }],
+               [west, { person_id: west_contact.id }])
+
+      result = list
+
+      expect(sources_of(result, 'Kai Kontakt').first.map(&:first)).to eq(['Nord GmbH', 'Sued AG', 'West KG'])
+      expect(result.total).to eq(4)
+    end
+
+    # A member the account rule shows in north AND a contact of north in one group: the
+    # merge was written before the member joined north. One source per organisation.
+    it 'keeps one source per organisation when the account rule already brought one' do
+      merge_of(viewer, [south, { user_id: shared.id }], [north, { person_id: north_contact.id }])
+
+      result = list
+
+      expect(organisations_of(row_named(result, 'Mara Mitglied'))).to eq(['Nord GmbH', 'Sued AG'])
+      expect(sources_of(result, 'Kai Kontakt')).to include([['Nord GmbH', "person:#{north_contact.id}"]])
+      expect(result.rows.map(&:merge_id)).to all(be_nil)
+    end
+
+    it 'shows the whole merged person for a search that matches one entry only' do
+      merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }])
+
+      result = list(query: 'Suedwind')
+
+      expect(names(result)).to eq(['Kai Kontakt'])
+      expect(organisations_of(result.rows.first)).to eq(['Nord GmbH', 'Sued AG'])
+      expect(result.rows.first.sources.map { |source| source.fields[:company] }).to eq(['Nordlicht AG', 'Suedwind AG'])
+    end
+
+    it 'shows one source and no merge when the list is narrowed to one organisation' do
+      merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }])
+
+      row = row_named(list(org: south.id), 'Kai Kontakt')
+
+      expect([organisations_of(row), row.merge_id]).to eq([['Sued AG'], nil])
+    end
+
+    it 'reads the merges with one statement, however many there are, and loads no person from them' do
+      statements = lambda do
+        found = []
+        counter = ActiveSupport::Notifications.subscribe('sql.active_record') { |*, payload| found << payload[:sql] }
+        list
+        ActiveSupport::Notifications.unsubscribe(counter)
+        found
+      end
+      merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }])
+      one = statements.call
+      Prosopite.pause do
+        5.times do |number|
+          merge_of(viewer, [north, { person_id: person_in(north, name: "Nord #{number}").id }],
+                   [south, { person_id: person_in(south, name: "Sued #{number}").id }])
+        end
+      end
+      six = statements.call
+
+      expect(one.grep(/person_group/).size).to eq(1)
+      expect(six.grep(/person_group/).size).to eq(1)
+      expect(six.grep(/FROM "people"/).size).to eq(one.grep(/FROM "people"/).size)
+      expect(list.total).to eq(9)
     end
   end
 

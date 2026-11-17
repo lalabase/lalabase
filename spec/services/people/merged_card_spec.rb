@@ -381,6 +381,36 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(card_at(address_of(south, member: shared))).to eq(card)
     end
 
+    # The account joins the north and the south; a merge adds contacts. Nothing stored
+    # could take one of the account's two sources out, and with one contact there are
+    # two parts: taking the contact out would be undoing the merge.
+    describe 'merged with contacts' do
+      let(:east) { create(:organisation, name: 'Ost eG') }
+      let!(:west_contact) { person_in(west, name: 'M. Mitglied', email: nil) }
+      let!(:group) do
+        Prosopite.pause { join_organisation(viewer, west, admin: true) }
+        merge_of(viewer, [north, { person_id: north_row.id }], [west, { person_id: west_contact.id }])
+      end
+
+      it 'offers to take out neither a source of the account nor the one contact' do
+        expect(card.sources.map { |one| [one.organisation_name, one.kind] })
+          .to eq([['Nord GmbH', 'member'], ['Sued AG', 'member'], ['West KG', 'contact']])
+        expect(card.merge_id).to eq(group.id)
+        expect(card.sources.map(&:detachable)).to eq([false, false, false])
+      end
+
+      it 'offers to take out each of two contacts, and still no source of the account' do
+        Prosopite.pause do
+          join_organisation(viewer, east, admin: true)
+          east_contact = person_in(east, name: 'M. Mitglied', email: nil)
+          create(:person_group_entry, person_group: group, organisation: east, person_id: east_contact.id)
+        end
+
+        expect(card.sources.map { |one| [one.organisation_name, one.detachable] })
+          .to eq([['Nord GmbH', false], ['Ost eG', true], ['Sued AG', false], ['West KG', true]])
+      end
+    end
+
     # A member is on the members page as well, which asks another right. Seeing them
     # there is no right to their entry in the people directory: without the people right
     # the organisation contributes nothing to the card, a member's source included.

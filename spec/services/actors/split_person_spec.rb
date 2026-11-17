@@ -211,6 +211,66 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
       end
     end
 
+    # A member is stored by the row when they have one and by the account while they have
+    # none; a line written before the row existed still names the account. The source is
+    # addressed by the account either way ("member:<id>"), and by the row as well.
+    describe 'a source that is a member' do
+      let(:member) { create(:user, first_name: 'Mara', last_name: 'Mitglied') }
+
+      before do
+        Prosopite.pause { join_organisation(member, north) }
+        create(:person_group_entry, person_group: mine, organisation: west, person_id: west_row.id)
+        PersonGroupEntry.where(person_group_id: mine.id, organisation_id: north.id).delete_all
+      end
+
+      def member_address
+        "#{north.id}:member:#{member.id}"
+      end
+
+      def expect_member_taken_out(source)
+        result = nil
+        expect { result = take_out(source) }.to change { PersonGroupEntry.where(person_group_id: mine.id).count }.from(3).to(2)
+
+        expect(result).to be_success
+        expect(entries(mine)).to eq([south.id, west.id].sort)
+        expect(entries(theirs).size).to eq(2)
+      end
+
+      it 'takes out a member without a row, stored by the account' do
+        create(:person_group_entry, person_group: mine, organisation: north, user_id: member.id)
+
+        expect_member_taken_out(member_address)
+      end
+
+      it 'takes out a member stored by their row, named by the account or by the row' do
+        row = person_in(north, user: member, name: 'Mara Mitglied')
+        create(:person_group_entry, person_group: mine, organisation: north, person_id: row.id)
+
+        expect_member_taken_out(member_address)
+
+        create(:person_group_entry, person_group: mine, organisation: north, person_id: row.id)
+        expect_member_taken_out("#{north.id}:person:#{row.id}")
+      end
+
+      it 'takes out a member whose line still names the account although they have a row by now' do
+        person_in(north, user: member, name: 'Mara Mitglied')
+        create(:person_group_entry, person_group: mine, organisation: north, user_id: member.id)
+
+        expect_member_taken_out(member_address)
+      end
+
+      it 'takes out nothing of another account' do
+        create(:person_group_entry, person_group: mine, organisation: north, user_id: member.id)
+        stranger = create(:user)
+        Prosopite.pause { join_organisation(stranger, north) }
+        result = nil
+
+        expect { result = take_out("#{north.id}:member:#{stranger.id}") }.not_to(change { PersonGroupEntry.count })
+
+        expect([result.success?, result.code]).to eq([false, :not_found])
+      end
+    end
+
     it 'dissolves a merge of two when one of them is taken out' do
       result = take_out(address(south, south_row))
 

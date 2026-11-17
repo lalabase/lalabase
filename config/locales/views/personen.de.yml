@@ -11,6 +11,13 @@ de:
         stale: "Jemand anderes hat diese Person inzwischen geändert. Unten stehen die aktuellen Angaben, bitte noch einmal ändern."
       destroy:
         success: "Person gelöscht."
+      merge:
+        success: "Zusammengeführt. Das siehst nur du; in den Organisationen ändert sich nichts."
+        too_few: "Wähle mindestens zwei Personen aus."
+        same_organisation: "Zwei Einträge derselben Organisation lassen sich nicht zusammenführen. Dubletten bereinigst du im Verzeichnis der Organisation."
+        conflict: "Das hat sich mit einer anderen Änderung überschnitten. Bitte versuche es noch einmal."
+      split:
+        success: "Zusammenführung aufgehoben. Die Einträge stehen wieder einzeln in deiner Liste."
       takeover:
         success: "Übernommen aus %{source}."
         failed: "Diese Person ließ sich nicht übernehmen."
@@ -32,6 +39,18 @@ de:
         function: "Funktion"
         organisations: "Organisationen"
         last_contact: "Letzter Kontakt"
+        select: "Auswahl"
+        actions: "Aktionen"
+      merge:
+        select: "%{name} auswählen"
+        selected: "ausgewählt"
+        submit: "Zusammenführen"
+        submitting: "Wird zusammengeführt …"
+        hint: "Nur für dich sichtbar. In den Organisationen ändert sich nichts."
+        clear: "Auswahl aufheben"
+        more_actions: "Weitere Aktionen für %{name}"
+        split: "Zusammenführung aufheben"
+        split_confirm: "Zusammenführung von %{name} aufheben? Die Einträge stehen danach wieder einzeln in deiner Liste. In den Organisationen ändert sich nichts."
       chip:
         open: "%{name} in %{organisation} öffnen"
       empty:

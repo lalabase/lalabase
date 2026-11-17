@@ -11,6 +11,13 @@ en:
         stale: "Someone else changed this person in the meantime. The current details are shown below, please make your change again."
       destroy:
         success: "Person deleted."
+      merge:
+        success: "Merged. Only you see this; nothing changes in the organisations."
+        too_few: "Choose at least two people."
+        same_organisation: "Two entries of the same organisation cannot be merged. Clean up duplicates in the directory of the organisation."
+        conflict: "This collided with another change. Please try again."
+      split:
+        success: "Merge undone. The entries stand on their own in your list again."
       takeover:
         success: "Taken over from %{source}."
         failed: "This person could not be taken over."
@@ -32,6 +39,18 @@ en:
         function: "Function"
         organisations: "Organisations"
         last_contact: "Last contact"
+        select: "Selection"
+        actions: "Actions"
+      merge:
+        select: "Select %{name}"
+        selected: "selected"
+        submit: "Merge"
+        submitting: "Merging …"
+        hint: "Only you see this. Nothing changes in the organisations."
+        clear: "Clear selection"
+        more_actions: "More actions for %{name}"
+        split: "Undo merge"
+        split_confirm: "Undo the merge of %{name}? The entries will stand on their own in your list again. Nothing changes in the organisations."
       chip:
         open: "Open %{name} in %{organisation}"
       empty:

@@ -412,6 +412,23 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
         expect(response.body).to include(CGI.escapeHTML(I18n.t('views.organisations.people.takeover.merge_instead_hint')))
       end
 
+      # Two targets with a namesake each: the question names the target it was asked for,
+      # and so do the offers under it, whichever of the two the list draws first.
+      it 'offers the namesakes of the chosen target only' do
+        aachen = create(:organisation, name: 'Aachen AG')
+        takeover_join(reader, aachen, 'manage_people')
+        theirs = takeover_person(aachen, name: 'Herr Schmidt')
+
+        offered = lambda do |target|
+          submit(target: target.id)
+          expect(response).to have_http_status(:unprocessable_content)
+          Nokogiri::HTML(response.body).css('button[name="merge_with"]').pluck('value')
+        end
+
+        expect(offered.call(south)).to eq(["person:#{existing.id}"])
+        expect(offered.call(aachen)).to eq(["person:#{theirs.id}"])
+      end
+
       it 'offers a member of the same name by the address of the member' do
         namesake = takeover_join(create(:user, first_name: 'Herr', last_name: 'Schmidt'), south)
         takeover_join(reader, create(:organisation, name: 'Ost eG'), 'view_people')

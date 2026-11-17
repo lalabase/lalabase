@@ -452,6 +452,29 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
       expect([PersonGroup.count, PersonGroupEntry.count]).to eq([0, 0])
     end
 
+    # The takeover locks the viewer's account only, before it writes the copy. A source that
+    # got an account meanwhile would make the merge lock one more, after the owner's lock:
+    # the order an erasure waits in. The merge refuses that instead, and the copy stays.
+    it 'still creates the copy and writes no merge when the source got an account meanwhile' do
+      member = takeover_join(create(:user), north)
+      # An account admin of the source sees the member's row, so the merge can read it.
+      ActsAsTenant.with_tenant(north) do
+        Membership.find_by!(user: viewer, organisation: north).role.update!(title: Role::ACCOUNT_ADMIN_TITLE)
+      end
+      merge_result = nil
+      allow(Actors::MergePeople).to receive(:call).and_wrap_original do |call, **arguments|
+        ActsAsTenant.with_tenant(north) { Person.where(id: source.id).update_all(user_id: member.id) }
+        merge_result = call.call(**arguments)
+      end
+
+      result = nil
+      expect { result = take_over }.to change { takeover_count(south) }.by(1)
+
+      expect(merge_result.code).to eq(Actors::MergePeople::CONFLICT)
+      expect([result.success?, result.code]).to eq([true, described_class::MERGE_FAILED])
+      expect([PersonGroup.count, PersonGroupEntry.count]).to eq([0, 0])
+    end
+
     it 'carries that code as well when the merge cannot read the copy' do
       allow(Actors::MergePeople).to receive(:call)
         .and_return(Actors::BaseActor::Result.new(success: false, errors: ['x'], code: Actors::MergePeople::NOT_FOUND))

@@ -127,6 +127,17 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
       expect(response).to redirect_to(all_people_path(q: 'kai', page: '3'))
     end
 
+    # A page travels only as a whole number from 2 to six digits: the first page is the
+    # list without one, and nothing longer can be a page of this list.
+    { '2' => '2', '123456' => '123456', '1' => nil, '0' => nil, '007' => nil, '1234567' => nil, '-2' => nil }
+      .each do |sent, kept|
+      it "carries the page #{sent.inspect} back as #{kept.inspect}" do
+        merge(source(people[:north]), source(people[:south]), page: sent)
+
+        expect(response).to redirect_to(all_people_path(page: kept))
+      end
+    end
+
     it 'keeps only a list state that is one: no address of another page, no list in place of a text' do
       merge(source(people[:north]), source(people[:south]), q: ['kai'], org: { id: north.id }, page: '//example.com')
 

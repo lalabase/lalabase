@@ -21,6 +21,10 @@ RSpec.describe PersonGroup, :ci_guard do
     expect { described_class.insert_all!([{ owner_id: nil }]) }.to raise_error(ActiveRecord::NotNullViolation)
   end
 
+  it 'refuses a group whose owner is no account in the database' do
+    expect { described_class.insert_all!([{ owner_id: SecureRandom.uuid }]) }.to raise_error(ActiveRecord::InvalidForeignKey)
+  end
+
   describe '.leftover' do
     it 'names the groups that join fewer than two entries' do
       whole = create(:person_group, owner: owner)

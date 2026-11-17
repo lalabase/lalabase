@@ -165,16 +165,27 @@ RSpec.describe PersonLinkRelease, type: :model do
       # that read raises is not the leaving member's business either: until 2026-11-17 only
       # three refusals of the database were undone, and anything else stopped the removal
       # (and with it the erasure of an account, which removes every membership).
-      it 'treats a statement the database gave up on like any other refusal' do
-        allow(PersonGroupEntry).to receive(:settle_for_owner)
-          .and_raise(ActiveRecord::QueryCanceled, 'canceling statement due to statement timeout')
+      # Written out here, not read from PersonGroupEntry::REFUSALS: a class dropped from that
+      # list must turn its line red. Deadlocked and SerializationFailure stand for
+      # TransactionRollbackError, the class the list names.
+      {
+        'a unique index' => ActiveRecord::RecordNotUnique,
+        'a foreign key' => ActiveRecord::InvalidForeignKey,
+        'a deadlock the database broke' => ActiveRecord::Deadlocked,
+        'a serialization failure' => ActiveRecord::SerializationFailure,
+        'a statement the database gave up on' => ActiveRecord::QueryCanceled,
+        'a lock it gave up waiting for' => ActiveRecord::LockWaitTimeout
+      }.each do |what, refusal|
+        it "treats #{what} like any other refusal" do
+          allow(PersonGroupEntry).to receive(:settle_for_owner).and_raise(refusal, 'refused')
 
-        expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
+          expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
 
-        expect(Membership.where(user: user, organisation: organisation)).not_to exist
-        expect(row.reload.user_id).to be_nil
-        expect(address(entry)).to eq([nil, user.id])
-        expect(address(theirs)).to eq([row.id, nil])
+          expect(Membership.where(user: user, organisation: organisation)).not_to exist
+          expect(row.reload.user_id).to be_nil
+          expect(address(entry)).to eq([nil, user.id])
+          expect(address(theirs)).to eq([row.id, nil])
+        end
       end
 
       context 'when the read of that owner raises something the database did not refuse' do

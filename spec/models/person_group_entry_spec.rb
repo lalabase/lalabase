@@ -191,7 +191,13 @@ RSpec.describe PersonGroupEntry, :ci_guard do
       expect(keys['person_groups']).to eq([%w[person_group_id owner_id], %w[id owner_id], :cascade])
       expect(keys['people']).to eq([%w[person_id organisation_id], %w[id organisation_id], :cascade])
       expect(keys['organisations']).to eq([%w[organisation_id], %w[id], :cascade])
-      expect(keys['users'].first).to eq(%w[user_id])
+      # No cascade on the account: a soft delete fires no key anyway, and the erasure
+      # deletes these lines itself (PersonalDataErasure#erase_person_groups!).
+      expect(keys['users']).to eq([%w[user_id], %w[id], nil])
+    end
+
+    it 'refuses an entry that names an account that does not exist' do
+      expect { insert(user_id: SecureRandom.uuid) }.to raise_error(ActiveRecord::InvalidForeignKey)
     end
   end
 

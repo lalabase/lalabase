@@ -488,6 +488,74 @@ RSpec.describe Actors::MergePeople, :ci_guard do
     end
   end
 
+  # The viewer's notes about a part they cannot see just now (no people right there any
+  # more): the merge keeps them with the person while their organisation is free, and
+  # never lets them break the merge.
+  describe 'a line of a part that is hidden just now' do
+    let(:far) { create(:organisation, name: 'Fern AG') }
+    let!(:far_row) { person_in(far, name: 'Kai Kontakt') }
+
+    before { Prosopite.pause { join_organisation(viewer, far, admin: true) } }
+
+    # The group of each row, in the order given; nil for a row the viewer holds no line of.
+    def groups_of(*people)
+      PersonGroupEntry.where(owner_id: viewer.id, person_id: people.map(&:id)).pluck(:person_id, :person_group_id)
+                      .to_h.values_at(*people.map(&:id))
+    end
+
+    it 'follows the person into the group the merge keeps' do
+      kept = Prosopite.pause { merge(row(north_row), row(west_row)).resource }
+      expect(Prosopite.pause { merge(row(south_row), row(far_row)) }).to be_success
+      Prosopite.pause { take_people_right(viewer, far) }
+
+      result = merge(row(north_row), row(south_row))
+
+      expect(result).to be_success
+      expect(result.resource).to eq(kept)
+      expect(groups_of(north_row, west_row, south_row, far_row).uniq).to eq([kept.id])
+      expect(PersonGroup.where(owner_id: viewer.id).pluck(:id)).to eq([kept.id])
+    end
+
+    it 'stays behind when the kept group holds a hidden line of its organisation already, and the merge goes through' do
+      second_far = person_in(far, name: 'K. Kontakt (Fern)')
+      kept = Prosopite.pause { merge(row(north_row), row(far_row)).resource }
+      expect(Prosopite.pause { merge(row(south_row), row(second_far)) }).to be_success
+      Prosopite.pause { take_people_right(viewer, far) }
+
+      result = merge(row(north_row), row(south_row))
+
+      expect([result.success?, result.code]).to eq([true, :ok])
+      expect(groups_of(north_row, south_row, far_row).uniq).to eq([kept.id])
+      # Its group was left with one line and went the way of every leftover.
+      expect(stored).not_to include([far.id, second_far.id, nil])
+    end
+  end
+
+  # A group whose lines the list shows in two rows: the account rule gave the person of its
+  # first line a source of the organisation of its second line. A new merge of the second
+  # row must not use that group, or the new source joins the person of the first line.
+  describe 'a group that the list shows in two rows' do
+    before { Prosopite.pause { [north, south].each { |organisation| join_organisation(shared, organisation) } } }
+
+    def shown
+      People::AcrossOrganisations.call(viewer: User.find(viewer.id)).rows
+                                 .map { |shown_row| [shown_row.name, shown_row.sources.map(&:organisation_id)] }
+    end
+
+    it 'leaves that group and merges the row with the new one' do
+      split = create(:person_group, owner: viewer)
+      create(:person_group_entry, person_group: split, organisation: north, user_id: shared.id)
+      create(:person_group_entry, person_group: split, organisation: south, person_id: south_row.id)
+      expect(shown).to include(['Mara Mitglied', [north.id, south.id]], ['Kai Kontakt', [south.id]])
+
+      result = merge(row(south_row), row(west_row))
+
+      expect(result).to be_success
+      expect(result.resource).not_to eq(split)
+      expect(shown).to include(['Mara Mitglied', [north.id, south.id]], ['Kai Kontakt', [south.id, west.id]])
+    end
+  end
+
   # Members with one account are one person in the list. A merge that named one of them
   # found only the lines of that entry: it wrote a second group for the person the list
   # showed as one, or a merge the list never showed.

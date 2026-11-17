@@ -8,8 +8,10 @@
     The ticks say WHICH fields travel; the values shown are the source row's and
     are not sent: the server reads them again from the row. A field without a
     value is not offered. The name always travels. The form leaves the frame
-    (_top), so a copy opens on the target's page. Turbo disables the submit
-    while it is sent, so a double click sends once.
+    (_top), so a copy opens on the target's page. While it is sent, every
+    submit button of the form is disabled (the controller's lock), so a second
+    click sends nothing: Turbo alone disables only the button that sent it,
+    and Enter sends through the default button below, which nobody sees.
 
     Under the duplicate question stands "merge instead", one button per
     same-named entry of the target (duplicates: { id:, name: }). It is a second
@@ -62,7 +64,9 @@
         </div>
 
         <%= form_with url: organisation_person_takeover_path(current_organisation, person), method: :post,
-                      id: "#{modal_id}-form", class: 'space-y-4 p-5', data: { turbo_frame: '_top' } do %>
+                      id: "#{modal_id}-form", class: 'space-y-4 p-5',
+                      data: { turbo_frame: '_top',
+                              action: 'turbo:submit-start->person-takeover-modal#lock turbo:submit-end->person-takeover-modal#unlock' } do %>
           <%= hidden_field_tag :modal_token, token, id: nil %>
           <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true" data-person-takeover-default></button>
 

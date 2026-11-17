@@ -150,6 +150,30 @@ RSpec.describe 'Taking a contact over into another organisation', :people_takeov
       expect(groups).not_to include([south.id, existing.id])
     end
 
+    # Turbo disables the button that sent the form, and no other. Enter sends through the
+    # default button nobody sees, so until 2026-11-17 "Trotzdem anlegen" and the offers to
+    # merge stayed live while the request ran: a click on one of them sent the form a
+    # second time and made a second copy. What the buttons were at the moment the request
+    # started is read at that moment, by a listener above the dialog.
+    it 'locks every button of the form while it is sent' do
+      open_dialog
+      click_button I18n.t("#{scope}.submit")
+      expect(page).to have_button(I18n.t("#{scope}.merge_instead", name: 'Herr Schmidt'))
+      page.execute_script(<<~JS)
+        window.takeoverButtonsWhileSent = null
+        document.addEventListener("turbo:submit-start", (event) => {
+          window.takeoverButtonsWhileSent =
+            Array.from(event.target.querySelectorAll('button[type="submit"]')).map((button) => button.disabled)
+        }, { once: true })
+      JS
+
+      find(function_tick).send_keys(:enter)
+
+      expect(page).to have_text(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
+      expect(page.evaluate_script('window.takeoverButtonsWhileSent')).to eq([true, true, true])
+      expect(copies_in_south).to eq(2)
+    end
+
     it 'takes over into the target chosen after the question, not into the one the question was about' do
       west = create(:organisation, name: 'West AG')
       takeover_join(reader, west, 'manage_people')

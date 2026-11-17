@@ -14,6 +14,10 @@ import TicketRelationModalController from "controllers/ticket_relation_modal_con
  *   it and the button says "Übernehmen" again (the server asks again for the new target).
  *   The offers to merge instead stand inside the question; hidden with it they are disabled
  *   too, because a form sends a hidden submit button as readily as a shown one;
+ * - while the form is sent, none of its buttons sends it again (lock, unlock). Turbo
+ *   disables the button that sent it and no other, and Enter sends through the default
+ *   button nobody sees: "Übernehmen" and the offers stayed live, and a click on one of
+ *   them made a second copy;
  * - the menu entry that opened it sits in a <details> menu, which this controller closes on
  *   opening (a click inside does not close it, and Escape belongs to the modal), so the focus
  *   goes back to the "···" button (returnId), never to the hidden entry.
@@ -47,6 +51,25 @@ export default class extends TicketRelationModalController {
     if (this.hasSubmitTarget) {
       this.submitTarget.textContent = asked ? this.submitTarget.dataset.confirmLabel : this.submitTarget.dataset.submitLabel
     }
+  }
+
+  // turbo:submit-start of the form. What is sent was read from the form before this
+  // event, so disabling a button here takes nothing out of the request. The button that
+  // sent the form is Turbo's own and disabled already; a hidden offer is too.
+  lock(event) {
+    this.locked = Array.from(event.target.querySelectorAll('button[type="submit"]')).filter((button) => !button.disabled)
+    this.locked.forEach((button) => { button.disabled = true })
+  }
+
+  // turbo:submit-end. After a success the page is on its way to another one, and the
+  // buttons stay as they are until it comes. Anything else that leaves this dialog
+  // standing (the connection failed) gives them back.
+  unlock(event) {
+    if (event.detail && event.detail.success) return
+
+    const locked = this.locked || []
+    this.locked = []
+    locked.forEach((button) => { button.disabled = false })
   }
 
   // The "···" button, not the entry inside the closed menu.

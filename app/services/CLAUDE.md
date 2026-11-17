@@ -352,7 +352,7 @@ Verzeichnis-Übersicht (Auswahl):
   entry, the matches of a search and the last contacts of a given list from ONE
   `People::Directory`), skipped unless `#allowed?`. ⚠️ No read with the tenant lifted, in no
   file of the feature: `spec/architecture/people_above_organisations_guard_spec.rb` names
-  the files, a later part (merging rows, the card) adds its own. A reference is not a
+  the files, merging rows and the card added their own. A reference is not a
   right: an organisation without the people right contributes nothing and is not named,
   and as `org` it answers like an unknown one (`UnknownOrganisation`, a 404 in the
   controller). Member entries with the same account are one row (computed, never stored); a
@@ -384,6 +384,24 @@ Verzeichnis-Übersicht (Auswahl):
   carries the message of an exception. The rules, the lock order and their reasons stand
   in the headers of `across_organisations.rb`, `merge_people.rb`, `split_person.rb` and
   `take_over_person.rb`, not here.
+  The card (2026-11-17): `merged_card.rb` (`People::MergedCard.call(viewer:, address:,
+  across: nil)`) reads ONE person for the lane of `/people`: every source the list shows as
+  that person (`AcrossOrganisations#shown_at`, which runs the card's block once per source
+  UNDER THE TENANT OF ITS ORGANISATION), each through `People::Lookup.card(entry, notes:
+  true)`. `address` is `"<organisation id>:<entry address>"` of any source; what names
+  nobody the viewer can see answers nil, whatever the reason. Per field the distinct values
+  with their sources: equal without whitespace (an email also without case), shown as the
+  first source wrote them, and a value some sources lack is the last entry without a text
+  (a missing value is a difference). ⚠️ The right to write is asked inside the block
+  (`PersonPolicy#update?` reads the tenant of the thread) and leaves as a flag and as the
+  lane state of that organisation's people page (`{ edit: }`, or `{ new:, user_id: }` for a
+  member without a row); none at a member's name and email (`ACCOUNT_FIELDS`). Plain values
+  leave, no `Person`. ⚠️ The notes go to this card and nowhere else: it is no tool, nothing
+  of it reaches an AI provider or a list. `across:` hands in the list's read of the same
+  request, so page and card share one directory per organisation.
+  `Actors::SplitPerson` takes `source:` (the card's "take one source out"): only the lines
+  of the merge that name that source go, read through the list like a merge's entries. A
+  value that is no address is refused, never read as "the whole merge".
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

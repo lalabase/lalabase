@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-16)
+# Karte: app/javascript/controllers (Stand: 2026-11-17)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -473,6 +473,14 @@ die Sidebar-Zeile liegt in der Navigation. Damit sind sie NICHT im selben Stimul
   Griff, damit der Griff nicht von der Kante wegläuft, die er verschiebt. Gespeichert als
   ANTEIL (localStorage, je Bereich), angewendet in Pixeln: eine gemerkte Pixelbreite vom
   großen Monitor lässt auf dem Notebook eine handygroße Liste übrig.
+- **`list_row` auf einer Zeile mit eigenen Bedienelementen** (17.11.2026, die Personen über
+  den Organisationen): die Zeile ist ein `<tr>` mit einem Haken und einem Menü. Der Klick der
+  Zeile überspringt nur `a, button, form, .dropdown, .no-click`; ein Haken (`<input>` in einem
+  `<label>`) und ein `<details>`-Menü sind keins davon, ihre Zelle trägt darum `no-click`,
+  sonst öffnet das Ankreuzen die Karte. Die DETAIL-Adresse dieser Zeile ist die Adresse der
+  Seite selbst (`/people?card=…`): der Server erkennt die Bahn am Header ihres Frames. Die
+  offene Zeile bekommt als `id` die Adresse aus der Adressleiste, auch wenn die eine andere
+  Quelle derselben Person nennt, sonst nähme `markFromAddress` die Markierung wieder weg.
 - **`list_row`** (bis 10.09.2026 `ticket_row`; `knowledge_row` ist darin aufgegangen,
   `doc/wissen_als_bahn_plan.md` S2) sitzt auf der Ticket-Tabellenzeile, der Board-Karte
   UND der Wissen-Zeile: ein Controller, drei Mounts. Values: `url` (die DETAIL-Adresse,

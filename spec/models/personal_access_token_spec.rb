@@ -178,12 +178,74 @@ RSpec.describe PersonalAccessToken, type: :model do
     end
   end
 
+  # The sign-out repeats its stored answer to the token it revoked, and finds that
+  # token here. Never a way in: it answers revoked tokens only.
+  describe '.find_revoked' do
+    def issued(**attrs)
+      build(:personal_access_token, user: user, organisations: [organisation], **attrs).tap do |token|
+        token.token_hash = nil
+        token.token_prefix = nil
+        token.generate_token!
+      end
+    end
+
+    it 'finds a revoked token by its plaintext, and no token that is not revoked' do
+      revoked = issued.tap(&:revoke!)
+      live = issued
+      expired = issued.tap { |token| token.update_columns(expires_at: 1.day.ago) }
+
+      expect(described_class.find_revoked(revoked.token)).to eq(revoked)
+      expect(described_class.authenticate(revoked.token)).to be_nil
+
+      expect(described_class.find_revoked(live.token)).to be_nil
+      expect(described_class.find_revoked(expired.token)).to be_nil
+      expect(described_class.find_revoked(nil)).to be_nil
+      expect(described_class.find_revoked('')).to be_nil
+      expect(described_class.find_revoked(revoked.token.delete_prefix(described_class::TOKEN_PREFIX))).to be_nil
+      expect(described_class.find_revoked("#{described_class::TOKEN_PREFIX}#{'x' * 32}")).to be_nil
+    end
+  end
+
   describe '#revoke!' do
+    include ActiveSupport::Testing::TimeHelpers
+
     let(:pat) { create(:personal_access_token, user: user, organisations: [organisation]) }
 
     it 'sets revoked_at and makes the token inactive' do
       expect { pat.revoke! }.to change { pat.reload.revoked? }.from(false).to(true)
       expect(pat).not_to be_active
+    end
+
+    # The first revocation is the one that happened. A second call, or one on a
+    # copy of the row read before the first, moved the moment.
+    it 'keeps its moment when it is revoked again, and says whether it revoked' do
+      copy = described_class.find(pat.id)
+
+      travel_to(Time.zone.local(2026, 3, 1, 12, 0, 0)) { expect(pat.revoke!).to be(true) }
+      first = pat.reload.revoked_at
+      travel_to(Time.zone.local(2026, 3, 1, 12, 0, 5)) do
+        expect(pat.revoke!).to be(false)
+        expect(copy.revoke!).to be(false)
+      end
+
+      expect(pat.reload.revoked_at).to eq(first)
+      expect(copy.revoked_at).to eq(first)
+    end
+
+    # Revoking is the way out. A token whose only organisation is gone no longer
+    # passes its validation and still authenticates; a validating save left it
+    # impossible to revoke, on the token page and for a sign-out alike.
+    it 'revokes a token that no longer passes its validation' do
+      freeze_time do
+        PersonalAccessTokenOrganisation.where(personal_access_token_id: pat.id).delete_all
+        expect(pat.reload).not_to be_valid
+
+        pat.revoke!
+
+        expect(pat.reload).to have_attributes(revoked_at: Time.current, updated_at: Time.current)
+        # The control: every other save of such a token is still refused.
+        expect(pat.update(name: 'Renamed')).to be(false)
+      end
     end
   end
 

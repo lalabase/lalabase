@@ -226,6 +226,19 @@ RSpec.describe 'API token pages', type: :request do
         .to eq([edit_users_personal_access_token_path(personal), users_personal_access_token_path(personal)])
     end
 
+    # A token whose only organisation is gone fails its own validation; the list
+    # must still be able to revoke it (it raised into a 500 before).
+    it 'revokes a personal token that no longer passes its validation' do
+      PersonalAccessTokenOrganisation.where(personal_access_token_id: personal.id).delete_all
+      expect(personal.reload).not_to be_valid
+
+      delete users_personal_access_token_path(personal)
+
+      expect(response).to redirect_to(users_personal_access_tokens_path)
+      expect(personal.reload).to be_revoked
+      expect(device.reload).not_to be_revoked
+    end
+
     it 'is revoked from the list' do
       delete users_personal_access_token_path(device)
 

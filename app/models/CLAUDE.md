@@ -277,7 +277,9 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   `#record_use!` rührt ein Token nicht an, das vorbei ist. Ändern darf ein Gerät
   niemand: `PersonalAccessTokenPolicy#update?`. Seit K6b (16.11.2026) gibt die Anmelde-Tür
   `/api/auth/v1` solche Tokens aus; `UserTrackable#track_login` nimmt dafür `login_method:` und
-  `device_name:`, das Web-Formular bleibt bei `standard`),
+  `device_name:`, das Web-Formular bleibt bei `standard`. Seit K6c (16.11.2026) widerruft
+  `DELETE /api/v1/app_session` das Token der Anfrage; `#revoke!` schreibt seitdem ohne Validierung, weil ein
+  Token, das seine eigene Prüfung nicht mehr besteht, sich weiter ausweist; `track_logout` nimmt `logout_type:`),
   `content_embedding` (Sidecar-Vektor je Record je Raum), `embedding_space` (ein von der Org
   GEHALTENER Vektorraum: Tripel + verschlüsselter Credential-Snapshot; welcher davon die Suche
   bedient, sagt `organisations.active_embedding_space_id`),

@@ -28,12 +28,15 @@ module Api
       # fields and no capability: a device token (kind app_session) lives while
       # it is used, until ends_at; 1.14.0 adds app_sessions: this server signs a
       # device in with e-mail and password at POST /api/auth/v1/app_sessions (a
-      # door of its own, outside /api/v1) and keeps its token alive while used.
-      API_VERSION = '1.14.0'
+      # door of its own, outside /api/v1) and keeps its token alive while used;
+      # 1.15.0 adds app_session.revoke: a client signs out by revoking the token
+      # it calls with.
+      API_VERSION = '1.15.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
         'me.show' => ['GET', '/api/v1/me'],
+        'app_session.revoke' => ['DELETE', '/api/v1/app_session'],
         'organisations.list' => ['GET', '/api/v1/organisations'],
         'people.list' => ['GET', '/api/v1/organisations/:organisation_id/people'],
         'people.show' => ['GET', '/api/v1/organisations/:organisation_id/people/:id'],

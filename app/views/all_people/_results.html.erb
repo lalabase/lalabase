@@ -1,9 +1,13 @@
-<%# locals: (people:) %>
+<%# locals: (people:, card: nil) %>
 <%# The rows of the list (People::AcrossOrganisations::Result): four columns the
     reader compares, so a table at full width, with a tick in front of every row
-    and the menu of a merged row behind it. The search reloads only this frame;
-    every link and form in it leaves the frame (_top). %>
+    and the menu of a merged row behind it. A click on a row opens the card of
+    that person in the lane (card: the one open now, its row is marked). The
+    search reloads only this frame; every link and form in it leaves the frame
+    (_top). data-list-filter-query is the list state as the server applied it:
+    layout-toggle writes it into the address beside the open card. %>
 <turbo-frame id="<%= AllPeopleController::LIST_FRAME_ID %>">
+  <span hidden data-list-filter-query="<%= all_people_return_state(people).to_query %>"></span>
   <%# The bar of the ticked rows. The ticks stand in the table and belong to this
       form by its id (the form attribute), so no form lies around the rows and
       the form of a row's menu is none inside another. The stylesheet shows the
@@ -44,7 +48,7 @@
       </thead>
       <tbody>
         <% people.rows.each do |row| %>
-          <%= render 'all_people/row', row: row, return_state: all_people_return_state(people) %>
+          <%= render 'all_people/row', row: row, return_state: all_people_return_state(people), open: all_people_row_open?(row, card) %>
         <% end %>
       </tbody>
     </table>
@@ -52,12 +56,12 @@
       <nav class="all-people-paging" aria-label="<%= t('views.all_people.paging.label') %>">
         <% if people.page > 1 %>
           <%= link_to t('views.all_people.paging.previous'), all_people_page_path(people.page - 1),
-                      rel: 'prev', class: 'people-text-action', data: { turbo_frame: '_top' } %>
+                      rel: 'prev', class: 'people-text-action', data: { turbo_frame: '_top', lane_keep: true } %>
         <% end %>
         <span><%= t('views.all_people.paging.position', page: people.page, pages: people.pages) %></span>
         <% if people.page < people.pages %>
           <%= link_to t('views.all_people.paging.next'), all_people_page_path(people.page + 1),
-                      rel: 'next', class: 'people-text-action', data: { turbo_frame: '_top' } %>
+                      rel: 'next', class: 'people-text-action', data: { turbo_frame: '_top', lane_keep: true } %>
         <% end %>
       </nav>
     <% end %>

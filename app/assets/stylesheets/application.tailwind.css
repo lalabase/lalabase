@@ -532,6 +532,11 @@
   .all-people-merge__hint { @apply text-muted; }
   .all-people-merge__clear { @apply ms-auto; }
   .all-people-merge button[disabled] { @apply cursor-not-allowed opacity-50; }
+  /* A row opens the card of its person in the lane: the whole row is the
+     control (list_row_controller), as on the people page of an organisation. */
+  .all-people-table tr[data-all-people-row] { @apply cursor-pointer outline-none; }
+  .all-people-table tr[data-all-people-row]:is(:hover, :focus-visible) td { @apply bg-cream-100; }
+  .all-people-table tr[data-all-people-row].selected-row td { background-color: rgb(var(--selected-row)); }
   .all-people-row__person { @apply flex min-w-0 items-center gap-3; }
   .all-people-row__name { @apply min-w-0 truncate font-medium text-heading no-underline; }
   a.all-people-row__name:hover { @apply underline; }
@@ -550,6 +555,23 @@
   a.organisation-chip:hover { @apply border-cream-600; }
   .organisation-chip__swatch { @apply h-2.5 w-2.5 shrink-0 rounded-sm border border-cream-300 bg-cream-200; }
   .organisation-chip__name { @apply truncate; }
+  /* A chip that carries the pencil of its organisation behind the name (the
+     card above the organisations): a link of its own inside the chip. */
+  .organisation-chip__action { @apply -me-1 inline-grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] text-cream-600 no-underline hover:bg-cream-200 hover:text-heading; }
+  /* The card of a person above the organisations (all_people/_card): the
+     fields of the people page, each value on a line of its own with the
+     organisations it comes from behind it, where they are named. */
+  .all-people-card__value { @apply flex flex-wrap items-center gap-x-2 gap-y-1; }
+  .all-people-card__value + .all-people-card__value { @apply mt-1.5; }
+  .all-people-card__text { @apply min-w-0 whitespace-pre-line break-words; }
+  .all-people-card__missing { @apply text-[13px] text-muted; }
+  .all-people-card__chips { @apply inline-flex flex-wrap gap-1.5; }
+  .all-people-card__sources { @apply flex flex-col gap-3 border-t border-cream-200 pt-4; }
+  .all-people-card__source { @apply flex flex-col gap-1.5; }
+  .all-people-card__source-head { @apply flex flex-wrap items-center gap-x-3 gap-y-1; }
+  .all-people-card__note { @apply mt-2; }
+  .all-people-card__switch[aria-pressed="true"] { @apply bg-cream-200 text-heading; }
+  .all-people-card .people-lane__head form { @apply inline-flex; }
   .people-empty { @apply flex flex-col items-start gap-2.5 pt-8; }
   .people-empty__icon { @apply text-2xl text-cream-500; }
   .people-empty__title { @apply text-[15px] font-semibold text-heading; }

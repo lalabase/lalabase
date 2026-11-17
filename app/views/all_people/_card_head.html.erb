@@ -1,0 +1,43 @@
+<%# locals: (card:, editing: false, show_sources: false) %>
+<%# The head of an open card. "Bearbeiten": for a person of several
+    organisations it names the organisations at every value, and with them
+    the pencils (a state of this card, taken back by "Fertig"); for a person
+    of one organisation it is the pencil itself, the way into that form.
+    Offered only where the reader may write somewhere. "Quellen zeigen" is the
+    reader's own switch (AllPeopleController#sources): a button that sends its
+    new state and the open card, answered by this card again. The ✕ closes the
+    lane in place (layout-toggle). Links and the switch stay in the lane's
+    frame; what leaves the page says so (_top). %>
+<% several = card.sources.many? %>
+<% only = card.sources.first unless several %>
+<div class="people-lane__head" data-lane-head data-lane-index-url="<%= all_people_path %>">
+  <% if only&.edit %>
+    <%= link_to all_people_edit_path(only.organisation_id, only.edit), class: 'people-ghost-action',
+                                                                    data: { turbo_frame: '_top', card_edit: true } do %>
+      <i class="bi bi-pencil" aria-hidden="true"></i><%= t('views.organisations.people.show.edit') %>
+    <% end %>
+  <% elsif several && editing %>
+    <%= link_to all_people_card_path(card), class: 'people-ghost-action', data: { card_edit_done: true } do %>
+      <i class="bi bi-check-lg" aria-hidden="true"></i><%= t('views.all_people.card.edit_done') %>
+    <% end %>
+  <% elsif several && card.sources.any?(&:can_edit) %>
+    <%= link_to all_people_card_path(card, editing: true), class: 'people-ghost-action', data: { card_edit: true } do %>
+      <i class="bi bi-pencil" aria-hidden="true"></i><%= t('views.organisations.people.show.edit') %>
+    <% end %>
+  <% end %>
+  <% if several %>
+    <%= button_to all_people_sources_path, method: :patch,
+                  params: { show: (show_sources ? '0' : '1'), AllPeopleController::CARD_PARAM => card.address,
+                            AllPeopleController::EDITING_PARAM => ('1' if editing) }.compact,
+                  class: 'people-ghost-action all-people-card__switch', 'aria-pressed': show_sources.to_s,
+                  form: { data: { card_sources_switch: true } } do %>
+      <i class="bi bi-building" aria-hidden="true"></i><%= t('views.all_people.card.show_sources') %>
+    <% end %>
+  <% end %>
+  <span class="people-lane__divider" aria-hidden="true"></span>
+  <button type="button" class="people-icon-action" title="<%= t('views.organisations.people.show.close') %>"
+          aria-label="<%= t('views.organisations.people.show.close') %>"
+          data-lane-close data-action="click->layout-toggle#closeContent">
+    <i class="bi bi-x-lg" aria-hidden="true"></i>
+  </button>
+</div>

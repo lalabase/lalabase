@@ -1,0 +1,99 @@
+<%# locals: (card:, editing: false, show_sources: false) %>
+<%# The card of one person (People::MergedCard::Card): the name, then every
+    field with its values. A value all organisations agree on stands alone. A
+    field they do not agree on (two values, or a value one of them lacks)
+    names the organisations at each value, as chips in the reader's colours;
+    a value some lack ends the field as "not entered", so the reader sees who
+    does not know it. "Quellen zeigen" (show_sources, remembered for the
+    reader) and "Bearbeiten" (editing, this card only) name them at every
+    value. A person of one organisation has no chips at all and reads like the
+    card on that organisation's people page.
+
+    A chip carries the pencil of its source: a visit of that organisation's
+    people page with the form open. No pencil where the reader may not write
+    and none at the name and email of a member (Value sources without edit).
+
+    Below: one block per organisation, with the way into it and its note,
+    folded and read only. Nothing here is a form of a person, and every value
+    is plain: this view runs without a tenant and loads nothing. %>
+<% several = card.sources.many? %>
+<% everywhere = several && (editing || show_sources) %>
+<% names = card.sources.to_h { |source| [source.organisation_id, source.organisation_name] } %>
+<div class="people-detail">
+  <%= render 'all_people/card_head', card: card, editing: editing, show_sources: show_sources %>
+
+  <div class="people-detail__body width-text">
+    <%= render 'organisations/people/identity', name: card.name, user: card.avatar_user,
+                                                line: t("views.organisations.people.show.kind.#{card.kind}") %>
+
+    <dl class="people-fields all-people-card__fields">
+      <% card.fields.each do |field| %>
+        <% named = several && (everywhere || field.differs) %>
+        <%# The name stands above; it is a line only where the organisations are named at it. %>
+        <% next if field.key == :name && !named %>
+        <div class="people-fields__row all-people-card__field" data-card-field="<%= field.key %>">
+          <dt><%= all_people_field_label(field) %></dt>
+          <dd>
+            <% field.values.each do |value| %>
+              <% next if value.text.nil? && !named %>
+              <div class="all-people-card__value" data-card-value>
+                <% if value.text.nil? %>
+                  <span class="all-people-card__missing" data-card-text><%= t('views.all_people.card.missing_value') %></span>
+                <% else %>
+                  <span class="all-people-card__text" data-card-text><%= all_people_card_value(field, value.text) %></span>
+                <% end %>
+                <% if named %>
+                  <span class="all-people-card__chips">
+                    <% value.sources.each do |source| %>
+                      <% organisation = names.fetch(source.organisation_id) %>
+                      <%= render 'shared/organisation_chip',
+                                 name: organisation,
+                                 color: current_user.org_colors.effective_color(source.organisation_id),
+                                 action: (if source.edit
+                                            { url: all_people_edit_path(source.organisation_id, source.edit),
+                                              label: t('views.all_people.card.edit_in', organisation: organisation),
+                                              data: { card_pencil: true } }
+                                          end) %>
+                    <% end %>
+                  </span>
+                <% end %>
+              </div>
+            <% end %>
+          </dd>
+        </div>
+      <% end %>
+    </dl>
+
+    <% last = all_people_card_last_contact(card) %>
+    <% if last %>
+      <p class="people-history__line" data-card-last-contact title="<%= last[:date] %>">
+        <%= t('views.all_people.card.last_contact', age: last[:age], organisation: last[:organisation]) %>
+      </p>
+    <% end %>
+
+    <section class="all-people-card__sources" aria-label="<%= t('views.all_people.card.sources_label') %>">
+      <% card.sources.each do |source| %>
+        <div class="all-people-card__source" data-card-source>
+          <div class="all-people-card__source-head">
+            <%= render 'shared/organisation_chip', name: source.organisation_name,
+                                                   color: current_user.org_colors.effective_color(source.organisation_id) %>
+            <%= link_to t('views.all_people.card.open_in', organisation: source.organisation_name), all_people_source_path(source),
+                        class: 'people-text-action', data: { turbo_frame: '_top', card_source_link: true } %>
+            <% unless source.can_edit %>
+              <span class="people-footer__readonly"><%= t('views.all_people.card.read_only') %></span>
+            <% end %>
+          </div>
+          <% if source.notes %>
+            <details class="people-history" data-card-notes>
+              <summary class="people-history__line">
+                <%= t('views.all_people.card.notes_from', organisation: source.organisation_name) %>
+                <i class="bi bi-chevron-down people-history__chevron" aria-hidden="true"></i>
+              </summary>
+              <p class="people-note all-people-card__note"><%= source.notes %></p>
+            </details>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+  </div>
+</div>

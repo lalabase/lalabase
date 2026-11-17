@@ -55,8 +55,20 @@ de:
         clear: "Auswahl aufheben"
         more_actions: "Weitere Aktionen für %{name}"
         split: "Zusammenführung aufheben"
-      chip:
-        open: "%{name} in %{organisation} öffnen"
+      card:
+        placeholder_title: "Keine Person gewählt"
+        placeholder_body: "Wähle links eine Person aus."
+        missing_title: "Diese Person gibt es nicht."
+        missing_body: "Vielleicht wurde sie gelöscht, oder du darfst sie nicht mehr sehen."
+        missing_value: "nicht eingetragen"
+        show_sources: "Quellen zeigen"
+        edit_done: "Fertig"
+        edit_in: "In %{organisation} bearbeiten"
+        open_in: "In %{organisation} öffnen"
+        read_only: "Nur lesen"
+        notes_from: "Notizen aus %{organisation}"
+        last_contact: "Letzter Kontakt: %{age}, in %{organisation}"
+        sources_label: "Organisationen dieser Person"
       empty:
         no_hits_title: "Keine Person passt zu „%{query}“."
         no_hits_text: "Gesucht wird in Name, Funktion, Abteilung, Firma und E-Mail."

@@ -93,6 +93,36 @@ RSpec.describe User::PreferenceStore, type: :model do
     end
   end
 
+  describe 'the sources switch of the card above the organisations' do
+    it 'is off until it was switched on' do
+      expect(store.people_card_sources?).to be(false)
+    end
+
+    it 'is stored with the account and read back from a fresh one' do
+      store.remember_people_card_sources(true)
+      expect(User.find(user.id).preference_store.people_card_sources?).to be(true)
+      expect(User.find(user.id).preferences['people_card_sources']).to be(true)
+
+      store.remember_people_card_sources(false)
+      expect(User.find(user.id).preference_store.people_card_sources?).to be(false)
+    end
+
+    it 'writes a real boolean and reads anything else stored as off' do
+      store.remember_people_card_sources('1')
+      expect(User.find(user.id).preferences['people_card_sources']).to be(false)
+
+      user.update!(preferences: user.preferences.merge('people_card_sources' => 'true'))
+      expect(User.find(user.id).preference_store.people_card_sources?).to be(false)
+    end
+
+    it 'leaves the other preferences alone' do
+      store.set_items_per_page(50)
+      store.remember_people_card_sources(true)
+
+      expect(User.find(user.id).preference_store.items_per_page_preference).to eq(50)
+    end
+  end
+
   describe 'cockpit settings' do
     describe 'defaults (nothing stored — read straight off a fresh user, NOT the factory)' do
       it 'shows actions and todos by default' do

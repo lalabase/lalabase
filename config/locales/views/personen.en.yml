@@ -55,8 +55,20 @@ en:
         clear: "Clear selection"
         more_actions: "More actions for %{name}"
         split: "Undo merge"
-      chip:
-        open: "Open %{name} in %{organisation}"
+      card:
+        placeholder_title: "No person selected"
+        placeholder_body: "Choose a person on the left."
+        missing_title: "This person does not exist."
+        missing_body: "They may have been deleted, or you may no longer see them."
+        missing_value: "not entered"
+        show_sources: "Show sources"
+        edit_done: "Done"
+        edit_in: "Edit in %{organisation}"
+        open_in: "Open in %{organisation}"
+        read_only: "Read only"
+        notes_from: "Notes from %{organisation}"
+        last_contact: "Last contact: %{age}, in %{organisation}"
+        sources_label: "Organisations of this person"
       empty:
         no_hits_title: "No person matches “%{query}”."
         no_hits_text: "The search looks at name, function, department, company and email."

@@ -1,19 +1,20 @@
-<%# locals: (row:, return_state: {}) %>
-<%# One person (People::AcrossOrganisations::Row). A person of one organisation:
-    the name is the link to that organisation's people page with the person
-    open, the chip only names the organisation. A person of several: the name is
-    text and each chip is the link into its organisation. The chip of the
-    picture says member or contact, as on the people page of an organisation.
+<%# locals: (row:, return_state: {}, open: false) %>
+<%# One person (People::AcrossOrganisations::Row). The row opens the card of
+    the person in the lane (list-row: a click, Enter or Space; open: the card
+    in the lane is this person's); the chips name the organisations, and the
+    way into one of them is on the card, per source. The chip of the picture
+    says member or contact, as on the people page of an organisation.
     The tick belongs to the form of the bar above the list (its form attribute)
     and sends every source of the row; it carries the name for the bar, which
     names the chosen rows also when a search has taken them out of the list. A row a merge of the reader joined
     (row.merge_id) has a menu that takes the merge apart again; a row the same
-    account alone made has none, there is nothing stored to take apart. %>
-<% single = row.sources.first if row.sources.one? %>
+    account alone made has none, there is nothing stored to take apart. The
+    tick and the menu are no part of the row's click (no-click). %>
 <% kind_word = t("views.organisations.people.show.kind.#{row.kind}") %>
 <% last = all_people_last_contact(row) %>
-<tr data-all-people-row data-person-key="<%= row.sources.first.fields[:id] %>">
-  <td class="all-people-table__tick">
+<%= tag.tr class: ('selected-row' if open), tabindex: 0,
+           data: { all_people_row: true, person_key: row.sources.first.fields[:id] }.merge(all_people_row_data(row, open: open)) do %>
+  <td class="all-people-table__tick no-click">
     <label class="all-people-row__tick">
       <span class="sr-only"><%= t('views.all_people.merge.select', name: row.name) %></span>
       <%= check_box_tag 'rows[]', all_people_row_value(row), false, id: nil, form: 'all-people-merge',
@@ -25,11 +26,7 @@
     <div class="all-people-row__person">
       <%= render Neo::Users::AvatarComponent.new(user: row.avatar_user, size: :small, fallback_initials: person_initials(row.name), title: kind_word,
                                                   class: "people-avatar #{'people-avatar--contact' unless row.kind == 'member'}") %>
-      <% if single %>
-        <%= link_to row.name, all_people_source_path(single), class: 'all-people-row__name', data: { turbo_frame: '_top' } %>
-      <% else %>
-        <span class="all-people-row__name"><%= row.name %></span>
-      <% end %>
+      <span class="all-people-row__name"><%= row.name %></span>
       <span class="sr-only">, <%= kind_word %></span>
     </div>
   </td>
@@ -39,14 +36,12 @@
       <% row.sources.each do |source| %>
         <%= render 'shared/organisation_chip',
                    name: source.organisation_name,
-                   color: current_user.org_colors.effective_color(source.organisation_id),
-                   url: (all_people_source_path(source) unless single),
-                   label: (t('views.all_people.chip.open', name: row.name, organisation: source.organisation_name) unless single) %>
+                   color: current_user.org_colors.effective_color(source.organisation_id) %>
       <% end %>
     </div>
   </td>
   <%= tag.td(last ? last[:age] : '', class: 'all-people-table__wide all-people-table__last all-people-row__last', title: (last[:date] if last)) %>
-  <td class="all-people-table__menu">
+  <td class="all-people-table__menu no-click">
     <% if row.merge_id %>
       <details class="more-menu" data-controller="details-autoclose">
         <summary class="more-menu__trigger" title="<%= t('views.all_people.merge.more_actions', name: row.name) %>"
@@ -60,4 +55,4 @@
       </details>
     <% end %>
   </td>
-</tr>
+<% end %>

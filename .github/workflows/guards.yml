@@ -468,6 +468,7 @@ jobs:
           spec/services/people/merged_entry_sequences_spec.rb
           spec/services/user_data_exports/merged_people_spec.rb
           spec/requests/all_people_merges_spec.rb
+          spec/requests/all_people_card_spec.rb
           spec/requests/people_merge_invisible_to_organisation_spec.rb
           spec/services/knowledge/lookup_spec.rb
           spec/requests/organisations/people_last_contact_spec.rb

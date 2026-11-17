@@ -253,6 +253,22 @@ class User < ApplicationRecord
       NAME_DISPLAY_MODES.include?(value) ? value : NAME_DISPLAY_DEFAULT
     end
 
+    # === The card of a person above the organisations (GET /people) ===
+    # "Quellen zeigen": the card names the organisation at EVERY value, not only where
+    # the organisations differ. A switch of that page's lane, remembered for the person
+    # like the cockpit's options above the organisations: the page has no tenant, so the
+    # choice lives here. Off until it was switched on; a real boolean is written and
+    # anything else stored reads as off.
+    PEOPLE_CARD_SOURCES = 'people_card_sources'
+
+    def people_card_sources?
+      preferences[PEOPLE_CARD_SOURCES] == true
+    end
+
+    def remember_people_card_sources(shown)
+      set(PEOPLE_CARD_SOURCES, shown == true)
+    end
+
     private
 
     attr_reader :user

@@ -1,21 +1,48 @@
 <%# locals: (people:) %>
 <%# The rows of the list (People::AcrossOrganisations::Result): four columns the
-    reader compares, so a table at full width. The search reloads only this
-    frame; every link in it leaves the frame (_top). %>
+    reader compares, so a table at full width, with a tick in front of every row
+    and the menu of a merged row behind it. The search reloads only this frame;
+    every link and form in it leaves the frame (_top). %>
 <turbo-frame id="<%= AllPeopleController::LIST_FRAME_ID %>">
   <% if people.rows.any? %>
+    <%# The bar of the ticked rows. The ticks stand in the table and belong to this
+        form by its id (the form attribute), so no form lies around the rows and
+        the form of a row's menu is none inside another. The stylesheet shows the
+        bar once a row is ticked; the number and the wait for a second row are
+        the controller's (all-people-merge), the refusal of a single row is the
+        server's. The address of the answer is the list as it stands here. %>
+    <%= form_with url: all_people_merges_path, method: :post, id: 'all-people-merge', class: 'all-people-merge',
+                  data: { turbo_frame: '_top', all_people_merge_bar: true } do %>
+      <% all_people_return_state(people).each do |name, value| %>
+        <%= hidden_field_tag name, value, id: nil %>
+      <% end %>
+      <span class="all-people-merge__count" data-all-people-merge-target="counter" hidden>
+        <span data-all-people-merge-target="count">0</span> <%= t('views.all_people.merge.selected') %>
+      </span>
+      <button type="submit" class="people-secondary-action" data-all-people-merge-target="submit"
+              data-turbo-submits-with="<%= t('views.all_people.merge.submitting') %>">
+        <i class="bi bi-intersect" aria-hidden="true"></i>
+        <%= t('views.all_people.merge.submit') %>
+      </button>
+      <span class="all-people-merge__hint"><%= t('views.all_people.merge.hint') %></span>
+      <button type="button" class="people-quiet-action all-people-merge__clear" data-action="all-people-merge#clear">
+        <%= t('views.all_people.merge.clear') %>
+      </button>
+    <% end %>
     <table class="all-people-table">
       <thead>
         <tr>
+          <th scope="col" class="column-head all-people-table__tick"><span class="sr-only"><%= t('views.all_people.columns.select') %></span></th>
           <th scope="col" class="column-head"><%= t('views.all_people.columns.name') %></th>
           <th scope="col" class="column-head all-people-table__wide"><%= t('views.all_people.columns.function') %></th>
           <th scope="col" class="column-head"><%= t('views.all_people.columns.organisations') %></th>
-          <th scope="col" class="column-head all-people-table__wide"><%= t('views.all_people.columns.last_contact') %></th>
+          <th scope="col" class="column-head all-people-table__wide all-people-table__last"><%= t('views.all_people.columns.last_contact') %></th>
+          <th scope="col" class="column-head all-people-table__menu"><span class="sr-only"><%= t('views.all_people.columns.actions') %></span></th>
         </tr>
       </thead>
       <tbody>
         <% people.rows.each do |row| %>
-          <%= render 'all_people/row', row: row %>
+          <%= render 'all_people/row', row: row, return_state: all_people_return_state(people) %>
         <% end %>
       </tbody>
     </table>

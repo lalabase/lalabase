@@ -514,6 +514,21 @@
   .all-people-table td { @apply border-b border-cream-200 py-2.5 pe-4 align-middle text-sm text-heading; }
   .all-people-table :is(th, td):last-child { @apply pe-0 text-end; }
   .all-people-table__wide { @apply hidden sm:table-cell; }
+  /* The tick in front of a row and the menu of a merged row behind it: two narrow
+     columns beside the four the reader compares. */
+  .all-people-table .all-people-table__tick { @apply w-8 pe-2; }
+  .all-people-table .all-people-table__menu { @apply w-9 ps-1; }
+  .all-people-table .all-people-table__last { @apply text-end; }
+  .all-people-row__tick { @apply flex items-center; }
+  .all-people-row__tick input { @apply h-4 w-4 cursor-pointer rounded border-cream-400; }
+  /* The bar that merges the ticked rows: there once a row is ticked, flat like every
+     tool of the page. */
+  .all-people-merge { @apply mb-1 mt-3 hidden flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-cream-300 bg-surface-raised px-3 py-2 text-[13px] text-heading; }
+  .all-people-page:has([data-all-people-tick]:checked) .all-people-merge { @apply flex; }
+  .all-people-merge__count { @apply font-medium tabular-nums; }
+  .all-people-merge__hint { @apply text-muted; }
+  .all-people-merge__clear { @apply ms-auto; }
+  .all-people-merge button[disabled] { @apply cursor-not-allowed opacity-50; }
   .all-people-row__person { @apply flex min-w-0 items-center gap-3; }
   .all-people-row__name { @apply min-w-0 truncate font-medium text-heading no-underline; }
   a.all-people-row__name:hover { @apply underline; }

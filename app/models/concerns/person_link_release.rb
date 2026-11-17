@@ -20,9 +20,10 @@
 # entry would lose its target while a row exists; with the link gone, the
 # account no longer leads to the row. So the entries are rewritten FIRST, while
 # the row still carries the account, by statements that find the row
-# themselves (no read of its own per membership). Those tables carry no
-# tenant; the row is named inside the block below, the one place of this
-# callback where the tenant is lifted.
+# themselves. Those tables carry no tenant; the row is named inside the block
+# below, the one place of this callback where the tenant is lifted. The
+# rewrite never raises for what the database refuses (see there): a private
+# note of somebody else must not stop a member from leaving.
 module PersonLinkRelease
   extend ActiveSupport::Concern
 

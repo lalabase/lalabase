@@ -46,17 +46,47 @@ class PersonGroupEntry < ApplicationRecord
   # Without a row nothing changes. No row is loaded.
   #
   # An owner who holds an entry for that row already keeps that one (the unique index would
-  # refuse a second). Their entry by account gives way first (#give_way_to): what it was
-  # merged with moves over to the group of the row, so the person stays whole.
+  # refuse a second). Their entry by account gives way first (.give_way): what it was
+  # merged with moves over to the group of the row, so the person stays whole. Every other
+  # entry by account is rewritten in one statement.
+  #
+  # ⚠️ This runs inside the removal of a membership, also when an account is erased.
+  # Somebody's private note must never stop a member from leaving: each step stands in a
+  # savepoint of its own, and a step the database refuses is undone alone (.quietly). The
+  # lines it concerned then stay as they are; they name the account, which no longer leads
+  # to the row, until that member comes back.
   def self.follow_to_row(organisation_id:, user_id:, rows:)
     by_account = where(organisation_id: organisation_id, user_id: user_id)
     by_row = where(organisation_id: organisation_id, person_id: rows.select(:id))
-    by_account.where(owner_id: by_row.select(:owner_id)).find_each do |line|
-      line.give_way_to(by_row.find_by!(owner_id: line.owner_id))
+    by_account.where(owner_id: by_row.select(:owner_id)).order(:owner_id).pluck(:owner_id).each do |owner_id|
+      quietly { give_way(owner_id, by_account, by_row) }
     end
-    by_account.where(rows.arel.exists)
-              .update_all(person_id: Arel::Nodes::Grouping.new(rows.select(:id).arel), user_id: nil, updated_at: Time.current)
+    quietly do
+      by_account.where(rows.arel.exists).where.not(owner_id: by_row.select(:owner_id))
+                .update_all(person_id: Arel::Nodes::Grouping.new(rows.select(:id).arel), user_id: nil, updated_at: Time.current)
+    end
   end
+
+  # One owner who names the leaving member twice, by account and by row. Under the lock a
+  # merge or a split of that owner takes (PersonGroup.lock_for), and only then read: a
+  # merge of theirs that is being written is waited for, and what it stored is seen. The
+  # owners are taken in the order of their ids, so two removals never wait for each other.
+  def self.give_way(owner_id, by_account, by_row)
+    PersonGroup.lock_for(owner_id)
+    line = by_account.find_by(owner_id: owner_id)
+    kept = by_row.find_by(owner_id: owner_id)
+    line.give_way_to(kept) if line && kept
+  end
+
+  # A step in a savepoint of its own; what the database refuses (a unique index, a row that
+  # went, a deadlock it broke) is undone alone and noted without any personal data.
+  def self.quietly(&)
+    transaction(requires_new: true, &)
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey, ActiveRecord::Deadlocked => e
+    Rails.logger.warn("[PersonGroupEntry] a merge entry stays as it is: #{e.class}")
+    nil
+  end
+  private_class_method :give_way, :quietly
 
   # This line and `kept` name the same human for one owner, in two groups. The other
   # entries of this line's group move to the group of `kept`, each unless that group holds

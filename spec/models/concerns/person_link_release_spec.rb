@@ -98,6 +98,62 @@ RSpec.describe PersonLinkRelease, type: :model do
       expect(address(by_row)).to eq([row.id, nil])
     end
 
+    # The callback runs inside the removal of a membership, also when an account is erased.
+    # What the database refuses there is undone alone (a savepoint) and the removal goes on.
+    context 'when the database refuses a step' do
+      let(:second) { create(:person_group, owner: owner) }
+      let!(:by_row) { create(:person_group_entry, person_group: second, organisation: organisation, person_id: row.id) }
+      let(:other_owner) { create(:user) }
+      let!(:theirs) do
+        create(:person_group_entry, person_group: create(:person_group, owner: other_owner), organisation: organisation,
+                                    user_id: user.id)
+      end
+
+      it 'keeps the two lines of that owner as they are, removes the membership and rewrites for everybody else' do
+        # A real refusal, under the owner's lock: a second line for the row meets the unique index.
+        allow(PersonGroup).to receive(:lock_for).and_wrap_original do |lock, id|
+          lock.call(id)
+          PersonGroupEntry.insert_all!([by_row.attributes.except('id')])
+        end
+
+        expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
+
+        expect(Membership.where(user: user, organisation: organisation)).not_to exist
+        expect(row.reload.user_id).to be_nil
+        expect(address(entry)).to eq([nil, user.id])
+        expect(address(by_row)).to eq([row.id, nil])
+        expect(address(theirs)).to eq([row.id, nil])
+      end
+
+      # A split of that owner that ended while the removal waited for the lock: the group of
+      # the row is gone, so the entry by account simply follows the row like any other.
+      it 'rewrites the entry by account when the line by row went while it waited for the lock' do
+        allow(PersonGroup).to receive(:lock_for).and_wrap_original do |lock, id|
+          lock.call(id)
+          PersonGroup.where(id: second.id).delete_all
+        end
+
+        expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
+
+        expect(address(entry)).to eq([row.id, nil])
+        expect(PersonGroupEntry.where(id: by_row.id)).not_to exist
+      end
+
+      it 'takes the lock of the owner before it reads the two lines' do
+        statements = []
+        counter = ActiveSupport::Notifications.subscribe('sql.active_record') { |*, payload| statements << payload[:sql] }
+
+        Membership.find_by(user: user, organisation: organisation).destroy!
+
+        lock = statements.index { |sql| sql.include?('pg_advisory_xact_lock') }
+        moved = statements.index { |sql| sql.match?(/\ADELETE FROM "person_group_entries"/) }
+        expect(lock).not_to be_nil
+        expect(statements[lock...moved].grep(/\ASELECT "person_group_entries"\.\* FROM "person_group_entries"/).size).to eq(2)
+      ensure
+        ActiveSupport::Notifications.unsubscribe(counter)
+      end
+    end
+
     it 'leaves the entry by account alone when the member has no row to follow' do
       Person.where(id: row.id).delete_all
 

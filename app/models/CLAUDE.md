@@ -126,7 +126,13 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   target). An owner who holds an entry for the row already keeps that one: the entry by
   account gives way (`#give_way_to`), and what it was merged with moves to the group of the
   row first, unless that group has a source of the same organisation. ⚠️ A line that goes
-  must never take the rest of its group out of a person without a word (review round 1). `PersonalDataErasure#erase_person_groups!` deletes the groups an
+  must never take the rest of its group out of a person without a word (review round 1).
+  ⚠️ That callback runs inside the removal of a membership, also in an account erasure, and
+  must never raise for a note: it moves entries only under `PersonGroup.lock_for(owner)`,
+  taken BEFORE it reads (a merge of that owner being written is waited for), and every step
+  stands in a savepoint whose refusal by the database is undone alone (`.quietly`; the lines
+  then stay as they are). Without the lock the move ran into the unique index once the
+  merge committed (review round 2, `person_link_release_concurrency_spec.rb`). `PersonalDataErasure#erase_person_groups!` deletes the groups an
   account owns and every entry that names it. A group left with fewer than two entries is
   ignored by the read and deleted by the next merge or split of its owner; no job.
 * **Glossar** (K4a, 04.11.2026): `glossary_term` (ein Begriff je Organisation, nicht je Projekt;

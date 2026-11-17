@@ -1,4 +1,4 @@
-<%# locals: (person:, message: nil) %>
+<%# locals: (person:, message: nil, cancel_url: nil) %>
 <%# The form in the lane, new and edit. It leaves the frame (_top): a save
     lands on the list with the person open, a refused save renders the page
     again with this form and its reason. lock_version travels along, so a save
@@ -13,16 +13,22 @@
 
     The additional details (PersonDetail) always send the marker
     person[additional_details][sent] next to their rows: removing the last row
-    clears the list instead of leaving it as it was. %>
+    clears the list instead of leaving it as it was.
+
+    The way out (the cross, "Abbrechen") of a saved row is the lane's frame,
+    back to the person. cancel_url: the form was opened by the page's ADDRESS
+    (?edit=); the way out is then a visit of the page with the person open,
+    so the address stops naming the form. %>
 <% member = person_form_member(person) %>
 <% url = person.persisted? ? organisation_person_path(@current_organisation, person) : organisation_people_path(@current_organisation) %>
 <% title = person.persisted? || member ? t('views.organisations.people.form.edit_title', name: person_display_name(person: person, user: member)) : t('views.organisations.people.form.new_title') %>
-<% cancel_url = person.persisted? ? organisation_person_path(@current_organisation, person, list_state) : organisation_people_path(@current_organisation, list_state) %>
+<% leaves_frame = cancel_url.present? || !person.persisted? %>
+<% cancel_url ||= person.persisted? ? organisation_person_path(@current_organisation, person, list_state) : organisation_people_path(@current_organisation, list_state) %>
 <div class="people-form-wrap">
   <div class="people-lane__head" data-lane-head data-lane-index-url="<%= organisation_people_path(@current_organisation) %>">
     <h2 class="people-form__title"><%= title %></h2>
     <%= link_to cancel_url, class: 'people-icon-action', title: t('views.organisations.people.show.close'),
-                            data: ({ lane_close: true, turbo_frame: '_top' } unless person.persisted?) do %>
+                            data: ({ lane_close: true, turbo_frame: '_top' } if leaves_frame) do %>
       <i class="bi bi-x-lg" aria-hidden="true"></i>
     <% end %>
   </div>
@@ -143,7 +149,7 @@
         <%= t('views.organisations.people.form.save') %>
       <% end %>
       <%= link_to t('views.organisations.people.form.cancel'), cancel_url, class: 'people-quiet-action',
-                                                                          data: ({ turbo_frame: '_top' } unless person.persisted?) %>
+                                                                          data: ({ turbo_frame: '_top' } if leaves_frame) %>
     </div>
   <% end %>
 </div>

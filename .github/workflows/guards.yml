@@ -450,6 +450,7 @@ jobs:
           spec/services/actors/take_over_person_spec.rb
           spec/services/actors/take_over_person_concurrency_spec.rb
           spec/requests/organisations/people_list_head_spec.rb
+          spec/requests/organisations/people_edit_state_spec.rb
           spec/requests/organisations/shown_email_spec.rb
           spec/requests/users/registrations_display_email_spec.rb
           spec/services/people/directory_spec.rb

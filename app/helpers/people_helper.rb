@@ -6,6 +6,11 @@ module PeopleHelper
   # The two things a row can open in the lane: a person row, or a member who
   # has no row of their own yet. They exclude each other.
   SELECTION_PARAMS = %w[person_id member_id].freeze
+  # The form of a new person as a state of the page (new, with the member it
+  # is for in user_id).
+  FORM_PARAMS = %w[new user_id].freeze
+  # The form of a row as a state of the page: the id of that row.
+  EDIT_PARAM = 'edit'
   # The icon of an additional detail that is a link (PersonDetail#href).
   PERSON_DETAIL_ICONS = { 'phone' => 'bi-telephone', 'email' => 'bi-envelope', 'url' => 'bi-link-45deg' }.freeze
   # The kinds of additional detail that say how to reach a person: they join
@@ -15,9 +20,9 @@ module PeopleHelper
   # The page wrapper's data: the lane (layout-toggle, index-page) and the
   # desktop/mobile switch, the same controllers as "Alle Meetings"
   # (meeting_list_page_data), without its filter bar and column picker.
-  def people_page_data(viewport_mode:, selected:, form_open:, member: nil)
+  def people_page_data(viewport_mode:, selected:, form_open:, member: nil, editing: nil)
     detail_frame_id = Organisations::PeopleController::DETAIL_FRAME_ID
-    unresolved = people_unresolved_lane_params(selected: selected, member: member, form_open: form_open)
+    unresolved = people_unresolved_lane_params(selected: selected, member: member, form_open: form_open, editing: editing)
     {
       controller: 'layout-toggle index-page viewport',
       layout_toggle_list_frame_ids_value: [Organisations::PeopleController::LIST_FRAME_ID].to_json,
@@ -40,14 +45,37 @@ module PeopleHelper
       index_page_selected_row_selector_value: '.selected-row[data-people-row]',
       index_page_skip_if_content_visible_value: 'true',
       index_url: organisation_people_path(current_organisation),
-      lane_params: lane_params_json(selection: SELECTION_PARAMS, form: %w[new user_id])
+      lane_params: lane_params_json(selection: SELECTION_PARAMS, form: people_form_params)
     }.compact
+  end
+
+  # The form states the scripts of the lane know on this page (a row click and
+  # the ✕ take them out of the address, Back to one restores the page). ?edit=
+  # only where the address carries it: nothing on the page writes it, it comes
+  # in with a visit from outside (a pencil above the organisations, a full
+  # visit of edit), and a page without it keeps the two names it always had.
+  def people_form_params
+    people_edit_in_address? ? [*FORM_PARAMS, EDIT_PARAM] : FORM_PARAMS
+  end
+
+  def people_edit_in_address?
+    request.query_parameters.key?(EDIT_PARAM)
+  end
+
+  # What the "+" takes out of the address before it opens the empty form: the
+  # open person or member, the member an earlier form was for, and the form of
+  # a row when the address opened one.
+  def people_new_form_removes
+    [*SELECTION_PARAMS, 'user_id', *(EDIT_PARAM if people_edit_in_address?)]
   end
 
   # Lane parameters of this visit the server did not open (an unknown or
   # unreadable person_id, a form the reader may not open). layout-toggle takes
-  # them out of the address, so the page stays the list.
-  def people_unresolved_lane_params(selected:, form_open:, member: nil)
+  # them out of the address, so the page stays the list. editing: the id of
+  # the row whose form is open, nil for the form of a new person; ?edit= with
+  # any other value opened nothing (a reader, a row of another organisation, a
+  # hidden or missing one, a malformed id: one answer for all of them).
+  def people_unresolved_lane_params(selected:, form_open:, member: nil, editing: nil)
     unresolved = {}
     person_id = params[:person_id]
     unresolved['person_id'] = person_id if person_id.is_a?(String) && person_id.present? && selected.nil?
@@ -57,6 +85,8 @@ module PeopleHelper
     unresolved['new'] = new_state if new_state.is_a?(String) && new_state.present? && !form_open
     user_id = params[:user_id]
     unresolved['user_id'] = user_id if user_id.is_a?(String) && user_id.present? && !form_open
+    edit = params[EDIT_PARAM]
+    unresolved['edit'] = edit if edit.is_a?(String) && edit.present? && (editing.nil? || Lalabase::Uuid.dashed(edit) != editing)
     unresolved
   end
 

@@ -20,6 +20,7 @@ de:
       split:
         success: "Zusammenführung aufgehoben. Die Einträge stehen wieder einzeln in deiner Liste."
         source_success: "Aus der Zusammenführung gelöst. Der Eintrag steht wieder einzeln in deiner Liste."
+        conflict: "Diese Quelle lässt sich nicht einzeln lösen, ohne weitere Zuordnungen zu ändern. Nichts wurde geändert. Hebe die gesamte Zusammenführung auf und führe die gewünschten Einträge erneut zusammen."
         failed: "Die Zusammenführung ließ sich nicht aufheben. Bitte versuche es noch einmal."
       takeover:
         success: "Übernommen aus %{source}. Original und Kopie sind für dich jetzt eine Person."

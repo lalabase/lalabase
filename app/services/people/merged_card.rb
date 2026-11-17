@@ -45,7 +45,7 @@ module People
 
     # key: one of FIXED_FIELDS, or "detail:<label>" for an additional detail. label: nil
     # for a fixed field (the page names it), the label of a detail as first written.
-    # differs: the sources do not agree (two values, or a value one of them lacks).
+    # differs: the sources have different sets of values, including a missing value.
     Field = Data.define(:key, :label, :values, :differs)
 
     # text: the value as the first of its sources wrote it; nil for the entry of the
@@ -174,7 +174,7 @@ module People
 
       list = values.values.map { |text, sources| Value.new(text: text, sources: value_sources(key, sources.uniq)) }
       list << Value.new(text: nil, sources: value_sources(key, lacking)) if lacking.any?
-      Field.new(key: key, label: label, values: list.freeze, differs: list.size > 1)
+      Field.new(key: key, label: label, values: list.freeze, differs: list.any? { |value| value.sources.size != reads.size })
     end
 
     def value_sources(key, reads)

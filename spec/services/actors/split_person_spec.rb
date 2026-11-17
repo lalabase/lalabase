@@ -102,6 +102,19 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
 
       expect(PersonGroup.where(owner_id: viewer.id).pluck(:id)).to eq([other.id])
     end
+
+    it 'refuses to detach a source that the account rule would still join to the others' do
+      first = group_naming(north, west, west_row)
+      group_naming(south, east, east_row)
+      before = list
+      result = nil
+
+      expect { result = described_class.call(group_id: first.id, current_user: viewer, source: "#{north.id}:member:#{shared.id}") }
+        .not_to(change { PersonGroupEntry.count })
+
+      expect([result.success?, result.code]).to eq([false, :conflict])
+      expect(list).to eq(before)
+    end
   end
 
   # From the card of a merged person one source can leave alone (source:
@@ -279,6 +292,40 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
       expect(PersonGroupEntry.where(owner_id: viewer.id)).not_to exist
       expect(list).to contain_exactly(['Nord GmbH'], ['Sued AG'])
       expect(PersonGroup.where(id: theirs.id)).to exist
+    end
+  end
+
+  it 'rolls back taking a source out if a competing merge would replace another source' do
+    Prosopite.pause do
+      shared = create(:user)
+      a, b, c, d = %w[A B C D].map { |name| create(:organisation, name: name) }
+      [a, b, c, d].each { |organisation| join_organisation(viewer, organisation, admin: true) }
+      [b, c].each { |organisation| join_organisation(shared, organisation) }
+      first = person_in(a, name: 'X')
+      kept = person_in(d, name: 'N', notes: 'Notes of N')
+      competing = person_in(d, name: 'R', notes: 'Notes of R')
+      winner = create(:person_group, owner: viewer)
+      loser = create(:person_group, owner: viewer)
+      [[winner, a, { person_id: first.id }], [winner, c, { user_id: shared.id }], [winner, d, { person_id: kept.id }],
+       [loser, b, { user_id: shared.id }], [loser, d, { person_id: competing.id }]].each do |group, organisation, address|
+        create(:person_group_entry, person_group: group, organisation: organisation, **address)
+      end
+      address = "#{b.id}:member:#{shared.id}"
+      card = -> { People::MergedCard.call(viewer: User.find(viewer.id), address: address) }
+      before = card.call
+      expect(before.sources.map(&:name)).to include('X', 'N')
+      expect(before.sources.map(&:name)).not_to include('R')
+      expect(before.sources.find { |source| source.name == 'X' }.detachable).to be(true)
+      stored = -> { PersonGroupEntry.order(:id).pluck(*PersonGroupEntry.column_names) }
+
+      result = nil
+      expect { result = described_class.call(group_id: winner.id, current_user: viewer, source: "#{a.id}:person:#{first.id}") }
+        .not_to(change(&stored))
+
+      expect([result.success?, result.code]).to eq([false, :conflict])
+      expect(result.errors).to eq([I18n.t('controllers.people.split.conflict')])
+      expect(card.call).to eq(before)
+      expect(ActsAsTenant.current_tenant).to be_nil
     end
   end
 

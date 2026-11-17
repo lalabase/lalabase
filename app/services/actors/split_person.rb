@@ -23,14 +23,18 @@
 # there. A source the viewer cannot see, one the merge does not name and anything that is
 # no address answer like a missing merge, and nothing goes. A merge left with one entry is
 # gone with the leftovers below, so taking one of two out is dissolving it.
+# A competing merge can become first after a source leaves and pull in another person.
+# Read the result again under the owner lock: the source must stand alone and the other
+# sources must stay together, exactly as before. Otherwise roll the transaction back.
 #
 # The owner's groups left with fewer than two entries are deleted on the way, under the
 # lock a merge of the same owner takes (Actors::MergePeople).
 module Actors
   class SplitPerson < BaseActor
     NOT_FOUND = :not_found
+    CONFLICT = :conflict
     # The codes whose text is written for the viewer (see Actors::MergePeople::REFUSALS).
-    REFUSALS = [NOT_FOUND].freeze
+    REFUSALS = [NOT_FOUND, CONFLICT].freeze
 
     SOURCE_SEPARATOR = ':'
 
@@ -56,7 +60,9 @@ module Actors
       if @source.nil?
         mine.where(id: [@group.id, *shown_with_it(mine)]).delete_all
       else
-        take_out_source
+        # A refusal after the write must also undo it when our caller already owns a
+        # transaction and BaseActor maps the refusal to a result inside that transaction.
+        PersonGroup.transaction(requires_new: true) { take_out_source }
       end
       mine.leftover.delete_all
     end
@@ -76,9 +82,27 @@ module Actors
         shown = People::AcrossOrganisations.new(viewer: User.find(current_user.id))
         PersonGroupEntry.settle_for_owner(current_user.id, aliases: shown.entry_aliases)
         part = named_part(shown)
+        raise not_found unless part
+
+        remaining = shown.person_with(part) - [part]
         lines = PersonGroupEntry.owned_by(current_user).where(person_group_id: shown.merges_shown_with(@group.id))
-        raise not_found unless part && lines_naming(lines, part).delete_all.positive?
+        raise not_found unless lines_naming(lines, part).delete_all.positive?
+
+        verify_people([[part], remaining])
       end
+    end
+
+    # Each expected person is a set of visible source addresses. No contact data is read
+    # here. A fresh read sees our deletion instead of the original read's cached merges.
+    def verify_people(people)
+      fresh = People::AcrossOrganisations.new(viewer: User.find(current_user.id))
+      unchanged = people.reject(&:empty?).all? do |parts|
+        first = parts.first
+        address = first.address[:person_id] ? "person:#{first.address[:person_id]}" : "member:#{first.address[:user_id]}"
+        found = fresh.part(first.organisation_id, address)
+        found && fresh.person_with(found).to_set == parts.to_set
+      end
+      raise ActorError.new(I18n.t('controllers.people.split.conflict'), code: CONFLICT) unless unchanged
     end
 
     # The entry the source names, as the viewer may read it in that organisation.

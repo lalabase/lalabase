@@ -20,6 +20,7 @@ en:
       split:
         success: "Merge undone. The entries stand on their own in your list again."
         source_success: "Taken out of the merge. The entry stands on its own in your list again."
+        conflict: "This source cannot be taken out on its own without changing other associations. Nothing was changed. Undo the entire merge, then merge the entries you want together again."
         failed: "The merge could not be undone. Please try again."
       takeover:
         success: "Taken over from %{source}. The original and the copy are one person for you now."

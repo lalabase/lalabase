@@ -153,7 +153,7 @@
         <%= t('views.organisations.people.form.save') %>
       <% end %>
       <%= link_to t('views.organisations.people.form.cancel'), cancel_url, class: 'people-quiet-action',
-                                                                          data: ({ turbo_frame: '_top' } if leaves_frame) %>
+                                                                          data: ({ turbo_frame: '_top', form_lane_back: true } if leaves_frame) %>
     </div>
   <% end %>
 </div>

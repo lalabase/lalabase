@@ -432,6 +432,20 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
   end
 
   describe 'the pencils' do
+    it 'offers each writable source a form while editing a member with no additional values' do
+      ActsAsTenant.with_tenant(north) { people[:north_row].update!(function: nil, company: nil, phone: nil) }
+
+      member = card(mara, editing: 1)
+
+      expect(pencils(field(member, :name))).to be_empty
+      expect(pencils(field(member, :email))).to be_empty
+      links = member.css('a[data-card-source-edit]')
+      expect(links.pluck('href')).to eq([organisation_people_path(north, edit: people[:north_row].id),
+                                         organisation_people_path(south, new: 'person', user_id: shared.id)])
+      expect(links.pluck('data-turbo-frame')).to eq(%w[_top _top])
+      expect(card(mara).css('a[data-card-source-edit]')).to be_empty
+    end
+
     it 'puts a pencil into the chip of every source that leads to the form of that row in its organisation' do
       merged = card(kai)
 
@@ -497,6 +511,7 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(shown(member, :phone)).to eq([['+49 30 5550111', ['Nord GmbH']], [I18n.t('views.all_people.card.missing_value'), ['Sued AG']]])
       expect(pencils(field(member, :phone))).to eq([organisation_people_path(north, edit: people[:north_row].id)])
       expect(response.body).not_to include('new=person')
+      expect(member.css('a[data-card-source-edit]').pluck('href')).to eq([organisation_people_path(north, edit: people[:north_row].id)])
       read_only = member.css('[data-card-source]').map { |one| one.text.include?(I18n.t('views.all_people.card.read_only')) }
       expect(read_only).to eq([false, true])
     end
@@ -607,6 +622,20 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
 
       expect(member.css('a[data-card-source-link]').size).to eq(2)
       expect(member.css('form[data-card-split], form[data-card-detach]')).to be_empty
+    end
+
+    it 'carries the current page in both forms that take a merge apart' do
+      west = create(:organisation, name: 'West KG')
+      Prosopite.pause do
+        join_organisation(user, west, admin: true)
+        extra = person_in(west, name: 'Kai Kontakt')
+        create(:person_group_entry, person_group: merge, organisation: west, person_id: extra.id)
+      end
+
+      forms = card(kai, page: 2).css('form[data-card-split], form[data-card-detach]')
+
+      expect(forms.size).to eq(4)
+      expect(forms.map { |form| Rack::Utils.parse_nested_query(URI.parse(form['action']).query)['page'] }).to eq(%w[2 2 2 2])
     end
   end
 

@@ -294,6 +294,19 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
 
       expect(response).to redirect_to(all_people_path)
     end
+
+    it 'explains a refused regrouping and keeps the card and list context' do
+      message = I18n.t('controllers.people.split.conflict')
+      refusal = Actors::BaseActor::Result.new(success: false, code: :conflict, errors: [message])
+      allow(Actors::SplitPerson).to receive(:call).and_return(refusal)
+
+      delete all_people_merge_path(PersonGroup.sole.id), params: { source: card_address(people[:south]), card: card, q: 'kai', page: 2 }
+
+      expect(response).to redirect_to(all_people_path(card: card, q: 'kai', page: 2))
+      expect(flash[:alert]).to eq(message)
+      expect(flash[:notice]).to be_nil
+      expect(stored).to eq([1, 3])
+    end
   end
 
   describe 'one answer for every entry the reader cannot name' do

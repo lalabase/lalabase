@@ -20,7 +20,7 @@
     account alone joins has nothing stored to undo. %>
 <% several = card.sources.many? %>
 <% only = card.sources.first unless several %>
-<% return_state = all_people_list_state.merge(AllPeopleController::CARD_PARAM => card.address) %>
+<% return_state = all_people_return_state.merge(AllPeopleController::CARD_PARAM => card.address) %>
 <% items = [] %>
 <% card.sources.select(&:takeover).each do |source| %>
   <% text = several ? t('views.all_people.card.takeover_from', organisation: source.organisation_name) : t('views.organisations.people.takeover.menu') %>

@@ -172,6 +172,20 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(mobile.differs).to be(true)
     end
 
+    it 'treats equal sets of additional values as agreement regardless of order or repeated values' do
+      details = [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 1' },
+                 { 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0172 2' }]
+      ActsAsTenant.with_tenant(north) { north_kai.update!(additional_details: details) }
+      ActsAsTenant.with_tenant(south) do
+        south_kai.update!(additional_details: [details.last, details.first.merge('value' => '01711'), details.first])
+      end
+
+      mobile = card.fields.find { |one| one.label == 'Mobil' }
+
+      expect(mobile.values.map { |value| [value.text, value.sources.size] }).to eq([['0171 1', 2], ['0172 2', 2]])
+      expect(mobile.differs).to be(false)
+    end
+
     it 'carries the notes per source, as People::Lookup.card hands them out with notes: true and not otherwise' do
       allow(People::Lookup).to receive(:card).and_call_original
 

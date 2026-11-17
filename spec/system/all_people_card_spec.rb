@@ -355,4 +355,60 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
   ensure
     page.driver.browser.execute_cdp('Emulation.clearDeviceMetricsOverride')
   end
+
+  it 'adds a first detail through the source link of a member without any rows' do
+    member = create(:user, first_name: 'Mara', last_name: 'Mitglied')
+    [north, south].each { |organisation| join_organisation(member, organisation) }
+    visit_list
+    open_card('Mara Mitglied')
+    lane.find('a[data-card-edit]').click
+    expect(lane).to have_css('a[data-card-edit-done]')
+    wait_until_still('[data-all-people-card] [data-lane-close]')
+
+    lane.find('a[data-card-source-edit]', text: I18n.t('views.all_people.card.edit_in', organisation: south.name)).click
+
+    expect(page).to have_current_path(organisation_people_path(south, new: 'person', user_id: member.id))
+    form = find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")
+    form.fill_in 'person_phone', with: '+49 30 5550123'
+    form.click_button I18n.t('views.organisations.people.form.save')
+    expect(page).to have_no_css('.people-form-wrap')
+    expect(ActsAsTenant.with_tenant(south) { Person.find_by!(user_id: member.id).phone }).to eq('+49 30 5550123')
+    expect(ActsAsTenant.with_tenant(north) { Person.where(user_id: member.id).exists? }).to be(false)
+  end
+
+  it 'keeps the live search when cancelling a form opened by its address' do
+    visit organisation_people_path(north, edit: north_kai.id, q: 'Kai')
+    wait_for_stimulus('.people-page', 'layout-toggle')
+    expect(page).to have_field('person_function', with: 'Einkauf')
+    wait_for_stimulus('[data-fb-search]', 'search-disclosure')
+    find('[data-fb-search-open-button]').click unless page.has_css?('#people-search', visible: true, wait: 0)
+    fill_in 'people-search', with: 'Nora'
+    expect(page).to have_current_path(/q=Nora/)
+    expect(find("turbo-frame##{Organisations::PeopleController::LIST_FRAME_ID}")).to have_text('Nora Nord')
+    find('.people-form-wrap a.people-quiet-action').click
+    expect(page).to have_no_css('.people-form-wrap')
+    expect(page).to have_current_path(/q=Nora/)
+  end
+
+  %w[split detach].each do |action|
+    it "keeps page 2 after #{action} from a card whose controls were refreshed" do
+      west = create(:organisation, name: 'West KG')
+      join_organisation(user, west, admin: true)
+      west_kai = person_in(west, name: 'Kai Kontakt')
+      create(:person_group_entry, person_group: merge, organisation: west, person_id: west_kai.id)
+      51.times { |i| person_in(north, name: format('Aaron %02d', i)) }
+      visit_list(page: 2)
+      open_card('Kai Kontakt')
+      lane.find('a[data-card-edit]').click
+      expect(lane).to have_css('a[data-card-edit-done]')
+      wait_until_still('[data-all-people-card] [data-lane-close]')
+      lane.find('details.more-menu summary').click
+
+      accept_confirm { lane.all("form[data-card-#{action}] button").last.click }
+
+      expect(lane).to have_css('[data-card-source]', count: action == 'split' ? 1 : 2)
+      expect(page).to have_current_path(/page=2/)
+      expect(list).to have_text('Kai Kontakt')
+    end
+  end
 end

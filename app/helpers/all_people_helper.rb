@@ -26,9 +26,11 @@ module AllPeopleHelper
     row.sources.map { |source| "#{source.organisation_id}/#{source.fields[:id]}" }.join(',')
   end
 
-  # The list state as the parameters of an address that comes back to this page.
-  def all_people_return_state(people)
-    all_people_list_state.merge(page: (people.page if people.page > 1)).compact
+  # The list state as the parameters of an address that comes back to this page. A card
+  # frame has no list result: it carries the page its request named instead.
+  def all_people_return_state(people = nil)
+    page = (people ? people.page : params[:page]).to_s
+    all_people_list_state.merge(page: (page if page.match?(/\A[1-9]\d{0,5}\z/) && page != '1')).compact
   end
 
   # Function and company of a row, as the line under a name on an organisation's page.
@@ -58,7 +60,7 @@ module AllPeopleHelper
       layout_toggle_content_selector_value: '.all-people-card',
       layout_toggle_selected_row_selector_value: '.selected-row[data-all-people-row]',
       layout_toggle_selection_params_value: [AllPeopleController::CARD_PARAM].to_json,
-      layout_toggle_list_filter_params_value: %w[q org].to_json,
+      layout_toggle_list_filter_params_value: %w[q org page].to_json,
       layout_toggle_storage_key_value: 'layoutState:all_people',
       layout_toggle_unresolved_selection_value: (unresolved.to_json if unresolved.any?),
       index_page_param_name_value: AllPeopleController::CARD_PARAM,

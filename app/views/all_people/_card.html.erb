@@ -79,6 +79,11 @@
                                                    color: current_user.org_colors.effective_color(source.organisation_id) %>
             <%= link_to t('views.all_people.card.open_in', organisation: source.organisation_name), all_people_source_path(source),
                         class: 'people-text-action', data: { turbo_frame: '_top', card_source_link: true } %>
+            <% if editing && several && source.edit %>
+              <%= link_to t('views.all_people.card.edit_in', organisation: source.organisation_name),
+                          all_people_edit_path(source.organisation_id, source.edit),
+                          class: 'people-text-action', data: { turbo_frame: '_top', card_source_edit: true } %>
+            <% end %>
             <% unless source.can_edit %>
               <span class="people-footer__readonly"><%= t('views.all_people.card.read_only') %></span>
             <% end %>

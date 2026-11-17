@@ -571,9 +571,11 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
 
       forms = menu(card(kai)).css('form[data-card-detach]')
 
+      # The way back is the card of the person that stays merged: a source that is not the
+      # one leaving. For the first source that is the second one.
       expect(forms.pluck('action')).to eq(
-        [[north, people[:north_kai]], [south, people[:south_kai]], [west, west_kai]].map do |organisation, person|
-          all_people_merge_path(merge.id, source: "#{organisation.id}:person:#{person.id}", card: kai)
+        [[north, people[:north_kai], kai_south], [south, people[:south_kai], kai], [west, west_kai, kai]].map do |organisation, person, back|
+          all_people_merge_path(merge.id, source: "#{organisation.id}:person:#{person.id}", card: back)
         end
       )
       expect(forms.map { |form| form.at_css('button').text.strip })

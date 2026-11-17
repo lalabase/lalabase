@@ -14,7 +14,9 @@
     is somewhere to take it; the dialog of that organisation's people page,
     loaded into its frame below the head), and undoing the reader's merge: one
     source of three or more can leave alone, or the whole merge goes
-    (AllPeople::MergesController#destroy, back to this card). A person the same
+    (AllPeople::MergesController#destroy, back to this card). After one source
+    left, "this card" is the card of the people who stay merged: the way back
+    names a source that stays, not the one that leaves. A person the same
     account alone joins has nothing stored to undo. %>
 <% several = card.sources.many? %>
 <% only = card.sources.first unless several %>
@@ -27,8 +29,10 @@
 <% end %>
 <% if card.merge_id %>
   <% card.sources.select(&:detachable).each do |source| %>
+    <% stays = card.sources.find { |other| !other.equal?(source) } %>
+    <% back = return_state.merge(AllPeopleController::CARD_PARAM => [stays.organisation_id, stays.address].join(People::MergedCard::SEPARATOR)) %>
     <% items << button_to(t('views.all_people.card.detach', organisation: source.organisation_name),
-                          all_people_merge_path(card.merge_id, return_state.merge(source: [source.organisation_id, source.address].join(People::MergedCard::SEPARATOR))),
+                          all_people_merge_path(card.merge_id, back.merge(source: [source.organisation_id, source.address].join(People::MergedCard::SEPARATOR))),
                           method: :delete,
                           form: { data: { turbo_frame: '_top', card_detach: true,
                                           turbo_confirm: t('views.all_people.card.detach_confirm', name: source.name, organisation: source.organisation_name) } }) %>

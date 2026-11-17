@@ -243,6 +243,22 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
       expect(shown(page)).to include('Kai Kontakt' => ['Nord GmbH', 'West KG'], 'Kai Kontakt (Sued)' => ['Sued AG'])
     end
 
+    # The card's own button for the first source names another source as the way back: the
+    # reader took the north out and sees the person that stays merged, not the north alone.
+    it 'comes back to the card of the people who stay merged when the first source leaves' do
+      get all_people_path(card: card), headers: { 'Turbo-Frame' => AllPeopleController::CARD_FRAME_ID }
+      form = Nokogiri::HTML(response.body).css('form[data-card-detach]').first
+      expect(form.at_css('button').text.strip).to eq(I18n.t('views.all_people.card.detach', organisation: 'Nord GmbH'))
+
+      delete form['action']
+
+      expect(response).to have_http_status(:see_other)
+      get response.headers['Location'], headers: { 'Turbo-Frame' => AllPeopleController::CARD_FRAME_ID }
+      sources = Nokogiri::HTML(response.body).css('[data-card-source] .organisation-chip__name').map { |name| name.text.strip }
+      expect(sources).to eq(['Sued AG', 'West KG'])
+      expect(stored).to eq([1, 2])
+    end
+
     it 'takes the whole merge apart without a source and comes back to the card' do
       delete all_people_merge_path(PersonGroup.sole.id), params: { card: card, q: 'kai' }
 

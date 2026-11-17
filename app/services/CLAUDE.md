@@ -293,6 +293,14 @@ Verzeichnis-Übersicht (Auswahl):
   der Art), und den Hinweis eines Vorschlags, sobald eine Quelle seines Modellaufrufs fehlt oder die Herkunft
   leer oder unlesbar ist; die Zeilen bleiben.
   K5c (08.11.2026): Art `document` liest nur die genannte Version, ganz, ohne Grenze; der Start (`document_version:`) prüft Leserecht, aktuelle Version und Text unter der Sperre.
+* `object_links/` (16.11.2026) — Objekt-Links im Rich-Text als Chips, nur beim Anzeigen
+  (der gespeicherte Text bleibt ein Link). `address.rb` liest eine Adresse über den Router
+  (Seite und Bahn-Parameter, nur eigene Hosts und die aktuelle Organisation), `targets.rb`
+  lädt Ziele je Typ über den Policy-Scope bzw. `People::Directory`, je Anfrage gemerkt
+  (`Current.object_link_targets`), `chips.rb` ersetzt im ActionText-Layout
+  (`ObjectLinksHelper`) und lädt für Listen vor (`.prefetch`, Zeitleiste). Ein Broadcast
+  während einer Anfrage zeigt keine Chips (`config/initializers/object_link_render_guard.rb`).
+  Neuer Typ: Eintrag in `Address::PAGES`/`LANE_PARAMS`, Laden in `Targets`, Rechte-Spec.
 * `people/` — `directory.rb`, das Lese-Objekt der Personenliste (seit 26.10.2026): Mitglieder
   über `MembershipPolicy::Scope` (dieselbe Reichweite wie die Mitgliederseite), dazu die
   Zeilen ohne aktives Mitglied als Kontakte; Suche in Ruby über `PersonName.normalize`.

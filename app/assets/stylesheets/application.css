@@ -8,7 +8,7 @@
  *= require slim_select_overrides
  *= require components/help_system
  *= require components/custom_select
- *= require components/wiki_mention
+ *= require components/object_chip
  *= require components/rich_text_embeds
  *= require components/writing_surface
  *= require components/view_switch

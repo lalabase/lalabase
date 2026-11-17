@@ -1,0 +1,79 @@
+/* Object chip: a reference to an object of this instance inside running text, as a small
+ * pill with a type icon, so it reads as "a thing you can open" and not as a sentence.
+ *
+ * Two sources, one look:
+ *   - ObjectLinks::Chips: a pasted address of a ticket, meeting, person, note or document
+ *     in a comment, ticket description or note (display only, the stored text keeps the
+ *     link). Its label is cut in Ruby (ObjectLinks::Targets::LABEL_MAX), the title
+ *     attribute carries the whole of it.
+ *   - app/views/wiki/mentions/_mention.html.erb: a stored @-mention in a note, in the Lexxy
+ *     editor and in the displayed note. Without read access it is an inert label
+ *     (.object-chip--inert).
+ *
+ * Flat on purpose: a hard shadow means "the main action" (CLAUDE.md, shadow levels), and a
+ * chip is a link among words. Colours come from the cream scale, which the dark theme
+ * redefines, so the chip follows the theme without a rule of its own.
+ *
+ * `a.object-chip`: Lexxy's content styles colour and underline every `a`, and Tailwind's
+ * `prose` does the same at the specificity of one class; the element plus the class wins
+ * over both whatever the order of the stylesheets. */
+
+.object-chip,
+a.object-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  max-width: 100%;
+  padding: 0.05em 0.45em;
+  border: 1px solid rgb(var(--cream-300));
+  border-radius: 0.35em;
+  background-color: rgb(var(--cream-100));
+  color: rgb(var(--cream-800));
+  font-weight: 500;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+.object-chip .bi {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+/* The label cuts itself once more if the line is narrower than the cut label. */
+.object-chip__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The type, read out before the label (the icon is aria-hidden). Visually hidden. */
+.object-chip__type {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Only a chip that leads somewhere reacts to the pointer and the keyboard. */
+a.object-chip:hover {
+  border-color: rgb(var(--cream-400));
+  background-color: rgb(var(--cream-200));
+  color: rgb(var(--cream-900));
+}
+
+a.object-chip:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+/* No read access (a document mention seen without documents access): muted, no link. */
+.object-chip--inert {
+  cursor: default;
+  opacity: 0.65;
+}

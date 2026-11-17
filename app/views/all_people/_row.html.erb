@@ -5,7 +5,8 @@
     text and each chip is the link into its organisation. The chip of the
     picture says member or contact, as on the people page of an organisation.
     The tick belongs to the form of the bar above the list (its form attribute)
-    and sends every source of the row. A row a merge of the reader joined
+    and sends every source of the row; it carries the name for the bar, which
+    names the chosen rows also when a search has taken them out of the list. A row a merge of the reader joined
     (row.merge_id) has a menu that takes the merge apart again; a row the same
     account alone made has none, there is nothing stored to take apart. %>
 <% single = row.sources.first if row.sources.one? %>
@@ -16,7 +17,8 @@
     <label class="all-people-row__tick">
       <span class="sr-only"><%= t('views.all_people.merge.select', name: row.name) %></span>
       <%= check_box_tag 'rows[]', all_people_row_value(row), false, id: nil, form: 'all-people-merge',
-                        data: { all_people_tick: true, all_people_merge_target: 'tick', action: 'change->all-people-merge#count' } %>
+                        data: { all_people_tick: true, all_people_merge_target: 'tick', name: row.name,
+                                action: 'change->all-people-merge#count' } %>
     </label>
   </td>
   <td>

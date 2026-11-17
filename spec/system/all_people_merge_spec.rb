@@ -133,4 +133,47 @@ RSpec.describe 'Merging people above the organisations', type: :system, inbox_e2
     expect(page).to have_css('tr[data-all-people-row]', count: 4)
     expect(PersonGroup.count).to eq(0)
   end
+
+  # Two rows that are the same human are often written differently and stand far apart. The
+  # search finds the second one, and it redraws the rows: a tick has to outlive that.
+  it 'keeps a ticked row through a search and merges it with a row the search found' do
+    open_list
+    tick('Kai Kontakt')
+    wait_for_stimulus('[data-all-people] [data-fb-search]', 'search-disclosure')
+    find('[data-all-people] button[data-fb-search-open-button]').click
+    find('#all-people-search').send_keys('Suedwind')
+
+    expect(page).to have_css('tr[data-all-people-row]', count: 1)
+    expect(rows_named('Kai Kontakt')).to be_empty
+    # The row is out of sight; the bar still counts it and names it.
+    expect(page).to have_css(bar, visible: :visible)
+    expect(find("#{bar} [data-all-people-merge-target='count']")).to have_text('1', exact: true)
+    expect(find("#{bar} [data-all-people-merge-target='names']")).to have_text('Kai Kontakt', exact: true)
+
+    tick('Kai Kontakt (Sued)')
+    expect(find("#{bar} [data-all-people-merge-target='count']")).to have_text('2', exact: true)
+    expect(find("#{bar} [data-all-people-merge-target='names']")).to have_text('Kai Kontakt, Kai Kontakt (Sued)', exact: true)
+    click_button merge_button
+
+    expect(page).to have_text(I18n.t('controllers.people.merge.success'))
+    expect(PersonGroupEntry.count).to eq(2)
+    expect(page).to have_current_path(/q=Suedwind/)
+    expect(chips('Kai Kontakt')).to eq(['Nord GmbH', 'Sued AG'])
+  end
+
+  it 'ticks a chosen row again when the search brings it back, and forgets it once it is unticked' do
+    open_list
+    tick('Kai Kontakt')
+    wait_for_stimulus('[data-all-people] [data-fb-search]', 'search-disclosure')
+    find('[data-all-people] button[data-fb-search-open-button]').click
+    find('#all-people-search').send_keys('Sina')
+    expect(page).to have_css('tr[data-all-people-row]', count: 1)
+
+    find('#all-people-search').send_keys([:backspace] * 4)
+
+    expect(page).to have_css('tr[data-all-people-row]', count: 4)
+    expect(rows_named('Kai Kontakt').sole.find('input[type="checkbox"]')).to be_checked
+    rows_named('Kai Kontakt').sole.find('input[type="checkbox"]').uncheck
+    expect(page).to have_css(bar, visible: :hidden)
+  end
 end

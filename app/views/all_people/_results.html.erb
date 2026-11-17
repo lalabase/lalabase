@@ -8,16 +8,18 @@
     <%# The bar of the ticked rows. The ticks stand in the table and belong to this
         form by its id (the form attribute), so no form lies around the rows and
         the form of a row's menu is none inside another. The stylesheet shows the
-        bar once a row is ticked; the number and the wait for a second row are
-        the controller's (all-people-merge), the refusal of a single row is the
-        server's. The address of the answer is the list as it stands here. %>
+        bar once a row is ticked; the refusal of a single row is the server's.
+        The controller (all-people-merge) keeps the chosen rows through a search,
+        which draws this frame again: it counts and names them here and adds the
+        ones out of sight to the form as it leaves. The address of the answer is
+        the list as it stands here. %>
     <%= form_with url: all_people_merges_path, method: :post, id: 'all-people-merge', class: 'all-people-merge',
-                  data: { turbo_frame: '_top', all_people_merge_bar: true } do %>
+                  data: { turbo_frame: '_top', all_people_merge_bar: true, action: 'submit->all-people-merge#carry' } do %>
       <% all_people_return_state(people).each do |name, value| %>
         <%= hidden_field_tag name, value, id: nil %>
       <% end %>
       <span class="all-people-merge__count" data-all-people-merge-target="counter" hidden>
-        <span data-all-people-merge-target="count">0</span> <%= t('views.all_people.merge.selected') %>
+        <span data-all-people-merge-target="count">0</span> <%= t('views.all_people.merge.selected') %><span class="all-people-merge__names">: <span data-all-people-merge-target="names"></span></span>
       </span>
       <button type="submit" class="people-secondary-action" data-all-people-merge-target="submit"
               data-turbo-submits-with="<%= t('views.all_people.merge.submitting') %>">

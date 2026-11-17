@@ -4,37 +4,78 @@ import { Controller } from "@hotwired/stimulus"
 // rows (all_people/_results). The page works without this controller: the checkboxes
 // belong to the bar's form, the stylesheet shows the bar once a row is ticked, and the
 // server refuses a merge of fewer than two rows. What is added here is what only the
-// browser knows: how many rows are ticked, a button that waits for the second one, and
-// the way out.
+// browser knows: which rows are chosen, also when they are out of sight.
 //
-// The search redraws the rows, and new rows come unticked: every row that comes or goes
-// counts again.
+// The search redraws the rows and the bar (they stand in the frame of the list), and two
+// rows that are the same human are often found by two different searches. So the choice
+// lives here, on the page around the frame, as value => name of every chosen row:
+// - a row that comes back is ticked again;
+// - the bar counts and names what is chosen, and shows while anything is, also when no
+//   chosen row is in the list just now (the attribute on the element, read by the
+//   stylesheet);
+// - a merge sends every chosen row: the ones in the list through their ticks, the ones
+//   out of sight as fields added to the form as it leaves.
+// A full visit (another page of the list, another organisation) starts from nothing.
 export default class extends Controller {
-  static targets = ["tick", "counter", "count", "submit"]
+  static targets = ["tick", "counter", "count", "names", "submit"]
+
+  initialize() {
+    this.chosen = new Map()
+  }
 
   connect() {
-    this.count()
+    this.show()
   }
 
-  tickTargetConnected() {
-    this.count()
+  // A row drawn again: ticked when it is chosen.
+  tickTargetConnected(tick) {
+    tick.checked = this.chosen.has(tick.value)
   }
 
-  tickTargetDisconnected() {
-    this.count()
+  // The bar drawn again with the rows.
+  countTargetConnected() {
+    this.show()
   }
 
-  count() {
-    const ticked = this.tickTargets.filter((tick) => tick.checked).length
-    this.countTargets.forEach((element) => { element.textContent = ticked })
-    // The number stays out of sight until somebody counts: without this controller the
-    // bar says only what it does.
-    this.counterTargets.forEach((element) => { element.hidden = false })
-    this.submitTargets.forEach((button) => { button.disabled = ticked < 2 })
+  count(event) {
+    const tick = event.target
+    if (tick.checked) {
+      this.chosen.set(tick.value, tick.dataset.name || "")
+    } else {
+      this.chosen.delete(tick.value)
+    }
+    this.show()
+  }
+
+  // The form of the bar leaves: the chosen rows the list does not show go along.
+  carry(event) {
+    const form = event.target
+    const ticked = new Set(this.tickTargets.filter((tick) => tick.checked).map((tick) => tick.value))
+    this.chosen.forEach((_name, value) => {
+      if (ticked.has(value)) return
+
+      const field = document.createElement("input")
+      field.type = "hidden"
+      field.name = "rows[]"
+      field.value = value
+      form.append(field)
+    })
   }
 
   clear() {
+    this.chosen.clear()
     this.tickTargets.forEach((tick) => { tick.checked = false })
-    this.count()
+    this.show()
+  }
+
+  show() {
+    const number = this.chosen.size
+    this.countTargets.forEach((element) => { element.textContent = number })
+    this.namesTargets.forEach((element) => { element.textContent = [...this.chosen.values()].join(", ") })
+    // The number and the names stay out of sight until somebody counts: without this
+    // controller the bar says only what it does.
+    this.counterTargets.forEach((element) => { element.hidden = false })
+    this.submitTargets.forEach((button) => { button.disabled = number < 2 })
+    this.element.toggleAttribute("data-all-people-merge-chosen", number > 0)
   }
 }

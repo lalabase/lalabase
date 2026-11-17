@@ -34,6 +34,8 @@ module People
   # * The writes of a merge ask this read what the list shows (#part, #person_with,
   #   #names?, #merges_shown_with): they act on the people as they are shown, not on the
   #   lines as they are stored, and the rule of who is shown as one person stays here.
+  # * The card of one person asks the same (#shown_at, People::MergedCard): the sources the
+  #   list shows as that person, each handed to the caller's block under its own tenant.
   class AcrossOrganisations
     PER_PAGE = 50
 
@@ -68,6 +70,11 @@ module People
         keys.filter_map { |_organisation_id, kind, id| id if kind == :account }.first
       end
     end
+
+    # One person for a card (#shown_at). sources: what the caller's block answered for each
+    # source, in the order of the list. merge_id: as Row#merge_id. parts: how many people
+    # the account rule alone would show these sources as (a merge joined the rest).
+    Shown = Data.define(:merge_id, :parts, :sources)
 
     # One entry while the list is built: never handed out.
     Candidate = Struct.new(:organisation, :listing, :entry, :group, :matched, :merge_id)
@@ -132,6 +139,28 @@ module People
     def person_with(part)
       list = shown_people.fetch(@candidate_of.fetch(part))
       (@people ||= {}.compare_by_identity)[list] ||= list.map { |candidate| part_of(candidate) }.freeze
+    end
+
+    # The person an address names, for the card of that person (People::MergedCard): the
+    # entry itself (#part: nil for everything the viewer cannot see there) and every other
+    # source the list shows as the same person. The block runs once per source UNDER THE
+    # TENANT OF ITS ORGANISATION, with the organisation, the entry (its last contact
+    # attached) and whether the entry stands alone in its account among these sources;
+    # what it answers is collected. The caller reads everything it shows inside the block
+    # and hands out plain values, as the list does: after it the tenant is gone.
+    def shown_at(organisation_id, id)
+      part = part(organisation_id, id)
+      return unless part
+
+      candidates = shown_people.fetch(@candidate_of.fetch(part))
+      groups = candidates.map(&:group)
+      sources = candidates.map do |candidate|
+        in_people_organisation(candidate.organisation) do
+          candidate.entry.last_contact = candidate.listing.last_contacts_for([candidate.entry]).first
+          yield candidate.organisation, candidate.entry, groups.one?(candidate.group)
+        end
+      end
+      Shown.new(merge_id: candidates.first.merge_id, parts: groups.uniq.size, sources: sources)
     end
 
     # Whether a stored entry with this key (PersonGroupEntry#key) names an entry the viewer

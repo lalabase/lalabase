@@ -457,6 +457,7 @@ jobs:
           spec/services/people/contacts_spec.rb
           spec/services/people/lookup_spec.rb
           spec/services/people/across_organisations_spec.rb
+          spec/services/people/merged_card_spec.rb
           spec/models/person_group_spec.rb
           spec/models/person_group_entry_spec.rb
           spec/services/actors/merge_people_spec.rb

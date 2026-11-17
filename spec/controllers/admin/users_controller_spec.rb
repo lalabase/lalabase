@@ -13,11 +13,11 @@ require 'rails_helper'
 # IMPORTANT DESIGN DECISIONS:
 # 1. Use regular factories for test data creation
 # 2. Test controller operations against Admin::Models
-# 3. Disable the tenant system for tests
+# 3. Start without a tenant, while retaining real scoped operations in callbacks
 # 4. Replace object comparisons with ID comparisons
 #
 # DRAWBACKS OF THIS TEST ARCHITECTURE:
-# ⚠️  More complex test setup due to tenant mocking
+# ⚠️  More complex test setup due to cross-tenant fixtures
 # ⚠️  ID comparisons instead of object comparisons (less expressive)
 # ⚠️  Tests have to account for Admin/frontend model differences
 # ⚠️  Additional test complexity from ActsAsTenant.without_tenant blocks
@@ -48,14 +48,12 @@ RSpec.describe Admin::UsersController, type: :controller do
       devise_for :users
     end
     # ==========================================================================
-    # Disable the tenant system for admin tests
+    # Start without a tenant for admin tests
     # ==========================================================================
-    # CRITICAL: the admin backend must be able to see all tenants
-    # RISK: these mocks must NEVER be used in frontend tests!
-
-    # Disable tenant system for admin specs
-    allow(ActsAsTenant).to receive(:current_tenant).and_return(nil)
-    allow(ActsAsTenant).to receive(:current_tenant=)
+    # Admin models read across tenants themselves. Keep the real tenant setter:
+    # membership-removal callbacks deliberately enter an organisation to check which
+    # linked people an owner can see before the membership disappears.
+    ActsAsTenant.current_tenant = nil
 
     # ==========================================================================
     # Admin authentication simulation
@@ -65,6 +63,8 @@ RSpec.describe Admin::UsersController, type: :controller do
     allow(controller).to receive(:current_user).and_return(admin_beuser)
     allow(controller).to receive(:logged_in?).and_return(true)
   end
+
+  after { ActsAsTenant.current_tenant = nil }
 
   describe 'GET #index' do
     context 'without filter' do

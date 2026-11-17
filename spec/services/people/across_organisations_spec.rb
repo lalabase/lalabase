@@ -311,6 +311,51 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
       expect(answers.first).to include(['Kai Kontakt', ['Nord GmbH', 'West KG'], true], ['Mara Mitglied', ['Nord GmbH', 'Sued AG'], false])
     end
 
+    # Two merges that want the same place in one person. Which of them gets it is decided
+    # by what the viewer sees, never by which was stored first.
+    context 'when two merges collide at one person' do
+      let(:first_west) { person_in(west, name: 'West Erster') }
+      let(:second_west) { person_in(west, name: 'West Zweiter') }
+
+      before { Prosopite.pause { join_organisation(viewer, west, admin: true) } }
+
+      def answers_for(*groups)
+        groups.permutation.map do |order|
+          stored = Prosopite.pause { order.map { |entries| merge_of(viewer, *entries) } }
+          result = Prosopite.pause { list }
+          stored.each(&:destroy!)
+          result.rows.to_h { |row| [row.name, [organisations_of(row), row.merge_id.present?]] }
+        end
+      end
+
+      # The account rule makes Mara one person of north and south. One merge joins a western
+      # row to her entry of north, another one to her entry of south: the merge whose first
+      # source comes first in the list (north) takes the place.
+      it 'gives the place to the merge whose first source comes first in the list' do
+        answers = answers_for([[north, { person_id: north_row.id }], [west, { person_id: first_west.id }]],
+                              [[south, { user_id: shared.id }], [west, { person_id: second_west.id }]])
+
+        expect(answers.uniq.size).to eq(1), answers.uniq.inspect
+        expect(answers.first).to include('Mara Mitglied' => [['Nord GmbH', 'Sued AG', 'West KG'], true],
+                                         'West Zweiter' => [['West KG'], false])
+        expect(answers.first).not_to have_key('West Erster')
+      end
+
+      # One entry named twice by the owner: by account in one merge, by its row in another
+      # (the row was linked to the member after both were written). Both merges start at
+      # the same source. The row wins, as it does when the next merge or the member's
+      # leaving settles the two lines.
+      it 'gives the place to the merge that names the shared entry by its row' do
+        answers = answers_for([[north, { user_id: shared.id }], [west, { person_id: first_west.id }]],
+                              [[north, { person_id: north_row.id }], [west, { person_id: second_west.id }]])
+
+        expect(answers.uniq.size).to eq(1), answers.uniq.inspect
+        expect(answers.first).to include('Mara Mitglied' => [['Nord GmbH', 'Sued AG', 'West KG'], true],
+                                         'West Erster' => [['West KG'], false])
+        expect(answers.first).not_to have_key('West Zweiter')
+      end
+    end
+
     it 'shows the whole merged person for a search that matches one entry only' do
       merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }])
 

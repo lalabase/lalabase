@@ -126,25 +126,32 @@ module People
 
       order = candidates.each_with_index.to_h.compare_by_identity
       person_of = people.each_with_object({}.compare_by_identity) { |list, found| list.each { |one| found[one] = list } }
-      in_list_order(merges, order).each { |merge_id, named| join(named, merge_id, person_of) }
+      in_list_order(merges, order).each { |merge_id, named, _by_row| join(named, merge_id, person_of) }
       person_of.values.uniq(&:object_id).map { |list| list.sort_by { |one| order[one] } }
                .sort_by { |list| order[list.first] }
     end
 
     # The candidates of every merge in the order of the list (the organisations' names,
     # then the names inside one), and the merges in the order of their first candidate. A
-    # merge that collides with the account rule (#join) is then decided by what the viewer
-    # sees, the same way on every read: the order the entries are stored in is the order of
-    # their random ids and must decide nothing.
+    # merge that collides with the account rule or with another merge (#join) is then
+    # decided by what the viewer sees, the same way on every read: the order the entries
+    # are stored in is the order of their random ids and must decide nothing.
+    # Two merges that start at the same candidate name one entry twice, by its row and by
+    # the account behind it: the one by the row goes first, as the row wins wherever two
+    # such lines are settled (Actors::MergePeople, PersonGroupEntry.follow_to_row). Then
+    # the rest of their candidates decides, and at last the id, so the order is total.
     def in_list_order(merges, order)
-      merges.map { |merge_id, named| [merge_id, named.sort_by { |candidate| order[candidate] }] }
-            .sort_by { |_merge_id, named| order[named.first] }
+      merges.map { |merge_id, named, by_row| [merge_id, named.sort_by { |candidate| order[candidate] }, by_row] }
+            .sort_by do |merge_id, named, by_row|
+              first_by_row = by_row.any? { |candidate| candidate.equal?(named.first) }
+              [order[named.first], first_by_row ? 0 : 1, named.map { |candidate| order[candidate] }, merge_id.to_s]
+            end
     end
 
-    # The viewer's merges as lists of the candidates they name: [[merge id, candidates]].
-    # ONE statement on a table without a tenant; the entries are held by id against what
-    # the directories returned (PersonGroupEntry.keys_for). With fewer than two
-    # organisations in the list there is nothing a merge could join.
+    # The viewer's merges as [merge id, the candidates it names, those of them it names by
+    # their row]. ONE statement on a table without a tenant; the entries are held by id
+    # against what the directories returned (PersonGroupEntry.keys_for). With fewer than
+    # two organisations in the list there is nothing a merge could join.
     def merges_among(candidates)
       return [] if candidates.map(&:organisation).uniq.size < 2
 
@@ -154,10 +161,17 @@ module People
       by_key = candidates.each_with_object({}) do |candidate, found|
         PersonGroupEntry.keys_for(candidate.organisation.id, candidate.entry).each { |key| found[key] = candidate }
       end
-      named.group_by(&:first).filter_map do |merge_id, lines|
-        visible = lines.filter_map { |_id, *columns| by_key[PersonGroupEntry.key_of(*columns)] }.uniq(&:object_id)
-        [merge_id, visible] if visible.size > 1
+      named.group_by(&:first).filter_map { |merge_id, lines| merge_of(merge_id, lines, by_key) }
+    end
+
+    # One merge held against the candidates; nil when it names fewer than two of them.
+    def merge_of(merge_id, lines, by_key)
+      found = lines.filter_map do |_id, organisation_id, person_id, user_id|
+        candidate = by_key[PersonGroupEntry.key_of(organisation_id, person_id, user_id)]
+        [candidate, person_id.present?] if candidate
       end
+      visible = found.map(&:first).uniq(&:object_id)
+      [merge_id, visible, found.select(&:last).map(&:first)] if visible.size > 1
     end
 
     # Joins the people of the candidates one merge names into the person of the first. A

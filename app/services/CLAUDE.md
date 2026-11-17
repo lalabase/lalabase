@@ -371,7 +371,9 @@ Verzeichnis-Übersicht (Auswahl):
   nothing is written while reading. The account rule is never undone, and an entry joins a
   person only while that person has no source of its organisation yet; such a collision is
   decided in the order of the list (the organisations' names), never in the order the
-  entries are stored in (random ids). `Row#merge_id` is
+  entries are stored in (random ids): the merges go by their first source, a merge that
+  names a shared entry by its row before one that names it by the account, then by the rest
+  of their sources (`#in_list_order`, a total order). `Row#merge_id` is
   set only when a merge joined people the account rule had not.
   `Actors::MergePeople.call(entries: [{ org:, id: }], current_user:)` takes an organisation
   from `active_organisations` only and reads every entry again through `Lookup#entry` inside

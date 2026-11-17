@@ -369,14 +369,18 @@ Verzeichnis-Übersicht (Auswahl):
   reference is not a right: a part the viewer cannot see just now is not shown and not
   counted, a group with one visible entry is an ordinary row (`Row#merge_id` nil), and
   nothing is written while reading. The account rule is never undone, and an entry joins a
-  person only while that person has no source of its organisation yet. `Row#merge_id` is
+  person only while that person has no source of its organisation yet; such a collision is
+  decided in the order of the list (the organisations' names), never in the order the
+  entries are stored in (random ids). `Row#merge_id` is
   set only when a merge joined people the account rule had not.
   `Actors::MergePeople.call(entries: [{ org:, id: }], current_user:)` takes an organisation
   from `active_organisations` only and reads every entry again through `Lookup#entry` inside
   `with_tenant`; an unknown, foreign, invisible or malformed entry and a missing
   organisation are ONE refusal (`:not_found`). Two entries of one organisation are refused
   on the ids as sent (`:same_organisation`, before anything is read), and so is a join that
-  would give a group two rows of one organisation. Groups are joined into the oldest;
+  would give a group two rows of one organisation. An entry one owner names twice (by the
+  row and by the account, after a row was linked to a member) keeps the line by the row;
+  the groups of BOTH lines are part of the merge. Groups are joined into the oldest;
   `RecordNotUnique` and `InvalidForeignKey` are `:conflict`, never an exception. The entries
   are written with `insert_all!` (no validation: the table's constraints are the rule).
   `Actors::SplitPerson.call(group_id:, current_user:)` deletes a group of the caller;
@@ -384,7 +388,10 @@ Verzeichnis-Übersicht (Auswahl):
   `Actors::TakeOverPerson` writes the merge of source and copy in a savepoint of its own
   transaction; a merge that cannot be written leaves the copy (`Result#code`
   `:not_merged`). `PersonTakeoversController` offers "merge instead" with `merge_with`
-  under the duplicate question and calls `MergePeople` itself.
+  under the duplicate question and calls `MergePeople` itself. ⚠️ Those offers are submit
+  buttons of the dialog's form and stand above its main button: the form opens with a
+  hidden default button, or Enter in a field would merge (the first submit button in the
+  markup is the one Enter takes, hidden or not).
   `AllPeople::MergesController` (`POST /people/merges`, `DELETE /people/merges/:id`) runs
   without a tenant and answers every case with a redirect to the list.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu

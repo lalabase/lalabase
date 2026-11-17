@@ -20,7 +20,7 @@ en:
         success: "Merge undone. The entries stand on their own in your list again."
       takeover:
         success: "Taken over from %{source}. The original and the copy are one person for you now."
-        success_not_merged: "Taken over from %{source}. The copy was not merged with the original, because the original is already merged with another entry of this organisation."
+        success_not_merged: "Taken over from %{source}. The original and the copy were not merged. That works only while the original is not merged with another entry of this organisation."
         merged_instead: "Merged instead of taken over. Only you see this, under “People” above all organisations."
         failed: "This person could not be taken over."
         duplicate: "%{organisation} already has %{names}. Create anyway?"

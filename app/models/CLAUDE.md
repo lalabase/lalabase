@@ -122,8 +122,11 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   and row, one per owner, organisation and account, one source per organisation in a group).
   Written only by `Actors::MergePeople`/`SplitPerson` under `PersonGroup.lock_for(owner)`.
   `concerns/person_link_release.rb` rewrites the entries by account to the row BEFORE it
-  drops the link (`.follow_to_row`, two statements, every owner; the one moment such an entry
-  would lose its target). `PersonalDataErasure#erase_person_groups!` deletes the groups an
+  drops the link (`.follow_to_row`, every owner; the one moment such an entry would lose its
+  target). An owner who holds an entry for the row already keeps that one: the entry by
+  account gives way (`#give_way_to`), and what it was merged with moves to the group of the
+  row first, unless that group has a source of the same organisation. ⚠️ A line that goes
+  must never take the rest of its group out of a person without a word (review round 1). `PersonalDataErasure#erase_person_groups!` deletes the groups an
   account owns and every entry that names it. A group left with fewer than two entries is
   ignored by the read and deleted by the next merge or split of its owner; no job.
 * **Glossar** (K4a, 04.11.2026): `glossary_term` (ein Begriff je Organisation, nicht je Projekt;

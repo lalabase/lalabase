@@ -200,6 +200,31 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(lane).to have_css('[data-all-people-card]', text: 'Vertriebsleitung')
   end
 
+  # A refused save answers in place and the address keeps ?edit=. Leaving the form then
+  # has to change the address, or a reload would open the form the reader just closed.
+  it 'leaves a form the pencil opened after a refused save, and the address stops naming the form' do
+    visit_list
+    open_card('Kai Kontakt')
+    lane.all('[data-card-field="function"] a[data-card-pencil]').first.click
+    form = find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")
+    expect(form).to have_field('person_name', with: 'Kai Kontakt')
+
+    # The browser would hold an empty name back itself; the server is the one asked here.
+    page.execute_script("document.getElementById('person_name').removeAttribute('required')")
+    form.fill_in 'person_name', with: ''
+    form.click_button I18n.t('views.organisations.people.form.save')
+
+    expect(page).to have_css('.people-callout--danger')
+    expect(page).to have_current_path(organisation_people_path(north, edit: north_kai.id))
+    find('.people-form-wrap a.people-quiet-action').click
+
+    expect(page).to have_current_path(organisation_people_path(north, person_id: north_kai.id))
+    expect(page).to have_no_field('person_name')
+    visit page.current_url
+    expect(page).to have_no_field('person_name')
+    expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_text('Kai Kontakt')
+  end
+
   it 'returns from the form to the card with Back' do
     visit_list
     open_card('Kai Kontakt')

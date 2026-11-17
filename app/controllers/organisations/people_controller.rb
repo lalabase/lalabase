@@ -135,6 +135,9 @@ module Organisations
     # the reader sees what they would overwrite.
     def render_refused_save(result, id)
       @form_person = refused_form_person(result, id)
+      # The form the ADDRESS opened (?edit=, its hidden field says so) keeps its way out:
+      # the address still names the form, so leaving it is a visit with the person open.
+      @form_cancel_url = index_path(person_id: id) if id && PeopleHelper.edit_form_sent?(request)
       @form_message = result.code == :stale_object ? t('controllers.people.update.stale') : result.errors.to_sentence
       load_list
       set_viewport_mode

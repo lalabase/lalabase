@@ -58,8 +58,18 @@ module PeopleHelper
     people_edit_in_address? ? [*FORM_PARAMS, EDIT_PARAM] : FORM_PARAMS
   end
 
+  # The address of this visit carries ?edit=, or the page is the answer to a save of a
+  # form that such an address opened: a refused save answers in place (422), the browser
+  # keeps the address, and the page is drawn from the PATCH.
   def people_edit_in_address?
-    request.query_parameters.key?(EDIT_PARAM)
+    request.query_parameters.key?(EDIT_PARAM) || PeopleHelper.edit_form_sent?(request)
+  end
+
+  # A form says that the address opened it with a hidden field of that name. Asked by the
+  # page and by the controller that draws it again after a refused save.
+  def self.edit_form_sent?(request)
+    sent = request.request_parameters[EDIT_PARAM]
+    sent.is_a?(String) && sent.present?
   end
 
   # What the "+" takes out of the address before it opens the empty form: the

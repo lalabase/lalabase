@@ -166,6 +166,70 @@ RSpec.describe 'Organisations::People, the lane state ?edit=', :ci_guard, type: 
     end
   end
 
+  # A refused save answers 422 in place: Turbo keeps the address, which still says ?edit=.
+  # The page it draws comes from the PATCH, so the form itself has to say that the address
+  # opened it, or the way out would close the frame only and a reload would open the form again.
+  describe 'a save the form refuses' do
+    before { sign_in manager }
+
+    def ways_out
+      page.css('.people-form-wrap a.people-icon-action, .people-form-wrap a.people-quiet-action')
+    end
+
+    it 'sends along that the address opened the form' do
+      get organisation_people_path(organisation, edit: person.id)
+
+      expect(page.at_css('.people-form input[type="hidden"][name="edit"]')['value']).to eq(person.id)
+    end
+
+    it 'sends nothing of the kind from a form the lane opened' do
+      get edit_organisation_person_path(organisation, person), headers: frame_headers
+
+      expect(page.at_css('.people-form input[name="edit"]')).to be_nil
+    end
+
+    it 'keeps the way out a visit of the page with the person open, and the state known to the lane scripts' do
+      patch organisation_person_path(organisation, person), params: { person: { name: '' }, edit: person.id, q: 'doris' }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(page.at_css('#person_name')['value']).to eq('')
+      expect(ways_out.size).to eq(2)
+      ways_out.each do |link|
+        expect(link['href']).to eq(organisation_people_path(organisation, q: 'doris', person_id: person.id))
+        expect(link['data-turbo-frame']).to eq('_top')
+      end
+      expect(JSON.parse(wrapper['data-lane-params'])['form']).to eq(%w[new user_id edit])
+      expect(unresolved).to eq({})
+      # A second refusal starts from the same form.
+      expect(page.at_css('.people-form input[type="hidden"][name="edit"]')['value']).to eq(person.id)
+      expect(person.reload.name).to eq('Doris Dienstleister')
+    end
+
+    it 'does the same for a save over somebody else\'s change' do
+      patch organisation_person_path(organisation, person),
+            params: { person: { phone: '0', lock_version: person.lock_version + 5 }, edit: person.id }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(ways_out.pluck('href').uniq).to eq([organisation_people_path(organisation, person_id: person.id)])
+      expect(ways_out.pluck('data-turbo-frame').uniq).to eq(['_top'])
+    end
+
+    it 'leaves the refused save of a form the lane opened as it was: the way out stays in the frame' do
+      patch organisation_person_path(organisation, person), params: { person: { name: '' } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(ways_out.pluck('href').uniq).to eq([organisation_person_path(organisation, person)])
+      expect(ways_out.pluck('data-turbo-frame').uniq).to eq([nil])
+      expect(JSON.parse(wrapper['data-lane-params'])['form']).to eq(%w[new user_id])
+    end
+
+    it 'takes the row of the address for the way out, whatever the field says' do
+      patch organisation_person_path(organisation, person), params: { person: { name: '' }, edit: other.id }
+
+      expect(ways_out.pluck('href').uniq).to eq([organisation_people_path(organisation, person_id: person.id)])
+    end
+  end
+
   describe 'a full visit of edit, without a frame' do
     it 'redirects a writer to the address with edit=' do
       sign_in manager

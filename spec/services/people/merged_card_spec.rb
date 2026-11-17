@@ -380,6 +380,28 @@ RSpec.describe People::MergedCard, :ci_guard do
     it 'opens from the member without a row as well' do
       expect(card_at(address_of(south, member: shared))).to eq(card)
     end
+
+    # A member is on the members page as well, which asks another right. Seeing them
+    # there is no right to their entry in the people directory: without the people right
+    # the organisation contributes nothing to the card, a member's source included.
+    it 'leaves out the source of an organisation without the people right, also for a member the viewer still sees there' do
+      Prosopite.pause do
+        take_people_right(viewer, south)
+        ActsAsTenant.with_tenant(south) do
+          project = create(:project, organisation: south)
+          [viewer, shared].each { |user| create(:project_permission, user: user, project: project, tickets_access: :read_only) }
+        end
+      end
+      seen_as_member = ActsAsTenant.with_tenant(south) do
+        MembershipPolicy::Scope.new(User.find(viewer.id), Membership).resolve.exists?(user_id: shared.id, organisation_id: south.id)
+      end
+      expect(seen_as_member).to be(true)
+
+      expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH'])
+      expect(leaves(card)).not_to include('Sued AG', south.id)
+      expect(field(card, :function).differs).to be(false)
+      expect(card_at(address_of(south, member: shared))).to be_nil
+    end
   end
 
   describe 'a person of one organisation' do

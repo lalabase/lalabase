@@ -398,6 +398,29 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
         expect_north_alone
       end
 
+      # A member is on the members page too, by another right. That is no right to their
+      # entry in the people directory of that organisation.
+      it 'shows nothing of a member in an organisation without the people right, though the viewer sees that member there' do
+        Prosopite.pause do
+          take_people_right(user, south)
+          ActsAsTenant.with_tenant(south) do
+            project = create(:project, organisation: south)
+            [user, shared].each { |account| create(:project_permission, user: account, project: project, tickets_access: :read_only) }
+          end
+        end
+        seen_as_member = ActsAsTenant.with_tenant(south) do
+          MembershipPolicy::Scope.new(User.find(user.id), Membership).resolve.exists?(user_id: shared.id, organisation_id: south.id)
+        end
+        expect(seen_as_member).to be(true)
+
+        member = card(mara)
+
+        expect(member.text).to include('Mara Mitglied', 'Beraterin', '+49 30 5550111')
+        expect(member.css('a[data-card-source-link]').pluck('href')).to eq([organisation_people_path(north, person_id: people[:north_row].id)])
+        expect(chips(member)).to be_empty
+        expect(response.body).not_to include('Sued AG', south.id)
+      end
+
       it 'shows nothing of a source in an organisation where the membership is deactivated' do
         Prosopite.pause { ActsAsTenant.with_tenant(south) { Membership.find_by!(user: user, organisation: south).update!(active: false) } }
         # With one organisation left there is no page above them; a third keeps it.

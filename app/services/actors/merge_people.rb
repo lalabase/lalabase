@@ -125,7 +125,7 @@ module Actors
     end
 
     def join(chosen)
-      stored = stored_for(chosen)
+      stored = settled(stored_for(chosen))
       groups = groups_of(stored.values.flatten)
       added = chosen.select { |entry| stored[entry].empty? }
       return if groups.empty? && same_account?(chosen)
@@ -143,6 +143,18 @@ module Actors
       chosen.each_with_object({}.compare_by_identity) do |entry, found|
         found[entry] = lines.select { |line| entry.keys.include?(line.key) }
       end
+    end
+
+    # One line per chosen entry. A row that was linked to a member AFTER two merges were
+    # written can be named twice by one owner, by the row in one group and by the account
+    # in another; the read shows both groups as one person. The line by account goes, the
+    # row wins, and the two groups are joined like any others.
+    def settled(stored)
+      twice = stored.values.select { |lines| lines.size > 1 }
+      return stored if twice.empty?
+
+      PersonGroupEntry.where(id: twice.flatten.select(&:user_id).map(&:id)).delete_all
+      stored.transform_values { |lines| lines.size > 1 ? lines.reject(&:user_id) : lines }.compare_by_identity
     end
 
     # The owner's groups those entries are in, the oldest first.

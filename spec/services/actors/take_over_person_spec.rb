@@ -435,8 +435,13 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
       expect(PersonGroup.count).to eq(1)
     end
 
+    # A real refusal of the database: the entries inserted twice run into the unique index.
+    # The statement that failed is undone alone (a savepoint), so the copy survives it.
     it 'still creates the copy when the merge collides with another write' do
-      allow(PersonGroupEntry).to receive(:insert_all!).and_raise(ActiveRecord::RecordNotUnique, 'duplicate key')
+      allow(PersonGroupEntry).to receive(:insert_all!).and_wrap_original do |insert, rows|
+        insert.call(rows)
+        insert.call(rows)
+      end
 
       result = nil
       expect { result = take_over }.to change { takeover_count(south) }.by(1)

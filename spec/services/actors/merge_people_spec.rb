@@ -301,6 +301,28 @@ RSpec.describe Actors::MergePeople, :ci_guard do
     end
   end
 
+  describe 'a row that got its account after two merges were written' do
+    # The owner merged the member (no row then, stored by account) with one contact, and a
+    # contact row of the same organisation with another. Then the row was linked to that
+    # member: one directory entry, named by two lines in two groups.
+    it 'joins the two groups into one, keeps the line by the row and drops the one by the account' do
+      Prosopite.pause { join_organisation(shared, north) }
+      row_of_member = person_in(north, name: 'Mara Mitglied')
+      Prosopite.pause { join_organisation(viewer, east, rights: ['view_people']) }
+      expect(merge(member(north, shared), row(south_row))).to be_success
+      expect(merge(row(row_of_member), row(west_row))).to be_success
+      ActsAsTenant.with_tenant(north) { row_of_member.update!(user: shared) }
+      expect(PersonGroup.count).to eq(2)
+
+      result = merge(member(north, shared), row(south_row), row(west_row), row(east_row))
+
+      expect(result).to be_success
+      expect(PersonGroup.count).to eq(1)
+      expect(stored).to contain_exactly([north.id, row_of_member.id, nil], [south.id, south_row.id, nil],
+                                        [west.id, west_row.id, nil], [east.id, east_row.id, nil])
+    end
+  end
+
   describe 'leftovers' do
     it 'deletes the groups of the caller left with fewer than two entries, and no one else\'s' do
       merge(row(north_row), row(south_row))
@@ -321,8 +343,13 @@ RSpec.describe Actors::MergePeople, :ci_guard do
   describe 'a race' do
     # Two merges of one owner wait for each other (the lock). What can still collide is a
     # write from elsewhere: a row deleted meanwhile, a member leaving.
+    # A real refusal of the database, not a raised double: the same entries inserted twice
+    # run into the unique index, and the transaction of the merge is lost with them.
     it 'answers a unique index that refuses with a message, not with an exception' do
-      allow(PersonGroupEntry).to receive(:insert_all!).and_raise(ActiveRecord::RecordNotUnique, 'duplicate key')
+      allow(PersonGroupEntry).to receive(:insert_all!).and_wrap_original do |insert, rows|
+        insert.call(rows)
+        insert.call(rows)
+      end
       result = nil
 
       expect { result = merge(row(north_row), row(south_row)) }.not_to nothing_written

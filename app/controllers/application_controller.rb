@@ -262,8 +262,10 @@ class ApplicationController < ActionController::Base
   def page_above_organisations?
     return false if full_page_request?
 
+    # The pages above the organisations that host fragments of an organisation's
+    # controller: the inbox (its lane) and the people (the takeover dialog of a card).
     source = URI.parse(request.referer.to_s)
-    source.host == request.host && source.port == request.port && source.path == all_inboxes_path
+    source.host == request.host && source.port == request.port && [all_inboxes_path, all_people_path].include?(source.path)
   rescue URI::InvalidURIError
     false
   end

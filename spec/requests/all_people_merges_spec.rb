@@ -215,6 +215,71 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
     end
   end
 
+  # The card of a merged person takes the merge apart as well: the whole of it, or one
+  # source of three or more. Both come back to the card.
+  describe 'splitting from the card' do
+    let(:west) { create(:organisation, name: 'West KG') }
+    let(:west_person) { person_in(west, name: 'Kai Kontakt (West)') }
+    let(:card) { "#{people[:north].organisation_id}:person:#{people[:north].id}" }
+
+    before do
+      Prosopite.pause { join_organisation(user, west, admin: true) }
+      merge(source(people[:north]), source(people[:south]), source(west_person))
+      # The notice of the merge is shown once and gone.
+      page
+    end
+
+    def card_address(person)
+      "#{person.organisation_id}:person:#{person.id}"
+    end
+
+    it 'takes one source out, keeps the others merged and comes back to the card' do
+      delete all_people_merge_path(PersonGroup.sole.id), params: { source: card_address(people[:south]), card: card }
+
+      expect(response).to redirect_to(all_people_path(card: card))
+      expect(response).to have_http_status(:see_other)
+      expect(flash[:notice]).to eq(I18n.t('controllers.people.split.source_success'))
+      expect(stored).to eq([1, 2])
+      expect(shown(page)).to include('Kai Kontakt' => ['Nord GmbH', 'West KG'], 'Kai Kontakt (Sued)' => ['Sued AG'])
+    end
+
+    it 'takes the whole merge apart without a source and comes back to the card' do
+      delete all_people_merge_path(PersonGroup.sole.id), params: { card: card, q: 'kai' }
+
+      expect(response).to redirect_to(all_people_path(q: 'kai', card: card))
+      expect(flash[:notice]).to eq(I18n.t('controllers.people.split.success'))
+      expect(stored).to eq([0, 0])
+    end
+
+    it 'answers a source it cannot take out like a missing merge, and deletes nothing' do
+      answers = Prosopite.pause do
+        [{ source: card_address(people[:other]) }, { source: card_address(people[:east]) }, { source: 'oops' },
+         { source: "#{north.id}:person:#{SecureRandom.uuid}" }].map do |params|
+          expect { delete all_people_merge_path(PersonGroup.sole.id), params: params }.not_to(change { stored })
+          answer
+        end
+      end
+      expect { delete all_people_merge_path(SecureRandom.uuid) }.not_to(change { stored })
+
+      expect(answers.uniq.size).to eq(1), answers.inspect
+      expect(answers.first).to eq(answer)
+      expect(answers.first[0..2]).to eq([303, all_people_url, I18n.t('controllers.people.not_found')])
+    end
+
+    it 'takes a list or a hash in place of the source for no source at all: nothing half done' do
+      expect { delete all_people_merge_path(PersonGroup.sole.id), params: { source: [card_address(people[:south])] } }
+        .not_to(change { stored })
+
+      expect(flash[:alert]).to eq(I18n.t('controllers.people.not_found'))
+    end
+
+    it 'keeps only a card address that is a text for the way back' do
+      delete all_people_merge_path(PersonGroup.sole.id), params: { card: ['x'] }
+
+      expect(response).to redirect_to(all_people_path)
+    end
+  end
+
   describe 'one answer for every entry the reader cannot name' do
     let(:hidden) { create(:organisation, name: 'Ohne Recht GmbH') }
     let!(:hidden_row) do

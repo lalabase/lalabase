@@ -34,6 +34,53 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
     [takeover_count(north), takeover_count(south)]
   end
 
+  # The card of a person above the organisations (GET /people) offers the takeover as
+  # well: the same dialog, loaded into a frame of that page. A fragment of an
+  # organisation's controller on a page without an organisation.
+  describe 'the dialog on the people page above the organisations' do
+    let(:people_page) { "http://www.example.com#{all_people_path(card: "#{north.id}:person:#{source.id}")}" }
+
+    before { sign_in reader }
+
+    it 'renders into its frame and leaves the organisation of the session where it was' do
+      get organisation_people_path(south)
+      expect(session[:current_organisation_id]).to eq(south.id)
+
+      get new_organisation_person_takeover_path(north, source), headers: frame.merge('Referer' => people_page)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to start_with(%(<turbo-frame id="person-takeover-modal-#{source.id}">))
+      expect(response.body).to include('Herr Schmidt', organisation_person_takeover_path(north, source))
+      expect(session[:current_organisation_id]).to eq(south.id)
+      expect(ActsAsTenant.current_tenant).to be_nil
+    end
+
+    it 'knows the page it was loaded on as one above the organisations: no assistant for the fragment' do
+      get new_organisation_person_takeover_path(north, source), headers: frame.merge('Referer' => people_page)
+      expect(controller.send(:page_above_organisations?)).to be(true)
+
+      # The same fragment on the people page of the organisation belongs to that organisation.
+      own_page = "http://www.example.com#{organisation_people_path(north, person_id: source.id)}"
+      get new_organisation_person_takeover_path(north, source), headers: frame.merge('Referer' => own_page)
+      expect(response).to have_http_status(:ok)
+      expect(controller.send(:page_above_organisations?)).to be(false)
+
+      # A page of another host with the same path is no page of ours.
+      get new_organisation_person_takeover_path(north, source), headers: frame.merge('Referer' => "http://elsewhere.example.com#{all_people_path}")
+      expect(controller.send(:page_above_organisations?)).to be(false)
+    end
+
+    it 'takes the contact over from there as from the card of the organisation, without moving the session' do
+      get organisation_people_path(south)
+
+      expect { submit }.to change { takeover_count(south) }.by(1)
+
+      copy = copies.find { |person| person.name == 'Herr Schmidt' }
+      expect(response).to redirect_to(organisation_people_path(south, person_id: copy.id))
+      expect(session[:current_organisation_id]).to eq(south.id)
+    end
+  end
+
   describe 'the menu item' do
     # An account admin of north sees every row, also a member's (a reader with
     # view_people sees only the members the members page shows them).

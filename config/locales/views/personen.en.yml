@@ -19,6 +19,7 @@ en:
         failed: "Merging did not work. Please try again."
       split:
         success: "Merge undone. The entries stand on their own in your list again."
+        source_success: "Taken out of the merge. The entry stands on its own in your list again."
         failed: "The merge could not be undone. Please try again."
       takeover:
         success: "Taken over from %{source}. The original and the copy are one person for you now."
@@ -69,6 +70,10 @@ en:
         notes_from: "Notes from %{organisation}"
         last_contact: "Last contact: %{age}, in %{organisation}"
         sources_label: "Organisations of this person"
+        more_actions: "More actions"
+        takeover_from: "Take over from %{organisation} into another organisation …"
+        detach: "Take %{organisation} out of the merge"
+        detach_confirm: "Take %{name} of %{organisation} out of the merge? The entry will stand on its own in your list again. Nothing changes in the organisations."
       empty:
         no_hits_title: "No person matches “%{query}”."
         no_hits_text: "The search looks at name, function, department, company and email."

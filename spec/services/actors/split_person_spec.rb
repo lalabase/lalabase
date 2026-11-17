@@ -104,6 +104,124 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
     end
   end
 
+  # From the card of a merged person one source can leave alone (source:
+  # "<organisation id>:<entry address>"): only the lines that name it go.
+  describe 'taking one source out' do
+    let(:west) { create(:organisation, name: 'West KG') }
+    let(:west_row) { person_in(west, name: 'Kai Kontakt') }
+
+    before do
+      Prosopite.pause do
+        [north, south, west].each { |organisation| join_organisation(viewer, organisation, admin: true) }
+      end
+    end
+
+    def address(organisation, row)
+      "#{organisation.id}:person:#{row.id}"
+    end
+
+    def take_out(source, id: mine.id, user: viewer)
+      described_class.call(group_id: id, current_user: user, source: source)
+    end
+
+    # The rows called Kai Kontakt, each as the organisations it stands for (the viewer is
+    # a row of the list as well, a member of all three).
+    def list
+      People::AcrossOrganisations.call(viewer: User.find(viewer.id)).rows
+                                 .select { |row| row.name == 'Kai Kontakt' }.map { |row| row.sources.map(&:organisation_name) }
+    end
+
+    def entries(group)
+      PersonGroupEntry.where(person_group_id: group.id).pluck(:organisation_id).sort
+    end
+
+    context 'with three sources' do
+      before { create(:person_group_entry, person_group: mine, organisation: west, person_id: west_row.id) }
+
+      it 'removes that source and leaves the others merged' do
+        expect(list).to eq([['Nord GmbH', 'Sued AG', 'West KG']])
+
+        result = take_out(address(south, south_row))
+
+        expect(result).to be_success
+        expect(result.resource).to eq(mine)
+        expect(entries(mine)).to eq([north.id, west.id].sort)
+        expect(list).to contain_exactly(['Nord GmbH', 'West KG'], ['Sued AG'])
+        expect(entries(theirs).size).to eq(2)
+        expect(Person.unscoped.where(id: [north_row.id, south_row.id, west_row.id]).count).to eq(3)
+        expect(ActsAsTenant.current_tenant).to be_nil
+      end
+
+      it 'removes the first source just as well' do
+        expect(take_out(address(north, north_row))).to be_success
+
+        expect(list).to contain_exactly(['Sued AG', 'West KG'], ['Nord GmbH'])
+      end
+
+      it 'answers everything it cannot take out alike, and deletes nothing' do
+        elsewhere = person_in(west, name: 'Wanda West')
+        hidden = create(:organisation, name: 'Ost eG')
+        hidden_row = person_in(hidden, name: 'Olga Ost')
+        answers = [
+          address(west, elsewhere),                  # a person the viewer sees, in no merge
+          address(north, south_row),                 # a row under the wrong organisation
+          address(hidden, hidden_row),               # an organisation that is not the viewer's
+          "#{north.id}:person:#{SecureRandom.uuid}", "#{north.id}:person:oops", "#{north.id}:", 'oops', '', 7, [address(south, south_row)]
+        ].map do |source|
+          result = nil
+          Prosopite.pause { expect { result = take_out(source) }.not_to(change { [PersonGroup.count, PersonGroupEntry.count] }) }
+          [result.success?, result.code, result.errors]
+        end
+
+        expect(answers.uniq).to eq([[false, :not_found, [I18n.t('controllers.people.not_found')]]])
+        # The same call takes out a source it can name.
+        expect(take_out(address(south, south_row))).to be_success
+      end
+
+      it 'answers the group of another owner like a missing one, whatever source is named' do
+        result = nil
+
+        expect { result = take_out(address(south, south_row), id: theirs.id) }.not_to(change { PersonGroupEntry.count })
+
+        expect([result.success?, result.code]).to eq([false, :not_found])
+      end
+
+      it 'does not take out a source the viewer may no longer read' do
+        Prosopite.pause { take_people_right(viewer, south) }
+        result = nil
+
+        expect { result = take_out(address(south, south_row)) }.not_to(change { PersonGroupEntry.count })
+
+        expect([result.success?, result.code]).to eq([false, :not_found])
+      end
+
+      it 'leaves a merge of another person of the viewer alone' do
+        other_north = person_in(north, name: 'Nora Nord')
+        other_south = person_in(south, name: 'Nora Nord')
+        second = create(:person_group, owner: viewer)
+        create(:person_group_entry, person_group: second, organisation: north, person_id: other_north.id)
+        create(:person_group_entry, person_group: second, organisation: south, person_id: other_south.id)
+
+        # A source of the second merge is no source of the first.
+        refused = take_out(address(south, other_south))
+        expect([refused.success?, refused.code]).to eq([false, :not_found])
+        expect(take_out(address(south, south_row))).to be_success
+
+        expect(entries(second).size).to eq(2)
+      end
+    end
+
+    it 'dissolves a merge of two when one of them is taken out' do
+      result = take_out(address(south, south_row))
+
+      expect(result).to be_success
+      expect(PersonGroup.where(id: mine.id)).not_to exist
+      expect(PersonGroupEntry.where(owner_id: viewer.id)).not_to exist
+      expect(list).to contain_exactly(['Nord GmbH'], ['Sued AG'])
+      expect(PersonGroup.where(id: theirs.id)).to exist
+    end
+  end
+
   it 'deletes the caller\'s groups left with fewer than two entries on the way' do
     leftover = create(:person_group, owner: viewer)
     foreign_leftover = create(:person_group, owner: other)

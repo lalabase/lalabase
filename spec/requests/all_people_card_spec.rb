@@ -477,6 +477,96 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
     end
   end
 
+  describe 'the menu of the card' do
+    def menu(card)
+      card.at_css('[data-lane-head] details.more-menu')
+    end
+
+    def takeover_links(card)
+      card.css('[data-lane-head] details.more-menu a[data-card-takeover]')
+    end
+
+    it 'offers the takeover for every source that is a contact without an account, into the frame of its dialog' do
+      merged = card(kai)
+
+      links = takeover_links(merged)
+      expect(links.pluck('href')).to eq([new_organisation_person_takeover_path(north, people[:north_kai]),
+                                         new_organisation_person_takeover_path(south, people[:south_kai])])
+      expect(links.pluck('data-turbo-frame')).to eq(["person-takeover-modal-#{people[:north_kai].id}",
+                                                     "person-takeover-modal-#{people[:south_kai].id}"])
+      expect(links.map { |link| link.text.strip })
+        .to eq([I18n.t('views.all_people.card.takeover_from', organisation: 'Nord GmbH'),
+                I18n.t('views.all_people.card.takeover_from', organisation: 'Sued AG')])
+      # The frame each dialog loads into stands on the card.
+      expect(merged.css('turbo-frame[id^="person-takeover-modal-"]').pluck('id'))
+        .to eq(["person-takeover-modal-#{people[:north_kai].id}", "person-takeover-modal-#{people[:south_kai].id}"])
+    end
+
+    it 'names no organisation in the takeover of a person of one organisation' do
+      single = card(nora)
+
+      expect(takeover_links(single).map { |link| link.text.strip }).to eq([I18n.t('views.organisations.people.takeover.menu')])
+      expect(takeover_links(single).pluck('href')).to eq([new_organisation_person_takeover_path(north, people[:north_only])])
+    end
+
+    it 'offers no takeover without somewhere to take the contact' do
+      take_right_to_write(south)
+      merged = card(kai)
+
+      # From the north there is nowhere to go; from the south there is.
+      expect(takeover_links(merged).pluck('href')).to eq([new_organisation_person_takeover_path(south, people[:south_kai])])
+      expect(response.body).not_to include(new_organisation_person_takeover_path(north, people[:north_kai]))
+    end
+
+    it 'offers no takeover for a member, and no menu at all when there is nothing in it' do
+      member = card(mara)
+
+      expect(member.text).to include('Mara Mitglied')
+      expect(menu(member)).to be_nil
+      expect(response.body).not_to include('person-takeover-modal-', 'takeover/new')
+    end
+
+    it 'offers to undo the merge, back to the card' do
+      split = menu(card(kai)).at_css('form[data-card-split]')
+
+      expect(split['action']).to eq(all_people_merge_path(merge.id, card: kai))
+      expect(split.at_css('input[name="_method"]')['value']).to eq('delete')
+      expect(split['data-turbo-frame']).to eq('_top')
+      expect(split['data-turbo-confirm']).to eq(I18n.t('views.confirm.split_merged_person', name: 'Kai Kontakt'))
+      # Two sources: taking one out is undoing the merge, so that is the one offer.
+      expect(menu(card(kai)).css('form[data-card-detach]')).to be_empty
+    end
+
+    it 'offers to take one source out of a merge of three' do
+      west = create(:organisation, name: 'West KG')
+      west_kai = nil
+      Prosopite.pause do
+        join_organisation(user, west, admin: true)
+        west_kai = person_in(west, name: 'Kai Kontakt', email: nil)
+        create(:person_group_entry, person_group: merge, organisation: west, person_id: west_kai.id)
+      end
+
+      forms = menu(card(kai)).css('form[data-card-detach]')
+
+      expect(forms.pluck('action')).to eq(
+        [[north, people[:north_kai]], [south, people[:south_kai]], [west, west_kai]].map do |organisation, person|
+          all_people_merge_path(merge.id, source: "#{organisation.id}:person:#{person.id}", card: kai)
+        end
+      )
+      expect(forms.map { |form| form.at_css('button').text.strip })
+        .to eq(['Nord GmbH', 'Sued AG', 'West KG'].map { |name| I18n.t('views.all_people.card.detach', organisation: name) })
+      expect(forms.pluck('data-turbo-confirm').uniq.size).to eq(3)
+      expect(forms.pluck('data-turbo-frame').uniq).to eq(['_top'])
+    end
+
+    it 'offers no undo for a person the same account alone joins' do
+      member = card(mara)
+
+      expect(member.css('a[data-card-source-link]').size).to eq(2)
+      expect(member.css('form[data-card-split], form[data-card-detach]')).to be_empty
+    end
+  end
+
   describe 'the switch' do
     it 'is stored for the person, survives a reload, and is taken back the same way' do
       expect(chips(field(card(kai), :company))).to be_empty

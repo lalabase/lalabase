@@ -19,6 +19,7 @@ de:
         failed: "Das Zusammenführen hat nicht geklappt. Bitte versuche es noch einmal."
       split:
         success: "Zusammenführung aufgehoben. Die Einträge stehen wieder einzeln in deiner Liste."
+        source_success: "Aus der Zusammenführung gelöst. Der Eintrag steht wieder einzeln in deiner Liste."
         failed: "Die Zusammenführung ließ sich nicht aufheben. Bitte versuche es noch einmal."
       takeover:
         success: "Übernommen aus %{source}. Original und Kopie sind für dich jetzt eine Person."
@@ -69,6 +70,10 @@ de:
         notes_from: "Notizen aus %{organisation}"
         last_contact: "Letzter Kontakt: %{age}, in %{organisation}"
         sources_label: "Organisationen dieser Person"
+        more_actions: "Weitere Aktionen"
+        takeover_from: "Aus %{organisation} in andere Organisation übernehmen …"
+        detach: "%{organisation} aus der Zusammenführung lösen"
+        detach_confirm: "%{name} aus %{organisation} aus der Zusammenführung lösen? Der Eintrag steht danach wieder einzeln in deiner Liste. In den Organisationen ändert sich nichts."
       empty:
         no_hits_title: "Keine Person passt zu „%{query}“."
         no_hits_text: "Gesucht wird in Name, Funktion, Abteilung, Firma und E-Mail."

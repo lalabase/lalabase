@@ -33,7 +33,7 @@ RSpec.describe PersonLinkRelease, :ci_guard do
   let(:owner) { create(:user, first_name: 'Vera', last_name: 'Viewer') }
   let(:mara) { create(:user, first_name: 'Mara', last_name: 'Mitglied') }
 
-  def group_of(*entries)
+  def group_of(*entries, owner: self.owner)
     create(:person_group, owner: owner).tap do |group|
       entries.each { |organisation, address| create(:person_group_entry, person_group: group, organisation: organisation, **address) }
     end
@@ -85,6 +85,66 @@ RSpec.describe PersonLinkRelease, :ci_guard do
   ensure
     release << true if release
     [merging, releasing].each do |thread|
+      thread&.join(2)
+      thread&.kill if thread&.alive?
+    end
+  end
+
+  # Until 2026-11-17 the lines of everybody who named the member by account alone were
+  # rewritten in ONE statement, without the locks of their owners. A write of one owner
+  # that had not committed yet (a line for the same row, under that owner's lock) made the
+  # statement wait and then meet the unique index: the savepoint undid it for EVERY owner,
+  # the member left all the same, and with the link gone nothing leads those lines to the
+  # row again. Each owner's line now follows in a step of its own, under that owner's lock.
+  it 'rewrites the line of another owner while one owner is writing a line for the same row' do
+    other = create(:user, first_name: 'Olaf', last_name: 'Other')
+    join_organisation(mara, north)
+    row = person_in(north, user: mara, name: 'Mara Mitglied')
+    east_one = person_in(east, name: 'Ost Eins')
+    western = person_in(west, name: 'Wanda West')
+    writers = group_of([north, { user_id: mara.id }], [east, { person_id: east_one.id }])
+    others = group_of([north, { user_id: mara.id }], [west, { person_id: western.id }], owner: other)
+    second = create(:person_group, owner: owner)
+    writer_id = owner.id
+
+    ready = Queue.new
+    release = Queue.new
+    writing = Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do
+        PersonGroupEntry.transaction do
+          PersonGroup.lock_for(writer_id)
+          PersonGroupEntry.insert_all!([
+                                         { person_group_id: second.id, owner_id: writer_id, organisation_id: north.id, person_id: row.id },
+                                         { person_group_id: second.id, owner_id: writer_id, organisation_id: west.id, person_id: western.id }
+                                       ])
+          ready << true
+          release.pop
+        end
+      end
+    end
+    Timeout.timeout(10) { ready.pop }
+    releasing = Thread.new do
+      sleep 0.5
+      release << true
+    end
+
+    leaving = lambda do
+      ActsAsTenant.with_tenant(north) { Membership.find_by!(user_id: mara.id, organisation_id: north.id).destroy! }
+    end
+
+    expect { Timeout.timeout(15) { leaving.call } }.not_to raise_error
+    writing.join(10)
+
+    expect(Membership.where(user_id: mara.id, organisation_id: north.id)).not_to exist
+    expect(ActsAsTenant.with_tenant(north) { Person.find(row.id).user_id }).to be_nil
+    expect(entries_of(others)).to contain_exactly([north.id, row.id, nil], [west.id, western.id, nil])
+    # The writer names the row already: the line by account gives way to it.
+    expect(entries_of(second)).to contain_exactly([north.id, row.id, nil], [west.id, western.id, nil])
+    expect(entries_of(writers)).to contain_exactly([east.id, east_one.id, nil])
+    expect(PersonGroupEntry.where(user_id: mara.id)).not_to exist
+  ensure
+    release << true if release
+    [writing, releasing].each do |thread|
       thread&.join(2)
       thread&.kill if thread&.alive?
     end

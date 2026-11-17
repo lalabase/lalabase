@@ -113,7 +113,7 @@ RSpec.describe PersonLinkRelease, type: :model do
         # A real refusal, under the owner's lock: a second line for the row meets the unique index.
         allow(PersonGroup).to receive(:lock_for).and_wrap_original do |lock, id|
           lock.call(id)
-          PersonGroupEntry.insert_all!([by_row.attributes.except('id')])
+          PersonGroupEntry.insert_all!([by_row.attributes.except('id')]) if id == owner.id
         end
 
         expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
@@ -123,6 +123,28 @@ RSpec.describe PersonLinkRelease, type: :model do
         expect(address(entry)).to eq([nil, user.id])
         expect(address(by_row)).to eq([row.id, nil])
         expect(address(theirs)).to eq([row.id, nil])
+      end
+
+      # Every line follows the row in a step of its own, under the lock of its owner. Until
+      # 2026-11-17 one statement rewrote the lines of all the other owners, without their
+      # locks: what the database refused for one of them was undone for all of them, and
+      # with the link gone nothing leads those lines to the row again.
+      it 'rewrites the line of every other owner when the step of one owner is refused' do
+        third = create(:person_group_entry, person_group: create(:person_group), organisation: organisation, user_id: user.id)
+        allow(PersonGroup).to receive(:lock_for).and_wrap_original do |lock, id|
+          raise ActiveRecord::LockWaitTimeout, 'canceling statement due to lock timeout' if id == other_owner.id
+
+          lock.call(id)
+        end
+
+        expect { Membership.find_by(user: user, organisation: organisation).destroy! }.not_to raise_error
+
+        expect(Membership.where(user: user, organisation: organisation)).not_to exist
+        expect(row.reload.user_id).to be_nil
+        expect(address(theirs)).to eq([nil, user.id])
+        expect(address(third)).to eq([row.id, nil])
+        expect(PersonGroupEntry.where(id: entry.id)).not_to exist
+        expect(address(by_row)).to eq([row.id, nil])
       end
 
       it 'does not delete the donor after its normalization alone was rolled back' do
@@ -202,8 +224,9 @@ RSpec.describe PersonLinkRelease, type: :model do
 
         Membership.find_by(user: user, organisation: organisation).destroy!
 
-        lock = statements.index { |sql| sql.include?('pg_advisory_xact_lock') }
+        # The last lock before the line goes: the owners are locked one after the other.
         moved = statements.index { |sql| sql.match?(/\ADELETE FROM "person_group_entries"/) }
+        lock = statements[0...moved].rindex { |sql| sql.include?('pg_advisory_xact_lock') }
         expect(lock).not_to be_nil
         expect(statements[lock...moved].grep(/\ASELECT "person_group_entries"\.\* FROM "person_group_entries"/).size).to eq(2)
       ensure

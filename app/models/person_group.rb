@@ -29,8 +29,8 @@ class PersonGroup < ApplicationRecord
     where('(SELECT COUNT(*) FROM person_group_entries WHERE person_group_entries.person_group_id = person_groups.id) < 2')
   }
 
-  # One write at a time per owner (Actors::MergePeople, Actors::SplitPerson, and the move
-  # of entries when a member the owner merged twice leaves, PersonGroupEntry.follow_to_row):
+  # One write at a time per owner (Actors::MergePeople, Actors::SplitPerson, and the
+  # rewrite of an entry when a member the owner merged leaves, PersonGroupEntry.follow_to_row):
   # held until the transaction ends, so the second write reads what the first one stored.
   # owner: the account or its id. The key is a bind; SELECT 1 FROM because the function
   # returns void.

@@ -48,12 +48,19 @@ class PersonGroupEntry < ApplicationRecord
   # Normalize while membership visibility still applies. After DELETE a formerly
   # hidden member's linked row becomes a visible contact, so resolving aliases then
   # would use a relationship the owner was never allowed to see.
+  #
+  # Every owner who names the member by account is locked here, in the order of their
+  # ids, before the membership goes. .follow_to_row asks for the same owners in the same
+  # order and holds their locks already, so two removals do not wait for each other
+  # crosswise. Whether an owner names the row as well is asked under their lock: a write
+  # of theirs that was waited for is seen. Returns the owners whose step the database
+  # refused.
   def self.prepare_release(organisation_id:, user_id:, rows:)
-    row_owners = where(organisation_id: organisation_id, person_id: rows.select(:id)).select(:owner_id)
-    where(organisation_id: organisation_id, user_id: user_id, owner_id: row_owners).order(:owner_id).pluck(:owner_id).filter_map do |owner_id|
+    by_row = where(organisation_id: organisation_id, person_id: rows.select(:id))
+    owners_naming(where(organisation_id: organisation_id, user_id: user_id), rows).filter_map do |owner_id|
       settled = quietly do
         PersonGroup.lock_for(owner_id)
-        settle_for_owner(owner_id)
+        settle_for_owner(owner_id) if uncached { by_row.exists?(owner_id: owner_id) }
         true
       end
       owner_id unless settled
@@ -66,39 +73,45 @@ class PersonGroupEntry < ApplicationRecord
   # per organisation), named by the caller while the row still carries the account.
   # Without a row nothing changes. No row is loaded.
   #
-  # An owner who holds an entry for that row already keeps that one (the unique index would
-  # refuse a second). Their entry by account gives way first (.give_way): what it was
-  # merged with moves over to the group of the row, so the person stays whole. Every other
-  # entry by account is rewritten in one statement.
+  # One step per owner, under that owner's lock (.follow_for_owner). An owner who holds an
+  # entry for that row already keeps that one (the unique index would refuse a second),
+  # and their entry by account gives way.
   #
   # ⚠️ This runs inside the removal of a membership, also when an account is erased.
   # Somebody's private note must never stop a member from leaving: each step stands in a
   # savepoint of its own, and a step the database refuses is undone alone (.quietly). The
-  # lines it concerned then stay as they are; they name the account, which no longer leads
-  # to the row, until that member comes back.
+  # line it concerned then stays as it is; it names the account, which no longer leads
+  # to the row, until that member comes back. The lines of the other owners follow all
+  # the same: until 2026-11-17 one statement rewrote them all, without their locks, and
+  # one refusal left every one of them behind.
   def self.follow_to_row(organisation_id:, user_id:, rows:, failed_owners: [])
     by_account = where(organisation_id: organisation_id, user_id: user_id).where.not(owner_id: failed_owners)
     by_row = where(organisation_id: organisation_id, person_id: rows.select(:id))
-    by_account.where(owner_id: by_row.select(:owner_id)).order(:owner_id).pluck(:owner_id).each do |owner_id|
-      quietly { give_way(owner_id, by_account, by_row) }
-    end
-    quietly do
-      by_account.where(rows.arel.exists).where.not(owner_id: by_row.select(:owner_id))
-                .update_all(person_id: Arel::Nodes::Grouping.new(rows.select(:id).arel), user_id: nil, updated_at: Time.current)
+    owners_naming(by_account, rows).each do |owner_id|
+      quietly { follow_for_owner(owner_id, by_account, by_row, rows) }
     end
   end
 
-  # One owner who names the leaving member twice, by account and by row. Under the lock a
-  # merge or a split of that owner takes (PersonGroup.lock_for), and only then read: a
-  # merge of theirs that is being written is waited for, and what it stored is seen. The
-  # owners are taken in the order of their ids to avoid reversing that lock order.
-  def self.give_way(owner_id, by_account, by_row)
+  # The owners of those lines by account while the row exists, in the order of their ids:
+  # the order every lock of a removal is taken in.
+  def self.owners_naming(by_account, rows)
+    by_account.where(rows.arel.exists).order(:owner_id).pluck(:owner_id)
+  end
+
+  # One owner's line by account. Under the lock a merge or a split of that owner takes
+  # (PersonGroup.lock_for), and only then read: a write of theirs that is on its way is
+  # waited for, and what it stored is seen.
+  def self.follow_for_owner(owner_id, by_account, by_row, rows)
     PersonGroup.lock_for(owner_id)
     line = by_account.find_by(owner_id: owner_id)
     kept = by_row.find_by(owner_id: owner_id)
+    return unless line
     # An alias the owner cannot see must not join visible people on their behalf. Its
     # account line can still go: the row line already preserves that hidden address.
-    line.delete if line && kept
+    return line.delete if kept
+
+    where(id: line.id).where(rows.arel.exists)
+                      .update_all(person_id: Arel::Nodes::Grouping.new(rows.select(:id).arel), user_id: nil, updated_at: Time.current)
   end
 
   # Call only under PersonGroup.lock_for(owner_id), in the write's transaction. Merge,
@@ -149,7 +162,7 @@ class PersonGroupEntry < ApplicationRecord
     Rails.logger.error("[PersonGroupEntry] a merge entry stays as it is, unexpectedly: #{e.class}")
     nil
   end
-  private_class_method :give_way, :quietly
+  private_class_method :owners_naming, :follow_for_owner, :quietly
 
   # Pure normalization shared by the read and membership release. A row wins over its
   # account alias wherever it stands in a group. Move only sources whose organisations

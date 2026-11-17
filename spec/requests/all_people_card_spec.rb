@@ -483,6 +483,24 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(response.body).not_to include('mara.lager@example.com')
     end
 
+    it 'gives a member without a row no pencil where the viewer may only read' do
+      take_right_to_write(south)
+      Prosopite.pause do
+        ActsAsTenant.with_tenant(south) do
+          project = create(:project, organisation: south)
+          [user, shared].each { |account| create(:project_permission, user: account, project: project, tickets_access: :read_only) }
+        end
+      end
+
+      member = card(mara, editing: 1)
+
+      expect(shown(member, :phone)).to eq([['+49 30 5550111', ['Nord GmbH']], [I18n.t('views.all_people.card.missing_value'), ['Sued AG']]])
+      expect(pencils(field(member, :phone))).to eq([organisation_people_path(north, edit: people[:north_row].id)])
+      expect(response.body).not_to include('new=person')
+      read_only = member.css('[data-card-source]').map { |one| one.text.include?(I18n.t('views.all_people.card.read_only')) }
+      expect(read_only).to eq([false, true])
+    end
+
     it 'gives the notes no pencil' do
       merged = card(kai, editing: 1)
 

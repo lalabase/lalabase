@@ -381,6 +381,28 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(card_at(address_of(south, member: shared))).to eq(card)
     end
 
+    # The form that adds a member's details creates a row: without the right to create
+    # people there the source is read only, like a row the viewer may not update.
+    it 'gives a member without a row no address of a form where the viewer may only read' do
+      Prosopite.pause do
+        take_people_right(viewer, south)
+        ActsAsTenant.with_tenant(south) do
+          create(:permission, role: Membership.find_by!(user: viewer, organisation: south).role,
+                              category: 'people', action: 'view_people', allowed: true)
+          project = create(:project, organisation: south)
+          [viewer, shared].each { |user| create(:project_permission, user: user, project: project, tickets_access: :read_only) }
+        end
+      end
+
+      expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH', 'Sued AG'])
+      expect(source(card, south).lane).to eq(member_id: shared.id)
+      expect(source(card, south).can_edit).to be(false)
+      expect(source(card, south).edit).to be_nil
+      expect(field(card, :phone).values.last.sources.map { |one| [one.organisation_id, one.edit] }).to eq([[south.id, nil]])
+      # The north still has its form.
+      expect(source(card, north).edit).to eq(edit: north_row.id)
+    end
+
     # The account joins the north and the south; a merge adds contacts. Nothing stored
     # could take one of the account's two sources out, and with one contact there are
     # two parts: taking the contact out would be undoing the merge.

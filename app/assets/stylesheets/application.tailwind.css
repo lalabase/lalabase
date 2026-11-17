@@ -517,7 +517,9 @@
   .all-people-row__person { @apply flex min-w-0 items-center gap-3; }
   .all-people-row__name { @apply min-w-0 truncate font-medium text-heading no-underline; }
   a.all-people-row__name:hover { @apply underline; }
-  .all-people-row__role { @apply text-[13px] text-muted; }
+  /* The columns are fixed, so a word that cannot break (a long compound, a company
+     written with hyphens) wraps inside its cell instead of lying over the chips. */
+  .all-people-row__role { @apply break-words text-[13px] text-muted; }
   .all-people-row__last { @apply whitespace-nowrap text-xs tabular-nums text-muted; }
   .all-people-chips { @apply flex flex-wrap gap-1.5; }
   .all-people-chips .organisation-chip { max-width: min(16rem, 100%); }

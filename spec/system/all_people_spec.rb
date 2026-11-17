@@ -45,6 +45,15 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     expect(page).to have_css('#all-people-search', visible: true)
   end
 
+  # Both forms and the controller on the bar around them. Each controller is a module of
+  # its own, so one being connected says nothing about the next: on a cold browser the
+  # organisation could change before the bar listens, and the old hidden q would go out.
+  def wait_for_filter
+    wait_for_stimulus('.all-people-search', 'auto-submit')
+    wait_for_stimulus('form[data-all-people-tool="organisation"]', 'auto-submit')
+    wait_for_stimulus('[data-controller~="all-people-filter"]', 'all-people-filter')
+  end
+
   def change_search_and_organisation(query, organisation)
     page.execute_script(<<~JS, query, organisation.id)
       const search = document.getElementById('all-people-search')
@@ -99,8 +108,7 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     it "keeps #{query.inspect} when switching organisation with #{previous.inspect} as the last rendered search" do
       visit all_people_path(q: previous)
       open_search unless previous
-      wait_for_stimulus('.all-people-search', 'auto-submit')
-      wait_for_stimulus('form[data-all-people-tool="organisation"]', 'auto-submit')
+      wait_for_filter
 
       change_search_and_organisation(query, south)
 
@@ -128,8 +136,7 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
 
     visit all_people_path
     open_search
-    wait_for_stimulus('.all-people-search', 'auto-submit')
-    wait_for_stimulus('form[data-all-people-tool="organisation"]', 'auto-submit')
+    wait_for_filter
 
     # Hold the old read on the server until the new organisation page is shown.
     find('#all-people-search').set('Nora')
@@ -151,11 +158,60 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     release&.push(true)
   end
 
+  # The other order: the earlier search answers while the organisation switch is still on
+  # its way. A frame answer that arrives then becomes a visit of its own, and that visit
+  # stops the switch: the reader would stay where they were, with the old search in the
+  # address. So the switch stops the search request itself, before it sends its own.
+  it 'keeps the organisation switch when the earlier search answers before it' do
+    search_started, search_release, search_answered = Array.new(3) { Queue.new }
+    switch_started, switch_release = Array.new(2) { Queue.new }
+    patient = ->(queue) { Timeout.timeout(Capybara.default_max_wait_time) { queue.pop } }
+    allow(People::AcrossOrganisations).to receive(:call).and_wrap_original do |read, **arguments|
+      if arguments[:org].present?
+        switch_started.push(true)
+        switch_release.pop
+        read.call(**arguments)
+      elsif arguments[:query] == 'Nora'
+        search_started.push(true)
+        search_release.pop
+        read.call(**arguments).tap { search_answered.push(true) }
+      else
+        read.call(**arguments)
+      end
+    end
+
+    visit all_people_path
+    open_search
+    wait_for_filter
+
+    # Both requests are held on the server: the search first, then the switch.
+    find('#all-people-search').set('Nora')
+    patient.call(search_started)
+    change_search_and_organisation('Sina', south)
+    patient.call(switch_started)
+
+    # The old search answers first. Nothing may follow from it, and "nothing" has no event
+    # to wait for: give the browser the time a frame answer takes to become a visit.
+    search_release.push(true)
+    patient.call(search_answered)
+    page.evaluate_async_script('setTimeout(arguments[arguments.length - 1], 700)')
+    expect(page).to have_no_current_path(/q=Nora/)
+
+    switch_release.push(true)
+    expect(page).to have_current_path(/org=#{south.id}/)
+    expect(page).to have_current_path(/q=Sina/)
+    expect(list).to have_text('Sina Sued')
+    expect(list).to have_no_text('Nora Nord')
+    expect(page).to have_css('[data-all-people-count]', text: count_of(1))
+  ensure
+    search_release&.push(true)
+    switch_release&.push(true)
+  end
+
   it 'cancels the pending search while the organisation visit is still waiting' do
     visit all_people_path
     open_search
-    wait_for_stimulus('.all-people-search', 'auto-submit')
-    wait_for_stimulus('form[data-all-people-tool="organisation"]', 'auto-submit')
+    wait_for_filter
     page.execute_script <<~JS
       window.peopleSearchRequests = 0
       document.addEventListener('turbo:before-fetch-request', event => {
@@ -203,6 +259,29 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     expect(page).to have_current_path(organisation_people_path(south, member_id: shared.id))
   ensure
     page.driver.browser.execute_cdp('Emulation.clearDeviceMetricsOverride')
+  end
+
+  # The table has fixed columns, so a word that cannot break would run out of its cell
+  # and lie over the organisations beside it.
+  it 'keeps a long word of function and company inside its column' do
+    person_in(north, name: 'Lars Lang', function: 'Softwareentwicklungsabteilungsleiterin',
+                     company: 'Musterberatungsgesellschaft-mbH')
+    page.driver.browser.manage.window.resize_to(1000, 900)
+    visit all_people_path
+
+    row = find('tr[data-all-people-row]', text: 'Lars Lang')
+    expect(row).to have_css('.all-people-row__role', text: 'Softwareentwicklungsabteilungsleiterin')
+    boxes = page.evaluate_script(<<~JS)
+      (() => {
+        const row = [...document.querySelectorAll('tr[data-all-people-row]')].find(tr => tr.textContent.includes('Lars Lang'))
+        const role = row.querySelector('.all-people-row__role')
+        return { content: role.scrollWidth, cell: role.clientWidth,
+                 roleRight: role.getBoundingClientRect().right,
+                 chipLeft: row.querySelector('[data-organisation-chip]').getBoundingClientRect().left }
+      })()
+    JS
+    expect(boxes['content']).to be <= boxes['cell']
+    expect(boxes['roleRight']).to be <= boxes['chipLeft']
   end
 
   it 'opens the people page of an organisation with the person in the lane, through the chip of a person of two' do

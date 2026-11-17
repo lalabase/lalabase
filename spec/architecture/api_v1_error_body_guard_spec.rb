@@ -42,6 +42,23 @@ module ApiV1ErrorBodyGuard
     /\brender(?!_)\b(?:[^\n]*,[ \t]*\n)*[^\n]*\bstatus:[ \t]*(?![ \t])(?!:?(?:#{SUCCESS_STATUS})\b)/
   )
 
+  # The sign-in door of clients (/api/auth/) answers in the same shape through a
+  # render_error of its own base, so the same rule holds for its files.
+  AUTH_GLOBS = %w[app/controllers/api/auth/**/*.rb].freeze
+  AUTH_ALLOWED_LINES = {
+    'app/controllers/api/auth/base_controller.rb' =>
+      'render json: Api::V1::ErrorBody.build(error: error, code: code, **extra), status: status'
+  }.freeze
+
+  def self.auth_offences
+    AUTH_GLOBS.flat_map { |glob| Rails.root.glob(glob) }.filter_map do |path|
+      relative = path.relative_path_from(Rails.root).to_s
+      source = path.read
+      source = source.sub(AUTH_ALLOWED_LINES[relative], '') if AUTH_ALLOWED_LINES.key?(relative)
+      relative if source.match?(HAND_BUILT)
+    end
+  end
+
   def self.offences
     GLOBS.flat_map { |glob| Rails.root.glob(glob) }.filter_map do |path|
       relative = path.relative_path_from(Rails.root).to_s
@@ -88,5 +105,27 @@ RSpec.describe 'API V1 error body guard', :ci_guard do
 
   it 'leaves every error body to render_error' do
     expect(ApiV1ErrorBodyGuard.offences).to be_empty
+  end
+
+  describe 'the sign-in door (app/controllers/api/auth)' do
+    it 'finds the files it is meant to scan' do
+      files = ApiV1ErrorBodyGuard::AUTH_GLOBS.flat_map { |glob| Rails.root.glob(glob) }
+      expect(files.map { |f| f.basename.to_s })
+        .to include('base_controller.rb', 'app_sessions_controller.rb', 'methods_controller.rb')
+    end
+
+    it 'still finds each allowed line, so an allowance cannot outlive its code' do
+      ApiV1ErrorBodyGuard::AUTH_ALLOWED_LINES.each do |file, line|
+        expect(Rails.root.join(file).read).to include(line), "#{file} no longer contains the allowed render"
+      end
+    end
+
+    it 'leaves every error body to render_error' do
+      expect(ApiV1ErrorBodyGuard.auth_offences).to be_empty
+    end
+
+    it 'builds every body with Api::V1::ErrorBody, the oversized one in the middleware too' do
+      expect(Rails.root.join('lib/lalabase/auth_body_limit.rb').read).to include('Api::V1::ErrorBody.build')
+    end
   end
 end

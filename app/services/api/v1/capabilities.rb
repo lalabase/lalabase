@@ -26,8 +26,10 @@ module Api
       # what a device replaced from the glossary, on meetings.create and
       # meetings.show (K4d); 1.13.0 adds token.kind and token.ends_at on me.show,
       # fields and no capability: a device token (kind app_session) lives while
-      # it is used, until ends_at.
-      API_VERSION = '1.13.0'
+      # it is used, until ends_at; 1.14.0 adds app_sessions: this server signs a
+      # device in with e-mail and password at POST /api/auth/v1/app_sessions (a
+      # door of its own, outside /api/v1) and keeps its token alive while used.
+      API_VERSION = '1.14.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
@@ -70,9 +72,11 @@ module Api
       # rule the MCP tool post_comment writes by, Posts::Comment; R3a), and
       # `meetings.glossary_replacements` (meetings.create takes the list
       # meeting[glossary_replacements] of what the sender replaced from the
-      # glossary, meetings.show hands it back; K4d).
+      # glossary, meetings.show hands it back; K4d), and `app_sessions` (the
+      # sign-in door /api/auth/v1 hands out device tokens, kind app_session,
+      # whose expiry moves with their use; no /api/v1 endpoint of its own).
       FEATURES = %w[idempotency error_codes tickets.paging time_sessions.book posts.plain
-                    meetings.glossary_replacements].freeze
+                    meetings.glossary_replacements app_sessions].freeze
 
       def self.names
         (ENDPOINTS.keys + FEATURES).sort

@@ -271,9 +271,13 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Art, `kind`: `personal` von der Token-Seite, `app_session` für ein Gerät. Ein Geräte-Token gilt immer
   für das ganze Konto und schreibt (das Modell prüft die Form), sein `expires_at` rückt bei Nutzung vor
   (`#record_use!`: 90 Tage ab jetzt, höchstens `#ends_at` = ein Jahr nach `created_at`), ein persönliches
-  rückt nie vor. `.make_room_for_app_session!` widerruft unter einer Sperre der Benutzerzeile das am
-  längsten unbenutzte Gerät, sobald das elfte käme, nie ein persönliches Token. Ändern darf ein Gerät
-  niemand: `PersonalAccessTokenPolicy#update?`),
+  rückt nie vor. `.make_room_for_app_session!` widerruft unter einer Sperre der Benutzerzeile
+  (`FOR NO KEY UPDATE`, in einer Anweisung ohne Validierung) das am längsten unbenutzte Gerät, sobald das
+  elfte käme, nie ein persönliches Token. `kind` ist nach dem Anlegen nur lesbar (`attr_readonly`), und
+  `#record_use!` rührt ein Token nicht an, das vorbei ist. Ändern darf ein Gerät
+  niemand: `PersonalAccessTokenPolicy#update?`. Seit K6b (16.11.2026) gibt die Anmelde-Tür
+  `/api/auth/v1` solche Tokens aus; `UserTrackable#track_login` nimmt dafür `login_method:` und
+  `device_name:`, das Web-Formular bleibt bei `standard`),
   `content_embedding` (Sidecar-Vektor je Record je Raum), `embedding_space` (ein von der Org
   GEHALTENER Vektorraum: Tripel + verschlüsselter Credential-Snapshot; welcher davon die Suche
   bedient, sagt `organisations.active_embedding_space_id`),

@@ -647,13 +647,32 @@ RSpec.describe PersonalAccessToken, type: :model do
         subscriber = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
           statements << payload[:sql]
         end
-        described_class.make_room_for_app_session!(user)
-        ActiveSupport::Notifications.unsubscribe(subscriber)
+        begin
+          described_class.make_room_for_app_session!(user)
+        ensure
+          ActiveSupport::Notifications.unsubscribe(subscriber)
+        end
 
         lock = statements.index { |sql| sql.include?('FROM "users"') && sql.include?('FOR NO KEY UPDATE') }
         count = statements.index { |sql| sql.include?('FROM "personal_access_tokens"') }
         expect(lock).not_to be_nil
         expect(count).to be > lock
+      end
+
+      # "Never used" is not "unused longest": the device that signed in an hour ago
+      # and has not called yet must not go before one unused for nine days.
+      it 'keeps a device made just now and never used, and breaks a tie by the day it was made' do
+        devices = Array.new(9) { |i| device_used(i + 1) }
+        fresh = create(:personal_access_token, :app_session, user: user, created_at: 1.hour.ago)
+
+        expect(described_class.make_room_for_app_session!(user)).to eq([devices.last])
+        expect(revoked_among(devices + [fresh])).to eq([devices.last])
+
+        # Two devices last used at the same moment: the one made earlier goes first.
+        used_at = 8.days.ago
+        devices[7].update_columns(last_used_at: used_at, created_at: 20.days.ago)
+        older = create(:personal_access_token, :app_session, user: user, last_used_at: used_at, created_at: 40.days.ago)
+        expect(described_class.make_room_for_app_session!(user)).to eq([older])
       end
 
       it 'counts live devices only, and only those of this account' do

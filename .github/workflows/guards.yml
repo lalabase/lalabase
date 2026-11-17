@@ -295,6 +295,12 @@ jobs:
           spec/requests/api/provisioning/body_limit_spec.rb
           spec/requests/api/provisioning/throttle_spec.rb
           spec/requests/api/provisioning/v1/signups_spec.rb
+          spec/requests/api/auth/v1/methods_spec.rb
+          spec/requests/api/auth/v1/app_sessions_spec.rb
+          spec/requests/api/auth/v1/body_limit_spec.rb
+          spec/services/app_sessions/authentication_spec.rb
+          spec/services/actors/create_app_session_spec.rb
+          spec/services/actors/create_app_session_concurrency_spec.rb
           spec/requests/users/signup_handoff_spec.rb
           spec/requests/api/public/v1/price_list_spec.rb
           spec/requests/api/v1/notifications_spec.rb

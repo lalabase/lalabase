@@ -1,6 +1,12 @@
 ---
 de:
   services:
+    app_sessions:
+      email_missing: "Die E-Mail-Adresse fehlt."
+      password_missing: "Das Passwort fehlt."
+      device_name_blank: "Der Name des Geräts fehlt."
+      device_name_too_long: "Der Name des Geräts ist zu lang (höchstens %{count} Zeichen)."
+      unsupported_media_type: "Die Anmeldung nimmt nur JSON an (Content-Type application/json)."
     actors:
       save_ai_configuration:
         unknown_provider: "Unbekannter Anbieter."

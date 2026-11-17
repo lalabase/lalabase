@@ -1,6 +1,12 @@
 ---
 en:
   services:
+    app_sessions:
+      email_missing: "The email address is missing."
+      password_missing: "The password is missing."
+      device_name_blank: "The name of the device is missing."
+      device_name_too_long: "The name of the device is too long (at most %{count} characters)."
+      unsupported_media_type: "The sign-in takes JSON only (Content-Type application/json)."
     actors:
       save_ai_configuration:
         unknown_provider: "Unknown provider."

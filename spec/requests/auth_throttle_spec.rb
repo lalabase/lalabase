@@ -128,6 +128,200 @@ RSpec.describe 'Auth endpoint throttling', type: :request do
     end
   end
 
+  # The sign-in door of clients (POST /api/auth/v1/app_sessions) counts in the two
+  # buckets of the web sign-in. A bucket of its own would double the guesses per
+  # address and per minute, and a path matched by hand would reopen the padding
+  # bypass.
+  describe 'app sign-in (shares logins/ip and logins/email with the web, 5 per minute)' do
+    let(:app_path) { '/api/auth/v1/app_sessions' }
+    let(:json_headers) { { 'CONTENT_TYPE' => 'application/json' } }
+
+    def app_attempt(email: 'nobody@example.com', ip: nil, path: app_path)
+      headers = ip ? json_headers.merge('REMOTE_ADDR' => ip) : json_headers
+      post path, params: { user: { email: email, password: 'wrong-password' }, device: { name: 'iPhone' } }.to_json,
+                 headers: headers
+    end
+
+    def web_attempt(email: 'nobody@example.com', ip: nil)
+      post user_session_path, params: { user: { email: email, password: 'wrong-password' } },
+                              headers: ip ? { 'REMOTE_ADDR' => ip } : {}
+    end
+
+    it 'lets the first 5 attempts of an address through and throttles the 6th, with the RateLimit headers' do
+      Prosopite.pause
+
+      5.times { |i| app_attempt(email: "nobody#{i}@example.com") }
+      expect(response).to have_http_status(:unauthorized)
+
+      app_attempt(email: 'nobody6@example.com')
+      expect(response).to have_http_status(:too_many_requests)
+      expect(response.headers).to include('RateLimit-Limit' => '5', 'RateLimit-Remaining' => '0')
+      expect(response.headers['RateLimit-Reset']).to be_present
+      expect(response.media_type).to eq('text/plain')
+    end
+
+    it 'counts attempts on one address from rotating IPs, read from the JSON body' do
+      Prosopite.pause
+
+      5.times { |i| app_attempt(email: 'person@example.com', ip: "10.0.0.#{i + 1}") }
+      expect(response).to have_http_status(:unauthorized)
+
+      app_attempt(email: 'person@example.com', ip: '10.0.0.99')
+      expect(response).to have_http_status(:too_many_requests)
+
+      # The control: another address from yet another IP is not throttled.
+      app_attempt(email: 'someone-else@example.com', ip: '10.0.0.100')
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'counts the address whatever its case and outer spaces' do
+      Prosopite.pause
+
+      ['person@example.com', ' Person@Example.com', 'PERSON@EXAMPLE.COM ', 'person@EXAMPLE.com', "person@example.com\n"]
+        .each_with_index { |email, i| app_attempt(email: email, ip: "10.0.1.#{i + 1}") }
+      expect(response).to have_http_status(:unauthorized)
+
+      app_attempt(email: 'person@example.com', ip: '10.0.1.99')
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    it 'shares the per-IP bucket with the web: 3 attempts there and 3 through the door give 429' do
+      Prosopite.pause
+
+      3.times { |i| web_attempt(email: "web#{i}@example.com") }
+      2.times { |i| app_attempt(email: "app#{i}@example.com") }
+      expect(response).to have_http_status(:unauthorized)
+
+      app_attempt(email: 'app2@example.com')
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    it 'shares the per-address bucket with the web, from rotating IPs and in both orders' do
+      Prosopite.pause
+
+      3.times { |i| web_attempt(email: 'person@example.com', ip: "10.0.2.#{i + 1}") }
+      2.times { |i| app_attempt(email: 'person@example.com', ip: "10.0.2.#{i + 10}") }
+      expect(response).to have_http_status(:unauthorized)
+      app_attempt(email: 'person@example.com', ip: '10.0.2.99')
+      expect(response).to have_http_status(:too_many_requests)
+
+      3.times { |i| app_attempt(email: 'other@example.com', ip: "10.0.3.#{i + 1}") }
+      2.times { |i| web_attempt(email: 'other@example.com', ip: "10.0.3.#{i + 10}") }
+      expect(response).not_to have_http_status(:too_many_requests)
+      web_attempt(email: 'other@example.com', ip: '10.0.3.99')
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    it 'cannot be bypassed with doubled slashes' do
+      Prosopite.pause
+
+      5.times { |i| app_attempt(email: "nobody#{i}@example.com", path: '//api/auth/v1//app_sessions') }
+      expect(response).to have_http_status(:unauthorized)
+
+      app_attempt(email: 'nobody6@example.com', path: '//api/auth/v1//app_sessions/')
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    # The door has no address with a format (404), and the brake counts such a
+    # request all the same: it never becomes a free guess if the route changes.
+    it 'counts a .json suffix, which is no sign-in' do
+      Prosopite.pause
+
+      5.times { app_attempt(path: "#{app_path}.json") }
+      expect(response).to have_http_status(:not_found)
+
+      app_attempt
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    # The door reads its body and nothing else. An address in the query string
+    # must not pick the bucket for an attempt on the address in the body.
+    it 'reads the address from the body, never from the query string' do
+      Prosopite.pause
+
+      5.times do |i|
+        app_attempt(email: 'person@example.com', ip: "10.0.4.#{i + 1}",
+                    path: "#{app_path}?user[email]=decoy#{i}@example.com")
+      end
+      expect(response).to have_http_status(:unauthorized)
+
+      app_attempt(email: 'person@example.com', ip: '10.0.4.99', path: "#{app_path}?user[email]=decoy9@example.com")
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    # An address of bytes that are no UTF-8 used to raise in the brake itself
+    # (String#downcase), a 500 out of the middleware, on the web sign-in as well.
+    # It names no account, so it picks no bucket of an address. The door refuses
+    # such a body before the brake sees it.
+    it 'reads bytes that are no UTF-8 as no address and never raises' do
+      Prosopite.pause
+      broken = { user: { email: 'person@example.com', password: 'wrong-password' }, device: { name: 'iPhone' } }
+               .to_json.b.sub('person'.b, "per\xFFson".b)
+
+      post app_path, params: broken, headers: json_headers
+      expect(response).to have_http_status(:bad_request)
+
+      post user_session_path, params: 'user[email]=per%FFson@example.com&user[password]=wrong-password',
+                              headers: { 'CONTENT_TYPE' => 'application/x-www-form-urlencoded', 'REMOTE_ADDR' => '10.0.5.1' }
+      expect(response.status).to be < 500
+      expect(response).not_to have_http_status(:too_many_requests)
+
+      # The control: an address that can be read is counted on both.
+      5.times { |i| app_attempt(email: 'person@example.com', ip: "10.0.5.#{i + 10}") }
+      web_attempt(email: 'person@example.com', ip: '10.0.5.99')
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    # Rails reads three more content types as JSON (synonyms of its Mime type) and
+    # parses them; Rack reads the header as sent, and the brake found no address
+    # in such a request. The door takes application/json only, so under these
+    # types nobody is looked up; the per-IP bucket counts the request all the same.
+    %w[text/x-json application/jsonrequest application/problem+json].each do |type|
+      it "reaches no account under the content type #{type}, which only Rails reads as JSON" do
+        Prosopite.pause
+        account = create(:user, email: 'person@example.com', password: 'password123')
+        body = { user: { email: 'person@example.com', password: 'wrong-password' }, device: { name: 'iPhone' } }.to_json
+
+        8.times { |i| post app_path, params: body, headers: { 'CONTENT_TYPE' => type, 'REMOTE_ADDR' => "10.0.6.#{i + 1}" } }
+        expect(response).to have_http_status(:unsupported_media_type)
+        expect(account.reload.failed_attempts).to eq(0)
+
+        6.times { post app_path, params: body, headers: { 'CONTENT_TYPE' => type, 'REMOTE_ADDR' => '10.0.6.99' } }
+        expect(response).to have_http_status(:too_many_requests)
+
+        # The control: the same body as application/json is an attempt on the account.
+        app_attempt(email: 'person@example.com', ip: '10.0.6.100')
+        expect(response).to have_http_status(:unauthorized)
+        expect(account.reload.failed_attempts).to eq(1)
+      end
+
+      # Should such a body ever reach the brake again, it reads the address of this
+      # path whatever the type says: the door and the brake cannot drift apart.
+      it "reads the address of the app sign-in under #{type} in the brake itself" do
+        body = { user: { email: ' Person@Example.com' }, device: { name: 'iPhone' } }.to_json
+        request = lambda do |path, content_type|
+          Rack::Attack::Request.new(Rack::MockRequest.env_for(path, method: 'POST', input: body,
+                                                                    'CONTENT_TYPE' => content_type))
+        end
+
+        expect(Rack::Attack.login_email(request.call(app_path, type))).to eq('person@example.com')
+        # The control: on the web sign-in the type decides, as before.
+        expect(Rack::Attack.login_email(request.call('/users/sign_in', type))).to be_nil
+        expect(Rack::Attack.login_email(request.call('/users/sign_in', 'application/json'))).to eq('person@example.com')
+      end
+    end
+
+    it 'does not count a GET on the methods, which is no attempt' do
+      Prosopite.pause
+
+      10.times { get '/api/auth/v1/methods' }
+      expect(response).to have_http_status(:ok)
+
+      app_attempt
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
   # The most privileged login in the app got the same rewrite as the others,
   # and a typo in ADMIN_LOG_IN_PATH would silently remove its brake — which is
   # precisely the failure class this whole change is about.

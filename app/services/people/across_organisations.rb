@@ -126,19 +126,29 @@ module People
 
       order = candidates.each_with_index.to_h.compare_by_identity
       person_of = people.each_with_object({}.compare_by_identity) { |list, found| list.each { |one| found[one] = list } }
-      merges.each { |merge_id, named| join(named, merge_id, person_of) }
+      in_list_order(merges, order).each { |merge_id, named| join(named, merge_id, person_of) }
       person_of.values.uniq(&:object_id).map { |list| list.sort_by { |one| order[one] } }
                .sort_by { |list| order[list.first] }
     end
 
-    # The viewer's merges as lists of the candidates they name, oldest merge first:
-    # [[merge id, candidates]]. ONE statement on a table without a tenant; the entries are
-    # held by id against what the directories returned (PersonGroupEntry.keys_for). With
-    # fewer than two organisations in the list there is nothing a merge could join.
+    # The candidates of every merge in the order of the list (the organisations' names,
+    # then the names inside one), and the merges in the order of their first candidate. A
+    # merge that collides with the account rule (#join) is then decided by what the viewer
+    # sees, the same way on every read: the order the entries are stored in is the order of
+    # their random ids and must decide nothing.
+    def in_list_order(merges, order)
+      merges.map { |merge_id, named| [merge_id, named.sort_by { |candidate| order[candidate] }] }
+            .sort_by { |_merge_id, named| order[named.first] }
+    end
+
+    # The viewer's merges as lists of the candidates they name: [[merge id, candidates]].
+    # ONE statement on a table without a tenant; the entries are held by id against what
+    # the directories returned (PersonGroupEntry.keys_for). With fewer than two
+    # organisations in the list there is nothing a merge could join.
     def merges_among(candidates)
       return [] if candidates.map(&:organisation).uniq.size < 2
 
-      named = PersonGroupEntry.owned_by(@viewer).order(:created_at, :id).pluck(:person_group_id, *PersonGroupEntry::KEY_COLUMNS)
+      named = PersonGroupEntry.owned_by(@viewer).pluck(:person_group_id, *PersonGroupEntry::KEY_COLUMNS)
       return [] if named.empty?
 
       by_key = candidates.each_with_object({}) do |candidate, found|

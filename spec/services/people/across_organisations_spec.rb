@@ -285,6 +285,32 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
       expect(result.rows.map(&:merge_id)).to all(be_nil)
     end
 
+    # The same collision with a third entry in the group. Which part the group goes to must
+    # not depend on the order the entries happen to be stored in (their ids are random):
+    # the sources are taken in the order of the organisations' names.
+    it 'decides such a collision the same way, whatever order the entries are stored in' do
+      Prosopite.pause { join_organisation(viewer, west, admin: true) }
+      addresses = [[north, { person_id: north_contact.id }], [south, { user_id: shared.id }], [west, { person_id: west_contact.id }]]
+
+      answers = addresses.permutation.first(6).map do |order|
+        group = Prosopite.pause do
+          create(:person_group, owner: viewer).tap do |merge|
+            order.each_with_index do |(organisation, address), index|
+              create(:person_group_entry, person_group: merge, organisation: organisation, created_at: index.minutes.ago, **address)
+            end
+          end
+        end
+        result = Prosopite.pause { list }
+        group.destroy!
+        result.rows.map { |row| [row.name, organisations_of(row), row.merge_id.present?] }
+      end
+
+      expect(answers.uniq.size).to eq(1), answers.uniq.inspect
+      # North comes first by name: the contact of north takes the group, and the member,
+      # who is in north already by the account rule, stays as that rule made them.
+      expect(answers.first).to include(['Kai Kontakt', ['Nord GmbH', 'West KG'], true], ['Mara Mitglied', ['Nord GmbH', 'Sued AG'], false])
+    end
+
     it 'shows the whole merged person for a search that matches one entry only' do
       merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }])
 

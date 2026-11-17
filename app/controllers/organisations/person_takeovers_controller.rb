@@ -15,6 +15,14 @@
 # the question and "Trotzdem anlegen" (422), bound to the target it was asked
 # for (confirm_target), so changing the target asks again.
 #
+# The question also offers "merge instead", once per same-named entry of the
+# target (merge_with, the address of that entry): nothing is created, the
+# source and that entry become one person for the viewer alone
+# (Actors::MergePeople, which reads both again with the viewer's right; an
+# entry it cannot read answers with the one refusal above). A takeover itself
+# merges the source with its copy; when that merge could not be written, the
+# notice says so.
+#
 # The dialog is a modal in a frame (README_MODAL_PATTERN.md). Its form leaves
 # the frame (_top): a copy opens on the target's people page with a one-time
 # notice naming the source; that notice is the only trace of the source, and
@@ -41,10 +49,12 @@ module Organisations
 
     def create
       authorize Person, :index?
+      return merge_instead if scalar(:merge_with)
+
       result = Actors::TakeOverPerson.call(source_organisation: current_organisation, person_id: person_id.to_s,
                                            target_organisation_id: scalar(:target), fields: ticked_fields,
                                            confirm_duplicate: confirmed?, current_user: current_user)
-      return taken_over(result.resource) if result.success?
+      return taken_over(result) if result.success?
       return ask(result.errors.to_sentence) if result.code == Actors::TakeOverPerson::DUPLICATE
       return failed(result.errors) if result.code == :validation_failed
 
@@ -88,9 +98,35 @@ module Organisations
       scalar(:modal_token).to_s[MODAL_TOKEN]
     end
 
-    def taken_over(copy)
-      notice = t('controllers.people.takeover.success', source: current_organisation.name)
-      redirect_to organisation_people_path(copy.organisation, person_id: copy.id), status: :see_other, notice: notice
+    def taken_over(result)
+      copy = result.resource
+      key = result.code == Actors::TakeOverPerson::NOT_MERGED ? 'success_not_merged' : 'success'
+      redirect_to organisation_people_path(copy.organisation, person_id: copy.id), status: :see_other,
+                                                                                   notice: t("controllers.people.takeover.#{key}", source: current_organisation.name)
+    end
+
+    # "Merge instead": the source and the named entry of the target as one
+    # person of the viewer; no row is written in either organisation. The reader
+    # stays on the card of the source. What the merge refuses for a reason the
+    # reader may know (the source already stands merged with another row of that
+    # organisation) closes the dialog with that reason; everything else is the
+    # one refusal.
+    def merge_instead
+      result = Actors::MergePeople.call(
+        entries: [{ org: current_organisation.id, id: "person:#{person_id}" }, { org: scalar(:target), id: scalar(:merge_with) }],
+        current_user: current_user
+      )
+      return refuse if result.code == Actors::MergePeople::NOT_FOUND
+      return failed_merge(result.errors.to_sentence) unless result.success?
+
+      redirect_to organisation_people_path(current_organisation, person_id: person_id), status: :see_other,
+                                                                                        notice: t('controllers.people.takeover.merged_instead')
+    end
+
+    def failed_merge(message)
+      return back_to_card(message) unless request.format.turbo_stream?
+
+      render turbo_stream: close_dialog_with(message), status: :unprocessable_content
     end
 
     # The dialog again in place of the opening that sent it, with the
@@ -103,10 +139,24 @@ module Organisations
       @targets = targets
       return refuse if @person.nil? || token.nil? || @targets.empty?
 
-      locals = dialog_locals(token: token).merge(question: question, confirm_target: scalar(:target))
+      locals = dialog_locals(token: token).merge(question: question, confirm_target: scalar(:target),
+                                                 duplicates: duplicates_in_target)
       render turbo_stream: turbo_stream.replace(helpers.person_takeover_modal_instance_id(@person.id, token),
                                                 partial: 'organisations/person_takeovers/dialog', locals: locals),
              status: :unprocessable_content
+    end
+
+    # What "merge instead" offers under the question: the same-named entries of
+    # the chosen target, as plain values ({ id:, name: }, the address of the
+    # entry and its name). Read under the target's tenant, with the viewer's
+    # right there; the target is one of the list the dialog was drawn with.
+    def duplicates_in_target
+      target = @targets.find { |organisation| organisation.id == Lalabase::Uuid.dashed(scalar(:target).to_s) }
+      return [] unless target
+
+      Actors::TakeOverPerson.duplicates_in(viewer: current_user, target: target, row: @person).map do |entry|
+        { id: People::Lookup.key_for(entry), name: entry.plain_name }
+      end
     end
 
     # The copy was refused by the row's own validations (a value stored under
@@ -156,7 +206,7 @@ module Organisations
     def dialog_locals(token:)
       { person: @person, targets: @targets, token: token, target_id: scalar(:target),
         fields: params.key?(:target) ? ticked_fields : Actors::TakeOverPerson::DEFAULT_FIELDS,
-        question: nil, confirm_target: nil }
+        question: nil, confirm_target: nil, duplicates: [] }
     end
   end
 end

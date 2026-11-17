@@ -1,4 +1,4 @@
-<%# locals: (person:, targets:, token:, target_id: nil, fields: Actors::TakeOverPerson::DEFAULT_FIELDS, question: nil, confirm_target: nil) %>
+<%# locals: (person:, targets:, token:, target_id: nil, fields: Actors::TakeOverPerson::DEFAULT_FIELDS, question: nil, confirm_target: nil, duplicates: []) %>
 <%# The dialog "In andere Organisation übernehmen" (People S0). Lives in the frame
     beside the card; the "···" menu loads person_takeovers#new into it. The root
     carries the id of THIS opening (token): a submit that asks about a same-named
@@ -9,7 +9,14 @@
     are not sent: the server reads them again from the row. A field without a
     value is not offered. The name always travels. The form leaves the frame
     (_top), so a copy opens on the target's page. Turbo disables the submit
-    while it is sent, so a double click sends once. %>
+    while it is sent, so a double click sends once.
+
+    Under the duplicate question stands "merge instead", one button per
+    same-named entry of the target (duplicates: { id:, name: }). It is a second
+    submit of the SAME form (merge_with carries the address of that entry), not
+    a form of its own: nothing is created, the source and that entry become one
+    person for the reader alone. The buttons go with the question when the
+    reader chooses another target. %>
 <% scope = 'views.organisations.people.takeover' %>
 <% modal_id = person_takeover_modal_id(person.id) %>
 <% selected = targets.find { |organisation| organisation.id == target_id } || targets.first %>
@@ -93,6 +100,18 @@
             <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert"
                  data-person-takeover-modal-target="question" data-confirm-target="<%= confirm_target %>">
               <p><%= question %></p>
+              <% if duplicates.any? %>
+                <p class="mt-2 text-xs"><%= t("#{scope}.merge_instead_hint") %></p>
+                <div class="mt-1 flex flex-col items-start gap-1">
+                  <% duplicates.each do |duplicate| %>
+                    <button type="submit" name="merge_with" value="<%= duplicate[:id] %>"
+                            class="text-left text-sm font-medium underline hover:no-underline"
+                            data-person-takeover-merge data-turbo-submits-with="<%= t("#{scope}.merging") %>">
+                      <%= t("#{scope}.merge_instead", name: duplicate[:name]) %>
+                    </button>
+                  <% end %>
+                </div>
+              <% end %>
             </div>
             <%= hidden_field_tag :confirm_target, confirm_target, id: nil %>
           <% end %>

@@ -19,7 +19,9 @@ en:
       split:
         success: "Merge undone. The entries stand on their own in your list again."
       takeover:
-        success: "Taken over from %{source}."
+        success: "Taken over from %{source}. The original and the copy are one person for you now."
+        success_not_merged: "Taken over from %{source}. The copy was not merged with the original, because the original is already merged with another entry of this organisation."
+        merged_instead: "Merged instead of taken over. Only you see this, under “People” above all organisations."
         failed: "This person could not be taken over."
         duplicate: "%{organisation} already has %{names}. Create anyway?"
         duplicate_name: "“%{name}”"
@@ -83,6 +85,9 @@ en:
           submit: "Take over"
           submitting: "Taking over …"
           confirm: "Create anyway"
+          merge_instead: "Merge with “%{name}” instead"
+          merge_instead_hint: "Merging creates nothing: both entries are one person for you then. Nothing changes in the organisations."
+          merging: "Merging …"
           cancel: "Cancel"
         index:
           title: "People"

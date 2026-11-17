@@ -341,4 +341,118 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       expect(response).to have_http_status(:unprocessable_content)
     end
   end
+
+  # From the merges on (People S2): a takeover makes the source and its copy one person for
+  # the reader, and the duplicate question offers to merge with the entry that is there
+  # already instead of creating a second one.
+  describe 'merging' do
+    before { sign_in reader }
+
+    def merged
+      PersonGroupEntry.where(owner_id: reader.id).pluck(:organisation_id, :person_id)
+    end
+
+    def merges
+      [PersonGroup.count, PersonGroupEntry.count]
+    end
+
+    it 'shows the source and its copy as one person on the list above the organisations' do
+      submit
+
+      expect(flash[:notice]).to eq(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
+      expect(merged).to contain_exactly([north.id, source.id], [south.id, copies.sole.id])
+      get all_people_path
+      row = Nokogiri::HTML(response.body).css('tr[data-all-people-row]')
+                    .find { |candidate| candidate.at_css('.all-people-row__name').text.strip == 'Herr Schmidt' }
+      expect(row.css('[data-organisation-chip]').map { |chip| chip.text.strip }).to eq(['Nord GmbH', 'Süd GmbH'])
+    end
+
+    it 'says that the copy was not merged when the source already stands merged with a row of the target' do
+      other = takeover_person(south, name: 'H. Schmidt (alt)')
+      group = create(:person_group, owner: reader)
+      create(:person_group_entry, person_group: group, organisation: north, person_id: source.id)
+      create(:person_group_entry, person_group: group, organisation: south, person_id: other.id)
+
+      expect { submit }.to change { takeover_count(south) }.by(1)
+
+      expect(response).to have_http_status(:see_other)
+      expect(flash[:notice]).to eq(I18n.t('controllers.people.takeover.success_not_merged', source: 'Nord GmbH'))
+      expect(merged).to contain_exactly([north.id, source.id], [south.id, other.id])
+    end
+
+    context 'with a same-named entry in the target' do
+      let!(:existing) { takeover_person(south, name: 'Herr Schmidt', email: 'other@example.com') }
+
+      it 'offers "merge instead" under the question, as a second submit of the same form' do
+        submit
+
+        expect(response).to have_http_status(:unprocessable_content)
+        doc = Nokogiri::HTML(response.body)
+        button = doc.at_css('form button[type="submit"][name="merge_with"]')
+        expect(button['value']).to eq("person:#{existing.id}")
+        expect(button.text.strip).to eq(I18n.t('views.organisations.people.takeover.merge_instead', name: 'Herr Schmidt'))
+        expect(button.ancestors('form').size).to eq(1)
+        expect(button.ancestors('[data-person-takeover-modal-target="question"]').size).to eq(1)
+        expect(response.body).to include(CGI.escapeHTML(I18n.t('views.organisations.people.takeover.merge_instead_hint')))
+      end
+
+      it 'offers a member of the same name by the address of the member' do
+        namesake = takeover_join(create(:user, first_name: 'Herr', last_name: 'Schmidt'), south)
+        takeover_join(reader, create(:organisation, name: 'Ost eG'), 'view_people')
+        ActsAsTenant.with_tenant(south) { Membership.find_by!(user: reader, organisation: south).role.update!(title: Role::ACCOUNT_ADMIN_TITLE) }
+
+        submit
+
+        values = Nokogiri::HTML(response.body).css('button[name="merge_with"]').pluck('value')
+        expect(values).to contain_exactly("person:#{existing.id}", "member:#{namesake.id}")
+      end
+
+      it 'merges the source with the entry that is there and creates no row' do
+        expect { submit(merge_with: "person:#{existing.id}") }.not_to(change { counts })
+
+        expect(response).to redirect_to(organisation_people_path(north, person_id: source.id))
+        expect(response).to have_http_status(:see_other)
+        expect(flash[:notice]).to eq(I18n.t('controllers.people.takeover.merged_instead'))
+        expect(merged).to contain_exactly([north.id, source.id], [south.id, existing.id])
+        expect(session[:current_organisation_id]).not_to eq(south.id)
+        expect(ActsAsTenant.current_tenant).to be_nil
+      end
+
+      it 'answers an entry it cannot merge with like every refusal, and writes nothing' do
+        submit(target: create(:organisation).id)
+        refusal = [response.status, response.media_type, response.body.gsub(/flash_\h{8}/, 'flash_X')]
+        expect(refusal.first).to eq(404)
+        expect(refusal.last).to include(I18n.t('controllers.people.not_found'))
+        foreign = takeover_person(create(:organisation, name: 'Fremd AG'), name: 'Herr Schmidt')
+
+        answers = Prosopite.pause do
+          {
+            unknown: { merge_with: "person:#{SecureRandom.uuid}" },
+            foreign: { merge_with: "person:#{foreign.id}" },
+            malformed: { merge_with: 'oops' },
+            other_target: { merge_with: "person:#{existing.id}", target: create(:organisation).id },
+            source_as_target: { merge_with: "person:#{source.id}", target: SecureRandom.uuid }
+          }.transform_values do |extra|
+            expect { submit(**extra) }.not_to(change { [counts, merges] })
+            [response.status, response.media_type, response.body.gsub(/flash_\h{8}/, 'flash_X')]
+          end
+        end
+
+        expect(answers.values.uniq).to eq([refusal]), answers.inspect
+      end
+
+      it 'closes the dialog with the reason when the source already stands merged with a row of the target' do
+        group = create(:person_group, owner: reader)
+        other = takeover_person(south, name: 'H. Schmidt (alt)')
+        create(:person_group_entry, person_group: group, organisation: north, person_id: source.id)
+        create(:person_group_entry, person_group: group, organisation: south, person_id: other.id)
+
+        expect { submit(merge_with: "person:#{existing.id}") }.not_to(change { [counts, merges] })
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include(CGI.escapeHTML(I18n.t('controllers.people.merge.same_organisation')),
+                                         %(<turbo-stream action="remove" target="person-takeover-modal-#{source.id}-#{token}">))
+      end
+    end
+  end
 end

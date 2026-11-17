@@ -19,7 +19,9 @@ de:
       split:
         success: "Zusammenführung aufgehoben. Die Einträge stehen wieder einzeln in deiner Liste."
       takeover:
-        success: "Übernommen aus %{source}."
+        success: "Übernommen aus %{source}. Original und Kopie sind für dich jetzt eine Person."
+        success_not_merged: "Übernommen aus %{source}. Die Kopie wurde nicht mit dem Original zusammengeführt, weil das Original schon mit einem anderen Eintrag dieser Organisation zusammengeführt ist."
+        merged_instead: "Zusammengeführt statt übernommen. Das siehst nur du, unter „Personen“ über allen Organisationen."
         failed: "Diese Person ließ sich nicht übernehmen."
         duplicate: "In %{organisation} gibt es schon %{names}. Trotzdem anlegen?"
         duplicate_name: "„%{name}“"
@@ -83,6 +85,9 @@ de:
           submit: "Übernehmen"
           submitting: "Wird übernommen …"
           confirm: "Trotzdem anlegen"
+          merge_instead: "Stattdessen mit „%{name}“ zusammenführen"
+          merge_instead_hint: "Zusammenführen legt nichts an: Beide Einträge sind dann für dich eine Person. In den Organisationen ändert sich nichts."
+          merging: "Wird zusammengeführt …"
           cancel: "Abbrechen"
         index:
           title: "Personen"

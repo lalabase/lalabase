@@ -16,7 +16,13 @@
     submit of the SAME form (merge_with carries the address of that entry), not
     a form of its own: nothing is created, the source and that entry become one
     person for the reader alone. The buttons go with the question when the
-    reader chooses another target. %>
+    reader chooses another target, and are disabled then: a hidden button
+    must not be sent.
+
+    ⚠️ Enter in a field sends a form through its FIRST submit button in the
+    markup, shown or not. The offers stand above the main button, so the form
+    opens with a default button of its own (hidden, no name): Enter takes over
+    or creates anyway, as the main button does, and never merges. %>
 <% scope = 'views.organisations.people.takeover' %>
 <% modal_id = person_takeover_modal_id(person.id) %>
 <% selected = targets.find { |organisation| organisation.id == target_id } || targets.first %>
@@ -51,6 +57,7 @@
         <%= form_with url: organisation_person_takeover_path(current_organisation, person), method: :post,
                       id: "#{modal_id}-form", class: 'space-y-4 p-5', data: { turbo_frame: '_top' } do %>
           <%= hidden_field_tag :modal_token, token, id: nil %>
+          <button type="submit" hidden tabindex="-1" data-person-takeover-default></button>
 
           <div>
             <label for="<%= modal_id %>-target" class="mb-1 block text-sm font-medium text-cream-800"><%= t("#{scope}.target") %></label>
@@ -106,7 +113,7 @@
                   <% duplicates.each do |duplicate| %>
                     <button type="submit" name="merge_with" value="<%= duplicate[:id] %>"
                             class="text-left text-sm font-medium underline hover:no-underline"
-                            data-person-takeover-merge data-turbo-submits-with="<%= t("#{scope}.merging") %>">
+                            data-person-takeover-modal-target="merge" data-turbo-submits-with="<%= t("#{scope}.merging") %>">
                       <%= t("#{scope}.merge_instead", name: duplicate[:name]) %>
                     </button>
                   <% end %>

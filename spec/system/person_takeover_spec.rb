@@ -123,4 +123,47 @@ RSpec.describe 'Taking a contact over into another organisation', :people_takeov
     expect(PersonGroupEntry.where(owner_id: reader.id).pluck(:organisation_id, :person_id))
       .to contain_exactly([north.id, source.id], [south.id, existing.id])
   end
+
+  # Enter in a field of the form sends the form through its FIRST submit button. The offers
+  # to merge instead are submit buttons of the same form and stand above the main one, so
+  # the form carries a default button of its own in front of them.
+  describe 'Enter in the dialog' do
+    let!(:existing) { takeover_person(south, name: 'Herr Schmidt', email: 'other@example.com') }
+    let(:function_tick) { "##{helper.person_takeover_modal_id(source.id)}-field-function" }
+
+    def groups
+      PersonGroupEntry.where(owner_id: reader.id).pluck(:organisation_id, :person_id)
+    end
+
+    it 'creates anyway while the question is open, as the main button does, and merges with nobody else' do
+      open_dialog
+      click_button I18n.t("#{scope}.submit")
+      expect(page).to have_button(I18n.t("#{scope}.merge_instead", name: 'Herr Schmidt'))
+
+      find(function_tick).send_keys(:enter)
+
+      expect(page).to have_text(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
+      expect(page).to have_no_text(I18n.t('controllers.people.takeover.merged_instead'))
+      expect(copies_in_south).to eq(2)
+      expect(groups).not_to include([south.id, existing.id])
+    end
+
+    it 'takes over into the target chosen after the question, not into the one the question was about' do
+      west = create(:organisation, name: 'West AG')
+      takeover_join(reader, west, 'manage_people')
+      open_dialog
+      click_button I18n.t("#{scope}.submit")
+      expect(page).to have_button(I18n.t("#{scope}.merge_instead", name: 'Herr Schmidt'))
+      select 'West AG', from: 'target'
+      expect(page).to have_no_button(I18n.t("#{scope}.merge_instead", name: 'Herr Schmidt'))
+      # A hidden offer cannot be sent either, whatever sends the form.
+      expect(page).to have_css('button[name="merge_with"][disabled]', visible: :all)
+
+      find(function_tick).send_keys(:enter)
+
+      expect(page).to have_text(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
+      expect(ActsAsTenant.with_tenant(west) { Person.where(organisation: west, name: 'Herr Schmidt').count }).to eq(1)
+      expect(copies_in_south).to eq(1)
+    end
+  end
 end

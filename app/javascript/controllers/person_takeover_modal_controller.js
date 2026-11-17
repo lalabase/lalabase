@@ -11,13 +11,15 @@ import TicketRelationModalController from "controllers/ticket_relation_modal_con
  * - the first field is the target organisation, and the sentence "visible to everyone with
  *   the people right in <target>" names the one chosen;
  * - a duplicate question holds for the target it was asked for: choosing another one hides
- *   it and the button says "Übernehmen" again (the server asks again for the new target);
+ *   it and the button says "Übernehmen" again (the server asks again for the new target).
+ *   The offers to merge instead stand inside the question; hidden with it they are disabled
+ *   too, because a form sends a hidden submit button as readily as a shown one;
  * - the menu entry that opened it sits in a <details> menu, which this controller closes on
  *   opening (a click inside does not close it, and Escape belongs to the modal), so the focus
  *   goes back to the "···" button (returnId), never to the hidden entry.
  */
 export default class extends TicketRelationModalController {
-  static targets = ["card", "organisation", "organisationName", "question", "submit"]
+  static targets = ["card", "organisation", "organisationName", "question", "submit", "merge"]
 
   connect() {
     super.connect()
@@ -41,6 +43,7 @@ export default class extends TicketRelationModalController {
 
     const asked = this.organisationTarget.value === this.questionTarget.dataset.confirmTarget
     this.questionTarget.hidden = !asked
+    this.mergeTargets.forEach((button) => { button.disabled = !asked })
     if (this.hasSubmitTarget) {
       this.submitTarget.textContent = asked ? this.submitTarget.dataset.confirmLabel : this.submitTarget.dataset.submitLabel
     }

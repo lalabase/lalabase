@@ -461,6 +461,7 @@ jobs:
           spec/services/actors/merge_people_spec.rb
           spec/services/actors/split_person_spec.rb
           spec/models/concerns/person_link_release_spec.rb
+          spec/models/concerns/person_link_release_concurrency_spec.rb
           spec/services/people/merged_entry_sequences_spec.rb
           spec/services/user_data_exports/merged_people_spec.rb
           spec/requests/all_people_merges_spec.rb

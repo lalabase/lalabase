@@ -54,7 +54,11 @@ async function fixture({ hidden = false } = {}) {
     }
   })
   const controller = new Controller()
-  controller.element = events({ isConnected: true })
+  controller.element = events({
+    isConnected: true, attributes: {},
+    setAttribute(name, value) { this.attributes[name] = String(value) },
+    removeAttribute(name) { delete this.attributes[name] }
+  })
   controller.urlValue = "/inbox"
   controller.hasSignalTarget = controller.hasDrawnTarget = controller.hasBannerTarget = true
   controller.signalTarget = { dataset: { stamp: "a" } }
@@ -80,6 +84,30 @@ test("a delayed response cannot render after disconnect, even if fetch ignores a
   f.window.emit("online")
   f.document.emit("visibilitychange")
   assert.equal(f.requests.length, 1)
+})
+
+// Browser specs wait for aria-busy to clear before they touch what a redraw replaces
+// (spec/support/inbox_live_helpers.rb): it must stand while any redraw is on its way,
+// survive a superseded request, and go when the last one ends or is cancelled.
+test("aria-busy stands while a redraw is on its way and goes with the last one", async () => {
+  const f = await fixture()
+  assert.equal(f.controller.element.attributes["aria-busy"], undefined)
+
+  const old = f.controller.redraw("counts")
+  assert.equal(f.controller.element.attributes["aria-busy"], "true")
+  const fresh = f.controller.redraw("counts")
+  f.requests[0].resolve(response("b"))
+  await old
+  assert.equal(f.controller.element.attributes["aria-busy"], "true", "the superseded request must not clear it")
+  f.requests[1].resolve(response("c"))
+  await fresh
+  assert.equal(f.controller.element.attributes["aria-busy"], undefined)
+
+  const cancelled = f.controller.redraw("counts")
+  f.controller.disconnect()
+  f.requests[2].resolve(response("d"))
+  await cancelled
+  assert.equal(f.controller.element.attributes["aria-busy"], undefined)
 })
 
 test("check context again after the response body finishes reading", async () => {

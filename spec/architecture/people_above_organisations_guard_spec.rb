@@ -18,6 +18,7 @@ RSpec.describe 'The people above the organisations never lift the tenant' do
   feature_files = %w[
     app/controllers/all_people_controller.rb
     app/helpers/all_people_helper.rb
+    app/javascript/controllers/all_people_filter_controller.js
     app/services/people/across_organisations.rb
     app/services/people/lookup.rb
     app/services/people/directory.rb

@@ -11,6 +11,7 @@ class Current < ActiveSupport::CurrentAttributes
   attribute :area_access_anywhere_memo
   attribute :notification_source_projects_memo
   attribute :legal_identity
+  attribute :object_link_targets_memo
 
   # Request-scoped memo for ProjectPolicy. The dashboard render builds ~9-15 policies per page
   # (every widget's #should_render? plus available_widgets_for), each of which hits the DB. Reuse
@@ -55,5 +56,16 @@ class Current < ActiveSupport::CurrentAttributes
     accessible = ProjectPolicy::Scope.new(user, organisation.projects.active).resolve
     area_access_anywhere_memo[key] =
       accessible.any? { |project| project_policy(user, project).area_access?(area, action) }
+  end
+
+  # Request-scoped memo for the object chips (ObjectLinks::Chips): what one reader may see
+  # of the objects the rich texts of a page link to. Every rich text renders through the
+  # ActionText layout on its own; sharing one ObjectLinks::Targets per (reader,
+  # organisation) means a target, and the reader's reach per type, loads once per request.
+  # Reset between requests like the memos above, so a lost right shows on the next page.
+  def object_link_targets(user, organisation)
+    self.object_link_targets_memo ||= {}
+    object_link_targets_memo[[user.id, organisation.id]] ||=
+      ObjectLinks::Targets.new(viewer: user, organisation: organisation)
   end
 end

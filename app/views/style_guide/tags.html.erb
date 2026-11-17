@@ -30,6 +30,56 @@
     </div>
   </section>
 
+  <!-- Object chips -->
+  <%# Built by the same method the rich text uses (ObjectLinks::Chips.chip_html), so the %>
+  <%# samples cannot drift from the real chip. Invented labels only. %>
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold mb-6 pb-2 border-b-2 border-black">Objekt-Chips</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="space-y-4">
+        <h3 class="font-bold mb-2">Im Fließtext</h3>
+        <% samples = {
+             ticket: '#42 Release-Plan für das Frühjahr',
+             meeting: '12.11.2026 · Jour fixe',
+             member: 'Erika Beispiel',
+             person: 'Max Mustermann',
+             note: 'Onboarding-Checkliste',
+             document: 'Rahmenvertrag 2026'
+           } %>
+        <div class="lexxy-content rich-text text-sm leading-relaxed">
+          <p>
+            Siehe
+            <% samples.each do |type, label| %>
+              <%= ObjectLinks::Chips.chip_html(
+                    href: '#',
+                    target: ObjectLinks::Targets::Target.new(type: type, label: label.truncate(ObjectLinks::Targets::LABEL_MAX), full_label: label)
+                  ) %>
+            <% end %>
+            und eine @-Erwähnung ohne Leserecht:
+            <span class="object-chip object-chip--document object-chip--inert" title="Interne Kalkulation"><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Interne Kalkulation</span>
+          </p>
+        </div>
+        <ul class="space-y-1 text-sm ml-4">
+          <li>• Ein eingefügter Link auf ein Objekt dieser Organisation wird beim Anzeigen ein Chip, gespeichert bleibt der Link.</li>
+          <li>• Nur ein Link, dessen Text seine eigene Adresse ist. Ein Link mit eigenem Wortlaut bleibt.</li>
+          <li>• Nur für einen Leser, der das Ziel lesen darf. Sonst bleibt der Link, wie er ist.</li>
+          <li>• Beschriftung gekürzt auf <%= ObjectLinks::Targets::LABEL_MAX %> Zeichen, der volle Text im <code>title</code>.</li>
+          <li>• Flach, kein harter Schatten; Farben aus der Cream-Skala, damit das dunkle Theme greift.</li>
+        </ul>
+      </div>
+
+      <pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto text-sm"><code>&lt;a href="…" class="object-chip object-chip--ticket"
+   title="#42 voller Titel" data-turbo-frame="_top"&gt;
+  &lt;i class="bi bi-card-checklist" aria-hidden="true"&gt;&lt;/i&gt;
+  &lt;span class="object-chip__type"&gt;Ticket: &lt;/span&gt;
+  &lt;span class="object-chip__label"&gt;#42 gekürzter Titel&lt;/span&gt;
+&lt;/a&gt;
+
+Gebaut von ObjectLinks::Chips.chip_html,
+CSS: components/object_chip.css</code></pre>
+    </div>
+  </section>
+
   <!-- Tag Sizes -->
   <section class="mb-12">
     <h2 class="text-2xl font-bold mb-6 pb-2 border-b-2 border-black">Größen</h2>

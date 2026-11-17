@@ -44,6 +44,12 @@ module Users
             organisation: resource.organisations.first
           )
 
+          # A sign-in that is a step of the login hand-off to an organisation host goes on
+          # with it, whatever the organisation count says below.
+          if (handoff = stored_handoff_location)
+            redirect_to handoff and return
+          end
+
           if resource.organisations.count > 1
             # If the user has multiple organisations, redirect to the selection
             session[:user_id] = resource.id
@@ -71,6 +77,9 @@ module Users
     def destroy
       # Track logout activity before signing out
       current_user&.track_logout(request: request)
+      # Log out everywhere: every host keeps a session of its own, and each compares this
+      # number on every request (config/initializers/session_version.rb).
+      current_user&.end_sessions_everywhere!
 
       # Remove the tenant ID from the session before the user is signed out
       session.delete(:current_organisation_id)
@@ -92,6 +101,15 @@ module Users
       else
         'application'
       end
+    end
+
+    # The stored location when it is the login hand-off, consumed; any other stays stored.
+    def stored_handoff_location
+      location = stored_location_for(:user)
+      return location if location&.match?(%r{\A/session/handoff\?})
+
+      store_location_for(:user, location) if location
+      nil
     end
 
     def redirect_stale_login_form

@@ -302,6 +302,18 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
     end
   end
 
+  describe 'Back in the browser' do
+    # Turbo keeps a copy of a page for Back, with the option chosen in the select and the
+    # text typed into the search at that moment. Restored, they would not match the address
+    # (and choosing that organisation again would do nothing), so the page is fetched again.
+    it 'is not kept for Back: Turbo fetches it again' do
+      doc = page
+
+      expect(doc.at_css('meta[name="turbo-cache-control"]')['content']).to eq('no-cache')
+      expect(names(doc)).to include('Nora Nord')
+    end
+  end
+
   describe 'the assistant' do
     # The page has no organisation, so it has no assistant and sends no page context,
     # whatever the gate of an organisation says.

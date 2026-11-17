@@ -49,7 +49,7 @@ RSpec.describe 'Organisations::Notes show with a mention', :ci_guard, type: :req
         headers: { 'Turbo-Frame' => 'ticket_display_frame' }
 
     expect(response).to have_http_status(:ok)
-    chip = Nokogiri::HTML(response.body).at_css('turbo-frame#ticket_display_frame a.wiki-mention')
+    chip = Nokogiri::HTML(response.body).at_css('turbo-frame#ticket_display_frame a.object-chip')
     expect(chip).to be_present
     expect(chip['href']).to eq(target_path)
     expect(chip.text).to include('Second Note')
@@ -59,7 +59,7 @@ RSpec.describe 'Organisations::Notes show with a mention', :ci_guard, type: :req
     get organisation_project_note_path(organisation, project, note, frame: 'content')
 
     expect(response).to have_http_status(:ok)
-    expect(Nokogiri::HTML(response.body).at_css('turbo-frame#knowledge_display_frame a.wiki-mention')['href'])
+    expect(Nokogiri::HTML(response.body).at_css('turbo-frame#knowledge_display_frame a.object-chip')['href'])
       .to eq(target_path)
   end
 
@@ -67,7 +67,7 @@ RSpec.describe 'Organisations::Notes show with a mention', :ci_guard, type: :req
     get organisation_project_knowledge_index_path(organisation, project, note_id: note.id, type: 'all')
 
     expect(response).to have_http_status(:ok)
-    expect(Nokogiri::HTML(response.body).at_css('a.wiki-mention')['href']).to eq(target_path)
+    expect(Nokogiri::HTML(response.body).at_css('a.object-chip')['href']).to eq(target_path)
   end
 
   it 'draws a mention of a document as a link to the document' do
@@ -85,7 +85,7 @@ RSpec.describe 'Organisations::Notes show with a mention', :ci_guard, type: :req
     get organisation_project_note_path(organisation, project, note, frame: 'content', frame_id: 'ticket_display_frame')
 
     expect(response).to have_http_status(:ok)
-    chip = Nokogiri::HTML(response.body).at_css('turbo-frame#ticket_display_frame a.wiki-mention')
+    chip = Nokogiri::HTML(response.body).at_css('turbo-frame#ticket_display_frame a.object-chip')
     expect(chip['href']).to eq(organisation_project_document_path(organisation, project, document))
     expect(chip.at_css('i.bi-file-earmark-text')).to be_present
   end
@@ -103,7 +103,7 @@ RSpec.describe 'Organisations::Notes show with a mention', :ci_guard, type: :req
 
     expect(response).to have_http_status(:ok)
     frame = Nokogiri::HTML(response.body).at_css('turbo-frame#ticket_display_frame')
-    expect(frame.at_css('span.wiki-mention--inaccessible')).to be_present
-    expect(frame.at_css('a.wiki-mention')).to be_nil
+    expect(frame.at_css('span.object-chip--inert')).to be_present
+    expect(frame.at_css('a.object-chip')).to be_nil
   end
 end

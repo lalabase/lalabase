@@ -1547,6 +1547,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
     t.index ["period_start"], name: "index_seat_snapshots_on_period_start"
   end
 
+  create_table "session_handoffs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.string "token_digest", null: false
+    t.string "state_digest", null: false
+    t.string "host", null: false
+    t.text "path", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
+    t.index ["expires_at"], name: "index_session_handoffs_on_expires_at"
+    t.index ["token_digest"], name: "index_session_handoffs_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_session_handoffs_on_user_id"
+  end
+
   create_table "smart_folder_rule_groups", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "smart_folder_id", null: false
     t.string "name"
@@ -2095,6 +2108,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
     t.string "unconfirmed_email"
     t.string "email_visibility", default: "login", null: false
     t.string "contact_email"
+    t.integer "session_version", default: 0, null: false
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["deletion_recommended"], name: "index_users_on_deletion_recommended"
@@ -2316,6 +2330,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_192000) do
   add_foreign_key "roles", "organisations"
   add_foreign_key "seat_events", "accounts"
   add_foreign_key "seat_snapshots", "accounts"
+  add_foreign_key "session_handoffs", "users", on_delete: :cascade
   add_foreign_key "smart_folder_rule_groups", "smart_folders"
   add_foreign_key "smart_folder_rules", "smart_folder_rule_groups"
   add_foreign_key "smart_folder_shares", "smart_folders"

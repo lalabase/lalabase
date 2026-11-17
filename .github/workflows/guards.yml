@@ -252,6 +252,7 @@ jobs:
           spec/requests/active_storage/embed_link_expiry_spec.rb
           spec/requests/active_storage/tenant_bypass_in_controller_spec.rb
           spec/requests/organisation_hosts_spec.rb
+          spec/requests/session_handoff_spec.rb
           spec/requests/admin/admin_only_gate_spec.rb
           spec/requests/admin/dashboard_spec.rb
           spec/requests/admin/organisations_spec.rb
@@ -456,6 +457,12 @@ jobs:
           spec/services/meetings/account_participants_spec.rb
           spec/requests/organisations/note_editor_embed_spec.rb
           spec/requests/organisations/note_mention_frame_spec.rb
+          spec/requests/object_link_chips_spec.rb
+          spec/requests/object_link_chips_cache_spec.rb
+          spec/requests/object_link_chips_render_guard_spec.rb
+          spec/helpers/object_links_helper_spec.rb
+          spec/services/object_links/address_spec.rb
+          spec/services/object_links/chips_spec.rb
           spec/requests/organisations/onboarding_banner_spec.rb
           spec/requests/organisations/panel_lane_markup_guard_spec.rb
           spec/requests/organisations/posts_create_composer_reset_spec.rb

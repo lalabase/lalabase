@@ -62,8 +62,8 @@ RSpec.describe 'Organisations::Mentions', type: :request do
       # never supplied by the client; content-type is set client-side from the prompt name.
       expect(response.body).to include(%(<lexxy-prompt-item))
       expect(response.body).to include(%(sgid="#{note.attachable_sgid}"))
-      # the inserted chip is a styled reference, not plain text: wiki-mention + a note icon
-      expect(response.body).to include('wiki-mention')
+      # the inserted chip is a styled reference, not plain text: object-chip + a note icon
+      expect(response.body).to include('object-chip')
       expect(response.body).to include('bi-journal-text')
     end
 

@@ -354,6 +354,14 @@ Devise.setup do |config|
   #   manager.intercept_401 = false
   #   manager.default_strategies(scope: :user).unshift :some_external_strategy
   # end
+  #
+  # On an organisation host, a page asked for without a session starts the login hand-off
+  # instead of showing a sign-in form (doc/org_subdomains_plan.md, S3). Explicit require:
+  # initializers run before the autoloader serves lib/.
+  require 'lalabase/handoff_failure_app'
+  config.warden do |manager|
+    manager.failure_app = Lalabase::HandoffFailureApp
+  end
 
   # ==> Mountable engine configurations
   # When using Devise inside an engine, let's call it `MyEngine`, and this engine

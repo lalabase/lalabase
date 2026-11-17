@@ -29,13 +29,16 @@ class ApplicationController < ActionController::Base
   # shortcut only ever has the two shapes it always had, and widening it by accident
   # while adding the account paths is exactly the mistake this spells out.
   #
+  # The login hand-off to an organisation host (/session/handoff, doc/org_subdomains_plan.md
+  # S3) is the fourth: signing in on the main host is one step of it, and it must go on.
+  #
   # The invitation page is the third alternative. An invitee who already has an account
   # must sign in before accepting (Organisations::AcceptInvitationsController, account
   # takeover fix of 26.09.2026), and that invitee is precisely someone with organisations
   # of their own: without this entry the org redirect would swallow the invitation and
   # leave them on their old home page.
   DEEP_LINK_AFTER_SIGN_IN = %r{
-    \A(/org/[^/]+/billing(/edit)?|/billing(/[^/?]+)?(/edit)?|/org/[^/]+/accept_invitation)(\?|\z)
+    \A(/org/[^/]+/billing(/edit)?|/billing(/[^/?]+)?(/edit)?|/org/[^/]+/accept_invitation|/session/handoff)(\?|\z)
   }x
 
   def after_sign_in_path_for(resource)

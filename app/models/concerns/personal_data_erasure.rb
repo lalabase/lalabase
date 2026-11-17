@@ -3,6 +3,8 @@
 # Erases the personal records an account owns BEYOND the users row itself, for
 # the account-erasure path: GDPR export archives, private meeting analyses,
 # private ticket posts, personal tasks, linked people directory rows, the
+# merges of the people above the organisations (the account's own and every
+# entry that names it), the
 # speaker link of glossary heard forms, the account's own chat threads (via
 # PersonalChatErasure, which is included here so that both entry points get it
 # through this ONE include) and, as access revocation, its personal access
@@ -39,6 +41,7 @@ module PersonalDataErasure
     erase_personal_tasks!
     erase_personal_chats!
     erase_person_links!
+    erase_person_groups!
     erase_term_correction_speakers!
     revoke_personal_access_tokens!
   end
@@ -119,6 +122,23 @@ module PersonalDataErasure
     ActsAsTenant.without_tenant do
       Person.where(user_id: id).destroy_all
     end
+  end
+
+  # The merges of the people above the organisations (PersonGroup): private
+  # notes of one person that rows of different organisations are the same
+  # human. Two halves, both explicit, because a soft delete fires no foreign
+  # key:
+  # * the groups this account OWNS, with their entries: nobody else ever read
+  #   them;
+  # * every entry of ANOTHER owner that names this account by user_id (a member
+  #   without a row). The entries that named its rows went with the rows
+  #   (erase_person_links!, ON DELETE CASCADE). That owner's group stays and
+  #   may be left with one entry; the read ignores such a group and the next
+  #   merge of its owner deletes it.
+  # delete_all: neither table has callbacks or a tenant.
+  def erase_person_groups!
+    PersonGroup.where(owner_id: id).delete_all
+    PersonGroupEntry.where(user_id: id).delete_all
   end
 
   # The glossary heard forms this account spoke (term_corrections.user_id), in

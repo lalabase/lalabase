@@ -23,6 +23,7 @@ en:
       takeover:
         success: "Taken over from %{source}. The original and the copy are one person for you now."
         success_not_merged: "Taken over from %{source}. The original and the copy were not merged. That works only while the original is not merged with another entry of this organisation."
+        success_merge_failed: "Taken over from %{source}. The original and the copy were not merged. You can merge them yourself under “People” above all organisations."
         merged_instead: "Merged instead of taken over. Only you see this, under “People” above all organisations."
         failed: "This person could not be taken over."
         duplicate: "%{organisation} already has %{names}. Create anyway?"

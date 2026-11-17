@@ -12,10 +12,11 @@
 # For the VIEWER the two rows are one person from then on: the same transaction
 # writes the merge of the source and its copy (Actors::MergePeople, the
 # viewer's private note, in tables without a tenant; no organisation learns of
-# it). A merge that cannot be written leaves the copy as it is: the source
-# already stands merged with another row of the target, and a group holds one
-# source per organisation. The result then carries the code :not_merged, and
-# the notice says so.
+# it). A merge that cannot be written leaves the copy as it is, and the result
+# says why: :not_merged when the source already stands merged with another row
+# of the target (a group holds one source per organisation), :merge_failed for
+# anything else (it met another change, an entry could not be read). The
+# notice names the first reason and no reason for the second.
 #
 # Two tenant blocks, one per organisation; nothing is read across tenants:
 #
@@ -50,8 +51,12 @@ module Actors
     DEFAULT_FIELDS = (FIELDS - %w[notes]).freeze
     NOT_FOUND = :not_found
     DUPLICATE = :duplicate
-    # A success whose copy was written and whose merge was not.
+    # A success whose copy was written and whose merge was not: the source already
+    # stands merged with another row of the target ...
     NOT_MERGED = :not_merged
+    # ... or the merge failed for any other reason. Two codes, because the notice
+    # of the first one names its reason, and that reason is true for it alone.
+    MERGE_FAILED = :merge_failed
 
     # The organisations the dialog lists as targets: the viewer's active ones
     # except the source, where they may create people. The same rule the
@@ -181,28 +186,31 @@ module Actors
       raise ActorError.new(result.errors, code: result.code) unless result.success?
 
       @copy = result.resource
-      @merged = merge_with_source(target)
+      @unmerged = merge_with_source(target)
     end
 
     # Source and copy as one person of the viewer. Inside a savepoint: a merge
     # that is refused, also by a unique index, is undone alone and the copy
     # stays. The merge reads both rows again with the viewer's right, each under
     # its own tenant; the copy is visible to it inside this transaction.
+    # nil when the merge is written, else the code that says why it is not.
     def merge_with_source(target)
-      merged = false
+      merge = nil
       ActiveRecord::Base.transaction(requires_new: true) do
-        merged = Actors::MergePeople.call(
+        merge = Actors::MergePeople.call(
           entries: [{ org: @source_organisation.id, id: "person:#{@person_id}" }, { org: target.id, id: "person:#{@copy.id}" }],
           current_user: current_user, account_lock_ids: [current_user.id]
-        ).success?
-        raise ActiveRecord::Rollback unless merged
+        )
+        raise ActiveRecord::Rollback unless merge.success?
       end
-      merged
+      return if merge.success?
+
+      merge.code == Actors::MergePeople::SAME_ORGANISATION ? NOT_MERGED : MERGE_FAILED
     end
 
     # The copy is there either way; the code says whether the merge is too.
     def success(resource)
-      Result.new(success: true, resource: resource, code: (NOT_MERGED unless @merged))
+      Result.new(success: true, resource: resource, code: @unmerged)
     end
 
     # The target's own entries with the same normalized name, as the viewer

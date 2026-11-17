@@ -374,7 +374,9 @@ Verzeichnis-Übersicht (Auswahl):
   refusal for everything the caller cannot name (`:not_found`). ⚠️ `entries` are the ROWS:
   a row of several organisations is a list of sources, and fewer than two rows are refused
   however many sources they hold (the controller keeps the rows apart). `Actors::TakeOverPerson`
-  writes the merge of source and copy in a savepoint (`:not_merged` leaves the copy);
+  writes the merge of source and copy in a savepoint (the copy stays either way:
+  `:not_merged` when the source stands merged with a row of the target already,
+  `:merge_failed` for any other reason, and only the first notice names a reason);
   `PersonTakeoversController` offers "merge instead" under the duplicate question.
   ⚠️ Those offers are submit buttons above the main button: the form opens with a default
   button that is drawn (`sr-only`), never `hidden`, or Enter merges in an older Safari. ⚠️ A

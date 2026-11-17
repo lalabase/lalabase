@@ -380,6 +380,22 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       expect(merged).to contain_exactly([north.id, source.id], [south.id, other.id])
     end
 
+    # Any other reason (here: the merge collided with another write) gets a sentence that
+    # names none. Until 2026-11-17 it said the original stood merged with another entry.
+    it 'says that the copy was not merged, without a reason, when the merge failed for another reason' do
+      allow(PersonGroupEntry).to receive(:insert_all!).and_wrap_original do |insert, rows|
+        insert.call(rows)
+        insert.call(rows)
+      end
+
+      expect { submit }.to change { takeover_count(south) }.by(1)
+
+      expect(response).to have_http_status(:see_other)
+      expect(flash[:notice]).to eq(I18n.t('controllers.people.takeover.success_merge_failed', source: 'Nord GmbH'))
+      expect(flash[:notice]).not_to eq(I18n.t('controllers.people.takeover.success_not_merged', source: 'Nord GmbH'))
+      expect(merges).to eq([0, 0])
+    end
+
     context 'with a same-named entry in the target' do
       let!(:existing) { takeover_person(south, name: 'Herr Schmidt', email: 'other@example.com') }
 

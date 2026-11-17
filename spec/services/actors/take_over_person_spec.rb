@@ -437,7 +437,9 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
 
     # A real refusal of the database: the entries inserted twice run into the unique index.
     # The statement that failed is undone alone (a savepoint), so the copy survives it.
-    it 'still creates the copy when the merge collides with another write' do
+    # The code is not the one of a source that stands merged already: until 2026-11-17
+    # every merge that failed carried it, and the notice named a reason that was not true.
+    it 'still creates the copy when the merge collides with another write, under a code of its own' do
       allow(PersonGroupEntry).to receive(:insert_all!).and_wrap_original do |insert, rows|
         insert.call(rows)
         insert.call(rows)
@@ -446,8 +448,18 @@ RSpec.describe Actors::TakeOverPerson, :ci_guard, :people_takeover do
       result = nil
       expect { result = take_over }.to change { takeover_count(south) }.by(1)
 
-      expect([result.success?, result.code]).to eq([true, described_class::NOT_MERGED])
+      expect([result.success?, result.code]).to eq([true, described_class::MERGE_FAILED])
       expect([PersonGroup.count, PersonGroupEntry.count]).to eq([0, 0])
+    end
+
+    it 'carries that code as well when the merge cannot read the copy' do
+      allow(Actors::MergePeople).to receive(:call)
+        .and_return(Actors::BaseActor::Result.new(success: false, errors: ['x'], code: Actors::MergePeople::NOT_FOUND))
+
+      result = nil
+      expect { result = take_over }.to change { takeover_count(south) }.by(1)
+
+      expect([result.success?, result.code]).to eq([true, described_class::MERGE_FAILED])
     end
 
     it 'records nothing about the merge in either organisation' do

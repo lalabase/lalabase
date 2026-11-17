@@ -21,7 +21,8 @@
 # (Actors::MergePeople, which reads both again with the viewer's right; an
 # entry it cannot read answers with the one refusal above). A takeover itself
 # merges the source with its copy; when that merge could not be written, the
-# notice says so.
+# notice says so, and names the reason only where it is the one the actor
+# named (UNMERGED_NOTICES).
 #
 # The dialog is a modal in a frame (README_MODAL_PATTERN.md). Its form leaves
 # the frame (_top): a copy opens on the target's people page with a one-time
@@ -33,6 +34,10 @@
 module Organisations
   class PersonTakeoversController < Organisations::BaseController
     MODAL_TOKEN = /\A\h{16}\z/
+    # The notice of a takeover whose copy was written and whose merge was not, by the
+    # actor's code: one sentence names the reason, the other names none.
+    UNMERGED_NOTICES = { Actors::TakeOverPerson::NOT_MERGED => 'success_not_merged',
+                         Actors::TakeOverPerson::MERGE_FAILED => 'success_merge_failed' }.freeze
 
     rescue_from Pundit::NotAuthorizedError, with: :refuse
 
@@ -100,7 +105,7 @@ module Organisations
 
     def taken_over(result)
       copy = result.resource
-      key = result.code == Actors::TakeOverPerson::NOT_MERGED ? 'success_not_merged' : 'success'
+      key = UNMERGED_NOTICES.fetch(result.code, 'success')
       redirect_to organisation_people_path(copy.organisation, person_id: copy.id), status: :see_other,
                                                                                    notice: t("controllers.people.takeover.#{key}", source: current_organisation.name)
     end

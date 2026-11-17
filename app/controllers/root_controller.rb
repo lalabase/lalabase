@@ -15,6 +15,9 @@ class RootController < ApplicationController
   skip_before_action :authenticate_user!
   # No tenant is chosen yet, and user_home_path decides without one.
   skip_before_action :load_tenant_from_session
+  # The bare address of an organisation host is that organisation's start, not the main
+  # host's.
+  skip_before_action :show_page_on_main_host
 
   def show
     return redirect_to user_home_path(current_user) if user_signed_in?

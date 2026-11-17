@@ -268,6 +268,7 @@ module UserDataExports
     # (doc/org_data_export_plan.md), not the personal one.
     EXCLUDED = {
       'activities' => 'Org audit trail (role model); actor is a bare reference, PII-minimised by design',
+      'session_handoffs' => 'Login hand-off between hosts: digests only, valid 60 seconds, cleared within the hour',
       'notifications' => 'Transient delivery copies of org events; preferences + subscriptions ARE exported',
       'taggings' => 'Linkage metadata; the tags themselves are exported',
       'project_permissions' => 'Org-granted rights (role model; org export)',

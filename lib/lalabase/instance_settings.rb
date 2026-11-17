@@ -83,14 +83,27 @@ module Lalabase
 
       # nil lets Action Cable connect to the host the page came from, over ws
       # or wss to match it. That is right for any self-hosted instance.
+      #
+      # With organisation subdomains, every host connects to its own /cable: a page on
+      # kunde.lalabase.com must not open a socket on lalabase.com, which would carry the main
+      # host's session instead of this host's (doc/org_subdomains_plan.md, S3).
       def cable_url(env = ENV)
-        self_hosted?(env) ? nil : OWN_CABLE_URL
+        self_hosted?(env) || tenant_domain(env) ? nil : OWN_CABLE_URL
       end
 
       def cable_origins(env = ENV)
-        return OWN_CABLE_ORIGINS.dup unless self_hosted?(env)
+        base = if self_hosted?(env)
+                 [%r{\Ahttps?://#{Regexp.escape(bare_host(env))}(:\d+)?\z}]
+               else
+                 OWN_CABLE_ORIGINS.dup
+               end
+        domain = tenant_domain(env)
+        domain ? base + [tenant_origin_pattern(domain)] : base
+      end
 
-        [%r{\Ahttps?://#{Regexp.escape(bare_host(env))}(:\d+)?\z}]
+      # The origin of a page on an organisation host, for Action Cable.
+      def tenant_origin_pattern(domain)
+        %r{\Ahttps?://[a-z0-9-]+\.#{Regexp.escape(domain)}(:\d+)?\z}
       end
 
       # Off only for an explicit 0/false/no on a self-hosted instance: a

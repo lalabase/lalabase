@@ -264,6 +264,19 @@ person may see it. Rights stay the membership and policy checks of every request
   is 404, an old one redirects GET and HEAD to the current host, and API, MCP, admin,
   webhooks and `/up` exist on the main host only.
 * Only the instance admin sets a subdomain (`Actors::AssignOrganisationSubdomain`).
+* **A person signs in on the main host only.** Each host keeps a session of its own
+  (host-only cookie, `__Host-` under TLS, one name per environment: `Lalabase::SessionCookie`).
+  The session reaches an organisation host through the login hand-off
+  (`Sessions::HostHandoff`, guard `spec/requests/session_handoff_spec.rb`, `:ci_guard`): a
+  single-use token, valid 60 seconds, bound to the host and to the state cookie of the
+  browser that began it, so a claim address opened in another browser signs nobody in.
+  Devise's failure app starts it on an organisation host (`Lalabase::HandoffFailureApp`);
+  `/users` there goes to the main host, signing out stays.
+* **Signing out ends every host's session**: `users.session_version` goes into a session at
+  sign-in, every request compares it (`config/initializers/session_version.rb`), and
+  `Users::SessionsController#destroy` raises it. A new way to sign out has to raise it too.
+* ⚠️ A `host:` key in a route helper is the URL's host, not a query parameter: the target
+  host of the hand-off travels as `target`.
 
 ---
 

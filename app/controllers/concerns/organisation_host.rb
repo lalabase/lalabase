@@ -14,10 +14,42 @@ module OrganisationHost
   extend ActiveSupport::Concern
 
   included do
+    # First of all callbacks: a page above the organisations (cockpit, account, help) on an
+    # organisation host goes to the main host before anything asks for a session there.
+    prepend_before_action :show_page_on_main_host, if: :page_for_the_main_host?
     before_action :show_organisation_on_its_host, if: :organisation_page_to_place?
   end
 
   private
+
+  def page_for_the_main_host?
+    Organisations::Hosts.enabled? && organisation_host_place.organisation_host? &&
+      request.path_parameters[:organisation_id].blank? && full_page_request?
+  end
+
+  def show_page_on_main_host
+    redirect_to main_host_url(request.fullpath), allow_other_host: true
+  end
+
+  # An absolute address on the main host, with this request's protocol and port.
+  def main_host_url(path)
+    "#{request.protocol}#{Organisations::Hosts.parent_domain}#{request.port_string}#{path}"
+  end
+
+  # The steps of the login hand-off answer on their own kind of host only.
+  def organisation_host_only
+    head :not_found unless organisation_host_place.organisation_host?
+  end
+
+  def main_host_only
+    head :not_found unless organisation_host_place.kind == :main
+  end
+
+  # A GET that consumes or mints a token is refused for HEAD, which Rails would run as GET
+  # (the same reason as Users::SignupHandoffsController).
+  def refuse_head
+    head :method_not_allowed if request.head?
+  end
 
   def organisation_host_place
     @organisation_host_place ||= request.env[Lalabase::OrganisationHostGate::ENV_KEY] ||

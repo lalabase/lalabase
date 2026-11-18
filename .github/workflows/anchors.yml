@@ -60,13 +60,13 @@ jobs:
     # Only this repository's own branches carry the deploy key (see above).
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The map is loaded as Ruby below; no token is to be lying around then.
           persist-credentials: false
 
       - name: Check out the documentation, read-only
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gboyke/lalabase-documentation
           ssh-key: ${{ secrets.DOCUMENTATION_DEPLOY_KEY }}
@@ -76,7 +76,7 @@ jobs:
 
       # The documentation program's Ruby and bundle, not this repository's:
       # the check runs inside that program.
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@20eb24b0d509e2b9ed9b6d42ddfeb992915e0564 # v1.341.0
         with:
           working-directory: documentation
           bundler-cache: true

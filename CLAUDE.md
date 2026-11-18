@@ -126,6 +126,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   Not covered, on purpose (accidental leaks are the threat model): a secret in a UTF-16 file
   (gitleaks does not read it; the guard reads its words), what is pushed without a PR (the
   pre-push hook on switch day), tags and notes.
+* **CodeQL** (`.github/workflows/codeql.yml`): Ruby, JavaScript and the workflows, on every
+  PR, every push to main and weekly. Findings go to the code scanning view, not into a red
+  check. **Dependabot** (`.github/dependabot.yml`): weekly grouped PRs for bundler, npm and
+  the actions. Every workflow pins its actions by commit hash with the version as a comment
+  and sets `permissions:` at the top (read-only unless a job needs more); a new workflow
+  does the same. All four raise the OpenSSF Scorecard (SAST, Dependency-Update-Tool,
+  Pinned-Dependencies, Token-Permissions).
 * **Zwei Sicherheits-Jobs, absichtlich getrennt.** Ein Job trägt genau einen Status, und
   `dependencies` ist heute rot (s. u.). Zusammengelegt wäre brakemans Rot von diesem Rot nicht
   mehr zu unterscheiden, und brakemans ganzer Wert ist die Aussage „Rot = NEUER Befund":

@@ -641,10 +641,16 @@ RSpec.describe 'Third-party license guard' do
   describe 'npm packages' do
     let(:licenses) { ThirdPartyLicenseGuard.npm_licenses }
 
+    # Every package the project names itself must be read, not a count: the lock has
+    # shrunk to a dozen packages, and a count says nothing about which ones were read.
     it 'reads the lockfile it guards' do
-      expect(licenses.size).to be > 40
-      expect(licenses.keys).to include(a_string_starting_with('bootstrap-icons@'))
-      expect(licenses.values.flatten.uniq).to include('MIT', 'ISC')
+      package = JSON.parse(Rails.root.join('package.json').read)
+      direct = package.fetch('dependencies', {}).keys + package.fetch('devDependencies', {}).keys
+      read = licenses.keys.map { |key| key.sub(/@[^@]+\z/, '') }
+
+      expect(direct).to include('bootstrap-icons')
+      expect(read).to include(*direct)
+      expect(licenses.values.flatten.uniq).to include('MIT', 'Apache-2.0')
     end
 
     it 'finds only allowed licenses, with no exception' do

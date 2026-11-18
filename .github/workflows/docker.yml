@@ -42,6 +42,10 @@ concurrency:
   group: docker-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Read-only token: no job here writes to the repository.
+permissions:
+  contents: read
+
 jobs:
   compose:
     runs-on: ubuntu-latest
@@ -52,7 +56,7 @@ jobs:
       COMPOSE_FILE: compose.yml:compose.build.yml
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Build the image, boot it and check the install
         run: script/docker_check --build

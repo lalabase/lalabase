@@ -5,7 +5,7 @@ source 'https://rubygems.org'
 # Core Rails dependencies
 gem 'foreman'
 gem 'minitest', '~> 5.26'       # Keep Rails' test dependency on the Ruby-4-compatible 5.x line.
-gem 'pg', '~> 1.1'              # Use PostgreSQL as the database for Active Record
+gem 'pg', '~> 1.7'              # Use PostgreSQL as the database for Active Record
 gem 'pg_search'
 gem 'puma', '>= 8.0.3'          # Puma web server for production
 gem 'rails', '~> 8.1.4'
@@ -17,14 +17,14 @@ gem 'stimulus-rails'            # Hotwire's modest JavaScript framework
 gem 'tailwindcss-rails', '~> 3.3.1'
 gem 'turbo-rails'               # Hotwire's SPA-like page accelerator
 # gem 'sassc-rails'               # SassC for asset pipeline - temporarily disabled due to build issues
-gem 'commonmarker', '~> 2.8'    # GFM-Markdown → HTML (comrak/Rust, GFM-nativ) für den Wiki-Rückweg
+gem 'commonmarker', '~> 2.10'   # GFM-Markdown → HTML (comrak/Rust, GFM-nativ) für den Wiki-Rückweg
 gem 'diff-lcs', '~> 1.6'        # Line diff for Wiki note version history (prod: was test-only transitive)
 gem 'lexxy', '~> 0.9'           # Lexical-based ActionText editor (Wiki notes only; Trix stays elsewhere)
 gem 'redcarpet'
 gem 'reverse_markdown'          # HTML → GFM-Markdown für die Wiki markdown_body-Projektion
 gem 'rouge'                     # Syntax highlighting for documentation code blocks
 # Keep the remediation required by GHSA-8qw7-6phv-7q6p on the 4.14 patch line.
-gem 'view_component', '~> 4.14.0'
+gem 'view_component', '~> 4.24.0'
 
 gem 'dotenv-rails' # Loads environment variables from .env
 gem 'pagy', '~> 9.0'
@@ -57,7 +57,7 @@ gem 'countries' # ISO-3166 countries + subdivisions; feeds Accounts::BillingRule
 gem 'valvat'
 
 # File processing
-gem 'rubyzip', '~> 3.4' # ZIP file handling; >= 3.4.0 closes CVE-2026-85396 (path traversal in Entry#extract)
+gem 'rubyzip', '~> 3.7' # ZIP file handling; >= 3.4.0 closes CVE-2026-85396 (path traversal in Entry#extract)
 
 # Development and test groups
 group :development, :test do
@@ -84,9 +84,9 @@ end
 
 group :test do
   gem 'capybara', '~> 3.40' # System testing framework
-  gem 'database_cleaner-active_record', '~> 2.1' # Clean database between tests
-  gem 'factory_bot_rails', '~> 6.4.3' # Optional, for factories
-  gem 'faker', '~> 3.4' # Faker for generating test data
+  gem 'database_cleaner-active_record', '~> 2.2' # Clean database between tests
+  gem 'factory_bot_rails', '~> 6.5.1' # Optional, for factories
+  gem 'faker', '~> 3.8' # Faker for generating test data
   gem 'rspec-rails', '~> 7.1.1'
   gem 'selenium-webdriver' # WebDriver for Capybara
   gem 'shoulda-matchers'
@@ -97,29 +97,29 @@ end
 gem 'acts_as_tenant', '~> 1.0'  # Multi-tenancy support for Rails
 gem 'annotaterb'
 gem 'anthropic', '~> 1.13'      # Anthropic Claude API wrapper (official)
-gem 'googleauth', '~> 1.11'     # Service-account OAuth2 token mint for Vertex AI (pure Ruby, no google-cloud SDK)
-gem 'mcp', '~> 1.2'             # Official Model Context Protocol SDK (MCP server, Claude Code -> Lalabase)
+gem 'googleauth', '~> 1.17'     # Service-account OAuth2 token mint for Vertex AI (pure Ruby, no google-cloud SDK)
+gem 'mcp', '~> 1.10'            # Official Model Context Protocol SDK (MCP server, Claude Code -> Lalabase)
 gem 'parser', '~> 3.3'          # Ruby AST parser (M6 — Layer-1 code symbol extraction)
 gem 'pry-rails'                 # Enhanced Rails console with Pry
 gem 'ruby-openai', '~> 7.1'     # OpenAI API wrapper
 # Lalabase::Llm::PublicEndpointAdapter takes over Net::HTTP#timeouted_connect, which
 # 0.6.0 does not have; the adapter refuses to load without it. 0.9.1 is the version
 # Ruby 4.0.7 ships. A newer line is fine once the adapter spec is green on it.
-gem 'net-http', '~> 0.9.1'
+gem 'net-http', '~> 0.10.0'
 gem 'ruby_tree_sitter', '~> 2.1' # TypeScript/JS AST parser (M10 — Layer-1). Precompiled multi-platform runtime; grammar (.so/.dylib) built from vendored C sources.
 
 # Text extraction
-gem 'docx', '~> 0.13.0' # For text extraction from .docx files; 0.10.1+ accepts rubyzip 3
+gem 'docx', '~> 0.13.3' # For text extraction from .docx files; 0.10.1+ accepts rubyzip 3
 gem 'neighbor'
-gem 'pdf-reader', '~> 2.12.0' # For PDF text extraction
+gem 'pdf-reader', '~> 2.16.0' # For PDF text extraction
 gem 'rtf', '~> 0.3.3' # For RTF file support, if desired
 
 gem 'image_processing', '~> 1.2' # active storage & active text
 gem 'mini_magick' # image processing, shrinking images
 gem 'mission_control-jobs' # Job queue monitoring interface for Solid Queue
-gem 'pundit', '~> 2.3'
+gem 'pundit', '~> 2.5'
 gem 'pundit-matchers', '~> 4.0', groups: %i[development test]
 gem 'rack-attack', '~> 6.7' # Rate limiting and request throttling
 gem 'redis', '~> 6.0' # Cache store (staging/production); no longer a job backend
-gem 'solid_queue', '~> 1.0' # The only job backend (Rails 8 native)
+gem 'solid_queue', '~> 1.7' # The only job backend (Rails 8 native)
 gem 'whatlanguage'

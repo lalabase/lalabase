@@ -32,6 +32,10 @@ gem 'pagy', '~> 9.0'
 
 # JSON APIs
 gem 'jbuilder' # Build JSON APIs with ease
+# Hold json on 2.x: json 3 drops the create_additions option, which sprockets 4.2 still
+# passes (the app no longer boots), and changes how a lone surrogate parses (MCP specs).
+# Moving to 3.x is its own change, together with sprockets >= 4.3.
+gem 'json', '~> 2.21'
 
 # The locked Linux binary excludes Ruby 4; compile the compatible source gem.
 gem 'ffi', require: false, force_ruby_platform: true

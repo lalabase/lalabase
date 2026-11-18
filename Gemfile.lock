@@ -695,6 +695,7 @@ DEPENDENCIES
   image_processing (~> 1.2)
   importmap-rails
   jbuilder
+  json (~> 2.21)
   letter_opener
   lexxy (~> 0.9)
   mcp (~> 1.2)

@@ -19,9 +19,11 @@
   <a href="https://demo.lalabase.com"><img src="https://img.shields.io/badge/demo-live-brightgreen" alt="Live demo"></a>
 </p>
 
-Tickets, time tracking, docs and meetings for software agencies and their clients, with an AI
-assistant that answers from your own project data and cites its sources. Free on your own server,
-or hosted by us in Germany.
+The shared space for client projects, from the first call to production: requirements, meetings,
+tickets, docs and time tracking, with an AI assistant that answers from your own project data and
+cites its sources. Your client works in the same space, from the first requirements to bug reports
+and the docs for running the software after go-live. Free on your own server, or hosted by us in
+Germany.
 
 **[Try the live demo](https://demo.lalabase.com)**: no sign-up, the login is on the page, and
 everything resets every night.

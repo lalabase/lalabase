@@ -27,7 +27,7 @@ gem 'rouge'                     # Syntax highlighting for documentation code blo
 gem 'view_component', '~> 4.24.0'
 
 gem 'dotenv-rails' # Loads environment variables from .env
-gem 'pagy', '~> 9.0'
+gem 'pagy', '~> 9.4'
 # gem 'hiredis'
 
 # JSON APIs

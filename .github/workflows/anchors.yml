@@ -76,7 +76,7 @@ jobs:
 
       # The documentation program's Ruby and bundle, not this repository's:
       # the check runs inside that program.
-      - uses: ruby/setup-ruby@20eb24b0d509e2b9ed9b6d42ddfeb992915e0564 # v1.341.0
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
           working-directory: documentation
           bundler-cache: true

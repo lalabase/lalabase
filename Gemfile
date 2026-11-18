@@ -14,8 +14,12 @@ gem 'sprockets-rails'           # The original asset pipeline for Rails
 # JavaScript & Frontend
 gem 'importmap-rails'           # Use JavaScript with ESM import maps
 gem 'stimulus-rails'            # Hotwire's modest JavaScript framework
-gem 'tailwindcss-rails', '~> 3.3.1'
 gem 'turbo-rails'               # Hotwire's SPA-like page accelerator
+# Tailwind stays on version 3, for good: Tailwind 4 changes input path, syntax and
+# config. The second line holds the Tailwind binary itself below 4, whatever a
+# later tailwindcss-rails would pull in. Dependabot ignores both from 4 on.
+gem 'tailwindcss-rails', '~> 3.3.1'
+gem 'tailwindcss-ruby', '< 4'
 # gem 'sassc-rails'               # SassC for asset pipeline - temporarily disabled due to build issues
 gem 'commonmarker', '~> 2.10'   # GFM-Markdown → HTML (comrak/Rust, GFM-nativ) für den Wiki-Rückweg
 gem 'diff-lcs', '~> 1.6'        # Line diff for Wiki note version history (prod: was test-only transitive)

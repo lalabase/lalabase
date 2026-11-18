@@ -1,0 +1,50 @@
+# Dependabot: weekly update PRs for every package ecosystem the repository uses.
+#
+# Minor and patch updates come grouped, one PR per ecosystem and week; a major update
+# comes on its own, because it can need code changes. Security updates are not held to
+# this schedule: GitHub opens them as soon as an advisory names a locked version.
+# bundle-audit in guards.yml stays the gate on every PR, with its own advisory database.
+#
+# The workflows pin each action by commit hash with the version in a comment; Dependabot
+# updates hash and comment together.
+version: 2
+
+updates:
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      bundler-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns: ["*"]
+
+# No docker entry: the Dockerfile builds its base image name from ${RUBY_VERSION}
+# (.ruby-version), which Dependabot cannot follow.

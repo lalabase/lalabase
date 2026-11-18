@@ -23,7 +23,7 @@ gem 'tailwindcss-ruby', '< 4'
 # gem 'sassc-rails'               # SassC for asset pipeline - temporarily disabled due to build issues
 gem 'commonmarker', '~> 2.10'   # GFM-Markdown → HTML (comrak/Rust, GFM-nativ) für den Wiki-Rückweg
 gem 'diff-lcs', '~> 1.6'        # Line diff for Wiki note version history (prod: was test-only transitive)
-gem 'lexxy', '~> 0.9'           # Lexical-based ActionText editor (Wiki notes only; Trix stays elsewhere)
+gem 'lexxy', '~> 1.0'           # Lexical-based ActionText editor (Wiki notes only; Trix stays elsewhere)
 gem 'redcarpet'
 gem 'reverse_markdown'          # HTML → GFM-Markdown für die Wiki markdown_body-Projektion
 gem 'rouge'                     # Syntax highlighting for documentation code blocks

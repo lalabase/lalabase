@@ -133,17 +133,14 @@ RSpec.describe Ticket, type: :model do
       org1 = create(:organisation)
       org2 = create(:organisation)
 
-      ticket1 = nil
-      ticket2 = nil
-
       ActsAsTenant.with_tenant(org1) do
-        ticket1 = create(:ticket, title: 'Org1 Ticket')
+        create(:ticket, title: 'Org1 Ticket')
         expect(Ticket.count).to eq(1)
         expect(Ticket.first.title).to eq('Org1 Ticket')
       end
 
       ActsAsTenant.with_tenant(org2) do
-        ticket2 = create(:ticket, title: 'Org2 Ticket')
+        create(:ticket, title: 'Org2 Ticket')
         expect(Ticket.count).to eq(1)
         expect(Ticket.first.title).to eq('Org2 Ticket')
       end

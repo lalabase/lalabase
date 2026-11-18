@@ -75,6 +75,11 @@ module ThirdPartyLicenseGuard
       declared: %w[MIT Artistic-1.0-Perl GPL-2.0-or-later], taken: 'MIT',
       reason: 'A choice of three, spelled out in LICENCE.md of the gem. Runs in production: the wiki version diff requires it.'
     },
+    'rdoc' => {
+      declared: %w[Ruby GPL-2.0-only], taken: "Matz's Ruby terms",
+      reason: 'A choice of two, spelled out in LICENSE.rdoc of the gem (SPDX: Ruby or GPL-2.0-only). ' \
+              'Comes in through irb.'
+    },
     'brakeman' => {
       declared: ['Brakeman Public Use License'], taken: 'Brakeman Public Use License',
       reason: 'Forbids commercial use of the scanner, and names analysing your own software as not commercial ' \
@@ -91,10 +96,6 @@ module ThirdPartyLicenseGuard
     'rtf' => {
       declared: NO_DECLARATION, taken: 'MIT',
       reason: 'The gemspec declares nothing; the LICENSE file of the gem is the MIT text.'
-    },
-    'ruby-rc4' => {
-      declared: NO_DECLARATION, taken: 'MIT',
-      reason: 'The gemspec declares nothing; the LICENSE file of the gem is the MIT text. Comes in through pdf-reader.'
     },
     'smart_properties' => {
       declared: NO_DECLARATION, taken: 'MIT',

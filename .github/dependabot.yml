@@ -21,6 +21,10 @@ updates:
     groups:
       bundler-minor-and-patch:
         update-types: [minor, patch]
+    # json 3 is held back in the Gemfile until the app is ready for it (see there).
+    ignore:
+      - dependency-name: json
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /

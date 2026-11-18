@@ -353,7 +353,10 @@ GEM
     orm_adapter (0.5.0)
     os (1.1.4)
     ostruct (0.6.3)
-    pagy (9.3.4)
+    pagy (43.8.2)
+      json
+      uri
+      yaml
     parallel (2.3.0)
     parser (3.3.13.0)
       ast (~> 2.4.1)
@@ -668,6 +671,7 @@ GEM
     whatlanguage (1.0.6)
     xpath (3.2.0)
       nokogiri (~> 1.8)
+    yaml (0.4.0)
     zeitwerk (2.8.3)
 
 PLATFORMS
@@ -723,7 +727,7 @@ DEPENDENCIES
   neighbor
   net-http (~> 0.10.0)
   ostruct
-  pagy (~> 9.0)
+  pagy (~> 43.8)
   parser (~> 3.3)
   pdf-reader (~> 2.16.0)
   pg (~> 1.7)

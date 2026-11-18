@@ -74,10 +74,15 @@ RSpec.describe 'Pagination bars', type: :request do
         expect(assigns(:pagy).pages).to eq(5)
       end
 
-      it 'shows no bar for a list that fits on one page' do
+      # The select sits in the bar, and the size it saves is the reader's for every
+      # list. A bar that left with the second page took the way back with it.
+      it 'keeps the bar and its page-size select when the list fits on one page' do
         visit_list(items: 50)
 
-        expect(response.body).not_to include('pagination-container-compact')
+        expect(assigns(:pagy).pages).to eq(1)
+        expect(response.body).to include('pagination-container-compact')
+        options = Nokogiri::HTML(response.body).css('.pagination-container-compact select option')
+        expect(options.map { |option| Rack::Utils.parse_query(URI(option['value']).query)['items'] }).to include('10', '20')
       end
     end
 
@@ -103,6 +108,29 @@ RSpec.describe 'Pagination bars', type: :request do
         expect(queries).to include('items' => '5', 'page' => '2')
         expect(queries).to include('items' => '5', 'page' => '3')
       end
+
+      it 'names its bar in the language of the page' do
+        get organisation_project_activities_path(organisation, project, items: 5)
+
+        labels = Nokogiri::HTML(response.body).css('.pagination-container nav').map { |nav| nav['aria-label'] }
+        expect(labels).to eq([I18n.t('views.shared.pagination.label', locale: :de)])
+      end
+
+      # Stored without a ceiling until 18.11.2026; a full page load reads it
+      # without an `?items=` that would have been clamped.
+      it 'never pages by more than the ceiling, whatever the reader saved' do
+        user.preference_store.set_items_per_page(1_000_000)
+
+        get organisation_project_activities_path(organisation, project)
+
+        expect(assigns(:pagy).limit).to eq(Pageable::MAX_PER_PAGE)
+      end
+
+      it 'saves a page size the address names at most at the ceiling' do
+        get organisation_project_activities_path(organisation, project, items: 1_000_000)
+
+        expect(user.reload.items_per_page_preference).to eq(Pageable::MAX_PER_PAGE)
+      end
     end
 
     describe 'saved views' do
@@ -113,6 +141,13 @@ RSpec.describe 'Pagination bars', type: :request do
 
         expect(assigns(:smart_folders).size).to eq(5)
         expect(assigns(:pagy)).to have_attributes(count: 7, pages: 2)
+      end
+
+      # The JSON answer serialised the gem's object until 18.11.2026.
+      it 'keeps the names of the numbers in its JSON answer' do
+        get organisation_smart_folders_path(organisation, items: 5, format: :json)
+
+        expect(response.parsed_body['pagination']).to include('count' => 7, 'page' => 1, 'last' => 2, 'in' => 5, 'offset' => 0)
       end
     end
   end
@@ -156,11 +191,21 @@ RSpec.describe 'Pagination bars', type: :request do
       expect(bar.at_css('a')['href']).to eq('/admin/email_logs?page=2&status=sent')
     end
 
-    it 'shows no bar for a list that fits on one page' do
+    it 'shows no bar for a list that fits on one page, and no empty box for it' do
       get admin_email_logs_path(status: 'failed')
 
       expect(response).to have_http_status(:ok)
       expect(bar).to be_nil
+      expect(response.body).not_to include('bg-white px-4 py-3 border-t border-gray-200 sm:px-6')
+    end
+
+    # The gem's limit extra read `?limit=`, up to 100.
+    it 'takes another page size from the address, up to its ceiling' do
+      get admin_email_logs_path(limit: 10)
+      expect(assigns(:email_logs).size).to eq(10)
+
+      get admin_email_logs_path(limit: 1000)
+      expect(assigns(:pagy).limit).to eq(Admin::EmailLogsController::MAX_LOGS_PER_PAGE)
     end
   end
 end

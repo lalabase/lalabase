@@ -119,10 +119,6 @@
   <%# The links name the organisation the controller CHECKED, not the value
       the request sent. Page 2 must not fall back to "alle Organisationen": that
       would disclose other organisations' records. %>
-  <% if @pagy.pages > 1 %>
-    <div class="mt-6">
-      <%= render 'admin/common/pagination', pagy: @pagy,
-                 url: ->(page) { admin_deletion_register_path(page: page, organisation_id: @organisation_id) } %>
-    </div>
-  <% end %>
+  <%= render 'admin/common/pagination', pagy: @pagy, wrapper_class: 'mt-6',
+             url: ->(page) { admin_deletion_register_path(page: page, organisation_id: @organisation_id) } %>
 </div>

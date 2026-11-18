@@ -21,6 +21,13 @@ RSpec.describe 'The page parameter of a list', type: :request do
     'a hash' => { page: { a: '1' } }
   }.freeze
 
+  # The page size the bars set (`?items=`) is read on every request of a signed-in
+  # reader (ApplicationController stores it) and by the bars themselves.
+  unreadable_sizes = {
+    'a page size as a list' => { items: ['20'] },
+    'a page size as a hash' => { items: { a: '20' } }
+  }.freeze
+
   let(:organisation) { create(:organisation) }
   let!(:project) { ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation) } }
   let(:user) { create(:user) }
@@ -45,7 +52,13 @@ RSpec.describe 'The page parameter of a list', type: :request do
       'smart folders' => ->(params) { organisation_smart_folders_path(organisation, params) },
       'member activities' => ->(params) { organisation_user_activities_path(organisation, params.merge(user_id: user.id)) },
       'AI protocol' => ->(params) { organisation_ai_protocol_path(organisation, params) },
-      'inbox' => ->(params) { organisation_notifications_path(organisation, params) }
+      'inbox' => ->(params) { organisation_notifications_path(organisation, params) },
+      # Its controller turns any error into a redirect to the list of views, so a
+      # 200 is the proof here, not the absence of a 500.
+      'results of a saved view' => lambda { |params|
+        folder = create(:smart_folder, organisation: organisation, project: project, user: user)
+        organisation_smart_folder_path(organisation, folder, params)
+      }
     }
 
     # A full page of the ticket list with a page number redirects to the list
@@ -53,13 +66,18 @@ RSpec.describe 'The page parameter of a list', type: :request do
     headers = { 'tickets' => { 'Turbo-Frame' => 'tickets_list_frame' } }
 
     lists.each do |name, path|
-      unshowable_pages.each do |kind, params|
+      unshowable_pages.merge(unreadable_sizes).each do |kind, params|
         it "#{name}: answers #{kind}" do
           get instance_exec(params, &path), headers: headers.fetch(name, {})
 
           expect(response).to have_http_status(:ok)
         end
       end
+    end
+
+    it 'stores no page size from a list or a hash' do
+      expect { get organisation_ai_protocol_path(organisation, items: ['20']) }
+        .not_to(change { user.reload.items_per_page_preference })
     end
   end
 

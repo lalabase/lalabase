@@ -131,6 +131,24 @@ RSpec.describe Inbox::MasterListPresenter do
       presenter = build(view_mode: 'chronological')
       expect(presenter.notifications.size).to eq(2)
     end
+
+    # The total of the list is counted once; the page takes it instead of a
+    # second COUNT over the same rows.
+    it 'counts its rows once' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      counts = []
+      callback = lambda do |*, payload|
+        counts << payload[:sql] if payload[:sql].match?(/\ASELECT COUNT\(.*FROM "notifications"/i)
+      end
+      presenter = ActiveSupport::Notifications.subscribed(callback, 'sql.active_record') do
+        build(view_mode: 'chronological')
+      end
+
+      expect(presenter.pagy).to have_attributes(count: 2)
+      expect(counts.size).to eq(1)
+    end
   end
 
   # S4: the lane redraws its open row, and the row decides its title by the size of the bundle

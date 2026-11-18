@@ -5,10 +5,8 @@
   items_frame = pagination_items_frame(frame_id: frame_id, selected_object: local_assigns[:selected_object])
   current_items = if local_assigns.key?(:items_per_page) && local_assigns[:items_per_page].present?
                     local_assigns[:items_per_page]
-                  elsif params[:items].present?
-                    params[:items].to_i
                   else
-                    respond_to?(:items_per_page) ? items_per_page : 20
+                    Pagination::Page.size(params[:items]) || (respond_to?(:items_per_page) ? items_per_page : 20)
                   end
   org = local_assigns[:current_organisation] || @current_organisation || @organisation
   proj = local_assigns[:project] || @project
@@ -36,7 +34,7 @@
     <%# Centered navigation %>
     <div class="flex items-center justify-center flex-1">
       <% if pagy.pages > 1 %>
-        <nav aria-label="Pagination">
+        <nav aria-label="<%= t('views.shared.pagination.label') %>">
           <ul class="inline-flex items-center -space-x-px text-sm h-8 rounded hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#000000] transition duration-200">
             <%# Previous page %>
             <li>

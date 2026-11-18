@@ -46,6 +46,17 @@ RSpec.describe Pagination::Page do
       expect(page(count: '45', limit: '10')).to have_attributes(count: 45, limit: 10, pages: 5)
     end
 
+    # Kernel#Integer alone reads '010' as eight and raises on '08' and '09'.
+    it 'reads text as decimal, also with a leading zero' do
+      expect(page(count: '045', limit: '010')).to have_attributes(count: 45, limit: 10)
+      expect(page(count: '09', limit: '08')).to have_attributes(count: 9, limit: 8)
+    end
+
+    it 'raises for a count that is no whole number' do
+      expect { page(count: 'abc') }.to raise_error(ArgumentError, /count/)
+      expect { page(count: nil) }.to raise_error(ArgumentError, /count/)
+    end
+
     it 'cannot be changed after it is built' do
       expect(page(count: 5)).to be_frozen
     end
@@ -68,6 +79,17 @@ RSpec.describe Pagination::Page do
       it "reads #{value.inspect} as page #{expected}" do
         expect(described_class.number(value)).to eq(expected)
         expect(page(count: 100, page: value).page).to eq(expected)
+      end
+    end
+  end
+
+  describe 'the page size of a request' do
+    {
+      nil => nil, '' => nil, '0' => nil, '-3' => nil, 'abc' => nil, '20' => 20, '010' => 10, 20 => 20,
+      ['20'] => nil, { 'a' => '20' } => nil, ActionController::Parameters.new(a: '20') => nil
+    }.each do |value, expected|
+      it "reads #{value.inspect} as #{expected.inspect}" do
+        expect(described_class.size(value)).to eq(expected)
       end
     end
   end
@@ -150,8 +172,16 @@ RSpec.describe Pagination::Page do
   describe '#as_json' do
     it 'names the numbers, nothing of the object itself' do
       expect(page(count: 45, page: 2).as_json).to eq(
-        count: 45, page: 2, limit: 20, pages: 3, prev: 1, next: 3, from: 21, to: 40
+        count: 45, page: 2, limit: 20, pages: 3, last: 3, in: 20, offset: 20, prev: 1, next: 3, from: 21, to: 40
       )
+    end
+
+    # The saved views answered with the gem's object until 18.11.2026; a client
+    # reading `last` or `in` there keeps its numbers.
+    it 'keeps the names the gem gave the number of pages and the rows on the page' do
+      expect(page(count: 45, page: 3).as_json).to include(last: 3, in: 5)
+      expect(page(count: 0).as_json).to include(last: 1, in: 0)
+      expect(page(count: 45, page: 9).as_json).to include(last: 3, in: 0)
     end
   end
 

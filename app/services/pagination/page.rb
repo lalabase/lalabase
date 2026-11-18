@@ -13,6 +13,11 @@
 #   what every list answered before; a list that appends pages (the inbox) needs
 #   it, because the last page again would be the same rows twice.
 # * The page size is the caller's. A size below 1 is a programming error and raises.
+#   A size a REQUEST names (`?items=`) is read by .size, which answers nil where
+#   it names none, so the caller falls back to its own.
+#
+# Numbers given as text are decimal: '010' is ten. Kernel#Integer alone reads a
+# leading 0 as octal and 0x as hex, and '08' would raise.
 #
 # Entry point: of
 module Pagination
@@ -55,13 +60,28 @@ module Pagination
       [number, 1].max
     end
 
+    # A page size as it arrives in a request. => Integer of at least 1, or nil
+    # when the value names none: absent, blank, no number, below 1, or a list or
+    # a hash (`?items[]=20`), on which `#to_i` raises. The ceiling is the caller's.
+    def self.size(value)
+      number =
+        case value
+        when Integer then value
+        when String then value.to_i
+        end
+      number if number&.positive?
+    end
+
     def initialize(count:, page:, limit:, past_end: :empty)
       raise ArgumentError, "past_end is :empty or :last, got #{past_end.inspect}" unless PAST_END.include?(past_end)
 
-      @limit = Integer(limit, exception: false)
+      @limit = whole_number(limit)
       raise ArgumentError, "limit must be a whole number of at least 1, got #{limit.inspect}" unless @limit&.positive?
 
-      @count = [Integer(count), 0].max
+      total = whole_number(count)
+      raise ArgumentError, "count must be a whole number, got #{count.inspect}" unless total
+
+      @count = [total, 0].max
       @past_end = past_end
       number = self.class.number(page)
       @page = past_end == :last ? [number, pages].min : number
@@ -116,11 +136,28 @@ module Pagination
       numbers.map { |number| number == page ? number.to_s : number }
     end
 
+    # The JSON answers of the saved views (`pagination`) serialised the gem's
+    # object until 18.11.2026. Its numbers keep their names there: `last` (the
+    # number of pages), `in` (rows on this page) and `offset`. Its settings
+    # (`vars`, `outset`) do not: they held the request's parameters.
     def as_json(*)
-      { count: count, page: page, limit: limit, pages: pages, prev: prev, next: self.next, from: from, to: to }
+      {
+        count: count, page: page, limit: limit, pages: pages, last: pages, in: rows_on_page,
+        offset: offset, prev: prev, next: self.next, from: from, to: to
+      }
+    end
+
+    # How many rows this page holds: none on an empty list or behind the end.
+    def rows_on_page
+      from.zero? ? 0 : to - from + 1
     end
 
     private
+
+    # => Integer, or nil for what is no whole number. Text is decimal.
+    def whole_number(value)
+      value.is_a?(String) ? Integer(value, 10, exception: false) : Integer(value, exception: false)
+    end
 
     # `size` consecutive pages around the current one, pushed back inside the list
     # at either end. A wide bar keeps the first and the last page and marks what it

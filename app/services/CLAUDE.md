@@ -432,8 +432,10 @@ Verzeichnis-Übersicht (Auswahl):
   behind the end is an EMPTY page (`past_end: :empty`, the default; the inbox appends pages and
   needs it) or the last one (`:last`: meetings, knowledge), and never an OFFSET query. A list
   of the application pages through `Pageable#paginate` (page size from `?items=`, the reader's
-  setting, the default), an admin list through `.of` with a fixed size and the bar
-  `admin/common/_pagination`. The token lists do NOT come through here, they keep
+  setting, the default, never above `Pageable::MAX_PER_PAGE`), an admin list through `.of` with a
+  fixed size and the bar `admin/common/_pagination` (which alone decides whether it shows).
+  `.size` reads a page size a request names and answers nil for a list or a hash; the saved
+  views' results (`SmartFolderService`) page through `Page` as well. The token lists do NOT come through here, they keep
   `list_paging.rb`. Guards: `spec/services/pagination/page_spec.rb`,
   `spec/requests/list_page_parameter_spec.rb` (every list, every unshowable page),
   `spec/requests/list_pagination_bars_spec.rb`.

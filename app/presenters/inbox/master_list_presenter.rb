@@ -190,7 +190,8 @@ module Inbox
         compute_grouped!
       else
         @notifications = @filtered.for_notification_center.recent
-        @notifications = paginate(@notifications)
+        # One row per notification: the total counted above is this list's count.
+        @notifications = paginate(@notifications, count: @total_count)
       end
     end
 
@@ -225,10 +226,11 @@ module Inbox
     # A row action refreshes the pages currently on screen, including pages
     # appended by endless scroll. Keep the original offset and extend the limit;
     # the scroller resumes AFTER the last rendered page, still in PAGE_SIZE steps.
-    def paginate(scope)
+    # count: the total, where the caller counted it already (Pagination::Page.of).
+    def paginate(scope, count: nil)
       # A page behind the end stays EMPTY here (the default): the scroller appends
       # what it gets, and the last page again would be the same rows twice.
-      @pagy, rows = Pagination::Page.of(scope, page: @page, limit: PAGE_SIZE)
+      @pagy, rows = Pagination::Page.of(scope, page: @page, limit: PAGE_SIZE, count: count)
       @first_page = @pagy.page
       last_page = @through_page.to_s.to_i.clamp(first_page, [@pagy.pages, first_page].max)
       rows = rows.limit(@pagy.limit * (last_page - first_page + 1))

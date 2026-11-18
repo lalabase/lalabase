@@ -2,7 +2,7 @@
 <%# Full pagination navigation with page numbers %>
 <%
   current_frame_id = pagination_frame_id(frame_id: local_assigns[:frame_id])
-  current_items_per_page = params[:items].present? ? params[:items].to_i : pagy.limit
+  current_items_per_page = Pagination::Page.size(params[:items]) || pagy.limit
   org = @current_organisation || @organisation
   proj = @project
   sf_id = local_assigns[:smart_folder_id] || params[:smart_folder_id]
@@ -24,7 +24,7 @@
 
     <%# Page numbers %>
     <% if pagy.pages > 1 %>
-      <nav aria-label="Pagination">
+      <nav aria-label="<%= t('views.shared.pagination.label') %>">
         <ul class="inline-flex -space-x-px text-base h-10 rounded hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[2px_2px_0_0_#14110c] transition duration-200">
           <%# Previous page %>
           <li>

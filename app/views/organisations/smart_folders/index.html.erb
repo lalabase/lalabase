@@ -130,8 +130,9 @@
       </tbody>
     </table>
 
-    <%# Pagination navigation %>
-    <% if @pagy.pages > 1 %>
+    <%# Whenever the list has rows, not only with more than one page: the bar holds
+        the page-size select, and a size that fits the whole list must stay changeable. %>
+    <% if @pagy.count.positive? %>
       <%= render 'shared/pagination_nav', pagy: @pagy %>
     <% end %>
 

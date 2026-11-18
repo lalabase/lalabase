@@ -28,9 +28,9 @@ module Organisations
     #
     # The ceiling stays anyway, for the plainer reason: the trail grows without bound and
     # nothing else stops a hand-typed number from loading all of it. (The stored
-    # preference is a real mechanism on the frame-loaded lists — and ApplicationController
-    # writes it back UNCAPPED from any request, which is a defect of its own, reported
-    # separately and not this page's to fix.)
+    # preference is a real mechanism on the frame-loaded lists. ApplicationController
+    # stores it at most at Pageable::MAX_PER_PAGE since 18.11.2026; this page's own
+    # ceiling is lower.)
     #
     # 20 rather than a round-looking 25 so the page size is one of the options the
     # compact pagination nav offers (PaginationHelper::ITEMS_OPTIONS_COMPACT); a default
@@ -52,10 +52,10 @@ module Organisations
     # and a reader's saved page size for the other lists does not apply to it. The
     # ceiling is a plain assertion in the spec.
     def page_limit
-      requested = params[:items].presence.to_i
-      return PAGE_SIZE unless requested.positive?
+      requested = Pagination::Page.size(params[:items])
+      return PAGE_SIZE unless requested
 
-      requested.clamp(1, MAX_PAGE_SIZE)
+      [requested, MAX_PAGE_SIZE].min
     end
 
     # Newest first: this page is read to answer "what happened recently", and the entry

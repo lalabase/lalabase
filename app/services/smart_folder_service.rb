@@ -34,16 +34,16 @@ class SmartFolderService
       }
     end
 
-    page = normalize_page(options[:page])
-    per_page = normalize_per_page(options[:per_page])
-    offset = (page - 1) * per_page
-    paginated_results = all_results[offset, per_page] || []
+    # The page number is read by Pagination::Page, the rule of every list: a list
+    # or a hash is page 1, and a page behind the end is empty without slicing at an
+    # offset Ruby cannot hold (`?page=` with thirty digits raised RangeError).
+    current = Pagination::Page.new(count: total, page: options[:page], limit: normalize_per_page(options[:per_page]))
 
     {
-      items: paginated_results,
+      items: current.past_end? ? [] : all_results[current.offset, current.limit],
       total: total,
-      page: page,
-      per_page: per_page
+      page: current.page,
+      per_page: current.limit
     }
   end
 
@@ -51,23 +51,18 @@ class SmartFolderService
 
   # Single-type lists stay in SQL through count, ordering and pagination.
   # Even callers without paging options receive a bounded list, never transcripts.
+  # A page behind the end is the last page here, as it always was on this path.
   def paginate_relation(scope, options)
-    per_page = normalize_per_page(options[:per_page])
     total = scope.unscope(:select, :order).count
-    page = [normalize_page(options[:page]), [(total.to_f / per_page).ceil, 1].max].min
-    { items: scope.limit(per_page).offset((page - 1) * per_page).to_a,
-      total: total, page: page, per_page: per_page }
+    current = Pagination::Page.new(count: total, page: options[:page], limit: normalize_per_page(options[:per_page]),
+                                   past_end: :last)
+    { items: scope.limit(current.limit).offset(current.offset).to_a,
+      total: total, page: current.page, per_page: current.limit }
   end
 
-  def normalize_page(value)
-    page = value.to_i
-    page > 0 ? page : 1
-  end
-
+  # Absent, no number, below 1, a list or a hash: the default.
   def normalize_per_page(value)
-    per_page = value.to_i
-    per_page = DEFAULT_PER_PAGE unless per_page > 0
-    [per_page, MAX_PER_PAGE].min
+    [Pagination::Page.size(value) || DEFAULT_PER_PAGE, MAX_PER_PAGE].min
   end
 
   def empty_result(per_page: DEFAULT_PER_PAGE)

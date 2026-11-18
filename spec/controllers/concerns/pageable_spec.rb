@@ -84,6 +84,19 @@ RSpec.describe Pageable, type: :controller do
       end
     end
 
+    # The preference was stored without a ceiling until 18.11.2026, and a full
+    # page load reads it without the `?items=` that would be clamped.
+    context 'with a user preference above MAX_PER_PAGE' do
+      let(:user) { instance_double('User', items_per_page_preference: 1_000_000) }
+
+      before { controller.current_user = user }
+
+      it 'returns MAX_PER_PAGE' do
+        get :index
+        expect(controller.items_per_page).to eq(Pageable::MAX_PER_PAGE)
+      end
+    end
+
     context 'with user preference of 0' do
       let(:user) { instance_double('User', items_per_page_preference: 0) }
 
@@ -174,6 +187,20 @@ RSpec.describe Pageable, type: :controller do
       it 'clamps to MAX_PER_PAGE' do
         get :index, params: { items: '999999' }
         expect(controller.items_per_page).to eq(Pageable::MAX_PER_PAGE)
+      end
+    end
+  end
+
+  # ==========================================================================
+  # .storable_per_page: what ApplicationController saves from `?items=`
+  # ==========================================================================
+  describe '.storable_per_page' do
+    {
+      '50' => 50, '1000000' => Pageable::MAX_PER_PAGE, '0' => nil, 'abc' => nil, '' => nil, nil => nil,
+      ['20'] => nil, { 'a' => '20' } => nil
+    }.each do |value, expected|
+      it "stores #{value.inspect} as #{expected.inspect}" do
+        expect(described_class.storable_per_page(value)).to eq(expected)
       end
     end
   end

@@ -23,6 +23,13 @@ RSpec.describe PaginationHelper, type: :helper do
       expect(helper.pagination_info_text(pagy)).to be_nil
     end
 
+    # A page behind the last one holds no rows. A computed range printed
+    # "161 – 45 von 45" for page 9 of 45 rows.
+    it 'returns nil for a page behind the last one' do
+      pagy = Pagination::Page.new(count: 45, page: 9, limit: 20)
+      expect(helper.pagination_info_text(pagy)).to be_nil
+    end
+
     it 'calculates correctly for page 1 with 20 items per page and 36 total' do
       pagy = Pagination::Page.new(count: 36, page: 1, limit: 20)
       expect(helper.pagination_info_text(pagy)).to eq('1 – 20 von 36')

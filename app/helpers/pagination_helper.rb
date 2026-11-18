@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # Extracts pagination logic from views into testable helper methods.
-# Used by _pagination_nav.html.erb, _pagination_nav_compact.html.erb and
-# admin/shared/_pagination.html.erb.
+# Used by shared/_pagination_nav.html.erb, shared/_pagination_nav_compact.html.erb
+# and admin/common/_pagination.html.erb.
 module PaginationHelper
   FRAME_IDS = {
     'tickets' => 'tickets_list_frame',
@@ -19,17 +19,12 @@ module PaginationHelper
   ITEMS_OPTIONS_FULL    = [5, 10, 20, 50].freeze
 
   # Computes the display text for the pagination info, e.g. "1 – 20 of 36".
+  # nil for a page without rows: an empty list, or a page behind the last one
+  # (Pagination::Page#from and #to are 0 there, and there is no range to name).
   def pagination_info_text(pagy)
-    return nil if pagy.count.zero?
+    return nil if pagy.from.zero?
 
-    display_from = pagy.from
-    display_to   = pagy.to
-
-    # Fallback: if pagy.from/to are unexpected, compute manually
-    display_from = (pagy.page - 1) * pagy.limit + 1 if display_from.nil? || display_from < 1
-    display_to = [pagy.page * pagy.limit, pagy.count].min if display_to.nil? || display_to < 1
-
-    "#{display_from} – #{display_to} #{t('views.shared.pagination.of')} #{pagy.count}"
+    "#{pagy.from} – #{pagy.to} #{t('views.shared.pagination.of')} #{pagy.count}"
   end
 
   # Determines the Turbo Frame ID based on the controller or an explicit parameter.

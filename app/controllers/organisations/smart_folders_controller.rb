@@ -50,8 +50,11 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     authorize @smart_folder
 
     service = SmartFolderService.new(@smart_folder, current_user)
-    page = params[:page] || 1
-    per_page = params[:per_page] || 25
+    # Handed over as the request names them: the service reads both (a list or a
+    # hash is page 1 and the default size). Never blank, or the service returns
+    # every result unpaged.
+    page = params[:page].presence || 1
+    per_page = params[:per_page].presence || SmartFolderService::DEFAULT_PER_PAGE
 
     begin
       result = service.fetch_results(page: page, per_page: per_page)

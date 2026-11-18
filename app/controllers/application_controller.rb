@@ -310,12 +310,14 @@ class ApplicationController < ActionController::Base
     ).call
   end
 
-  # Update items_per_page from URL params if present (persists to DB)
+  # Update items_per_page from URL params if present (persists to DB). Capped at
+  # Pageable::MAX_PER_PAGE: the lists read the preference back as their page
+  # size. A list or a hash (`?items[]=20`) names no size and stores nothing.
   def update_items_per_page_from_params
-    return unless user_signed_in? && params[:items].present?
+    return unless user_signed_in?
 
-    new_value = params[:items].to_i
-    return unless new_value > 0
+    new_value = Pageable.storable_per_page(params[:items])
+    return unless new_value
 
     current_user.preference_store.set_items_per_page(new_value) if current_user.respond_to?(:preference_store)
   end

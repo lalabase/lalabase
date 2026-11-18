@@ -189,6 +189,14 @@ RSpec.describe SmartFolderService, type: :service do
         expect(result[:total]).to eq(10)
         expect(result[:page]).to eq(100)
       end
+
+      # Ein Offset jenseits von `long`: Array#[] warf RangeError.
+      it 'gibt leere items bei einer Seite jenseits jedes Offsets zurück' do
+        result = service.fetch_results(page: '9' * 30, per_page: 25)
+
+        expect(result[:items]).to be_empty
+        expect(result[:total]).to eq(10)
+      end
     end
 
     context 'Page Normalisierung (Edge Cases)' do
@@ -220,6 +228,19 @@ RSpec.describe SmartFolderService, type: :service do
         result = service.fetch_results(page: 'abc')
 
         expect(result[:page]).to eq(1)
+      end
+
+      # Die Seite kommt aus der Adresszeile (`?page[]=1`, `?page[a]=1`): Array#to_i
+      # warf, und der Controller leitete mit "results_error" auf die Liste um.
+      it 'liest eine Liste oder einen Hash als Seite 1' do
+        expect(service.fetch_results(page: ['2'])[:page]).to eq(1)
+        expect(service.fetch_results(page: ActionController::Parameters.new(a: '2'))[:page]).to eq(1)
+      end
+
+      it 'liest eine Seitengröße als Liste oder Hash als Default' do
+        result = service.fetch_results(page: 1, per_page: ['5'])
+
+        expect(result[:per_page]).to eq(SmartFolderService::DEFAULT_PER_PAGE)
       end
     end
 
@@ -341,6 +362,23 @@ RSpec.describe SmartFolderService, type: :service do
       expect(SmartFolderService::MAX_PER_PAGE).to eq(100)
     end
   end
+  # Meetings are paged in SQL (paginate_relation), the other types in memory.
+  describe '#fetch_results for a folder of meetings' do
+    subject(:service) { described_class.new(meeting_folder, owner) }
+
+    let(:meeting_folder) do
+      create(:smart_folder, organisation: organisation, user: owner, project: project, target_object_type: 'Meeting')
+    end
+
+    before { 3.times { create(:meeting, project: project, organisation: organisation, creator: owner) } }
+
+    it 'answers a page behind the end with the last page, and a list or a hash with page 1' do
+      expect(service.fetch_results(page: '9' * 30, per_page: 2)).to include(page: 2, total: 3)
+      expect(service.fetch_results(page: ['2'], per_page: 2)).to include(page: 1)
+      expect(service.fetch_results(page: '2', per_page: ['2'])).to include(page: 1, per_page: SmartFolderService::DEFAULT_PER_PAGE)
+    end
+  end
+
   describe '#fetch_results Pagination' do
     subject(:service) { described_class.new(smart_folder, owner) }
 

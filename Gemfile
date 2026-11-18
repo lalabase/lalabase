@@ -125,6 +125,9 @@ gem 'pdf-reader', '~> 2.16.0' # For PDF text extraction
 gem 'rtf', '~> 0.3.3' # For RTF file support, if desired
 
 gem 'image_processing', '~> 2.2' # active storage & active text
+# image_processing 2 no longer depends on ruby-vips; Active Storage variants, the avatar
+# crop and the rich text embeds call Vips directly, so the app names it itself.
+gem 'ruby-vips', '~> 2.2'
 gem 'mini_magick' # image processing, shrinking images
 gem 'mission_control-jobs' # Job queue monitoring interface for Solid Queue
 gem 'pundit', '~> 2.5'

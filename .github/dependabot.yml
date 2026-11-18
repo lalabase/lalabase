@@ -25,6 +25,10 @@ updates:
     ignore:
       - dependency-name: json
         update-types: ["version-update:semver-major"]
+      # pagy 43 is a new API (the initializer no longer boots, 56 files use pagy);
+      # moving to it is its own change, not a weekly update.
+      - dependency-name: pagy
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /

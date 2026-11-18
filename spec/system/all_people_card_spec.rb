@@ -72,11 +72,13 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     wait_until_still('[data-all-people-card] [data-lane-close]')
   end
 
-  # The colour of --ink as the browser computes a colour.
-  def ink
-    channels = page.evaluate_script("getComputedStyle(document.documentElement).getPropertyValue('--ink')").split
+  # A colour of the theme (its channels in a custom property) as the browser computes a colour.
+  def theme_colour(property)
+    channels = page.evaluate_script("getComputedStyle(document.documentElement).getPropertyValue('#{property}')").split
     "rgb(#{channels.join(', ')})"
   end
+
+  def ink = theme_colour('--ink')
 
   def chips_at(key)
     lane.all(%([data-card-field="#{key}"] [data-organisation-chip]), minimum: 0).map(&:text)
@@ -171,6 +173,12 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect([style.call('.all-people-table th', 'paddingTop'), style.call('.all-people-table th', 'paddingBottom')]).to eq(%w[31px 15px])
     expect(style.call('.all-people-table th', 'borderBottomColor')).to eq(ink)
     expect(style.call('.all-people-table', 'borderBottomStyle')).to eq('none')
+    # The rows: the table's own line under every cell, the last row included (the ticket
+    # table draws another tone and ends without a line; review of #206).
+    ['tbody tr:first-child td', 'tbody tr:last-child td'].each do |cell|
+      line = %w[borderBottomStyle borderBottomWidth borderBottomColor].map { |property| style.call(".all-people-table #{cell}", property) }
+      expect(line).to eq(['solid', '1px', theme_colour('--cream-200')]), "expected the table's own line at #{cell}"
+    end
   end
 
   it 'keeps the tick of a row out of the click that opens the card' do

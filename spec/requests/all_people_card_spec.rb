@@ -488,7 +488,19 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
     it 'escapes what would end the address in a mailto link' do
       ActsAsTenant.with_tenant(north) { people[:north_only].update_columns(email: 'nora?bcc=x@example.com') }
 
-      expect(link(card(nora), :email)['href']).to eq('mailto:nora%3Fbcc=x@example.com')
+      expect(link(card(nora), :email)['href']).to eq('mailto:nora%3Fbcc%3Dx@example.com')
+    end
+
+    # Review of #206: a fixed email is linked as it is, as on the people page: a member's
+    # is checked by the account alone, which takes what the rule for an additional email
+    # (URI::MailTo::EMAIL_REGEXP) does not. No example had such an address.
+    it 'links a fixed email that only the account\'s rule takes' do
+      address = 'jörg@example.com'
+      expect(address).to match(Devise.email_regexp)
+      expect(address).not_to match(URI::MailTo::EMAIL_REGEXP)
+      ActsAsTenant.with_tenant(north) { people[:north_only].update_columns(email: address) }
+
+      expect(link(card(nora), :email)['href']).to eq('mailto:jörg@example.com')
     end
 
     it 'shows an additional detail as the people page does: a link by its kind, a date in the reader\'s language' do

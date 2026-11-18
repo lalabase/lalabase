@@ -244,9 +244,25 @@ RSpec.describe PersonDetail do
       expect(address).to match(URI::MailTo::EMAIL_REGEXP)
 
       expect(described_class.new(detail(kind: 'email', value: address)).href)
-        .to eq('mailto:person%2540customer.example%3Fbcc=collector@example.com')
+        .to eq('mailto:person%2540customer.example%3Fbcc%3Dcollector@example.com')
       expect(described_class.mailto('a#b,c d@example.com')).to eq('mailto:a%23b%2Cc%20d@example.com')
       expect(described_class.mailto('jörg+tag@example.com')).to eq('mailto:jörg+tag@example.com')
+      expect(described_class.mailto('Erika.Muster-Frau_1~x@example.com')).to eq('mailto:Erika.Muster-Frau_1~x@example.com')
+    end
+
+    # Review of #206: a list of the characters to escape is never complete. An account's
+    # address (Devise's rule) can carry a display name with a second address in angle
+    # brackets, a ";" some mail programs split recipients at, quotes and "&".
+    it 'leaves only letters, digits and a few marks of an address as they are' do
+      { 'x<attacker@example.com>' => 'mailto:x%3Cattacker@example.com%3E',
+        'a;b@example.com' => 'mailto:a%3Bb@example.com',
+        '"a"&cc=b@example.com' => 'mailto:%22a%22%26cc%3Db@example.com',
+        "a/b:c'd(e)!$*@example.com" => 'mailto:a%2Fb%3Ac%27d%28e%29%21%24%2A@example.com',
+        "a\u00A0b@example.com" => 'mailto:a%C2%A0b@example.com' }.each do |address, href|
+        expect(address).to match(Devise.email_regexp)
+        expect(described_class.mailto(address)).to eq(href)
+        expect(CGI.unescape(href.delete_prefix('mailto:').gsub('+', '%2B'))).to eq(address)
+      end
     end
 
     it 'links neither a malformed email nor a phone without digits' do

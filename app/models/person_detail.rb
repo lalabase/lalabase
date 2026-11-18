@@ -34,11 +34,15 @@ class PersonDetail
   INDEX_KEY = /\A\d{1,9}\z/
   ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
   LINE_BREAK = /\r\n|\r|\n/
-  # What ends or changes the address in a mailto URI (RFC 6068): "%" itself, "?" (the
-  # headers, "?bcc="), "#" (a fragment), "," (another recipient) and any whitespace.
+  # What is percent-encoded in the address of a mailto URI (RFC 6068): every ASCII
+  # character but letters, digits, "-", ".", "_", "~", "+" and "@", and any whitespace.
+  # A list of what may stand, not of what may not: "?" opens the headers ("?bcc="), ","
+  # and (for some mail programs) ";" add a recipient, "<...>" reads as an address behind
+  # a display name, and the next such character is one nobody thought of.
   # URI::MailTo::EMAIL_REGEXP takes "%" and "?" in the local part, Devise's rule takes
-  # nearly anything, so a valid stored address can carry them.
-  MAILTO_ESCAPED = /[%?#,[:space:]]/
+  # nearly anything, so a valid stored address can carry them. Letters beyond ASCII
+  # stay as written.
+  MAILTO_ESCAPED = /[\x00-\x7F&&[^A-Za-z0-9\-._~+@]]|[[:space:]]/
   NON_ASCII = /[^\x00-\x7F]/
   INVISIBLE = /[\p{Cc}\p{Cf}]/
 
@@ -89,7 +93,7 @@ class PersonDetail
 
   # The href of an email address, for every page that links one (a detail, the fixed
   # email of a person or a member, the card above the organisations): the address as
-  # written, only what MAILTO_ESCAPED names percent-encoded.
+  # written, what MAILTO_ESCAPED names percent-encoded. Decoded, it is the stored address.
   def self.mailto(address)
     "mailto:#{address.to_s.gsub(MAILTO_ESCAPED) { |char| ERB::Util.url_encode(char) }}"
   end

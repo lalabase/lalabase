@@ -42,29 +42,15 @@ module Organisations
     before_action :authorize_ai_protocol
 
     def show
-      @pagy, @entries = pagy(protocol_scope, limit: page_limit)
+      @pagy, @entries = Pagination::Page.of(protocol_scope, page: params[:page], limit: page_limit)
     end
 
     private
 
-    # ⚠️ The page size is resolved HERE rather than left to Pagy, and the reason is a
-    # measured trap in both directions. `Pagy::Backend#pagy` runs
-    # `vars[:limit] ||= pagy_get_limit(vars)`, so passing `limit:` short-circuits every
-    # parameter mechanism Pagy has: the limit extra never runs, `limit_max:` is never
-    # consulted (it is silently kept as just another var), and the selector in the
-    # pagination footer would set `?items=` on a page that ignores it.
-    #
-    # The SECOND half of that reasoning has EXPIRED and is recorded here so nobody acts
-    # on it: it used to argue that dropping `limit:` swaps one problem for another,
-    # because config/initializers/pagy.rb was skipped in the test environment and the
-    # cap would then differ between production and the environment testing it. That
-    # initializer runs everywhere now.
-    #
-    # The arithmetic stays on the first half alone: the same numbers in every
-    # environment, the selector does what it promises, and the ceiling is a plain
-    # assertion in the spec rather than a claim about which extras happen to be loaded.
-    # Worth revisiting together with the `items` vs `limit` knot documented at the
-    # bottom of that initializer, not before.
+    # The selector in the pagination footer sets `?items=`. This page reads it
+    # itself rather than through Pageable: its ceiling is its own (MAX_PAGE_SIZE),
+    # and a reader's saved page size for the other lists does not apply to it. The
+    # ceiling is a plain assertion in the spec.
     def page_limit
       requested = params[:items].presence.to_i
       return PAGE_SIZE unless requested.positive?

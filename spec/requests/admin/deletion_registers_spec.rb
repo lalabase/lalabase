@@ -117,9 +117,8 @@ RSpec.describe 'Admin::DeletionRegisters', type: :request do
         expect(response.body).not_to include('fremd.pdf')
       end
 
-      # The app overrides pagy_url_for and rebuilds the query from a fixed
-      # allowlist that does not contain organisation_id, which is why the links
-      # are built by hand in the view. Without this test the second page falls
+      # The links name the organisation the controller checked (the `url:` the
+      # view hands to admin/common/_pagination). Without this test the second page falls
       # back to "all organisations": an answer about one controller's deletions
       # quietly becomes an answer about everybody's, and page one looks correct
       # the whole time. Found by a mutation probe, not by review.

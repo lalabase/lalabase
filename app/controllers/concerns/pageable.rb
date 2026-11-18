@@ -3,7 +3,6 @@
 # app/controllers/concerns/pageable.rb
 module Pageable
   extend ActiveSupport::Concern
-  include Pagy::Backend
 
   DEFAULT_PER_PAGE = 20
   MIN_PER_PAGE = 1
@@ -29,25 +28,22 @@ module Pageable
   end
 
   # Applies pagination to a query.
-  # Returns an array [pagy_instance, records].
+  # Returns an array [Pagination::Page, records].
+  #
+  # Options:
+  #   items:    the page size, where the list has a rule of its own for it
+  #   count:    the total, from a caller that knows it (a GROUPED relation would
+  #             be loaded whole to learn its size, see Pagination::Page.of)
+  #   past_end: :last answers a page behind the end with the last page; the
+  #             default is an empty page
   def paginate(query, options = {})
-    permitted = permitted_pagination_params
-
-    page = [permitted[:page].to_i, 1].max
-    per_page = options[:items] || items_per_page
-
-    pagy_opts = {
-      page: page,
-      limit: per_page,
-      params: build_pagy_url_params(permitted, per_page)
-    }
-    # A caller that knows the total hands it in. Pagy would otherwise call
-    # .count(:all) itself, and on a GROUPED relation that returns a Hash of every
-    # group -- the whole result set in memory, to learn its size.
-    pagy_opts[:count] = options[:count] if options.key?(:count)
-    pagy_opts[:overflow] = options[:overflow] if options.key?(:overflow)
-
-    pagy(query, **pagy_opts)
+    Pagination::Page.of(
+      query,
+      page: permitted_pagination_params[:page],
+      limit: options[:items] || items_per_page,
+      count: options[:count],
+      past_end: options.fetch(:past_end, :empty)
+    )
   end
 
   # Determines the number of items per page.
@@ -131,13 +127,8 @@ module Pageable
     end
   end
 
-  # NOTE: there used to be a second pagy_url_for here, a controller-side twin of
-  # the one in ApplicationHelper. It was unreachable: pagy_url_for is called from
-  # pagy_nav in the VIEW, and this concern never exposed it via helper_method.
-  # Proven rather than assumed -- putting `raise` in its body left 2664 request
-  # and view examples green. Two implementations of one URL rule, the better one
-  # of them dead, is also why the billing list (W5) hand-rolled its own links.
-  # One builder now, in ApplicationHelper.
+  # The address of a page link is built in the view: PaginationHelper#page_url_for
+  # and #pagination_page_url. This concern builds none.
 
   private
 
@@ -147,13 +138,6 @@ module Pageable
 
   def sanitize_per_page(value)
     value.to_i.clamp(MIN_PER_PAGE, MAX_PER_PAGE)
-  end
-
-  def build_pagy_url_params(permitted, per_page)
-    url_params = { items: per_page }
-    url_params[:smart_folder_id] = permitted[:smart_folder_id] if permitted[:smart_folder_id].present?
-    url_params[:project_id] = permitted[:project_id] if permitted[:project_id].present?
-    url_params
   end
 
   def load_smart_folder(smart_folder_id)

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Organisations::Projects::ActivitiesController < Organisations::BaseController
-  include Pagy::Backend
+  include Pageable
   include ProjectController
 
   # Meeting activities are tracked on the project (trackable_type = 'Project')
@@ -29,8 +29,7 @@ class Organisations::Projects::ActivitiesController < Organisations::BaseControl
     # Apply filters
     activities = apply_filters(activities)
 
-    # Pagination with Pagy
-    @pagy, @activities = pagy(activities, items: 50)
+    @pagy, @activities = paginate(activities)
 
     respond_to do |format|
       format.html

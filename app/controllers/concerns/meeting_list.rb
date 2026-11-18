@@ -69,7 +69,7 @@ module MeetingList
     )
     # Every row of "Alle Meetings" names its project; a project page knows its own.
     rows = meeting_list_project ? @meeting_list_query : @meeting_list_query.preload(:project)
-    @pagy, meetings = paginate(rows, overflow: :last_page)
+    @pagy, meetings = paginate(rows, past_end: :last)
     meetings
   end
 

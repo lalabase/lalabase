@@ -843,7 +843,10 @@ jobs:
           spec/services/user_data_exports/registry_guards_spec.rb
           spec/helpers/assistant_artefacts_helper_spec.rb
           spec/helpers/assistant_context_helper_spec.rb
-          spec/helpers/pagy_url_for_spec.rb
+          spec/helpers/page_url_for_spec.rb
+          spec/services/pagination/page_spec.rb
+          spec/requests/list_page_parameter_spec.rb
+          spec/requests/list_pagination_bars_spec.rb
           spec/helpers/time_sessions_helper_spec.rb
           spec/helpers/navigation_helper_spec.rb
           spec/helpers/mobile_navigation_helper_spec.rb

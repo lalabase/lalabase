@@ -2,7 +2,7 @@
 
 # Encapsulates the complete display logic of the inbox master list:
 # - Filters (state_filters, search, project, event_type)
-# - Pagination (pagy)
+# - Pagination (Pagination::Page)
 # - Grouping by date (for the grouped view)
 # - Empty-state logic
 # - Active-filter detection
@@ -95,11 +95,11 @@ module Inbox
       scope.where(state: allowed)
     end
 
-    # The pagy helper needs a class instance that understands `params` and the
-    # `pagy_*` helpers — the controller passes itself. time_zone: the zone the
-    # reader's days run in (User#time_zone), for the period headings.
-    def initialize(pagy_helper:, scope:, params:, time_zone: Time.zone, through_page: nil)
-      @pagy_helper = pagy_helper
+    # page: the page as the request names it (`params[:page]` of the controller;
+    # `params:` here are the cleaned filters). time_zone: the zone the reader's
+    # days run in (User#time_zone), for the period headings.
+    def initialize(page:, scope:, params:, time_zone: Time.zone, through_page: nil)
+      @page = page
       @scope = scope
       @params = params
       @time_zone = time_zone
@@ -186,11 +186,6 @@ module Inbox
       @group_total = {}
       @group_unread = {}
 
-      # Pagy 9: page size via :limit. NOT :items — that is not a Pagy 9
-      # variable at all and would silently yield the default. It is not the URL
-      # parameter name either, whatever this comment used to claim: the limit
-      # extra sets that to :limit. See the closing note in
-      # config/initializers/pagy.rb.
       if grouped?
         compute_grouped!
       else
@@ -231,11 +226,13 @@ module Inbox
     # appended by endless scroll. Keep the original offset and extend the limit;
     # the scroller resumes AFTER the last rendered page, still in PAGE_SIZE steps.
     def paginate(scope)
-      @pagy, rows = @pagy_helper.send(:pagy, scope, limit: PAGE_SIZE)
+      # A page behind the end stays EMPTY here (the default): the scroller appends
+      # what it gets, and the last page again would be the same rows twice.
+      @pagy, rows = Pagination::Page.of(scope, page: @page, limit: PAGE_SIZE)
       @first_page = @pagy.page
       last_page = @through_page.to_s.to_i.clamp(first_page, [@pagy.pages, first_page].max)
       rows = rows.limit(@pagy.limit * (last_page - first_page + 1))
-      @pagy = Pagy.new(**@pagy.vars.merge(page: last_page)) if last_page != first_page
+      @pagy = @pagy.with_page(last_page) if last_page != first_page
       rows
     end
 

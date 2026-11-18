@@ -424,6 +424,19 @@ Verzeichnis-Übersicht (Auswahl):
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem
   MCP-Werkzeug `list_notifications`
+* `pagination/page.rb` (18.11.2026): `Pagination::Page`, the paging of every list of the web
+  interface and the admin area, the application's own since the pagination gem left. The
+  numbers of one page (`count`, `page`, `limit`, `pages`, `offset`, `from`, `to`, `prev`,
+  `next`, `series`) and `.of(scope, page:, limit:)` => `[page, rows]`. It reads the page
+  number of a request itself: below 1, no number or a list is page 1, never a 500. A page
+  behind the end is an EMPTY page (`past_end: :empty`, the default; the inbox appends pages and
+  needs it) or the last one (`:last`: meetings, knowledge), and never an OFFSET query. A list
+  of the application pages through `Pageable#paginate` (page size from `?items=`, the reader's
+  setting, the default), an admin list through `.of` with a fixed size and the bar
+  `admin/common/_pagination`. The token lists do NOT come through here, they keep
+  `list_paging.rb`. Guards: `spec/services/pagination/page_spec.rb`,
+  `spec/requests/list_page_parameter_spec.rb` (every list, every unshowable page),
+  `spec/requests/list_pagination_bars_spec.rb`.
 * `list_paging.rb` (05.11.2026): `page`/`per_page` of the lenient token lists (ticket list of
   REST and MCP via `Tickets::Filter`, the time session lists of `/api/v1`). A string that is no
   number stays the default, as before; refused (`InvalidArgument`, REST 400, MCP invalid input)

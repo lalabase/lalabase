@@ -273,7 +273,7 @@ class AllInboxesController < ApplicationController
       Notifications::InboxQuery.reading(user: current_user, reach: reach, organisation_id: params[:org]) do |rows, counts|
         @inbox_organisations = counts
         @presenter = Inbox::MasterListPresenter.new(
-          pagy_helper: self,
+          page: params[:page],
           scope: Inbox::MasterListPresenter.narrow(rows, filters, time_zone: current_user.time_zone),
           params: filters, time_zone: current_user.time_zone,
           through_page: redraw? ? params[:through_page] : nil

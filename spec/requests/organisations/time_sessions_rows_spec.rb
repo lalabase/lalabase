@@ -274,13 +274,14 @@ RSpec.describe 'Organisations::TimeSessions rows', type: :request do
   describe 'the paging links' do
     # Asserted on the href, because page 1 looks right either way.
     #
-    # The plan expected a defect here (ticket_id sits in
-    # ApplicationHelper::PAGY_URL_DROP_PARAMS, so a drill-down would lose its
-    # filter on page 2). It does not apply to this list: the compact nav builds
-    # its links in PaginationHelper#pagination_page_url, which keeps the whole
-    # query except `page`, and pagy_url_for never sees them. Measured 30.08.2026,
+    # The plan expected a defect here (ticket_id sat in the drop list of the
+    # full nav's link builder, today PaginationHelper::PAGE_URL_DROP_PARAMS, so a
+    # drill-down would lose its filter on page 2). It does not apply to this
+    # list: the compact nav builds its links in
+    # PaginationHelper#pagination_page_url, which keeps the whole query except
+    # `page`, and page_url_for never sees them. Measured 30.08.2026,
     # by putting the parameter back on the drop list and watching this example
-    # stay green. The full nav that does use pagy_url_for is rendered by the
+    # stay green. The full nav that does use page_url_for is rendered by the
     # activities and smart-folder lists, neither of which has a ticket_id filter.
     # So this is a guard on what is, not a fix.
     it 'carry every filter the address arrived with' do

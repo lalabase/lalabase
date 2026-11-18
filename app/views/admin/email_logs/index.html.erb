@@ -225,10 +225,11 @@
         </tbody>
       </table>
 
-      <!-- Pagination -->
-      <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-        <%== pagy_nav(@pagy) if @pagy.pages > 1 %>
-      </div>
+      <% if @pagy.pages > 1 %>
+        <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+          <%= render 'admin/common/pagination', pagy: @pagy %>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>

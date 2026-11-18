@@ -182,87 +182,44 @@ RSpec.describe Pageable, type: :controller do
   # #paginate
   # ==========================================================================
   describe '#paginate' do
+    # The arithmetic and the reading of the page number are Pagination::Page's
+    # (spec/services/pagination/page_spec.rb). This concern decides what it hands
+    # over: the page as the request names it, and the page size.
     let(:query) { double('ActiveRecord::Relation') }
-    let(:pagy_instance) { instance_double(Pagy) }
+    let(:page) { instance_double(Pagination::Page) }
     let(:records) { [] }
 
     before do
-      allow(controller).to receive(:pagy).and_return([pagy_instance, records])
+      allow(Pagination::Page).to receive(:of).and_return([page, records])
     end
 
-    it 'calls pagy with the query and correct options' do
+    it 'hands over the query, the page of the request and a page size' do
       get :index, params: { page: '2' }
       controller.paginate(query)
 
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(page: 2, limit: anything)
+      expect(Pagination::Page).to have_received(:of).with(
+        query, hash_including(page: '2', limit: Pageable::DEFAULT_PER_PAGE)
       )
     end
 
-    it 'returns [pagy_instance, records]' do
+    it 'returns [page, records]' do
       get :index
       result = controller.paginate(query)
-      expect(result).to eq([pagy_instance, records])
+      expect(result).to eq([page, records])
     end
 
-    it 'ensures page is at least 1 when page=0' do
-      get :index, params: { page: '0' }
+    it 'hands over no page when the request names a list instead of a number' do
+      get :index, params: { page: ['2'] }
       controller.paginate(query)
 
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(page: 1)
-      )
-    end
-
-    it 'ensures page is at least 1 when page is negative' do
-      get :index, params: { page: '-3' }
-      controller.paginate(query)
-
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(page: 1)
-      )
-    end
-
-    it 'passes smart_folder_id in params when present' do
-      get :index, params: { smart_folder_id: 'sf-123' }
-      controller.paginate(query)
-
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(params: hash_including(smart_folder_id: 'sf-123'))
-      )
-    end
-
-    it 'passes project_id in params when present' do
-      get :index, params: { project_id: 'proj-456' }
-      controller.paginate(query)
-
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(params: hash_including(project_id: 'proj-456'))
-      )
-    end
-
-    it 'does not include smart_folder_id when absent' do
-      get :index
-      controller.paginate(query)
-
-      expect(controller).to have_received(:pagy) do |_query, opts|
-        expect(opts[:params]).not_to have_key(:smart_folder_id)
-      end
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(page: nil))
     end
 
     it 'uses options[:items] when provided' do
       get :index
       controller.paginate(query, items: 99)
 
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(limit: 99)
-      )
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(limit: 99))
     end
 
     it 'falls back to items_per_page when no options[:items]' do
@@ -270,19 +227,23 @@ RSpec.describe Pageable, type: :controller do
       get :index
       controller.paginate(query)
 
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(limit: 42)
-      )
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(limit: 42))
     end
 
-    it 'always includes items in pagy params for URL generation' do
+    it 'hands over a total the caller already knows' do
+      get :index
+      controller.paginate(query, count: 7)
+
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(count: 7))
+    end
+
+    it 'answers a page behind the end with an empty page unless the list asks for the last one' do
       get :index
       controller.paginate(query)
+      controller.paginate(query, past_end: :last)
 
-      expect(controller).to have_received(:pagy) do |_query, opts|
-        expect(opts[:params][:items]).to be_present
-      end
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(past_end: :empty)).ordered
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(past_end: :last)).ordered
     end
   end
 
@@ -421,23 +382,11 @@ RSpec.describe Pageable, type: :controller do
     end
   end
 
-  # NOTE: the #pagy_url_for block that stood here is gone with the method itself.
-  # It was a controller-side twin of ApplicationHelper#pagy_url_for and could
-  # never run in production, because pagy_url_for is called from pagy_nav in the
-  # VIEW and this concern never exposed it via helper_method. Its two genuinely
-  # interesting cases -- a UUID and a .json parsed as the format suffix -- moved
-  # to spec/helpers/pagy_url_for_spec.rb, where the surviving builder lives.
-  #
-  # Without the deletion these examples did not fail loudly either: `controller.
-  # pagy_url_for` still resolved, just to PAGY's own implementation via
-  # Pagy::UrlHelpers, which asks the double for `vars` and got
-  # "received unexpected message :vars".
-
   # ==========================================================================
   # #respond_to_sort_and_paginate
   # ==========================================================================
   describe '#respond_to_sort_and_paginate' do
-    let(:pagy_instance) { instance_double(Pagy) }
+    let(:pagy_instance) { instance_double(Pagination::Page) }
     let(:collection) { double('ActiveRecord::Relation') }
 
     context 'with turbo_stream format' do
@@ -490,7 +439,7 @@ RSpec.describe Pageable, type: :controller do
 
     it 'does not overwrite existing @pagy' do
       get :index
-      existing_pagy = instance_double(Pagy)
+      existing_pagy = instance_double(Pagination::Page)
       controller.instance_variable_set(:@pagy, existing_pagy)
 
       allow(controller).to receive(:respond_to).and_yield(

@@ -1073,7 +1073,7 @@ class Organisations::TimeSessionsController < Organisations::BaseController
                     :project_id, :ticket_id, :meeting_id)
   end
 
-  # Pagy would call .count(:all) on the grouped relation itself, which returns a
+  # Pagination::Page.of would call .count(:all) on the grouped relation itself, which returns a
   # Hash of every group: the whole result set loaded into memory to learn its
   # size. Counting the subquery asks the database for the number instead.
   def row_count(keys_relation)

@@ -297,10 +297,6 @@ en:
           size: Size
           deleted_at: Deleted at
           backup: Backup
-        pagination_label: Pagination
-        previous: Previous
-        next: Next
-        page_of: Page %{page} of %{total}
     beusers:
       index:
         active_admins: Active Admins
@@ -357,6 +353,11 @@ en:
         system_settings: System Settings
         user_menu_right: User Menu (right)
         users: Users
+      pagination:
+        label: Pagination
+        previous: Previous
+        next: Next
+        page_of: Page %{page} of %{total}
     dashboard:
       title: Admin Dashboard
       subtitle: Overview and management of all system components

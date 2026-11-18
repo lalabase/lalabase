@@ -133,13 +133,11 @@ class KnowledgeSearchQuery
   # Page clamping as in the previous Knowledge behavior:
   # page <= 0 -> 1, page > last page -> last page.
   def build_pagy(total)
-    total_pages = [(total.to_f / per_page).ceil, 1].max
-    page = [[params[:page].to_i, 1].max, total_pages].min
-    Pagy.new(count: total, page: page, limit: per_page)
+    Pagination::Page.new(count: total, page: params[:page], limit: per_page, past_end: :last)
   end
 
   def empty_result
-    Result.new(items: [], pagy: Pagy.new(count: 0, page: 1, limit: per_page))
+    Result.new(items: [], pagy: build_pagy(0))
   end
 
   def order_sql

@@ -2,17 +2,6 @@
 
 require 'rails_helper'
 
-# Minimal Pagy host: the presenter calls pagy_helper.send(:pagy, ...).
-class FakePagyHelper
-  include Pagy::Backend
-
-  def initialize(params = {})
-    @params = params
-  end
-
-  attr_reader :params
-end
-
 RSpec.describe Inbox::MasterListPresenter do
   include ActiveSupport::Testing::TimeHelpers
 
@@ -37,7 +26,7 @@ RSpec.describe Inbox::MasterListPresenter do
 
   def build(params = {}, options = {})
     described_class.new(
-      pagy_helper: FakePagyHelper.new,
+      page: nil,
       scope: scope,
       params: { view_mode: 'grouped' }.merge(params),
       **options

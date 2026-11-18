@@ -14,21 +14,6 @@ RSpec.configure do |config|
 end
 Rails.application.routes.default_url_options[:host] = 'www.example.com'
 
-# Add PagyTestMocks before it is used
-module PagyTestMocks
-  def mock_pagy
-    double('Pagy',
-           page: 1,
-           pages: 2,
-           count: 20,
-           from: 1,
-           to: 10,
-           prev: nil,
-           next: 2,
-           series: [1, 2])
-  end
-end
-
 # Add additional requires below this line. Rails is not loaded until this point!
 require 'devise'
 require 'pundit/matchers'
@@ -96,9 +81,6 @@ RSpec.configure do |config|
 
   # Enable automatic derivation of the test type from the file name
   config.infer_spec_type_from_file_location!
-
-  # Add the Pagy test mocks
-  config.include PagyTestMocks
 
   # Filter Rails backtrace
   config.filter_rails_from_backtrace!

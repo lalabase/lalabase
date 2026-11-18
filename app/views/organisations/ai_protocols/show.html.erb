@@ -106,10 +106,10 @@
       </ol>
 
       <%# The COMPACT nav, not shared/_pagination_nav. The reason given here used to be a
-          DEFECT: ApplicationHelper#pagy_url_for resolved its links through url_for, whose
-          permit list had no :organisation_id, so it raised below /org/:id. That is fixed —
-          it now builds from request.path and carries every query parameter, exactly like
-          PaginationHelper#pagination_page_url does.
+          DEFECT: the link builder of the full nav (today PaginationHelper#page_url_for)
+          resolved its links through url_for, whose permit list had no :organisation_id,
+          so it raised below /org/:id. That is fixed — it now builds from request.path and
+          carries every query parameter, exactly like PaginationHelper#pagination_page_url does.
 
           Which leaves two builders doing the same job. They are NOT interchangeable yet:
           pagination_page_url takes explicit organisation/project keywords and returns an

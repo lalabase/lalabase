@@ -274,10 +274,9 @@
           <% end %>
         </div>
 
-        <!-- Pagination -->
         <% if @pagy && @pagy.pages > 1 %>
           <div class="mt-6 pt-4 border-t-2 border-gray-200">
-            <%== pagy_nav(@pagy) %>
+            <%= render 'shared/pagination_nav_compact', pagy: @pagy %>
           </div>
         <% end %>
       <% else %>

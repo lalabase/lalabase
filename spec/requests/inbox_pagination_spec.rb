@@ -2,10 +2,10 @@
 
 require 'rails_helper'
 
-# Pagination of the inbox master list (Pagy + endless-scroll backend).
-# Regression guard for the limit:50 fix (previously the Pagy default
-# limit:25 wrongly took effect, because items:50 is ignored in this Pagy
-# version).
+# Pagination of the inbox master list (Pagination::Page + endless-scroll backend).
+# Regression guard for the page size of 50: under the pagination gem the list
+# used until 18.11.2026, a default of 25 wrongly took effect, because the
+# option that named 50 was one the gem ignored.
 RSpec.describe 'Inbox pagination', type: :request do
   # MUST come before the let! blocks so that the 120 notification creates
   # (per-record organisation lookup = no real N+1) are not scanned by
@@ -42,7 +42,7 @@ RSpec.describe 'Inbox pagination', type: :request do
     controller.instance_variable_get(:@presenter)
   end
 
-  it 'rendert 50 Items auf Seite 1 (nicht den Pagy-Default 25)' do
+  it 'rendert 50 Items auf Seite 1 (nicht 25)' do
     get organisation_notifications_path(organisation), params: { state_filters: ['unread'] }
     expect(presenter.notifications.size).to eq(50)
   end

@@ -82,7 +82,6 @@ class ApplicationController < ActionController::Base
   helper_method :level_home_path
 
   include Pundit::Authorization
-  include Pagy::Backend
   # selectable_projects belongs HERE, not only on Organisations::BaseController:
   # the layout renders the global search form behind global_search_available?
   # (below), and HelpController restores the session organisation outside that

@@ -29,7 +29,7 @@
           <%# Previous page %>
           <li>
             <% if pagy.prev %>
-              <a href="<%= pagy_url_for(pagy, pagy.prev) %>"
+              <a href="<%= page_url_for(pagy.prev) %>"
                  class="<%= link_class %> rounded-s"
                  data-turbo-frame="<%= current_frame_id %>">
                 <i class="bi bi-arrow-left rtl:rotate-180"></i>
@@ -45,7 +45,7 @@
           <% pagy.series.each do |item| %>
             <% if item.is_a?(Integer) %>
               <li>
-                <a href="<%= pagy_url_for(pagy, item) %>"
+                <a href="<%= page_url_for(item) %>"
                    class="<%= link_class %> <%= 'active' if item == pagy.page %>"
                    data-turbo-frame="<%= current_frame_id %>">
                   <%= item %>
@@ -70,7 +70,7 @@
           <%# Next page %>
           <li>
             <% if pagy.next %>
-              <a href="<%= pagy_url_for(pagy, pagy.next) %>"
+              <a href="<%= page_url_for(pagy.next) %>"
                  class="<%= link_class %> rounded-e"
                  data-turbo-frame="<%= current_frame_id %>">
                 <i class="bi bi-arrow-right rtl:rotate-180"></i>

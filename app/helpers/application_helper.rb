@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module ApplicationHelper
-  include Pagy::Frontend if defined?(Pagy::Frontend)
   include Notifications::Constants
 
   # Operator name and legal links come from the instance admin settings (LegalIdentity).
@@ -141,7 +140,6 @@ module ApplicationHelper
     nil
   end
 
-  # Override the Pagy::Frontend pagy_url_for method
   # Helper to generate URLs with preserved params
   def url_with_params(path, additional_params = {})
     # Get current params that should be preserved
@@ -165,63 +163,6 @@ module ApplicationHelper
     else
       path
     end
-  end
-
-  # Builds the URL for one pagination link.
-  #
-  # PATH FIRST, not url_for. The previous version handed url_for a bare options
-  # hash and let Rails work out the route; for a page without route-defining
-  # params that raises "arguments passed to url_for can't be handled", i.e. a
-  # 500. Measured on /admin/accounts with 26 accounts: the list did not fail on
-  # page 2, it failed on page ONE, because the view renders the nav as soon as
-  # `@pagy.pages > 1`. The whole screen was gone past 25 accounts.
-  #
-  # A DENYLIST, not an allowlist. The old permit list named nine parameters, so
-  # every screen with a tenth silently dropped it on every page change: the
-  # billing list's `on` (the reference date the whole page is about) and the
-  # admin account search both disappeared. An allowlist here has to be extended
-  # by whoever adds a filter, and nothing tells them -- the link still works, it
-  # just forgets. Turned around: keep what the request carries, drop the few
-  # things that must not travel.
-  # Control parameters only. A FILTER must travel, or page 2 quietly answers a
-  # different question than page 1 -- the rule this list exists to enforce.
-  #
-  # ticket_id came out on 31.08.2026: it is a filter on the time list, not a
-  # control parameter, and it had been dropped here since the list was turned
-  # around. It went unnoticed while that list's frame did not advance the
-  # address; once it did, paging away from a ticket-filtered list left an
-  # address without the filter, and the filter pills rebuild from that address.
-  PAGY_URL_DROP_PARAMS = %w[
-    controller action format script_name original_script_name
-    authenticity_token _method commit
-  ].freeze
-
-  def pagy_url_for(_pagy, page, **)
-    query = request.query_parameters.except(*PAGY_URL_DROP_PARAMS)
-    query['page'] = page.to_s
-
-    query_string = query.reject { |_, value| value.blank? }.to_query
-    "#{pagy_base_path}#{'?' if query_string.present?}#{query_string}"
-  end
-
-  # The request path WITHOUT the format extension.
-  #
-  # A pagination link points at the same screen, one page further -- never at
-  # another representation of it. Rendering the nav during a .turbo_stream
-  # request would otherwise produce links to .turbo_stream, and every click
-  # would answer with a stream where a page was meant.
-  #
-  # Asking path_parameters[:format] rather than stripping a regex is what makes
-  # this exact: it removes only what ROUTING recognised as the format. That also
-  # covers the case the deleted Pageable#sanitize_base_path was built for --
-  # `/tickets.d2ddf7cf-4a48-...` -- because Rails parses that trailing UUID AS a
-  # format. Its regex treated the symptom; this reads the cause.
-  def pagy_base_path
-    path = request.path
-    format = request.path_parameters[:format]
-    return path if format.blank?
-
-    path.delete_suffix(".#{format}")
   end
 
   def sortable(column, title = nil)

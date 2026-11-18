@@ -4,7 +4,7 @@ source 'https://rubygems.org'
 
 # Core Rails dependencies
 gem 'foreman'
-gem 'minitest', '~> 5.26'       # Keep Rails' test dependency on the Ruby-4-compatible 5.x line.
+gem 'minitest', '~> 6.1'        # Keep Rails' test dependency on the Ruby-4-compatible 5.x line.
 gem 'pg', '~> 1.7'              # Use PostgreSQL as the database for Active Record
 gem 'pg_search'
 gem 'puma', '>= 8.0.3'          # Puma web server for production

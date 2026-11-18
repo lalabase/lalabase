@@ -70,7 +70,7 @@ gem 'rubyzip', '~> 3.7' # ZIP file handling; >= 3.4.0 closes CVE-2026-85396 (pat
 # Development and test groups
 group :development, :test do
   # gem 'debug', platforms: %i[mri windows], require: 'debug/prelude' # Debugging tool
-  gem 'brakeman', require: false # Static analysis security scanner
+  gem 'brakeman', '~> 7.0', require: false # Static analysis security scanner
 
   gem 'letter_opener' # Display emails in the browser
   gem 'pg_query' # SQL query normalization (required by prosopite with PostgreSQL)
@@ -132,4 +132,4 @@ gem 'pundit-matchers', '~> 4.0', groups: %i[development test]
 gem 'rack-attack', '~> 6.7' # Rate limiting and request throttling
 gem 'redis', '~> 6.0' # Cache store (staging/production); no longer a job backend
 gem 'solid_queue', '~> 1.7' # The only job backend (Rails 8 native)
-gem 'whatlanguage'
+gem 'whatlanguage', '~> 1.0'

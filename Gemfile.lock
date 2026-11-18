@@ -690,7 +690,7 @@ DEPENDENCIES
   annotaterb
   anthropic (~> 2.8)
   bootsnap
-  brakeman
+  brakeman (~> 7.0)
   capybara (~> 3.40)
   commonmarker (~> 2.10)
   countries
@@ -760,7 +760,7 @@ DEPENDENCIES
   valvat
   view_component (~> 4.24.0)
   web-console
-  whatlanguage
+  whatlanguage (~> 1.0)
 
 BUNDLED WITH
    2.6.6

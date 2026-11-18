@@ -358,14 +358,19 @@ RSpec.describe Notifications::InboxQuery do
   end
 
   describe 'paging' do
-    before { 3.times { |i| row(org_a, created_at: i.minutes.ago) } }
-
     # Each example runs the query several times on purpose (the bounds of one
     # rule side by side). The repeated identical SQL Prosopite sees is that
     # repetition, one preload per call, not a per-record N+1. Paused in a group
     # `before`, which runs AFTER the config-level Prosopite.scan; an `around`
     # would be undone by that scan.
+    #
+    # The pause comes BEFORE the rows: since prosopite 2.4, `finish` also reports
+    # what it found before a pause, and the three factory calls below each build
+    # their own ticket and subscription, the same organisation read three times.
+    # That is setup, not the query under test.
     before { Prosopite.pause }
+
+    before { 3.times { |i| row(org_a, created_at: i.minutes.ago) } }
 
     it 'clamps per_page at the maximum: 99 stays, 100 stays, 101 becomes 100' do
       expect(described_class.call(user: user, reach: reach, per_page: 99).per_page).to eq(99)

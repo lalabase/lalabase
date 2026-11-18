@@ -295,6 +295,9 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
     end
   end
 
+  # The card no longer offers this step (People::MergedCard, #shown_at's detachable): the
+  # same grouping, done in memory, sees R come in. A request that sends it all the same
+  # (an old card, a hand-made form) is refused by the actor and changes nothing.
   it 'rolls back taking a source out if a competing merge would replace another source' do
     Prosopite.pause do
       shared = create(:user)
@@ -315,7 +318,7 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
       before = card.call
       expect(before.sources.map(&:name)).to include('X', 'N')
       expect(before.sources.map(&:name)).not_to include('R')
-      expect(before.sources.find { |source| source.name == 'X' }.detachable).to be(true)
+      expect(before.sources.find { |source| source.name == 'X' }.detachable).to be(false)
       stored = -> { PersonGroupEntry.order(:id).pluck(*PersonGroupEntry.column_names) }
 
       result = nil
@@ -337,5 +340,61 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
 
     expect(PersonGroup.where(id: leftover.id)).not_to exist
     expect(PersonGroup.where(id: foreign_leftover.id)).to exist
+  end
+
+  # The card and the write answer the same question with the same rule: for a person of
+  # more than two parts, every source the card offers to take out is taken out, and every
+  # other one is refused. Until the review of #197 the card asked only whether the source
+  # stood alone in its account, and offered steps the actor always refused.
+  describe 'the card offers exactly what it takes out' do
+    def answers_for(address)
+      card = People::MergedCard.call(viewer: User.find(viewer.id), address: address)
+      card.sources.map do |source|
+        taken = nil
+        ActiveRecord::Base.transaction(requires_new: true) do
+          taken = described_class.call(group_id: card.merge_id, current_user: User.find(viewer.id),
+                                       source: People::MergedCard.address_of(source.organisation_id, source.address)).success?
+          raise ActiveRecord::Rollback
+        end
+        [source.name, source.detachable, taken]
+      end
+    end
+
+    it 'agrees for a merge that a competing merge holds in place' do
+      address = nil
+      Prosopite.pause do
+        shared = create(:user, first_name: 'Sam', last_name: 'Shared')
+        a, b, c, d = %w[A B C D].map { |name| create(:organisation, name: name) }
+        [a, b, c, d].each { |organisation| join_organisation(viewer, organisation, admin: true) }
+        [b, c].each { |organisation| join_organisation(shared, organisation) }
+        first = person_in(a, name: 'X')
+        kept = person_in(d, name: 'N')
+        competing = person_in(d, name: 'R')
+        winner = create(:person_group, owner: viewer)
+        loser = create(:person_group, owner: viewer)
+        [[winner, a, { person_id: first.id }], [winner, c, { user_id: shared.id }], [winner, d, { person_id: kept.id }],
+         [loser, b, { user_id: shared.id }], [loser, d, { person_id: competing.id }]].each do |group, organisation, line|
+          create(:person_group_entry, person_group: group, organisation: organisation, **line)
+        end
+        address = "#{b.id}:member:#{shared.id}"
+      end
+
+      answers = Prosopite.pause { answers_for(address) }
+
+      expect(answers.map(&:first)).to eq(['X', 'Sam Shared', 'Sam Shared', 'N'])
+      expect(answers.map { |_name, offered, taken| offered == taken }).to all(be(true))
+    end
+
+    it 'agrees for three sources a single merge joins, all of which can leave' do
+      west = create(:organisation, name: 'West KG')
+      Prosopite.pause do
+        [north, south, west].each { |organisation| join_organisation(viewer, organisation, admin: true) }
+        create(:person_group_entry, person_group: mine, organisation: west, person_id: person_in(west, name: 'Kai Kontakt').id)
+      end
+
+      answers = Prosopite.pause { answers_for("#{north.id}:person:#{north_row.id}") }
+
+      expect(answers.map { |_name, offered, taken| [offered, taken] }).to eq([[true, true]] * 3)
+    end
   end
 end

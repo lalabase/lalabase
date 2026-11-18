@@ -186,12 +186,31 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(mobile.differs).to be(false)
     end
 
+    # The people page names a detail without a label by the name of its kind, in the
+    # reader's language; the card did by the stored word ("phone"), and kept it apart from
+    # the same detail another organisation labelled "Telefon".
+    it 'names a detail without a label as the people page does, and joins it with the same label elsewhere' do
+      ActsAsTenant.with_tenant(north) do
+        north_kai.update!(additional_details: [{ 'kind' => 'phone', 'label' => '', 'value' => '+49 30 5550199' }])
+      end
+      ActsAsTenant.with_tenant(south) do
+        south_kai.update!(additional_details: [{ 'kind' => 'phone', 'label' => 'Telefon', 'value' => '+49 30 5550199' }])
+      end
+
+      german = I18n.with_locale(:de) { card_at(address_of(north, person: north_kai)) }
+      expect(german.fields.filter_map(&:label)).to eq(['Telefon'])
+      expect(values(german, 'detail:telefon')).to eq([['+49 30 5550199', ['Nord GmbH', 'Sued AG']]])
+      english = I18n.with_locale(:en) { card_at(address_of(north, person: north_kai)) }
+      expect(english.fields.filter_map(&:label)).to eq(%w[Phone Telefon])
+      expect(leaves(german.fields)).not_to include('phone')
+    end
+
     it 'carries the notes per source, as People::Lookup.card hands them out with notes: true and not otherwise' do
       allow(People::Lookup).to receive(:card).and_call_original
 
       expect(card.sources.map { |one| [one.organisation_name, one.notes] })
         .to eq([['Nord GmbH', 'Nur dienstags im Haus.'], ['Sued AG', 'Zahlt immer puenktlich.']])
-      expect(People::Lookup).to have_received(:card).with(anything, notes: true).twice
+      expect(People::Lookup).to have_received(:card).with(anything, notes: true, kind_names: true).twice
       # No field is made of them.
       expect(leaves(card.fields)).not_to include('Nur dienstags im Haus.')
     end
@@ -226,18 +245,17 @@ RSpec.describe People::MergedCard, :ci_guard do
 
     it 'gives every source its place on the people page of its organisation and the address of its form' do
       expect(source(card, north).lane).to eq(person_id: north_kai.id)
-      expect(source(card, north).can_edit).to be(true)
-      expect(source(card, north).edit).to eq(edit: north_kai.id)
-      expect(source(card, south).edit).to eq(edit: south_kai.id)
+      expect(source(card, north).edit).to eq(person_id: north_kai.id)
+      expect(source(card, south).edit).to eq(person_id: south_kai.id)
       expect(source(card, north).address).to eq("person:#{north_kai.id}")
     end
 
     it 'gives every value the address of the form of each of its sources, a lacking one too' do
       phone = field(card, :phone)
 
-      expect(phone.values.first.sources.map(&:edit)).to eq([{ edit: north_kai.id }])
-      expect(phone.values.last.sources.map(&:edit)).to eq([{ edit: south_kai.id }])
-      expect(field(card, :name).values.first.sources.map(&:edit)).to eq([{ edit: north_kai.id }, { edit: south_kai.id }])
+      expect(phone.values.first.sources.map(&:edit)).to eq([{ person_id: north_kai.id }])
+      expect(phone.values.last.sources.map(&:edit)).to eq([{ person_id: south_kai.id }])
+      expect(field(card, :name).values.first.sources.map(&:edit)).to eq([{ person_id: north_kai.id }, { person_id: south_kai.id }])
     end
 
     context 'when the viewer may only read in one organisation' do
@@ -253,11 +271,10 @@ RSpec.describe People::MergedCard, :ci_guard do
 
       it 'keeps the source, says that it cannot be edited and gives it no address of a form' do
         expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH', 'Sued AG'])
-        expect(source(card, south).can_edit).to be(false)
         expect(source(card, south).edit).to be_nil
-        expect(source(card, north).can_edit).to be(true)
+        expect(source(card, north).edit).to eq(person_id: north_kai.id)
         function = field(card, :function)
-        expect(function.values.map { |value| value.sources.map(&:edit) }).to eq([[{ edit: north_kai.id }], [nil]])
+        expect(function.values.map { |value| value.sources.map(&:edit) }).to eq([[{ person_id: north_kai.id }], [nil]])
         expect(field(card, :phone).values.last.sources.map(&:edit)).to eq([nil])
       end
     end
@@ -376,17 +393,15 @@ RSpec.describe People::MergedCard, :ci_guard do
     it 'gives the name and the email of a member no address of a form: they belong to the account' do
       expect(field(card, :name).values.flat_map { |value| value.sources.map(&:edit) }).to eq([nil, nil])
       expect(field(card, :email).values.flat_map { |value| value.sources.map(&:edit) }).to eq([nil, nil])
-      expect(field(card, :function).values.first.sources.map(&:edit)).to eq([{ edit: north_row.id }])
+      expect(field(card, :function).values.first.sources.map(&:edit)).to eq([{ person_id: north_row.id }])
     end
 
     it 'gives a member without a row the address of the form that adds the details' do
-      new_state = Organisations::PeopleController::NEW_STATE
-
       expect(source(card, south).lane).to eq(member_id: shared.id)
-      expect(source(card, south).edit).to eq(new: new_state, user_id: shared.id)
+      expect(source(card, south).edit).to eq(member_id: shared.id)
       expect(source(card, south).address).to eq("member:#{shared.id}")
       # What the south lacks is edited there, through that form.
-      expect(field(card, :phone).values.last.sources.map(&:edit)).to eq([{ new: new_state, user_id: shared.id }])
+      expect(field(card, :phone).values.last.sources.map(&:edit)).to eq([{ member_id: shared.id }])
       expect(source(card, south).takeover).to be_nil
       expect(source(card, north).takeover).to be_nil
     end
@@ -410,11 +425,10 @@ RSpec.describe People::MergedCard, :ci_guard do
 
       expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH', 'Sued AG'])
       expect(source(card, south).lane).to eq(member_id: shared.id)
-      expect(source(card, south).can_edit).to be(false)
       expect(source(card, south).edit).to be_nil
       expect(field(card, :phone).values.last.sources.map { |one| [one.organisation_id, one.edit] }).to eq([[south.id, nil]])
       # The north still has its form.
-      expect(source(card, north).edit).to eq(edit: north_row.id)
+      expect(source(card, north).edit).to eq(person_id: north_row.id)
     end
 
     # The account joins the north and the south; a merge adds contacts. Nothing stored

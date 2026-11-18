@@ -155,6 +155,7 @@ test('filter frame loads keep the open lane and synchronize links and an already
     tagName, href, method: 'post', fields,
     getAttribute() { return this.href },
     setAttribute(_name, value) { this.href = value },
+    matches() { return false },
     querySelectorAll(selector) {
       const name = selector.match(/name="([^"]+)"/)?.[1]
       return this.fields.filter(field => !name || field.name === name).map(field => ({
@@ -314,6 +315,46 @@ test('a list link marked data-lane-keep takes the live selection and keeps its o
   assert.equal(new URL(link.href).search, '?q=an&sort=last')
 })
 
+// The people above the organisations: the card opens in the address only, so the merge
+// bar (a POST) and the organisation select (a GET, whose fields are the filter) cannot be
+// drawn with it. Marked data-lane-keep, they take the lane open now as fields.
+test('a form marked data-lane-keep takes the lane open now as fields, a GET form too', () => {
+  const form = (method, action, fields, kept = true) => ({
+    tagName: 'FORM', method, action, fields,
+    getAttribute() { return this.action },
+    setAttribute(_name, value) { this.action = value },
+    matches(selector) { return kept && selector === '[data-lane-keep]' },
+    querySelectorAll() {
+      return this.fields.map(field => ({ ...field, remove: () => { this.fields = this.fields.filter(other => other.name !== field.name || other.value !== field.value) } }))
+    },
+    append(input) { this.fields.push({ name: input.name, value: input.value }) }
+  })
+  const merge = form('post', '/people/merges', [{ name: 'q', value: 'Kai' }, { name: 'card', value: 'OLD' }])
+  const select = form('get', '/people', [{ name: 'q', value: 'Kai' }])
+  const plain = form('post', '/people/merges/G', [{ name: 'q', value: 'Kai' }], false)
+  const element = {
+    dataset: { indexUrl: '/people' },
+    querySelectorAll: selector => selector === '[data-lane-index-url]' ? [] : [merge, select, plain]
+  }
+  const groups = { selection: ['card'], preview: ['editing'], form: [] }
+  const controller = controllerWith({ createElement: () => ({}) }, { element, groups })
+  controller.listFilterParamsValue = ['q', 'org', 'page']
+  const fields = target => target.fields.map(field => `${field.name}=${field.value}`).sort()
+
+  controller.syncFilterContext(new URL('http://lalabase.test/people?q=Kai&card=NOW&editing=1'))
+
+  assert.deepEqual(fields(merge), ['card=NOW', 'editing=1', 'q=Kai'])
+  assert.deepEqual(fields(select), ['card=NOW', 'editing=1', 'q=Kai'])
+  // The GET form's own fields stay its own: it is left alone otherwise.
+  assert.equal(select.action, '/people')
+  assert.deepEqual(fields(plain), ['q=Kai'])
+
+  // The lane closed since: the fields go.
+  controller.syncFilterContext(new URL('http://lalabase.test/people?q=Kai'))
+  assert.deepEqual(fields(merge), ['q=Kai'])
+  assert.deepEqual(fields(select), ['q=Kai'])
+})
+
 // "Alle Meetings" shows a project's meeting in its lane (PR 3 of
 // doc/meetings_uebersicht_vereinheitlichen_plan.md): its controls live below the
 // project's meetings index, which the lane head names. They take the list state
@@ -430,6 +471,40 @@ test('a selection the server did not open leaves the address before anything rea
   controller.unresolvedSelectionValue = { meeting_id: 'GONE' }
   controller.dropUnresolvedSelection()
   assert.equal(current.searchParams.get('meeting_id'), 'OPEN')
+  assert.equal(calls.length, 1)
+})
+
+// A person above the organisations has one address per source; the open row carries
+// one of them. The server names both, and the address takes the row's.
+test('a selection the server opened under another name takes the name of its row', () => {
+  const current = new URL('http://lalabase.test/people?q=Kai&card=SOUTH')
+  const calls = []
+  const events = []
+  const window = {
+    location: current,
+    history: {
+      state: { lane: true },
+      replaceState: (state, _t, url) => { calls.push(state); current.href = url }
+    }
+  }
+  const controller = controllerWith({ dispatchEvent: event => events.push(event.type) }, { window })
+  controller.renamedSelectionValue = { card: ['SOUTH', 'NORTH'] }
+
+  controller.renameResolvedSelection()
+
+  assert.equal(current.searchParams.get('card'), 'NORTH')
+  assert.equal(current.searchParams.get('q'), 'Kai')
+  assert.equal(JSON.stringify(calls), JSON.stringify([{ lane: true }]))
+  // The rows mark themselves from the address again.
+  assert.deepEqual(events, ['lane:restored'])
+
+  // Another card opened since stays; a value of another shape renames nothing.
+  current.href = 'http://lalabase.test/people?card=OTHER'
+  controller.renameResolvedSelection()
+  controller.renamedSelectionValue = { card: 'NORTH' }
+  current.href = 'http://lalabase.test/people?card=SOUTH'
+  controller.renameResolvedSelection()
+  assert.equal(current.searchParams.get('card'), 'SOUTH')
   assert.equal(calls.length, 1)
 })
 

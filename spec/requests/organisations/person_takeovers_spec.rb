@@ -79,6 +79,73 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       expect(response).to redirect_to(organisation_people_path(south, person_id: copy.id))
       expect(session[:current_organisation_id]).to eq(south.id)
     end
+
+    # The card's menu opens the dialog with from=all_people, and the form carries it. Until
+    # the review of #197 every answer led to an organisation's people page, and the reader
+    # left the page above the organisations (the session's organisation moving with the
+    # next visit there).
+    describe 'opened by the card there' do
+      let(:from) { Organisations::PersonTakeoversController::FROM_ALL_PEOPLE }
+
+      def card_of(organisation, person)
+        all_people_path(card: People::MergedCard.address_of(organisation.id, "person:#{person.id}"))
+      end
+
+      it 'carries where it was opened in its form' do
+        get new_organisation_person_takeover_path(north, source, from: from), headers: frame
+
+        form = Nokogiri::HTML(response.body).at_css("form[action='#{organisation_person_takeover_path(north, source)}']")
+        expect(form.at_css('input[type="hidden"][name="from"]')['value']).to eq(from)
+        get new_organisation_person_takeover_path(north, source), headers: frame
+        expect(Nokogiri::HTML(response.body).at_css('input[name="from"]')).to be_nil
+      end
+
+      it 'comes back to the card of the copy after a takeover, which is the merged person', :aggregate_failures do
+        get organisation_people_path(south)
+
+        expect { submit(from: from) }.to change { takeover_count(south) }.by(1)
+
+        copy = copies.find { |person| person.name == 'Herr Schmidt' }
+        expect(response).to redirect_to(card_of(south, copy))
+        expect(flash[:notice]).to eq(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
+        expect(session[:current_organisation_id]).to eq(south.id)
+        follow_redirect!
+        expect(Nokogiri::HTML(response.body).css('[data-card-source] [data-organisation-chip]').map { |chip| chip.text.strip })
+          .to eq(['Nord GmbH', 'Süd GmbH'])
+      end
+
+      it 'comes back to the card of the source after "merge instead" and after a reason' do
+        existing = takeover_person(south, name: 'Herr Schmidt', email: 'other@example.com')
+
+        expect { submit(from: from, merge_with: "person:#{existing.id}") }.not_to(change { counts })
+        expect(response).to redirect_to(card_of(north, source))
+        expect(flash[:notice]).to eq(I18n.t('controllers.people.takeover.merged_instead'))
+
+        # A plain HTML submit answers the question as a notice on the card it came from.
+        post organisation_person_takeover_path(north, source),
+             params: { target: south.id, fields: Actors::TakeOverPerson::DEFAULT_FIELDS, modal_token: token, from: from }
+        expect(response).to redirect_to(card_of(north, source))
+      end
+
+      it 'sends a visit without the frame to the card above the organisations' do
+        get new_organisation_person_takeover_path(north, source, from: from)
+
+        expect(response).to redirect_to(card_of(north, source))
+      end
+
+      it 'answers the one refusal on the list above the organisations' do
+        post organisation_person_takeover_path(north, SecureRandom.uuid), params: { target: south.id, from: from }
+
+        expect(response).to redirect_to(all_people_path)
+        expect(flash[:alert]).to eq(I18n.t('controllers.people.not_found'))
+      end
+
+      it 'reads nothing but its own word: any other value leads where it always did' do
+        get new_organisation_person_takeover_path(north, source, from: '//elsewhere.example.com')
+
+        expect(response).to redirect_to(organisation_people_path(north, person_id: source.id))
+      end
+    end
   end
 
   describe 'the menu item' do

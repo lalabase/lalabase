@@ -17,7 +17,7 @@
     of the chips and the focus ring of the people pages. %>
 <% open = @card.present? %>
 <div class="labor-layout-view people-page all-people-page <%= 'show-content' if open %> hide-panel" data-all-people
-     <%= tag.attributes(data: all_people_page_data(card: @card)) %>>
+     <%= tag.attributes(data: all_people_page_data(card: @card, people: @people)) %>>
   <% list = capture do %>
     <div class="people-head">
       <%= render NeoTitleBoxComponent.new(title: t('views.all_people.title'), margin_bottom: nil) %>
@@ -47,7 +47,7 @@
 
   <%= render NeoTwoColumnGridComponent.new(
     selected_item: (open || nil),
-    context_type: :people,
+    context_type: :all_people,
     css_classes: "#{open ? 'show-content' : 'hide-content'} hide-panel",
     additional_targets: { "index-page-target" => "layout" },
     chrome_height: NeoTwoColumnGridComponent::LANE_CHROME_HEIGHT_PX,

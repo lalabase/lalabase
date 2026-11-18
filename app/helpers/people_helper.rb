@@ -183,9 +183,7 @@ module PeopleHelper
   end
 
   def person_detail_kind_name(kind)
-    return kind.to_s unless PersonDetail::KINDS.include?(kind)
-
-    t("views.organisations.people.details.kinds.#{kind}")
+    PersonDetail.kind_name(kind)
   end
 
   # The kinds of the form's select: [name, kind], in PersonDetail's order.

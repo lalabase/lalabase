@@ -84,7 +84,7 @@
                           all_people_edit_path(source.organisation_id, source.edit),
                           class: 'people-text-action', data: { turbo_frame: '_top', card_source_edit: true } %>
             <% end %>
-            <% unless source.can_edit %>
+            <% unless source.edit %>
               <span class="people-footer__readonly"><%= t('views.all_people.card.read_only') %></span>
             <% end %>
           </div>

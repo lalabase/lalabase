@@ -130,14 +130,32 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(first).to include('Einkauf', 'Vertrieb')
     end
 
-    it 'marks the row of the person on the page, whichever source the address names' do
+    # The row carries one address, its first source's, on every draw of the list: the
+    # search redraws the rows without the card. An address that names the person by
+    # another source is renamed to the row's in the bar (layout-toggle, the same history
+    # entry), so the mark survives the next search and a click on the row closes the lane.
+    it 'marks the row of the person on the page, whichever source the address names, and renames the address to the row\'s' do
       get all_people_path(card: kai_south)
       doc = Nokogiri::HTML(response.body)
 
       open_row = doc.css('tr.selected-row').sole
       expect(open_row.at_css('.all-people-row__name').text.strip).to eq('Kai Kontakt')
-      # The row answers to the address in the bar, so the script does not take the mark away.
+      expect(open_row['data-list-row-id-value']).to eq(kai)
+      expect(JSON.parse(doc.at_css('[data-all-people]')['data-layout-toggle-renamed-selection-value'])).to eq('card' => [kai_south, kai])
+
+      get all_people_path(card: kai)
+      expect(Nokogiri::HTML(response.body).at_css('[data-all-people]')['data-layout-toggle-renamed-selection-value']).to be_nil
+    end
+
+    # Narrowed to one organisation, the row of a merged person holds that organisation's
+    # source only: the address takes that one, not the first source of the card.
+    it 'renames the address to the source the row of a narrowed list carries' do
+      get all_people_path(card: kai, org: south.id)
+      doc = Nokogiri::HTML(response.body)
+
+      open_row = doc.css('tr.selected-row').sole
       expect(open_row['data-list-row-id-value']).to eq(kai_south)
+      expect(JSON.parse(doc.at_css('[data-all-people]')['data-layout-toggle-renamed-selection-value'])).to eq('card' => [kai, kai_south])
     end
 
     it 'makes every row an opener of its card: the lane address of the row, in the lane frame' do
@@ -542,27 +560,37 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       card.css('[data-lane-head] details.more-menu a[data-card-takeover]')
     end
 
+    # The dialog opened from the card: every answer leads back to a card on this page.
+    def takeover_path(organisation, person)
+      new_organisation_person_takeover_path(organisation, person, from: Organisations::PersonTakeoversController::FROM_ALL_PEOPLE)
+    end
+
     it 'offers the takeover for every source that is a contact without an account, into the frame of its dialog' do
       merged = card(kai)
 
       links = takeover_links(merged)
-      expect(links.pluck('href')).to eq([new_organisation_person_takeover_path(north, people[:north_kai]),
-                                         new_organisation_person_takeover_path(south, people[:south_kai])])
+      expect(links.pluck('href')).to eq([takeover_path(north, people[:north_kai]), takeover_path(south, people[:south_kai])])
       expect(links.pluck('data-turbo-frame')).to eq(["person-takeover-modal-#{people[:north_kai].id}",
                                                      "person-takeover-modal-#{people[:south_kai].id}"])
       expect(links.map { |link| link.text.strip })
         .to eq([I18n.t('views.all_people.card.takeover_from', organisation: 'Nord GmbH'),
                 I18n.t('views.all_people.card.takeover_from', organisation: 'Sued AG')])
       # The frame each dialog loads into stands on the card.
-      expect(merged.css('turbo-frame[id^="person-takeover-modal-"]').pluck('id'))
-        .to eq(["person-takeover-modal-#{people[:north_kai].id}", "person-takeover-modal-#{people[:south_kai].id}"])
+      frames = merged.css('turbo-frame[id^="person-takeover-modal-"]')
+      expect(frames.pluck('id')).to eq(["person-takeover-modal-#{people[:north_kai].id}", "person-takeover-modal-#{people[:south_kai].id}"])
+      # Each of them returns the focus to the one "···" button of the card. Until the review
+      # of #197 the button carried the id of the first contact only, and the dialog of the
+      # second one returned the focus to an id that is on no page.
+      trigger = menu(merged).at_css('summary')
+      expect(trigger['id']).to eq(AllPeopleHelper::CARD_MORE_ACTIONS_ID)
+      expect(frames.pluck('data-person-takeover-return-id')).to eq([trigger['id']] * 2)
     end
 
     it 'names no organisation in the takeover of a person of one organisation' do
       single = card(nora)
 
       expect(takeover_links(single).map { |link| link.text.strip }).to eq([I18n.t('views.organisations.people.takeover.menu')])
-      expect(takeover_links(single).pluck('href')).to eq([new_organisation_person_takeover_path(north, people[:north_only])])
+      expect(takeover_links(single).pluck('href')).to eq([takeover_path(north, people[:north_only])])
     end
 
     it 'offers no takeover without somewhere to take the contact' do
@@ -570,7 +598,7 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       merged = card(kai)
 
       # From the north there is nowhere to go; from the south there is.
-      expect(takeover_links(merged).pluck('href')).to eq([new_organisation_person_takeover_path(south, people[:south_kai])])
+      expect(takeover_links(merged).pluck('href')).to eq([takeover_path(south, people[:south_kai])])
       expect(response.body).not_to include(new_organisation_person_takeover_path(north, people[:north_kai]))
     end
 

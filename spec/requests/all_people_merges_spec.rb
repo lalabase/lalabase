@@ -127,6 +127,15 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
       expect(response).to redirect_to(all_people_path(q: 'kai', page: '3'))
     end
 
+    # The bar hands the card open beside the list along (data-lane-keep): the merge comes
+    # back to the list with that card still open.
+    it 'goes back with the card that was open' do
+      open = "#{north.id}:person:#{people[:north].id}"
+      merge(source(people[:north]), source(people[:south]), q: 'kai', card: open)
+
+      expect(response).to redirect_to(all_people_path(q: 'kai', card: open))
+    end
+
     # A page travels only as a whole number from 2 to six digits: the first page is the
     # list without one, and nothing longer can be a page of this list.
     { '2' => '2', '123456' => '123456', '1' => nil, '0' => nil, '007' => nil, '1234567' => nil, '-2' => nil }
@@ -163,6 +172,16 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
       form = page(q: 'kai').at_css('form#all-people-merge')
 
       expect(form.at_css('input[name="q"]')['value']).to eq('kai')
+    end
+
+    # The card opens and changes in the address only, so the form cannot be drawn with it:
+    # it asks layout-toggle for the card open now as it leaves. So does the organisation
+    # select, a list filter that does not close the card.
+    it 'marks the bar and the organisation select to take the open card along' do
+      doc = page
+
+      expect(doc.at_css('form#all-people-merge')['data-lane-keep']).to eq('true')
+      expect(doc.at_css('form[data-all-people-tool="organisation"]')['data-lane-keep']).to eq('true')
     end
 
     it 'offers "Zusammenführung aufheben" on a merged row only' do

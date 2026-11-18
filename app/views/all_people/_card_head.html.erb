@@ -12,8 +12,10 @@
     Behind "···", the rarer actions: taking a contact over into another
     organisation (per source that is a contact without an account, when there
     is somewhere to take it; the dialog of that organisation's people page,
-    loaded into its frame below the head), and undoing the reader's merge: one
-    source of three or more can leave alone, or the whole merge goes
+    loaded into its frame below the head, with from=all_people so that every
+    answer comes back to a card here), and undoing the reader's merge: a
+    source can leave alone where everybody else stays as shown
+    (Source#detachable, never with two parts), or the whole merge goes
     (AllPeople::MergesController#destroy, back to this card). After one source
     left, "this card" is the card of the people who stay merged: the way back
     names a source that stays, not the one that leaves. A person the same
@@ -24,15 +26,16 @@
 <% items = [] %>
 <% card.sources.select(&:takeover).each do |source| %>
   <% text = several ? t('views.all_people.card.takeover_from', organisation: source.organisation_name) : t('views.organisations.people.takeover.menu') %>
-  <% items << link_to(text, new_organisation_person_takeover_path(source.organisation_id, source.takeover),
+  <% items << link_to(text, new_organisation_person_takeover_path(source.organisation_id, source.takeover,
+                                                                  from: Organisations::PersonTakeoversController::FROM_ALL_PEOPLE),
                       data: { turbo_frame: person_takeover_modal_id(source.takeover), card_takeover: true }) %>
 <% end %>
 <% if card.merge_id %>
   <% card.sources.select(&:detachable).each do |source| %>
     <% stays = card.sources.find { |other| !other.equal?(source) } %>
-    <% back = return_state.merge(AllPeopleController::CARD_PARAM => [stays.organisation_id, stays.address].join(People::MergedCard::SEPARATOR)) %>
+    <% back = return_state.merge(AllPeopleController::CARD_PARAM => People::MergedCard.address_of(stays.organisation_id, stays.address)) %>
     <% items << button_to(t('views.all_people.card.detach', organisation: source.organisation_name),
-                          all_people_merge_path(card.merge_id, back.merge(source: [source.organisation_id, source.address].join(People::MergedCard::SEPARATOR))),
+                          all_people_merge_path(card.merge_id, back.merge(source: People::MergedCard.address_of(source.organisation_id, source.address))),
                           method: :delete,
                           form: { data: { turbo_frame: '_top', card_detach: true,
                                           turbo_confirm: t('views.all_people.card.detach_confirm', name: source.name, organisation: source.organisation_name) } }) %>
@@ -51,7 +54,7 @@
     <%= link_to all_people_card_path(card), class: 'people-ghost-action', data: { card_edit_done: true } do %>
       <i class="bi bi-check-lg" aria-hidden="true"></i><%= t('views.all_people.card.edit_done') %>
     <% end %>
-  <% elsif several && card.sources.any?(&:can_edit) %>
+  <% elsif several && card.sources.any?(&:edit) %>
     <%= link_to all_people_card_path(card, editing: true), class: 'people-ghost-action', data: { card_edit: true } do %>
       <i class="bi bi-pencil" aria-hidden="true"></i><%= t('views.organisations.people.show.edit') %>
     <% end %>
@@ -66,11 +69,10 @@
     <% end %>
   <% end %>
   <% if items.any? %>
-    <%# The id the takeover dialog returns the focus to: the trigger of this menu, named
-        by the first contact it offers (person_more_actions_id). %>
-    <% first_takeover = card.sources.filter_map(&:takeover).first %>
+    <%# The trigger of this menu has an id of its own: every takeover dialog it opens
+        returns the focus here, whichever contact it is for (its frame names the id). %>
     <details class="more-menu" data-controller="details-autoclose">
-      <summary class="more-menu__trigger" <%= tag.attributes(id: (person_more_actions_id(first_takeover) if first_takeover)) %>
+      <summary class="more-menu__trigger" id="<%= AllPeopleHelper::CARD_MORE_ACTIONS_ID %>"
                title="<%= t('views.all_people.card.more_actions') %>"
                aria-label="<%= t('views.all_people.card.more_actions') %>"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
       <div class="more-menu__items"><%= safe_join(items) %></div>
@@ -85,5 +87,6 @@
 </div>
 <%# contents: an empty frame takes no gap of the column; the dialog is fixed. %>
 <% card.sources.filter_map(&:takeover).each do |person_id| %>
-  <%= turbo_frame_tag person_takeover_modal_id(person_id), class: 'contents' %>
+  <%= turbo_frame_tag person_takeover_modal_id(person_id), class: 'contents',
+                      data: { person_takeover_return_id: AllPeopleHelper::CARD_MORE_ACTIONS_ID } %>
 <% end %>

@@ -36,6 +36,11 @@ module People
   #   lines as they are stored, and the rule of who is shown as one person stays here.
   # * The card of one person asks the same (#shown_at, People::MergedCard): the sources the
   #   list shows as that person, each handed to the caller's block under its own tenant.
+  # * Whether one source can leave a merge alone is asked of the same rule, never of a
+  #   second one: the people are grouped again, in memory, without the lines that would go
+  #   (#shown_at's detachable), and after the write by the lines stored now
+  #   (#stands_alone_now?). A card offers what the write accepts, and the write checks
+  #   every person of the list, not only the one it changed.
   class AcrossOrganisations
     PER_PAGE = 50
 
@@ -72,9 +77,8 @@ module People
     end
 
     # One person for a card (#shown_at). sources: what the caller's block answered for each
-    # source, in the order of the list. merge_id: as Row#merge_id. parts: how many people
-    # the account rule alone would show these sources as (a merge joined the rest).
-    Shown = Data.define(:merge_id, :parts, :sources)
+    # source, in the order of the list. merge_id: as Row#merge_id.
+    Shown = Data.define(:merge_id, :sources)
 
     # One entry while the list is built: never handed out.
     Candidate = Struct.new(:organisation, :listing, :entry, :group, :matched, :merge_id)
@@ -119,6 +123,7 @@ module People
     # #entry_aliases, #part and #names? read no merge. #person_with and #merges_shown_with
     # read the stored merges at their first call and keep the answer, so a write settles
     # its lines before it asks them (PersonGroupEntry.settle_for_owner).
+    # #stands_alone_now? reads them once more, after the write.
 
     # The entry an id names in the directory of an organisation, as the viewer may read it
     # there. nil for everything else: an organisation that does not contribute (not the
@@ -145,22 +150,41 @@ module People
     # entry itself (#part: nil for everything the viewer cannot see there) and every other
     # source the list shows as the same person. The block runs once per source UNDER THE
     # TENANT OF ITS ORGANISATION, with the organisation, the entry (its last contact
-    # attached) and whether the entry stands alone in its account among these sources;
-    # what it answers is collected. The caller reads everything it shows inside the block
-    # and hands out plain values, as the list does: after it the tenant is gone.
+    # attached) and whether that source is detachable; what it answers is collected. The
+    # caller reads everything it shows inside the block and hands out plain values, as the
+    # list does: after it the tenant is gone.
+    #
+    # Detachable: a merge joined the person, the account rule alone would show more than
+    # two people (with two, taking one out is dissolving the merge), and without the lines
+    # of the person's merges that name this source (what Actors::SplitPerson deletes) the
+    # source stands alone and every other person of the list stays as shown. A source the
+    # account joins to another one, and one whose leaving would let a competing merge pull
+    # in someone else, is not.
     def shown_at(organisation_id, id)
       part = part(organisation_id, id)
       return unless part
 
       candidates = shown_people.fetch(@candidate_of.fetch(part))
-      groups = candidates.map(&:group)
+      merge_id = candidates.first.merge_id
+      several = candidates.map(&:group).uniq.size > 2
       sources = candidates.map do |candidate|
+        detachable = !merge_id.nil? && several && leaves_alone?(candidate)
         in_people_organisation(candidate.organisation) do
           candidate.entry.last_contact = candidate.listing.last_contacts_for([candidate.entry]).first
-          yield candidate.organisation, candidate.entry, groups.one?(candidate.group)
+          yield candidate.organisation, candidate.entry, detachable
         end
       end
-      Shown.new(merge_id: candidates.first.merge_id, parts: groups.uniq.size, sources: sources)
+      Shown.new(merge_id: merge_id, sources: sources)
+    end
+
+    # After a write that took the lines naming a part out of its person's merges
+    # (Actors::SplitPerson, under the owner lock): whether the lines stored NOW show the
+    # part alone and every other person of the list as it was shown before. The stored
+    # lines are read once more and the same entries grouped by them; no directory is read
+    # again.
+    def stands_alone_now?(part)
+      candidate = @candidate_of.fetch(part)
+      people_of(regrouped(lines_for(every_candidate))) == apart(candidate)
     end
 
     # Whether a stored entry with this key (PersonGroupEntry#key) names an entry the viewer
@@ -195,10 +219,49 @@ module People
       @every_candidate ||= open_listings.flat_map { |organisation, listing| candidates_in(organisation, listing) }
     end
 
+    # Every person of the list, by each of its candidates. Keeps the lists themselves
+    # (@shown_lists) and the merges that joined each of them (@merges_of).
     def shown_people
-      @shown_people ||= joined_by_merges(every_candidate).each_with_object({}.compare_by_identity) do |list, found|
-        list.each { |candidate| found[candidate] = list }
+      @shown_people ||= begin
+        @shown_lists, @merges_of = joined_by_merges(every_candidate, merges_among(every_candidate, every_lines))
+        @shown_lists.each_with_object({}.compare_by_identity) { |list, found| list.each { |candidate| found[candidate] = list } }
       end
+    end
+
+    # The stored lines the list was shown by, read once.
+    def every_lines
+      @every_lines ||= lines_for(every_candidate)
+    end
+
+    # Whether the candidate's person stays as shown without the lines of its merges that
+    # name it, with the candidate alone (#shown_at). In memory: the lines as shown, less
+    # those an Actors::SplitPerson with this source would delete.
+    def leaves_alone?(candidate)
+      merges = @merges_of.fetch(shown_people.fetch(candidate), [])
+      keys = PersonGroupEntry.keys_for(candidate.organisation.id, candidate.entry).to_set
+      lines = every_lines.reject { |merge_id, *address| merges.include?(merge_id) && keys.include?(PersonGroupEntry.key_of(*address)) }
+      people_of(regrouped(lines)) == apart(candidate)
+    end
+
+    # Every candidate grouped by these lines, the way the list groups them.
+    def regrouped(lines)
+      grouped(every_candidate, merges_among(every_candidate, lines)).first
+    end
+
+    # The people as shown, with the candidate taken out of its person and alone.
+    def apart(candidate)
+      list = shown_people.fetch(candidate)
+      @shown_sets ||= people_of(@shown_lists)
+      (@shown_sets - [ids_of(list)]) | people_of([list.reject { |one| one.equal?(candidate) }, [candidate]])
+    end
+
+    # People compared by who is with whom, whatever the order: a set of sets of candidates.
+    def people_of(lists)
+      lists.reject(&:empty?).to_set { |list| ids_of(list) }
+    end
+
+    def ids_of(list)
+      list.to_set(&:object_id)
     end
 
     def part_of(candidate)
@@ -232,25 +295,37 @@ module People
     # listed when the search matched any of their entries.
     def merged_people(open)
       candidates = open.flat_map { |organisation, listing| candidates_in(organisation, listing) }
-      people = joined_by_merges(candidates).select { |sources| sources.any?(&:matched) }
+      people, = joined_by_merges(candidates, merges_among(candidates, lines_for(candidates)))
+      people = people.select { |sources| sources.any?(&:matched) }
       people.each_with_index.sort_by { |sources, index| [sources.first.entry.sort_name, index] }.map(&:first)
+    end
+
+    # The people of #grouped, and each candidate learns the merge that joined it
+    # (Candidate#merge_id, for Row#merge_id and Shown#merge_id).
+    def joined_by_merges(candidates, merges)
+      people, merges_of, merge_ids = grouped(candidates, merges)
+      merge_ids.each { |candidate, merge_id| candidate.merge_id = merge_id }
+      [people, merges_of]
     end
 
     # The account rule first (one list per account or contact), then the viewer's merges on
     # top of it. The sources of a person keep the order of the organisations' names, and
-    # the people the order of their first source.
-    def joined_by_merges(candidates)
-      # The merges that joined a person, by the list of its candidates (#merges_shown_with).
-      @merges_of = {}.compare_by_identity
+    # the people the order of their first source. Touches no candidate, so the same
+    # candidates can be grouped again by other lines (#leaves_alone?, #stands_alone_now?).
+    # Answers the people as lists of candidates, the merges that joined each list (by the
+    # list, #merges_shown_with) and the merge that joined each candidate.
+    def grouped(candidates, merges)
+      merges_of = {}.compare_by_identity
+      merge_ids = {}.compare_by_identity
       people = candidates.group_by(&:group).values
-      merges = merges_among(candidates)
-      return people if merges.empty?
+      return [people, merges_of, merge_ids] if merges.empty?
 
       order = candidates.each_with_index.to_h.compare_by_identity
       person_of = people.each_with_object({}.compare_by_identity) { |list, found| list.each { |one| found[one] = list } }
-      in_list_order(merges, order).each { |merge_id, named| join(named, merge_id, person_of) }
-      person_of.values.uniq(&:object_id).each { |list| list.sort_by! { |one| order[one] } }
-               .sort_by { |list| order[list.first] }
+      in_list_order(merges, order).each { |merge_id, named| join(named, merge_id, person_of, merges_of, merge_ids) }
+      people = person_of.values.uniq(&:object_id).each { |list| list.sort_by! { |one| order[one] } }
+                        .sort_by { |list| order[list.first] }
+      [people, merges_of, merge_ids]
     end
 
     # The candidates of every merge in the order of the list (the organisations' names,
@@ -265,22 +340,30 @@ module People
             .sort_by { |merge_id, named| [order[named.first], named.map { |candidate| order[candidate] }, merge_id.to_s] }
     end
 
-    # The viewer's merges as [merge id, the candidates it names]. ONE statement on a table
-    # without a tenant; the entries are held by id against what the directories returned
-    # (PersonGroupEntry.keys_for). With fewer than two organisations in the list there is
-    # nothing a merge could join.
-    def merges_among(candidates)
+    # The viewer's stored lines as [merge id, *PersonGroupEntry::KEY_COLUMNS], settled
+    # against the row/account aliases of these candidates (PersonGroupEntry.settled_lines).
+    # ONE statement on a table without a tenant. With fewer than two organisations in the
+    # list there is nothing a merge could join, and nothing is read.
+    def lines_for(candidates)
       return [] if candidates.map(&:organisation).uniq.size < 2
 
-      named = PersonGroupEntry.owned_by(@viewer).pluck(:person_group_id, *PersonGroupEntry::KEY_COLUMNS)
-      return [] if named.empty?
+      lines = PersonGroupEntry.owned_by(@viewer).pluck(:person_group_id, *PersonGroupEntry::KEY_COLUMNS)
+      return lines if lines.empty?
+
+      aliases = candidates.filter_map { |candidate| row_alias(candidate.organisation, candidate.entry) }
+      PersonGroupEntry.settled_lines(lines, aliases: aliases)
+    end
+
+    # The viewer's merges as [merge id, the candidates it names], from settled lines
+    # (#lines_for). The entries are held by id against what the directories returned
+    # (PersonGroupEntry.keys_for).
+    def merges_among(candidates, lines)
+      return [] if lines.empty?
 
       by_key = candidates.each_with_object({}) do |candidate, found|
         PersonGroupEntry.keys_for(candidate.organisation.id, candidate.entry).each { |key| found[key] = candidate }
       end
-      aliases = candidates.filter_map { |candidate| row_alias(candidate.organisation, candidate.entry) }
-      named = PersonGroupEntry.settled_lines(named, aliases: aliases)
-      named.group_by(&:first).filter_map { |merge_id, lines| merge_of(merge_id, lines, by_key) }
+      lines.group_by(&:first).filter_map { |merge_id, named| merge_of(merge_id, named, by_key) }
     end
 
     def row_alias(organisation, entry)
@@ -297,16 +380,16 @@ module People
     # Joins the people of the candidates one merge names into the person of the first. A
     # person that already holds a source of the same organisation stays apart: the account
     # rule may have brought that source since the merge was written.
-    def join(named, merge_id, person_of)
+    def join(named, merge_id, person_of, merges_of, merge_ids)
       target = person_of[named.first]
       named.drop(1).each do |candidate|
         other = person_of[candidate]
         next if other.equal?(target) || target.map(&:organisation).intersect?(other.map(&:organisation))
 
-        @merges_of[target] = [*@merges_of[target], *@merges_of.delete(other), merge_id].uniq
+        merges_of[target] = [*merges_of[target], *merges_of.delete(other), merge_id].uniq
         target.concat(other).each do |one|
           person_of[one] = target
-          one.merge_id ||= merge_id
+          merge_ids[one] ||= merge_id
         end
       end
     end

@@ -13,7 +13,7 @@
 <% kind_word = t("views.organisations.people.show.kind.#{row.kind}") %>
 <% last = all_people_last_contact(row) %>
 <%= tag.tr class: ('selected-row' if open), tabindex: 0,
-           data: { all_people_row: true, person_key: row.sources.first.fields[:id] }.merge(all_people_row_data(row, open: open)) do %>
+           data: { all_people_row: true, person_key: row.sources.first.fields[:id] }.merge(all_people_row_data(row)) do %>
   <td class="all-people-table__tick no-click">
     <label class="all-people-row__tick">
       <span class="sr-only"><%= t('views.all_people.merge.select', name: row.name) %></span>

@@ -298,7 +298,8 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(lane).to have_css('[data-all-people-card]', text: 'Nora Nord')
   end
 
-  it 'takes a contact over from the card: the copy opens in the other organisation' do
+  # The copy is merged with its source, so its card on this page is the card of both.
+  it 'takes a contact over from the card and stays on the page: the card of the copy opens with both sources' do
     visit_list
     open_card('Nora Nord')
     lane.find('details.more-menu summary').click
@@ -307,11 +308,80 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
 
     dialog.find('button[type="submit"]', text: I18n.t('views.organisations.people.takeover.submit')).click
 
-    copy = nil
-    expect(page).to have_current_path(%r{\A/org/#{south.id}/people\?person_id=})
-    ActsAsTenant.with_tenant(south) { copy = Person.find_by!(name: 'Nora Nord') }
-    expect(page).to have_current_path(organisation_people_path(south, person_id: copy.id))
-    expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_text('Nora Nord')
+    expect(page).to have_text(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
+    expect(page).to have_current_path(all_people_path, ignore_query: true)
+    expect(ActsAsTenant.with_tenant(south) { Person.where(name: 'Nora Nord').count }).to eq(1)
+    expect(lane).to have_css('[data-card-source]', count: 2)
+    expect(lane.all('[data-card-source] .organisation-chip__name').map(&:text)).to eq(['Nord GmbH', 'Sued AG'])
+    # The answer names the copy's card; the address takes the row's, its first source.
+    expect(card_param).to eq("#{north.id}:person:#{nora.id}")
+  end
+
+  # One menu offers the dialogs of two contacts. Each returns the focus to the "···"
+  # button; the dialog of the second contact sent it to an id no page has.
+  it 'returns the focus to the menu of the card after the dialog of the second contact closes' do
+    visit_list
+    open_card('Kai Kontakt')
+    lane.find('details.more-menu summary').click
+    lane.all('a[data-card-takeover]').last.click
+    dialog = find('[role="dialog"]')
+    expect(dialog).to have_text('Kai Kontakt')
+    expect(page).to have_no_css('[data-lane-head] details.more-menu[open]')
+
+    dialog.find("button[aria-label='#{I18n.t('views.organisations.people.takeover.close')}']").click
+
+    expect(page).to have_no_css('[role="dialog"]')
+    expect(page).to have_css("##{AllPeopleHelper::CARD_MORE_ACTIONS_ID}:focus")
+  end
+
+  it 'keeps the card open when the list is narrowed to one organisation' do
+    visit_list
+    open_card('Kai Kontakt')
+
+    select 'Sued AG', from: 'all-people-organisation'
+
+    expect(list).to have_no_text('Nora Nord')
+    expect(page).to have_current_path(/org=#{south.id}/)
+    expect(lane).to have_css('[data-all-people-card]', text: 'Einkauf')
+    # The row of the narrowed list carries the source of the south: the address names it.
+    expect(card_param).to eq("#{south.id}:person:#{south_kai.id}")
+    expect(page).to have_css('tr[data-all-people-row].selected-row', count: 1, text: 'Kai Kontakt')
+  end
+
+  it 'keeps the card open after merging two ticked rows beside it' do
+    south_nora = person_in(south, name: 'N. Nord', function: 'Leitung Technik')
+    visit_list
+    wait_for_stimulus('[data-all-people]', 'all-people-merge')
+    open_card('Nora Nord')
+
+    ['Nora Nord', 'N. Nord'].each { |name| row(name).find('input[type="checkbox"]').click }
+    find('form#all-people-merge button[type="submit"]').click
+
+    expect(page).to have_text(I18n.t('controllers.people.merge.success'))
+    expect(page).to have_no_css('tr[data-all-people-row]', text: 'N. Nord')
+    expect(card_param).to eq("#{north.id}:person:#{nora.id}")
+    expect(lane).to have_css('[data-all-people-card]', text: 'Leitung Technik')
+    expect(PersonGroupEntry.where(owner_id: user.id, person_id: south_nora.id)).to exist
+  end
+
+  # An address that names the person by a later source (an old link): the row carries
+  # its first source. The address takes the row's, so the search that draws the rows again
+  # keeps the mark, and a click on the row closes the lane instead of opening it again.
+  it 'keeps the row of a card named by a later source marked through a search, and closes it with a click' do
+    visit_list(card: "#{south.id}:person:#{south_kai.id}")
+    expect(lane).to have_css('[data-all-people-card]', text: 'Einkauf')
+    expect(card_param).to eq(kai_address)
+    wait_for_stimulus('[data-all-people] [data-fb-search]', 'search-disclosure')
+    wait_until_still('[data-all-people] button[data-fb-search-open-button]')
+    find('[data-all-people] button[data-fb-search-open-button]').click
+
+    find('#all-people-search').send_keys('Kai')
+
+    expect(list).to have_no_text('Nora Nord')
+    expect(page).to have_css('tr[data-all-people-row].selected-row', count: 1, text: 'Kai Kontakt')
+    row('Kai Kontakt').find('.all-people-row__name').click
+    expect(page).to have_no_css('tr[data-all-people-row].selected-row')
+    expect(card_param).to be_nil
   end
 
   it 'undoes the merge from the card only after a yes, and comes back to the card of the first source' do

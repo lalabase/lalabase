@@ -8,7 +8,8 @@ module People
   # * One source per organisation the list shows the person in, in the list's order
   #   (People::AcrossOrganisations#shown_at: the rule of who is one person stays there).
   #   Every source is read under the tenant of its organisation, through
-  #   People::Lookup.card(entry, notes: true), the one field selection of a card.
+  #   People::Lookup.card(entry, notes: true, kind_names: true), the one field selection
+  #   of a card: a detail without a label is named as the people page names it.
   # * A reference is not a right: a source the viewer may not read is not handed to this
   #   object at all, so it contributes no value, no note and no name of an organisation.
   #   An address that names nothing the viewer can see answers nil, whatever the reason.
@@ -18,9 +19,10 @@ module People
   #   listed last, without a text: a missing value is a difference too, or the reader
   #   could not tell that an organisation does not know the mobile number.
   # * The right to write is asked here, under the tenant (PersonPolicy reads the tenant
-  #   of the thread), and leaves as a flag and as the lane state that opens the form on
-  #   that organisation's people page. No address without the right, and none at the
-  #   name and the email of a member: those belong to the account
+  #   of the thread), and leaves as the entry the form would edit. How that
+  #   organisation's people page names the form in its address is the page's own
+  #   (AllPeopleHelper#all_people_edit_path). Nothing to edit without the right, and
+  #   nothing at the name and the email of a member: those belong to the account
   #   (Actors::SavePerson::ACCOUNT_FIELDS).
   # * Plain values leave: strings, ids, flags. No Person, so the view, which runs without
   #   a tenant, has nothing to load more from. The one record is Card#avatar_user, a
@@ -34,11 +36,9 @@ module People
     # What the account of a member owns: no source of kind member offers to edit them.
     ACCOUNT_FIELDS = %i[name email].freeze
     SEPARATOR = ':'
-    # The lane state of an organisation's people page that opens the form of a new row.
-    NEW_PERSON = 'person'
 
-    # address: "<organisation id>:<entry address>" of the first source, the one address a
-    # link to this card uses. merge_id: the viewer's merge that joined sources of this
+    # address: "<organisation id>:<entry address>" (.address_of) of the first source, the
+    # one address a link to this card uses. merge_id: the viewer's merge that joined sources of this
     # person, nil without one. last_contact: { on:, kind:, organisation_id:,
     # organisation_name: } of the newest among the sources, or nil.
     Card = Data.define(:address, :name, :kind, :avatar_user, :fields, :sources, :last_contact, :merge_id)
@@ -52,22 +52,40 @@ module People
     # sources that have no value for the field.
     Value = Data.define(:text, :sources)
 
-    # edit: the lane state of that organisation's people page that opens the form
-    # ({ edit: <person id> }, or { new:, user_id: } for a member without a row), nil when
-    # the viewer may not write there or the field belongs to the account.
+    # edit: what the form of that organisation would edit, as the source's lane names it
+    # ({ person_id: } for a row, { member_id: } for a member without one, whose form adds
+    # the row), nil when the viewer may not write there or the field belongs to the account.
     ValueSource = Data.define(:organisation_id, :edit)
 
     # address: the entry's ("person:<uuid>", "member:<uuid>"). lane: what opens the entry
-    # on that organisation's people page. takeover: the id of the row when it is a
-    # contact without an account and the viewer has somewhere to take it. detachable: a
-    # merge joined this source and it can leave alone (with fewer than three parts,
-    # taking one out is dissolving the merge).
+    # on that organisation's people page. edit: as ValueSource#edit, nil where the viewer
+    # may only read. takeover: the id of the row when it is a contact without an account
+    # and the viewer has somewhere to take it. detachable: Actors::SplitPerson can take
+    # this source out alone and keep the rest as shown
+    # (People::AcrossOrganisations#shown_at; with fewer than three parts, taking one out
+    # is dissolving the merge).
     Source = Data.define(:organisation_id, :organisation_name, :address, :kind, :name, :lane,
-                         :can_edit, :edit, :notes, :takeover, :detachable)
+                         :edit, :notes, :takeover, :detachable)
 
     # One source while the card is built: never handed out.
-    Read = Struct.new(:organisation_id, :organisation_name, :card, :member, :account, :lane, :edit, :takeover, :alone)
+    Read = Struct.new(:organisation_id, :organisation_name, :card, :member, :account, :lane, :edit, :takeover, :detachable)
     private_constant :Read
+
+    # How a card names one of its sources: "<organisation id>:<entry address>" (the lane
+    # state ?card=, the source a merge lets go of in Actors::SplitPerson).
+    def self.address_of(organisation_id, entry_address)
+      [organisation_id, entry_address].join(SEPARATOR)
+    end
+
+    # The organisation id (dashed) and the entry address an address of .address_of names,
+    # or nil for anything of another shape.
+    def self.parse_address(address)
+      return unless address.is_a?(String)
+
+      organisation_id, id = address.split(SEPARATOR, 2)
+      organisation_id = Lalabase::Uuid.dashed(organisation_id.to_s)
+      [organisation_id, id] if organisation_id && id.present?
+    end
 
     def self.call(viewer:, address:, across: nil)
       new(viewer: viewer, address: address, across: across).call
@@ -82,61 +100,49 @@ module People
     end
 
     def call
-      organisation_id, id = named
+      organisation_id, id = self.class.parse_address(@address)
       return unless organisation_id
 
-      shown = @across.shown_at(organisation_id, id) { |organisation, entry, alone| read(organisation, entry, alone) }
+      shown = @across.shown_at(organisation_id, id) { |organisation, entry, detachable| read(organisation, entry, detachable) }
       card_of(shown) if shown
     end
 
     private
 
-    # The organisation and the entry the address names, or nil for anything of another shape.
-    def named
-      return unless @address.is_a?(String)
-
-      organisation_id, id = @address.split(SEPARATOR, 2)
-      organisation_id = Lalabase::Uuid.dashed(organisation_id.to_s)
-      [organisation_id, id] if organisation_id && id.present?
-    end
-
     # Everything the card shows of one source. Runs under the tenant of the organisation.
-    def read(organisation, entry, alone)
+    def read(organisation, entry, detachable)
       person = entry.person
-      can_edit = person ? PersonPolicy.new(@viewer, person).update? : PersonPolicy.new(@viewer, Person).create?
+      lane = person ? { person_id: person.id } : { member_id: entry.user.id }
+      writable = person ? PersonPolicy.new(@viewer, person).update? : PersonPolicy.new(@viewer, Person).create?
       Read.new(organisation_id: organisation.id, organisation_name: organisation.name,
-               card: People::Lookup.card(entry, notes: true), member: entry.member?,
-               account: (entry.user if entry.member?),
-               lane: person ? { person_id: person.id } : { member_id: entry.user.id },
-               edit: (form_of(entry) if can_edit), takeover: takeover_of(organisation, person), alone: alone)
-    end
-
-    def form_of(entry)
-      entry.person ? { edit: entry.person.id } : { new: NEW_PERSON, user_id: entry.user.id }
+               card: People::Lookup.card(entry, notes: true, kind_names: true), member: entry.member?,
+               account: (entry.user if entry.member?), lane: lane, edit: (lane if writable),
+               takeover: takeover_of(organisation, person), detachable: detachable)
     end
 
     # The row a takeover would copy: only a contact whose row carries no account (not a
-    # member, not the row a deactivated member left), and only with a target.
+    # member, not the row a deactivated member left), and only with a target. The
+    # organisations a copy may go to are asked once per card, not once per source.
     def takeover_of(organisation, person)
       return unless person && person.user_id.nil?
 
-      person.id if Actors::TakeOverPerson.any_target_for?(viewer: @viewer, source: organisation)
+      @targets ||= Actors::TakeOverPerson.target_ids_for(viewer: @viewer)
+      person.id if @targets.any? { |id| id != organisation.id }
     end
 
     def card_of(shown)
       reads = shown.sources
       first = reads.first
-      Card.new(address: [first.organisation_id, first.card[:id]].join(SEPARATOR), name: first.card[:name],
+      Card.new(address: self.class.address_of(first.organisation_id, first.card[:id]), name: first.card[:name],
                kind: first.card[:kind], avatar_user: first.account, merge_id: shown.merge_id,
                fields: fields_of(reads).freeze, last_contact: last_contact_of(reads),
-               sources: reads.map { |one| source_of(one, detachable: shown.merge_id.present? && one.alone && shown.parts > 2) }.freeze)
+               sources: reads.map { |one| source_of(one) }.freeze)
     end
 
-    def source_of(read, detachable:)
+    def source_of(read)
       Source.new(organisation_id: read.organisation_id, organisation_name: read.organisation_name,
                  address: read.card[:id], kind: read.card[:kind], name: read.card[:name], lane: read.lane,
-                 can_edit: read.edit.present?, edit: read.edit, notes: read.card[:notes],
-                 takeover: read.takeover, detachable: detachable)
+                 edit: read.edit, notes: read.card[:notes], takeover: read.takeover, detachable: read.detachable)
     end
 
     def last_contact_of(reads)

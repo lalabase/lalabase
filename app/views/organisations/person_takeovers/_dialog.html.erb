@@ -1,4 +1,4 @@
-<%# locals: (person:, targets:, token:, target_id: nil, fields: Actors::TakeOverPerson::DEFAULT_FIELDS, question: nil, confirm_target: nil, duplicates: []) %>
+<%# locals: (person:, targets:, token:, target_id: nil, fields: Actors::TakeOverPerson::DEFAULT_FIELDS, question: nil, confirm_target: nil, duplicates: [], from: nil) %>
 <%# The dialog "In andere Organisation übernehmen" (People S0). Lives in the frame
     beside the card; the "···" menu loads person_takeovers#new into it. The root
     carries the id of THIS opening (token): a submit that asks about a same-named
@@ -68,6 +68,8 @@
                       data: { turbo_frame: '_top',
                               action: 'turbo:submit-start->person-takeover-modal#lock turbo:submit-end->person-takeover-modal#unlock' } do %>
           <%= hidden_field_tag :modal_token, token, id: nil %>
+          <%# Opened on the card above the organisations: the answers lead back there. %>
+          <%= hidden_field_tag :from, from, id: nil if from %>
           <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true" data-person-takeover-default></button>
 
           <div>

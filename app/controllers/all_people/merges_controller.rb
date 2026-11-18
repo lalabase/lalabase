@@ -14,7 +14,8 @@
 #
 # The card of a merged person takes a merge apart as well: destroy with `source`
 # ("<organisation id>:<entry address>") takes that one source out and leaves the rest
-# merged, and `card` (the address of the open card) travels for the way back.
+# merged. `card` (the address of the open card) travels for the way back, from the card's
+# menu and from the merge bar (which layout-toggle hands the card open now, data-lane-keep).
 #
 # Every answer is a redirect back to the list the reader was looking at (its state
 # travels as q, org and page, and the open card), with a notice or the reason. One answer for everything the

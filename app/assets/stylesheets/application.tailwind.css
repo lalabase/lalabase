@@ -583,7 +583,9 @@
   .all-people-card__source-head { @apply flex flex-wrap items-center gap-x-3 gap-y-1; }
   .all-people-card__note { @apply mt-2; }
   .all-people-card__switch[aria-pressed="true"] { @apply bg-cream-200 text-heading; }
-  .all-people-card .people-lane__head form { @apply inline-flex; }
+  /* The switch of the head is a form of its own (button_to). Only that one: the
+     forms in its "···" menu are rows of the menu and stay blocks. */
+  .all-people-card .people-lane__head > form { @apply inline-flex; }
   .people-empty { @apply flex flex-col items-start gap-2.5 pt-8; }
   .people-empty__icon { @apply text-2xl text-cream-500; }
   .people-empty__title { @apply text-[15px] font-semibold text-heading; }

@@ -2,6 +2,10 @@
 
 # The people list above the organisations and the card in its lane (AllPeopleController).
 module AllPeopleHelper
+  # The "···" button of an open card: where a takeover dialog of any of its contacts
+  # returns the focus (person_takeover_modal_controller).
+  CARD_MORE_ACTIONS_ID = 'all-people-card-more-actions'
+
   # The list state an address of the page carries: the search and the organisation it
   # narrows to. Only text counts; a list or a hash in their place is no state.
   def all_people_list_state
@@ -50,9 +54,10 @@ module AllPeopleHelper
   # people page of one organisation) beside the merge of the ticked rows. The address
   # carries the open card as ?card=; the search reloads the list frame and layout-toggle
   # writes the list state into the address beside it.
-  def all_people_page_data(card:)
+  def all_people_page_data(card:, people:)
     frame_id = AllPeopleController::CARD_FRAME_ID
     unresolved = all_people_unresolved_lane_params(card)
+    renamed = all_people_renamed_lane_params(card, people)
     {
       controller: 'layout-toggle index-page all-people-merge',
       layout_toggle_list_frame_ids_value: [AllPeopleController::LIST_FRAME_ID].to_json,
@@ -63,6 +68,7 @@ module AllPeopleHelper
       layout_toggle_list_filter_params_value: %w[q org page].to_json,
       layout_toggle_storage_key_value: 'layoutState:all_people',
       layout_toggle_unresolved_selection_value: (unresolved.to_json if unresolved.any?),
+      layout_toggle_renamed_selection_value: (renamed.to_json if renamed.any?),
       index_page_param_name_value: AllPeopleController::CARD_PARAM,
       index_page_frame_id_value: frame_id,
       index_page_content_selector_value: '.all-people-card',
@@ -87,10 +93,25 @@ module AllPeopleHelper
       .select { |_name, value| value.is_a?(String) && value.present? }
   end
 
+  # The open card named by another of the person's sources than the one its row carries
+  # (an old link, an organisation's name that changed the order, a list narrowed to one
+  # organisation): { card: [as named, the row's] }, and layout-toggle writes the row's into
+  # the address. A list the search draws again knows no card, so its rows carry their own
+  # address only; without this the mark went and a click on the row opened the card again
+  # instead of closing it. Empty when they agree or when no row of this page is open.
+  def all_people_renamed_lane_params(card, people)
+    named = params[AllPeopleController::CARD_PARAM]
+    return {} unless card && people && named.is_a?(String)
+
+    row = people.rows.find { |one| all_people_row_open?(one, card) }
+    address = all_people_row_address(row) if row
+    address && address != named ? { AllPeopleController::CARD_PARAM => [named, address] } : {}
+  end
+
   # The address of a row's card: its first source, "<organisation id>:<entry address>".
   def all_people_row_address(row)
     source = row.sources.first
-    [source.organisation_id, source.fields[:id]].join(People::MergedCard::SEPARATOR)
+    People::MergedCard.address_of(source.organisation_id, source.fields[:id])
   end
 
   # Whether the open card is this row's: any source of the row is one of the card's.
@@ -103,16 +124,16 @@ module AllPeopleHelper
   end
 
   # What makes a row the opener of its card (list-row): the lane's own address in the
-  # lane's frame. The open row answers to the address in the bar, whichever source of
-  # the person it names, so the script keeps the mark the server drew.
-  def all_people_row_data(row, open:)
+  # lane's frame. A row answers to its own address only, the one it carries on every
+  # draw of the list; an address that names the open person by another source is
+  # renamed to it (all_people_renamed_lane_params).
+  def all_people_row_data(row)
     address = all_people_row_address(row)
-    named = params[AllPeopleController::CARD_PARAM]
     {
       controller: 'list-row',
       action: 'click->list-row#click keydown.enter->list-row#click keydown.space->list-row#click',
       list_row_url_value: all_people_path(AllPeopleController::CARD_PARAM => address),
-      list_row_id_value: open && named.is_a?(String) ? named : address,
+      list_row_id_value: address,
       list_row_param_value: AllPeopleController::CARD_PARAM,
       list_row_params_value: [AllPeopleController::CARD_PARAM].to_json,
       list_row_frame_value: AllPeopleController::CARD_FRAME_ID
@@ -125,10 +146,17 @@ module AllPeopleHelper
   end
 
   # Where a pencil leads: the people page of that organisation with the form open in its
-  # lane (?edit=, or ?new=person&user_id= for a member without a row). A visit of that
-  # page: the rights, the form and the save are that organisation's.
-  def all_people_edit_path(organisation_id, lane_state)
-    organisation_people_path(organisation_id, lane_state)
+  # lane, in the page's own words (?edit=, or ?new=person&user_id= for a member without a
+  # row). A visit of that page: the rights, the form and the save are that organisation's.
+  # edit: what the form edits (People::MergedCard::ValueSource#edit).
+  def all_people_edit_path(organisation_id, edit)
+    state = if edit[:person_id]
+              { PeopleHelper::EDIT_PARAM => edit[:person_id] }
+            else
+              new_param, user_param = PeopleHelper::FORM_PARAMS
+              { new_param => Organisations::PeopleController::NEW_STATE, user_param => edit.fetch(:member_id) }
+            end
+    organisation_people_path(organisation_id, state)
   end
 
   # The label of a card's field: the attribute's name, or the label of a detail as written.

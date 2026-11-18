@@ -179,7 +179,10 @@ der Controller liefert Seiten aus (`serves_pages?`, Standard wahr). Drei Leser:
   einer Organisation in sich hinein (den Dialog „In andere Organisation übernehmen“,
   `Organisations::PersonTakeoversController`), und die Referrer-Regel kennt beide Pfade,
   `/inbox` und `/people`. Wächter: `spec/requests/organisations/person_takeovers_spec.rb`
-  („the dialog on the people page above the organisations“). ⚠️ Eine weitere Seite über den
+  („the dialog on the people page above the organisations“). Von dort geöffnet
+  (`from=all_people`, `PersonTakeoversController::FROM_ALL_PEOPLE`, ein Wort, keine Adresse)
+  führt jede Antwort des Dialogs auf eine Karte dort zurück, nie auf die Personenseite einer
+  Organisation. ⚠️ Eine weitere Seite über den
   Organisationen, die Fragmente eines Organisations-Controllers zeigt, kommt in diese Liste,
   sonst zeichnet das Fragment den Assistenten-Knopf in eine Seite ohne
   Assistenten. Eine neue Seite über den Organisationen braucht außerdem ihren Eintrag in

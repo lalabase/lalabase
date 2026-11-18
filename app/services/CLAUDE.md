@@ -388,20 +388,30 @@ Verzeichnis-Übersicht (Auswahl):
   across: nil)`) reads ONE person for the lane of `/people`: every source the list shows as
   that person (`AcrossOrganisations#shown_at`, which runs the card's block once per source
   UNDER THE TENANT OF ITS ORGANISATION), each through `People::Lookup.card(entry, notes:
-  true)`. `address` is `"<organisation id>:<entry address>"` of any source; what names
-  nobody the viewer can see answers nil, whatever the reason. Per field the distinct values
+  true, kind_names: true)` (a detail without a label is named as the people page names it;
+  REST, MCP and the assistant keep the stored kind). `address` is `"<organisation
+  id>:<entry address>"` of any source (`MergedCard.address_of`, `.parse_address`, also for
+  `Actors::SplitPerson`); what names nobody the viewer can see answers nil, whatever the reason. Per field the distinct values
   with their sources: equal without whitespace (an email also without case), shown as the
   first source wrote them, and a value some sources lack is the last entry without a text
   (a missing value is a difference). ⚠️ The right to write is asked inside the block
-  (`PersonPolicy#update?` reads the tenant of the thread) and leaves as a flag and as the
-  lane state of that organisation's people page (`{ edit: }`, or `{ new:, user_id: }` for a
-  member without a row); none at a member's name and email (`ACCOUNT_FIELDS`). Plain values
+  (`PersonPolicy#update?` reads the tenant of the thread) and leaves as the entry the form
+  edits (`edit`: `{ person_id: }`, or `{ member_id: }` for a member without a row, nil
+  without the right); how the people page names that form in its address is
+  `AllPeopleHelper#all_people_edit_path`'s, from the page's own constants. None at a
+  member's name and email (`ACCOUNT_FIELDS`). Plain values
   leave, no `Person`. ⚠️ The notes go to this card and nowhere else: it is no tool, nothing
   of it reaches an AI provider or a list. `across:` hands in the list's read of the same
   request, so page and card share one directory per organisation.
   `Actors::SplitPerson` takes `source:` (the card's "take one source out"): only the lines
   of the merge that name that source go, read through the list like a merge's entries. A
-  value that is no address is refused, never read as "the whole merge".
+  value that is no address is refused, never read as "the whole merge". ⚠️ The card and the
+  actor ask ONE rule whether a source can leave: the list's grouping, done again without
+  those lines (in memory for the card, `Source#detachable`; with the lines stored after the
+  write for the actor, `AcrossOrganisations#stands_alone_now?`, no second read of the
+  directories). The source stands alone and every OTHER person of the list stays as shown.
+  Until the review of #197 the card asked whether the source stood alone in its account and
+  offered steps the actor always refused, and the actor compared only that one person.
 * `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem

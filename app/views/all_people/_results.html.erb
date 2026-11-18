@@ -15,9 +15,9 @@
       The controller (all-people-merge) keeps the chosen rows through a search,
       which draws this frame again: it counts and names them here and adds the
       ones out of sight to the form as it leaves. The address of the answer is
-      the list as it stands here. %>
+      the list as it stands here, with the card open now (data-lane-keep). %>
   <%= form_with url: all_people_merges_path, method: :post, id: 'all-people-merge', class: 'all-people-merge',
-                data: { turbo_frame: '_top', all_people_merge_bar: true, action: 'submit->all-people-merge#carry' } do %>
+                data: { turbo_frame: '_top', all_people_merge_bar: true, lane_keep: true, action: 'submit->all-people-merge#carry' } do %>
     <% all_people_return_state(people).each do |name, value| %>
       <%= hidden_field_tag name, value, id: nil %>
     <% end %>

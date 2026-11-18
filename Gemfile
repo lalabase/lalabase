@@ -105,7 +105,7 @@ gem 'googleauth', '~> 1.17'     # Service-account OAuth2 token mint for Vertex A
 gem 'mcp', '~> 1.10'            # Official Model Context Protocol SDK (MCP server, Claude Code -> Lalabase)
 gem 'parser', '~> 3.3'          # Ruby AST parser (M6 — Layer-1 code symbol extraction)
 gem 'pry-rails'                 # Enhanced Rails console with Pry
-gem 'ruby-openai', '~> 7.1'     # OpenAI API wrapper
+gem 'ruby-openai', '~> 8.3'     # OpenAI API wrapper
 # Lalabase::Llm::PublicEndpointAdapter takes over Net::HTTP#timeouted_connect, which
 # 0.6.0 does not have; the adapter refuses to load without it. Ruby 4.0.7 ships 0.9.1;
 # the adapter spec is green on 0.10. A newer line is fine once it is green there too.

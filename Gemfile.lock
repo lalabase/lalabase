@@ -166,7 +166,7 @@ GEM
     erubi (1.13.1)
     et-orbi (1.4.2)
       tzinfo
-    event_stream_parser (1.0.0)
+    event_stream_parser (1.0.1)
     factory_bot (6.6.0)
       activesupport (>= 6.1.0)
     factory_bot_rails (6.5.1)
@@ -543,7 +543,7 @@ GEM
       rubocop (>= 1.72)
       rubocop-performance (>= 1.24)
       rubocop-rails (>= 2.30)
-    ruby-openai (7.4.0)
+    ruby-openai (8.3.0)
       event_stream_parser (>= 0.3.0, < 2.0.0)
       faraday (>= 1)
       faraday-multipart (>= 1)
@@ -746,7 +746,7 @@ DEPENDENCIES
   rtf (~> 0.3.3)
   rubocop
   rubocop-rails-omakase
-  ruby-openai (~> 7.1)
+  ruby-openai (~> 8.3)
   ruby_tree_sitter (~> 2.1)
   rubyzip (~> 3.7)
   selenium-webdriver

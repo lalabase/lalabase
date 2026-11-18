@@ -147,10 +147,13 @@ module People
     # The card of one person: the row plus how to reach them. A member's email is the one
     # they show to others (User#shown_email, nil when none), as on the people page; phone,
     # details and notes come from the row. The notes
-    # as stored, nil when blank or when a member has no row. kind_names: a detail without
-    # a label is named by the name of its kind in the reader's language, as the people
-    # page names it (a page that shows the card, People::MergedCard); without it by the
-    # kind itself, the word a program reads (REST, MCP, the assistant).
+    # as stored, nil when blank or when a member has no row. kind_names: for a page that
+    # shows the card (People::MergedCard): a detail without a label is named by the name
+    # of its kind in the reader's language, as the people page names it, and every
+    # detail carries its kind, so the page shows the value as the people page does (a
+    # link, a date in the reader's language). Without it a detail is label and value,
+    # the label of one without a label the kind itself: the shape a program reads (REST,
+    # MCP, the assistant).
     def self.card(entry, notes: false, kind_names: false)
       person = entry.person
       card = row(entry).merge(
@@ -170,8 +173,9 @@ module People
 
       list.map do |raw|
         detail = PersonDetail.new(raw)
-        unnamed = kind_names ? PersonDetail.kind_name(detail.kind) : detail.kind
-        { label: detail.label.presence || unnamed, value: detail.value }
+        next { label: detail.label.presence || detail.kind, value: detail.value } unless kind_names
+
+        { label: detail.label.presence || PersonDetail.kind_name(detail.kind), value: detail.value, kind: detail.kind }
       end
     end
 

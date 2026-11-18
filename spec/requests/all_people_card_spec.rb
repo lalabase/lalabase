@@ -214,6 +214,16 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
         expect(Prosopite.pause { card(kai) }.text).to include('Kai Kontakt')
       end
 
+      # Review of #197: a row click writes the address and marks the row before the answer
+      # comes; a person deleted in between left an open lane without its cross.
+      it 'gives the one answer the cross of the lane, so the lane can be closed' do
+        lane("#{north.id}:person:#{SecureRandom.uuid}")
+
+        expect(response).to have_http_status(:not_found)
+        close = Nokogiri::HTML(response.body).at_css('[data-lane-head] button[data-lane-close]')
+        expect(close['data-action']).to eq('click->layout-toggle#closeContent')
+      end
+
       it 'takes a list or a hash in place of the address for the same nothing' do
         get all_people_path, params: { card: [kai] }, headers: frame_headers
         expect(response).to have_http_status(:not_found)
@@ -333,15 +343,21 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(shown(merged, :email)).to eq([['kai@example.com', ['Nord GmbH', 'Sued AG']]])
       expect(shown(merged, :name)).to eq([['Kai Kontakt', ['Nord GmbH', 'Sued AG']]])
       expect(shown(merged, :function)).to eq([['Einkauf', ['Nord GmbH']], ['Vertrieb', ['Sued AG']]])
-      expect(merged.at_css('[data-card-sources-switch] button')['aria-pressed']).to eq('true')
+      switch = merged.at_css('[data-card-sources-switch] button')
+      expect(switch['aria-pressed']).to eq('true')
+      # Pressed is more than the tone a hovered switch has as well (review of #197).
+      expect(switch.css('i.bi').map { |icon| icon['class'] }).to eq(['bi bi-check-lg'])
     end
 
-    it 'names the organisation at every value while "Bearbeiten" is on, without the switch' do
+    # Review of #197: "Bearbeiten" names the organisations at every value already. The
+    # switch beside it changed nothing on the card, and said "not pressed" while every
+    # organisation was named.
+    it 'names the organisation at every value while "Bearbeiten" is on, and offers no switch then' do
       merged = card(kai, editing: 1)
 
       expect(shown(merged, :company)).to eq([['Nordlicht AG', ['Nord GmbH', 'Sued AG']]])
       expect(shown(merged, :name)).to eq([['Kai Kontakt', ['Nord GmbH', 'Sued AG']]])
-      expect(merged.at_css('[data-card-sources-switch] button')['aria-pressed']).to eq('false')
+      expect(merged.at_css('[data-card-sources-switch]')).to be_nil
       expect(merged.at_css('a[data-card-edit-done]')['href']).to eq(all_people_path(card: kai))
       # Without it the head offers to turn it on.
       expect(card(kai).at_css('a[data-card-edit]')['href']).to eq(all_people_path(card: kai, editing: 1))
@@ -446,6 +462,53 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
 
         expect_north_alone
       end
+    end
+  end
+
+  # Review of #197: the card showed every value as text, apart from the fixed email and
+  # phone. An additional detail that the people page links (a phone, an email, a web
+  # address) or writes as a date in the reader's language stood there as stored.
+  describe 'the values' do
+    def link(card, key)
+      field(card, key).at_css('a.people-fields__link')
+    end
+
+    def detail_value(card, label)
+      card.css('[data-card-field]').find { |one| one.at_css('dt').text.strip == label }.at_css('[data-card-text]')
+    end
+
+    it 'links an email and a phone number, and nothing else of the fixed fields' do
+      single = card(nora)
+
+      expect(link(single, :email)['href']).to eq('mailto:nora@example.com')
+      expect(link(single, :phone)['href']).to eq('tel:+49305550199')
+      expect(field(single, :company).css('a')).to be_empty
+    end
+
+    it 'escapes what would end the address in a mailto link' do
+      ActsAsTenant.with_tenant(north) { people[:north_only].update_columns(email: 'nora?bcc=x@example.com') }
+
+      expect(link(card(nora), :email)['href']).to eq('mailto:nora%3Fbcc=x@example.com')
+    end
+
+    it 'shows an additional detail as the people page does: a link by its kind, a date in the reader\'s language' do
+      ActsAsTenant.with_tenant(north) do
+        people[:north_only].update!(additional_details: [
+                                      { 'kind' => 'date', 'label' => 'Geburtstag', 'value' => '1985-03-14' },
+                                      { 'kind' => 'url', 'label' => 'Profil', 'value' => 'https://example.com/nora' },
+                                      { 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 5550100' },
+                                      { 'kind' => 'email', 'label' => 'Privat', 'value' => 'nora.privat@example.com' },
+                                      { 'kind' => 'text', 'label' => 'Kundennummer', 'value' => 'K-17' }
+                                    ])
+      end
+      single = card(nora, locale: 'de')
+
+      expect(detail_value(single, 'Geburtstag').text.strip).to eq(I18n.l(Date.new(1985, 3, 14), format: :long, locale: :de))
+      profile = detail_value(single, 'Profil').at_css('a')
+      expect([profile['href'], profile['target'], profile['rel']]).to eq(['https://example.com/nora', '_blank', 'noopener noreferrer'])
+      expect(detail_value(single, 'Mobil').at_css('a')['href']).to eq('tel:01715550100')
+      expect(detail_value(single, 'Privat').at_css('a')['href']).to eq('mailto:nora.privat@example.com')
+      expect(detail_value(single, 'Kundennummer').css('a')).to be_empty
     end
   end
 
@@ -709,15 +772,13 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(form.at_css('input[name="card"]')['value']).to eq(kai)
       expect(form['data-turbo-frame']).to be_nil
       expect(form.at_css('button')['aria-pressed']).to eq('false')
+      expect(form.css('button i.bi').map { |icon| icon['class'] }).to eq(['bi bi-building'])
     end
 
-    it 'keeps "Bearbeiten" on over a click on the switch' do
-      form = card(kai, editing: 1).at_css('form[data-card-sources-switch]')
-      expect(form.at_css('input[name="editing"]')['value']).to eq('1')
-
+    it 'goes back to the card it came from, as the card alone names it' do
       patch all_people_sources_path, params: { show: '1', card: kai, editing: '1' }
 
-      expect(response).to redirect_to(all_people_path(card: kai, editing: 1))
+      expect(response).to redirect_to(all_people_path(card: kai))
     end
 
     it 'stores a real boolean whatever the request sends, and goes back to the list without a card' do

@@ -14,8 +14,10 @@ module People
   #   object at all, so it contributes no value, no note and no name of an organisation.
   #   An address that names nothing the viewer can see answers nil, whatever the reason.
   # * Per field every distinct value with the sources it comes from. Two values are one
-  #   when they are equal without their whitespace (an email also without its case); the
-  #   card shows the value as the first source wrote it. A value some sources lack is
+  #   when they are equal by the rule of their kind (#compared): a phone number without
+  #   any whitespace, an email also without its case, anything else with its word breaks
+  #   (more spaces, or spaces at the ends, are none). The card shows the value as the
+  #   first source wrote it, with that source's kind. A value some sources lack is
   #   listed last, without a text: a missing value is a difference too, or the reader
   #   could not tell that an organisation does not know the mobile number.
   # * The right to write is asked here, under the tenant (PersonPolicy reads the tenant
@@ -33,8 +35,12 @@ module People
     # The fields of a row, in the order of the form. The additional details follow, each
     # under its label, in the order they first appear among the sources.
     FIXED_FIELDS = %i[name salutation function department company email phone].freeze
-    # What the account of a member owns: no source of kind member offers to edit them.
-    ACCOUNT_FIELDS = %i[name email].freeze
+    # The fixed fields that are of a kind of PersonDetail: compared and shown by its rule.
+    # The others are text.
+    FIXED_KINDS = { email: 'email', phone: 'phone' }.freeze
+    # What the account of a member owns (Actors::SavePerson's list, the fields of it the
+    # card shows): no source of kind member offers to edit them.
+    ACCOUNT_FIELDS = (Actors::SavePerson::ACCOUNT_FIELDS & FIXED_FIELDS).freeze
     SEPARATOR = ':'
 
     # address: "<organisation id>:<entry address>" (.address_of) of the first source, the
@@ -49,8 +55,10 @@ module People
     Field = Data.define(:key, :label, :values, :differs)
 
     # text: the value as the first of its sources wrote it; nil for the entry of the
-    # sources that have no value for the field.
-    Value = Data.define(:text, :sources)
+    # sources that have no value for the field. kind: the kind of PersonDetail that first
+    # source gave it (FIXED_KINDS for a fixed field), nil for text and for the entry
+    # without a value.
+    Value = Data.define(:text, :kind, :sources)
 
     # edit: what the form of that organisation would edit, as the source's lane names it
     # ({ person_id: } for a row, { member_id: } for a member without one, whose form adds
@@ -153,7 +161,7 @@ module People
     # The fixed fields, then the additional details by label. A field no source has a
     # value for is no line of the card.
     def fields_of(reads)
-      fixed = FIXED_FIELDS.map { |key| field_of(key, nil, reads) { |read| [read.card[key]] } }
+      fixed = FIXED_FIELDS.map { |key| field_of(key, nil, reads) { |read| [[read.card[key], FIXED_KINDS[key]]] } }
       (fixed + detail_fields(reads)).compact
     end
 
@@ -162,24 +170,25 @@ module People
                     .each_with_object({}) { |detail, found| found[label_key(detail[:label])] ||= detail[:label] }
       labels.map do |key, label|
         field_of("detail:#{key}", label, reads) do |read|
-          read.card[:additional_details].select { |detail| label_key(detail[:label]) == key }.pluck(:value)
+          read.card[:additional_details].select { |detail| label_key(detail[:label]) == key }.pluck(:value, :kind)
         end
       end
     end
 
-    # One field: the values of each source (the block's answer), the equal ones as one.
+    # One field: the values of each source (the block's answer, [text, kind] pairs), the
+    # equal ones as one.
     def field_of(key, label, reads)
       values = {}
       lacking = []
       reads.each do |read|
-        texts = yield(read).select(&:present?)
-        lacking << read if texts.empty?
-        texts.each { |text| (values[compared(key, text)] ||= [text, []]).last << read }
+        entries = yield(read).select { |text, _kind| text.present? }
+        lacking << read if entries.empty?
+        entries.each { |text, kind| (values[compared(kind, text)] ||= [text, kind, []]).last << read }
       end
       return if values.empty?
 
-      list = values.values.map { |text, sources| Value.new(text: text, sources: value_sources(key, sources.uniq)) }
-      list << Value.new(text: nil, sources: value_sources(key, lacking)) if lacking.any?
+      list = values.values.map { |text, kind, sources| Value.new(text: text, kind: kind, sources: value_sources(key, sources.uniq)) }
+      list << Value.new(text: nil, kind: nil, sources: value_sources(key, lacking)) if lacking.any?
       Field.new(key: key, label: label, values: list.freeze, differs: list.any? { |value| value.sources.size != reads.size })
     end
 
@@ -190,11 +199,15 @@ module People
       end.freeze
     end
 
-    # What two values are compared by: the text without any whitespace, an email also
-    # without its case.
-    def compared(key, text)
-      plain = text.to_s.gsub(/[[:space:]]+/, '')
-      key == :email ? plain.downcase : plain
+    # What two values are compared by, by their kind: a phone number without any
+    # whitespace ("0171 1" is "01711"), an email also without its case, anything else
+    # with its word breaks ("AB C" is not "A BC"), only more spaces and the ends gone.
+    def compared(kind, text)
+      case kind
+      when 'phone' then text.to_s.gsub(/[[:space:]]+/, '')
+      when 'email' then text.to_s.gsub(/[[:space:]]+/, '').downcase
+      else text.to_s.gsub(/[[:space:]]+/, ' ').strip
+      end
     end
 
     # Two details are the same line of the card when their labels are, whatever their

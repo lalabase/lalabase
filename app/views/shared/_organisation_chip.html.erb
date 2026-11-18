@@ -1,21 +1,16 @@
-<%# locals: (name:, color: nil, url: nil, label: nil, action: nil) %>
+<%# locals: (name:, color: nil, action: nil) %>
 <%# An organisation as a chip: a square in its recognition colour and its name.
     color: what User::OrgColorSettings#effective_color answers for the reader
     (nil below two organisations and when switched off: the square stays
     neutral). The colour is the reader's own setting, so the chip belongs on
-    pages of one person, above the organisations. With url the chip is a link
-    that leaves a frame it stands in; label names where it leads when the name
-    alone does not. With action ({ url:, label:, data: }) the chip names the
-    organisation and carries a pencil behind the name: a link of its own that
-    leaves the frame, named by its label (the card above the organisations:
-    edit this value in that organisation). %>
+    pages of one person, above the organisations. With action ({ url:, label:,
+    data: }) the chip names the organisation and carries a pencil behind the
+    name: a link of its own that leaves the frame, named by its label (the card
+    above the organisations: edit this value in that organisation). %>
 <% swatch = tag.span(class: 'organisation-chip__swatch', aria: { hidden: true },
                      style: ("background-color: #{color};" if OrgColor.hex?(color))) %>
 <% inner = safe_join([swatch, tag.span(name, class: 'organisation-chip__name')]) %>
-<% if url %>
-  <%= link_to inner, url, class: 'organisation-chip', title: label || name, 'aria-label': label,
-                          data: { organisation_chip: true, turbo_frame: '_top' } %>
-<% elsif action %>
+<% if action %>
   <%= tag.span class: 'organisation-chip organisation-chip--action', data: { organisation_chip: true } do %>
     <%= inner %>
     <%= link_to action[:url], class: 'organisation-chip__action', title: action[:label], 'aria-label': action[:label],

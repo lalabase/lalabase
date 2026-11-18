@@ -72,6 +72,12 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     wait_until_still('[data-all-people-card] [data-lane-close]')
   end
 
+  # The colour of --ink as the browser computes a colour.
+  def ink
+    channels = page.evaluate_script("getComputedStyle(document.documentElement).getPropertyValue('--ink')").split
+    "rgb(#{channels.join(', ')})"
+  end
+
   def chips_at(key)
     lane.all(%([data-card-field="#{key}"] [data-organisation-chip]), minimum: 0).map(&:text)
   end
@@ -119,6 +125,52 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(page).to have_no_css('tr[data-all-people-row].selected-row')
     expect(page).to have_current_path(all_people_path)
     expect(list).to have_text('Kai Kontakt')
+  end
+
+  # Review of #197: a row click writes the address and marks the row before the answer
+  # comes. For a person deleted after the list was drawn the answer is "gone", and that
+  # lane had no cross: only Escape or a second click on the row closed it.
+  it 'shows a person deleted after the list was drawn as gone, and closes that lane with the cross' do
+    visit_list
+    ActsAsTenant.with_tenant(north) { Person.where(id: nora.id).delete_all }
+
+    row('Nora Nord').find('.all-people-row__name').click
+
+    expect(lane).to have_text(I18n.t('views.all_people.card.missing_title'))
+    wait_until_still("turbo-frame##{AllPeopleController::CARD_FRAME_ID} [data-lane-close]")
+    lane.find('[data-lane-close]').click
+
+    expect(page).to have_no_css('tr[data-all-people-row].selected-row')
+    expect(page).to have_current_path(all_people_path)
+  end
+
+  # Review of #197: the row switched the ring of the keyboard off (outline-none) and
+  # showed the focus only as the hover tone, which the open row's own tone covers.
+  it 'shows the keyboard focus on a row with the ring of the app, also on the open one' do
+    visit_list
+    open_card('Kai Kontakt')
+
+    ['Kai Kontakt', 'Nora Nord'].each do |name|
+      element = row(name)
+      element.send_keys(:shift) # keyboard focus, the way :focus-visible counts it
+      expect(page.evaluate_script('document.activeElement.matches(":focus-visible")')).to be(true)
+      ring = page.evaluate_script(<<~JS, element)
+        (() => { const style = getComputedStyle(arguments[0]); return [style.outlineStyle, style.outlineWidth, style.outlineColor] })()
+      JS
+      expect(ring).to eq(['solid', '2px', ink]), "expected the ring on the row of #{name}"
+    end
+  end
+
+  # Review of #197: in the list column of the lane layout the rules of the ticket table
+  # (layout.css, ".list table") took the head's air and drew its rule and the table's end
+  # in black, which the dark theme does not change.
+  it 'keeps the head and the lines the table has of its own in the list column' do
+    visit_list
+    style = ->(selector, property) { page.evaluate_script("getComputedStyle(document.querySelector(#{selector.to_json})).#{property}") }
+
+    expect([style.call('.all-people-table th', 'paddingTop'), style.call('.all-people-table th', 'paddingBottom')]).to eq(%w[31px 15px])
+    expect(style.call('.all-people-table th', 'borderBottomColor')).to eq(ink)
+    expect(style.call('.all-people-table', 'borderBottomStyle')).to eq('none')
   end
 
   it 'keeps the tick of a row out of the click that opens the card' do

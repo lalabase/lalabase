@@ -236,6 +236,19 @@ RSpec.describe PersonDetail do
       expect(described_class.new(detail(kind: 'email', value: 'erika@example.com')).href).to eq('mailto:erika@example.com')
     end
 
+    # Review of #197: URI::MailTo::EMAIL_REGEXP takes "%", "?" and "=" in the local part,
+    # so a valid stored address could carry the query of a mailto URI ("?bcc=...") and
+    # add a recipient in the reader's mail program.
+    it 'escapes what would end the address in a mailto link, and nothing else' do
+      address = 'person%40customer.example?bcc=collector@example.com'
+      expect(address).to match(URI::MailTo::EMAIL_REGEXP)
+
+      expect(described_class.new(detail(kind: 'email', value: address)).href)
+        .to eq('mailto:person%2540customer.example%3Fbcc=collector@example.com')
+      expect(described_class.mailto('a#b,c d@example.com')).to eq('mailto:a%23b%2Cc%20d@example.com')
+      expect(described_class.mailto('jörg+tag@example.com')).to eq('mailto:jörg+tag@example.com')
+    end
+
     it 'links neither a malformed email nor a phone without digits' do
       expect(described_class.new(detail(kind: 'email', value: 'a b')).href).to be_nil
       expect(described_class.new(detail(kind: 'phone', value: 'abc')).href).to be_nil

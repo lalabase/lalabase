@@ -34,6 +34,11 @@ class PersonDetail
   INDEX_KEY = /\A\d{1,9}\z/
   ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
   LINE_BREAK = /\r\n|\r|\n/
+  # What ends or changes the address in a mailto URI (RFC 6068): "%" itself, "?" (the
+  # headers, "?bcc="), "#" (a fragment), "," (another recipient) and any whitespace.
+  # URI::MailTo::EMAIL_REGEXP takes "%" and "?" in the local part, Devise's rule takes
+  # nearly anything, so a valid stored address can carry them.
+  MAILTO_ESCAPED = /[%?#,[:space:]]/
   NON_ASCII = /[^\x00-\x7F]/
   INVISIBLE = /[\p{Cc}\p{Cf}]/
 
@@ -80,6 +85,13 @@ class PersonDetail
     return kind.to_s unless KINDS.include?(kind)
 
     I18n.t("views.organisations.people.details.kinds.#{kind}")
+  end
+
+  # The href of an email address, for every page that links one (a detail, the fixed
+  # email of a person or a member, the card above the organisations): the address as
+  # written, only what MAILTO_ESCAPED names percent-encoded.
+  def self.mailto(address)
+    "mailto:#{address.to_s.gsub(MAILTO_ESCAPED) { |char| ERB::Util.url_encode(char) }}"
   end
 
   def self.rows(raw)
@@ -157,7 +169,7 @@ class PersonDetail
 
     case kind
     when 'phone' then "tel:#{value.gsub(/[^\d+]/, '')}"
-    when 'email' then "mailto:#{value}"
+    when 'email' then self.class.mailto(value)
     when 'url' then value
     end
   end

@@ -40,7 +40,7 @@
                 <% if value.text.nil? %>
                   <span class="all-people-card__missing" data-card-text><%= t('views.all_people.card.missing_value') %></span>
                 <% else %>
-                  <span class="all-people-card__text" data-card-text><%= all_people_card_value(field, value.text) %></span>
+                  <span class="all-people-card__text" data-card-text><%= all_people_card_value(field, value) %></span>
                 <% end %>
                 <% if named %>
                   <span class="all-people-card__chips">

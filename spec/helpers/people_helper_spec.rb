@@ -132,6 +132,13 @@ RSpec.describe PeopleHelper, type: :helper do
         .to eq('mailto:jörg@example.com')
     end
 
+    # Review of #197: the fixed email is linked through PersonDetail.mailto as well, so a
+    # stored "?bcc=" stays part of the address.
+    it 'escapes the query of a mailto link in the fixed email' do
+      expect(helper.person_fields(Person.new(name: 'M', email: 'a?bcc=x@example.com'), nil).first[:href])
+        .to eq('mailto:a%3Fbcc=x@example.com')
+    end
+
     it 'shows no line for a person without details' do
       expect(fields_for(phone: nil)).to eq([])
     end

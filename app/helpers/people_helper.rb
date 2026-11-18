@@ -230,7 +230,7 @@ module PeopleHelper
       # A member's email is the one they show to others (User#shown_email),
       # checked by the account's own validation: linked as it is, not through
       # PersonDetail's stricter rule.
-      ({ label: Person.human_attribute_name(:email), value: email, href: "mailto:#{email}", icon: 'bi-envelope', reach: true } if email.present?),
+      ({ label: Person.human_attribute_name(:email), value: email, href: PersonDetail.mailto(email), icon: 'bi-envelope', reach: true } if email.present?),
       if phone.present?
         { label: Person.human_attribute_name(:phone), value: phone, href: PersonDetail.new('kind' => 'phone', 'value' => phone).href,
           icon: 'bi-telephone', action: t('views.organisations.people.show.call'), reach: true }

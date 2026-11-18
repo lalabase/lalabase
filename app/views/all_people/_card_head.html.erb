@@ -5,7 +5,10 @@
     of one organisation it is the pencil itself, the way into that form.
     Offered only where the reader may write somewhere. "Quellen zeigen" is the
     reader's own switch (AllPeopleController#sources): a button that sends its
-    new state and the open card, answered by this card again. The ✕ closes the
+    new state and the open card, answered by this card again; pressed it shows
+    a check, so it reads as on also where the hover tone looks the same. Not
+    offered while "Bearbeiten" is on: that names the organisations at every
+    value already, and the switch would change nothing there. The ✕ closes the
     lane in place (layout-toggle). Links and the switch stay in the lane's
     frame; what leaves the page says so (_top).
 
@@ -59,13 +62,12 @@
       <i class="bi bi-pencil" aria-hidden="true"></i><%= t('views.organisations.people.show.edit') %>
     <% end %>
   <% end %>
-  <% if several %>
+  <% if several && !editing %>
     <%= button_to all_people_sources_path, method: :patch,
-                  params: { show: (show_sources ? '0' : '1'), AllPeopleController::CARD_PARAM => card.address,
-                            AllPeopleController::EDITING_PARAM => ('1' if editing) }.compact,
+                  params: { show: (show_sources ? '0' : '1'), AllPeopleController::CARD_PARAM => card.address },
                   class: 'people-ghost-action all-people-card__switch', 'aria-pressed': show_sources.to_s,
                   form: { data: { card_sources_switch: true } } do %>
-      <i class="bi bi-building" aria-hidden="true"></i><%= t('views.all_people.card.show_sources') %>
+      <i class="bi <%= show_sources ? 'bi-check-lg' : 'bi-building' %>" aria-hidden="true"></i><%= t('views.all_people.card.show_sources') %>
     <% end %>
   <% end %>
   <% if items.any? %>
@@ -79,11 +81,7 @@
     </details>
   <% end %>
   <span class="people-lane__divider" aria-hidden="true"></span>
-  <button type="button" class="people-icon-action" title="<%= t('views.organisations.people.show.close') %>"
-          aria-label="<%= t('views.organisations.people.show.close') %>"
-          data-lane-close data-action="click->layout-toggle#closeContent">
-    <i class="bi bi-x-lg" aria-hidden="true"></i>
-  </button>
+  <%= render 'all_people/lane_close' %>
 </div>
 <%# contents: an empty frame takes no gap of the column; the dialog is fixed. %>
 <% card.sources.filter_map(&:takeover).each do |person_id| %>

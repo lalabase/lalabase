@@ -277,17 +277,14 @@ RSpec.describe Role, type: :model do
       org1 = create(:organisation)
       org2 = create(:organisation)
 
-      role1 = nil
-      role2 = nil
-
       ActsAsTenant.with_tenant(org1) do
-        role1 = create(:role, title: 'Role for Org1')
+        create(:role, title: 'Role for Org1')
         expect(Role.count).to eq(1)
         expect(Role.first.title).to eq('Role for Org1')
       end
 
       ActsAsTenant.with_tenant(org2) do
-        role2 = create(:role, title: 'Role for Org2')
+        create(:role, title: 'Role for Org2')
         expect(Role.count).to eq(1)
         expect(Role.first.title).to eq('Role for Org2')
       end

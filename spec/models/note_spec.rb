@@ -147,17 +147,14 @@ RSpec.describe Note, type: :model do
       org1 = create(:organisation)
       org2 = create(:organisation)
 
-      note1 = nil
-      note2 = nil
-
       ActsAsTenant.with_tenant(org1) do
-        note1 = create(:note, title: 'Note for Org1')
+        create(:note, title: 'Note for Org1')
         expect(Note.count).to eq(1)
         expect(Note.first.title).to eq('Note for Org1')
       end
 
       ActsAsTenant.with_tenant(org2) do
-        note2 = create(:note, title: 'Note for Org2')
+        create(:note, title: 'Note for Org2')
         expect(Note.count).to eq(1)
         expect(Note.first.title).to eq('Note for Org2')
       end

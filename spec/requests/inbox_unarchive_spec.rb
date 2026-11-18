@@ -62,10 +62,9 @@ RSpec.describe 'Inbox unarchive action', type: :request do
 
     it 'verweigert Zugriff auf fremde Notifications' do
       other_user = create(:user)
-      other_membership = nil
       foreign_n = ActsAsTenant.with_tenant(organisation) do
-        other_membership = create(:membership, user: other_user, organisation: organisation,
-                                               role: role, active: true)
+        create(:membership, user: other_user, organisation: organisation,
+                            role: role, active: true)
         create(:notification, recipient: other_user, organisation: organisation,
                               channel: 'in_app', state: :archived,
                               archived_at: 1.day.ago)

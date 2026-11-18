@@ -213,10 +213,8 @@ RSpec.describe Project, type: :model do
     end
 
     it 'validates uniqueness of name scoped to organisation' do
-      project1 = nil
-
       ActsAsTenant.with_tenant(organisation) do
-        project1 = create(:project, name: 'Unique Name')
+        create(:project, name: 'Unique Name')
         project2 = build(:project, name: 'Unique Name')
         expect(project2).not_to be_valid
         expect(project2.errors[:name]).to be_present

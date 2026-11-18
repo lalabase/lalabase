@@ -35,10 +35,10 @@ updates:
       # moving to it is its own change, not a weekly update.
       - dependency-name: pagy
         update-types: ["version-update:semver-major"]
-      # acts_as_tenant 2 fails our factories on tenant_mismatch; upgrading it is
-      # its own change, not a weekly update.
+      # acts_as_tenant stays on version 1 for good (see the Gemfile): no version 2
+      # or later, ever.
       - dependency-name: acts_as_tenant
-        update-types: ["version-update:semver-major"]
+        versions: [">= 2"]
 
   - package-ecosystem: npm
     directory: /

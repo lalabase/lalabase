@@ -102,6 +102,8 @@ group :test do
 end
 
 # Additional tools
+# acts_as_tenant stays on version 1, for good: version 2 fails our factories on
+# tenant_mismatch. Dependabot ignores it from 2 on.
 gem 'acts_as_tenant', '~> 1.0'  # Multi-tenancy support for Rails
 gem 'annotaterb'
 gem 'anthropic', '~> 2.8'       # Anthropic Claude API wrapper (official)

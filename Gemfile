@@ -23,7 +23,7 @@ gem 'lexxy', '~> 0.9'           # Lexical-based ActionText editor (Wiki notes on
 gem 'redcarpet'
 gem 'reverse_markdown'          # HTML → GFM-Markdown für die Wiki markdown_body-Projektion
 gem 'rouge'                     # Syntax highlighting for documentation code blocks
-# Keep the remediation required by GHSA-8qw7-6phv-7q6p on the 4.14 patch line.
+# GHSA-8qw7-6phv-7q6p needs 4.14.0 or later; the pin holds one patch line.
 gem 'view_component', '~> 4.24.0'
 
 gem 'dotenv-rails' # Loads environment variables from .env
@@ -107,8 +107,8 @@ gem 'parser', '~> 3.3'          # Ruby AST parser (M6 — Layer-1 code symbol ex
 gem 'pry-rails'                 # Enhanced Rails console with Pry
 gem 'ruby-openai', '~> 7.1'     # OpenAI API wrapper
 # Lalabase::Llm::PublicEndpointAdapter takes over Net::HTTP#timeouted_connect, which
-# 0.6.0 does not have; the adapter refuses to load without it. 0.9.1 is the version
-# Ruby 4.0.7 ships. A newer line is fine once the adapter spec is green on it.
+# 0.6.0 does not have; the adapter refuses to load without it. Ruby 4.0.7 ships 0.9.1;
+# the adapter spec is green on 0.10. A newer line is fine once it is green there too.
 gem 'net-http', '~> 0.10.0'
 gem 'ruby_tree_sitter', '~> 2.1' # TypeScript/JS AST parser (M10 — Layer-1). Precompiled multi-platform runtime; grammar (.so/.dylib) built from vendored C sources.
 

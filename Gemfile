@@ -91,7 +91,7 @@ group :test do
   gem 'database_cleaner-active_record', '~> 2.2' # Clean database between tests
   gem 'factory_bot_rails', '~> 6.5.1' # Optional, for factories
   gem 'faker', '~> 3.8' # Faker for generating test data
-  gem 'rspec-rails', '~> 7.1.1'
+  gem 'rspec-rails', '~> 8.1.0'
   gem 'selenium-webdriver' # WebDriver for Capybara
   gem 'shoulda-matchers'
   gem 'simplecov', require: false # Test coverage reports

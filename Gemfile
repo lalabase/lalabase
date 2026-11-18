@@ -120,6 +120,6 @@ gem 'mission_control-jobs' # Job queue monitoring interface for Solid Queue
 gem 'pundit', '~> 2.3'
 gem 'pundit-matchers', '~> 4.0', groups: %i[development test]
 gem 'rack-attack', '~> 6.7' # Rate limiting and request throttling
-gem 'redis', '~> 5.3' # Cache store (staging/production); no longer a job backend
+gem 'redis', '~> 6.0' # Cache store (staging/production); no longer a job backend
 gem 'solid_queue', '~> 1.0' # The only job backend (Rails 8 native)
 gem 'whatlanguage'

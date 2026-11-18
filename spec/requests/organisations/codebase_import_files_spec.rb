@@ -421,6 +421,19 @@ RSpec.describe 'Organisations::CodebaseImportFiles', type: :request do
         expect(response).to have_http_status(:success)
       end
 
+      # The address comes out of an uploaded file, so it is any text. "?bcc=" in it added a
+      # recipient to the mail a click wrote: the link was built by hand.
+      it 'links the address of an imported user with what ends a mailto address encoded' do
+        import_file = create(:codebase_import_file, organisation: organisation, user: admin, file_type: 'users',
+                                                    original_filename: 'users.xml',
+                                                    file_content: valid_users_xml.sub('test@example.com', 'test?bcc=x@example.com'))
+        get show_path(import_file)
+
+        expect(response).to have_http_status(:success)
+        links = Nokogiri::HTML(response.body).css('a[href^="mailto:"]').to_h { |link| [link.text.strip, link['href']] }
+        expect(links).to eq('test?bcc=x@example.com' => 'mailto:test%3Fbcc%3Dx@example.com')
+      end
+
       it 'redirects with flash when parsed_data is nil' do
         import_file = create(:codebase_import_file, organisation: organisation, user: admin)
         import_file.update_column(:file_content, '')

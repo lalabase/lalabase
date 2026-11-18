@@ -174,9 +174,7 @@
                     <% end %>
                   </td>
                   <td class="py-3 px-4 text-cream-900">
-                    <a href="mailto:<%= user_data[:email] %>" class="hover:underline">
-                      <%= user_data[:email] %>
-                    </a>
+                    <%= link_to user_data[:email], PersonDetail.mailto(user_data[:email]), class: 'hover:underline' %>
                   </td>
                   <td class="py-3 px-4 text-cream-900">
                     <%= user_data[:full_name] %>

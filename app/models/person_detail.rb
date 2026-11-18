@@ -92,7 +92,8 @@ class PersonDetail
   end
 
   # The href of an email address, for every page that links one (a detail, the fixed
-  # email of a person or a member, the card above the organisations): the address as
+  # email of a person or a member, the card above the organisations, an imported user,
+  # the admin's page of an account): never "mailto:" and the address by hand. The address as
   # written, what MAILTO_ESCAPED names percent-encoded. Decoded, it is the stored address.
   def self.mailto(address)
     "mailto:#{address.to_s.gsub(MAILTO_ESCAPED) { |char| ERB::Util.url_encode(char) }}"

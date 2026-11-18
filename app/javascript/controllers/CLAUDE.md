@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-17)
+# Karte: app/javascript/controllers (Stand: 2026-11-18)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -480,14 +480,12 @@ die Sidebar-Zeile liegt in der Navigation. Damit sind sie NICHT im selben Stimul
   Zeile überspringt nur `a, button, form, .dropdown, .no-click`; ein Haken (`<input>` in einem
   `<label>`) und ein `<details>`-Menü sind keins davon, ihre Zelle trägt darum `no-click`,
   sonst öffnet das Ankreuzen die Karte. Die DETAIL-Adresse dieser Zeile ist die Adresse der
-  Seite selbst (`/people?card=…`): der Server erkennt die Bahn am Header ihres Frames. Die
-  offene Zeile bekommt als `id` die Adresse aus der Adressleiste, auch wenn die eine andere
-  Quelle derselben Person nennt, sonst nähme `markFromAddress` die Markierung wieder weg.
-  Seit dem Review von #197 (18.11.2026) trägt jede Zeile nur ihre EIGENE Adresse (die
-  erste Quelle der Zeile): die Suche zeichnet die Zeilen ohne Karte neu, und eine Zeile mit
-  der Adresse aus der Leiste verlor danach die Markierung, ein Klick auf sie lud die Karte
-  neu statt die Bahn zu schließen. Nennt die Adresse die Person über eine andere Quelle,
-  schreibt `layout_toggle#renameResolvedSelection` sie im SELBEN Eintrag auf die der Zeile um
+  Seite selbst (`/people?card=…`): der Server erkennt die Bahn am Header ihres Frames. Jede
+  Zeile trägt als `id` nur ihre EIGENE Adresse (die erste Quelle der Zeile). Bis zum Review
+  von #197 (18.11.2026) bekam die offene Zeile die Adresse aus der Adressleiste; die Suche
+  zeichnet die Zeilen aber ohne Karte neu, die Zeile verlor danach die Markierung, und ein
+  Klick auf sie lud die Karte neu statt die Bahn zu schließen. Nennt die Adresse die Person
+  über eine andere Quelle, schreibt `layout_toggle#renameResolvedSelection` sie im SELBEN Eintrag auf die der Zeile um
   (`renamedSelection`, `{ card: [genannt, die der Zeile] }`, aus
   `all_people_renamed_lane_params`), und die Zeilen markieren sich neu (`lane:restored`).
 - **Ein Formular mit `data-lane-keep`** (18.11.2026): wie ein so markierter Link nimmt es

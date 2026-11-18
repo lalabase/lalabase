@@ -236,7 +236,8 @@ RSpec.describe People::Lookup, :ci_guard do
       expect(described_class.card(read.call)[:additional_details])
         .to eq([{ label: 'phone', value: '+49 30 5550199' }, { label: 'Shop', value: 'https://example.com' }])
       expect(I18n.with_locale(:de) { described_class.card(read.call, kind_names: true)[:additional_details] })
-        .to eq([{ label: 'Telefon', value: '+49 30 5550199' }, { label: 'Shop', value: 'https://example.com' }])
+        .to eq([{ label: 'Telefon', value: '+49 30 5550199', kind: 'phone' },
+                { label: 'Shop', value: 'https://example.com', kind: 'url' }])
       expect(I18n.with_locale(:en) { described_class.card(read.call, kind_names: true)[:additional_details].first[:label] })
         .to eq('Phone')
     end

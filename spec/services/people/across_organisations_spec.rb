@@ -443,6 +443,18 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
 
       expect(across.stands_alone_now?(part)).to be(false)
     end
+
+    # Review of #197: "as shown before" is what the instance read first. Asked of an
+    # instance that read nothing before the write, the check compared the new lines with
+    # themselves and held for any person that came apart. It refuses instead.
+    it 'refuses to answer when the people as shown were not read before the write' do
+      fresh = described_class.new(viewer: User.find(viewer.id))
+      fresh_part = fresh.part(west.id, "person:#{west_contact.id}")
+      PersonGroupEntry.where(person_group_id: kai.id, organisation_id: west.id).delete_all
+      PersonGroupEntry.where(person_group_id: nora.id, organisation_id: south.id).delete_all
+
+      expect { fresh.stands_alone_now?(fresh_part) }.to raise_error(ArgumentError, /before the write/)
+    end
   end
 
   describe 'the search' do

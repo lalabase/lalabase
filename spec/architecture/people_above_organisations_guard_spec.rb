@@ -41,6 +41,7 @@ RSpec.describe 'The people above the organisations never lift the tenant' do
     app/views/all_people/_lane.html.erb
     app/views/all_people/_card.html.erb
     app/views/all_people/_card_head.html.erb
+    app/views/all_people/_lane_close.html.erb
     app/views/organisations/person_takeovers/_dialog.html.erb
     app/views/shared/_organisation_chip.html.erb
   ].freeze

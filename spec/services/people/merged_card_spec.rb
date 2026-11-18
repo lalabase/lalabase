@@ -132,6 +132,78 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(field(card, :email).differs).to be(false)
     end
 
+    # Review of #197: every whitespace went before the comparison, so "AB C" and "A BC"
+    # were one value with the first spelling and both organisations at it. Only a phone
+    # number is compared by its characters alone; everything else keeps its word breaks.
+    it 'keeps the word breaks of anything but a phone number and an email: more spaces are none' do
+      ActsAsTenant.with_tenant(north) { north_kai.update_columns(company: 'Nord Licht AG', department: ' Lager  Ost ') }
+      ActsAsTenant.with_tenant(south) { south_kai.update_columns(company: 'NordLicht AG', department: 'Lager Ost') }
+
+      expect(values(card, :company)).to eq([['Nord Licht AG', ['Nord GmbH']], ['NordLicht AG', ['Sued AG']]])
+      expect(field(card, :company).differs).to be(true)
+      expect(values(card, :department)).to eq([[' Lager  Ost ', ['Nord GmbH', 'Sued AG']]])
+      expect(field(card, :department).differs).to be(false)
+    end
+
+    it 'compares an additional phone number without its spaces and any other detail by its words' do
+      ActsAsTenant.with_tenant(north) do
+        north_kai.update!(additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 5550100' },
+                                               { 'kind' => 'text', 'label' => 'Kundennummer', 'value' => 'K 17' }])
+      end
+      ActsAsTenant.with_tenant(south) do
+        south_kai.update!(additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '01715550100' },
+                                               { 'kind' => 'text', 'label' => 'Kundennummer', 'value' => 'K17' }])
+      end
+
+      expect(card.fields.find { |one| one.label == 'Mobil' }.differs).to be(false)
+      expect(card.fields.find { |one| one.label == 'Kundennummer' }.values.map(&:text)).to eq(['K 17', 'K17'])
+    end
+
+    # Review of #206: the rule hung at the kind of each entry. One label typed as a phone
+    # number in one organisation and as text in the other gave the same words twice, each
+    # with one organisation, and which source came first decided the answer. A field has
+    # one rule: a phone number's, or an email's, as soon as one source says it is one.
+    [%w[phone email text text], %w[text text phone email]].each do |north_phone, north_mail, south_phone, south_mail|
+      it "compares the values of one label by one rule when the organisations gave it different kinds (first: #{north_phone})" do
+        ActsAsTenant.with_tenant(north) do
+          north_kai.update!(additional_details: [{ 'kind' => north_phone, 'label' => 'Mobil', 'value' => '0171 5550100' },
+                                                 { 'kind' => north_mail, 'label' => 'Privat', 'value' => 'Kai@Example.com' }])
+        end
+        ActsAsTenant.with_tenant(south) do
+          south_kai.update!(additional_details: [{ 'kind' => south_phone, 'label' => 'Mobil', 'value' => '01715550100' },
+                                                 { 'kind' => south_mail, 'label' => 'Privat', 'value' => 'kai@example.com' }])
+        end
+        mobile, private_mail = %w[Mobil Privat].map { |label| card.fields.find { |one| one.label == label } }
+
+        expect(values(card, mobile.key)).to eq([['0171 5550100', ['Nord GmbH', 'Sued AG']]])
+        expect(values(card, private_mail.key)).to eq([['Kai@Example.com', ['Nord GmbH', 'Sued AG']]])
+        expect([mobile.differs, private_mail.differs]).to eq([false, false])
+        expect(mobile.values.map(&:kind)).to eq([north_phone])
+      end
+    end
+
+    it 'takes the same words for one value whatever kind each organisation gave them' do
+      ActsAsTenant.with_tenant(north) do
+        north_kai.update!(additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 5550100' }])
+      end
+      ActsAsTenant.with_tenant(south) do
+        south_kai.update!(additional_details: [{ 'kind' => 'text', 'label' => 'Mobil', 'value' => '0171 5550100' }])
+      end
+
+      expect(card.fields.find { |one| one.label == 'Mobil' }.values.map(&:text)).to eq(['0171 5550100'])
+    end
+
+    it 'hands out the kind of every value, for the page to show it as the people page does' do
+      ActsAsTenant.with_tenant(north) do
+        north_kai.update!(additional_details: [{ 'kind' => 'date', 'label' => 'Geburtstag', 'value' => '1985-03-14' }])
+      end
+
+      expect(field(card, :phone).values.map(&:kind)).to eq(['phone', nil])
+      expect(field(card, :email).values.map(&:kind)).to eq(['email'])
+      expect(field(card, :company).values.map(&:kind)).to eq([nil])
+      expect(card.fields.find { |one| one.label == 'Geburtstag' }.values.map(&:kind)).to eq(['date', nil])
+    end
+
     it 'takes the case of anything but an email for a difference' do
       ActsAsTenant.with_tenant(south) { south_kai.update_columns(company: 'NORDLICHT AG') }
 
@@ -202,7 +274,8 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(values(german, 'detail:telefon')).to eq([['+49 30 5550199', ['Nord GmbH', 'Sued AG']]])
       english = I18n.with_locale(:en) { card_at(address_of(north, person: north_kai)) }
       expect(english.fields.filter_map(&:label)).to eq(%w[Phone Telefon])
-      expect(leaves(german.fields)).not_to include('phone')
+      # The stored word is the kind of a value (Value#kind), never what the card writes.
+      expect(german.fields.flat_map { |one| [one.label, *one.values.map(&:text)] }).not_to include('phone')
     end
 
     it 'carries the notes per source, as People::Lookup.card hands them out with notes: true and not otherwise' do

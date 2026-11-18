@@ -181,8 +181,12 @@ module People
     # (Actors::SplitPerson, under the owner lock): whether the lines stored NOW show the
     # part alone and every other person of the list as it was shown before. The stored
     # lines are read once more and the same entries grouped by them; no directory is read
-    # again.
+    # again. "As shown before" is what this instance read BEFORE the write (#person_with,
+    # #merges_shown_with): read first after it, both sides would be the new lines and the
+    # check would hold for any person that came apart. So it refuses to answer instead.
     def stands_alone_now?(part)
+      raise ArgumentError, 'read the people as shown before the write (#merges_shown_with)' unless @shown_people
+
       candidate = @candidate_of.fetch(part)
       people_of(regrouped(lines_for(every_candidate))) == apart(candidate)
     end
@@ -237,7 +241,8 @@ module People
     # name it, with the candidate alone (#shown_at). In memory: the lines as shown, less
     # those an Actors::SplitPerson with this source would delete.
     def leaves_alone?(candidate)
-      merges = @merges_of.fetch(shown_people.fetch(candidate), [])
+      list = shown_people.fetch(candidate) # reads @merges_of first
+      merges = @merges_of.fetch(list, [])
       keys = PersonGroupEntry.keys_for(candidate.organisation.id, candidate.entry).to_set
       lines = every_lines.reject { |merge_id, *address| merges.include?(merge_id) && keys.include?(PersonGroupEntry.key_of(*address)) }
       people_of(regrouped(lines)) == apart(candidate)

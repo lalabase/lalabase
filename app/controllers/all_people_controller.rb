@@ -2,8 +2,10 @@
 
 # The people above the organisations (GET /people): one list over the people of every
 # organisation a person is an active member of, beside the inbox above them, and the card
-# of one person in the lane beside it. Read only: search, an organisation to narrow to,
-# pages, and for one person what every organisation knows about them, side by side.
+# of one person in the lane beside it. Nothing of an organisation is written here: search,
+# an organisation to narrow to, pages, and for one person what every organisation knows
+# about them, side by side. The one write is the reader's own view switch of the card
+# ("Quellen zeigen", PATCH /people/sources), a preference on their account.
 #
 # Runs WITHOUT a tenant, like the inbox above the organisations, and never sets the
 # session's organisation. `org` (one organisation of the list) and `card` (one person:
@@ -80,13 +82,12 @@ class AllPeopleController < ApplicationController
     }, layout: false, status: card ? :ok : :not_found
   end
 
-  # The card a switch came from, as the lane state of the way back.
+  # The card a switch came from, as the lane state of the way back. The switch is not
+  # offered while "Bearbeiten" is on (all_people/_card_head), so the way back names the
+  # card alone.
   def card_state
     card = params[CARD_PARAM]
-    state = {}
-    state[CARD_PARAM] = card if card.is_a?(String) && card.present?
-    state[EDITING_PARAM] = 1 if state.any? && params[EDITING_PARAM] == '1'
-    state
+    card.is_a?(String) && card.present? ? { CARD_PARAM => card } : {}
   end
 
   # With fewer than two organisations there is nothing above them: the people page of the

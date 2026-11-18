@@ -127,6 +127,20 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
         expect(response).to redirect_to(card_of(north, source))
       end
 
+      # Review of #197: the question about a same-named entry draws the dialog again, and
+      # its second submit ("merge instead", "create anyway") has to come back to the card
+      # as well. No example sent `from` through the question.
+      it 'keeps where it was opened in the dialog the question draws again' do
+        takeover_person(south, name: 'Herr Schmidt', email: 'other@example.com')
+
+        expect { submit(from: from) }.not_to(change { counts })
+
+        expect(response).to have_http_status(:unprocessable_content)
+        form = Nokogiri::HTML(response.body).at_css("form[action='#{organisation_person_takeover_path(north, source)}']")
+        expect(form.at_css('button[name="merge_with"]')).to be_present
+        expect(form.at_css('input[type="hidden"][name="from"]')['value']).to eq(from)
+      end
+
       it 'sends a visit without the frame to the card above the organisations' do
         get new_organisation_person_takeover_path(north, source, from: from)
 

@@ -329,6 +329,16 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
       expect(result.errors).to eq([I18n.t('controllers.people.split.conflict')])
       expect(card.call).to eq(before)
       expect(ActsAsTenant.current_tenant).to be_nil
+
+      # Review of #197: a caller that owns the transaction makes the actor's own a part of
+      # it. The refusal comes after the delete and is a result, not an exception, so the
+      # caller's transaction ends normally: the take-out undoes its delete itself.
+      expect do
+        ActiveRecord::Base.transaction do
+          result = described_class.call(group_id: winner.id, current_user: viewer, source: "#{a.id}:person:#{first.id}")
+        end
+      end.not_to(change(&stored))
+      expect(result.code).to eq(:conflict)
     end
   end
 
@@ -395,6 +405,46 @@ RSpec.describe Actors::SplitPerson, :ci_guard do
       answers = Prosopite.pause { answers_for("#{north.id}:person:#{north_row.id}") }
 
       expect(answers.map { |_name, offered, taken| [offered, taken] }).to eq([[true, true]] * 3)
+    end
+
+    # Review of #197: a member's source is named by two keys, the row and the account, and
+    # a line may name either. The actor took such a source out in every variant; no
+    # example asked the card whether it offers the step for it.
+    describe 'for a member of one organisation' do
+      let(:member) { create(:user, first_name: 'Mara', last_name: 'Mitglied') }
+      let(:west) { create(:organisation, name: 'West KG') }
+
+      before do
+        Prosopite.pause do
+          [north, south, west].each { |organisation| join_organisation(viewer, organisation, admin: true) }
+          join_organisation(member, north)
+          PersonGroupEntry.where(person_group_id: mine.id, organisation_id: north.id).delete_all
+          create(:person_group_entry, person_group: mine, organisation: west, person_id: person_in(west, name: 'Kai Kontakt').id)
+        end
+      end
+
+      def member_answers(line)
+        Prosopite.pause do
+          create(:person_group_entry, person_group: mine, organisation: north, **line)
+          answers_for("#{north.id}:member:#{member.id}")
+        end
+      end
+
+      it 'agrees for a member without a row, stored by the account' do
+        expect(member_answers(user_id: member.id).map { |_name, offered, taken| [offered, taken] }).to eq([[true, true]] * 3)
+      end
+
+      it 'agrees for a member stored by their row' do
+        row = person_in(north, user: member, name: 'Mara Mitglied')
+
+        expect(member_answers(person_id: row.id).map { |_name, offered, taken| [offered, taken] }).to eq([[true, true]] * 3)
+      end
+
+      it 'agrees for a member whose line still names the account although they have a row by now' do
+        person_in(north, user: member, name: 'Mara Mitglied')
+
+        expect(member_answers(user_id: member.id).map { |_name, offered, taken| [offered, taken] }).to eq([[true, true]] * 3)
+      end
     end
   end
 end

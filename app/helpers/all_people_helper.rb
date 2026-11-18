@@ -164,14 +164,21 @@ module AllPeopleHelper
     field.label || Person.human_attribute_name(field.key)
   end
 
-  # A value as the card shows it: an email and a phone number are links, as on the people
-  # page of an organisation; everything else is the text.
-  def all_people_card_value(field, text)
-    href = case field.key
-           when :email then "mailto:#{text}"
-           when :phone then PersonDetail.new('kind' => 'phone', 'value' => text).href
-           end
-    href ? link_to(text, href, class: 'people-fields__link') : text
+  # A value as the card shows it, by the rules of the people page of an organisation
+  # (PeopleHelper#person_fields): the fixed email is a mailto link as it is (a member's is
+  # checked by Devise only), every other value is shown by its kind (PersonDetail): a
+  # phone, a well-formed email and an http(s) address are links (the address in a new
+  # tab), a date is written in the reader's language, an address keeps its lines.
+  def all_people_card_value(field, value)
+    return link_to(value.text, PersonDetail.mailto(value.text), class: 'people-fields__link') if field.key == :email
+
+    detail = PersonDetail.new('kind' => value.kind || 'text', 'value' => value.text)
+    shown = person_detail_value(detail)
+    href = detail.href
+    return shown unless href
+
+    link_to(shown, href, class: 'people-fields__link',
+                         **(detail.kind == 'url' ? { target: '_blank', rel: 'noopener noreferrer' } : {}))
   end
 
   # The newest last contact of a card: its age, its date for the tooltip and where it was.

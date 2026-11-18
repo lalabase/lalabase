@@ -534,24 +534,31 @@
   .all-people-merge button[disabled] { @apply cursor-not-allowed opacity-50; }
   /* The table stands in the list column of the lane layout, where the rules of
      the ticket table reach every table (layout.css, ".list table"): rows of one
-     height, cells cut to one line and clipped. Here a cell holds chips that
-     wrap and words that break, and the menu of a row opens out of its cell. */
-  .list table.all-people-table { overflow: visible; }
+     height, cells cut to one line and clipped, a head with little air, black
+     rules and a black line under the table. Here a cell holds chips that wrap
+     and words that break, the menu of a row opens out of its cell, and the
+     table keeps its own head and lines (above), which follow the theme. */
+  .list table.all-people-table { overflow: visible; border-bottom: none !important; }
   .list table.all-people-table tr { height: auto !important; min-height: 0 !important; }
+  .list table.all-people-table th { padding-top: 31px !important; padding-bottom: 15px !important; border-bottom-color: rgb(var(--ink)) !important; }
   .list table.all-people-table tr td { height: auto !important; max-height: none !important; padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; white-space: normal; overflow: visible; text-overflow: clip; }
+  .list table.all-people-table td,
+  .list table.all-people-table tr:last-child td { border-bottom: 1px solid rgb(var(--cream-200)) !important; }
   .list table.all-people-table .all-people-row__last { white-space: nowrap; }
   /* Beside the open card the list has half the width: function and last
      contact leave, as on a narrow screen, and name and organisations stay
      readable (layout-toggle sets show-content on the page while the lane is open). */
   .all-people-page.show-content .all-people-table__wide { display: none; }
   /* A row opens the card of its person in the lane: the whole row is the
-     control (list_row_controller), as on the people page of an organisation. */
-  .all-people-table tr[data-all-people-row] { @apply cursor-pointer outline-none; }
+     control (list_row_controller), as on the people page of an organisation.
+     The keyboard sees it by the ring of the app (layout.css), drawn inside the
+     row: around it, the ring would lie over the rows above and below. */
+  .all-people-table tr[data-all-people-row] { @apply cursor-pointer; }
+  .all-people-table tr[data-all-people-row]:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: -2px; }
   .all-people-table tr[data-all-people-row]:is(:hover, :focus-visible) td { @apply bg-cream-100; }
   .all-people-table tr[data-all-people-row].selected-row td { background-color: rgb(var(--selected-row)); }
   .all-people-row__person { @apply flex min-w-0 items-center gap-3; }
-  .all-people-row__name { @apply min-w-0 truncate font-medium text-heading no-underline; }
-  a.all-people-row__name:hover { @apply underline; }
+  .all-people-row__name { @apply min-w-0 truncate font-medium text-heading; }
   /* The columns are fixed, so a word that cannot break (a long compound, a company
      written with hyphens) wraps inside its cell instead of lying over the chips. */
   .all-people-row__role { @apply break-words text-[13px] text-muted; }
@@ -562,9 +569,8 @@
   /* An organisation as a chip (shared/_organisation_chip): a square in the
      reader's recognition colour for it (an inline background, the sidebar
      header's way; neutral without one) and its name. Flat: a chip is no main
-     action, also where it is a link. */
-  .organisation-chip { @apply inline-flex max-w-[16rem] items-center gap-1.5 rounded-full border border-cream-300 bg-surface-raised px-2 py-0.5 text-xs text-heading no-underline; }
-  a.organisation-chip:hover { @apply border-cream-600; }
+     action, also where it carries the pencil. */
+  .organisation-chip { @apply inline-flex max-w-[16rem] items-center gap-1.5 rounded-full border border-cream-300 bg-surface-raised px-2 py-0.5 text-xs text-heading; }
   .organisation-chip__swatch { @apply h-2.5 w-2.5 shrink-0 rounded-sm border border-cream-300 bg-cream-200; }
   .organisation-chip__name { @apply truncate; }
   /* A chip that carries the pencil of its organisation behind the name (the
@@ -582,7 +588,7 @@
   .all-people-card__source { @apply flex flex-col gap-1.5; }
   .all-people-card__source-head { @apply flex flex-wrap items-center gap-x-3 gap-y-1; }
   .all-people-card__note { @apply mt-2; }
-  .all-people-card__switch[aria-pressed="true"] { @apply bg-cream-200 text-heading; }
+  .all-people-card__switch[aria-pressed="true"] { @apply bg-cream-200 font-semibold text-heading; }
   /* The switch of the head is a form of its own (button_to). Only that one: the
      forms in its "···" menu are rows of the menu and stay blocks. */
   .all-people-card .people-lane__head > form { @apply inline-flex; }

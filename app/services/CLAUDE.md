@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-17)
+# Karte: app/services (Stand: 2026-11-18)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -388,18 +388,26 @@ Verzeichnis-Übersicht (Auswahl):
   across: nil)`) reads ONE person for the lane of `/people`: every source the list shows as
   that person (`AcrossOrganisations#shown_at`, which runs the card's block once per source
   UNDER THE TENANT OF ITS ORGANISATION), each through `People::Lookup.card(entry, notes:
-  true, kind_names: true)` (a detail without a label is named as the people page names it;
-  REST, MCP and the assistant keep the stored kind). `address` is `"<organisation
-  id>:<entry address>"` of any source (`MergedCard.address_of`, `.parse_address`, also for
-  `Actors::SplitPerson`); what names nobody the viewer can see answers nil, whatever the reason. Per field the distinct values
-  with their sources: equal without whitespace (an email also without case), shown as the
-  first source wrote them, and a value some sources lack is the last entry without a text
-  (a missing value is a difference). ⚠️ The right to write is asked inside the block
+  true, kind_names: true)` (a detail without a label is named as the people page names it,
+  and every detail carries its kind; REST, MCP and the assistant keep label and value with
+  the stored kind as label). `address` is `"<organisation id>:<entry address>"` of any
+  source (`MergedCard.address_of`, `.parse_address`, also for `Actors::SplitPerson`); what
+  names nobody the viewer can see answers nil, whatever the reason. Per field the distinct
+  values with their sources and the kind of the first (`Value#kind`): equal by the ONE rule
+  of their field (`#rule_of`: an email's as soon as one source gives the label that kind,
+  else a phone's, else the words; a phone without whitespace, an email also without case,
+  anything else with its word breaks: "AB C" is not "A BC"), shown as the first source
+  wrote them, and a value some sources lack is the last entry without a text (a missing
+  value is a difference). ⚠️ A rule per entry made the same words two values where one
+  organisation typed a label as a phone number and another as text.
+  The card shows a value by its kind as the people page does
+  (`AllPeopleHelper#all_people_card_value`: links, dates in the reader's language, every
+  mailto through `PersonDetail.mailto`, which encodes all but a list of safe characters). ⚠️ The right to write is asked inside the block
   (`PersonPolicy#update?` reads the tenant of the thread) and leaves as the entry the form
   edits (`edit`: `{ person_id: }`, or `{ member_id: }` for a member without a row, nil
   without the right); how the people page names that form in its address is
   `AllPeopleHelper#all_people_edit_path`'s, from the page's own constants. None at a
-  member's name and email (`ACCOUNT_FIELDS`). Plain values
+  member's name and email (`ACCOUNT_FIELDS`, drawn from `Actors::SavePerson`'s). Plain values
   leave, no `Person`. ⚠️ The notes go to this card and nowhere else: it is no tool, nothing
   of it reaches an AI provider or a list. `across:` hands in the list's read of the same
   request, so page and card share one directory per organisation.

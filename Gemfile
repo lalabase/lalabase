@@ -98,7 +98,7 @@ group :test do
 end
 
 # Additional tools
-gem 'acts_as_tenant', '~> 2.2'  # Multi-tenancy support for Rails
+gem 'acts_as_tenant', '~> 1.0'  # Multi-tenancy support for Rails
 gem 'annotaterb'
 gem 'anthropic', '~> 2.8'       # Anthropic Claude API wrapper (official)
 gem 'googleauth', '~> 1.17'     # Service-account OAuth2 token mint for Vertex AI (pure Ruby, no google-cloud SDK)

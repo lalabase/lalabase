@@ -33,6 +33,10 @@ updates:
       # moving to it is its own change, not a weekly update.
       - dependency-name: pagy
         update-types: ["version-update:semver-major"]
+      # acts_as_tenant 2 fails our factories on tenant_mismatch; upgrading it is
+      # its own change, not a weekly update.
+      - dependency-name: acts_as_tenant
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /

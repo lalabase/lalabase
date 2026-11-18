@@ -71,6 +71,14 @@ module Actors
       candidates(viewer, source).any? { |organisation| creatable_in?(viewer, organisation) }
     end
 
+    # The ids of the viewer's active organisations a copy may go to, from any source:
+    # the targets of a source are these without the source itself. Asked once by a card
+    # with several sources (People::MergedCard), where any_target_for? per source would
+    # ask the same rights again for each of them.
+    def self.target_ids_for(viewer:)
+      viewer.active_organisations.to_a.select { |organisation| creatable_in?(viewer, organisation) }.map(&:id)
+    end
+
     def self.candidates(viewer, source)
       viewer.active_organisations.where.not(id: source.id).order(:name).to_a
     end

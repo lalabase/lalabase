@@ -373,6 +373,7 @@ jobs:
           spec/system/all_inboxes_spec.rb
           spec/system/all_people_spec.rb
           spec/system/all_people_merge_spec.rb
+          spec/system/all_people_card_spec.rb
           spec/system/test_browser_pointer_spec.rb
           spec/system/page_title_edge_spec.rb
           spec/system/management_phone_spec.rb
@@ -450,12 +451,14 @@ jobs:
           spec/services/actors/take_over_person_spec.rb
           spec/services/actors/take_over_person_concurrency_spec.rb
           spec/requests/organisations/people_list_head_spec.rb
+          spec/requests/organisations/people_edit_state_spec.rb
           spec/requests/organisations/shown_email_spec.rb
           spec/requests/users/registrations_display_email_spec.rb
           spec/services/people/directory_spec.rb
           spec/services/people/contacts_spec.rb
           spec/services/people/lookup_spec.rb
           spec/services/people/across_organisations_spec.rb
+          spec/services/people/merged_card_spec.rb
           spec/models/person_group_spec.rb
           spec/models/person_group_entry_spec.rb
           spec/services/actors/merge_people_spec.rb
@@ -466,6 +469,7 @@ jobs:
           spec/services/people/merged_entry_sequences_spec.rb
           spec/services/user_data_exports/merged_people_spec.rb
           spec/requests/all_people_merges_spec.rb
+          spec/requests/all_people_card_spec.rb
           spec/requests/people_merge_invisible_to_organisation_spec.rb
           spec/services/knowledge/lookup_spec.rb
           spec/requests/organisations/people_last_contact_spec.rb

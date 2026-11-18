@@ -28,12 +28,22 @@
 # the frame (_top): a copy opens on the target's people page with a one-time
 # notice naming the source; that notice is the only trace of the source, and
 # only the viewer sees it. Answers to the form go to THIS opening (token).
+#
+# Opened on the card above the organisations (GET /people, `from` =
+# FROM_ALL_PEOPLE, carried by the form), every way out leads back to a card
+# there instead: the copy's card after a takeover (merged with the source, it
+# is the source's card too), the source's card after "merge instead" and after
+# a reason, the list after the one refusal. `from` is a word, never an address:
+# where it leads is built here.
 # The POST keeps the session's organisation (the app's rule for writes); Turbo
 # renders the redirect's answer without a page request of its own, so the
 # session follows the target on the next full page visit there.
 module Organisations
   class PersonTakeoversController < Organisations::BaseController
     MODAL_TOKEN = /\A\h{16}\z/
+    # The value of `from` that sends every answer back to the card above the
+    # organisations (all_people/_card_head).
+    FROM_ALL_PEOPLE = 'all_people'
     # The notice of a takeover whose copy was written and whose merge was not, by the
     # actor's code: one sentence names the reason, the other names none.
     UNMERGED_NOTICES = { Actors::TakeOverPerson::NOT_MERGED => 'success_not_merged',
@@ -47,7 +57,7 @@ module Organisations
       @targets = targets
       return refuse if @person.nil? || @targets.empty?
       # The menu link opened in a tab of its own: the card it belongs to.
-      return redirect_to(organisation_people_path(current_organisation, person_id: @person.id)) unless turbo_frame_request?
+      return redirect_to(source_card_path) unless turbo_frame_request?
 
       render_dialog(token: SecureRandom.hex(8))
     end
@@ -106,8 +116,24 @@ module Organisations
     def taken_over(result)
       copy = result.resource
       key = UNMERGED_NOTICES.fetch(result.code, 'success')
-      redirect_to organisation_people_path(copy.organisation, person_id: copy.id), status: :see_other,
-                                                                                   notice: t("controllers.people.takeover.#{key}", source: current_organisation.name)
+      where = if from_all_people?
+                all_people_path(AllPeopleController::CARD_PARAM => People::MergedCard.address_of(copy.organisation_id, "person:#{copy.id}"))
+              else
+                organisation_people_path(copy.organisation, person_id: copy.id)
+              end
+      redirect_to where, status: :see_other, notice: t("controllers.people.takeover.#{key}", source: current_organisation.name)
+    end
+
+    def from_all_people?
+      scalar(:from) == FROM_ALL_PEOPLE
+    end
+
+    # The card of the source: on the people page of this organisation, or above the
+    # organisations when the dialog was opened there.
+    def source_card_path
+      return organisation_people_path(current_organisation, person_id: person_id) unless from_all_people?
+
+      all_people_path(AllPeopleController::CARD_PARAM => People::MergedCard.address_of(current_organisation.id, "person:#{person_id}"))
     end
 
     # "Merge instead": the source and the named entry of the target as one
@@ -124,8 +150,7 @@ module Organisations
       return refuse if result.code == Actors::MergePeople::NOT_FOUND
       return failed_merge(merge_refusal(result)) unless result.success?
 
-      redirect_to organisation_people_path(current_organisation, person_id: person_id), status: :see_other,
-                                                                                        notice: t('controllers.people.takeover.merged_instead')
+      redirect_to source_card_path, status: :see_other, notice: t('controllers.people.takeover.merged_instead')
     end
 
     # The actor's text for a refusal it names; a failure it did not expect carries the
@@ -182,7 +207,7 @@ module Organisations
     end
 
     def back_to_card(message)
-      redirect_to organisation_people_path(current_organisation, person_id: person_id), alert: message, status: :see_other
+      redirect_to source_card_path, alert: message, status: :see_other
     end
 
     def close_dialog_with(message)
@@ -205,7 +230,8 @@ module Organisations
           helpers.tag.p(message, class: 'py-10 text-center text-sm text-muted')
         }, layout: false, status: :not_found
       else
-        redirect_to organisation_people_path(current_organisation), alert: message, status: :see_other
+        list = from_all_people? ? all_people_path : organisation_people_path(current_organisation)
+        redirect_to list, alert: message, status: :see_other
       end
     end
 
@@ -218,7 +244,7 @@ module Organisations
     def dialog_locals(token:)
       { person: @person, targets: @targets, token: token, target_id: scalar(:target),
         fields: params.key?(:target) ? ticked_fields : Actors::TakeOverPerson::DEFAULT_FIELDS,
-        question: nil, confirm_target: nil, duplicates: [] }
+        question: nil, confirm_target: nil, duplicates: [], from: (FROM_ALL_PEOPLE if from_all_people?) }
     end
   end
 end

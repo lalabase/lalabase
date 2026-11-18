@@ -7,7 +7,8 @@
 # the lane frame on the right. The address carries the lane state:
 # ?person_id= for a person, ?member_id= for a member who has no row of their
 # own yet (name and email from the account, "Angaben ergänzen"), ?new=person
-# for the form.
+# for the form of a new person, ?edit= for the form of a row (the way in from
+# outside the page: the pencil of a card above the organisations).
 #
 # show, new and edit answer the lane frame (a row click, the "+", "Bearbeiten");
 # a full visit of them lands on the index with the same lane state. The index
@@ -51,7 +52,7 @@ module Organisations
       load_list
       @lane_person = selected_person
       @lane_member = selected_member if @lane_person.nil?
-      @form_person = new_person if @lane_person.nil? && @lane_member.nil? && new_person_requested?
+      @form_person = requested_form_person if @lane_person.nil? && @lane_member.nil?
     end
 
     # A member without a row of their own, in the lane. Only a member the
@@ -84,7 +85,7 @@ module Organisations
 
     def edit
       authorize @person
-      return redirect_to(index_path(person_id: @person.id)) unless turbo_frame_request?
+      return redirect_to(index_path(edit: @person.id)) unless turbo_frame_request?
 
       render_frame(:form, person: @person)
     end
@@ -134,6 +135,9 @@ module Organisations
     # the reader sees what they would overwrite.
     def render_refused_save(result, id)
       @form_person = refused_form_person(result, id)
+      # The form the ADDRESS opened (?edit=, its hidden field says so) keeps its way out:
+      # the address still names the form, so leaving it is a visit with the person open.
+      @form_cancel_url = index_path(person_id: id) if id && PeopleHelper.edit_form_sent?(request)
       @form_message = result.code == :stale_object ? t('controllers.people.update.stale') : result.errors.to_sentence
       load_list
       set_viewport_mode
@@ -217,6 +221,31 @@ module Organisations
       @people.find_by(id: id) if id.is_a?(String) && id.present?
     end
 
+    # ?edit=: the row whose form the address asks for. Only a row of the
+    # reader's own scope (another organisation's, a hidden and a missing one
+    # are no row at all) that they may update: for everybody else the state
+    # opens nothing, and the page says so the way it does for an unreadable
+    # person_id (PeopleHelper#people_unresolved_lane_params).
+    def edit_person
+      id = params[:edit]
+      return unless id.is_a?(String) && id.present?
+
+      person = @people.find_by(id: id)
+      person if person && policy(person).update?
+    end
+
+    # The form the address asks for, when it names no person and no member: of
+    # the row ?edit= names, else an empty one for ?new=person. Leaving the form
+    # of a row that the ADDRESS opened is a visit of the page with that person
+    # open (@form_cancel_url): the address must not keep saying "edit" beside a
+    # card. "Bearbeiten" in the lane leaves by the frame instead, its address
+    # names the person already.
+    def requested_form_person
+      person = edit_person
+      @form_cancel_url = index_path(person_id: person.id) if person
+      person || (new_person if new_person_requested?)
+    end
+
     def lane_frame_request?
       turbo_frame_request? && request.headers['Turbo-Frame'] == DETAIL_FRAME_ID
     end
@@ -229,8 +258,8 @@ module Organisations
         render_frame(:detail, person: person)
       elsif member
         render_frame(:member, member: member)
-      elsif new_person_requested?
-        render_frame(:form, person: new_person)
+      elsif (form_person = requested_form_person)
+        render_frame(:form, person: form_person)
       else
         render_frame(:empty)
       end
@@ -239,7 +268,8 @@ module Organisations
     def render_frame(state, person: nil, member: nil, status: :ok)
       render html: helpers.turbo_frame_tag(DETAIL_FRAME_ID) {
         helpers.render(partial: 'organisations/people/lane',
-                       locals: { state: state, person: person, member: member, message: nil })
+                       locals: { state: state, person: person, member: member, message: nil,
+                                 form_cancel_url: @form_cancel_url })
       }, layout: false, status: status
     end
 

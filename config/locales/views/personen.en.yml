@@ -19,6 +19,8 @@ en:
         failed: "Merging did not work. Please try again."
       split:
         success: "Merge undone. The entries stand on their own in your list again."
+        source_success: "Taken out of the merge. The entry stands on its own in your list again."
+        conflict: "This source cannot be taken out on its own without changing other associations. Nothing was changed. Undo the entire merge, then merge the entries you want together again."
         failed: "The merge could not be undone. Please try again."
       takeover:
         success: "Taken over from %{source}. The original and the copy are one person for you now."
@@ -55,8 +57,24 @@ en:
         clear: "Clear selection"
         more_actions: "More actions for %{name}"
         split: "Undo merge"
-      chip:
-        open: "Open %{name} in %{organisation}"
+      card:
+        placeholder_title: "No person selected"
+        placeholder_body: "Choose a person on the left."
+        missing_title: "This person does not exist."
+        missing_body: "They may have been deleted, or you may no longer see them."
+        missing_value: "not entered"
+        show_sources: "Show sources"
+        edit_done: "Done"
+        edit_in: "Edit in %{organisation}"
+        open_in: "Open in %{organisation}"
+        read_only: "Read only"
+        notes_from: "Notes from %{organisation}"
+        last_contact: "Last contact: %{age}, in %{organisation}"
+        sources_label: "Organisations of this person"
+        more_actions: "More actions"
+        takeover_from: "Take over from %{organisation} into another organisation …"
+        detach: "Take %{organisation} out of the merge"
+        detach_confirm: "Take %{name} of %{organisation} out of the merge? The entry will stand on its own in your list again. Nothing changes in the organisations."
       empty:
         no_hits_title: "No person matches “%{query}”."
         no_hits_text: "The search looks at name, function, department, company and email."

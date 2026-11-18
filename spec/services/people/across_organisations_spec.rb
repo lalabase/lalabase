@@ -399,6 +399,52 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
     end
   end
 
+  # What Actors::SplitPerson asks after it deleted the lines of one source, under the owner
+  # lock: the stored lines read again, the same entries grouped by them, and compared with
+  # the WHOLE list as it was shown. Until the review of #197 only the source and the rest of
+  # its own person were compared: another person who came apart passed.
+  describe '#stands_alone_now?' do
+    def merge_of(owner, *entries)
+      create(:person_group, owner: owner).tap do |group|
+        entries.each { |organisation, address| create(:person_group_entry, person_group: group, organisation: organisation, **address) }
+      end
+    end
+
+    let!(:kai) do
+      Prosopite.pause { join_organisation(viewer, west, admin: true) }
+      merge_of(viewer, [north, { person_id: north_contact.id }], [south, { person_id: south_contact.id }],
+               [west, { person_id: west_contact.id }])
+    end
+    let!(:nora) { merge_of(viewer, [north, { person_id: north_only.id }], [south, { person_id: person_in(south, name: 'Nora Nord').id }]) }
+    let(:across) { described_class.new(viewer: User.find(viewer.id)) }
+    let(:part) { across.part(west.id, "person:#{west_contact.id}") }
+
+    before { across.person_with(part) } # the list as it was shown, read before the write
+
+    it 'holds when the source stands alone and everybody else as shown' do
+      PersonGroupEntry.where(person_group_id: kai.id, organisation_id: west.id).delete_all
+
+      expect(across.stands_alone_now?(part)).to be(true)
+    end
+
+    it 'does not hold while the source is still joined' do
+      expect(across.stands_alone_now?(part)).to be(false)
+    end
+
+    it 'does not hold when another person of the list came apart, however alone the source stands' do
+      PersonGroupEntry.where(person_group_id: kai.id, organisation_id: west.id).delete_all
+      PersonGroupEntry.where(person_group_id: nora.id, organisation_id: south.id).delete_all
+
+      expect(across.stands_alone_now?(part)).to be(false)
+    end
+
+    it 'does not hold when the rest of the person came apart as well' do
+      PersonGroupEntry.where(person_group_id: kai.id).where.not(organisation_id: north.id).delete_all
+
+      expect(across.stands_alone_now?(part)).to be(false)
+    end
+  end
+
   describe 'the search' do
     it 'shows the whole person for a match on one entry: the source of the other organisation too' do
       result = list(query: 'lager')

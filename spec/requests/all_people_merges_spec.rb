@@ -127,6 +127,15 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
       expect(response).to redirect_to(all_people_path(q: 'kai', page: '3'))
     end
 
+    # The bar hands the card open beside the list along (data-lane-keep): the merge comes
+    # back to the list with that card still open.
+    it 'goes back with the card that was open' do
+      open = "#{north.id}:person:#{people[:north].id}"
+      merge(source(people[:north]), source(people[:south]), q: 'kai', card: open)
+
+      expect(response).to redirect_to(all_people_path(q: 'kai', card: open))
+    end
+
     # A page travels only as a whole number from 2 to six digits: the first page is the
     # list without one, and nothing longer can be a page of this list.
     { '2' => '2', '123456' => '123456', '1' => nil, '0' => nil, '007' => nil, '1234567' => nil, '-2' => nil }
@@ -163,6 +172,16 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
       form = page(q: 'kai').at_css('form#all-people-merge')
 
       expect(form.at_css('input[name="q"]')['value']).to eq('kai')
+    end
+
+    # The card opens and changes in the address only, so the form cannot be drawn with it:
+    # it asks layout-toggle for the card open now as it leaves. So does the organisation
+    # select, a list filter that does not close the card.
+    it 'marks the bar and the organisation select to take the open card along' do
+      doc = page
+
+      expect(doc.at_css('form#all-people-merge')['data-lane-keep']).to eq('true')
+      expect(doc.at_css('form[data-all-people-tool="organisation"]')['data-lane-keep']).to eq('true')
     end
 
     it 'offers "Zusammenführung aufheben" on a merged row only' do
@@ -212,6 +231,100 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
 
       expect(answers.uniq.size).to eq(1), answers.inspect
       expect(answers.first[0..2]).to eq([303, all_people_url, I18n.t('controllers.people.not_found')])
+    end
+  end
+
+  # The card of a merged person takes the merge apart as well: the whole of it, or one
+  # source of three or more. Both come back to the card.
+  describe 'splitting from the card' do
+    let(:west) { create(:organisation, name: 'West KG') }
+    let(:west_person) { person_in(west, name: 'Kai Kontakt (West)') }
+    let(:card) { "#{people[:north].organisation_id}:person:#{people[:north].id}" }
+
+    before do
+      Prosopite.pause { join_organisation(user, west, admin: true) }
+      merge(source(people[:north]), source(people[:south]), source(west_person))
+      # The notice of the merge is shown once and gone.
+      page
+    end
+
+    def card_address(person)
+      "#{person.organisation_id}:person:#{person.id}"
+    end
+
+    it 'takes one source out, keeps the others merged and comes back to the card' do
+      delete all_people_merge_path(PersonGroup.sole.id), params: { source: card_address(people[:south]), card: card }
+
+      expect(response).to redirect_to(all_people_path(card: card))
+      expect(response).to have_http_status(:see_other)
+      expect(flash[:notice]).to eq(I18n.t('controllers.people.split.source_success'))
+      expect(stored).to eq([1, 2])
+      expect(shown(page)).to include('Kai Kontakt' => ['Nord GmbH', 'West KG'], 'Kai Kontakt (Sued)' => ['Sued AG'])
+    end
+
+    # The card's own button for the first source names another source as the way back: the
+    # reader took the north out and sees the person that stays merged, not the north alone.
+    it 'comes back to the card of the people who stay merged when the first source leaves' do
+      get all_people_path(card: card), headers: { 'Turbo-Frame' => AllPeopleController::CARD_FRAME_ID }
+      form = Nokogiri::HTML(response.body).css('form[data-card-detach]').first
+      expect(form.at_css('button').text.strip).to eq(I18n.t('views.all_people.card.detach', organisation: 'Nord GmbH'))
+
+      delete form['action']
+
+      expect(response).to have_http_status(:see_other)
+      get response.headers['Location'], headers: { 'Turbo-Frame' => AllPeopleController::CARD_FRAME_ID }
+      sources = Nokogiri::HTML(response.body).css('[data-card-source] .organisation-chip__name').map { |name| name.text.strip }
+      expect(sources).to eq(['Sued AG', 'West KG'])
+      expect(stored).to eq([1, 2])
+    end
+
+    it 'takes the whole merge apart without a source and comes back to the card' do
+      delete all_people_merge_path(PersonGroup.sole.id), params: { card: card, q: 'kai' }
+
+      expect(response).to redirect_to(all_people_path(q: 'kai', card: card))
+      expect(flash[:notice]).to eq(I18n.t('controllers.people.split.success'))
+      expect(stored).to eq([0, 0])
+    end
+
+    it 'answers a source it cannot take out like a missing merge, and deletes nothing' do
+      answers = Prosopite.pause do
+        [{ source: card_address(people[:other]) }, { source: card_address(people[:east]) }, { source: 'oops' },
+         { source: "#{north.id}:person:#{SecureRandom.uuid}" }].map do |params|
+          expect { delete all_people_merge_path(PersonGroup.sole.id), params: params }.not_to(change { stored })
+          answer
+        end
+      end
+      expect { delete all_people_merge_path(SecureRandom.uuid) }.not_to(change { stored })
+
+      expect(answers.uniq.size).to eq(1), answers.inspect
+      expect(answers.first).to eq(answer)
+      expect(answers.first[0..2]).to eq([303, all_people_url, I18n.t('controllers.people.not_found')])
+    end
+
+    it 'takes a list or a hash in place of the source for no source at all: nothing half done' do
+      expect { delete all_people_merge_path(PersonGroup.sole.id), params: { source: [card_address(people[:south])] } }
+        .not_to(change { stored })
+
+      expect(flash[:alert]).to eq(I18n.t('controllers.people.not_found'))
+    end
+
+    it 'keeps only a card address that is a text for the way back' do
+      delete all_people_merge_path(PersonGroup.sole.id), params: { card: ['x'] }
+
+      expect(response).to redirect_to(all_people_path)
+    end
+
+    it 'explains a refused regrouping and keeps the card and list context' do
+      message = I18n.t('controllers.people.split.conflict')
+      refusal = Actors::BaseActor::Result.new(success: false, code: :conflict, errors: [message])
+      allow(Actors::SplitPerson).to receive(:call).and_return(refusal)
+
+      delete all_people_merge_path(PersonGroup.sole.id), params: { source: card_address(people[:south]), card: card, q: 'kai', page: 2 }
+
+      expect(response).to redirect_to(all_people_path(card: card, q: 'kai', page: 2))
+      expect(flash[:alert]).to eq(message)
+      expect(flash[:notice]).to be_nil
+      expect(stored).to eq([1, 3])
     end
   end
 

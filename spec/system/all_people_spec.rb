@@ -4,8 +4,8 @@ require 'rails_helper'
 
 # What: the people above the organisations (GET /people) in a browser: the search answers
 #       while typing and redraws the count and the select beside it, the select narrows to
-#       one organisation and keeps the search, and the chip of a person of two
-#       organisations opens that organisation's people page with the person in the lane.
+#       one organisation and keeps the search, and the card of a person leads into each
+#       of their organisations, to the people page there with the person in the lane.
 # Why:  the search form, the list frame, the stream that redraws the tools inside the
 #       frame's answer and the links that have to leave the frame only meet in a browser.
 #       The request spec sees the markup, not whether a click inside a frame leaves it.
@@ -124,7 +124,8 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     ready = Queue.new
     release = Queue.new
     finished = Queue.new
-    allow(People::AcrossOrganisations).to receive(:call).and_wrap_original do |read, **arguments|
+    # The page builds its read and asks it; the request is held where the read is built.
+    allow(People::AcrossOrganisations).to receive(:new).and_wrap_original do |read, **arguments|
       result = read.call(**arguments)
       if arguments[:query] == 'Nora'
         ready.push(true)
@@ -166,7 +167,8 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     search_started, search_release, search_answered = Array.new(3) { Queue.new }
     switch_started, switch_release = Array.new(2) { Queue.new }
     patient = ->(queue) { Timeout.timeout(Capybara.default_max_wait_time) { queue.pop } }
-    allow(People::AcrossOrganisations).to receive(:call).and_wrap_original do |read, **arguments|
+    # The page builds its read and asks it; the request is held where the read is built.
+    allow(People::AcrossOrganisations).to receive(:new).and_wrap_original do |read, **arguments|
       if arguments[:org].present?
         switch_started.push(true)
         switch_release.pop
@@ -240,7 +242,7 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     expect(list).to have_text('Sina Sued')
   end
 
-  it 'keeps organisation links inside a phone screen with long person and organisation names' do
+  it 'keeps the organisation chips inside a phone screen with long person and organisation names' do
     shared.update!(first_name: 'Alexandra', last_name: 'von Hohenlohe-Schillingsfuerst')
     south.update!(name: 'Sueddeutsche Beratungsgesellschaft AG')
     page.driver.browser.execute_cdp('Emulation.setDeviceMetricsOverride', width: 390, height: 844,
@@ -248,14 +250,17 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     visit all_people_path
 
     row = find('tr[data-all-people-row]', text: shared.display_name)
-    expect(row).to have_css('a[data-organisation-chip]', count: 2)
+    expect(row).to have_css('[data-organisation-chip]', count: 2)
     widths = page.evaluate_script(<<~JS)
       ({ page: document.documentElement.scrollWidth,
          chips: [...document.querySelectorAll('[data-organisation-chip]')].map(chip => chip.getBoundingClientRect().right) })
     JS
     expect(widths['page']).to be <= 390
     expect(widths['chips']).to all(be <= 390)
-    row.find('a[data-organisation-chip]', text: south.name).click
+    # Since the card exists a row opens it, and the way into an organisation is on the card.
+    wait_for_stimulus('tr[data-all-people-row]', 'list-row')
+    row.find('.all-people-row__name').click
+    find('a[data-card-source-link]', text: I18n.t('views.all_people.card.open_in', organisation: south.name)).click
     expect(page).to have_current_path(organisation_people_path(south, member_id: shared.id))
   ensure
     page.driver.browser.execute_cdp('Emulation.clearDeviceMetricsOverride')
@@ -284,22 +289,34 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     expect(boxes['roleRight']).to be <= boxes['chipLeft']
   end
 
-  it 'opens the people page of an organisation with the person in the lane, through the chip of a person of two' do
+  # Since the card exists a row opens it in the lane, and the link into an organisation
+  # is on the card, one per source (spec/system/all_people_card_spec.rb holds the card).
+  def open_card(name)
+    wait_for_stimulus('[data-all-people]', 'layout-toggle')
+    wait_for_stimulus('tr[data-all-people-row]', 'list-row')
+    find('tr[data-all-people-row]', text: name).find('.all-people-row__name').click
+    card = find("turbo-frame##{AllPeopleController::CARD_FRAME_ID} [data-all-people-card]", text: name)
+    wait_until_still('[data-all-people-card] [data-lane-close]')
+    card
+  end
+
+  it 'opens the people page of an organisation with the person in the lane, through the card of a person of two' do
     visit all_people_path
     row = find('tr[data-all-people-row]', text: 'Mara Mitglied')
-    expect(row).to have_css('a[data-organisation-chip]', count: 2)
+    expect(row).to have_css('[data-organisation-chip]', count: 2)
+    expect(row).to have_no_css('a')
 
-    row.find('a[data-organisation-chip]', text: 'Sued AG').click
+    open_card('Mara Mitglied').find('a[data-card-source-link]', text: I18n.t('views.all_people.card.open_in', organisation: 'Sued AG')).click
 
     expect(page).to have_current_path(organisation_people_path(south, member_id: shared.id))
     expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_text('Mara Mitglied')
     expect(page).to have_css('.people-row.selected-row', text: 'Mara Mitglied')
   end
 
-  it 'opens a person of one organisation through the name' do
+  it 'opens a person of one organisation through the card' do
     visit all_people_path
 
-    find('tr[data-all-people-row]', text: 'Sina Sued').click_link('Sina Sued')
+    open_card('Sina Sued').find('a[data-card-source-link]').click
 
     sina = ActsAsTenant.with_tenant(south) { Person.find_by!(name: 'Sina Sued') }
     expect(page).to have_current_path(organisation_people_path(south, person_id: sina.id))

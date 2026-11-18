@@ -52,6 +52,10 @@ export default class extends Controller {
     // Lane parameters of this visit the server did not open ({ name: value }):
     // a meeting_id it could not resolve, a new form it did not render.
     unresolvedSelection: { type: Object, default: {} },
+    // Lane parameters the server opened under another of their names
+    // ({ name: [as named, as the open row names it] }): a person above the
+    // organisations has one address per source, and the row carries one of them.
+    renamedSelection: { type: Object, default: {} },
     // The frame of a third lane whose content IS its state (the meeting beside the
     // ticket, doc/ticket_meeting_panel_plan.md): open while it holds something,
     // emptied on close, never restored from storage and never in the address.
@@ -59,9 +63,10 @@ export default class extends Controller {
   }
 
   connect() {
-    // The address names only what the server opened; hasSelection() below and
-    // index-page trust it.
+    // The address names only what the server opened, by the name its row
+    // carries; hasSelection() below, index-page and the rows trust it.
     this.dropUnresolvedSelection()
+    this.renameResolvedSelection()
 
     // Check server-side state first
     const layoutElement = this.hasLayoutTarget ? this.layoutTarget : document.querySelector('.layout')
@@ -298,12 +303,17 @@ export default class extends Controller {
     const ownIndex = new URL(this.element.dataset.indexUrl, current.origin).pathname
     for (const control of this.element.querySelectorAll('a[href], form[action], button[formaction]')) {
       const isForm = control.tagName === 'FORM'
-      if (isForm && control.method.toLowerCase() === 'get') continue
       const attribute = isForm ? 'action' : control.tagName === 'BUTTON' ? 'formaction' : 'href'
       const address = new URL(control.getAttribute(attribute), current.origin)
       const path = address.pathname.replace(/\.turbo_stream$/, '')
       const index = controlIndexPath(path, indexes)
       if (address.origin !== current.origin || !index) continue
+
+      // A form of the list marked data-lane-keep (the merge bar and the organisation
+      // select of the people above the organisations) takes the lane open now along as
+      // fields, as such a link does: its answer shows the list beside the same lane.
+      if (isForm && control.matches('[data-lane-keep]')) this.keepLiveLane(control, current)
+      if (isForm && control.method.toLowerCase() === 'get') continue
 
       // List links intentionally change page, sort or view. Only explicit lane
       // return links inherit the current list state at the index route; a list
@@ -332,6 +342,21 @@ export default class extends Controller {
       }
       if (index !== ownIndex) this.applyLaneContext(control, address, isForm)
       control.setAttribute(attribute, address.toString())
+    }
+  }
+
+  // The lane parameters of the live address as hidden fields of a form, in place of the
+  // ones it carried: the object open now, or none once the lane was closed.
+  keepLiveLane(form, current) {
+    for (const name of this.laneNames) {
+      form.querySelectorAll('input[type="hidden"]').forEach(input => { if (input.name === name) input.remove() })
+      for (const value of current.searchParams.getAll(name)) {
+        const input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = name
+        input.value = value
+        form.append(input)
+      }
     }
   }
 
@@ -641,6 +666,23 @@ export default class extends Controller {
 
     rejected.forEach(([name]) => address.searchParams.delete(name))
     window.history.replaceState(window.history.state, '', address.toString())
+  }
+
+  // The open row carries one name of the selection, the address another (the
+  // card of a person named by a later source of theirs). The address takes the
+  // row's in the same history entry, only while it still names the one the
+  // server read: a list the search draws again (its rows know nothing of the
+  // lane) still marks that row, and a click on it closes the lane. The rows
+  // mark themselves from the address again (list_row_controller).
+  renameResolvedSelection() {
+    const address = new URL(window.location.href)
+    const renamed = Object.entries(this.renamedSelectionValue)
+      .filter(([name, names]) => Array.isArray(names) && names.length === 2 && address.searchParams.get(name) === names[0])
+    if (renamed.length === 0) return
+
+    renamed.forEach(([name, names]) => address.searchParams.set(name, names[1]))
+    window.history.replaceState(window.history.state, '', address.toString())
+    document.dispatchEvent(new CustomEvent("lane:restored"))
   }
 
   // === Selection/content (Values-based) ===

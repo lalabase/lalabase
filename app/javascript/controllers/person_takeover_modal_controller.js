@@ -20,7 +20,10 @@ import TicketRelationModalController from "controllers/ticket_relation_modal_con
  *   them made a second copy;
  * - the menu entry that opened it sits in a <details> menu, which this controller closes on
  *   opening (a click inside does not close it, and Escape belongs to the modal), so the focus
- *   goes back to the "···" button (returnId), never to the hidden entry.
+ *   goes back to the "···" button (returnId), never to the hidden entry. Where one menu
+ *   offers the dialogs of several contacts (the card above the organisations), the dialog
+ *   cannot name that button by its contact: the frame it opens in names it instead
+ *   (data-person-takeover-return-id), and wins.
  */
 export default class extends TicketRelationModalController {
   static targets = ["card", "organisation", "organisationName", "question", "submit", "merge"]
@@ -29,7 +32,8 @@ export default class extends TicketRelationModalController {
     super.connect()
     if (this.discarded) return
 
-    const trigger = this.returnIdValue && document.getElementById(this.returnIdValue)
+    const returnId = this.returnIdFor() || this.returnIdValue
+    const trigger = returnId && document.getElementById(returnId)
     const menu = trigger && trigger.closest("details")
     if (menu) menu.open = false
     if (!this.hasOrganisationTarget) return
@@ -72,8 +76,10 @@ export default class extends TicketRelationModalController {
     locked.forEach((button) => { button.disabled = false })
   }
 
-  // The "···" button, not the entry inside the closed menu.
+  // The "···" button, not the entry inside the closed menu: the one the frame names, else
+  // the one of this contact (returnId, read by the base controller after this).
   returnIdFor() {
-    return null
+    const frame = this.frame || this.element.closest("turbo-frame")
+    return (frame && frame.dataset.personTakeoverReturnId) || null
   }
 }

@@ -233,6 +233,8 @@ Rails.application.routes.draw do
   get 'people', to: 'all_people#index', as: :all_people
   # Merging rows of that list into one person and taking a merge apart again: the
   # reader's own notes, written without a tenant like the list is read.
+  # The switch of that page's card ("Quellen zeigen"), remembered for the person.
+  patch 'people/sources', to: 'all_people#sources', as: :all_people_sources
   post 'people/merges', to: 'all_people/merges#create', as: :all_people_merges
   delete 'people/merges/:id', to: 'all_people/merges#destroy', as: :all_people_merge
   # The bulk bar of that inbox: the ticked rows, read or archived. Before the

@@ -73,6 +73,15 @@ class PersonDetail
     kind == 'address' ? MAX_ADDRESS_LENGTH : MAX_VALUE_LENGTH
   end
 
+  # The name of a kind in the reader's language, what a detail without a label is
+  # called on a page (the lane of the people page, the card above the organisations,
+  # the select of the form). An unknown kind is shown as it is stored.
+  def self.kind_name(kind)
+    return kind.to_s unless KINDS.include?(kind)
+
+    I18n.t("views.organisations.people.details.kinds.#{kind}")
+  end
+
   def self.rows(raw)
     raw = raw.to_unsafe_h if raw.respond_to?(:to_unsafe_h)
     case raw

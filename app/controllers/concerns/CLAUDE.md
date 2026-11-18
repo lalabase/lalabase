@@ -1,4 +1,4 @@
-# Karte: app/controllers/concerns (Stand: 2026-11-16)
+# Karte: app/controllers/concerns (Stand: 2026-11-17)
 
 > Für die Ticket-**Domäne** (Attributsystem, Kanban, Actors, Fallen) gilt zusätzlich
 > `docs/architektur/tickets_lesepfad.md`. Diese Karte hier beschreibt nur den **Stack**.
@@ -107,6 +107,25 @@ Stimulus-Controller (`layout-toggle`, `index-page`, `list-row`, `lane-link`); Sp
 Löschen verlassen die Bahn (`_top`) und landen mit `?person_id=` wieder auf der Liste. Zwei
 Auswahlparameter schließen sich aus: `person_id` (eine Zeile) und `member_id` (ein Mitglied ohne
 eigene Zeile, `PeopleController#member`); `user_id` gehört zur Formular-Gruppe.
+Seit 17.11.2026 kennt die Seite einen vierten Bahn-Zustand: `?edit=<person id>` öffnet das
+Formular einer Zeile bei einem vollen Seitenaufruf (der Weg von außen: der Stift einer Karte
+über den Organisationen; `#edit` ohne Frame leitet dorthin um). Nur für eine Zeile aus dem
+Policy-Scope, die der Leser ändern darf; alles andere (Leser, fremde, verborgene, fehlende
+Zeile, kaputte Id) ist die Liste, und der Parameter steht unter den nicht aufgelösten
+(`people_unresolved_lane_params`), genau wie eine unlesbare `person_id`. `person_id` und
+`member_id` gewinnen gegen `edit`, `edit` gegen `new`. ⚠️ Die Skripte der Bahn lernen `edit`
+nur dort, wo die Adresse ihn trägt (`PeopleHelper#people_form_params`): nichts auf der Seite
+schreibt ihn, er kommt mit einem Aufruf herein. Der Ausweg aus einem so geöffneten Formular
+ist ein Seitenaufruf mit der Person offen (`@form_cancel_url`), damit die Adresse nicht
+weiter „edit“ sagt. Wächter: `spec/requests/organisations/people_edit_state_spec.rb`.
+Die Personen über den Organisationen (`AllPeopleController`, `GET /people`) sind seit
+17.11.2026 die achte Bahn, mit denselben Stimulus-Controllern: `?card=<organisation id>:<Adresse
+des Eintrags>` (nie `organisation_id`) öffnet die Karte einer Person; die Bahn fragt die
+Adresse der Seite selbst mit dem Header ihres Frames (`all_people_card`) und bekommt die Karte
+allein, eine Adresse, die niemanden nennt, EINE Antwort (404). Die Zeile ist eine Tabellenzeile
+(`list-row` auf dem `<tr>`, Haken und Menü tragen `no-click`). ⚠️ In der Listenspalte greifen
+die Regeln der Ticket-Tabelle auf jede Tabelle (`layout.css`, `.list table`: eine Zeilenhöhe,
+abgeschnittene Zellen); `.all-people-table` nimmt sie für sich zurück.
 Das Glossar (`Organisations::GlossaryController`, K4a, 04.11.2026) ist die siebte Bahn, gebaut
 wie die Personenliste (dieselben Stimulus-Controller und `people-*`-Klassen), mit `term_id` als
 einziger Auswahl und den Filtern `project_id`, `category`, `status` (`LIST_PARAMS`, unbekannte
@@ -156,10 +175,16 @@ der Controller liefert Seiten aus (`serves_pages?`, Standard wahr). Drei Leser:
   Inbox einer Organisation, kaputte Adresse) lässt dem Fragment den Kontext seines Tickets.
   Wächter: `spec/requests/all_inboxes_lane_spec.rb` („assistant context after lane writes").
   Seit 16.11.2026 nennt sich eine zweite Seite so: die Personen über den Organisationen
-  (`AllPeopleController`, `GET /people`). Sie zeichnet noch kein Fragment einer Organisation
-  in sich hinein, darum kennt die Referrer-Regel weiter nur `/inbox`. ⚠️ Wer dort eine Bahn
-  einbaut, deren Fragmente ein Controller der Organisation beantwortet, nimmt `/people` in
-  diese Regel auf, sonst zeichnet das Fragment den Assistenten-Knopf in eine Seite ohne
+  (`AllPeopleController`, `GET /people`). Seit 17.11.2026 zeichnet ihre Karte ein Fragment
+  einer Organisation in sich hinein (den Dialog „In andere Organisation übernehmen“,
+  `Organisations::PersonTakeoversController`), und die Referrer-Regel kennt beide Pfade,
+  `/inbox` und `/people`. Wächter: `spec/requests/organisations/person_takeovers_spec.rb`
+  („the dialog on the people page above the organisations“). Von dort geöffnet
+  (`from=all_people`, `PersonTakeoversController::FROM_ALL_PEOPLE`, ein Wort, keine Adresse)
+  führt jede Antwort des Dialogs auf eine Karte dort zurück, nie auf die Personenseite einer
+  Organisation. ⚠️ Eine weitere Seite über den
+  Organisationen, die Fragmente eines Organisations-Controllers zeigt, kommt in diese Liste,
+  sonst zeichnet das Fragment den Assistenten-Knopf in eine Seite ohne
   Assistenten. Eine neue Seite über den Organisationen braucht außerdem ihren Eintrag in
   `NavigationHelper::LEVEL_PAGES` (Wächter `spec/architecture/sidebar_mode_guard_spec.rb`)
   und nennt eine Organisation in ihrer Adresse nie `organisation_id` (hier `org`).

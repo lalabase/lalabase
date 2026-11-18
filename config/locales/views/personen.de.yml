@@ -19,6 +19,8 @@ de:
         failed: "Das Zusammenführen hat nicht geklappt. Bitte versuche es noch einmal."
       split:
         success: "Zusammenführung aufgehoben. Die Einträge stehen wieder einzeln in deiner Liste."
+        source_success: "Aus der Zusammenführung gelöst. Der Eintrag steht wieder einzeln in deiner Liste."
+        conflict: "Diese Quelle lässt sich nicht einzeln lösen, ohne weitere Zuordnungen zu ändern. Nichts wurde geändert. Hebe die gesamte Zusammenführung auf und führe die gewünschten Einträge erneut zusammen."
         failed: "Die Zusammenführung ließ sich nicht aufheben. Bitte versuche es noch einmal."
       takeover:
         success: "Übernommen aus %{source}. Original und Kopie sind für dich jetzt eine Person."
@@ -55,8 +57,24 @@ de:
         clear: "Auswahl aufheben"
         more_actions: "Weitere Aktionen für %{name}"
         split: "Zusammenführung aufheben"
-      chip:
-        open: "%{name} in %{organisation} öffnen"
+      card:
+        placeholder_title: "Keine Person gewählt"
+        placeholder_body: "Wähle links eine Person aus."
+        missing_title: "Diese Person gibt es nicht."
+        missing_body: "Vielleicht wurde sie gelöscht, oder du darfst sie nicht mehr sehen."
+        missing_value: "nicht eingetragen"
+        show_sources: "Quellen zeigen"
+        edit_done: "Fertig"
+        edit_in: "In %{organisation} bearbeiten"
+        open_in: "In %{organisation} öffnen"
+        read_only: "Nur lesen"
+        notes_from: "Notizen aus %{organisation}"
+        last_contact: "Letzter Kontakt: %{age}, in %{organisation}"
+        sources_label: "Organisationen dieser Person"
+        more_actions: "Weitere Aktionen"
+        takeover_from: "Aus %{organisation} in andere Organisation übernehmen …"
+        detach: "%{organisation} aus der Zusammenführung lösen"
+        detach_confirm: "%{name} aus %{organisation} aus der Zusammenführung lösen? Der Eintrag steht danach wieder einzeln in deiner Liste. In den Organisationen ändert sich nichts."
       empty:
         no_hits_title: "Keine Person passt zu „%{query}“."
         no_hits_text: "Gesucht wird in Name, Funktion, Abteilung, Firma und E-Mail."

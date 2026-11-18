@@ -10,8 +10,8 @@ require 'rails_helper'
 #       lifted would need a rights rule of its own for every organisation at once, and one
 #       forgotten condition would show an organisation's people to somebody without the
 #       people right there. Merging rows (the two actors, their controller, the two models)
-#       and taking a contact over into another organisation stand in the list as well; a
-#       later part of the feature (the card) adds its files.
+#       and taking a contact over into another organisation stand in the list as well, and
+#       so does the card of one person (People::MergedCard and the templates of the lane).
 # Not seen: a file of the feature that is missing from the list, and a lift reached
 #       through another object (a helper of another area that lifts the tenant itself).
 #       Those are for the reader of the diff.
@@ -30,6 +30,7 @@ RSpec.describe 'The people above the organisations never lift the tenant' do
     app/services/actors/split_person.rb
     app/services/actors/take_over_person.rb
     app/services/people/across_organisations.rb
+    app/services/people/merged_card.rb
     app/services/people/lookup.rb
     app/services/people/directory.rb
     app/services/people/contacts.rb
@@ -37,6 +38,9 @@ RSpec.describe 'The people above the organisations never lift the tenant' do
     app/views/all_people/_tools.html.erb
     app/views/all_people/_results.html.erb
     app/views/all_people/_row.html.erb
+    app/views/all_people/_lane.html.erb
+    app/views/all_people/_card.html.erb
+    app/views/all_people/_card_head.html.erb
     app/views/organisations/person_takeovers/_dialog.html.erb
     app/views/shared/_organisation_chip.html.erb
   ].freeze
@@ -59,7 +63,8 @@ RSpec.describe 'The people above the organisations never lift the tenant' do
 
     expect(templates).not_to be_empty
     expect(templates - files).to be_empty
-    expect(files).to include('app/services/people/across_organisations.rb', 'app/controllers/all_people_controller.rb')
+    expect(files).to include('app/services/people/across_organisations.rb', 'app/services/people/merged_card.rb',
+                             'app/controllers/all_people_controller.rb')
   end
 
   it 'names every controller of the page and the writes behind them' do

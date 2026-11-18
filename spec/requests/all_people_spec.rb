@@ -114,32 +114,53 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
   end
 
   describe 'where a row leads' do
-    it 'links a person of one organisation to that organisation\'s people page with the person open' do
-      row = row_of(page, 'Sina Sued')
-
-      expect(row.at_css('a.all-people-row__name')['href'])
-        .to eq(organisation_people_path(south, person_id: people[:south_contact].id))
-      expect(row.at_css('a.all-people-row__name')['data-turbo-frame']).to eq('_top')
-      expect(chips(row).map(&:name)).to eq(['span'])
+    # Since the card exists a row opens it in the lane, and the way into an organisation is
+    # on the card, one link per source (spec/requests/all_people_card_spec.rb holds the card).
+    def card_links(address)
+      get all_people_path(card: address), headers: { 'Turbo-Frame' => AllPeopleController::CARD_FRAME_ID }
+      expect(response).to have_http_status(:ok)
+      Nokogiri::HTML(response.body).css('a[data-card-source-link]')
     end
 
-    it 'links a person of two organisations through each chip, and the row itself nowhere' do
-      row = row_of(page, 'Mara Mitglied')
+    it 'opens the card of a person of one organisation, which links to that organisation\'s people page with the person open' do
+      row = row_of(page, 'Sina Sued')
+      address = "#{south.id}:person:#{people[:south_contact].id}"
 
-      expect(row.css('a').map { |link| link['href'] }).to eq(
+      expect(row['data-list-row-url-value']).to eq(all_people_path(card: address))
+      expect(row.css('a')).to be_empty
+      expect(row.at_css('.all-people-row__name').name).to eq('span')
+      expect(chips(row).map(&:name)).to eq(['span'])
+      links = card_links(address)
+      expect(links.pluck('href')).to eq([organisation_people_path(south, person_id: people[:south_contact].id)])
+      expect(links.pluck('data-turbo-frame')).to eq(['_top'])
+    end
+
+    it 'opens the card of a person of two organisations, which links into each of them, and the row itself nowhere' do
+      row = row_of(page, 'Mara Mitglied')
+      # A member is addressed by the account, with a row or without one.
+      address = "#{north.id}:member:#{shared.id}"
+
+      expect(row['data-list-row-url-value']).to eq(all_people_path(card: address))
+      expect(row.css('a')).to be_empty
+      expect(chips(row).map(&:name)).to eq(%w[span span])
+      expect(row.at_css('.all-people-row__name').name).to eq('span')
+      links = card_links(address)
+      expect(links.pluck('href')).to eq(
         [organisation_people_path(north, person_id: people[:north_row].id),
          organisation_people_path(south, member_id: shared.id)]
       )
-      expect(chips(row).map(&:name)).to eq(%w[a a])
-      expect(chips(row).map { |chip| chip['data-turbo-frame'] }).to eq(%w[_top _top])
-      expect(row.at_css('.all-people-row__name').name).to eq('span')
+      expect(links.pluck('data-turbo-frame')).to eq(%w[_top _top])
     end
 
     it 'carries no parameter named organisation_id in any address of the page' do
-      doc = page(q: 'a', org: north.id)
+      doc = page(q: 'a', org: north.id, card: "#{north.id}:person:#{people[:north_contact].id}")
 
-      addresses = doc.css('[href], [action], [src]').flat_map { |node| %w[href action src].filter_map { |name| node[name] } }
+      # With the card of a person open: the link into the organisation stands on it.
+      addresses = doc.css('[href], [action], [src], [data-list-row-url-value]').flat_map do |node|
+        %w[href action src data-list-row-url-value].filter_map { |name| node[name] }
+      end
       expect(addresses).to include(organisation_people_path(north, person_id: people[:north_contact].id))
+      expect(addresses).to include(a_string_matching(/card=/))
       expect(addresses.grep(/organisation_id/)).to be_empty
     end
   end

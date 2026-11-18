@@ -226,6 +226,21 @@ RSpec.describe People::Lookup, :ci_guard do
                                                      additional_details: [{ label: 'Mobil', value: '+49 170 1234567' }])
     end
 
+    # A program reads the kind of a detail without a label as a word of its own; a page
+    # (the card above the organisations) names it as the people page does.
+    it 'names a detail without a label by its kind, and by the name of the kind with kind_names' do
+      contact.update!(additional_details: [{ 'kind' => 'phone', 'label' => '', 'value' => '+49 30 5550199' },
+                                           { 'kind' => 'url', 'label' => 'Shop', 'value' => 'https://example.com' }])
+      read = -> { lookup.entry("person:#{contact.id}") }
+
+      expect(described_class.card(read.call)[:additional_details])
+        .to eq([{ label: 'phone', value: '+49 30 5550199' }, { label: 'Shop', value: 'https://example.com' }])
+      expect(I18n.with_locale(:de) { described_class.card(read.call, kind_names: true)[:additional_details] })
+        .to eq([{ label: 'Telefon', value: '+49 30 5550199' }, { label: 'Shop', value: 'https://example.com' }])
+      expect(I18n.with_locale(:en) { described_class.card(read.call, kind_names: true)[:additional_details].first[:label] })
+        .to eq('Phone')
+    end
+
     it 'adds the stored notes when asked, and nothing else' do
       card = described_class.card(entry, notes: true)
 

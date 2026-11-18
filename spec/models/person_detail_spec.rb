@@ -265,6 +265,14 @@ RSpec.describe PersonDetail do
       end
     end
 
+    # Review of #206, round 2: the examples above hold the characters they name. This one
+    # holds the rule: of the printable ASCII characters exactly the listed ones stay.
+    it 'encodes every printable ASCII character but letters, digits and - . _ ~ + @' do
+      plain = (32..126).map(&:chr).select { |char| described_class.mailto(char) == "mailto:#{char}" }
+
+      expect(plain.join).to eq("+-.#{('0'..'9').to_a.join}@#{('A'..'Z').to_a.join}_#{('a'..'z').to_a.join}~")
+    end
+
     it 'links neither a malformed email nor a phone without digits' do
       expect(described_class.new(detail(kind: 'email', value: 'a b')).href).to be_nil
       expect(described_class.new(detail(kind: 'phone', value: 'abc')).href).to be_nil

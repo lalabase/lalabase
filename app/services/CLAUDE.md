@@ -399,7 +399,8 @@ Verzeichnis-Übersicht (Auswahl):
   anything else with its word breaks: "AB C" is not "A BC"), shown as the first source
   wrote them, and a value some sources lack is the last entry without a text (a missing
   value is a difference). ⚠️ A rule per entry made the same words two values where one
-  organisation typed a label as a phone number and another as text.
+  organisation typed a label as a phone number and another as text. The rule of a field
+  holds for its text entries too, on purpose (`#rule_of`).
   The card shows a value by its kind as the people page does
   (`AllPeopleHelper#all_people_card_value`: links, dates in the reader's language, every
   mailto through `PersonDetail.mailto`, which encodes all but a list of safe characters). ⚠️ The right to write is asked inside the block

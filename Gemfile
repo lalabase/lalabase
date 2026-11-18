@@ -118,7 +118,7 @@ gem 'neighbor'
 gem 'pdf-reader', '~> 2.16.0' # For PDF text extraction
 gem 'rtf', '~> 0.3.3' # For RTF file support, if desired
 
-gem 'image_processing', '~> 1.2' # active storage & active text
+gem 'image_processing', '~> 2.2' # active storage & active text
 gem 'mini_magick' # image processing, shrinking images
 gem 'mission_control-jobs' # Job queue monitoring interface for Solid Queue
 gem 'pundit', '~> 2.5'

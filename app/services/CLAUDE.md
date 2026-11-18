@@ -393,13 +393,16 @@ Verzeichnis-Übersicht (Auswahl):
   the stored kind as label). `address` is `"<organisation id>:<entry address>"` of any
   source (`MergedCard.address_of`, `.parse_address`, also for `Actors::SplitPerson`); what
   names nobody the viewer can see answers nil, whatever the reason. Per field the distinct
-  values with their sources and the kind of the first (`Value#kind`): equal by the rule of
-  their kind (a phone without whitespace, an email also without case, anything else with
-  its word breaks: "AB C" is not "A BC"), shown as the first source wrote them, and a value
-  some sources lack is the last entry without a text (a missing value is a difference).
+  values with their sources and the kind of the first (`Value#kind`): equal by the ONE rule
+  of their field (`#rule_of`: an email's as soon as one source gives the label that kind,
+  else a phone's, else the words; a phone without whitespace, an email also without case,
+  anything else with its word breaks: "AB C" is not "A BC"), shown as the first source
+  wrote them, and a value some sources lack is the last entry without a text (a missing
+  value is a difference). ⚠️ A rule per entry made the same words two values where one
+  organisation typed a label as a phone number and another as text.
   The card shows a value by its kind as the people page does
   (`AllPeopleHelper#all_people_card_value`: links, dates in the reader's language, every
-  mailto through `PersonDetail.mailto`). ⚠️ The right to write is asked inside the block
+  mailto through `PersonDetail.mailto`, which encodes all but a list of safe characters). ⚠️ The right to write is asked inside the block
   (`PersonPolicy#update?` reads the tenant of the thread) and leaves as the entry the form
   edits (`edit`: `{ person_id: }`, or `{ member_id: }` for a member without a row, nil
   without the right); how the people page names that form in its address is

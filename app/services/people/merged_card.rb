@@ -14,10 +14,11 @@ module People
   #   object at all, so it contributes no value, no note and no name of an organisation.
   #   An address that names nothing the viewer can see answers nil, whatever the reason.
   # * Per field every distinct value with the sources it comes from. Two values are one
-  #   when they are equal by the rule of their kind (#compared): a phone number without
+  #   when they are equal by the rule of their field (#compared): a phone number without
   #   any whitespace, an email also without its case, anything else with its word breaks
-  #   (more spaces, or spaces at the ends, are none). The card shows the value as the
-  #   first source wrote it, with that source's kind. A value some sources lack is
+  #   (more spaces, or spaces at the ends, are none). A field has ONE rule (#rule_of),
+  #   also where the organisations gave a label different kinds. The card shows the value
+  #   as the first source wrote it, with that source's kind. A value some sources lack is
   #   listed last, without a text: a missing value is a difference too, or the reader
   #   could not tell that an organisation does not know the mobile number.
   # * The right to write is asked here, under the tenant (PersonPolicy reads the tenant
@@ -38,6 +39,8 @@ module People
     # The fixed fields that are of a kind of PersonDetail: compared and shown by its rule.
     # The others are text.
     FIXED_KINDS = { email: 'email', phone: 'phone' }.freeze
+    # The kinds with a rule of their own for the comparison, the widest first (#rule_of).
+    COMPARED_KINDS = %w[email phone].freeze
     # What the account of a member owns (Actors::SavePerson's list, the fields of it the
     # card shows): no source of kind member offers to edit them.
     ACCOUNT_FIELDS = (Actors::SavePerson::ACCOUNT_FIELDS & FIXED_FIELDS).freeze
@@ -178,12 +181,13 @@ module People
     # One field: the values of each source (the block's answer, [text, kind] pairs), the
     # equal ones as one.
     def field_of(key, label, reads)
+      found = reads.map { |read| [read, yield(read).select { |text, _kind| text.present? }] }
+      rule = rule_of(found.flat_map { |_read, entries| entries.map(&:last) })
       values = {}
       lacking = []
-      reads.each do |read|
-        entries = yield(read).select { |text, _kind| text.present? }
+      found.each do |read, entries|
         lacking << read if entries.empty?
-        entries.each { |text, kind| (values[compared(kind, text)] ||= [text, kind, []]).last << read }
+        entries.each { |text, kind| (values[compared(rule, text)] ||= [text, kind, []]).last << read }
       end
       return if values.empty?
 
@@ -199,11 +203,21 @@ module People
       end.freeze
     end
 
-    # What two values are compared by, by their kind: a phone number without any
-    # whitespace ("0171 1" is "01711"), an email also without its case, anything else
-    # with its word breaks ("AB C" is not "A BC"), only more spaces and the ends gone.
-    def compared(kind, text)
-      case kind
+    # The one rule the values of a field are compared by, whatever kind each source gave
+    # its own: an email's as soon as one of them is an email, else a phone number's as
+    # soon as one is a phone number, else the words. One organisation may keep "Mobil" as
+    # a phone number and another as text; by a rule per entry the same words were two
+    # values there, and which source came first decided the answer.
+    def rule_of(kinds)
+      COMPARED_KINDS.find { |kind| kinds.include?(kind) }
+    end
+
+    # What two values are compared by, by the rule of their field: a phone number
+    # without any whitespace ("0171 1" is "01711"), an email also without its case,
+    # anything else with its word breaks ("AB C" is not "A BC"), only more spaces and the
+    # ends gone.
+    def compared(rule, text)
+      case rule
       when 'phone' then text.to_s.gsub(/[[:space:]]+/, '')
       when 'email' then text.to_s.gsub(/[[:space:]]+/, '').downcase
       else text.to_s.gsub(/[[:space:]]+/, ' ').strip

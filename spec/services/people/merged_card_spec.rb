@@ -159,6 +159,40 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(card.fields.find { |one| one.label == 'Kundennummer' }.values.map(&:text)).to eq(['K 17', 'K17'])
     end
 
+    # Review of #206: the rule hung at the kind of each entry. One label typed as a phone
+    # number in one organisation and as text in the other gave the same words twice, each
+    # with one organisation, and which source came first decided the answer. A field has
+    # one rule: a phone number's, or an email's, as soon as one source says it is one.
+    [%w[phone email text text], %w[text text phone email]].each do |north_phone, north_mail, south_phone, south_mail|
+      it "compares the values of one label by one rule when the organisations gave it different kinds (first: #{north_phone})" do
+        ActsAsTenant.with_tenant(north) do
+          north_kai.update!(additional_details: [{ 'kind' => north_phone, 'label' => 'Mobil', 'value' => '0171 5550100' },
+                                                 { 'kind' => north_mail, 'label' => 'Privat', 'value' => 'Kai@Example.com' }])
+        end
+        ActsAsTenant.with_tenant(south) do
+          south_kai.update!(additional_details: [{ 'kind' => south_phone, 'label' => 'Mobil', 'value' => '01715550100' },
+                                                 { 'kind' => south_mail, 'label' => 'Privat', 'value' => 'kai@example.com' }])
+        end
+        mobile, private_mail = %w[Mobil Privat].map { |label| card.fields.find { |one| one.label == label } }
+
+        expect(values(card, mobile.key)).to eq([['0171 5550100', ['Nord GmbH', 'Sued AG']]])
+        expect(values(card, private_mail.key)).to eq([['Kai@Example.com', ['Nord GmbH', 'Sued AG']]])
+        expect([mobile.differs, private_mail.differs]).to eq([false, false])
+        expect(mobile.values.map(&:kind)).to eq([north_phone])
+      end
+    end
+
+    it 'takes the same words for one value whatever kind each organisation gave them' do
+      ActsAsTenant.with_tenant(north) do
+        north_kai.update!(additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 5550100' }])
+      end
+      ActsAsTenant.with_tenant(south) do
+        south_kai.update!(additional_details: [{ 'kind' => 'text', 'label' => 'Mobil', 'value' => '0171 5550100' }])
+      end
+
+      expect(card.fields.find { |one| one.label == 'Mobil' }.values.map(&:text)).to eq(['0171 5550100'])
+    end
+
     it 'hands out the kind of every value, for the page to show it as the people page does' do
       ActsAsTenant.with_tenant(north) do
         north_kai.update!(additional_details: [{ 'kind' => 'date', 'label' => 'Geburtstag', 'value' => '1985-03-14' }])

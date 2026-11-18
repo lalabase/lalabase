@@ -207,7 +207,11 @@ module People
     # its own: an email's as soon as one of them is an email, else a phone number's as
     # soon as one is a phone number, else the words. One organisation may keep "Mobil" as
     # a phone number and another as text; by a rule per entry the same words were two
-    # values there, and which source came first decided the answer.
+    # values there, and which source came first decided the answer. The rule holds for
+    # every entry of the field, the text ones too, on purpose: a rule per field cannot
+    # help reading all sources, so beside an email two texts that differ only in their
+    # case are one value. A stricter choice ("only if every entry is of that kind") would
+    # bring the two values of one number back as soon as a third source wrote a note.
     def rule_of(kinds)
       COMPARED_KINDS.find { |kind| kinds.include?(kind) }
     end

@@ -182,6 +182,22 @@ RSpec.describe People::MergedCard, :ci_guard do
       end
     end
 
+    # Review of #206, round 2: an email's rule comes before a phone number's. With the
+    # order turned, a label one organisation keeps as an email and another as a phone
+    # number was compared with its case again. No example had both kinds at one label.
+    it 'takes the rule of an email before that of a phone number when one label has both kinds' do
+      ActsAsTenant.with_tenant(north) do
+        north_kai.update_columns(additional_details: [{ 'kind' => 'email', 'label' => 'Kontakt', 'value' => 'Kai1@Example.com' }])
+      end
+      ActsAsTenant.with_tenant(south) do
+        south_kai.update_columns(additional_details: [{ 'kind' => 'phone', 'label' => 'Kontakt', 'value' => 'kai1@example.com' }])
+      end
+      contact = card.fields.find { |one| one.label == 'Kontakt' }
+
+      expect(values(card, contact.key)).to eq([['Kai1@Example.com', ['Nord GmbH', 'Sued AG']]])
+      expect(contact.differs).to be(false)
+    end
+
     it 'takes the same words for one value whatever kind each organisation gave them' do
       ActsAsTenant.with_tenant(north) do
         north_kai.update!(additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 5550100' }])

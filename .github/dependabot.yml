@@ -25,6 +25,27 @@ updates:
     ignore:
       - dependency-name: json
         update-types: ["version-update:semver-major"]
+      # Tailwind stays on version 3 for good (see the Gemfile): no version 4 of the
+      # Rails gem or of the binary, ever.
+      - dependency-name: tailwindcss-rails
+        versions: [">= 4"]
+      - dependency-name: tailwindcss-ruby
+        versions: [">= 4"]
+      # acts_as_tenant stays on version 1 for good (see the Gemfile): no version 2
+      # or later, ever.
+      - dependency-name: acts_as_tenant
+        versions: [">= 2"]
+      # brakeman 8 reports findings the frozen baseline (config/brakeman.ignore) does not
+      # know; each needs the review every entry there got, so moving is its own change.
+      - dependency-name: brakeman
+        update-types: ["version-update:semver-major"]
+      # lexxy 1.0 is the first stable release of the note editor; it gets its own
+      # change with a look at the editor in the browser, not a weekly update.
+      - dependency-name: lexxy
+        versions: [">= 1"]
+      # whatlanguage 3 is a new major of the language detection; its own change.
+      - dependency-name: whatlanguage
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /

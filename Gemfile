@@ -14,8 +14,12 @@ gem 'sprockets-rails'           # The original asset pipeline for Rails
 # JavaScript & Frontend
 gem 'importmap-rails'           # Use JavaScript with ESM import maps
 gem 'stimulus-rails'            # Hotwire's modest JavaScript framework
-gem 'tailwindcss-rails', '~> 3.3.1'
 gem 'turbo-rails'               # Hotwire's SPA-like page accelerator
+# Tailwind stays on version 3, for good: Tailwind 4 changes input path, syntax and
+# config. The second line holds the Tailwind binary itself below 4, whatever a
+# later tailwindcss-rails would pull in. Dependabot ignores both from 4 on.
+gem 'tailwindcss-rails', '~> 3.3.2'
+gem 'tailwindcss-ruby', '< 4'
 # gem 'sassc-rails'               # SassC for asset pipeline - temporarily disabled due to build issues
 gem 'commonmarker', '~> 2.10'   # GFM-Markdown → HTML (comrak/Rust, GFM-nativ) für den Wiki-Rückweg
 gem 'diff-lcs', '~> 1.6'        # Line diff for Wiki note version history (prod: was test-only transitive)
@@ -65,7 +69,7 @@ gem 'rubyzip', '~> 3.7' # ZIP file handling; >= 3.4.0 closes CVE-2026-85396 (pat
 # Development and test groups
 group :development, :test do
   # gem 'debug', platforms: %i[mri windows], require: 'debug/prelude' # Debugging tool
-  gem 'brakeman', require: false # Static analysis security scanner
+  gem 'brakeman', '~> 7.0', require: false # Static analysis security scanner
 
   gem 'letter_opener' # Display emails in the browser
   gem 'pg_query' # SQL query normalization (required by prosopite with PostgreSQL)
@@ -97,14 +101,16 @@ group :test do
 end
 
 # Additional tools
-gem 'acts_as_tenant', '~> 2.2'  # Multi-tenancy support for Rails
+# acts_as_tenant stays on version 1, for good: version 2 fails our factories on
+# tenant_mismatch. Dependabot ignores it from 2 on.
+gem 'acts_as_tenant', '~> 1.0'  # Multi-tenancy support for Rails
 gem 'annotaterb'
 gem 'anthropic', '~> 2.8'       # Anthropic Claude API wrapper (official)
 gem 'googleauth', '~> 1.17'     # Service-account OAuth2 token mint for Vertex AI (pure Ruby, no google-cloud SDK)
 gem 'mcp', '~> 1.10'            # Official Model Context Protocol SDK (MCP server, Claude Code -> Lalabase)
 gem 'parser', '~> 3.3'          # Ruby AST parser (M6 — Layer-1 code symbol extraction)
 gem 'pry-rails'                 # Enhanced Rails console with Pry
-gem 'ruby-openai', '~> 7.1'     # OpenAI API wrapper
+gem 'ruby-openai', '~> 8.3'     # OpenAI API wrapper
 # Lalabase::Llm::PublicEndpointAdapter takes over Net::HTTP#timeouted_connect, which
 # 0.6.0 does not have; the adapter refuses to load without it. Ruby 4.0.7 ships 0.9.1;
 # the adapter spec is green on 0.10. A newer line is fine once it is green there too.
@@ -117,7 +123,10 @@ gem 'neighbor'
 gem 'pdf-reader', '~> 2.16.0' # For PDF text extraction
 gem 'rtf', '~> 0.3.3' # For RTF file support, if desired
 
-gem 'image_processing', '~> 1.2' # active storage & active text
+gem 'image_processing', '~> 2.2' # active storage & active text
+# image_processing 2 no longer depends on ruby-vips; Active Storage variants, the avatar
+# crop and the rich text embeds call Vips directly, so the app names it itself.
+gem 'ruby-vips', '~> 2.2'
 gem 'mini_magick' # image processing, shrinking images
 gem 'mission_control-jobs' # Job queue monitoring interface for Solid Queue
 gem 'pundit', '~> 2.5'
@@ -125,4 +134,4 @@ gem 'pundit-matchers', '~> 4.0', groups: %i[development test]
 gem 'rack-attack', '~> 6.7' # Rate limiting and request throttling
 gem 'redis', '~> 6.0' # Cache store (staging/production); no longer a job backend
 gem 'solid_queue', '~> 1.7' # The only job backend (Rails 8 native)
-gem 'whatlanguage'
+gem 'whatlanguage', '~> 1.0'

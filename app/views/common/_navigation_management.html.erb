@@ -15,7 +15,7 @@
     <%= render 'common/navigation_item', name: t('navigation.management_back'),
                                          path: management_return_path(current_organisation), icon: 'bi bi-arrow-left' %>
   </ul>
-  <p class="px-3 pb-1.5 pt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"><%= t('navigation.management') %></p>
+  <p class="px-3 pb-1.5 pt-5 section-label text-muted"><%= t('navigation.management') %></p>
   <nav aria-label="<%= t('navigation.management') %>" data-management-nav>
     <% management_sections(current_organisation).chunk_while { |a, b| a[:group] == b[:group] }.each_with_index do |group, index| %>
       <% if index.positive? %>

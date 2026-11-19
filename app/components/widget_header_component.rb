@@ -2,16 +2,17 @@
 
 # The single source of truth for a widget's header line, shared by every overview
 # (Overview::*) and project-dashboard (Dashboard::*) widget. Before this, the header
-# had drifted into several treatments — a muted "//" mono eyebrow, a bold inline
-# title, a boxed header bar, and the dashboard's loud text-xl font-black — so the
-# same conceptual element looked different on every card. Routing them all through
+# had drifted into several treatments (a muted mono eyebrow, a bold inline title,
+# a boxed header bar, and the dashboard's loud text-xl font-black), so the same
+# conceptual element looked different on every card. Routing them all through
 # one component makes the header impossible to diverge again.
 #
-# Style intent: keep the editorial mono-uppercase motif (it is the house label
-# language) but raise the title to INK (text-cream-900) — one clear step darker
-# than the cream-600 sub-labels that sit INSIDE a widget — so the title reads as
-# the card's anchor, not as just another label. The leading "//" becomes a cobalt
-# accent marker (an active brand tick), not greyed-out code.
+# Style intent: the title wears the section label of the app (.section-label,
+# F51 of the Belegungstabelle), the same shape as "PROJEKTE" in the
+# sidebar and the summary heading of the ticket timeline. It is INK
+# (text-cream-900), one clear step darker than the cream-600 sub-labels that sit
+# INSIDE a widget, so it reads as the card's anchor. Nothing stands in front of
+# it: the "//" marker was a leftover of an older design and was removed.
 #
 #   render WidgetHeaderComponent.new(title: t('...'))                  # plain
 #   render WidgetHeaderComponent.new(title: t('...'), subtitle: '…')   # + subtitle

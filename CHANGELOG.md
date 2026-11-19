@@ -84,6 +84,24 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   of the account. Revoking no longer fails for a token whose only organisation is gone, on
   the token page and for a sign-out. `GET /api/v1/me` names the capability
   `app_session.revoke`. API version 1.15.0.
+- A list of the people of all organisations at `/people`, beside the inbox above the
+  organisations: one search over every organisation a person may see the people of, an
+  organisation to narrow to, and one row for a member with the same account in two
+  organisations. A click opens the card of the person in a lane, in two modes: "Contact"
+  shows every value once, "Sources" names the organisation at a value they do not share.
+  Rows of different organisations can be merged into one person, for the reader only, and
+  taken apart again. The sidebar's inbox and people rows lead there with a globe for people
+  in two or more organisations (#187), (#192), (#196), (#197), (#206), (#236), (#238).
+- A contact without an account can be taken over into another organisation of the reader,
+  with the fields the reader ticks; the note stays behind (#184).
+- A link whose text is the address of a ticket, meeting, person, note or document of the
+  same organisation shows as a chip with its title, in comments, descriptions and notes,
+  for readers who may see the object. The stored text keeps the plain link (#189).
+- Organisations can be shown on a subdomain of their own (`client.example.com`), set by the
+  instance admin. Off unless `LALABASE_TENANT_DOMAIN` is set, see the upgrade notes. The
+  host never grants access: a person signs in on the main host only and is handed over to
+  the organisation's host with a single-use token. Signing out ends the session on every
+  host (#188), (#190).
 
 ### Changed
 
@@ -138,6 +156,13 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   `/smart_folders/:id.json`) keeps `count`, `page`, `limit`, `offset`, `last`, `from`, `to`,
   `in`, `prev` and `next` and adds `pages`. It no longer carries `vars`, `outset` and
   `overflow`, and on the results its numbers follow the page size really used (#221).
+- The assistant's writing zone is calmer: the AI notice sits in the panel head, style and
+  length moved to the panel's settings, and the topic row shows one summary chip whose list
+  floats above the transcript (#242), (#244).
+- Every list row has one inset: its surface ends at the list's lines and its content stands
+  12 px inside. The sidebar head and the dashboards' heads lost their frames and the `//`
+  marker (#237), (#239), (#240), (#241), (#245).
+- The in-app news page is gone. News about Lalabase are published on the website (#186).
 
 ### Fixed
 
@@ -162,9 +187,15 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   one. The "entries per page" select works on the activity pages, the saved views and their
   results, the member activities and the admin mail log have a readable pagination bar, and
   the tag list opens again (#221).
+- Back on the people list above the organisations loads the page again instead of a stale
+  copy, and a long word wraps in its function column (#192).
 
 ### Security
 
+- Ruby 4.0.10. The Docker image and `.ruby-version` move from 4.0.7, which is affected by
+  the Regexp and String vulnerabilities of the ruby-lang.org advisory of 2026-11-18: heap
+  buffer overflows, a double free and out-of-bounds reads in Regexp and in String case
+  conversion, several with remote code execution stated as possible. Update soon (#243).
 - The search of the ticket list in `/api/v1` and in the MCP tool `list_tickets` (`q`) no
   longer matches the text of comments. It matched every comment, private ones the reader may
   not read included, so a hit told the searcher what a private comment said. It now searches
@@ -204,6 +235,14 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   through `sanitize`: translations with markup, the rendered changelog entries, the style
   guide and the preview of the email log. No known hole is closed by it; it is a second line
   behind the inputs (#171).
+- A `mailto:` link built from a stored address percent-encodes what would change the
+  address. A valid email with `?bcc=` in its local part added a recipient in the reader's
+  mail program (people card, members, the import page, the admin's account page)
+  (#206), (#233).
+- Updated dependencies, among them redis 6, image_processing 2 (with
+  ruby-vips now named in the Gemfile), anthropic 2 and ruby-openai 8. The npm package
+  `copyfiles` and its 43 dependencies are gone (`npm audit`: 0) (#198), (#201), (#204),
+  (#212), (#217), (#218), (#229), (#232).
 
 ### Upgrade notes
 
@@ -233,7 +272,17 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   written to the log at that level, and it may hold the password. At the default level
   no body and no parameter of that sign-in reaches the log. Serve the instance over TLS
   only: the password travels in the request.
-- No new required environment variables.
+- Everybody is signed out once by this update: the session cookie has a new name, and a
+  session without the new session version ends. A remember-me cookie signs a person in
+  again without the password (#190).
+- Without Docker: install Ruby 4.0.10 before updating, and with it the Bundler version named
+  under `BUNDLED WITH` in `Gemfile.lock` (`gem install bundler -v 2.6.6`). A newer Bundler
+  rewrites the lock's platforms (#243).
+- Organisation subdomains stay off until you set `LALABASE_TENANT_DOMAIN` to the instance's
+  own host (`example.com`, organisations one label below). They need a wildcard DNS entry
+  and certificate, and a proxy that passes the requested host on (`X-Forwarded-Host`).
+  Unset, nothing changes (#188), (#190).
+- No new required environment variables. `LALABASE_TENANT_DOMAIN` is new and optional.
 
 ## [2026.11.0] - 2026-10-31
 

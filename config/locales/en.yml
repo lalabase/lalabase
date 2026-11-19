@@ -1391,6 +1391,9 @@ en:
     overview: Overview
     all_organisations: All organisations
     all_inboxes: All inboxes
+    across_organisations:
+      inbox: Inbox of all organisations
+      people: People of all organisations
     organisations: Organisations
     all_projects: All Projects
     times: Times

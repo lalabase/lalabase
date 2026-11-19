@@ -40,7 +40,9 @@
     the sidebar (all_inboxes/_redraw); the menu itself stays, open or not, with its focus. %>
 <div class="w-full mt-2 border-b border-cream-300" data-sidebar-header>
   <details class="group" data-controller="details-autoclose" data-action="toggle->details-autoclose#onToggle">
-    <summary class="flex items-center justify-between gap-2 px-6 py-2 cursor-pointer hover:bg-white/55 rounded transition-colors list-none"
+    <%# pr-2.5: the gear's centre stands where the pins of the project rows stand (pr-3 and a
+        w-6 pin there, 24px from the edge; here 10px and the w-7 gear), user 19.11.2026. %>
+    <summary class="flex items-center justify-between gap-2 pl-6 pr-2.5 py-2 cursor-pointer hover:bg-white/55 rounded transition-colors list-none"
              title="<%= organisation ? t('navigation.organisation') : t('navigation.all_organisations') %>">
       <%# The chevron of the switcher stands at the name it changes, not at the edge beside
           the gear, where it read as a second button of its own (user, 19.11.2026): a long

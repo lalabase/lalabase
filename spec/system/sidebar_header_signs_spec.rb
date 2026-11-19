@@ -65,6 +65,16 @@ RSpec.describe 'Signs in the head of the sidebar (System)', type: :system do
     expect(style_of(gear, 'backgroundColor')).to eq('rgba(0, 0, 0, 0)')
   end
 
+  it 'stands the gear in one line with the pins of the project rows' do
+    ActsAsTenant.with_tenant(north) { create(:project, organisation: north, name: 'Alpha') }
+    visit organisation_notifications_path(north, state_filters: %w[read unread])
+
+    pin = first("[data-sidebar-project-accordion-target='item'] > div form[action*='sidebar_pins'] button", visible: :all)
+    centre = ->(element) { element.evaluate_script('(r => r.left + r.width / 2)(this.getBoundingClientRect())') }
+    expect(pin.evaluate_script('this.getBoundingClientRect().width')).to be > 0
+    expect((centre.call(gear) - centre.call(pin)).abs).to be <= 0.5
+  end
+
   it 'shows a grey tile on the gear under the pointer only' do
     visit organisation_notifications_path(north, state_filters: %w[read unread])
 

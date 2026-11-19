@@ -25,7 +25,7 @@
 # CacheCleanupJob deletes the expired entries the web container wrote.
 
 x-app: &app
-  image: ghcr.io/lalabase/lalabase:${LALABASE_VERSION:-2026.11.0}
+  image: ghcr.io/lalabase/lalabase:${LALABASE_VERSION:-2026.11.1}
   restart: unless-stopped
   env_file: .env
   environment: &app-env

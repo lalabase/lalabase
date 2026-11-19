@@ -18,6 +18,10 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ## [Unreleased]
 
+## [2026.11.1] - 2026-11-19
+
+<!-- drafted from 499f88148db1fe89ae460f12379df4c2b93e47cc -->
+
 ### Added
 
 - A glossary for each organisation: terms in their right spelling and the forms in which
@@ -66,7 +70,7 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   the latest a year after it was made. The token page marks such a device and revokes it,
   but does not rename it. `GET /api/v1/me` names `token.kind` and `token.ends_at`, and the
   data export lists the kind. No token changes by this update: nothing hands out a device
-  token yet. API version 1.13.0.
+  token yet. API version 1.13.0 (#193).
 - A client signs a person in with e-mail address and password:
   `POST /api/auth/v1/app_sessions` answers a device token (kind `app_session`) once, and
   `GET /api/auth/v1/methods` tells a client beforehand whether the instance offers this
@@ -76,14 +80,14 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   lock, and web and app share the limit of 5 attempts a minute per IP and per address. An
   account keeps at most 10 live devices; one more signs out the device unused longest. The
   door takes JSON of at most 4 KB and is closed in demo mode. `GET /api/v1/me` names the
-  capability `app_sessions`. API version 1.14.0.
+  capability `app_sessions`. API version 1.14.0 (#194).
 - A client signs out: `DELETE /api/v1/app_session` revokes the token the request came with,
   a device token or a personal one, and no other. A read-only token gets 403 and stays
   alive; a second call with the same token gets 401, and a retry with the same
   `Idempotency-Key` reads the first answer again. The sign-out is noted in the activity
   of the account. Revoking no longer fails for a token whose only organisation is gone, on
   the token page and for a sign-out. `GET /api/v1/me` names the capability
-  `app_session.revoke`. API version 1.15.0.
+  `app_session.revoke`. API version 1.15.0 (#195).
 - A list of the people of all organisations at `/people`, beside the inbox above the
   organisations: one search over every organisation a person may see the people of, an
   organisation to narrow to, and one row for a member with the same account in two
@@ -167,6 +171,8 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 ### Fixed
 
 - The meeting and note edit forms ask before they delete (#170).
+- A delete link that asks first deletes again after "OK". In some browsers (Chrome on
+  Linux) the question came, and nothing happened after it (#191).
 - Cancelling or deleting in the note editor of the inbox keeps the editor's frame (#176).
 - A note mention in a rich text draws its chip again (#182).
 - A file opened without a login leads to the login page (#103).
@@ -246,7 +252,8 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ### Upgrade notes
 
-- Run `bin/rails documentation:resync_all` once after updating. Until then a page keeps
+- Run `bin/rails documentation:resync_all` once after updating (with Docker:
+  `docker compose exec web bin/rails documentation:resync_all`). Until then a page keeps
   its old image addresses, unless its repository receives a new commit (#107).
 - No existing role gets the new rights `view_glossary` and `manage_glossary`. Account admins
   need neither; for everyone else, grant them in the roles of the organisation. Glossary

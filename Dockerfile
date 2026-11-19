@@ -13,7 +13,7 @@
 # Build it on the architecture it runs on, or with buildx for that platform:
 # native extensions do not carry over between arm64 and amd64.
 
-ARG RUBY_VERSION=4.0.7
+ARG RUBY_VERSION=4.0.10
 # trixie pinned: the package names below are Debian 13's (libvips42t64).
 FROM docker.io/library/ruby:${RUBY_VERSION}-slim-trixie AS base
 

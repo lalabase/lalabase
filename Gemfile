@@ -23,7 +23,10 @@ gem 'tailwindcss-ruby', '< 4'
 # gem 'sassc-rails'               # SassC for asset pipeline - temporarily disabled due to build issues
 gem 'commonmarker', '~> 2.10'   # GFM-Markdown → HTML (comrak/Rust, GFM-nativ) für den Wiki-Rückweg
 gem 'diff-lcs', '~> 1.6'        # Line diff for Wiki note version history (prod: was test-only transitive)
-gem 'lexxy', '~> 0.9'           # Lexical-based ActionText editor (Wiki notes only; Trix stays elsewhere)
+# lexxy is held at 0.9.18: 0.9.33 turns the guard against foreign hosts red
+# (no_runtime_cdn_guard_spec; a comment in its script quotes an image address of Google's
+# font host). A newer version comes with a look at that script, not with a weekly update.
+gem 'lexxy', '0.9.18'           # Lexical-based ActionText editor (Wiki notes only; Trix stays elsewhere)
 gem 'redcarpet'
 gem 'reverse_markdown'          # HTML → GFM-Markdown für die Wiki markdown_body-Projektion
 gem 'rouge'                     # Syntax highlighting for documentation code blocks
@@ -70,7 +73,9 @@ gem 'rubyzip', '~> 3.7' # ZIP file handling; >= 3.4.0 closes CVE-2026-85396 (pat
 # Development and test groups
 group :development, :test do
   # gem 'debug', platforms: %i[mri windows], require: 'debug/prelude' # Debugging tool
-  gem 'brakeman', '~> 7.0', require: false # Static analysis security scanner
+  # brakeman is held at 7.0.0: 7.1 gives two frozen entries of config/brakeman.ignore a new
+  # fingerprint and reports them as new. A newer version comes with those two read again.
+  gem 'brakeman', '7.0.0', require: false # Static analysis security scanner
 
   gem 'letter_opener' # Display emails in the browser
   gem 'pg_query' # SQL query normalization (required by prosopite with PostgreSQL)

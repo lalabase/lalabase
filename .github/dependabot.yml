@@ -39,14 +39,16 @@ updates:
       # or later, ever.
       - dependency-name: acts_as_tenant
         versions: [">= 2"]
-      # brakeman 8 reports findings the frozen baseline (config/brakeman.ignore) does not
-      # know; each needs the review every entry there got, so moving is its own change.
+      # brakeman is held at 7.0.0 (see the Gemfile): 7.1 gives two frozen entries of the
+      # baseline (config/brakeman.ignore) a new fingerprint, and 8 reports findings it does
+      # not know. Each needs the review every entry there got, so moving is its own change.
       - dependency-name: brakeman
-        update-types: ["version-update:semver-major"]
-      # lexxy 1.0 is the first stable release of the note editor; it gets its own
-      # change with a look at the editor in the browser, not a weekly update.
+        versions: ["> 7.0.0"]
+      # lexxy is held at 0.9.18 (see the Gemfile): 0.9.33 turns the guard against foreign
+      # hosts red, and 1.0 is the first stable release of the note editor. A newer version
+      # gets its own change with a look at its script and at the editor in the browser.
       - dependency-name: lexxy
-        versions: [">= 1"]
+        versions: ["> 0.9.18"]
       # whatlanguage 3 is a new major of the language detection; its own change.
       - dependency-name: whatlanguage
         update-types: ["version-update:semver-major"]

@@ -1497,6 +1497,9 @@ de:
     overview: Übersicht
     all_organisations: Alle Organisationen
     all_inboxes: Gesamt-Inbox
+    across_organisations:
+      inbox: Inbox aller Organisationen
+      people: Personen aller Organisationen
     organisations: Organisationen
     all_projects: Alle Projekte
     times: Zeiten

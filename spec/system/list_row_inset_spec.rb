@@ -91,9 +91,21 @@ RSpec.describe 'The inset of a list row', :js, type: :system do
     JS
   end
 
+  # Measured only once nothing in the row is moving. On a phone the ranked columns of a
+  # table (the meetings) ease to zero in 0.25 s (layout.css), and a cell caught on its way
+  # out still has a width: it counted as the last cell and the inset read 10 or 11 px
+  # (CI of #245, one run in three locally). This waits for the cause, a running animation
+  # or transition in the row, as `ranked_columns_at_rest` does in column_picker_spec.rb.
+  # The row is found inside the retry: the list draws it once more after the first paint,
+  # and a row found before that is stale.
   def measure(selector)
-    row = first(selector, minimum: 1)
-    row.evaluate_script("(#{measure_script})(this)")
+    page.document.synchronize do
+      row = first(selector, minimum: 1)
+      moving = row.evaluate_script('this.getAnimations({ subtree: true }).length')
+      raise Capybara::ExpectationNotMet, "#{moving} animations still running in #{selector}" if moving.positive?
+
+      row.evaluate_script("(#{measure_script})(this)")
+    end
   end
 
   def on_a_phone

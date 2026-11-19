@@ -629,8 +629,7 @@ RSpec.describe 'Assistant chat references (Bezugs-Sammlung S1)', type: :request 
            headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('<details')
-      expect(response.body).to match(/<details[^>]*\sopen[\s>=]/)
+      expect(details_open_states(response.body)).to eq([true])
     end
 
     # And a REFUSAL too. The row is redrawn either way, the user was working in
@@ -651,7 +650,7 @@ RSpec.describe 'Assistant chat references (Bezugs-Sammlung S1)', type: :request 
            headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to match(/<details[^>]*\sopen[\s>=]/)
+      expect(details_open_states(response.body)).to eq([true])
     end
 
     # ⚠️ C (review of #642). ARCHIVING A PROJECT IS REVERSIBLE, deleting references
@@ -960,7 +959,7 @@ RSpec.describe 'Assistant chat references (Bezugs-Sammlung S1)', type: :request 
              headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to match(/<details[^>]*\sopen[\s>=]/)
+      expect(details_open_states(response.body)).to eq([true])
     end
   end
 end

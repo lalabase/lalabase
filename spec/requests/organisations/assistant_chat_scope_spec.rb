@@ -265,8 +265,7 @@ RSpec.describe 'Assistant chat scope (S3a T5)', type: :request do
             params: { chat: { scope_project_id: '' } },
             headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
 
-      expect(response.body).to include('<details')
-      expect(response.body).not_to match(/<details[^>]*\sopen[\s>=]/)
+      expect(details_open_states(response.body)).to eq([false])
     end
   end
 end

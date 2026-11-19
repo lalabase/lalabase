@@ -34,7 +34,7 @@
 
   <%# Without an active organisation there is nothing to list: no label over an empty list. %>
   <% if organisations.any? %>
-    <p class="px-3 pb-1.5 pt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"><%= t('navigation.organisations') %></p>
+    <p class="px-3 pb-1.5 pt-5 section-label text-muted"><%= t('navigation.organisations') %></p>
     <nav aria-label="<%= t('navigation.organisations') %>">
       <ul class="flex flex-col gap-1">
         <% organisations.each do |organisation| %>

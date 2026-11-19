@@ -168,7 +168,7 @@
   <div class="mb-3 rounded-xl bg-cream-100 px-4 py-3.5">
     <div class="mb-1.5 flex items-baseline justify-between gap-3">
       <div class="flex items-baseline gap-3">
-        <span class="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-cream-900"><%= t("#{tf}.summary_heading") %></span>
+        <span class="section-label text-cream-900"><%= t("#{tf}.summary_heading") %></span>
         <% if ticket.summary_generated_at %>
           <span class="font-mono text-[12px] text-cream-500"><%= l(ticket.summary_generated_at.to_date, format: :default) %></span>
         <% end %>

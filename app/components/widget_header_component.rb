@@ -7,8 +7,8 @@
 # conceptual element looked different on every card. Routing them all through
 # one component makes the header impossible to diverge again.
 #
-# Style intent: the title wears the section label of the app (mono, 11px,
-# semibold, uppercase, tracking 0.14em), the same shape as "PROJEKTE" in the
+# Style intent: the title wears the section label of the app (.section-label,
+# F51 of the Belegungstabelle), the same shape as "PROJEKTE" in the
 # sidebar and the summary heading of the ticket timeline. It is INK
 # (text-cream-900), one clear step darker than the cream-600 sub-labels that sit
 # INSIDE a widget, so it reads as the card's anchor. Nothing stands in front of

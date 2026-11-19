@@ -7,8 +7,8 @@ require 'rails_helper'
 #       fix for the "title reads as passive" problem. The colour assertion is load-bearing: the
 #       title must stay INK (text-cream-900); a regression back to the old muted text-cream-600
 #       (which made the title indistinguishable from inner labels) must break this spec.
-#       The title wears the section label of the sidebar and the timeline (mono, 11px, semibold,
-#       tracking 0.14em) and nothing in front of it: the "//" marker was a leftover of an older
+#       The title wears the section label (.section-label, F51), as the sidebar and the timeline
+#       do, and nothing in front of it: the "//" marker was a leftover of an older
 #       design and is gone.
 RSpec.describe WidgetHeaderComponent, type: :component do
   it 'renders the title in ink in the shape of a section label, with no marker in front' do
@@ -16,9 +16,7 @@ RSpec.describe WidgetHeaderComponent, type: :component do
 
     heading = page.find('h2')
     expect(heading.text.strip).to eq('Portfolio')
-    expect(heading[:class].split).to include(
-      'font-mono', 'text-[11px]', 'leading-4', 'font-semibold', 'uppercase', 'tracking-[0.14em]', 'text-cream-900'
-    )
+    expect(heading[:class].split).to include('section-label', 'leading-4', 'text-cream-900')
     expect(page).to have_no_css('h2 [aria-hidden]')
   end
 

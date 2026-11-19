@@ -13,6 +13,16 @@
      people list had a sixth of its own. F43 in doc/belegungstabelle_oberflaeche.md;
      guard: spec/architecture/column_head_guard_spec.rb. */
   .column-head { @apply font-mono text-[11px] font-medium uppercase tracking-wider text-muted; }
+
+  /* The label of a section (user, 2026-11-19): small mono capitals, wider
+     apart than a column head and semibold. It names a block of the page (the
+     head of a widget, the summary in the ticket timeline) or a group of the
+     navigation ("PROJEKTE", "VERWALTUNG"). Only the type lives here: the
+     colour stays with the place, ink over content, the muted tone over a
+     group of links. Written out by hand it stood in eight places, one of them
+     a class of its own. F51 in doc/belegungstabelle_oberflaeche.md; guard:
+     spec/architecture/section_label_guard_spec.rb. */
+  .section-label { @apply font-mono text-[11px] font-semibold uppercase tracking-[0.14em]; }
 }
 
 /* Verwaltung / Mitglieder: compact rows and a contextual membership lane. */
@@ -606,7 +616,6 @@
   /* "Was steht wo" (Herkunft): under a section label, one line per group of
      sources that hold the same fields, the chips first. */
   .all-people-card__holdings { @apply flex flex-col gap-1 border-t border-cream-200 pt-4; }
-  .all-people-card__section-label { @apply font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted; }
   .all-people-card__holding { @apply flex flex-wrap items-center gap-x-2.5 gap-y-1 py-1.5; }
   .all-people-card__holding + .all-people-card__holding { @apply border-t border-dashed border-cream-200; }
   .all-people-card__holding-fields { @apply text-[13px] text-heading; }

@@ -1,9 +1,12 @@
 <%# locals: (row:, return_state: {}, open: false) %>
 <%# One person (People::AcrossOrganisations::Row). The row opens the card of
     the person in the lane (list-row: a click, Enter or Space; open: the card
-    in the lane is this person's); the chips name the organisations, and the
-    way into one of them is on the card, per source. The chip of the picture
-    says member or contact, as on the people page of an organisation.
+    in the lane is this person's). The organisations: the chip of the lead
+    source (D11, Row#lead, the one the card names first as well) and "+N" for
+    the others (D14), at every width, one line high. "+N" is text, no control:
+    its title names the others, and so does a text for a screen reader. The
+    way into an organisation is on the card. The chip of the picture says
+    member or contact, as on the people page of an organisation.
     The tick belongs to the form of the bar above the list (its form attribute)
     and sends every source of the row; it carries the name for the bar, which
     names the chosen rows also when a search has taken them out of the list. A row a merge of the reader joined
@@ -32,11 +35,16 @@
   </td>
   <td class="all-people-table__wide all-people-row__role"><%= all_people_role(row) %></td>
   <td>
+    <% lead = row.sources.find { |source| source.organisation_id == row.lead } %>
+    <% others = row.sources.reject { |source| source.equal?(lead) } %>
     <div class="all-people-chips">
-      <% row.sources.each do |source| %>
-        <%= render 'shared/organisation_chip',
-                   name: source.organisation_name,
-                   color: current_user.org_colors.effective_color(source.organisation_id) %>
+      <%= render 'shared/organisation_chip',
+                 name: lead.organisation_name,
+                 color: current_user.org_colors.effective_color(lead.organisation_id) %>
+      <% if others.any? %>
+        <% names = all_people_organisation_names(others) %>
+        <span class="all-people-more" title="<%= names %>" aria-hidden="true" data-row-more><%= t('views.all_people.more.count', count: others.size) %></span>
+        <span class="sr-only"><%= t('views.all_people.more.names', count: others.size, names: names) %></span>
       <% end %>
     </div>
   </td>

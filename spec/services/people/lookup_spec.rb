@@ -400,4 +400,73 @@ RSpec.describe People::Lookup, :ci_guard do
       expect { lookup(User.find(viewer.id)).listing }.to raise_error(People::Lookup::Refused)
     end
   end
+
+  # The one count the people list above the organisations decides the lead source of a
+  # person by (People::AcrossOrganisations.lead_of): what the card of a source shows,
+  # without the name, which every source has, and without the notes, which are no value
+  # of the card. The list and the card count the same hash, so they cannot disagree.
+  describe '.value_count' do
+    let(:bare) do
+      create(:person, organisation: organisation, name: 'Bea Blank', function: nil, company: nil, email: nil,
+                      notes: 'Hat viel zu erzaehlen.')
+    end
+
+    def count_of(entry_id, **options)
+      described_class.value_count(described_class.card(lookup.entry(entry_id), **options))
+    end
+
+    it 'counts neither the name nor the notes' do
+      expect(count_of("person:#{bare.id}", notes: true)).to eq(0)
+    end
+
+    # One read per field is the spec's doing, not a read per row.
+    it 'counts every fixed field the card shows, one by one' do
+      counts = { salutation: 'Frau', function: 'Leitung', department: 'Technik', company: 'Hosting AG',
+                 email: 'bea@example.com', phone: '+49 30 5550100' }.map do |key, value|
+        bare.update_columns(key => value)
+        Prosopite.pause { count_of("person:#{bare.id}", notes: true) }
+      end
+
+      expect(counts).to eq([1, 2, 3, 4, 5, 6])
+    end
+
+    it 'counts each additional detail with a value, with a label or without one, and no empty value' do
+      # A blank value cannot be saved through the form; an old row may still hold one.
+      bare.update_columns(additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '+49 170 1234567' },
+                                               { 'kind' => 'text', 'label' => '', 'value' => 'K-17' },
+                                               { 'kind' => 'text', 'label' => 'Leer', 'value' => '   ' }])
+
+      expect(count_of("person:#{bare.id}")).to eq(2)
+      expect(Prosopite.pause { count_of("person:#{bare.id}", notes: true, kind_names: true) }).to eq(2)
+    end
+
+    # Review of #238: the card shows a detail one source holds twice as one value. Counted
+    # twice, it made a source the lead that shows fewer values than another.
+    it 'counts a detail one source holds twice under the same label as one value' do
+      bare.update_columns(additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 1' },
+                                               { 'kind' => 'phone', 'label' => 'mobil', 'value' => ' 0171  1 ' },
+                                               { 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 2' }])
+
+      expect(count_of("person:#{bare.id}")).to eq(2)
+    end
+
+    # The fields it counts are the fields the card shows besides the name.
+    it 'counts the fixed fields of the card, all of them but the name' do
+      expect(described_class::COUNTED_FIELDS).to eq(People::MergedCard::FIXED_FIELDS - [:name])
+    end
+
+    it 'counts what the card of the people page shows of a contact in full' do
+      expect(count_of("person:#{contact.id}", notes: true)).to eq(7)
+    end
+
+    # The email of a member is the one they show to others: a hidden one is no value here
+    # either, so it cannot make a source the lead.
+    it 'counts the email a member shows, and not one they hide' do
+      expect(count_of("member:#{colleague.id}")).to eq(1)
+
+      colleague.update!(email_visibility: 'none')
+
+      expect(count_of("member:#{colleague.id}")).to eq(0)
+    end
+  end
 end

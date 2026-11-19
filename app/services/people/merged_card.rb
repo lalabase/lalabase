@@ -17,10 +17,14 @@ module People
   #   when they are equal by the rule of their field (#compared): a phone number without
   #   any whitespace, an email also without its case, anything else with its word breaks
   #   (more spaces, or spaces at the ends, are none). A field has ONE rule (#rule_of),
-  #   also where the organisations gave a label different kinds. The card shows the value
-  #   as the first source wrote it, with that source's kind. A value some sources lack is
-  #   listed last, without a text: a missing value is a difference too, or the reader
-  #   could not tell that an organisation does not know the mobile number.
+  #   also where the organisations gave a label different kinds. A value some sources lack
+  #   makes the field differ, but it is no value of its own: what a source lacks is said
+  #   per source (#holdings, "Was steht wo"), not per field, or seven organisations bury
+  #   four values under the sources that do not know them.
+  # * The lead source (D11, People::AcrossOrganisations.lead_of, the rule the list row
+  #   asks as well): its values come first in a field, as it wrote them, with its kind,
+  #   and so does the label of a detail; then the others in the order of the list. The
+  #   sources, the name, the kind and the address of the card keep the order of the list.
   # * The right to write is asked here, under the tenant (PersonPolicy reads the tenant
   #   of the thread), and leaves as the entry the form would edit. How that
   #   organisation's people page names the form in its address is the page's own
@@ -49,19 +53,25 @@ module People
     # address: "<organisation id>:<entry address>" (.address_of) of the first source, the
     # one address a link to this card uses. merge_id: the viewer's merge that joined sources of this
     # person, nil without one. last_contact: { on:, kind:, organisation_id:,
-    # organisation_name: } of the newest among the sources, or nil.
-    Card = Data.define(:address, :name, :kind, :avatar_user, :fields, :sources, :last_contact, :merge_id)
+    # organisation_name: } of the newest among the sources, or nil. lead: the organisation
+    # id of the lead source. holdings: what each source holds (Holding), the lead's first.
+    Card = Data.define(:address, :name, :kind, :avatar_user, :fields, :sources, :last_contact, :merge_id, :lead, :holdings)
 
     # key: one of FIXED_FIELDS, or "detail:<label>" for an additional detail. label: nil
-    # for a fixed field (the page names it), the label of a detail as first written.
-    # differs: the sources have different sets of values, including a missing value.
+    # for a fixed field (the page names it), the label of a detail as the lead wrote it, or
+    # the first source after it that has one. differs: a value not all sources share: two
+    # values, or a value some sources lack.
     Field = Data.define(:key, :label, :values, :differs)
 
-    # text: the value as the first of its sources wrote it; nil for the entry of the
-    # sources that have no value for the field. kind: the kind of PersonDetail that first
-    # source gave it (FIXED_KINDS for a fixed field), nil for text and for the entry
-    # without a value.
+    # text: the value as the lead wrote it, or the first source after it that holds it.
+    # kind: the kind of PersonDetail that source gave it (FIXED_KINDS for a fixed field),
+    # nil for text. sources: the lead first, then the order of the list.
     Value = Data.define(:text, :kind, :sources)
+
+    # One line of "Was steht wo": the sources that hold the same fields (the lead first,
+    # then the order of the list), those fields' keys besides :name in the order of the
+    # card (none: the source holds nothing but the name), and whether they have notes.
+    Holding = Data.define(:organisation_ids, :keys, :notes)
 
     # edit: what the form of that organisation would edit, as the source's lane names it
     # ({ person_id: } for a row, { member_id: } for a member without one, whose form adds
@@ -78,8 +88,12 @@ module People
     Source = Data.define(:organisation_id, :organisation_name, :address, :kind, :name, :lane,
                          :edit, :notes, :takeover, :detachable)
 
-    # One source while the card is built: never handed out.
-    Read = Struct.new(:organisation_id, :organisation_name, :card, :member, :account, :lane, :edit, :takeover, :detachable)
+    # One source while the card is built: never handed out. value_count and last_contact
+    # are what People::AcrossOrganisations.lead_of reads.
+    Read = Struct.new(:organisation_id, :organisation_name, :card, :member, :account, :lane, :edit, :takeover, :detachable,
+                      :value_count) do
+      def last_contact = card[:last_contact]
+    end
     private_constant :Read
 
     # How a card names one of its sources: "<organisation id>:<entry address>" (the lane
@@ -125,8 +139,9 @@ module People
       person = entry.person
       lane = person ? { person_id: person.id } : { member_id: entry.user.id }
       writable = person ? PersonPolicy.new(@viewer, person).update? : PersonPolicy.new(@viewer, Person).create?
+      card = People::Lookup.card(entry, notes: true, kind_names: true)
       Read.new(organisation_id: organisation.id, organisation_name: organisation.name,
-               card: People::Lookup.card(entry, notes: true, kind_names: true), member: entry.member?,
+               card: card, member: entry.member?, value_count: People::Lookup.value_count(card),
                account: (entry.user if entry.member?), lane: lane, edit: (lane if writable),
                takeover: takeover_of(organisation, person), detachable: detachable)
     end
@@ -141,13 +156,39 @@ module People
       person.id if @targets.any? { |id| id != organisation.id }
     end
 
+    # The name, the kind and the address from the first source in the order of the list;
+    # the values walk the sources with the lead first.
     def card_of(shown)
       reads = shown.sources
       first = reads.first
+      lead = People::AcrossOrganisations.lead_of(reads)
+      walk = reads.partition { |read| read.organisation_id == lead }.flatten
+      fields = fields_of(walk, reads.size).freeze
       Card.new(address: self.class.address_of(first.organisation_id, first.card[:id]), name: first.card[:name],
                kind: first.card[:kind], avatar_user: first.account, merge_id: shown.merge_id,
-               fields: fields_of(reads).freeze, last_contact: last_contact_of(reads),
+               fields: fields, last_contact: last_contact_of(reads), lead: lead,
+               holdings: holdings_of(fields, walk, reads, lead).freeze,
                sources: reads.map { |one| source_of(one) }.freeze)
+    end
+
+    # "Was steht wo": per source the keys of the fields it holds besides the name, and
+    # whether it has notes; sources that hold the same are one line. The lead's line
+    # first, then more entries (fields and the note) before fewer, then the list order of
+    # the line's first source. Inside a line the lead first, then the order of the list.
+    def holdings_of(fields, walk, reads, lead)
+      held = walk.group_by do |read|
+        keys = fields.select { |field| field.key != :name && holds?(field, read) }.map(&:key)
+        [keys.freeze, read.card[:notes].present?]
+      end
+      held.map { |(keys, notes), members| Holding.new(organisation_ids: members.map(&:organisation_id).freeze, keys: keys, notes: notes) }
+          .sort_by do |holding|
+            [holding.organisation_ids.include?(lead) ? 0 : 1, -(holding.keys.size + (holding.notes ? 1 : 0)),
+             holding.organisation_ids.map { |id| reads.index { |read| read.organisation_id == id } }.min]
+          end
+    end
+
+    def holds?(field, read)
+      field.values.any? { |value| value.sources.any? { |source| source.organisation_id == read.organisation_id } }
     end
 
     def source_of(read)
@@ -162,38 +203,37 @@ module People
     end
 
     # The fixed fields, then the additional details by label. A field no source has a
-    # value for is no line of the card.
-    def fields_of(reads)
-      fixed = FIXED_FIELDS.map { |key| field_of(key, nil, reads) { |read| [[read.card[key], FIXED_KINDS[key]]] } }
-      (fixed + detail_fields(reads)).compact
+    # value for is no line of the card. walk: the sources, the lead first; total: how
+    # many there are.
+    def fields_of(walk, total)
+      fixed = FIXED_FIELDS.map { |key| field_of(key, nil, walk, total) { |read| [[read.card[key], FIXED_KINDS[key]]] } }
+      (fixed + detail_fields(walk, total)).compact
     end
 
-    def detail_fields(reads)
-      labels = reads.flat_map { |read| read.card[:additional_details] }
-                    .each_with_object({}) { |detail, found| found[label_key(detail[:label])] ||= detail[:label] }
+    def detail_fields(walk, total)
+      labels = walk.flat_map { |read| read.card[:additional_details] }
+                   .each_with_object({}) { |detail, found| found[label_key(detail[:label])] ||= detail[:label] }
       labels.map do |key, label|
-        field_of("detail:#{key}", label, reads) do |read|
+        field_of("detail:#{key}", label, walk, total) do |read|
           read.card[:additional_details].select { |detail| label_key(detail[:label]) == key }.pluck(:value, :kind)
         end
       end
     end
 
     # One field: the values of each source (the block's answer, [text, kind] pairs), the
-    # equal ones as one.
-    def field_of(key, label, reads)
-      found = reads.map { |read| [read, yield(read).select { |text, _kind| text.present? }] }
+    # equal ones as one, in the order of the walk (the lead first). It differs when a value
+    # is not every source's: a source without any value of the field is no value of it.
+    def field_of(key, label, walk, total)
+      found = walk.map { |read| [read, yield(read).select { |text, _kind| text.present? }] }
       rule = rule_of(found.flat_map { |_read, entries| entries.map(&:last) })
       values = {}
-      lacking = []
       found.each do |read, entries|
-        lacking << read if entries.empty?
         entries.each { |text, kind| (values[compared(rule, text)] ||= [text, kind, []]).last << read }
       end
       return if values.empty?
 
       list = values.values.map { |text, kind, sources| Value.new(text: text, kind: kind, sources: value_sources(key, sources.uniq)) }
-      list << Value.new(text: nil, kind: nil, sources: value_sources(key, lacking)) if lacking.any?
-      Field.new(key: key, label: label, values: list.freeze, differs: list.any? { |value| value.sources.size != reads.size })
+      Field.new(key: key, label: label, values: list.freeze, differs: list.any? { |value| value.sources.size != total })
     end
 
     def value_sources(key, reads)

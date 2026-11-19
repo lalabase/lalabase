@@ -4,8 +4,8 @@ require 'rails_helper'
 
 # What: the people above the organisations (GET /people). One list over the people of
 #       every organisation a person is an active member of and holds the people right in:
-#       each row names its organisations as chips, a member with the same account in two
-#       organisations is one row, a row leads into its organisation.
+#       each row names its lead organisation as a chip and the others as "+N", a member
+#       with the same account in two organisations is one row, a row opens its card.
 # Why:  the page reads across tenants, so everything it must NOT show is pinned here: an
 #       organisation without the people right (not even its name), a left organisation,
 #       contact details and notes, an address that could move the session's organisation,
@@ -71,6 +71,10 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
     row.css('[data-organisation-chip]')
   end
 
+  # The organisations a row names: the chip of its lead source, then the others that its
+  # "+N" names in its title (D14).
+  def organisations(row) = row_organisations(row)
+
   def filter_options(doc)
     doc.css('#all-people-organisation option').map { |option| option.text.strip }
   end
@@ -80,9 +84,31 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
       doc = page
 
       expect(names(doc)).to eq(['Mara Mitglied', 'Nora Nord', 'Sina Sued', 'Vera Viewer'])
-      expect(rows(doc).map { |row| chips(row).map { |chip| chip.text.strip } })
+      expect(rows(doc).map { |row| organisations(row) })
         .to eq([['Nord GmbH', 'Sued AG'], ['Nord GmbH'], ['Sued AG'], ['Nord GmbH', 'Sued AG']])
+      expect(rows(doc).map { |row| chips(row).size }).to eq([1, 1, 1, 1])
       expect(doc.at_css('[data-all-people-count]').text).to eq(I18n.t('views.all_people.count', count: 4))
+    end
+
+    # D14: one chip, the lead's, and "+N" for the others, at every width. "+N" is text:
+    # a click on the row opens the card. A screen reader hears every organisation.
+    it 'shows the chip of the lead source and "+N", with the other organisations in its title and for a screen reader' do
+      Prosopite.pause do
+        person_in(south, user: shared, name: 'Mara Mitglied', function: 'Beraterin', company: 'Suedwind AG',
+                         department: 'Vertrieb', phone: '+49 89 5550100')
+      end
+
+      row = row_of(page, 'Mara Mitglied')
+
+      expect(chips(row).map { |chip| chip.text.strip }).to eq(['Sued AG'])
+      more = row.at_css('[data-row-more]')
+      expect([more.name, more.text.strip, more['title']]).to eq(['span', '+1', 'Nord GmbH'])
+      expect(more['aria-hidden']).to eq('true')
+      expect(row.at_css('.all-people-chips .sr-only').text.strip).to eq(I18n.t('views.all_people.more.names', count: 1, names: 'Nord GmbH'))
+      expect(row.css('a, button, details')).to be_empty
+      # The row still names the person by the first source, and opens the card of the first source.
+      expect(row.at_css('.all-people-row__name').text.strip).to eq('Mara Mitglied')
+      expect(row['data-list-row-id-value']).to eq("#{north.id}:member:#{shared.id}")
     end
 
     it 'shows what a person does and when the last contact was' do
@@ -99,9 +125,12 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
       user.org_colors.set(south, OrgColor::OFF)
       user.save!
 
-      swatches = chips(row_of(page, 'Vera Viewer')).map { |chip| chip.at_css('.organisation-chip__swatch')['style'] }
+      doc = page
+      swatches = ['Vera Viewer', 'Sina Sued'].map do |name|
+        chips(row_of(doc, name)).map { |chip| chip.at_css('.organisation-chip__swatch')['style'] }
+      end
 
-      expect(swatches).to eq(['background-color: #d1fae5;', nil])
+      expect(swatches).to eq([['background-color: #d1fae5;'], [nil]])
     end
 
     it 'carries no contact details and no notes' do
@@ -115,11 +144,13 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
 
   describe 'where a row leads' do
     # Since the card exists a row opens it in the lane, and the way into an organisation is
-    # on the card, one link per source (spec/requests/all_people_card_spec.rb holds the card).
+    # on the card: the chip of the line under the name, and for several sources the chips
+    # its "+N" opens to (spec/requests/all_people_card_spec.rb holds the card).
     def card_links(address)
       get all_people_path(card: address), headers: { 'Turbo-Frame' => AllPeopleController::CARD_FRAME_ID }
       expect(response).to have_http_status(:ok)
-      Nokogiri::HTML(response.body).css('a[data-card-source-link]')
+      where = Nokogiri::HTML(response.body).at_css('[data-card-where]')
+      where.at_css('[data-card-more]') ? where.css('[data-card-more] a[data-organisation-chip]') : where.css('a[data-organisation-chip]')
     end
 
     it 'opens the card of a person of one organisation, which links to that organisation\'s people page with the person open' do
@@ -142,7 +173,8 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
 
       expect(row['data-list-row-url-value']).to eq(all_people_path(card: address))
       expect(row.css('a')).to be_empty
-      expect(chips(row).map(&:name)).to eq(%w[span span])
+      expect(chips(row).map(&:name)).to eq(['span'])
+      expect(row.at_css('[data-row-more]').name).to eq('span')
       expect(row.at_css('.all-people-row__name').name).to eq('span')
       links = card_links(address)
       expect(links.pluck('href')).to eq(
@@ -172,7 +204,7 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
       doc = page
 
       expect(names(doc)).to eq(['Mara Mitglied', 'Nora Nord', 'Vera Viewer'])
-      expect(rows(doc).flat_map { |row| chips(row).map { |chip| chip.text.strip } }.uniq).to eq(['Nord GmbH'])
+      expect(rows(doc).flat_map { |row| organisations(row) }.uniq).to eq(['Nord GmbH'])
       expect(filter_options(doc)).to eq([I18n.t('views.all_people.filter.all_organisations'), 'Nord GmbH'])
       expect(list(doc).text).to include('Nora Nord')
       expect(list(doc).text).not_to include('Sued AG', 'Sina Sued', 'Suedwind')
@@ -223,7 +255,7 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
       doc = page(q: 'beraterin')
 
       expect(names(doc)).to eq(['Mara Mitglied'])
-      expect(chips(rows(doc).first).map { |chip| chip.text.strip }).to eq(['Nord GmbH', 'Sued AG'])
+      expect(organisations(rows(doc).first)).to eq(['Nord GmbH', 'Sued AG'])
     end
 
     it 'answers the list frame with the rows and the tools that carry the search' do
@@ -255,7 +287,9 @@ RSpec.describe 'People above the organisations', :ci_guard, type: :request do
       doc = page(org: south.id)
 
       expect(names(doc)).to eq(['Mara Mitglied', 'Sina Sued', 'Vera Viewer'])
-      expect(rows(doc).flat_map { |row| chips(row).map { |chip| chip.text.strip } }.uniq).to eq(['Sued AG'])
+      expect(rows(doc).flat_map { |row| organisations(row) }.uniq).to eq(['Sued AG'])
+      # One source per row: one chip and no "+N", also for the member of both.
+      expect(rows(doc).map { |row| [chips(row).size, row.at_css('[data-row-more]')] }).to eq([[1, nil]] * 3)
       expect(doc.at_css('#all-people-organisation option[selected]').text.strip).to eq('Sued AG')
       expect(filter_options(doc)).to eq([I18n.t('views.all_people.filter.all_organisations'), 'Nord GmbH', 'Sued AG'])
     end

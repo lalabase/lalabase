@@ -97,8 +97,41 @@ RSpec.describe NeoViewSwitchComponent, type: :component do
       page.find('svg', visible: :all).native.inner_html
     end
 
-    expect(described_class::ICONS.keys).to contain_exactly(:list, :kanban, :bars, :stack, :grid)
+    expect(described_class::ICONS.keys).to contain_exactly(:list, :kanban, :bars, :stack, :grid, :card, :tagged)
     expect(drawings.uniq.size).to eq(drawings.size)
+  end
+
+  # Every switch of a page head writes a preference and draws the whole page again:
+  # its form leaves Turbo. The card of /people stands in the lane's frame beside a list
+  # with its page and search, so its switch names that frame and keeps Turbo.
+  it 'takes a button out of Turbo unless the item names the frame its answer replaces' do
+    render_inline(described_class.new(label: 'Ansicht', items: buttons))
+
+    forms = page.all('form', visible: :all)
+    expect(forms.map { |form| [form['data-turbo'], form['data-turbo-frame']] }).to eq([['false', nil], ['false', nil]])
+
+    framed = buttons.map { |item| item.merge(turbo_frame: 'all_people_card') }
+    render_inline(described_class.new(label: 'Ansicht', items: framed))
+
+    forms = page.all('form', visible: :all)
+    expect(forms.map { |form| [form['data-turbo'], form['data-turbo-frame']] }).to eq([[nil, 'all_people_card'], [nil, 'all_people_card']])
+    expect(forms.map { |form| form['class'] }).to eq(%w[h-full h-full])
+  end
+
+  it 'refuses a frame for a link, which would ignore it' do
+    expect { described_class.new(label: 'Ansicht', items: [links.first.merge(turbo_frame: 'all_people_card')]) }
+      .to raise_error(ArgumentError)
+  end
+
+  # The two signs of the card of /people, drawn like the others: straight strokes and
+  # plain shapes, nothing curved (spec/architecture/one_icon_set_guard_spec.rb).
+  it 'draws the card with a head and the lines with their squares from strokes and shapes only' do
+    { card: %w[rect circle path], tagged: %w[path rect rect rect] }.each do |icon, shapes|
+      render_inline(described_class.new(label: 'Ansicht', items: [{ key: icon, icon: icon, title: icon.to_s, active: false, path: '/' }]))
+      drawing = page.find('svg', visible: :all)
+      expect(drawing.all('*', visible: :all).map(&:tag_name)).to eq(shapes)
+      expect(drawing.all('path', visible: :all).map { |path| path['d'] }).to all(match(/\A[MmLlHhVv\d.\s-]+\z/))
+    end
   end
 
   it 'refuses an unknown icon and the retired variant' do

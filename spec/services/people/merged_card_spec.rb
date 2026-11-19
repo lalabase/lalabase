@@ -102,9 +102,38 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(field(card, :function).differs).to be(true)
     end
 
-    it 'counts a value one source lacks as a difference, and names the source that lacks it last' do
-      expect(values(card, :phone)).to eq([['+49 30 5550100', ['Nord GmbH']], [nil, ['Sued AG']]])
+    # D12: what a source lacks is said per source (Card#holdings), not as a value of the
+    # field: a value without a text buried the values of a person of seven organisations.
+    it 'counts a value one source lacks as a difference, and lists no value without a text' do
+      expect(values(card, :phone)).to eq([['+49 30 5550100', ['Nord GmbH']]])
       expect(field(card, :phone).differs).to be(true)
+      expect(card.fields.flat_map(&:values).map(&:text)).to all(be_present)
+    end
+
+    it 'leads with the source that has the most values' do
+      expect(card.lead).to eq(north.id)
+    end
+
+    # D11: the lead's values come first in a field, as the lead wrote them, and the label of
+    # a detail as the lead wrote it. The order of the sources and the name, kind and address
+    # of the card stay the first source's.
+    it 'puts the values of the lead first, as the lead wrote them, also when the lead is not the first source' do
+      ActsAsTenant.with_tenant(north) do
+        north_kai.update_columns(additional_details: [{ 'kind' => 'phone', 'label' => 'mobil', 'value' => '0171 1' }])
+      end
+      ActsAsTenant.with_tenant(south) do
+        south_kai.update_columns(phone: '+49 40 5550100', department: 'Vertrieb', email: 'KAI@Example.com',
+                                 additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 2' }])
+      end
+
+      expect(card.lead).to eq(south.id)
+      expect(values(card, :function)).to eq([['Vertrieb', ['Sued AG']], ['Einkauf', ['Nord GmbH']]])
+      expect(values(card, :email)).to eq([['KAI@Example.com', ['Sued AG', 'Nord GmbH']]])
+      expect(values(card, :phone)).to eq([['+49 40 5550100', ['Sued AG']], ['+49 30 5550100', ['Nord GmbH']]])
+      mobile = card.fields.find { |one| one.key.to_s.start_with?('detail:') }
+      expect([mobile.label, mobile.values.map(&:text)]).to eq(['Mobil', ['0171 2', '0171 1']])
+      expect([card.name, card.kind, card.address]).to eq(['Kai Kontakt', 'contact', address_of(north, person: north_kai)])
+      expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH', 'Sued AG'])
     end
 
     it 'lists no field that no source has a value for' do
@@ -214,10 +243,10 @@ RSpec.describe People::MergedCard, :ci_guard do
         north_kai.update!(additional_details: [{ 'kind' => 'date', 'label' => 'Geburtstag', 'value' => '1985-03-14' }])
       end
 
-      expect(field(card, :phone).values.map(&:kind)).to eq(['phone', nil])
+      expect(field(card, :phone).values.map(&:kind)).to eq(['phone'])
       expect(field(card, :email).values.map(&:kind)).to eq(['email'])
       expect(field(card, :company).values.map(&:kind)).to eq([nil])
-      expect(card.fields.find { |one| one.label == 'Geburtstag' }.values.map(&:kind)).to eq(['date', nil])
+      expect(card.fields.find { |one| one.label == 'Geburtstag' }.values.map(&:kind)).to eq(['date'])
     end
 
     it 'takes the case of anything but an email for a difference' do
@@ -240,7 +269,7 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(mobile.values.map { |value| [value.text, value.sources.size] }).to eq([['0171 5550100', 2]])
       expect(mobile.differs).to be(false)
       extension = card.fields.find { |one| one.label == 'Durchwahl' }
-      expect(extension.values.map(&:text)).to eq(['42', nil])
+      expect(extension.values.map { |value| [value.text, value.sources.size] }).to eq([['42', 1]])
       expect(extension.differs).to be(true)
       # The fixed fields first, then the details in the order they first appear.
       expect(card.fields.map(&:label).compact).to eq(%w[Mobil Kundennummer Durchwahl])
@@ -339,11 +368,14 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(source(card, north).address).to eq("person:#{north_kai.id}")
     end
 
-    it 'gives every value the address of the form of each of its sources, a lacking one too' do
+    # A value a source lacks is entered through the form of that source (Source#edit, the
+    # pencil of "Was steht wo"), not through a value of the field.
+    it 'gives every value the address of the form of each of its sources, and a source that lacks one its own' do
       phone = field(card, :phone)
 
-      expect(phone.values.first.sources.map(&:edit)).to eq([{ person_id: north_kai.id }])
-      expect(phone.values.last.sources.map(&:edit)).to eq([{ person_id: south_kai.id }])
+      expect(phone.values.map { |value| value.sources.map(&:edit) }).to eq([[{ person_id: north_kai.id }]])
+      expect(source(card, south).edit).to eq(person_id: south_kai.id)
+      expect(card.holdings.find { |holding| holding.organisation_ids == [south.id] }.keys).not_to include(:phone)
       expect(field(card, :name).values.first.sources.map(&:edit)).to eq([{ person_id: north_kai.id }, { person_id: south_kai.id }])
     end
 
@@ -364,7 +396,7 @@ RSpec.describe People::MergedCard, :ci_guard do
         expect(source(card, north).edit).to eq(person_id: north_kai.id)
         function = field(card, :function)
         expect(function.values.map { |value| value.sources.map(&:edit) }).to eq([[{ person_id: north_kai.id }], [nil]])
-        expect(field(card, :phone).values.last.sources.map(&:edit)).to eq([nil])
+        expect(field(card, :phone).values.map { |value| value.sources.map(&:edit) }).to eq([[{ person_id: north_kai.id }]])
       end
     end
 
@@ -446,6 +478,91 @@ RSpec.describe People::MergedCard, :ci_guard do
     end
   end
 
+  # D12: "Was steht wo" in Herkunft. Per group of sources that hold the same fields: which
+  # fields, in the order of the card, besides the name that every source has, and whether
+  # they have notes. The lead's group first, then more before fewer, then the list order.
+  describe 'what each source holds' do
+    let!(:merge) { merge_of(viewer, [north, { person_id: north_kai.id }], [south, { person_id: south_kai.id }]) }
+    let(:card) { card_at(address_of(north, person: north_kai)) }
+
+    def holdings(card)
+      names = card.sources.to_h { |source| [source.organisation_id, source.organisation_name] }
+      card.holdings.map { |holding| [holding.organisation_ids.map { |id| names.fetch(id) }, holding.keys, holding.notes] }
+    end
+
+    def add_west(**attributes)
+      Prosopite.pause do
+        join_organisation(viewer, west, admin: true)
+        person_in(west, name: 'Kai Kontakt', **attributes).tap do |west_kai|
+          create(:person_group_entry, person_group: merge, organisation: west, person_id: west_kai.id)
+        end
+      end
+    end
+
+    it 'names the fields every source holds besides the name, in the order of the card, and its notes' do
+      expect(holdings(card)).to eq([[['Nord GmbH'], %i[salutation function company email phone], true],
+                                    [['Sued AG'], %i[salutation function company email], true]])
+    end
+
+    it 'groups the sources that hold the same fields, whatever their values' do
+      add_west(salutation: 'Frau', function: 'Lager', company: 'Westwind KG', email: 'kai.west@example.com', notes: 'Ruft zurueck.')
+
+      expect(holdings(card)).to eq([[['Nord GmbH'], %i[salutation function company email phone], true],
+                                    [['Sued AG', 'West KG'], %i[salutation function company email], true]])
+    end
+
+    it 'keeps two sources apart when only one of them has notes' do
+      add_west(salutation: 'Frau', function: 'Lager', company: 'Westwind KG', email: 'kai.west@example.com')
+
+      expect(holdings(card).map(&:first)).to eq([['Nord GmbH'], ['Sued AG'], ['West KG']])
+      expect(holdings(card).last).to eq([['West KG'], %i[salutation function company email], false])
+    end
+
+    it 'holds no field for a source with nothing but the name' do
+      add_west(function: nil, company: nil, email: nil)
+
+      expect(holdings(card).last).to eq([['West KG'], [], false])
+    end
+
+    # The lead (here the west, by the newer last contact on equal counts) comes first even
+    # where another source holds more; after it more before fewer, then the list order.
+    it 'puts the lead first, then the groups with more before those with fewer, then the order of the list' do
+      west_kai = add_west(salutation: 'Frau', function: 'Lager', company: 'Westwind KG', email: 'kai.west@example.com',
+                          department: 'Technik')
+      Prosopite.pause do
+        meeting_in(north, at: 9.days.ago, person: north_kai)
+        meeting_in(west, at: 2.days.ago, person: west_kai)
+      end
+
+      expect(card.lead).to eq(west.id)
+      expect(holdings(card)).to eq([[['West KG'], %i[salutation function department company email], false],
+                                    [['Nord GmbH'], %i[salutation function company email phone], true],
+                                    [['Sued AG'], %i[salutation function company email], true]])
+    end
+
+    # Review of #238: "more before fewer" counts the note, what the line names. Two groups of
+    # four fields: the one with notes comes first, though it is later in the list.
+    it 'counts the note of a group when it orders the groups' do
+      ActsAsTenant.with_tenant(south) { south_kai.update_columns(notes: nil) }
+      add_west(salutation: nil, function: 'Lager', department: 'Technik', company: 'Westwind KG', email: 'kai.west@example.com',
+               notes: 'Ruft zurueck.')
+
+      expect(holdings(card)).to eq([[['Nord GmbH'], %i[salutation function company email phone], true],
+                                    [['West KG'], %i[function department company email], true],
+                                    [['Sued AG'], %i[salutation function company email], false]])
+    end
+
+    it 'orders equal groups by the list, with the lead first inside its own group' do
+      ActsAsTenant.with_tenant(north) { north_kai.update_columns(phone: nil) }
+      west_kai = add_west(salutation: 'Frau', function: 'Lager', company: 'Westwind KG', email: 'kai.west@example.com',
+                          notes: 'Ruft zurueck.')
+      Prosopite.pause { meeting_in(west, at: 2.days.ago, person: west_kai) }
+
+      expect(card.lead).to eq(west.id)
+      expect(holdings(card)).to eq([[['West KG', 'Nord GmbH', 'Sued AG'], %i[salutation function company email], true]])
+    end
+  end
+
   describe 'a member of two organisations' do
     before do
       Prosopite.pause do
@@ -489,8 +606,10 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(source(card, south).lane).to eq(member_id: shared.id)
       expect(source(card, south).edit).to eq(member_id: shared.id)
       expect(source(card, south).address).to eq("member:#{shared.id}")
-      # What the south lacks is edited there, through that form.
-      expect(field(card, :phone).values.last.sources.map(&:edit)).to eq([{ member_id: shared.id }])
+      # What the south lacks is edited there, through that form (the pencil of its source).
+      expect(field(card, :phone).values.map { |value| value.sources.map(&:organisation_id) }).to eq([[north.id]])
+      expect(card.holdings.map { |holding| [holding.organisation_ids, holding.keys] })
+        .to eq([[[north.id], %i[function company email phone]], [[south.id], %i[email]]])
       expect(source(card, south).takeover).to be_nil
       expect(source(card, north).takeover).to be_nil
     end
@@ -515,7 +634,8 @@ RSpec.describe People::MergedCard, :ci_guard do
       expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH', 'Sued AG'])
       expect(source(card, south).lane).to eq(member_id: shared.id)
       expect(source(card, south).edit).to be_nil
-      expect(field(card, :phone).values.last.sources.map { |one| [one.organisation_id, one.edit] }).to eq([[south.id, nil]])
+      expect(field(card, :phone).values.map { |value| value.sources.map(&:organisation_id) }).to eq([[north.id]])
+      expect(card.holdings.map(&:organisation_ids)).to eq([[north.id], [south.id]])
       # The north still has its form.
       expect(source(card, north).edit).to eq(person_id: north_row.id)
     end
@@ -576,8 +696,9 @@ RSpec.describe People::MergedCard, :ci_guard do
   describe 'a person of one organisation' do
     let(:card) { card_at(address_of(north, person: north_kai)) }
 
-    it 'has one source and no field that differs' do
+    it 'has one source, its lead, and no field that differs' do
       expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH'])
+      expect(card.lead).to eq(north.id)
       expect(card.fields.map(&:differs)).to all(be(false))
       expect(card.merge_id).to be_nil
       expect(values(card, :phone)).to eq([['+49 30 5550100', ['Nord GmbH']]])

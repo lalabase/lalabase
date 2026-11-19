@@ -37,7 +37,13 @@
 #   other  -> a button_to form (a preference written on the server), like the tickets
 #
 # Items: { key:, icon:, title:, active:, path:, method: :get, params: {},
-# disabled: false }.
+# disabled: false, turbo_frame: nil }.
+#
+# turbo_frame, for a button only: the id of the frame its answer replaces. The
+# form keeps Turbo then, and the page around that frame stays as it is (the
+# card in the lane of /people: the list beside it keeps its page and its
+# search). Without it the form leaves Turbo (data-turbo="false") and the answer
+# is a visit of the whole page, as for every switch of a page head.
 class NeoViewSwitchComponent < ViewComponent::Base
   CONTAINER_CLASSES = 'inline-flex items-center gap-0.5'
   TILE_CLASSES = 'view-switch-tile h-[30px] w-[30px] rounded-md inline-flex items-center justify-center ' \
@@ -55,6 +61,10 @@ class NeoViewSwitchComponent < ViewComponent::Base
   #   stack:  a card with two shorter edges behind it (bundled by ticket)
   #   grid:   the board's frame, divided once across and once down: rows and
   #           columns, where the list has rows only (the matrix of roles and rights)
+  #   card:   a card with a head and two lines beside it: how to reach a person
+  #           (the card of /people, "Kontakt")
+  #   tagged: three lines, each ending in a small square: a value and the chip of
+  #           where it comes from (the card of /people, "Herkunft")
   ICONS = {
     list: [[:path, { d: 'M2.5 4h11M2.5 8h11M2.5 12h11' }]],
     kanban: [[:rect, { x: 1.85, y: 2.35, width: 12.3, height: 11.3, rx: 1.5 }],
@@ -65,7 +75,14 @@ class NeoViewSwitchComponent < ViewComponent::Base
     stack: [[:rect, { x: 1.85, y: 6.6, width: 12.3, height: 7.05, rx: 1.5 }],
             [:path, { d: 'M3.75 4.1h8.5M5.75 1.6h4.5' }]],
     grid: [[:rect, { x: 1.85, y: 2.35, width: 12.3, height: 11.3, rx: 1.5 }],
-           [:path, { d: 'M8 2.35v11.3M1.85 8h12.3' }]]
+           [:path, { d: 'M8 2.35v11.3M1.85 8h12.3' }]],
+    card: [[:rect, { x: 1.85, y: 2.85, width: 12.3, height: 10.3, rx: 1.5 }],
+           [:circle, { cx: 5.6, cy: 6.9, r: 1.55 }],
+           [:path, { d: 'M8.9 6.2h2.9M8.9 9.6h2.9' }]],
+    tagged: [[:path, { d: 'M1.85 3.9h7.4M1.85 8h7.4M1.85 12.1h7.4' }],
+             [:rect, { x: 11.35, y: 2.75, width: 2.6, height: 2.3, rx: 0.5 }],
+             [:rect, { x: 11.35, y: 6.85, width: 2.6, height: 2.3, rx: 0.5 }],
+             [:rect, { x: 11.35, y: 10.95, width: 2.6, height: 2.3, rx: 0.5 }]]
   }.freeze
 
   # label: the accessible name of the whole switch ("Ansicht"); container_class:
@@ -73,9 +90,12 @@ class NeoViewSwitchComponent < ViewComponent::Base
   def initialize(label:, items:, container_class: nil)
     super()
     @label = label
-    @items = items.map { |item| { method: :get, params: {}, disabled: false }.merge(item) }
+    @items = items.map { |item| { method: :get, params: {}, disabled: false, turbo_frame: nil }.merge(item) }
     @extra_classes = container_class
     @items.each { |item| ICONS.fetch(item[:icon].to_sym) { raise ArgumentError, "unknown icon #{item[:icon].inspect}" } }
+    return unless @items.any? { |item| item[:turbo_frame] && item[:method] == :get }
+
+    raise ArgumentError, 'turbo_frame is for a button, not for a link'
   end
 
   private
@@ -103,6 +123,11 @@ class NeoViewSwitchComponent < ViewComponent::Base
     tag.svg(drawing, viewBox: '0 0 16 16', width: 15, height: 15, fill: 'none', stroke: 'currentColor',
                      'stroke-width': '1.7', 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
                      'aria-hidden': true)
+  end
+
+  # The form of a button: inside the named frame with Turbo, or out of Turbo.
+  def form_options(item)
+    { data: item[:turbo_frame] ? { turbo_frame: item[:turbo_frame] } : { turbo: false }, class: 'h-full' }
   end
 
   def links_only?

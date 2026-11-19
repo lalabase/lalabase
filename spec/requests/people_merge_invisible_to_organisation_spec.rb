@@ -159,9 +159,11 @@ RSpec.describe 'A merge of people is invisible to the organisations', :ci_guard,
     get all_people_path
 
     rows = Nokogiri::HTML(response.body).css('tr[data-all-people-row]').to_h do |row|
-      [row.at_css('.all-people-row__name').text.strip, row.css('[data-organisation-chip]').map { |chip| chip.text.strip }]
+      [row.at_css('.all-people-row__name').text.strip, row_organisations(row)]
     end
-    expect(rows).to include('Kai Kontakt' => ['Nord GmbH', 'Sued AG'], 'Mara Mitglied' => ['Nord GmbH', 'Sued AG'])
+    # A row names its lead source first (D11): Mara's contact in the south holds more
+    # values than the member of the north, who has no row there.
+    expect(rows).to include('Kai Kontakt' => ['Nord GmbH', 'Sued AG'], 'Mara Mitglied' => ['Sued AG', 'Nord GmbH'])
   end
 
   it 'adds no column to the people of an organisation and no key to their API rows' do

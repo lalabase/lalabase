@@ -563,8 +563,12 @@
      written with hyphens) wraps inside its cell instead of lying over the chips. */
   .all-people-row__role { @apply break-words text-[13px] text-muted; }
   .all-people-row__last { @apply whitespace-nowrap text-xs tabular-nums text-muted; }
-  .all-people-chips { @apply flex flex-wrap gap-1.5; }
-  .all-people-chips .organisation-chip { max-width: min(16rem, 100%); }
+  /* The organisations of a row: the lead's chip and "+N" (D14), one line high at
+     every width, also beside the open card. The chip gives way, "+N" never. */
+  .all-people-chips { @apply flex min-w-0 flex-nowrap items-center gap-1.5; }
+  .all-people-chips .organisation-chip { @apply min-w-0; max-width: min(16rem, 100%); }
+  /* "+N": the count of the other organisations, in the mono style of a count. */
+  .all-people-more { @apply shrink-0 whitespace-nowrap font-mono text-[11px] tabular-nums text-muted; }
   .all-people-paging { @apply flex items-center gap-4 pb-6 text-[13px] text-muted; }
   /* An organisation as a chip (shared/_organisation_chip): a square in the
      reader's recognition colour for it (an inline background, the sidebar
@@ -576,22 +580,36 @@
   /* A chip that carries the pencil of its organisation behind the name (the
      card above the organisations): a link of its own inside the chip. */
   .organisation-chip__action { @apply -me-1 inline-grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] text-cream-600 no-underline hover:bg-cream-200 hover:text-heading; }
+  /* The chip as the way into its organisation: flat like the others, only the
+     edge darkens under the pointer. With a pencil the name is that link. */
+  .organisation-chip--link { @apply no-underline hover:border-cream-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink; }
+  .organisation-chip__link { @apply inline-flex min-w-0 items-center gap-1.5 text-heading no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink; }
   /* The card of a person above the organisations (all_people/_card): the
-     fields of the people page, each value on a line of its own with the
-     organisations it comes from behind it, where they are named. */
+     fields of the people page, each value on a line of its own; in Herkunft
+     the organisations it comes from behind it, or a quiet word where all of
+     them share it. */
   .all-people-card__value { @apply flex flex-wrap items-center gap-x-2 gap-y-1; }
   .all-people-card__value + .all-people-card__value { @apply mt-1.5; }
   .all-people-card__text { @apply min-w-0 whitespace-pre-line break-words; }
-  .all-people-card__missing { @apply text-[13px] text-muted; }
-  .all-people-card__chips { @apply inline-flex flex-wrap gap-1.5; }
-  .all-people-card__sources { @apply flex flex-col gap-3 border-t border-cream-200 pt-4; }
-  .all-people-card__source { @apply flex flex-col gap-1.5; }
-  .all-people-card__source-head { @apply flex flex-wrap items-center gap-x-3 gap-y-1; }
+  .all-people-card__shared { @apply text-xs text-muted; }
+  .all-people-card__chips { @apply inline-flex min-w-0 flex-wrap items-center gap-1.5; }
   .all-people-card__note { @apply mt-2; }
-  .all-people-card__switch[aria-pressed="true"] { @apply bg-cream-200 font-semibold text-heading; }
-  /* The switch of the head is a form of its own (button_to). Only that one: the
-     forms in its "···" menu are rows of the menu and stay blocks. */
-  .all-people-card .people-lane__head > form { @apply inline-flex; }
+  /* The line under the name: the kind, the lead's chip and "+N", which opens to
+     the chip of every source on a line of its own (on a phone they wrap). */
+  .all-people-card__where { @apply flex flex-wrap items-center gap-x-1.5 gap-y-1.5; }
+  .all-people-card__more { @apply inline-flex min-w-0 flex-wrap items-center gap-1.5; }
+  .all-people-card__more[open] { @apply basis-full; }
+  .all-people-card__more-toggle { @apply inline-flex cursor-pointer list-none items-center gap-1 rounded-full border border-cream-300 px-1.5 py-0.5 hover:border-cream-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink; }
+  .all-people-card__more-toggle::-webkit-details-marker { display: none; }
+  .all-people-card__more-chevron { @apply text-[9px] transition-transform; }
+  .all-people-card__more[open] .all-people-card__more-chevron { @apply rotate-180; }
+  /* "Was steht wo" (Herkunft): under a section label, one line per group of
+     sources that hold the same fields, the chips first. */
+  .all-people-card__holdings { @apply flex flex-col gap-1 border-t border-cream-200 pt-4; }
+  .all-people-card__section-label { @apply font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted; }
+  .all-people-card__holding { @apply flex flex-wrap items-center gap-x-2.5 gap-y-1 py-1.5; }
+  .all-people-card__holding + .all-people-card__holding { @apply border-t border-dashed border-cream-200; }
+  .all-people-card__holding-fields { @apply text-[13px] text-heading; }
   .people-empty { @apply flex flex-col items-start gap-2.5 pt-8; }
   .people-empty__icon { @apply text-2xl text-cream-500; }
   .people-empty__title { @apply text-[15px] font-semibold text-heading; }

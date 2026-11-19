@@ -181,6 +181,55 @@ module AllPeopleHelper
                          **(detail.kind == 'url' ? { target: '_blank', rel: 'noopener noreferrer' } : {}))
   end
 
+  # The two modes of a card (D10) as the items of its view switch: what each sends to
+  # AllPeopleController#sources (show: '1' is Herkunft) and its sign. The forms keep Turbo
+  # and answer inside the lane's frame, so the list beside the card stays as it is.
+  CARD_MODES = { contact: ['0', :card], sources: ['1', :tagged] }.freeze
+
+  def all_people_mode_items(card, mode)
+    CARD_MODES.map do |key, (show, icon)|
+      { key: key, icon: icon, title: t("views.all_people.card.modes.#{key}"), active: mode == key,
+        path: all_people_sources_path, method: :patch, turbo_frame: AllPeopleController::CARD_FRAME_ID,
+        params: { show: show, AllPeopleController::CARD_PARAM => card.address } }
+    end
+  end
+
+  # The chip of one source of a card (People::MergedCard::Source) as the way into its
+  # organisation: a link to that organisation's people page with the person open, out of
+  # the frame. While editing, the pencil of its form stands beside the name (Source#edit),
+  # or, where the reader may only read, "Nur lesen" as its title and for a screen reader.
+  def all_people_source_chip(source, editing: false)
+    organisation = source.organisation_name
+    render 'shared/organisation_chip',
+           name: organisation, color: current_user.org_colors.effective_color(source.organisation_id),
+           url: all_people_source_path(source), label: t('views.all_people.card.open_in', organisation: organisation),
+           action: (if editing && source.edit
+                      { url: all_people_edit_path(source.organisation_id, source.edit),
+                        label: t('views.all_people.card.edit_in', organisation: organisation), data: { card_source_edit: true } }
+                    end),
+           hint: (t('views.all_people.card.read_only') if editing && !source.edit)
+  end
+
+  # The names of some sources of a row or a card, for the title and the screen reader
+  # text of "+N", in their order.
+  def all_people_organisation_names(sources)
+    sources.map(&:organisation_name).join(', ')
+  end
+
+  # What Herkunft says at a value every source of the card shares: no chip, a quiet word.
+  def all_people_shared_text(count)
+    count == 2 ? t('views.all_people.card.shared.both') : t('views.all_people.card.shared.all', count: count)
+  end
+
+  # One line of "Was steht wo" (People::MergedCard::Holding): the labels of the fields the
+  # sources hold, as the card names them and in its order, the note last; "nur der Name"
+  # for a source that holds nothing else.
+  def all_people_holding_text(card, holding)
+    labels = holding.keys.map { |key| all_people_field_label(card.fields.find { |field| field.key == key }) }
+    labels << t('views.all_people.card.holdings.notes') if holding.notes
+    labels.empty? ? t('views.all_people.card.holdings.name_only') : labels.join(', ')
+  end
+
   # The newest last contact of a card: its age, its date for the tooltip and where it was.
   def all_people_card_last_contact(card)
     return unless card.last_contact

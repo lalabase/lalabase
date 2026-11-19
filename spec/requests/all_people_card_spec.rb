@@ -3,9 +3,11 @@
 require 'rails_helper'
 
 # What: the card of a person in the lane of the people list above the organisations
-#   (GET /people?card=<organisation id>:<entry address>): the values of every source side
-#   by side, the organisation named where the sources differ, the switch that names it
-#   everywhere, a pencil per source that leads to the form in that organisation.
+#   (GET /people?card=<organisation id>:<entry address>), in two modes: Kontakt shows the
+#   values without their organisations, the lead source's first, and a line under the name
+#   with the lead's chip and "+N"; Herkunft names the organisations at every value not all
+#   share and says in "Was steht wo" what each source holds. "Bearbeiten" is Herkunft with
+#   a pencil per source that leads to the form in that organisation.
 # Type: Request spec over real rows in two organisations.
 # Why:  the card shows contact details and notes of several tenants on a page without one.
 #   Pinned here: a source the viewer may not read is absent with everything it holds; an
@@ -308,62 +310,291 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
     end
   end
 
-  describe 'the sources' do
-    it 'shows no chip on the card of a person of one organisation, also with the switch on' do
-      quiet = card(nora)
-      expect(shown(quiet, :phone)).to eq([['+49 30 5550199', []]])
-      expect(chips(quiet)).to be_empty
-      expect(quiet.text).to include('Leitung IT', 'nora@example.com')
+  # D10: two modes. Kontakt, the default, shows every value without its organisation and
+  # never a missing one; the line under the name says where the person is entered.
+  # Herkunft names the organisations at every value not all sources share and says what
+  # each source holds ("Was steht wo", D12). Nothing changes for a person of one source.
+  describe 'the two modes' do
+    def mode_of(card) = card.at_css('[data-card-mode]')['data-card-mode']
 
+    def where(card) = card.at_css('[data-card-where]')
+
+    # The chip links of the line itself, not those of its "+N".
+    def line_links(card)
+      where(card).xpath('./a[@data-organisation-chip]').map { |link| [link.at_css('.organisation-chip__name').text, link['href'], link['data-turbo-frame']] }
+    end
+
+    def more(card) = where(card).at_css('details[data-card-more]')
+
+    def shared_text(card, key)
+      field(card, key).css('[data-card-value]').map { |value| value.at_css('[data-card-shared]')&.text&.strip }
+    end
+
+    # "Was steht wo": [[the organisations of a line], the fields it names].
+    def holdings(card)
+      card.css('[data-card-holding]').map do |line|
+        [line.css('[data-organisation-chip] .organisation-chip__name').map { |name| name.text.strip },
+         line.at_css('[data-card-holding-fields]').text.strip]
+      end
+    end
+
+    def labels(*keys) = keys.map { |key| key == :notes ? I18n.t('views.all_people.card.holdings.notes') : Person.human_attribute_name(key) }.join(', ')
+
+    describe 'Kontakt' do
+      it 'is the mode of a reader who never chose one' do
+        expect(mode_of(card(kai))).to eq('contact')
+        expect(User.find(user.id).preferences).not_to have_key('people_card_sources')
+      end
+
+      it 'shows every value without its organisation, the lead\'s first, and never a missing one' do
+        merged = card(kai)
+
+        expect(shown(merged, :function)).to eq([['Einkauf', []], ['Vertrieb', []]])
+        expect(shown(merged, :phone)).to eq([['+49 30 5550100', []]])
+        expect(shown(merged, :company)).to eq([['Nordlicht AG', []]])
+        expect(chips(merged)).to be_empty
+        expect(pencils(merged)).to be_empty
+        expect(merged.css('[data-card-shared], [data-card-holdings]')).to be_empty
+        # The name stands in the head only.
+        expect(field(merged, :name)).to be_nil
+        # The same answer shows the values and names nothing missing.
+        expect(response.body).to include('+49 30 5550100', 'Vertrieb')
+        expect(response.body).not_to include('nicht eingetragen', 'not entered')
+      end
+
+      it 'shows two different values one below the other, the lead\'s first, without naming either organisation' do
+        ActsAsTenant.with_tenant(south) { people[:south_kai].update_columns(phone: '+49 40 5550100') }
+
+        expect(shown(card(kai), :phone)).to eq([['+49 30 5550100', []], ['+49 40 5550100', []]])
+
+        # Equal counts: the newer last contact leads, and its number comes first.
+        Prosopite.pause { meeting_in(south, at: 2.days.ago, person: people[:south_kai]) }
+
+        expect(shown(card(kai), :phone)).to eq([['+49 40 5550100', []], ['+49 30 5550100', []]])
+      end
+
+      it 'names the kind and the lead as a link into its organisation in the line, and "+N" opens to every source' do
+        merged = card(kai)
+
+        expect(where(merged).text.squish).to start_with(I18n.t('views.all_people.card.line', kind: 'Kontakt'))
+        expect(line_links(merged)).to eq([['Nord GmbH', organisation_people_path(north, person_id: people[:north_kai].id), '_top']])
+        summary = more(merged).at_css('summary')
+        expect(summary.at_css('[aria-hidden="true"]').text.strip).to eq('+1')
+        expect(summary['title']).to eq('Sued AG')
+        expect(summary.at_css('.sr-only').text.strip).to eq(I18n.t('views.all_people.more.names', count: 1, names: 'Sued AG'))
+        expect(more(merged)['open']).to be_nil
+        links = more(merged).css('a[data-organisation-chip]')
+        expect(links.map { |link| [link.at_css('.organisation-chip__name').text, link['href'], link['data-turbo-frame']] })
+          .to eq([['Nord GmbH', organisation_people_path(north, person_id: people[:north_kai].id), '_top'],
+                  ['Sued AG', organisation_people_path(south, person_id: people[:south_kai].id), '_top']])
+        expect(links.pluck('aria-label')).to eq(['Nord GmbH', 'Sued AG'].map { |name| I18n.t('views.all_people.card.open_in', organisation: name) })
+      end
+
+      it 'starts "+N" with the lead, also when the lead is not the first source' do
+        ActsAsTenant.with_tenant(south) { people[:south_kai].update_columns(phone: '+49 40 5550100', department: 'Vertrieb') }
+        merged = card(kai)
+
+        expect(line_links(merged).map(&:first)).to eq(['Sued AG'])
+        expect(more(merged).css('a[data-organisation-chip] .organisation-chip__name').map(&:text)).to eq(['Sued AG', 'Nord GmbH'])
+        expect(more(merged).at_css('summary')['title']).to eq('Nord GmbH')
+      end
+
+      it 'shows the notes per source, folded and read only, under the last contact' do
+        Prosopite.pause { meeting_in(north, at: 3.days.ago, person: people[:north_kai]) }
+        merged = card(kai)
+
+        expect(merged.css('[data-card-last-contact], details[data-card-notes]').map(&:name)).to eq(%w[p details details])
+        notes = merged.css('details[data-card-notes]')
+        expect(notes.map { |one| one.at_css('summary').text.strip })
+          .to eq([I18n.t('views.all_people.card.notes_from', organisation: 'Nord GmbH'),
+                  I18n.t('views.all_people.card.notes_from', organisation: 'Sued AG')])
+        expect(notes.map { |one| one.at_css('.people-note').text.strip }).to eq(['Nur dienstags im Haus.', 'Zahlt immer puenktlich.'])
+        expect(notes.pluck('open')).to eq([nil, nil])
+        expect(merged.css('textarea, [contenteditable]')).to be_empty
+        expect(notes.css('a')).to be_empty
+      end
+    end
+
+    describe 'Herkunft' do
+      before { user.preference_store.remember_people_card_sources(true) }
+
+      it 'names the sources at every value not all of them share, the lead first' do
+        merged = card(kai)
+
+        expect(mode_of(merged)).to eq('sources')
+        expect(shown(merged, :function)).to eq([['Einkauf', ['Nord GmbH']], ['Vertrieb', ['Sued AG']]])
+        # One value that only one organisation knows: its chip, no word about the other.
+        expect(shown(merged, :phone)).to eq([['+49 30 5550100', ['Nord GmbH']]])
+        expect(shared_text(merged, :function)).to eq([nil, nil])
+        expect(response.body).not_to include('nicht eingetragen', 'not entered')
+      end
+
+      it 'says quietly that a value is in both, without a chip' do
+        merged = card(kai)
+
+        %i[company email salutation].each do |key|
+          expect(shown(merged, key).map(&:last)).to eq([[]])
+          expect(shared_text(merged, key)).to eq([I18n.t('views.all_people.card.shared.both')])
+        end
+        expect(field(merged, :name)).to be_nil
+      end
+
+      it 'says "in allen N" for a value all of three or more share' do
+        west = create(:organisation, name: 'West KG')
+        Prosopite.pause do
+          join_organisation(user, west, admin: true)
+          create(:person_group_entry, person_group: merge, organisation: west,
+                                      person_id: person_in(west, name: 'Kai Kontakt', company: 'Nordlicht AG', email: 'kai@example.com').id)
+        end
+
+        merged = card(kai)
+
+        expect(shared_text(merged, :company)).to eq([I18n.t('views.all_people.card.shared.all', count: 3)])
+        expect(shown(merged, :salutation)).to eq([['Herr', ['Nord GmbH', 'Sued AG']]])
+      end
+
+      it 'shows the name as a field with chips where the organisations wrote it differently' do
+        ActsAsTenant.with_tenant(south) { people[:south_kai].update_columns(name: 'K. Kontakt') }
+
+        expect(shown(card(kai), :name)).to eq([['Kai Kontakt', ['Nord GmbH']], ['K. Kontakt', ['Sued AG']]])
+        user.preference_store.remember_people_card_sources(false)
+        expect(field(card(kai), :name)).to be_nil
+      end
+
+      it 'counts the organisations in the line, without chips' do
+        merged = card(kai)
+
+        expect(where(merged).text.squish).to eq(I18n.t('views.all_people.card.line_count', kind: 'Kontakt', count: 2))
+        expect(where(merged).css('a, details')).to be_empty
+      end
+
+      it 'says in "Was steht wo" what each source holds, each chip a link into its organisation' do
+        merged = card(kai)
+
+        expect(holdings(merged)).to eq([[['Nord GmbH'], labels(:salutation, :function, :company, :email, :phone, :notes)],
+                                        [['Sued AG'], labels(:salutation, :function, :company, :email, :notes)]])
+        links = merged.css('[data-card-holding] a[data-organisation-chip]')
+        expect(links.map { |link| [link['href'], link['data-turbo-frame']] })
+          .to eq([[organisation_people_path(north, person_id: people[:north_kai].id), '_top'],
+                  [organisation_people_path(south, person_id: people[:south_kai].id), '_top']])
+        expect(merged.at_css('[data-card-holdings] h3').text.strip).to eq(I18n.t('views.all_people.card.holdings.label'))
+        # Below the fields, the last contact and the notes.
+        expect(merged.css('[data-card-field], details[data-card-notes], [data-card-holdings]').map(&:name).last).to eq('section')
+        expect(pencils(merged)).to be_empty
+        expect(merged.css('[data-card-holding] a[data-card-source-edit]')).to be_empty
+      end
+
+      it 'groups the sources that hold the same fields into one line, and says "nur der Name" for a source with nothing else' do
+        west = create(:organisation, name: 'West KG')
+        east = create(:organisation, name: 'Ost eG')
+        Prosopite.pause do
+          [west, east].each { |organisation| join_organisation(user, organisation, admin: true) }
+          create(:person_group_entry, person_group: merge, organisation: west,
+                                      person_id: person_in(west, name: 'Kai Kontakt', salutation: 'Frau', function: 'Lager', company: 'West AG',
+                                                                 email: 'west@example.com', notes: 'Kommt selten.').id)
+          create(:person_group_entry, person_group: merge, organisation: east,
+                                      person_id: person_in(east, name: 'Kai Kontakt', function: nil, company: nil, email: nil).id)
+        end
+
+        expect(holdings(card(kai))).to eq([[['Nord GmbH'], labels(:salutation, :function, :company, :email, :phone, :notes)],
+                                           [['Sued AG', 'West KG'], labels(:salutation, :function, :company, :email, :notes)],
+                                           [['Ost eG'], I18n.t('views.all_people.card.holdings.name_only')]])
+      end
+    end
+
+    # The card from production (2026-11-19): a member of seven organisations with details
+    # in one of them. Before, four values stood under three blocks "nicht eingetragen" of
+    # six chips each, and seven lines "In … öffnen" followed: 25 chips for four values.
+    # Review of #238: the line named the kind of the first source beside the chip of the
+    # lead, and Herkunft counted every organisation under that kind. A merge of a member
+    # with a contact is the usual case of a merge: the account rule joins members already.
+    describe 'a person who is a member in one organisation and a contact in another' do
+      let(:ole) { create(:user, first_name: 'Ole', last_name: 'Ohm', email: 'ole@example.com') }
+      let(:ole_card) { "#{north.id}:member:#{ole.id}" }
+
+      before do
+        Prosopite.pause do
+          join_organisation(ole, north)
+          contact = person_in(south, name: 'Ole Ohm', function: 'Technik', company: 'Ohm KG', email: 'ole.ohm@example.com',
+                                     phone: '+49 40 5550100')
+          create(:person_group, owner: user).tap do |group|
+            create(:person_group_entry, person_group: group, organisation: north, user_id: ole.id)
+            create(:person_group_entry, person_group: group, organisation: south, person_id: contact.id)
+          end
+        end
+      end
+
+      it 'names the kind of the lead beside its chip in Kontakt' do
+        contact = card(ole_card)
+
+        expect(line_links(contact).map(&:first)).to eq(['Sued AG'])
+        expect(where(contact).text.squish).to start_with(I18n.t('views.all_people.card.line', kind: 'Kontakt'))
+        # The card still names the person by the first source, the member.
+        expect(contact.at_css('.people-identity__name').text.strip).to eq('Ole Ohm')
+      end
+
+      it 'counts the organisations without one kind for all of them in Herkunft' do
+        user.preference_store.remember_people_card_sources(true)
+
+        expect(where(card(ole_card)).text.squish).to eq(I18n.t('views.all_people.card.line_count_mixed', count: 2))
+        expect(response.body).not_to include(I18n.t('views.all_people.card.line_count', kind: 'Mitglied', count: 2))
+      end
+    end
+
+    describe 'a member of seven organisations with details in one' do
+      let(:max) { create(:user, first_name: 'Max', last_name: 'Muster', email: 'max@example.com') }
+      let(:others) { %w[Atelier Hafenwerk Kanzlei Pixelfarm Studio].map { |name| create(:organisation, name: "#{name} KG") } }
+      let(:max_card) { "#{north.id}:member:#{max.id}" }
+
+      before do
+        Prosopite.pause do
+          others.each { |organisation| join_organisation(user, organisation, admin: true) }
+          [north, south, *others].each { |organisation| join_organisation(max, organisation) }
+          person_in(north, user: max, name: 'Max Muster', function: nil, company: 'Muster Consulting', email: nil,
+                           phone: '+49 170 5550100', notes: 'Am besten per Mail.',
+                           additional_details: [{ 'kind' => 'date', 'label' => 'Geburtstag', 'value' => '1980-03-03' }])
+        end
+      end
+
+      it 'shows the four values in Kontakt and one chip, the lead\'s, in the line' do
+        contact = card(max_card)
+
+        expect(contact.css('[data-card-value]').map { |value| value.at_css('[data-card-text]').text.strip })
+          .to eq(['Muster Consulting', 'max@example.com', '+49 170 5550100', I18n.l(Date.new(1980, 3, 3), format: :long)])
+        expect(contact.css('[data-organisation-chip]').reject { |chip| chip.ancestors('details').any? }.size).to eq(1)
+        expect(line_links(contact).map(&:first)).to eq(['Nord GmbH'])
+        expect(more(contact).at_css('summary [aria-hidden="true"]').text.strip).to eq('+6')
+        expect(more(contact).css('a[data-organisation-chip]').size).to eq(7)
+        expect(response.body).not_to include('nicht eingetragen')
+      end
+
+      it 'shows three chips at the values and two lines in "Was steht wo" in Herkunft' do
+        user.preference_store.remember_people_card_sources(true)
+        origin = card(max_card)
+
+        expect(chips(origin).map { |chip| chip.at_css('.organisation-chip__name').text }).to eq(['Nord GmbH'] * 3)
+        expect(shared_text(origin, :email)).to eq([I18n.t('views.all_people.card.shared.all', count: 7)])
+        expect(holdings(origin)).to eq([[['Nord GmbH'], [labels(:company, :email, :phone), 'Geburtstag', labels(:notes)].join(', ')],
+                                        [['Atelier KG', 'Hafenwerk KG', 'Kanzlei KG', 'Pixelfarm KG', 'Studio KG', 'Sued AG'], labels(:email)]])
+        expect(where(origin).text.squish).to eq(I18n.t('views.all_people.card.line_count', kind: 'Mitglied', count: 7))
+        expect(response.body).not_to include('nicht eingetragen')
+      end
+    end
+
+    it 'shows no switch, no Herkunft and no "Was steht wo" for a person of one organisation, whatever the reader chose' do
       user.preference_store.remember_people_card_sources(true)
-      expect(chips(card(nora))).to be_empty
-    end
+      single = card(nora)
 
-    it 'names the organisation only at the fields whose sources differ' do
-      merged = card(kai)
-
-      # Two values, each with its source.
-      expect(shown(merged, :function)).to eq([['Einkauf', ['Nord GmbH']], ['Vertrieb', ['Sued AG']]])
-      # A value one source lacks is a difference: the south is named as the one without it.
-      expect(shown(merged, :phone)).to eq([['+49 30 5550100', ['Nord GmbH']],
-                                           [I18n.t('views.all_people.card.missing_value'), ['Sued AG']]])
-      # Equal everywhere: the value alone.
-      expect(shown(merged, :company)).to eq([['Nordlicht AG', []]])
-      expect(shown(merged, :email)).to eq([['kai@example.com', []]])
-      expect(shown(merged, :salutation)).to eq([['Herr', []]])
-      # The name stands in the head; equal names are no line of their own.
-      expect(field(merged, :name)).to be_nil
-    end
-
-    it 'names the organisation at every value with the switch on' do
-      user.preference_store.remember_people_card_sources(true)
-      merged = card(kai)
-
-      expect(shown(merged, :company)).to eq([['Nordlicht AG', ['Nord GmbH', 'Sued AG']]])
-      expect(shown(merged, :email)).to eq([['kai@example.com', ['Nord GmbH', 'Sued AG']]])
-      expect(shown(merged, :name)).to eq([['Kai Kontakt', ['Nord GmbH', 'Sued AG']]])
-      expect(shown(merged, :function)).to eq([['Einkauf', ['Nord GmbH']], ['Vertrieb', ['Sued AG']]])
-      switch = merged.at_css('[data-card-sources-switch] button')
-      expect(switch['aria-pressed']).to eq('true')
-      # Pressed is more than the tone a hovered switch has as well (review of #197).
-      expect(switch.css('i.bi').map { |icon| icon['class'] }).to eq(['bi bi-check-lg'])
-    end
-
-    # Review of #197: "Bearbeiten" names the organisations at every value already. The
-    # switch beside it changed nothing on the card, and said "not pressed" while every
-    # organisation was named.
-    it 'names the organisation at every value while "Bearbeiten" is on, and offers no switch then' do
-      merged = card(kai, editing: 1)
-
-      expect(shown(merged, :company)).to eq([['Nordlicht AG', ['Nord GmbH', 'Sued AG']]])
-      expect(shown(merged, :name)).to eq([['Kai Kontakt', ['Nord GmbH', 'Sued AG']]])
-      expect(merged.at_css('[data-card-sources-switch]')).to be_nil
-      expect(merged.at_css('a[data-card-edit-done]')['href']).to eq(all_people_path(card: kai))
-      # Without it the head offers to turn it on.
-      expect(card(kai).at_css('a[data-card-edit]')['href']).to eq(all_people_path(card: kai, editing: 1))
+      expect(mode_of(single)).to eq('contact')
+      expect(shown(single, :phone)).to eq([['+49 30 5550199', []]])
+      expect(chips(single)).to be_empty
+      expect(single.css('[data-card-holdings], [data-card-shared], [data-card-mode-switch], details[data-card-more]')).to be_empty
+      expect(line_links(single)).to eq([['Nord GmbH', organisation_people_path(north, person_id: people[:north_only].id), '_top']])
+      expect(single.text).to include('Leitung IT', 'nora@example.com')
     end
 
     it 'gives every chip the recognition colour the person set for that organisation' do
+      user.preference_store.remember_people_card_sources(true)
       user.org_colors.set(north, '#d1fae5')
       user.org_colors.set(south, OrgColor::OFF)
       user.save!
@@ -371,19 +602,6 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       swatches = field(card(kai), :function).css('[data-organisation-chip] .organisation-chip__swatch').pluck('style')
 
       expect(swatches).to eq(['background-color: #d1fae5;', nil])
-    end
-
-    it 'shows the notes per source, folded and read only' do
-      merged = card(kai)
-
-      notes = merged.css('details[data-card-notes]')
-      expect(notes.map { |one| one.at_css('summary').text.strip })
-        .to eq([I18n.t('views.all_people.card.notes_from', organisation: 'Nord GmbH'),
-                I18n.t('views.all_people.card.notes_from', organisation: 'Sued AG')])
-      expect(notes.map { |one| one.at_css('.people-note').text.strip }).to eq(['Nur dienstags im Haus.', 'Zahlt immer puenktlich.'])
-      expect(notes.pluck('open')).to eq([nil, nil])
-      expect(merged.css('textarea, [contenteditable]')).to be_empty
-      expect(notes.css('a')).to be_empty
     end
 
     it 'keeps the notes out of the list' do
@@ -405,14 +623,6 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(line).not_to include('Nord GmbH')
     end
 
-    it 'links every source into its organisation, out of the frame' do
-      links = card(kai).css('a[data-card-source-link]')
-
-      expect(links.pluck('href')).to eq([organisation_people_path(north, person_id: people[:north_kai].id),
-                                         organisation_people_path(south, person_id: people[:south_kai].id)])
-      expect(links.pluck('data-turbo-frame')).to eq(%w[_top _top])
-    end
-
     describe 'a reference is not a right' do
       def expect_north_alone
         merged = card(kai)
@@ -421,7 +631,9 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
         expect(merged.text).to include('Kai Kontakt', 'Einkauf', 'Nur dienstags im Haus.', '+49 30 5550100')
         expect(response.body).not_to include('Vertrieb', 'Zahlt immer puenktlich.', 'Sued AG', south.id)
         expect(chips(merged)).to be_empty
-        expect(merged.css('a[data-card-source-link]').size).to eq(1)
+        expect(line_links(merged).map(&:first)).to eq(['Nord GmbH'])
+        expect(more(merged)).to be_nil
+        expect(merged.css('[data-card-holdings], [data-card-mode-switch]')).to be_empty
       end
 
       it 'shows nothing of a source in an organisation whose people right was taken away' do
@@ -429,6 +641,9 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
 
         Prosopite.pause { take_people_right(user, south) }
 
+        expect_north_alone
+        # Also not in Herkunft, which would name it in "Was steht wo".
+        user.preference_store.remember_people_card_sources(true)
         expect_north_alone
       end
 
@@ -450,7 +665,8 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
         member = card(mara)
 
         expect(member.text).to include('Mara Mitglied', 'Beraterin', '+49 30 5550111')
-        expect(member.css('a[data-card-source-link]').pluck('href')).to eq([organisation_people_path(north, person_id: people[:north_row].id)])
+        expect(line_links(member)).to eq([['Nord GmbH', organisation_people_path(north, person_id: people[:north_row].id), '_top']])
+        expect(more(member)).to be_nil
         expect(chips(member)).to be_empty
         expect(response.body).not_to include('Sued AG', south.id)
       end
@@ -524,45 +740,81 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
     end
   end
 
+  # D13: "Bearbeiten" for several sources is Herkunft with the pencils, whatever mode the
+  # reader chose: in the chips at the values and in the chips of "Was steht wo". A missing
+  # value is entered through the pencil of the organisation that lacks it.
   describe 'the pencils' do
-    it 'offers each writable source a form while editing a member with no additional values' do
-      ActsAsTenant.with_tenant(north) { people[:north_row].update!(function: nil, company: nil, phone: nil) }
-
-      member = card(mara, editing: 1)
-
-      expect(pencils(field(member, :name))).to be_empty
-      expect(pencils(field(member, :email))).to be_empty
-      links = member.css('a[data-card-source-edit]')
-      expect(links.pluck('href')).to eq([organisation_people_path(north, edit: people[:north_row].id),
-                                         organisation_people_path(south, new: 'person', user_id: shared.id)])
-      expect(links.pluck('data-turbo-frame')).to eq(%w[_top _top])
-      expect(card(mara).css('a[data-card-source-edit]')).to be_empty
+    def holding_pencils(card)
+      card.css('[data-card-holding] a[data-card-source-edit]').map { |link| [link['href'], link['data-turbo-frame']] }
     end
 
-    it 'puts a pencil into the chip of every source that leads to the form of that row in its organisation' do
-      merged = card(kai)
+    def holding_chip(card, name)
+      card.css('[data-card-holding] [data-organisation-chip]').find { |chip| chip.at_css('.organisation-chip__name').text == name }
+    end
+
+    it 'shows Herkunft with the pencils while "Bearbeiten" is on, also when the reader chose Kontakt, and no switch' do
+      merged = card(kai, editing: 1)
+
+      expect(merged.at_css('[data-card-mode]')['data-card-mode']).to eq('sources')
+      expect(shown(merged, :function)).to eq([['Einkauf', ['Nord GmbH']], ['Vertrieb', ['Sued AG']]])
+      expect(pencils(field(merged, :function))).to eq([organisation_people_path(north, edit: people[:north_kai].id),
+                                                       organisation_people_path(south, edit: people[:south_kai].id)])
+      expect(holding_pencils(merged)).to eq([[organisation_people_path(north, edit: people[:north_kai].id), '_top'],
+                                             [organisation_people_path(south, edit: people[:south_kai].id), '_top']])
+      expect(merged.at_css('[data-card-mode-switch]')).to be_nil
+      expect(merged.at_css('a[data-card-edit-done]')['href']).to eq(all_people_path(card: kai))
+      # Without it the head offers to turn it on, and the card is Kontakt again.
+      plain = card(kai)
+      expect(plain.at_css('a[data-card-edit]')['href']).to eq(all_people_path(card: kai, editing: 1))
+      expect(plain.at_css('[data-card-mode]')['data-card-mode']).to eq('contact')
+    end
+
+    it 'puts a pencil into the chip of every source at a value, each leading to the form of that row in its organisation' do
+      merged = card(kai, editing: 1)
 
       function = field(merged, :function)
-      expect(pencils(function)).to eq([organisation_people_path(north, edit: people[:north_kai].id),
-                                       organisation_people_path(south, edit: people[:south_kai].id)])
       pencil = function.at_css('a[data-card-pencil]')
       expect(pencil.ancestors('[data-organisation-chip]')).not_to be_empty
       expect(pencil['data-turbo-frame']).to eq('_top')
       expect(pencil['aria-label']).to eq(I18n.t('views.all_people.card.edit_in', organisation: 'Nord GmbH'))
-      # The value the south lacks is entered there.
-      expect(pencils(field(merged, :phone))).to eq([organisation_people_path(north, edit: people[:north_kai].id),
-                                                    organisation_people_path(south, edit: people[:south_kai].id)])
+      expect(pencils(field(merged, :phone))).to eq([organisation_people_path(north, edit: people[:north_kai].id)])
+      # The phone the south lacks is entered through the pencil of the south in "Was steht wo".
+      south_chip = holding_chip(merged, 'Sued AG')
+      expect(south_chip.at_css('a[data-card-source-edit]')['href']).to eq(organisation_people_path(south, edit: people[:south_kai].id))
+      expect(south_chip.at_css('a.organisation-chip__link')['href']).to eq(organisation_people_path(south, person_id: people[:south_kai].id))
     end
 
-    it 'gives a source where the viewer may only read a chip without a pencil' do
+    it 'never puts a link inside a link' do
+      # Three requests in one example are the spec's doing: the first one is watched.
+      [card(kai, editing: 1), Prosopite.pause { card(mara, editing: 1) }, Prosopite.pause { card(kai) }].each do |shown_card|
+        expect(shown_card.css('a a')).to be_empty
+        expect(Nokogiri::HTML5.fragment(shown_card.to_html).css('a a')).to be_empty
+      end
+    end
+
+    it 'gives a source where the viewer may only read a chip without a pencil, titled "Nur lesen"' do
       take_right_to_write(south)
       merged = card(kai, editing: 1)
 
       expect(shown(merged, :function)).to eq([['Einkauf', ['Nord GmbH']], ['Vertrieb', ['Sued AG']]])
       expect(pencils(field(merged, :function))).to eq([organisation_people_path(north, edit: people[:north_kai].id)])
-      expect(shown(merged, :company)).to eq([['Nordlicht AG', ['Nord GmbH', 'Sued AG']]])
-      expect(pencils(field(merged, :company))).to eq([organisation_people_path(north, edit: people[:north_kai].id)])
+      expect(holding_pencils(merged)).to eq([[organisation_people_path(north, edit: people[:north_kai].id), '_top']])
+      read_only = holding_chip(merged, 'Sued AG')
+      expect(read_only['title']).to eq(I18n.t('views.all_people.card.read_only'))
+      expect(read_only.at_css('.sr-only').text.strip).to eq(I18n.t('views.all_people.card.read_only'))
+      expect(read_only.css('a').map { |link| link['href'] }).to eq([organisation_people_path(south, person_id: people[:south_kai].id)])
+      expect(holding_chip(merged, 'Nord GmbH')['title']).to be_nil
       expect(response.body).not_to include(organisation_people_path(south, edit: people[:south_kai].id))
+
+      # Without "Bearbeiten" no chip carries the word: the chips are the ways into the
+      # organisations (review of #238).
+      plain = Prosopite.pause { card(kai) }
+      expect(plain.css('[data-card-more] a[data-organisation-chip]').size).to eq(2)
+      expect(plain.css('[data-organisation-chip][title="Nur lesen"], [data-organisation-chip] .sr-only')).to be_empty
+      user.preference_store.remember_people_card_sources(true)
+      origin = Prosopite.pause { card(kai) }
+      expect(origin.css('[data-card-holding] a[data-organisation-chip]').size).to eq(2)
+      expect(origin.css('[data-card-holding] [title="Nur lesen"], [data-card-holding] .sr-only')).to be_empty
     end
 
     it 'offers no "Bearbeiten" when the viewer may write in none of the organisations' do
@@ -576,17 +828,30 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(response.body).not_to match(/[?&]edit=/)
     end
 
+    # A member's name and email are the account's: they get no pencil. Where they can be
+    # seen beside a pencil is a merge with a contact that wrote them otherwise.
     it 'gives the name and the email of a member no pencil, and the member without a row the form that adds the details' do
+      west = create(:organisation, name: 'West KG')
+      west_mara = nil
+      Prosopite.pause do
+        join_organisation(user, west, admin: true)
+        west_mara = person_in(west, name: 'M. Mitglied', email: 'mara.west@example.com')
+        create(:person_group, owner: user).tap do |group|
+          create(:person_group_entry, person_group: group, organisation: north, person_id: people[:north_row].id)
+          create(:person_group_entry, person_group: group, organisation: west, person_id: west_mara.id)
+        end
+      end
       member = card(mara, editing: 1)
+      west_form = organisation_people_path(west, edit: west_mara.id)
       new_form = organisation_people_path(south, new: Organisations::PeopleController::NEW_STATE, user_id: shared.id)
 
-      expect(shown(member, :name)).to eq([['Mara Mitglied', ['Nord GmbH', 'Sued AG']]])
-      expect(pencils(field(member, :name))).to be_empty
-      expect(shown(member, :email)).to eq([['mara@example.com', ['Nord GmbH', 'Sued AG']]])
-      expect(pencils(field(member, :email))).to be_empty
+      expect(shown(member, :name)).to eq([['Mara Mitglied', ['Nord GmbH', 'Sued AG']], ['M. Mitglied', ['West KG']]])
+      expect(pencils(field(member, :name))).to eq([west_form])
+      expect(shown(member, :email)).to eq([['mara@example.com', ['Nord GmbH', 'Sued AG']], ['mara.west@example.com', ['West KG']]])
+      expect(pencils(field(member, :email))).to eq([west_form])
       # What the row in the north holds is edited there; what the south lacks, through the form of a new row.
-      expect(pencils(field(member, :function))).to eq([organisation_people_path(north, edit: people[:north_row].id), new_form])
-      expect(pencils(field(member, :phone))).to eq([organisation_people_path(north, edit: people[:north_row].id), new_form])
+      expect(holding_pencils(member)).to eq([[organisation_people_path(north, edit: people[:north_row].id), '_top'],
+                                             [west_form, '_top'], [new_form, '_top']])
       expect(response.body).not_to include('mara.lager@example.com')
     end
 
@@ -601,12 +866,11 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
 
       member = card(mara, editing: 1)
 
-      expect(shown(member, :phone)).to eq([['+49 30 5550111', ['Nord GmbH']], [I18n.t('views.all_people.card.missing_value'), ['Sued AG']]])
+      expect(shown(member, :phone)).to eq([['+49 30 5550111', ['Nord GmbH']]])
       expect(pencils(field(member, :phone))).to eq([organisation_people_path(north, edit: people[:north_row].id)])
       expect(response.body).not_to include('new=person')
-      expect(member.css('a[data-card-source-edit]').pluck('href')).to eq([organisation_people_path(north, edit: people[:north_row].id)])
-      read_only = member.css('[data-card-source]').map { |one| one.text.include?(I18n.t('views.all_people.card.read_only')) }
-      expect(read_only).to eq([false, true])
+      expect(holding_pencils(member)).to eq([[organisation_people_path(north, edit: people[:north_row].id), '_top']])
+      expect(holding_chip(member, 'Sued AG')['title']).to eq(I18n.t('views.all_people.card.read_only'))
     end
 
     it 'gives the notes no pencil' do
@@ -616,13 +880,13 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(merged.css('details[data-card-notes] a')).to be_empty
     end
 
-    it 'makes "Bearbeiten" of a person of one organisation the way into that form' do
+    it 'makes "Bearbeiten" of a person of one organisation the way into that form, with no switch and no "Was steht wo"' do
       single = card(nora)
 
       edit = single.at_css('a[data-card-edit]')
       expect(edit['href']).to eq(organisation_people_path(north, edit: people[:north_only].id))
       expect(edit['data-turbo-frame']).to eq('_top')
-      expect(single.at_css('[data-card-sources-switch]')).to be_nil
+      expect(single.css('[data-card-mode-switch], [data-card-holdings]')).to be_empty
     end
   end
 
@@ -723,7 +987,7 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
     it 'offers no undo for a person the same account alone joins' do
       member = card(mara)
 
-      expect(member.css('a[data-card-source-link]').size).to eq(2)
+      expect(member.css('[data-card-more] a[data-organisation-chip]').size).to eq(2)
       expect(member.css('form[data-card-split], form[data-card-detach]')).to be_empty
     end
 
@@ -743,23 +1007,24 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
   end
 
   describe 'the switch' do
+    # true is Herkunft (D10): a reader who had "Quellen zeigen" on before lands there.
     it 'is stored for the person, survives a reload, and is taken back the same way' do
-      expect(chips(field(card(kai), :company))).to be_empty
+      expect(chips(field(card(kai), :function))).to be_empty
 
       patch all_people_sources_path, params: { show: '1', card: kai }
 
       expect(response).to redirect_to(all_people_path(card: kai))
       expect(response).to have_http_status(:see_other)
       expect(User.find(user.id).preferences['people_card_sources']).to be(true)
-      # A reload, and any other card: the organisations stand at every value.
-      expect(chips(field(card(kai), :company)).size).to eq(2)
+      # A reload, and any other card: the organisations stand at the values they hold.
+      expect(chips(field(card(kai), :function)).size).to eq(2)
       get all_people_path(card: kai)
-      expect(chips(field(Nokogiri::HTML(response.body), :company)).size).to eq(2)
+      expect(chips(field(Nokogiri::HTML(response.body), :function)).size).to eq(2)
 
       patch all_people_sources_path, params: { show: '0', card: kai }
 
       expect(User.find(user.id).preferences['people_card_sources']).to be(false)
-      expect(chips(field(card(kai), :company))).to be_empty
+      expect(chips(field(card(kai), :function))).to be_empty
     end
 
     it 'belongs to the person: another one keeps their own' do
@@ -775,16 +1040,26 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(User.find(user.id).preference_store.people_card_sources?).to be(true)
     end
 
-    it 'sends its state and the open card with the button, inside the lane frame' do
-      form = card(kai).at_css('form[data-card-sources-switch]')
+    # The view switch of the app (NeoViewSwitchComponent), with the option that keeps its
+    # forms inside the lane: the list beside the card keeps its page and its search.
+    it 'is the view switch of the app: Kontakt and Herkunft, each sending its mode and the card inside the lane frame' do
+      switch = card(kai).at_css('[data-card-mode-switch]')
 
-      expect(form['action']).to eq(all_people_sources_path)
-      expect(form.at_css('input[name="_method"]')['value']).to eq('patch')
-      expect(form.at_css('input[name="show"]')['value']).to eq('1')
-      expect(form.at_css('input[name="card"]')['value']).to eq(kai)
-      expect(form['data-turbo-frame']).to be_nil
-      expect(form.at_css('button')['aria-pressed']).to eq('false')
-      expect(form.css('button i.bi').map { |icon| icon['class'] }).to eq(['bi bi-building'])
+      expect(switch.at_css('[role="group"]')['aria-label']).to eq(I18n.t('views.all_people.card.modes.label'))
+      forms = switch.css('form')
+      expect(forms.map { |form| [form['action'], form.at_css('input[name="_method"]')['value'], form.at_css('input[name="show"]')['value'], form.at_css('input[name="card"]')['value']] })
+        .to eq([[all_people_sources_path, 'patch', '0', kai], [all_people_sources_path, 'patch', '1', kai]])
+      expect(forms.map { |form| [form['data-turbo'], form['data-turbo-frame']] })
+        .to eq([[nil, AllPeopleController::CARD_FRAME_ID], [nil, AllPeopleController::CARD_FRAME_ID]])
+      tiles = switch.css('button')
+      expect(tiles.map { |tile| [tile['title'], tile['aria-label'], tile['aria-pressed']] })
+        .to eq([[I18n.t('views.all_people.card.modes.contact')] * 2 + ['true'], [I18n.t('views.all_people.card.modes.sources')] * 2 + ['false']])
+      expect(switch.css('button svg').size).to eq(2)
+      expect(switch.css('i.bi')).to be_empty
+
+      user.preference_store.remember_people_card_sources(true)
+
+      expect(card(kai).css('[data-card-mode-switch] button').pluck('aria-pressed')).to eq(%w[false true])
     end
 
     it 'goes back to the card it came from, as the card alone names it' do
@@ -818,6 +1093,60 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       patch all_people_sources_path, params: { show: '1', card: kai }
 
       expect(response).to redirect_to(new_user_session_path)
+    end
+  end
+
+  # The card shares two partials with other pages. What those pages draw stays as it was
+  # before the card learnt its modes (the markup is pinned as the base rendered it).
+  describe 'the partials the card shares' do
+    let(:chip_action) { { url: '/org/1/people?edit=2', label: 'In Nord GmbH bearbeiten', data: { card_pencil: true } } }
+
+    def chip(**locals)
+      ApplicationController.render(partial: 'shared/organisation_chip', locals: { name: 'Nord GmbH', **locals })
+    end
+
+    it 'renders the identity of a person on the people page of an organisation as before' do
+      Prosopite.pause { get organisation_people_path(north, person_id: people[:north_only].id) }
+      contact = Nokogiri::HTML(response.body).at_css('.people-identity').to_html
+      Prosopite.pause { get organisation_people_path(north, member_id: user.id) }
+      member = Nokogiri::HTML(response.body).at_css('.people-identity').to_html
+
+      expect(contact).to eq("<div class=\"people-identity\">\n  <span class=\"relative inline-flex items-center justify-center shrink-0 neo-user-avatar rounded-[5px] bg-cream-200 border border-cream-300 font-bold text-cream-900 w-[52px] h-[52px] text-[15px] people-avatar people-avatar--contact\" data-controller=\"avatar-fallback\">NN</span>\n  <div class=\"people-identity__text\">\n    <h2 class=\"people-identity__name\">Nora Nord</h2>\n    <p class=\"people-identity__line\">Kontakt · Hosting AG</p>\n  </div>\n</div>")
+      expect(member).to eq("<div class=\"people-identity\">\n  <span class=\"relative inline-flex items-center justify-center shrink-0 neo-user-avatar rounded-[5px] bg-cream-200 border border-cream-300 font-bold text-cream-900 w-[52px] h-[52px] text-[15px] people-avatar \" title=\"Vera Viewer\" data-controller=\"avatar-fallback\">VV</span>\n  <div class=\"people-identity__text\">\n    <h2 class=\"people-identity__name\">Vera Viewer</h2>\n    <p class=\"people-identity__line\">Mitglied</p>\n  </div>\n</div>")
+    end
+
+    it 'renders the plain chip and the chip with a pencil as before' do
+      expect(chip(color: '#d1fae5')).to eq("  <span class=\"organisation-chip\" title=\"Nord GmbH\" data-organisation-chip=\"true\"><span class=\"organisation-chip__swatch\" aria-hidden=\"true\" style=\"background-color: #d1fae5;\"></span><span class=\"organisation-chip__name\">Nord GmbH</span></span>\n")
+      expect(chip).to eq("  <span class=\"organisation-chip\" title=\"Nord GmbH\" data-organisation-chip=\"true\"><span class=\"organisation-chip__swatch\" aria-hidden=\"true\"></span><span class=\"organisation-chip__name\">Nord GmbH</span></span>\n")
+      expect(chip(color: '#d1fae5', action: chip_action)).to eq("  <span class=\"organisation-chip organisation-chip--action\" data-organisation-chip=\"true\">\n    <span class=\"organisation-chip__swatch\" aria-hidden=\"true\" style=\"background-color: #d1fae5;\"></span><span class=\"organisation-chip__name\">Nord GmbH</span>\n    <a class=\"organisation-chip__action\" title=\"In Nord GmbH bearbeiten\" aria-label=\"In Nord GmbH bearbeiten\" data-turbo-frame=\"_top\" data-card-pencil=\"true\" href=\"/org/1/people?edit=2\">\n      <i class=\"bi bi-pencil\" aria-hidden=\"true\"></i>\n</a></span>")
+    end
+
+    it 'makes the whole chip one link into its organisation, out of the frame, named by its label' do
+      link = Nokogiri::HTML.fragment(chip(url: '/org/1/people', label: 'In Nord GmbH öffnen')).at_css('a')
+
+      expect([link['href'], link['data-turbo-frame'], link['aria-label'], link['title']])
+        .to eq(['/org/1/people', '_top', 'In Nord GmbH öffnen', 'In Nord GmbH öffnen'])
+      expect(link['class']).to eq('organisation-chip organisation-chip--link')
+      expect(link.key?('data-organisation-chip')).to be(true)
+      expect(link.at_css('.organisation-chip__name').text).to eq('Nord GmbH')
+    end
+
+    it 'puts the pencil beside the link of the name, never a link inside a link' do
+      node = Nokogiri::HTML.fragment(chip(url: '/org/1/people', label: 'In Nord GmbH öffnen', action: chip_action)).at_css('[data-organisation-chip]')
+
+      expect(node.name).to eq('span')
+      expect(node.css('a').map { |link| [link['class'], link['href']] })
+        .to eq([['organisation-chip__link', '/org/1/people'], ['organisation-chip__action', '/org/1/people?edit=2']])
+      expect(node.css('a a')).to be_empty
+    end
+
+    it 'gives a chip with a hint the hint as its title and for a screen reader, and no pencil' do
+      node = Nokogiri::HTML.fragment(chip(url: '/org/1/people', label: 'In Nord GmbH öffnen', hint: 'Nur lesen')).at_css('[data-organisation-chip]')
+
+      expect([node.name, node['title']]).to eq(['span', 'Nur lesen'])
+      expect(node.at_css('.sr-only').text).to eq('Nur lesen')
+      expect(node.css('a').map { |link| link['href'] }).to eq(['/org/1/people'])
+      expect(node.css('.organisation-chip__action')).to be_empty
     end
   end
 end

@@ -25,6 +25,22 @@ module AllPeopleHelpers
     ActsAsTenant.with_tenant(organisation) { create(:person, organisation: organisation, **attributes) }
   end
 
+  # The organisations a row of the list names (D14): the chip of its lead source, then
+  # the others its "+N" names in its title. A Nokogiri node.
+  def row_organisations(row)
+    more = row.at_css('[data-row-more]')
+    row.css('[data-organisation-chip] .organisation-chip__name').map { |name| name.text.strip } + (more ? more['title'].split(', ') : [])
+  end
+
+  # The organisations a card in Kontakt names in the line under the name: every source,
+  # the lead first (the chips its "+N" opens to), or the one chip of a card of one
+  # source. A Nokogiri document of the card.
+  def card_organisations(doc)
+    where = doc.at_css('[data-card-where]')
+    chips = where.at_css('[data-card-more]') ? where.css('[data-card-more] [data-organisation-chip]') : where.css('[data-organisation-chip]')
+    chips.map { |chip| chip.at_css('.organisation-chip__name').text.strip }
+  end
+
   # A meeting in a project of its own, with one participant: a last contact.
   def meeting_in(organisation, at:, person: nil, user: nil)
     ActsAsTenant.with_tenant(organisation) do

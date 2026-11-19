@@ -36,6 +36,11 @@ module People
   #   lines as they are stored, and the rule of who is shown as one person stays here.
   # * The card of one person asks the same (#shown_at, People::MergedCard): the sources the
   #   list shows as that person, each handed to the caller's block under its own tenant.
+  # * The lead source of a person (.lead_of, D11) is decided by ONE rule for the row and
+  #   for the card: the most values (People::Lookup.value_count, counted under the tenant
+  #   of each source), then the newest last contact, then the order of the list. It is a
+  #   value of its own: the sources keep the order of the list, and the name, the kind and
+  #   the address of a row and of a card stay the first source's.
   # * Whether one source can leave a merge alone is asked of the same rule, never of a
   #   second one: the people are grouped again, in memory, without the lines that would go
   #   (#shown_at's detachable), and after the write by the lines stored now
@@ -57,13 +62,18 @@ module People
     # organisations' names). function, department, company: of the first source that has
     # one. last_contact: { on:, kind: } of People::Lookup.row, the newest of the sources.
     # merge_id: the id of the viewer's merge that joined sources of this row, nil for a row
-    # no merge joined (also one the account rule alone made).
-    Row = Data.define(:name, :kind, :function, :department, :company, :last_contact, :sources, :avatar_user, :merge_id)
+    # no merge joined (also one the account rule alone made). lead: the organisation id of
+    # the lead source (.lead_of), the one the row names first.
+    Row = Data.define(:name, :kind, :function, :department, :company, :last_contact, :sources, :avatar_user, :merge_id, :lead)
 
     # One entry of one organisation. fields: People::Lookup.row of the entry, its :id the
     # entry's address ("person:<uuid>" or "member:<uuid>"). lane: what opens the entry on
-    # that organisation's people page ({ person_id: } or { member_id: }).
-    Source = Data.define(:organisation_id, :organisation_name, :lane, :fields)
+    # that organisation's people page ({ person_id: } or { member_id: }). value_count: how
+    # many values the card of the entry shows (People::Lookup.value_count), for the lead.
+    Source = Data.define(:organisation_id, :organisation_name, :lane, :fields, :value_count) do
+      # The last contact of the entry, { on:, kind: } or nil: for .lead_of.
+      def last_contact = fields[:last_contact]
+    end
 
     # One entry as a write of a merge stores it (Actors::MergePeople): where it is, its
     # address (PersonGroupEntry.address_of) and the keys a stored entry names it by
@@ -83,6 +93,18 @@ module People
     # One entry while the list is built: never handed out.
     Candidate = Struct.new(:organisation, :listing, :entry, :group, :matched, :merge_id)
     private_constant :Candidate
+
+    # The lead of a person's sources (D11), as an organisation id: the source with the most
+    # values on the card, on a tie the one with the newest last contact, then the first in
+    # the order given (the order of the list). The one rule for a row (Row#lead) and for
+    # the card (People::MergedCard::Card#lead). A source answers organisation_id,
+    # value_count and last_contact ({ on: "YYYY-MM-DD" } or nil). nil for no sources.
+    def self.lead_of(sources)
+      ranked = sources.each_with_index.max_by do |source, index|
+        [source.value_count, source.last_contact&.dig(:on).to_s, -index]
+      end
+      ranked&.first&.organisation_id
+    end
 
     def self.call(viewer:, query: nil, org: nil, page: 1)
       new(viewer: viewer, query: query, org: org, page: page).call
@@ -452,16 +474,19 @@ module People
       end
     end
 
+    # Under the tenant of the organisation (#sources_by_candidate): the count reads the
+    # card of the entry, in memory, from what the directory loaded.
     def source_of(organisation, entry)
       lane = entry.person ? { person_id: entry.person.id } : { member_id: entry.user.id }
       Source.new(organisation_id: organisation.id, organisation_name: organisation.name,
-                 lane: lane, fields: People::Lookup.row(entry).freeze)
+                 lane: lane, fields: People::Lookup.row(entry).freeze,
+                 value_count: People::Lookup.value_count(People::Lookup.card(entry)))
     end
 
     def row_of(account, sources, merge_id)
       fields = sources.map(&:fields)
       Row.new(name: fields.first[:name], kind: fields.first[:kind], sources: sources.freeze, avatar_user: account,
-              merge_id: merge_id,
+              merge_id: merge_id, lead: self.class.lead_of(sources),
               last_contact: fields.filter_map { |row| row[:last_contact] }.max_by { |last| last[:on] },
               **first_values(fields))
     end

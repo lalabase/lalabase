@@ -125,14 +125,16 @@ gem 'pdf-reader', '~> 2.16.0' # For PDF text extraction
 gem 'rtf', '~> 0.3.3' # For RTF file support, if desired
 
 gem 'image_processing', '~> 2.2' # active storage & active text
-# image_processing 2 no longer depends on ruby-vips; Active Storage variants, the avatar
-# crop and the rich text embeds call Vips directly, so the app names it itself.
-gem 'ruby-vips', '~> 2.2'
 gem 'mini_magick' # image processing, shrinking images
 gem 'mission_control-jobs' # Job queue monitoring interface for Solid Queue
 gem 'pundit', '~> 2.5'
 gem 'pundit-matchers', '~> 4.0', groups: %i[development test]
 gem 'rack-attack', '~> 6.7' # Rate limiting and request throttling
 gem 'redis', '~> 6.0' # Cache store (staging/production); no longer a job backend
+# image_processing 2 no longer depends on ruby-vips, so the app names it itself. Not
+# required by Bundler: Active Storage loads it at boot and switches vips off when
+# libvips is missing (a CI step before libvips is installed), as before
+# image_processing 2. Requiring it here made such a boot crash instead.
+gem 'ruby-vips', '~> 2.2', require: false
 gem 'solid_queue', '~> 1.7' # The only job backend (Rails 8 native)
 gem 'whatlanguage', '~> 1.0'

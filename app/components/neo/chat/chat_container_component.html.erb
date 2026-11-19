@@ -62,7 +62,9 @@
         chips that render as `contents`, so the chips themselves have no geometry
         of their own -- these wrappers are the only things a bounding box can be
         taken of. No CSS hangs off either name. %>
-    <div class="chat-context-row flex flex-wrap items-center gap-x-5 gap-y-2 mb-1">
+    <%# relative: the open reference list floats above this row (lg and up) and is
+        positioned against it, see ReferenceChipComponent. %>
+    <div class="chat-context-row relative flex flex-wrap items-center gap-x-5 gap-y-2 mb-1">
       <%= render scope_row %>
     </div>
     <%= render composer %>

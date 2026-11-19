@@ -123,7 +123,20 @@ module Neo
           next if count.nil?
 
           t("views.organisations.assistant_panels.reference.types.#{citation_type_of(type)}", count: count)
-        end.join(', ')
+        end.join(' · ')
+      end
+
+      # The open list's groups: [type label with its count, records], in REGISTRY
+      # order like the summary, each group in the order the entries are stored.
+      def grouped_entries
+        by_type = references.group_by { |record| record.class.name }
+
+        Assistant::ReferenceRegistry.types.filter_map do |type|
+          group = by_type[type]
+          next if group.nil?
+
+          [t("views.organisations.assistant_panels.reference.types.#{citation_type_of(type)}", count: group.size), group]
+        end
       end
 
       # The glyph of the type, from the map that ALREADY answers "what does a

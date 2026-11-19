@@ -210,18 +210,18 @@ RSpec.describe Neo::Chat::TransparencyNoticeComponent,
 
       expect(short).to eq(I18n.t('views.organisations.chats.chat_show.ai_transparency_head_short'))
       expect(long).to eq(I18n.t('views.organisations.chats.chat_show.ai_transparency_head', provider: 'OpenAI (GPT)'))
-      expect(page.css('[data-neo-ai-disclosure-target="layer"]').text).to include('OpenAI (GPT)')
+      expect(page.css('[data-neo-disclosure-target="layer"]').text).to include('OpenAI (GPT)')
     end
 
     it 'moves the transfer sentence and the privacy link INTO the layer' do
-      layer = render_notice.css('[data-neo-ai-disclosure-target="layer"]').text.squish
+      layer = render_notice.css('[data-neo-disclosure-target="layer"]').text.squish
 
       expect(layer).to include('Eingaben und Projektkontext werden dorthin übertragen')
       expect(layer).to include(I18n.t('views.organisations.chats.chat_show.ai_transparency_privacy_link'))
     end
 
     it 'links the configured privacy page, and nothing without one' do
-      privacy_link = ->(page) { page.css('[data-neo-ai-disclosure-target="layer"] a').map { |a| a['href'] } }
+      privacy_link = ->(page) { page.css('[data-neo-disclosure-target="layer"] a').map { |a| a['href'] } }
 
       expect(privacy_link.call(render_notice)).to eq(['https://public.example/datenschutz'])
       with_legal_identity { expect(privacy_link.call(render_notice)).to be_empty }
@@ -243,9 +243,9 @@ RSpec.describe Neo::Chat::TransparencyNoticeComponent,
       page = render_notice
 
       expect(page.css('details > summary')).to be_present
-      layer = page.css('[data-neo-ai-disclosure-target="layer"]').first
+      layer = page.css('[data-neo-disclosure-target="layer"]').first
       expect(layer['class']).not_to include('hidden')
-      expect(page.css('details').first['data-controller']).to eq('neo-ai-disclosure')
+      expect(page.css('details').first['data-controller']).to eq('neo-disclosure')
     end
 
     # WCAG 2.5.3: the accessible name has to contain the visible label, or voice

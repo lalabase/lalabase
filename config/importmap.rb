@@ -206,7 +206,7 @@ else
   pin 'controllers/modal_controller', to: 'controllers/modal_controller.js'
   pin 'controllers/move_ticket_modal_controller', to: 'controllers/move_ticket_modal_controller.js'
   pin 'controllers/neo_activity_filter_controller', to: 'controllers/neo_activity_filter_controller.js'
-  pin 'controllers/neo_ai_disclosure_controller', to: 'controllers/neo_ai_disclosure_controller.js'
+  pin 'controllers/neo_disclosure_controller', to: 'controllers/neo_disclosure_controller.js'
   pin 'controllers/neo_autosuggest_controller', to: 'controllers/neo_autosuggest_controller.js'
   pin 'controllers/neo_avatar_crop_controller', to: 'controllers/neo_avatar_crop_controller.js'
   pin 'controllers/neo_button_controller', to: 'controllers/neo_button_controller.js'

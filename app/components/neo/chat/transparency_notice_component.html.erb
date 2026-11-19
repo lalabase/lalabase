@@ -29,7 +29,7 @@
     D10). The <details> is `static` on purpose: the layer is positioned against the
     head row (which is `relative`), so it opens BELOW the whole head and over the
     transcript, not under the few pixels of the summary. %>
-<details class="group/notice static min-w-0" data-controller="neo-ai-disclosure" data-action="toggle->neo-ai-disclosure#toggled">
+<details class="group/notice static min-w-0" data-controller="neo-disclosure" data-action="toggle->neo-disclosure#toggled">
   <%# text-muted, not text-faint: this line carries the one legally required
       statement that stays on screen, and it is also a control. Measured on white,
       --cream-500 gives 3.33:1 and --cream-600 gives 5.55:1; 1.4.3 AA asks 4.5:1 at
@@ -56,7 +56,7 @@
       hard one. The translation classes come OFF one frame after opening, so
       without JavaScript the note simply appears: the information is never behind
       the animation. %>
-  <div data-neo-ai-disclosure-target="layer"
+  <div data-neo-disclosure-target="layer"
        class="absolute top-full inset-x-2 mt-1 z-20 -translate-y-2 opacity-0 transition-all duration-200
               bg-surface-raised border border-cream-300 rounded-lg p-3 shadow-lg">
     <p class="text-xs font-bold text-cream-900">

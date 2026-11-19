@@ -1328,9 +1328,9 @@ RSpec.describe 'Assistant companion panel', type: :system do
   # these examples are really about is what the controller adds on top: Escape and
   # a click beside it, both of which have to survive a Turbo transplant.
   describe 'the transparency note' do
-    def summary    = find('#assistant_panel details[data-controller="neo-ai-disclosure"] summary', visible: :all)
+    def summary    = find('#assistant_panel details[data-controller="neo-disclosure"] summary', visible: :all)
 
-    def open_note? = page.has_css?('#assistant_panel details[data-controller="neo-ai-disclosure"][open]',
+    def open_note? = page.has_css?('#assistant_panel details[data-controller="neo-disclosure"][open]',
                                    visible: :all, wait: 2)
 
     # ⚠️ Waiting for the ELEMENT is not enough. The disclosure is native, so the
@@ -1340,8 +1340,8 @@ RSpec.describe 'Assistant companion panel', type: :system do
     # made this group flake at roughly one run in five.
     before do
       open_panel
-      expect(page).to have_css('#assistant_panel details[data-controller="neo-ai-disclosure"]', visible: :all)
-      wait_for_stimulus('#assistant_panel details[data-controller="neo-ai-disclosure"]', 'neo-ai-disclosure')
+      expect(page).to have_css('#assistant_panel details[data-controller="neo-disclosure"]', visible: :all)
+      wait_for_stimulus('#assistant_panel details[data-controller="neo-disclosure"]', 'neo-disclosure')
     end
 
     # Since 2026-11-19 the notice sits in the panel HEAD, beside the title, and no
@@ -1349,9 +1349,9 @@ RSpec.describe 'Assistant companion panel', type: :system do
     # frame content carries a turbo stream that puts the notice there. Only a
     # browser runs that stream, so only a browser can say it landed.
     it 'sits in the head beside the title, not in the writing zone' do
-      expect(page).to have_css('#assistant_panel #assistant_panel_notice details[data-controller="neo-ai-disclosure"]',
+      expect(page).to have_css('#assistant_panel #assistant_panel_notice details[data-controller="neo-disclosure"]',
                                visible: :all)
-      expect(page).to have_no_css('#assistant_panel_body details[data-controller="neo-ai-disclosure"]', visible: :all)
+      expect(page).to have_no_css('#assistant_panel_body details[data-controller="neo-disclosure"]', visible: :all)
     end
 
     it 'unfolds on the summary and folds back on it' do
@@ -1417,7 +1417,7 @@ RSpec.describe 'Assistant companion panel', type: :system do
       summary.click
       expect(open_note?).to be(true)
 
-      find('#assistant_panel details[data-controller="neo-ai-disclosure"] a', visible: :all)
+      find('#assistant_panel details[data-controller="neo-disclosure"] a', visible: :all)
         .send_keys(:escape)
 
       expect(open_note?).to be(false)

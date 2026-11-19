@@ -20,8 +20,12 @@ en:
           take: Take
           dismiss: Hide suggestion
         reference:
-          label: Reference
-          remove: 'Remove reference: %{title}'
+          # "Topic" since the writing-zone plan (2026-11-19, D3): the model takes the
+          # reference as the topic of the conversation, and the word says so.
+          label: 'Topic:'
+          remove: 'Remove from topic: %{title}'
+          list_title: Topic · %{count} of %{limit}
+          close_list: Close list
           # Per-type group label in the collapsed summary: "2 tasks", and from
           # S3 on "1 task, 3 meetings". Keyed by the registry's citation_type,
           # the vocabulary Citations::TYPES and the source list already speak.
@@ -43,8 +47,8 @@ en:
               one: "%{count} file"
               other: "%{count} files"
         scope:
-          label: Looking in
-          all_projects: All your projects
+          label: 'Looking in:'
+          all_projects: All projects
           aria_label: Assistant scope
         settings:
           open: Settings

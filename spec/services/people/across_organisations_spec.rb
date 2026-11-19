@@ -825,6 +825,19 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
       expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH', 'Sued AG'])
     end
 
+    # Review of #238: the count comes before the last contact. A swapped rank went unseen.
+    it 'goes to the source with more values before the one with the newer last contact' do
+      person_in(south, user: shared, name: 'M. Mitglied', function: 'Beraterin', company: 'Suedwind AG',
+                       department: 'Vertrieb', phone: '+49 40 5550100')
+      Prosopite.pause do
+        meeting_in(north, at: 2.days.ago, user: shared)
+        meeting_in(south, at: 30.days.ago, user: shared)
+      end
+
+      expect(mara_row.sources.map(&:value_count)).to eq([3, 5])
+      expect([mara_row.lead, mara_card.lead]).to eq([south.id, south.id])
+    end
+
     it 'names no lead for no sources' do
       expect(described_class.lead_of([])).to be_nil
     end

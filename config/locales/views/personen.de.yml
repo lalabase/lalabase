@@ -78,6 +78,7 @@ de:
           sources: "Herkunft"
         line: "%{kind} in"
         line_count: "%{kind} in %{count} Organisationen"
+        line_count_mixed: "In %{count} Organisationen"
         shared:
           both: "in beiden"
           all: "in allen %{count}"

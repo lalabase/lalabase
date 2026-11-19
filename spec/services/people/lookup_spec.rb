@@ -440,6 +440,21 @@ RSpec.describe People::Lookup, :ci_guard do
       expect(Prosopite.pause { count_of("person:#{bare.id}", notes: true, kind_names: true) }).to eq(2)
     end
 
+    # Review of #238: the card shows a detail one source holds twice as one value. Counted
+    # twice, it made a source the lead that shows fewer values than another.
+    it 'counts a detail one source holds twice under the same label as one value' do
+      bare.update_columns(additional_details: [{ 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 1' },
+                                               { 'kind' => 'phone', 'label' => 'mobil', 'value' => ' 0171  1 ' },
+                                               { 'kind' => 'phone', 'label' => 'Mobil', 'value' => '0171 2' }])
+
+      expect(count_of("person:#{bare.id}")).to eq(2)
+    end
+
+    # The fields it counts are the fields the card shows besides the name.
+    it 'counts the fixed fields of the card, all of them but the name' do
+      expect(described_class::COUNTED_FIELDS).to eq(People::MergedCard::FIXED_FIELDS - [:name])
+    end
+
     it 'counts what the card of the people page shows of a contact in full' do
       expect(count_of("person:#{contact.id}", notes: true)).to eq(7)
     end

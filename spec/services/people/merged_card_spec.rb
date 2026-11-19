@@ -540,6 +540,18 @@ RSpec.describe People::MergedCard, :ci_guard do
                                     [['Sued AG'], %i[salutation function company email], true]])
     end
 
+    # Review of #238: "more before fewer" counts the note, what the line names. Two groups of
+    # four fields: the one with notes comes first, though it is later in the list.
+    it 'counts the note of a group when it orders the groups' do
+      ActsAsTenant.with_tenant(south) { south_kai.update_columns(notes: nil) }
+      add_west(salutation: nil, function: 'Lager', department: 'Technik', company: 'Westwind KG', email: 'kai.west@example.com',
+               notes: 'Ruft zurueck.')
+
+      expect(holdings(card)).to eq([[['Nord GmbH'], %i[salutation function company email phone], true],
+                                    [['West KG'], %i[function department company email], true],
+                                    [['Sued AG'], %i[salutation function company email], false]])
+    end
+
     it 'orders equal groups by the list, with the lead first inside its own group' do
       ActsAsTenant.with_tenant(north) { north_kai.update_columns(phone: nil) }
       west_kai = add_west(salutation: 'Frau', function: 'Lager', company: 'Westwind KG', email: 'kai.west@example.com',

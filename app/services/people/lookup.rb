@@ -173,10 +173,16 @@ module People
     # every source has, and not the notes, which are no value of the card. The lead
     # source of a person above the organisations is decided by it
     # (People::AcrossOrganisations.lead_of), for the list and the card alike: both count
-    # this hash, so they cannot disagree.
+    # this hash, so they cannot disagree. A detail one source holds twice, under the same
+    # label (its case and spacing aside, as the card joins labels) with the same words, is
+    # one value: the card shows it once, whatever rule its field compares by.
     def self.value_count(card)
       COUNTED_FIELDS.count { |key| card[key].present? } +
-        card[:additional_details].count { |detail| detail[:value].present? }
+        card[:additional_details].filter_map { |detail| detail_key(detail) if detail[:value].present? }.uniq.size
+    end
+
+    def self.detail_key(detail)
+      [detail[:label].to_s.gsub(/[[:space:]]+/, '').downcase, detail[:value].to_s.squish]
     end
 
     # The additional details as label and value. A detail without a label is named by its
@@ -201,7 +207,7 @@ module People
       { on: last.at.in_time_zone.to_date.iso8601, kind: last.kind.to_s }
     end
 
-    private_class_method :details, :last_contact
+    private_class_method :details, :last_contact, :detail_key
 
     private
 

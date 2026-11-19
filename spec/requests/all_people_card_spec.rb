@@ -388,8 +388,6 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
           .to eq([['Nord GmbH', organisation_people_path(north, person_id: people[:north_kai].id), '_top'],
                   ['Sued AG', organisation_people_path(south, person_id: people[:south_kai].id), '_top']])
         expect(links.pluck('aria-label')).to eq(['Nord GmbH', 'Sued AG'].map { |name| I18n.t('views.all_people.card.open_in', organisation: name) })
-        # The line replaces the blocks per source of the card before.
-        expect(merged.css('[data-card-source], a[data-card-source-link]')).to be_empty
       end
 
       it 'starts "+N" with the lead, also when the lead is not the first source' do
@@ -507,6 +505,42 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
     # The card from production (2026-11-19): a member of seven organisations with details
     # in one of them. Before, four values stood under three blocks "nicht eingetragen" of
     # six chips each, and seven lines "In … öffnen" followed: 25 chips for four values.
+    # Review of #238: the line named the kind of the first source beside the chip of the
+    # lead, and Herkunft counted every organisation under that kind. A merge of a member
+    # with a contact is the usual case of a merge: the account rule joins members already.
+    describe 'a person who is a member in one organisation and a contact in another' do
+      let(:ole) { create(:user, first_name: 'Ole', last_name: 'Ohm', email: 'ole@example.com') }
+      let(:ole_card) { "#{north.id}:member:#{ole.id}" }
+
+      before do
+        Prosopite.pause do
+          join_organisation(ole, north)
+          contact = person_in(south, name: 'Ole Ohm', function: 'Technik', company: 'Ohm KG', email: 'ole.ohm@example.com',
+                                     phone: '+49 40 5550100')
+          create(:person_group, owner: user).tap do |group|
+            create(:person_group_entry, person_group: group, organisation: north, user_id: ole.id)
+            create(:person_group_entry, person_group: group, organisation: south, person_id: contact.id)
+          end
+        end
+      end
+
+      it 'names the kind of the lead beside its chip in Kontakt' do
+        contact = card(ole_card)
+
+        expect(line_links(contact).map(&:first)).to eq(['Sued AG'])
+        expect(where(contact).text.squish).to start_with(I18n.t('views.all_people.card.line', kind: 'Kontakt'))
+        # The card still names the person by the first source, the member.
+        expect(contact.at_css('.people-identity__name').text.strip).to eq('Ole Ohm')
+      end
+
+      it 'counts the organisations without one kind for all of them in Herkunft' do
+        user.preference_store.remember_people_card_sources(true)
+
+        expect(where(card(ole_card)).text.squish).to eq(I18n.t('views.all_people.card.line_count_mixed', count: 2))
+        expect(response.body).not_to include(I18n.t('views.all_people.card.line_count', kind: 'Mitglied', count: 2))
+      end
+    end
+
     describe 'a member of seven organisations with details in one' do
       let(:max) { create(:user, first_name: 'Max', last_name: 'Muster', email: 'max@example.com') }
       let(:others) { %w[Atelier Hafenwerk Kanzlei Pixelfarm Studio].map { |name| create(:organisation, name: "#{name} KG") } }
@@ -771,6 +805,16 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(read_only.css('a').map { |link| link['href'] }).to eq([organisation_people_path(south, person_id: people[:south_kai].id)])
       expect(holding_chip(merged, 'Nord GmbH')['title']).to be_nil
       expect(response.body).not_to include(organisation_people_path(south, edit: people[:south_kai].id))
+
+      # Without "Bearbeiten" no chip carries the word: the chips are the ways into the
+      # organisations (review of #238).
+      plain = Prosopite.pause { card(kai) }
+      expect(plain.css('[data-card-more] a[data-organisation-chip]').size).to eq(2)
+      expect(plain.css('[data-organisation-chip][title="Nur lesen"], [data-organisation-chip] .sr-only')).to be_empty
+      user.preference_store.remember_people_card_sources(true)
+      origin = Prosopite.pause { card(kai) }
+      expect(origin.css('[data-card-holding] a[data-organisation-chip]').size).to eq(2)
+      expect(origin.css('[data-card-holding] [title="Nur lesen"], [data-card-holding] .sr-only')).to be_empty
     end
 
     it 'offers no "Bearbeiten" when the viewer may write in none of the organisations' do

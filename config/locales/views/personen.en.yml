@@ -78,6 +78,7 @@ en:
           sources: "Sources"
         line: "%{kind} of"
         line_count: "%{kind} of %{count} organisations"
+        line_count_mixed: "In %{count} organisations"
         shared:
           both: "in both"
           all: "in all %{count}"

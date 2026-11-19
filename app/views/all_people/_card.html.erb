@@ -4,8 +4,9 @@
     Kontakt (mode :contact, the default): every value of every field, the
     lead's first (Card#lead), without its organisation and without a word about
     a value an organisation lacks. Two different values stand one below the
-    other. The line under the name says where the person is entered: the
-    lead's chip, the way into that organisation (out of the frame), and for
+    other. The line under the name says where the person is entered: the kind
+    the lead source gives the person and the lead's chip, the way into that
+    organisation (out of the frame), and for
     several sources "+N", the summary of a <details> that opens to the chip of
     every source, the lead first, then the order of the list, each a link into
     its organisation. No script, and the open state is not remembered. It
@@ -16,7 +17,9 @@
     other value names the sources that hold it as chips, the lead first. The
     name is a field where the organisations wrote it differently. Below the
     notes, "Was steht wo" (Card#holdings) says per group of sources what they
-    hold: what an organisation lacks shows there, per organisation.
+    hold: what an organisation lacks shows there, per organisation. Its line
+    under the name counts the organisations, with the kind where all of them
+    give the person the same one (a merge often joins a member and a contact).
 
     "Bearbeiten" is Herkunft with the pencils: in the chips at the values (none
     at the name and email of a member: ValueSource#edit) and in the chips of
@@ -33,20 +36,24 @@
 <% several = card.sources.many? %>
 <% origin = several && (editing || mode == :sources) %>
 <% sources = card.sources.index_by(&:organisation_id) %>
-<% kind_word = t("views.organisations.people.show.kind.#{card.kind}") %>
+<% kinds = card.sources.map(&:kind).uniq %>
 <div class="people-detail" data-card-mode="<%= origin ? 'sources' : 'contact' %>">
   <%= render 'all_people/card_head', card: card, editing: editing, mode: mode %>
 
   <div class="people-detail__body width-text">
     <% if origin %>
-      <% where = tag.p(t('views.all_people.card.line_count', kind: kind_word, count: card.sources.size),
-                       class: 'people-identity__line', data: { card_where: true }) %>
+      <% count = if kinds.one?
+                   t('views.all_people.card.line_count', kind: t("views.organisations.people.show.kind.#{kinds.first}"), count: card.sources.size)
+                 else
+                   t('views.all_people.card.line_count_mixed', count: card.sources.size)
+                 end %>
+      <% where = tag.p(count, class: 'people-identity__line', data: { card_where: true }) %>
     <% else %>
       <% lead = sources.fetch(card.lead) %>
       <% others = card.sources.reject { |source| source.equal?(lead) } %>
       <% where = capture do %>
         <div class="people-identity__line all-people-card__where" data-card-where>
-          <span><%= t('views.all_people.card.line', kind: kind_word) %></span>
+          <span><%= t('views.all_people.card.line', kind: t("views.organisations.people.show.kind.#{lead.kind}")) %></span>
           <%= all_people_source_chip(lead) %>
           <% if others.any? %>
             <% names = all_people_organisation_names(others) %>

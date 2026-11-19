@@ -33,6 +33,9 @@ module People
     # The two kinds of id the list hands out; the link dialog's third value ("new") is none.
     ADDRESSES = %i[person member].freeze
     ID_ERROR = 'invalid id (expected "person:<uuid>" or "member:<uuid>")'
+    # The fields of a card that count as its values (.value_count): what a card shows
+    # besides the name. The additional details count one by one.
+    COUNTED_FIELDS = %i[salutation function department company email phone].freeze
 
     # The viewer may not see the directory of this organisation.
     class Refused < StandardError; end
@@ -163,6 +166,17 @@ module People
         additional_details: details(person, kind_names: kind_names)
       )
       notes ? card.merge(notes: person&.notes.presence) : card
+    end
+
+    # How many values a card (.card) shows: every counted field with a value and every
+    # additional detail with a value, with a label or without one. Not the name, which
+    # every source has, and not the notes, which are no value of the card. The lead
+    # source of a person above the organisations is decided by it
+    # (People::AcrossOrganisations.lead_of), for the list and the card alike: both count
+    # this hash, so they cannot disagree.
+    def self.value_count(card)
+      COUNTED_FIELDS.count { |key| card[key].present? } +
+        card[:additional_details].count { |detail| detail[:value].present? }
     end
 
     # The additional details as label and value. A detail without a label is named by its

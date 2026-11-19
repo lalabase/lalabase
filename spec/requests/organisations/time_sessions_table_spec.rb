@@ -690,7 +690,7 @@ RSpec.describe 'Organisations::TimeSessions table', type: :request do
     # The header line of a month: only spans inside it, so the first closing div
     # is its own.
     def month_header
-      desktop[%r{<div class="flex items-baseline gap-3\.5 px-2 pb-1\.5">.*?</div>}m]
+      desktop[%r{<div class="flex items-baseline gap-3\.5 px-\[var\(--row-inset\)\] pb-1\.5">.*?</div>}m]
     end
 
     # ⚠️ This moved out to a labelled row above the table for one commit and came
@@ -918,7 +918,9 @@ RSpec.describe 'Organisations::TimeSessions table', type: :request do
                                                 .css('[data-time-session-bulk-row]')
                                                 .first
 
-      expect(booking['class']).to include('pl-14')
+      # 48 px past where the row's content starts (the row inset, layout.css):
+      # the same step as the old pl-14 against the old px-2.
+      expect(booking['class'].split).to include('ps-[calc(var(--row-inset)+48px)]')
     end
 
     it 'folds the bookings away and offers a labelled control to unfold them' do

@@ -33,6 +33,13 @@
     --width-capped: 620px;
     --width-capped-wide: 820px;
     --width-text: 70ch;
+
+    /* The inset of a list row (user, 19.11.2026): a row's surface ends at the
+       list's lines, never beyond them, and its content stands this far inside,
+       left and right; the column heads take the same inset. Every list reads
+       it, named once: spec/system/list_row_inset_spec.rb measures them. The
+       ticket list on a phone stays flush, there is less room. */
+    --row-inset: 12px;
   }
 
   /* Focus, app-wide (designer, 08.09.2026): the blue ring is replaced, never
@@ -1121,6 +1128,11 @@
     padding-top: 0.4rem !important;
     padding-bottom: 0.4rem !important;
   }
+
+  /* The row inset (--row-inset): the first and the last cell of every row,
+     heads included, whatever padding the template gives the cell. */
+  .list table tr > :is(th, td):first-child { padding-inline-start: var(--row-inset); }
+  .list table tr > :is(th, td):last-child { padding-inline-end: var(--row-inset); }
   
   /* Set the table to full width */
   .list table {

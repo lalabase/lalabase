@@ -4,9 +4,10 @@ require 'rails_helper'
 
 # What: the card of a person in the lane of the people list above the organisations, in a
 #       browser: a click on a row opens it beside the list, the address carries it, the
-#       switch "Quellen zeigen" stays on over a reload, a pencil lands in the form of that
-#       row on the people page of its organisation and Back returns, the takeover dialog
-#       of an organisation opens on this page, and a merge is undone from the card.
+#       switch Kontakt | Herkunft answers in the lane and stays over a reload, "+N" opens
+#       to the way into each organisation, a pencil lands in the form of that row on the
+#       people page of its organisation and Back returns, the takeover dialog of an
+#       organisation opens on this page, and a merge is undone from the card.
 # Why:  the row opener, the lane frame that asks the page's own address, the switch that
 #       answers inside the frame, the links that have to leave it and the dialog of
 #       another controller only meet in a browser. The request spec sees the markup, not
@@ -84,6 +85,18 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     lane.all(%([data-card-field="#{key}"] [data-organisation-chip]), minimum: 0).map(&:text)
   end
 
+  # The organisations the card names in its line (Kontakt): the chips "+N" opens to, or
+  # the one chip of a card of one source. Read whether "+N" is open or not.
+  def line_sources
+    more = lane.all('[data-card-more] [data-organisation-chip] .organisation-chip__name', visible: :all, minimum: 0)
+    return more.map { |name| name.text(:all) } if more.any?
+
+    lane.all('[data-card-where] [data-organisation-chip] .organisation-chip__name', minimum: 0).map(&:text)
+  end
+
+  # The tile of a mode in the switch of the card's head.
+  def mode_tile(key) = lane.find(%([data-card-mode-switch] button[title="#{I18n.t("views.all_people.card.modes.#{key}")}"]))
+
   it 'opens the card beside the list on a click, carries it in the address and shows it again after a reload' do
     visit_list
     expect(page).to have_no_css('[data-all-people-card]')
@@ -95,10 +108,11 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(page).to have_css('tr[data-all-people-row].selected-row', count: 1, text: 'Kai Kontakt')
     expect(page).to have_current_path(all_people_path, ignore_query: true)
     expect(card_param).to eq(kai_address)
-    # The organisations are named only where they differ.
-    expect(chips_at('function')).to eq(['Nord GmbH', 'Sued AG'])
-    expect(chips_at('company')).to be_empty
-    expect(lane).to have_text(I18n.t('views.all_people.card.missing_value'))
+    # Kontakt: the values without their organisations, and nothing about what one lacks.
+    expect(lane).to have_css('[data-card-field="function"]', text: 'Vertrieb')
+    expect(chips_at('function')).to be_empty
+    expect(lane).to have_no_text('nicht eingetragen')
+    expect(line_sources).to eq(['Nord GmbH', 'Sued AG'])
 
     visit page.current_url
 
@@ -192,52 +206,84 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(page).to have_current_path(all_people_path)
   end
 
-  it 'names the organisations at every value with the switch, and keeps it on over a reload' do
-    visit_list
+  # The switch answers inside the lane's frame: the list beside the card keeps its page
+  # and its search, and the address its card. Before the frame option of the view switch
+  # its form left Turbo and the page came back as page 1 without the search.
+  it 'shows Herkunft with a click on its tile in the lane, keeps the page and the search of the list, and keeps it over a reload' do
+    51.times { |i| person_in(north, name: format('Kai Aaron %02d', i)) }
+    visit_list(page: 2, q: 'Kai')
     open_card('Kai Kontakt')
-    expect(chips_at('company')).to be_empty
+    expect(lane).to have_css('[data-all-people-card] [data-card-mode="contact"]')
+    expect(mode_tile(:contact)['aria-pressed']).to eq('true')
 
-    lane.find('[data-card-sources-switch] button').click
+    mode_tile(:sources).click
 
-    expect(lane).to have_css('[data-card-sources-switch] button[aria-pressed="true"]')
-    expect(chips_at('company')).to eq(['Nord GmbH', 'Sued AG'])
-    # The switch answers inside the lane: the page, its list and its address stay.
-    expect(list).to have_text('Nora Nord')
-    expect(card_param).to eq(kai_address)
+    expect(lane).to have_css('[data-card-mode="sources"]')
+    expect(mode_tile(:sources)['aria-pressed']).to eq('true')
+    expect(chips_at('function')).to eq(['Nord GmbH', 'Sued AG'])
+    expect(lane).to have_css('[data-card-holdings] [data-card-holding]', count: 2)
+    expect(lane).to have_css('[data-card-field="company"] [data-card-shared]', text: I18n.t('views.all_people.card.shared.both'))
+    # The page, its list and its address stay: page 2 of the search.
+    expect(list).to have_text('Kai Kontakt')
+    expect(list).to have_no_text('Kai Aaron 00')
+    expect(Rack::Utils.parse_nested_query(URI.parse(page.current_url).query)).to include('page' => '2', 'q' => 'Kai', 'card' => kai_address)
 
     visit page.current_url
 
-    expect(lane).to have_css('[data-card-sources-switch] button[aria-pressed="true"]')
-    expect(chips_at('company')).to eq(['Nord GmbH', 'Sued AG'])
+    expect(lane).to have_css('[data-card-mode="sources"]')
+    expect(chips_at('function')).to eq(['Nord GmbH', 'Sued AG'])
 
     wait_until_still('[data-all-people-card] [data-lane-close]')
-    lane.find('[data-card-sources-switch] button').click
+    mode_tile(:contact).click
 
-    expect(lane).to have_css('[data-card-sources-switch] button[aria-pressed="false"]')
-    expect(chips_at('company')).to be_empty
-    expect(chips_at('function')).to eq(['Nord GmbH', 'Sued AG'])
+    expect(lane).to have_css('[data-card-mode="contact"]')
+    expect(chips_at('function')).to be_empty
+    expect(lane).to have_no_css('[data-card-holdings]')
   end
 
-  it 'names the organisations at every value while "Bearbeiten" is on, and takes them back with "Fertig"' do
+  it 'shows Herkunft with the pencils while "Bearbeiten" is on, and returns to the chosen mode with "Fertig"' do
     visit_list
     open_card('Kai Kontakt')
 
     lane.find('a[data-card-edit]').click
 
     expect(lane).to have_css('a[data-card-edit-done]')
-    expect(chips_at('company')).to eq(['Nord GmbH', 'Sued AG'])
-    expect(lane).to have_css('[data-card-field="company"] a[data-card-pencil]', count: 2)
+    expect(lane).to have_css('[data-card-mode="sources"]')
+    expect(lane).to have_no_css('[data-card-mode-switch]')
+    expect(chips_at('function')).to eq(['Nord GmbH', 'Sued AG'])
+    expect(lane).to have_css('[data-card-field="function"] a[data-card-pencil]', count: 2)
+    expect(lane).to have_css('[data-card-holding] a[data-card-source-edit]', count: 2)
 
     wait_until_still('[data-all-people-card] [data-lane-close]')
     lane.find('a[data-card-edit-done]').click
 
     expect(lane).to have_css('a[data-card-edit]')
-    expect(chips_at('company')).to be_empty
+    expect(lane).to have_css('[data-card-mode="contact"]')
+    expect(chips_at('function')).to be_empty
+  end
+
+  # "+N" is the summary of a <details>: a real click opens it, and its chips lead out of
+  # the frame into the organisation.
+  it 'opens "+N" with a click and leads into an organisation through its chip' do
+    visit_list
+    open_card('Kai Kontakt')
+    expect(lane).to have_no_css('[data-card-more] a[data-organisation-chip]', visible: true)
+
+    lane.find('[data-card-more] summary', text: '+1').click
+
+    expect(lane).to have_css('[data-card-more][open]')
+    lane.find('[data-card-more] a[data-organisation-chip]', text: 'Sued AG').click
+
+    expect(page).to have_current_path(organisation_people_path(south, person_id: south_kai.id))
+    expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_text('Vertrieb')
   end
 
   it 'lands in the form of that row on the people page of its organisation through a pencil, and Back returns to the card' do
     visit_list
     open_card('Kai Kontakt')
+    lane.find('a[data-card-edit]').click
+    expect(lane).to have_css('a[data-card-edit-done]')
+    wait_until_still('[data-all-people-card] [data-lane-close]')
 
     lane.find('[data-card-field="function"] a[data-card-pencil]', match: :first).hover
     lane.all('[data-card-field="function"] a[data-card-pencil]').last.click
@@ -265,6 +311,9 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
   it 'leaves a form the pencil opened after a refused save, and the address stops naming the form' do
     visit_list
     open_card('Kai Kontakt')
+    lane.find('a[data-card-edit]').click
+    expect(lane).to have_css('a[data-card-edit-done]')
+    wait_until_still('[data-all-people-card] [data-lane-close]')
     lane.all('[data-card-field="function"] a[data-card-pencil]').first.click
     form = find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")
     expect(form).to have_field('person_name', with: 'Kai Kontakt')
@@ -285,10 +334,14 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_text('Kai Kontakt')
   end
 
-  it 'returns from the form to the card with Back' do
+  # A pencil in "Was steht wo": the way to enter what an organisation lacks (D13).
+  it 'returns from the form a pencil of "Was steht wo" opened to the card with Back' do
     visit_list
     open_card('Kai Kontakt')
-    lane.all('[data-card-field="function"] a[data-card-pencil]').first.click
+    lane.find('a[data-card-edit]').click
+    expect(lane).to have_css('a[data-card-edit-done]')
+    wait_until_still('[data-all-people-card] [data-lane-close]')
+    lane.find(%([data-card-holding] a[data-card-source-edit][aria-label="#{I18n.t('views.all_people.card.edit_in', organisation: 'Nord GmbH')}"])).click
     expect(page).to have_current_path(organisation_people_path(north, edit: north_kai.id))
     expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_field('person_function', with: 'Einkauf')
 
@@ -300,14 +353,14 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(list).to have_text('Nora Nord')
   end
 
-  it 'leads into an organisation through the link of a source' do
+  it 'leads into the organisation of the lead through the chip of the line' do
     visit_list
     open_card('Kai Kontakt')
 
-    lane.find('a[data-card-source-link]', text: I18n.t('views.all_people.card.open_in', organisation: 'Sued AG')).click
+    lane.find('[data-card-where] > a[data-organisation-chip]', text: 'Nord GmbH').click
 
-    expect(page).to have_current_path(organisation_people_path(south, person_id: south_kai.id))
-    expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_text('Vertrieb')
+    expect(page).to have_current_path(organisation_people_path(north, person_id: north_kai.id))
+    expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_text('Einkauf')
   end
 
   it 'unfolds the notes of a source, which stay text' do
@@ -371,8 +424,8 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(page).to have_text(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
     expect(page).to have_current_path(all_people_path, ignore_query: true)
     expect(ActsAsTenant.with_tenant(south) { Person.where(name: 'Nora Nord').count }).to eq(1)
-    expect(lane).to have_css('[data-card-source]', count: 2)
-    expect(lane.all('[data-card-source] .organisation-chip__name').map(&:text)).to eq(['Nord GmbH', 'Sued AG'])
+    expect(lane).to have_css('[data-card-more] summary', text: '+1')
+    expect(line_sources).to eq(['Nord GmbH', 'Sued AG'])
     # The answer names the copy's card; the address takes the row's, its first source.
     expect(card_param).to eq("#{north.id}:person:#{nora.id}")
   end
@@ -479,7 +532,12 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(widths['page']).to be <= 390
     expect(widths['card']).to be <= 390
 
-    find('a[data-card-source-link]', text: I18n.t('views.all_people.card.open_in', organisation: 'Sued AG')).click
+    find('[data-card-more] summary').click
+    chips = page.evaluate_script(<<~JS)
+      [...document.querySelectorAll('[data-card-more] [data-organisation-chip]')].map(chip => chip.getBoundingClientRect().right)
+    JS
+    expect(chips).to all(be <= 390)
+    find('[data-card-more] a[data-organisation-chip]', text: 'Sued AG').click
 
     expect(page).to have_current_path(organisation_people_path(south, person_id: south_kai.id))
   ensure
@@ -495,7 +553,8 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
     expect(lane).to have_css('a[data-card-edit-done]')
     wait_until_still('[data-all-people-card] [data-lane-close]')
 
-    lane.find('a[data-card-source-edit]', text: I18n.t('views.all_people.card.edit_in', organisation: south.name)).click
+    # What the south lacks is entered through its pencil in "Was steht wo".
+    lane.find(%([data-card-holding] a[data-card-source-edit][aria-label="#{I18n.t('views.all_people.card.edit_in', organisation: south.name)}"])).click
 
     expect(page).to have_current_path(organisation_people_path(south, new: 'person', user_id: member.id))
     form = find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")
@@ -536,7 +595,9 @@ RSpec.describe 'People above the organisations, the card', type: :system, inbox_
 
       accept_confirm { lane.all("form[data-card-#{action}] button").last.click }
 
-      expect(lane).to have_css('[data-card-source]', count: action == 'split' ? 1 : 2)
+      # The answer is the card in the reader's mode again, no longer "Bearbeiten".
+      expect(lane).to have_css('[data-card-mode="contact"] [data-card-where] a[data-organisation-chip]')
+      expect(line_sources.size).to eq(action == 'split' ? 1 : 2)
       expect(page).to have_current_path(/page=2/)
       expect(list).to have_text('Kai Kontakt')
     end

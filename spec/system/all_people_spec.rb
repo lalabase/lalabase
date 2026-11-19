@@ -250,17 +250,26 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
     visit all_people_path
 
     row = find('tr[data-all-people-row]', text: shared.display_name)
-    expect(row).to have_css('[data-organisation-chip]', count: 2)
+    # D14: the lead's chip and "+N", on one line, at every width.
+    expect(row).to have_css('[data-organisation-chip]', count: 1)
+    expect(row).to have_css('[data-row-more]', text: '+1')
     widths = page.evaluate_script(<<~JS)
       ({ page: document.documentElement.scrollWidth,
-         chips: [...document.querySelectorAll('[data-organisation-chip]')].map(chip => chip.getBoundingClientRect().right) })
+         chips: [...document.querySelectorAll('[data-organisation-chip], [data-row-more]')].map(chip => chip.getBoundingClientRect().right),
+         tops: [...document.querySelectorAll('tr[data-all-people-row]')].map(row => {
+           const cell = row.querySelector('.all-people-chips')
+           return [...cell.children].filter(child => child.getBoundingClientRect().width > 1).map(child => Math.round(child.getBoundingClientRect().top + child.getBoundingClientRect().height / 2))
+         }) })
     JS
     expect(widths['page']).to be <= 390
     expect(widths['chips']).to all(be <= 390)
-    # Since the card exists a row opens it, and the way into an organisation is on the card.
+    widths['tops'].each { |centres| expect(centres.uniq.size).to be <= 1 }
+    # Since the card exists a row opens it, and the way into an organisation is on the card:
+    # "+N" in the line under the name opens to the chip of every source.
     wait_for_stimulus('tr[data-all-people-row]', 'list-row')
     row.find('.all-people-row__name').click
-    find('a[data-card-source-link]', text: I18n.t('views.all_people.card.open_in', organisation: south.name)).click
+    find('[data-card-more] summary').click
+    find('[data-card-more] a[data-organisation-chip]', text: south.name).click
     expect(page).to have_current_path(organisation_people_path(south, member_id: shared.id))
   ensure
     page.driver.browser.execute_cdp('Emulation.clearDeviceMetricsOverride')
@@ -290,7 +299,7 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
   end
 
   # Since the card exists a row opens it in the lane, and the link into an organisation
-  # is on the card, one per source (spec/system/all_people_card_spec.rb holds the card).
+  # is on the card: its line under the name (spec/system/all_people_card_spec.rb holds the card).
   def open_card(name)
     wait_for_stimulus('[data-all-people]', 'layout-toggle')
     wait_for_stimulus('tr[data-all-people-row]', 'list-row')
@@ -303,10 +312,13 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
   it 'opens the people page of an organisation with the person in the lane, through the card of a person of two' do
     visit all_people_path
     row = find('tr[data-all-people-row]', text: 'Mara Mitglied')
-    expect(row).to have_css('[data-organisation-chip]', count: 2)
+    expect(row).to have_css('[data-organisation-chip]', count: 1)
+    expect(row).to have_css('[data-row-more]', text: '+1')
     expect(row).to have_no_css('a')
 
-    open_card('Mara Mitglied').find('a[data-card-source-link]', text: I18n.t('views.all_people.card.open_in', organisation: 'Sued AG')).click
+    card = open_card('Mara Mitglied')
+    card.find('[data-card-more] summary').click
+    card.find('[data-card-more] a[data-organisation-chip]', text: 'Sued AG').click
 
     expect(page).to have_current_path(organisation_people_path(south, member_id: shared.id))
     expect(find("turbo-frame##{Organisations::PeopleController::DETAIL_FRAME_ID}")).to have_text('Mara Mitglied')
@@ -316,7 +328,7 @@ RSpec.describe 'People above the organisations', type: :system, inbox_e2e: true 
   it 'opens a person of one organisation through the card' do
     visit all_people_path
 
-    open_card('Sina Sued').find('a[data-card-source-link]').click
+    open_card('Sina Sued').find('[data-card-where] a[data-organisation-chip]').click
 
     sina = ActsAsTenant.with_tenant(south) { Person.find_by!(name: 'Sina Sued') }
     expect(page).to have_current_path(organisation_people_path(south, person_id: sina.id))

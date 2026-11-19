@@ -41,8 +41,12 @@ RSpec.describe 'Merging people above the organisations', type: :system, inbox_e2
     all('tr[data-all-people-row]').select { |candidate| candidate.find('.all-people-row__name').text == name }
   end
 
+  # The organisations a row names: the chip of its lead source and the others its "+N"
+  # names in its title (D14).
   def chips(name)
-    rows_named(name).sole.all('[data-organisation-chip]').map(&:text)
+    row = rows_named(name).sole
+    more = row.all('[data-row-more]', minimum: 0).first
+    row.all('[data-organisation-chip]').map(&:text) + (more ? more[:title].split(', ') : [])
   end
 
   def tick(name)

@@ -49,6 +49,23 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(rep_a.id).to eq(newest_a.id)
     end
 
+    # The page takes the number of bundles from the counts per bundle; until
+    # 19.11.2026 every render ran one more COUNT over the DISTINCT ON subquery.
+    it 'counts its bundles without a second COUNT over the representatives' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      notif(ticket_a, created_at: 90.minutes.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      counts = []
+      callback = lambda do |*, payload|
+        counts << payload[:sql] if payload[:sql].match?(/\ASELECT COUNT\(.*FROM "notifications"/im)
+      end
+      presenter = ActiveSupport::Notifications.subscribed(callback, 'sql.active_record') { build }
+
+      expect(presenter.pagy).to have_attributes(count: 2, pages: 1)
+      expect(counts.grep(/DISTINCT ON/i)).to be_empty
+    end
+
     it 'liefert group_total = Gesamtzahl der Notifications des Tickets' do
       notif(ticket_a, created_at: 3.hours.ago)
       notif(ticket_a, created_at: 2.hours.ago)

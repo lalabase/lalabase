@@ -129,6 +129,9 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   the token's owner and naming the refused value. Before, people, knowledge and meetings
   answered in English only, in two different wordings. Status codes and error codes stay as
   they were (#125).
+- The project and member activity pages show as many rows as "Items per page" in the
+  preferences says (20 unless changed), like the other lists. They showed 25 whatever it said.
+  The list length a person saves is at most 200 (#221).
 
 ### Fixed
 
@@ -148,6 +151,11 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   on the ticket list and both time session lists, and invalid input in `list_tickets`. A
   `time_session` that is no object is a 400 (#118).
 - The provisioning endpoint answers a body that is no JSON in its error envelope (#118).
+- A list asked for a page number it cannot show (zero, text, a list, a number beyond any
+  page) answers a page instead of a 500, and a page behind the end links back to the last
+  one. The "entries per page" select works on the activity pages, the saved views and their
+  results, the member activities and the admin mail log have a readable pagination bar, and
+  the tag list opens again (#221).
 
 ### Security
 

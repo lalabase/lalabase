@@ -199,7 +199,9 @@
       <h3 class="text-lg font-bold"><%= t('.activities_list.title', organisation: @current_organisation.name) %></h3>
     </div>
     <div class="p-4">
-      <% if @activities.any? %>
+      <%# The count, not the rows of this page: a page behind the end has none, and
+          it shows the bar with the way back instead of "no activities". %>
+      <% if @pagy.count.positive? %>
         <div class="space-y-3">
           <% @activities.each do |activity| %>
             <div class="flex items-start space-x-3 pb-3 <%= 'border-b' unless activity == @activities.last %>">
@@ -276,11 +278,9 @@
 
         <%# Whenever the list has rows, not only with more than one page: the bar holds
             the page-size select, and a size that fits the whole list must stay changeable. %>
-        <% if @pagy&.count&.positive? %>
-          <div class="mt-6 pt-4 border-t-2 border-gray-200">
-            <%= render 'shared/pagination_nav_compact', pagy: @pagy %>
-          </div>
-        <% end %>
+        <div class="mt-6 pt-4 border-t-2 border-gray-200">
+          <%= render 'shared/pagination_nav_compact', pagy: @pagy %>
+        </div>
       <% else %>
         <div class="text-center py-12 text-gray-500">
           <i class="bi bi-activity text-5xl mb-3"></i>

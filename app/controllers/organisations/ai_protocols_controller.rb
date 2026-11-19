@@ -52,10 +52,7 @@ module Organisations
     # and a reader's saved page size for the other lists does not apply to it. The
     # ceiling is a plain assertion in the spec.
     def page_limit
-      requested = Pagination::Page.size(params[:items])
-      return PAGE_SIZE unless requested
-
-      [requested, MAX_PAGE_SIZE].min
+      Pagination::Page.size(params[:items], default: PAGE_SIZE, max: MAX_PAGE_SIZE)
     end
 
     # Newest first: this page is read to answer "what happened recently", and the entry

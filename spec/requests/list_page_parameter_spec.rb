@@ -51,6 +51,7 @@ RSpec.describe 'The page parameter of a list', type: :request do
       'project activities' => ->(params) { organisation_project_activities_path(organisation, project, params) },
       'smart folders' => ->(params) { organisation_smart_folders_path(organisation, params) },
       'member activities' => ->(params) { organisation_user_activities_path(organisation, params.merge(user_id: user.id)) },
+      'tags' => ->(params) { organisation_tags_path(organisation, params) },
       'AI protocol' => ->(params) { organisation_ai_protocol_path(organisation, params) },
       'inbox' => ->(params) { organisation_notifications_path(organisation, params) },
       # Its controller turns any error into a redirect to the list of views, so a

@@ -49,15 +49,12 @@ class Organisations::SmartFoldersController < Organisations::BaseController
   def show
     authorize @smart_folder
 
-    service = SmartFolderService.new(@smart_folder, current_user)
-    # Handed over as the request names them: the service reads both (a list or a
-    # hash is page 1 and the default size). Never blank, or the service returns
-    # every result unpaged.
-    page = params[:page].presence || 1
-    per_page = params[:per_page].presence || SmartFolderService::DEFAULT_PER_PAGE
+    service = SmartFolderService.new(smart_folder: @smart_folder, current_user: current_user)
 
     begin
-      result = service.fetch_results(page: page, per_page: per_page)
+      # The page as the request names it: the service reads it (a list or a hash
+      # is page 1).
+      result = service.fetch_results(page: params[:page], per_page: results_page_size)
       @items = result[:items]
       @results_pagy = Pagination::Page.new(count: result[:total], page: result[:page], limit: result[:per_page])
     rescue Pundit::NotAuthorizedError => e
@@ -514,6 +511,15 @@ class Organisations::SmartFoldersController < Organisations::BaseController
   end
 
   private
+
+  # The page size of the results: `?items=`, which the select of the bar sends and
+  # every page link keeps, then `?per_page=`, which the JSON answer takes, then the
+  # reader's setting (Pageable#items_per_page), as on every list. Only reading
+  # `?per_page=` left the select without effect until 19.11.2026. The service
+  # applies its own ceiling (SmartFolderService::MAX_PER_PAGE).
+  def results_page_size
+    Pagination::Page.size(params[:items]) || Pagination::Page.size(params[:per_page]) || items_per_page
+  end
 
   def set_smart_folder
     @smart_folder = policy_scope(SmartFolder).find(params[:id])

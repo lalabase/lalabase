@@ -1,43 +1,46 @@
 # frozen_string_literal: true
 
-# app/services/smart_folder_service.rb
+# The results of a saved view (SmartFolder): what its rules find, for the reader
+# who asks. One page of them, or every result for a list that filters them further.
+#
+# Entry point: fetch_results
 class SmartFolderService
   MAX_PER_PAGE = 100
   DEFAULT_PER_PAGE = 25
 
   attr_reader :smart_folder, :current_user
 
-  def initialize(smart_folder, current_user = nil)
+  def initialize(smart_folder:, current_user: nil)
     @smart_folder = smart_folder
     @current_user = current_user || smart_folder.user
     @query_builder = SmartFolderQueryBuilder.new(smart_folder, @current_user)
   end
 
-  def fetch_results(options = {})
-    return empty_result(per_page: normalize_per_page(options[:per_page])) unless smart_folder.accessible_by?(current_user)
+  # => { items:, total:, page:, per_page: }
+  #
+  # page:, per_page: as a request names them, read by Pagination::Page like every
+  # list: a value that names neither (absent, blank, no number, a list or a hash)
+  # is page 1 and DEFAULT_PER_PAGE, never "everything".
+  #
+  # unpaged: every result instead of one page, for the lists that filter the
+  # folder's results further themselves (tickets, times). An implicit default of
+  # 25 once truncated those silently, and a blank page and page size once meant
+  # "everything" for whoever forwarded the request's parameters: so it is asked
+  # for by name. The QueryBuilder caps at RESULTS_PER_MODEL_LIMIT (1000) per
+  # model. A folder of one type stays in SQL and is paged anyway
+  # (#paginate_relation).
+  def fetch_results(page: nil, per_page: nil, unpaged: false)
+    return empty_result(per_page: page_size(per_page)) unless smart_folder.accessible_by?(current_user)
 
     all_results = @query_builder.build_results_query
-    return paginate_relation(all_results, options) if all_results.is_a?(ActiveRecord::Relation)
+    return paginate_relation(all_results, page: page, per_page: per_page) if all_results.is_a?(ActiveRecord::Relation)
 
     total = all_results.size
+    return { items: all_results, total: total, page: 1, per_page: total } if unpaged
 
-    # Without explicit pagination options, return ALL matches: folder FILTERS
-    # (tickets/times/lists) call without options and filter further themselves —
-    # the earlier implicit default of 25 silently truncated them. The QueryBuilder
-    # caps at RESULTS_PER_MODEL_LIMIT (1000) per model anyway.
-    if options[:page].blank? && options[:per_page].blank?
-      return {
-        items: all_results,
-        total: total,
-        page: 1,
-        per_page: total
-      }
-    end
-
-    # The page number is read by Pagination::Page, the rule of every list: a list
-    # or a hash is page 1, and a page behind the end is empty without slicing at an
-    # offset Ruby cannot hold (`?page=` with thirty digits raised RangeError).
-    current = Pagination::Page.new(count: total, page: options[:page], limit: normalize_per_page(options[:per_page]))
+    # A page behind the end is empty, without slicing at an offset Ruby cannot
+    # hold (`?page=` with thirty digits raised RangeError).
+    current = Pagination::Page.new(count: total, page: page, limit: page_size(per_page))
 
     {
       items: current.past_end? ? [] : all_results[current.offset, current.limit],
@@ -50,19 +53,17 @@ class SmartFolderService
   private
 
   # Single-type lists stay in SQL through count, ordering and pagination.
-  # Even callers without paging options receive a bounded list, never transcripts.
+  # Even callers that ask for every result receive a bounded list, never transcripts.
   # A page behind the end is the last page here, as it always was on this path.
-  def paginate_relation(scope, options)
+  def paginate_relation(scope, page:, per_page:)
     total = scope.unscope(:select, :order).count
-    current = Pagination::Page.new(count: total, page: options[:page], limit: normalize_per_page(options[:per_page]),
-                                   past_end: :last)
+    current = Pagination::Page.new(count: total, page: page, limit: page_size(per_page), past_end: :last)
     { items: scope.limit(current.limit).offset(current.offset).to_a,
       total: total, page: current.page, per_page: current.limit }
   end
 
-  # Absent, no number, below 1, a list or a hash: the default.
-  def normalize_per_page(value)
-    [Pagination::Page.size(value) || DEFAULT_PER_PAGE, MAX_PER_PAGE].min
+  def page_size(value)
+    Pagination::Page.size(value, default: DEFAULT_PER_PAGE, max: MAX_PER_PAGE)
   end
 
   def empty_result(per_page: DEFAULT_PER_PAGE)

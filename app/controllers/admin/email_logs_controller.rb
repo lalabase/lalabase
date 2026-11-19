@@ -140,7 +140,7 @@ module Admin
     private
 
     def logs_per_page
-      [Pagination::Page.size(params[:limit]) || LOGS_PER_PAGE, MAX_LOGS_PER_PAGE].min
+      Pagination::Page.size(params[:limit], default: LOGS_PER_PAGE, max: MAX_LOGS_PER_PAGE)
     end
 
     def build_filtered_scope

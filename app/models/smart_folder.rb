@@ -218,10 +218,10 @@ class SmartFolder < ApplicationRecord
     sort_direction.presence || sort_by_to_direction
   end
 
-  # Delegate the complex logic to the service
-  # Ensures the current user is passed in, if available.
+  # Every result of the folder (SmartFolderService#fetch_results, unpaged), for
+  # the given reader or else the owner.
   def results(current_user_context = nil)
-    SmartFolderService.new(self, current_user_context || user).fetch_results
+    SmartFolderService.new(smart_folder: self, current_user: current_user_context || user).fetch_results(unpaged: true)
   end
 
   # Checks whether a user has access to this folder (simplified, since the policy handles this)

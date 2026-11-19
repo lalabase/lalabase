@@ -9,13 +9,21 @@ require 'rails_helper'
 #        mail log showed "<12345678910>", glued together, the current page not
 #        marked. And on three lists the page size named in the controller was an
 #        option that gem ignored, so the "entries per page" select of the project
-#        activities and of the saved views changed nothing.
+#        activities and of the saved views changed nothing; on the results of a
+#        saved view it changed nothing until 19.11.2026, because that page read
+#        `?per_page=` only. A page behind the end of a list of one page showed no
+#        bar at all, and with it no way back.
 RSpec.describe 'Pagination bars', type: :request do
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }
 
   def hrefs
     Nokogiri::HTML(response.body).css('a[href]').map { |link| link['href'] }
+  end
+
+  # The query of every link on the page, as a Hash.
+  def page_queries
+    hrefs.map { |href| Rack::Utils.parse_nested_query(URI(href).query.to_s) }
   end
 
   describe 'in the application' do
@@ -74,6 +82,30 @@ RSpec.describe 'Pagination bars', type: :request do
         expect(assigns(:pagy).pages).to eq(5)
       end
 
+      # `?items=abc` paged by one row until 19.11.2026, while the select marked
+      # no option and nothing was saved.
+      it 'reads a page size that names no number as none' do
+        visit_list(items: 'abc')
+
+        expect(assigns(:pagy).limit).to eq(Pageable::DEFAULT_PER_PAGE)
+      end
+
+      it 'links back from a page behind the end, also of a list of one page' do
+        visit_list(items: 50, page: 2)
+
+        expect(assigns(:activities)).to be_empty
+        expect(page_queries).to include(a_hash_including('page' => '1', 'items' => '50'))
+      end
+
+      it 'names its bar in English on an English page' do
+        user.update!(language_preference: 'en')
+
+        visit_list
+
+        expect(response.body).to include('Page 1 of 3')
+        expect(Nokogiri::HTML(response.body).at_css('.pagination-container-compact nav')['aria-label']).to eq('Pagination')
+      end
+
       # The select sits in the bar, and the size it saves is the reader's for every
       # list. A bar that left with the second page took the way back with it.
       it 'keeps the bar and its page-size select when the list fits on one page' do
@@ -116,6 +148,27 @@ RSpec.describe 'Pagination bars', type: :request do
         expect(labels).to eq([I18n.t('views.shared.pagination.label', locale: :de)])
       end
 
+      # The concrete words, not "differs from German": a missing key falls back
+      # to German (config/initializers/i18n.rb), and a key printed as itself
+      # differs as well.
+      it 'names its bar in English on an English page' do
+        user.update!(language_preference: 'en')
+
+        get organisation_project_activities_path(organisation, project, items: 5)
+
+        labels = Nokogiri::HTML(response.body).css('.pagination-container nav').map { |nav| nav['aria-label'] }
+        expect(labels).to eq(['Pagination'])
+        expect(response.body).to include('1 – 5 of 12', '5 entries')
+      end
+
+      # A list behind the end has a page of its own in the bar: the last one.
+      it 'links back from a page behind the end, also of a list of one page' do
+        get organisation_project_activities_path(organisation, project, items: 50, page: 3)
+
+        expect(assigns(:activities)).to be_empty
+        expect(page_queries).to include(a_hash_including('page' => '1', 'items' => '50'))
+      end
+
       # Stored without a ceiling until 18.11.2026; a full page load reads it
       # without an `?items=` that would have been clamped.
       it 'never pages by more than the ceiling, whatever the reader saved' do
@@ -148,6 +201,61 @@ RSpec.describe 'Pagination bars', type: :request do
         get organisation_smart_folders_path(organisation, items: 5, format: :json)
 
         expect(response.parsed_body['pagination']).to include('count' => 7, 'page' => 1, 'last' => 2, 'in' => 5, 'offset' => 0)
+      end
+    end
+
+    describe 'the results of a saved view' do
+      let(:folder) do
+        create(:smart_folder, organisation: organisation, project: project, user: user, target_object_type: 'Note').tap do |view|
+          group = create(:smart_folder_rule_group, smart_folder: view)
+          create(:smart_folder_rule, smart_folder_rule_group: group, field: 'title', operator: 'contains', value: 'Cap')
+        end
+      end
+
+      before { 30.times { |i| create(:note, title: "Cap Note #{i}", project: project, organisation: organisation, creator: user) } }
+
+      def selected_size
+        Nokogiri::HTML(response.body).at_css('.pagination-container select option[selected]')&.text&.squish
+      end
+
+      it 'takes the page size its select asks for and marks it' do
+        get organisation_smart_folder_path(organisation, folder, items: 10)
+
+        expect(assigns(:items).size).to eq(10)
+        expect(assigns(:results_pagy)).to have_attributes(count: 30, limit: 10, pages: 3)
+        expect(selected_size).to eq(I18n.t('views.shared.pagination.entries', count: 10))
+      end
+
+      it 'pages by the size the reader saved, as every list does' do
+        user.preference_store.set_items_per_page(5)
+
+        get organisation_smart_folder_path(organisation, folder)
+
+        expect(assigns(:items).size).to eq(5)
+        expect(selected_size).to eq(I18n.t('views.shared.pagination.entries', count: 5))
+      end
+
+      # The select sends `?items=` and the page links keep the query, so an
+      # address that names both takes the select's.
+      it 'prefers the size of the select over a per_page of the address' do
+        get organisation_smart_folder_path(organisation, folder, per_page: 3, items: 20)
+
+        expect(assigns(:items).size).to eq(20)
+      end
+
+      it 'keeps the bar and its select when every result fits on one page' do
+        get organisation_smart_folder_path(organisation, folder, items: 50)
+
+        expect(assigns(:results_pagy).pages).to eq(1)
+        expect(selected_size).to eq(I18n.t('views.shared.pagination.entries', count: 50))
+      end
+
+      it 'links back from a page behind the end instead of saying there are no results' do
+        get organisation_smart_folder_path(organisation, folder, items: 10, page: 9)
+
+        expect(assigns(:items)).to be_empty
+        expect(response.body).not_to include(I18n.t('smart_folders.no_results'))
+        expect(page_queries).to include(a_hash_including('page' => '3', 'items' => '10'))
       end
     end
   end
@@ -197,6 +305,15 @@ RSpec.describe 'Pagination bars', type: :request do
       expect(response).to have_http_status(:ok)
       expect(bar).to be_nil
       expect(response.body).not_to include('bg-white px-4 py-3 border-t border-gray-200 sm:px-6')
+    end
+
+    # A bookmarked `?page=2` of a list that shrank to one page.
+    it 'links back from a page behind the end of a list of one page' do
+      get admin_email_logs_path(status: 'failed', page: 2)
+
+      expect(assigns(:email_logs)).to be_empty
+      expect(bar.css('a').map { |link| [link.text.strip, link['href']] })
+        .to eq([[I18n.t('admin.common.pagination.previous'), '/admin/email_logs?page=1&status=failed']])
     end
 
     # The gem's limit extra read `?limit=`, up to 100.

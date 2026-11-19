@@ -136,8 +136,8 @@ class Organisations::TimeSessionsController < Organisations::BaseController
         # Check whether the smart folder is configured for TimeSessions
         if %w[TimeSession All].include?(@active_smart_folder.target_object_type)
           # Use the SmartFolderService to get the filtered TimeSessions
-          service = SmartFolderService.new(@active_smart_folder, current_user)
-          folder_results = service.fetch_results
+          service = SmartFolderService.new(smart_folder: @active_smart_folder, current_user: current_user)
+          folder_results = service.fetch_results(unpaged: true)
 
           # Filter the results down to TimeSessions
           if folder_results[:items].is_a?(ActiveRecord::Relation) && folder_results[:items].klass == TimeSession

@@ -19,7 +19,7 @@
   ) %>
 
   <!-- Paginierung -->
-  <% if defined?(pagy) && pagy && pagy.pages > 1 %>
+  <% if defined?(pagy) && pagy&.links? %>
     <div class="pagination-container my-4">
       <%= render partial: 'shared/pagination_nav_compact', locals: { pagy: pagy, frame_id: 'documents-list' } %>
     </div>

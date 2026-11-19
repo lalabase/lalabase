@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-18)
+# Karte: app/services (Stand: 2026-11-19)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -435,8 +435,13 @@ Verzeichnis-Übersicht (Auswahl):
   of the application pages through `Pageable#paginate` (page size from `?items=`, the reader's
   setting, the default, never above `Pageable::MAX_PER_PAGE`), an admin list through `.of` with a
   fixed size and the bar `admin/common/_pagination` (which alone decides whether it shows).
-  `.size` reads a page size a request names and answers nil for a list or a hash; the saved
-  views' results (`SmartFolderService`) page through `Page` as well. The token lists do NOT come through here, they keep
+  `.size(value, default:, max:)` is the ONE reading of a page size, for a request (`?items=`,
+  `?limit=`), the reader's saved setting (`User::PreferenceStore`, the one writer, stores it
+  at most at `Pageable::MAX_PER_PAGE`) and every list with a rule of its own: no number, below
+  1, a list or a hash names no size, never one row. A bar asks `#links?` (more than one page,
+  or a page behind the end, which links back), never `pages > 1`. The saved views' results
+  (`SmartFolderService`) page through `Page` as well; every result unpaged only with
+  `unpaged: true`. The token lists do NOT come through here, they keep
   `list_paging.rb`. Guards: `spec/services/pagination/page_spec.rb`,
   `spec/requests/list_page_parameter_spec.rb` (every list, every unshowable page),
   `spec/requests/list_pagination_bars_spec.rb`.

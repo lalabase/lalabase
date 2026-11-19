@@ -173,7 +173,7 @@ RSpec.describe 'UserPreferences', type: :request do
         }
 
         user.reload
-        expect(user.preferences['items_per_page']).to eq('100')
+        expect(user.preferences['items_per_page']).to eq(100)
       end
 
       it 'updates the post_direction preference' do
@@ -477,6 +477,16 @@ RSpec.describe 'UserPreferences', type: :request do
     end
 
     context 'with JSON format' do
+      # The select of a pagination bar saves the reader's page size this way
+      # (neo_pagination_controller#savePreference). It stored any number until
+      # 19.11.2026.
+      it 'saves a page size at most at the ceiling of the lists' do
+        patch user_preferences_path, params: { preferences: { items_per_page: 1_000_000 } }, as: :json
+
+        expect(response.parsed_body['items_per_page']).to eq(Pageable::MAX_PER_PAGE)
+        expect(user.reload.preferences['items_per_page']).to eq(Pageable::MAX_PER_PAGE)
+      end
+
       it 'returns success response with items_per_page' do
         patch user_preferences_path, params: {
           current_section: 'general',

@@ -5,7 +5,6 @@ module Pageable
   extend ActiveSupport::Concern
 
   DEFAULT_PER_PAGE = 20
-  MIN_PER_PAGE = 1
   MAX_PER_PAGE = 200
 
   PAGINATION_PARAMS = %i[
@@ -46,38 +45,19 @@ module Pageable
     )
   end
 
-  # A page size the reader asked for, as the next requests will read it back:
-  # at least 1, at most MAX_PER_PAGE. nil when the value names no size (absent,
-  # blank, no number, below 1, a list or a hash: Pagination::Page.size).
-  # ApplicationController stores the `?items=` of every request through this, so
-  # no request saves a size a list would then load in one piece.
-  def self.storable_per_page(value)
-    Pagination::Page.size(value)&.clamp(MIN_PER_PAGE, MAX_PER_PAGE)
-  end
-
   # Determines the number of items per page.
-  # Priority: 1. URL parameter → 2. user DB preference → 3. controller default → 4. DEFAULT_PER_PAGE
-  # Every answer stays within MIN_PER_PAGE and MAX_PER_PAGE, the stored preference
-  # too: it was written without a ceiling until 18.11.2026, and a full page load
-  # reads it without the `?items=` that ensure_items_parameter would have set.
+  # Priority: 1. `?items=`, then `?limit=` → 2. the reader's saved setting →
+  # 3. controller default → 4. DEFAULT_PER_PAGE.
+  # A value that names no size (no number, below 1, a list or a hash) is passed
+  # over, never read as one row: Pagination::Page.size, the reading of every list.
+  # Every answer is at most MAX_PER_PAGE, the stored preference too: it was
+  # written without a ceiling until 18.11.2026, and a full page load reads it
+  # without the `?items=` that ensure_items_parameter would have set.
   def items_per_page
     permitted = params.permit(:items, :limit)
+    named = [permitted[:items], permitted[:limit], saved_items_per_page].find { |value| Pagination::Page.size(value) }
 
-    # 1. URL parameter takes precedence
-    if permitted[:items].present?
-      return sanitize_per_page(permitted[:items])
-    elsif permitted[:limit].present?
-      return sanitize_per_page(permitted[:limit])
-    end
-
-    # 2. User preference from DB
-    if respond_to?(:current_user) && current_user.respond_to?(:items_per_page_preference)
-      value = current_user.items_per_page_preference
-      return [value, MAX_PER_PAGE].min if value.is_a?(Integer) && value > 0
-    end
-
-    # 3. Controller default or absolute default
-    self.class.respond_to?(:default_per_page) && self.class.default_per_page.present? ? self.class.default_per_page.to_i : DEFAULT_PER_PAGE
+    Pagination::Page.size(named, default: default_items_per_page, max: MAX_PER_PAGE)
   end
 
   # Parameters for pagination links
@@ -149,8 +129,13 @@ module Pageable
     params.permit(*PAGINATION_PARAMS)
   end
 
-  def sanitize_per_page(value)
-    value.to_i.clamp(MIN_PER_PAGE, MAX_PER_PAGE)
+  def saved_items_per_page
+    current_user.items_per_page_preference if respond_to?(:current_user) && current_user.respond_to?(:items_per_page_preference)
+  end
+
+  def default_items_per_page
+    configured = self.class.default_per_page if self.class.respond_to?(:default_per_page)
+    configured.present? ? configured.to_i : DEFAULT_PER_PAGE
   end
 
   def load_smart_folder(smart_folder_id)

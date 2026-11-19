@@ -92,6 +92,35 @@ RSpec.describe Pagination::Page do
         expect(described_class.size(value)).to eq(expected)
       end
     end
+
+    # The one reading of every list with a rule of its own (Pageable, the mail
+    # log, the AI protocol, the saved views, the saved preference).
+    it 'answers the default where the value names no size, and never more than the ceiling' do
+      expect(described_class.size('abc', default: 25, max: 100)).to eq(25)
+      expect(described_class.size(['20'], default: 25, max: 100)).to eq(25)
+      expect(described_class.size('50', default: 25, max: 100)).to eq(50)
+      expect(described_class.size('500', default: 25, max: 100)).to eq(100)
+      expect(described_class.size(nil, default: 250, max: 100)).to eq(100)
+      expect(described_class.size('500', max: 100)).to eq(100)
+      expect(described_class.size('abc', max: 100)).to be_nil
+    end
+  end
+
+  # What every bar asks before it shows page links.
+  describe '#links?' do
+    it 'is true with more than one page, and false for a list of one page or none' do
+      expect(page(count: 45, page: 1)).to be_links
+      expect(page(count: 45, page: 3)).to be_links
+      expect(page(count: 5, page: 1)).not_to be_links
+      expect(page(count: 0, page: 1)).not_to be_links
+    end
+
+    # A bookmarked `?page=2` of a list that shrank to one page: the empty page
+    # links back to the last one, and a bar that asked `pages > 1` hid that link.
+    it 'is true behind the end of a list of one page' do
+      expect(page(count: 3, page: 2)).to be_links
+      expect(page(count: 3, page: 2, past_end: :last)).not_to be_links
+    end
   end
 
   describe 'a page behind the last one' do

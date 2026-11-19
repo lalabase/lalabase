@@ -212,12 +212,15 @@ module Inbox
                               .for_notification_center
                               .order(created_at: :desc)
 
-      reps = paginate(rep_scope)
-
       # Counts over the ENTIRE filtered scope (not just this page), so that
       # the badge shows the real total count per ticket.
       @group_total = count_by_notifiable(@filtered)
       @group_unread = count_by_notifiable(@filtered.unread)
+
+      # One key per bundle, the same (notifiable_type, notifiable_id) pairs the
+      # DISTINCT ON picks a representative for: its size is the number of rows,
+      # and the page takes it instead of a second COUNT over the subquery.
+      reps = paginate(rep_scope, count: @group_total.size)
 
       @grouped_notifications = group_by_period(reps)
       @notifications = reps

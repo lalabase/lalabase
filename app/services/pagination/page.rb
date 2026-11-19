@@ -13,8 +13,9 @@
 #   what every list answered before; a list that appends pages (the inbox) needs
 #   it, because the last page again would be the same rows twice.
 # * The page size is the caller's. A size below 1 is a programming error and raises.
-#   A size a REQUEST names (`?items=`) is read by .size, which answers nil where
-#   it names none, so the caller falls back to its own.
+#   A size a REQUEST names (`?items=`) is read by .size, the one reading of every
+#   list: no number, below 1, a list or a hash names no size, and the caller's
+#   default and ceiling apply.
 #
 # Numbers given as text are decimal: '010' is ten. Kernel#Integer alone reads a
 # leading 0 as octal and 0x as hex, and '08' would raise.
@@ -60,16 +61,18 @@ module Pagination
       [number, 1].max
     end
 
-    # A page size as it arrives in a request. => Integer of at least 1, or nil
-    # when the value names none: absent, blank, no number, below 1, or a list or
-    # a hash (`?items[]=20`), on which `#to_i` raises. The ceiling is the caller's.
-    def self.size(value)
+    # A page size as it arrives in a request. => Integer of at least 1, at most
+    # `max`; `default` (nil without one) when the value names none: absent, blank,
+    # no number, below 1, or a list or a hash (`?items[]=20`), on which `#to_i`
+    # raises. The default is capped as well.
+    def self.size(value, default: nil, max: nil)
       number =
         case value
         when Integer then value
         when String then value.to_i
         end
-      number if number&.positive?
+      number = default unless number&.positive?
+      max && number ? [number, max].min : number
     end
 
     def initialize(count:, page:, limit:, past_end: :empty)
@@ -122,6 +125,13 @@ module Pagination
       page + 1 if page < pages
     end
 
+    # Whether a bar has a link to show: more than one page, or a page behind the
+    # end, which links back to the last one even when the list has a single page.
+    # Every bar asks this, never `pages > 1`.
+    def links?
+      !(prev.nil? && self.next.nil?)
+    end
+
     # The same list, another page.
     def with_page(number)
       self.class.new(count: count, page: number, limit: limit, past_end: @past_end)
@@ -129,7 +139,9 @@ module Pagination
 
     # The links of a full bar: Integers for pages, the current page as a String,
     # :gap where pages are left out. With 30 pages on page 12:
-    #   [1, :gap, 9, 10, 11, "12", 13, 14, :gap, 30]
+    #   [1, :gap, 10, 11, "12", 13, 14, 15, :gap, 30]
+    # (ten consecutive pages, 8 to 17, four before the current one; the first and
+    # the last two give way to the ends and the gaps).
     # Past the end the bar is the last page's, and no link is the current one.
     def series(size: SERIES_SIZE)
       numbers = size >= pages ? (1..pages).to_a : window(size)

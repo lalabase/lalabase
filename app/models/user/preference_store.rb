@@ -35,9 +35,16 @@ class User < ApplicationRecord
       user.save!
     end
 
-    # Updates preferences with deep merge for nested structures
+    # Updates preferences with deep merge for nested structures. A page size in
+    # them is read like every other (#items_per_page_to_store): the preferences
+    # page and the select of a pagination bar write through here.
     def update(prefs)
-      user.preferences = preferences.deep_merge(prefs.to_h.deep_stringify_keys)
+      prefs = prefs.to_h.deep_stringify_keys
+      if prefs.key?(ITEMS_PER_PAGE)
+        size = self.class.items_per_page_to_store(prefs[ITEMS_PER_PAGE])
+        size ? prefs[ITEMS_PER_PAGE] = size : prefs.delete(ITEMS_PER_PAGE)
+      end
+      user.preferences = preferences.deep_merge(prefs)
       user.save
     end
 
@@ -61,7 +68,7 @@ class User < ApplicationRecord
 
     # Items-per-page preference with default
     def items_per_page_preference
-      get('items_per_page', 20).to_i
+      get(ITEMS_PER_PAGE, Pageable::DEFAULT_PER_PAGE).to_i
     end
 
     # Check if user is using global date format for all areas
@@ -73,9 +80,26 @@ class User < ApplicationRecord
       end
     end
 
-    # Sets the items-per-page preference
+    # === Page size of the lists ===
+    # The lists read it back as their page size (Pageable#items_per_page), so it
+    # is stored as they would read it: a whole number of at least 1, at most
+    # Pageable::MAX_PER_PAGE. A value that names no size (no number, below 1, a
+    # list) is not stored. This store is the one writer: a request's `?items=`
+    # (ApplicationController), the preferences page and the select of a
+    # pagination bar (both PATCH /user_preferences, #update).
+    ITEMS_PER_PAGE = 'items_per_page'
+
+    def self.items_per_page_to_store(value)
+      Pagination::Page.size(value, max: Pageable::MAX_PER_PAGE)
+    end
+
+    # Sets the items-per-page preference. false, and nothing stored, for a value
+    # that names no size.
     def set_items_per_page(value)
-      set('items_per_page', value.to_i)
+      size = self.class.items_per_page_to_store(value)
+      return false unless size
+
+      set(ITEMS_PER_PAGE, size)
     end
 
     # === Timeline Display Preferences ===

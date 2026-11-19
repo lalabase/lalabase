@@ -152,10 +152,23 @@ RSpec.describe Pageable, type: :controller do
     end
 
     # --- Edge cases ---
-    context 'with non-numeric items parameter' do
-      it 'clamps to MIN_PER_PAGE' do
-        get :index, params: { items: 'abc' }
-        expect(controller.items_per_page).to eq(Pageable::MIN_PER_PAGE)
+    # A value that names no size is passed over, as Pagination::Page.size reads
+    # it for the select and the saved setting. Until 19.11.2026 it paged by one row.
+    context 'with an items parameter that names no size' do
+      let(:user) { instance_double('User', items_per_page_preference: 50) }
+
+      before { controller.current_user = user }
+
+      %w[abc 0 -5].each do |value|
+        it "falls through to the user preference for #{value.inspect}" do
+          get :index, params: { items: value }
+          expect(controller.items_per_page).to eq(50)
+        end
+      end
+
+      it 'falls through to the limit parameter first' do
+        get :index, params: { items: 'abc', limit: '30' }
+        expect(controller.items_per_page).to eq(30)
       end
     end
 
@@ -169,17 +182,12 @@ RSpec.describe Pageable, type: :controller do
       end
     end
 
-    context 'with negative items parameter' do
-      it 'clamps to MIN_PER_PAGE' do
-        get :index, params: { items: '-5' }
-        expect(controller.items_per_page).to eq(Pageable::MIN_PER_PAGE)
-      end
-    end
+    context 'with zero items parameter and no preference' do
+      before { controller.current_user = nil }
 
-    context 'with zero items parameter' do
-      it 'clamps to MIN_PER_PAGE' do
+      it 'falls through to DEFAULT_PER_PAGE' do
         get :index, params: { items: '0' }
-        expect(controller.items_per_page).to eq(Pageable::MIN_PER_PAGE)
+        expect(controller.items_per_page).to eq(Pageable::DEFAULT_PER_PAGE)
       end
     end
 
@@ -187,20 +195,6 @@ RSpec.describe Pageable, type: :controller do
       it 'clamps to MAX_PER_PAGE' do
         get :index, params: { items: '999999' }
         expect(controller.items_per_page).to eq(Pageable::MAX_PER_PAGE)
-      end
-    end
-  end
-
-  # ==========================================================================
-  # .storable_per_page: what ApplicationController saves from `?items=`
-  # ==========================================================================
-  describe '.storable_per_page' do
-    {
-      '50' => 50, '1000000' => Pageable::MAX_PER_PAGE, '0' => nil, 'abc' => nil, '' => nil, nil => nil,
-      ['20'] => nil, { 'a' => '20' } => nil
-    }.each do |value, expected|
-      it "stores #{value.inspect} as #{expected.inspect}" do
-        expect(described_class.storable_per_page(value)).to eq(expected)
       end
     end
   end
@@ -536,10 +530,6 @@ RSpec.describe Pageable, type: :controller do
   describe 'constants' do
     it 'defines DEFAULT_PER_PAGE' do
       expect(Pageable::DEFAULT_PER_PAGE).to eq(20)
-    end
-
-    it 'defines MIN_PER_PAGE' do
-      expect(Pageable::MIN_PER_PAGE).to eq(1)
     end
 
     it 'defines MAX_PER_PAGE' do

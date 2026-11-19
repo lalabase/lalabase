@@ -64,7 +64,9 @@
   </h3>
 
   <div id="smart-folder-results">
-    <% if @items.any? %>
+    <%# The count, not the rows of this page: a page behind the end has none, and
+        it shows the bar with the way back instead of "no results". %>
+    <% if @results_pagy.count.positive? %>
       <div class="border border-gray-300 rounded-lg overflow-hidden">
         <% @items.each_with_index do |item, index| %>
           <div id="<%= dom_id(item) %>" class="<%= index > 0 ? 'border-t border-gray-300' : '' %> p-4 hover:bg-gray-50">
@@ -117,12 +119,12 @@
         <% end %>
       </div>
 
-      <%# Pagination for results %>
-      <% if @results_pagy.pages > 1 %>
-        <div class="mt-4">
-          <%= render 'shared/pagination_nav', pagy: @results_pagy %>
-        </div>
-      <% end %>
+      <%# Whenever there are results, not only with more than one page: the bar
+          holds the page-size select, and a size that fits every result must stay
+          changeable. The bar decides itself whether it shows page links. %>
+      <div class="mt-4">
+        <%= render 'shared/pagination_nav', pagy: @results_pagy %>
+      </div>
 
     <% else %>
       <div class="bg-gray-50 border border-gray-300 rounded-lg p-8 text-center">

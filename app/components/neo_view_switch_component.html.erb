@@ -9,7 +9,7 @@
       <%= button_to item[:path],
                     params: item[:params],
                     method: item[:method],
-                    form: { data: { turbo: false }, class: 'h-full' },
+                    form: form_options(item),
                     disabled: item[:disabled],
                     'aria-pressed': item[:active].to_s,
                     **tile_attributes(item) do %>

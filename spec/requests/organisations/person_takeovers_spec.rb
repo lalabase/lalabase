@@ -7,6 +7,8 @@ require 'rails_helper'
 # afterwards; every refusal answers with the same status and body; the values
 # of the copy come from the source row only.
 RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, type: :request do
+  include AllPeopleHelpers
+
   let(:north) { create(:organisation, name: 'Nord GmbH') }
   let(:south) { create(:organisation, name: 'Süd GmbH') }
   # Reads in north, may not write there; may create people in south.
@@ -110,8 +112,7 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
         expect(flash[:notice]).to eq(I18n.t('controllers.people.takeover.success', source: 'Nord GmbH'))
         expect(session[:current_organisation_id]).to eq(south.id)
         follow_redirect!
-        expect(Nokogiri::HTML(response.body).css('[data-card-source] [data-organisation-chip]').map { |chip| chip.text.strip })
-          .to eq(['Nord GmbH', 'Süd GmbH'])
+        expect(card_organisations(Nokogiri::HTML(response.body))).to eq(['Nord GmbH', 'Süd GmbH'])
       end
 
       it 'comes back to the card of the source after "merge instead" and after a reason' do
@@ -492,7 +493,7 @@ RSpec.describe 'Organisations::PersonTakeovers', :ci_guard, :people_takeover, ty
       get all_people_path
       row = Nokogiri::HTML(response.body).css('tr[data-all-people-row]')
                     .find { |candidate| candidate.at_css('.all-people-row__name').text.strip == 'Herr Schmidt' }
-      expect(row.css('[data-organisation-chip]').map { |chip| chip.text.strip }).to eq(['Nord GmbH', 'Süd GmbH'])
+      expect(row_organisations(row)).to eq(['Nord GmbH', 'Süd GmbH'])
     end
 
     it 'says that the copy was not merged when the source already stands merged with a row of the target' do

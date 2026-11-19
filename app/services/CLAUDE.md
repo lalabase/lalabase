@@ -358,8 +358,9 @@ Verzeichnis-Übersicht (Auswahl):
   controller). Member entries with the same account are one row (computed, never stored); a
   contact is always a row of its own. A search match on one entry shows the whole person.
   The page is cut after the merge (50), last contacts are read for the rows shown only.
-  Plain values leave (`Row`, `Source` with the hash of `Lookup.row`, never `.card`), no
-  `Person`: the view runs without a tenant and must have nothing to load from. The one
+  Plain values leave (`Row`, `Source` with the hash of `Lookup.row`, never `.card`: of the
+  card only its count leaves, `Source#value_count`), no `Person`: the view runs without a
+  tenant and must have nothing to load from. The one
   record is `Row#avatar_user` (`User` is not tenanted). The loop per organisation is
   declared in `spec/support/prosopite.rb` (`in_people_organisation`); what that could hide,
   a read per row, is pinned by a statement count in the service spec.
@@ -396,11 +397,20 @@ Verzeichnis-Übersicht (Auswahl):
   values with their sources and the kind of the first (`Value#kind`): equal by the ONE rule
   of their field (`#rule_of`: an email's as soon as one source gives the label that kind,
   else a phone's, else the words; a phone without whitespace, an email also without case,
-  anything else with its word breaks: "AB C" is not "A BC"), shown as the first source
-  wrote them, and a value some sources lack is the last entry without a text (a missing
-  value is a difference). ⚠️ A rule per entry made the same words two values where one
-  organisation typed a label as a phone number and another as text. The rule of a field
-  holds for its text entries too, on purpose (`#rule_of`).
+  anything else with its word breaks: "AB C" is not "A BC"). ⚠️ A rule per entry made the
+  same words two values where one organisation typed a label as a phone number and another
+  as text. The rule of a field holds for its text entries too, on purpose (`#rule_of`).
+  The card in two modes (S4, 2026-11-19): the lead source (D11) is decided by ONE rule,
+  `AcrossOrganisations.lead_of(sources)` (most values by `People::Lookup.value_count` over
+  the hash of `Lookup.card`, counted under each source's tenant; then the newest last
+  contact; then the list order), asked for a row (`Row#lead`) and for the card
+  (`Card#lead`): list and card cannot name different leads. ⚠️ Never count from
+  `Lookup.row`: it has no email, phone or details. The lead's values come first in a field,
+  as the lead wrote them; `sources`, name, kind and address keep the list order. A value
+  some sources lack is no entry of its own any more (`Field#differs` still says the field
+  differs): what each source holds is `Card#holdings` ("Was steht wo", `Holding`: the
+  sources with the same field keys and notes flag, the lead's group first, then more before
+  fewer, then list order).
   The card shows a value by its kind as the people page does
   (`AllPeopleHelper#all_people_card_value`: links, dates in the reader's language, every
   mailto through `PersonDetail.mailto`, which encodes all but a list of safe characters). ⚠️ The right to write is asked inside the block

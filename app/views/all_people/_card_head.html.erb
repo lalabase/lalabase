@@ -1,16 +1,18 @@
-<%# locals: (card:, editing: false, show_sources: false) %>
+<%# locals: (card:, editing: false, mode: :contact) %>
 <%# The head of an open card. "Bearbeiten": for a person of several
-    organisations it names the organisations at every value, and with them
-    the pencils (a state of this card, taken back by "Fertig"); for a person
-    of one organisation it is the pencil itself, the way into that form.
-    Offered only where the reader may write somewhere. "Quellen zeigen" is the
-    reader's own switch (AllPeopleController#sources): a button that sends its
-    new state and the open card, answered by this card again; pressed it shows
-    a check, so it reads as on also where the hover tone looks the same. Not
-    offered while "Bearbeiten" is on: that names the organisations at every
-    value already, and the switch would change nothing there. The ✕ closes the
-    lane in place (layout-toggle). Links and the switch stay in the lane's
-    frame; what leaves the page says so (_top).
+    organisations it shows Herkunft with the pencils, whatever mode the reader
+    chose (a state of this card, taken back by "Fertig", which returns to that
+    mode); for a person of one organisation it is the pencil itself, the way
+    into that form. Offered only where the reader may write somewhere.
+    The switch Kontakt | Herkunft is the reader's own (AllPeopleController#sources,
+    people_card_sources: true is Herkunft), the view switch of the app: two
+    tiles, each a form that sends its mode and the open card. It keeps Turbo
+    and answers inside the lane's frame (turbo_frame), so the list beside the
+    card keeps its page and its search. Offered only for several sources and
+    not while "Bearbeiten" is on: that shows Herkunft already, and the switch
+    would change nothing there. The ✕ closes the lane in place (layout-toggle).
+    Links and the switch stay in the lane's frame; what leaves the page says so
+    (_top).
 
     Behind "···", the rarer actions: taking a contact over into another
     organisation (per source that is a contact without an account, when there
@@ -63,12 +65,9 @@
     <% end %>
   <% end %>
   <% if several && !editing %>
-    <%= button_to all_people_sources_path, method: :patch,
-                  params: { show: (show_sources ? '0' : '1'), AllPeopleController::CARD_PARAM => card.address },
-                  class: 'people-ghost-action all-people-card__switch', 'aria-pressed': show_sources.to_s,
-                  form: { data: { card_sources_switch: true } } do %>
-      <i class="bi <%= show_sources ? 'bi-check-lg' : 'bi-building' %>" aria-hidden="true"></i><%= t('views.all_people.card.show_sources') %>
-    <% end %>
+    <div class="all-people-card__modes" data-card-mode-switch>
+      <%= render NeoViewSwitchComponent.new(label: t('views.all_people.card.modes.label'), items: all_people_mode_items(card, mode)) %>
+    </div>
   <% end %>
   <% if items.any? %>
     <%# The trigger of this menu has an id of its own: every takeover dialog it opens

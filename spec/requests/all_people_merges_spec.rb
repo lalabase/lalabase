@@ -58,9 +58,8 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
     rows(doc).find { |row| row.at_css('.all-people-row__name').text.strip == name }
   end
 
-  def chips(row)
-    row.css('[data-organisation-chip]').map { |chip| chip.text.strip }
-  end
+  # The organisations a row names: its lead's chip and the others of its "+N" (D14).
+  def chips(row) = row_organisations(row)
 
   def shown(doc)
     rows(doc).to_h { |row| [row.at_css('.all-people-row__name').text.strip, chips(row)] }
@@ -273,7 +272,7 @@ RSpec.describe 'Merging people above the organisations', :ci_guard, type: :reque
 
       expect(response).to have_http_status(:see_other)
       get response.headers['Location'], headers: { 'Turbo-Frame' => AllPeopleController::CARD_FRAME_ID }
-      sources = Nokogiri::HTML(response.body).css('[data-card-source] .organisation-chip__name').map { |name| name.text.strip }
+      sources = card_organisations(Nokogiri::HTML(response.body))
       expect(sources).to eq(['Sued AG', 'West KG'])
       expect(stored).to eq([1, 2])
     end

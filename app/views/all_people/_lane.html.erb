@@ -4,7 +4,8 @@
     or nothing yet. Rendered by the page on a full visit and alone for a
     request of the frame. all-people-card marks LOADED content for
     layout-toggle and index-page; the other two must not carry it, or they
-    open an empty column. "Bearbeiten" (editing) and "Quellen zeigen" are read
+    open an empty column. "Bearbeiten" (editing) and the reader's mode of the
+    card (Kontakt or Herkunft, people_card_sources: true is Herkunft) are read
     here, once for both ways in: they decide where the organisations stand.
     The missing answer has the cross of the lane: a row click opens the lane
     and writes the address before the answer comes, so a person deleted in
@@ -13,7 +14,7 @@
   <div class="all-people-card people-lane min-w-0 relative" data-all-people-card="<%= card.address %>">
     <%= render 'all_people/card', card: card,
                                   editing: params[AllPeopleController::EDITING_PARAM] == '1',
-                                  show_sources: current_user.preference_store.people_card_sources? %>
+                                  mode: (current_user.preference_store.people_card_sources? ? :sources : :contact) %>
   </div>
 <% else %>
   <% text = missing ? 'missing' : 'placeholder' %>

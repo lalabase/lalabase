@@ -42,8 +42,15 @@
   <details class="group" data-controller="details-autoclose" data-action="toggle->details-autoclose#onToggle">
     <summary class="flex items-center justify-between gap-2 px-6 py-2 cursor-pointer hover:bg-white/55 rounded transition-colors list-none"
              title="<%= organisation ? t('navigation.organisation') : t('navigation.all_organisations') %>">
-      <h3 class="flex-1 min-w-0">
-        <span class="block truncate text-sm font-bold text-cream-700 group-hover:text-cream-900 transition-colors"><%= organisation ? organisation.name : t('navigation.all_organisations') %></span>
+      <%# The chevron of the switcher stands at the name it changes, not at the edge beside
+          the gear, where it read as a second button of its own (user, 19.11.2026): a long
+          name is cut, the chevron stays behind it. It turns when the menu opens; no tile,
+          which would cling to the name. %>
+      <h3 class="flex flex-1 min-w-0 items-center gap-0.5">
+        <span class="block min-w-0 truncate text-sm font-bold text-cream-700 group-hover:text-cream-900 transition-colors"><%= organisation ? organisation.name : t('navigation.all_organisations') %></span>
+        <span class="flex items-center justify-center w-7 h-7 shrink-0 text-cream-600 group-hover:text-cream-900 transition-colors" data-sidebar-switcher-sign aria-hidden="true">
+          <i class="bi bi-chevron-down text-xs group-open:rotate-180 transition-transform"></i>
+        </span>
       </h3>
       <% if organisation && menu_orgs.many? %>
         <%= render 'notifications/other_orgs_dot', counts: org_counts %>
@@ -51,22 +58,21 @@
       <% if can_manage_org %>
         <%# Manage THIS organisation: the gear next to its name, the way into the management
             area. stopPropagation so a click navigates without toggling the menu; marked on
-            every page of the area. Flat in both states. %>
+            every page of the area. No edge of its own (user, 19.11.2026): it stands bare like
+            the head buttons of the assistant panel, a grey tile under the pointer, and the
+            same tile marks the management area. %>
         <% gear_classes = if management_section_active?
-                            'border-ink bg-cream-200 text-cream-900'
+                            'bg-cream-200 text-cream-900'
                           else
-                            'border-cream-300 bg-cream-50 text-cream-600 hover:border-ink hover:text-cream-900'
+                            'text-cream-600 hover:bg-cream-200 hover:text-cream-900'
                           end %>
         <%= link_to organisation_settings_path(organisation),
               title: t('navigation.management'), aria: { label: t('navigation.management') },
               data: { controller: 'return-referrer', action: 'click->details-autoclose#stop turbo:before-fetch-request@document->return-referrer#refresh' },
-              class: "flex items-center justify-center w-6 h-6 rounded border shrink-0 transition-colors #{gear_classes}" do %>
+              class: "flex items-center justify-center w-7 h-7 rounded shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink #{gear_classes}" do %>
           <i class="bi bi-gear text-xs" aria-hidden="true"></i>
         <% end %>
       <% end %>
-      <span class="flex items-center justify-center w-6 h-6 rounded border border-cream-300 bg-cream-50 text-cream-600 shrink-0 group-hover:border-ink group-hover:text-cream-900 transition-colors">
-        <i class="bi bi-chevron-down text-xs group-open:rotate-180 transition-transform" aria-hidden="true"></i>
-      </span>
     </summary>
     <%# The open menu (F29): opacity-0 until details_autoclose has placed it, so it does
         not flash in the corner for a frame; a long list scrolls inside it. %>

@@ -272,16 +272,18 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
       get organisation_memberships_path(org)
 
       expect(response).to have_http_status(:ok)
-      # Active gear carries the ink border; inactive uses border-cream-300 + a hover:border-ink.
-      expect(page_doc).to have_css("#{management_gear(org)}.border-ink")
+      # The active gear stands on its grey tile; the inactive one shows it under the pointer
+      # only (hover:bg-cream-200, another class). No edge in either state (19.11.2026).
+      expect(page_doc).to have_css("#{management_gear(org)}.bg-cream-200")
+      expect(page_doc).to have_no_css("#{management_gear(org)}.border")
     end
 
     it 'does NOT light the "Verwaltung" gear on a non-management page (org dashboard)' do
       get organisation_root_path(org)
 
-      # Present but inactive: the gear renders without the active ink border.
+      # Present but inactive: the gear renders without the active tile.
       expect(page_doc).to have_css(management_gear(org))
-      expect(page_doc).to have_no_css("#{management_gear(org)}.border-ink")
+      expect(page_doc).to have_no_css("#{management_gear(org)}.bg-cream-200")
     end
 
     it 'labels the org dashboard nav item "Dashboard", not "Übersicht"' do

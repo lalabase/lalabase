@@ -104,7 +104,7 @@ GEM
     bindex (0.8.1)
     bootsnap (1.26.1)
       msgpack (~> 1.5)
-    brakeman (7.1.2)
+    brakeman (7.0.0)
       racc
     builder (3.3.0)
     capybara (3.40.0)
@@ -269,8 +269,8 @@ GEM
       logger (~> 1.6)
     letter_opener (1.10.0)
       launchy (>= 2.2, < 4)
-    lexxy (0.9.33)
-      railties (>= 8.0.2)
+    lexxy (0.9.18)
+      rails (>= 8.0.2)
     lint_roller (1.1.0)
     listen (3.10.1)
       logger
@@ -693,7 +693,7 @@ DEPENDENCIES
   annotaterb
   anthropic (~> 2.8)
   bootsnap
-  brakeman (~> 7.0)
+  brakeman (= 7.0.0)
   capybara (~> 3.40)
   commonmarker (~> 2.10)
   countries
@@ -718,7 +718,7 @@ DEPENDENCIES
   jbuilder
   json (~> 2.21)
   letter_opener
-  lexxy (~> 0.9)
+  lexxy (= 0.9.18)
   mcp (~> 1.10)
   mini_magick
   minitest (~> 6.1)

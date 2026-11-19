@@ -84,6 +84,19 @@ RSpec.describe Pageable, type: :controller do
       end
     end
 
+    # The preference was stored without a ceiling until 18.11.2026, and a full
+    # page load reads it without the `?items=` that would be clamped.
+    context 'with a user preference above MAX_PER_PAGE' do
+      let(:user) { instance_double('User', items_per_page_preference: 1_000_000) }
+
+      before { controller.current_user = user }
+
+      it 'returns MAX_PER_PAGE' do
+        get :index
+        expect(controller.items_per_page).to eq(Pageable::MAX_PER_PAGE)
+      end
+    end
+
     context 'with user preference of 0' do
       let(:user) { instance_double('User', items_per_page_preference: 0) }
 
@@ -139,10 +152,23 @@ RSpec.describe Pageable, type: :controller do
     end
 
     # --- Edge cases ---
-    context 'with non-numeric items parameter' do
-      it 'clamps to MIN_PER_PAGE' do
-        get :index, params: { items: 'abc' }
-        expect(controller.items_per_page).to eq(Pageable::MIN_PER_PAGE)
+    # A value that names no size is passed over, as Pagination::Page.size reads
+    # it for the select and the saved setting. Until 19.11.2026 it paged by one row.
+    context 'with an items parameter that names no size' do
+      let(:user) { instance_double('User', items_per_page_preference: 50) }
+
+      before { controller.current_user = user }
+
+      %w[abc 0 -5].each do |value|
+        it "falls through to the user preference for #{value.inspect}" do
+          get :index, params: { items: value }
+          expect(controller.items_per_page).to eq(50)
+        end
+      end
+
+      it 'falls through to the limit parameter first' do
+        get :index, params: { items: 'abc', limit: '30' }
+        expect(controller.items_per_page).to eq(30)
       end
     end
 
@@ -156,17 +182,12 @@ RSpec.describe Pageable, type: :controller do
       end
     end
 
-    context 'with negative items parameter' do
-      it 'clamps to MIN_PER_PAGE' do
-        get :index, params: { items: '-5' }
-        expect(controller.items_per_page).to eq(Pageable::MIN_PER_PAGE)
-      end
-    end
+    context 'with zero items parameter and no preference' do
+      before { controller.current_user = nil }
 
-    context 'with zero items parameter' do
-      it 'clamps to MIN_PER_PAGE' do
+      it 'falls through to DEFAULT_PER_PAGE' do
         get :index, params: { items: '0' }
-        expect(controller.items_per_page).to eq(Pageable::MIN_PER_PAGE)
+        expect(controller.items_per_page).to eq(Pageable::DEFAULT_PER_PAGE)
       end
     end
 
@@ -182,87 +203,44 @@ RSpec.describe Pageable, type: :controller do
   # #paginate
   # ==========================================================================
   describe '#paginate' do
+    # The arithmetic and the reading of the page number are Pagination::Page's
+    # (spec/services/pagination/page_spec.rb). This concern decides what it hands
+    # over: the page as the request names it, and the page size.
     let(:query) { double('ActiveRecord::Relation') }
-    let(:pagy_instance) { instance_double(Pagy) }
+    let(:page) { instance_double(Pagination::Page) }
     let(:records) { [] }
 
     before do
-      allow(controller).to receive(:pagy).and_return([pagy_instance, records])
+      allow(Pagination::Page).to receive(:of).and_return([page, records])
     end
 
-    it 'calls pagy with the query and correct options' do
+    it 'hands over the query, the page of the request and a page size' do
       get :index, params: { page: '2' }
       controller.paginate(query)
 
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(page: 2, limit: anything)
+      expect(Pagination::Page).to have_received(:of).with(
+        query, hash_including(page: '2', limit: Pageable::DEFAULT_PER_PAGE)
       )
     end
 
-    it 'returns [pagy_instance, records]' do
+    it 'returns [page, records]' do
       get :index
       result = controller.paginate(query)
-      expect(result).to eq([pagy_instance, records])
+      expect(result).to eq([page, records])
     end
 
-    it 'ensures page is at least 1 when page=0' do
-      get :index, params: { page: '0' }
+    it 'hands over no page when the request names a list instead of a number' do
+      get :index, params: { page: ['2'] }
       controller.paginate(query)
 
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(page: 1)
-      )
-    end
-
-    it 'ensures page is at least 1 when page is negative' do
-      get :index, params: { page: '-3' }
-      controller.paginate(query)
-
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(page: 1)
-      )
-    end
-
-    it 'passes smart_folder_id in params when present' do
-      get :index, params: { smart_folder_id: 'sf-123' }
-      controller.paginate(query)
-
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(params: hash_including(smart_folder_id: 'sf-123'))
-      )
-    end
-
-    it 'passes project_id in params when present' do
-      get :index, params: { project_id: 'proj-456' }
-      controller.paginate(query)
-
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(params: hash_including(project_id: 'proj-456'))
-      )
-    end
-
-    it 'does not include smart_folder_id when absent' do
-      get :index
-      controller.paginate(query)
-
-      expect(controller).to have_received(:pagy) do |_query, opts|
-        expect(opts[:params]).not_to have_key(:smart_folder_id)
-      end
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(page: nil))
     end
 
     it 'uses options[:items] when provided' do
       get :index
       controller.paginate(query, items: 99)
 
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(limit: 99)
-      )
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(limit: 99))
     end
 
     it 'falls back to items_per_page when no options[:items]' do
@@ -270,19 +248,23 @@ RSpec.describe Pageable, type: :controller do
       get :index
       controller.paginate(query)
 
-      expect(controller).to have_received(:pagy).with(
-        query,
-        hash_including(limit: 42)
-      )
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(limit: 42))
     end
 
-    it 'always includes items in pagy params for URL generation' do
+    it 'hands over a total the caller already knows' do
+      get :index
+      controller.paginate(query, count: 7)
+
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(count: 7))
+    end
+
+    it 'answers a page behind the end with an empty page unless the list asks for the last one' do
       get :index
       controller.paginate(query)
+      controller.paginate(query, past_end: :last)
 
-      expect(controller).to have_received(:pagy) do |_query, opts|
-        expect(opts[:params][:items]).to be_present
-      end
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(past_end: :empty)).ordered
+      expect(Pagination::Page).to have_received(:of).with(query, hash_including(past_end: :last)).ordered
     end
   end
 
@@ -421,23 +403,11 @@ RSpec.describe Pageable, type: :controller do
     end
   end
 
-  # NOTE: the #pagy_url_for block that stood here is gone with the method itself.
-  # It was a controller-side twin of ApplicationHelper#pagy_url_for and could
-  # never run in production, because pagy_url_for is called from pagy_nav in the
-  # VIEW and this concern never exposed it via helper_method. Its two genuinely
-  # interesting cases -- a UUID and a .json parsed as the format suffix -- moved
-  # to spec/helpers/pagy_url_for_spec.rb, where the surviving builder lives.
-  #
-  # Without the deletion these examples did not fail loudly either: `controller.
-  # pagy_url_for` still resolved, just to PAGY's own implementation via
-  # Pagy::UrlHelpers, which asks the double for `vars` and got
-  # "received unexpected message :vars".
-
   # ==========================================================================
   # #respond_to_sort_and_paginate
   # ==========================================================================
   describe '#respond_to_sort_and_paginate' do
-    let(:pagy_instance) { instance_double(Pagy) }
+    let(:pagy_instance) { instance_double(Pagination::Page) }
     let(:collection) { double('ActiveRecord::Relation') }
 
     context 'with turbo_stream format' do
@@ -490,7 +460,7 @@ RSpec.describe Pageable, type: :controller do
 
     it 'does not overwrite existing @pagy' do
       get :index
-      existing_pagy = instance_double(Pagy)
+      existing_pagy = instance_double(Pagination::Page)
       controller.instance_variable_set(:@pagy, existing_pagy)
 
       allow(controller).to receive(:respond_to).and_yield(
@@ -560,10 +530,6 @@ RSpec.describe Pageable, type: :controller do
   describe 'constants' do
     it 'defines DEFAULT_PER_PAGE' do
       expect(Pageable::DEFAULT_PER_PAGE).to eq(20)
-    end
-
-    it 'defines MIN_PER_PAGE' do
-      expect(Pageable::MIN_PER_PAGE).to eq(1)
     end
 
     it 'defines MAX_PER_PAGE' do

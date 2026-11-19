@@ -99,7 +99,8 @@ RSpec.describe User::PreferencesForm, type: :model do
         result = form.update(params)
 
         expect(result).to be true
-        expect(user.reload.preferences).to include('items_per_page' => '50')
+        # The page size is stored as the number the lists read (PreferenceStore#update).
+        expect(user.reload.preferences).to include('items_per_page' => 50)
         expect(user.preferences.dig('date_display', 'global_format')).to eq('german')
         expect(user.preferences.dig('date_display', 'custom_format')).to eq('%Y/%m/%d')
       end

@@ -292,7 +292,8 @@ module ObjectListController
 
     # SmartFolderService returns the folder results; filter to objects of
     # the current project
-    folder_items = SmartFolderService.new(@active_smart_folder, current_user).fetch_results[:items]
+    folder_items = SmartFolderService.new(smart_folder: @active_smart_folder, current_user: current_user)
+                                     .fetch_results(unpaged: true)[:items]
 
     if folder_items.is_a?(ActiveRecord::Relation) && folder_items.klass.name == object_type
       folder_items.where(project_id: @project.id)

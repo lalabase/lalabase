@@ -1053,6 +1053,7 @@ en:
         download: Download
         section_title: Attachments (%{count})
       pagination:
+        label: Pagination
         of: of
         entries:
           one: "%{count} entry"

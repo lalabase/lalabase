@@ -146,7 +146,6 @@ module ServiceConventionDetectors
     app/services/smart_folder_dissolver.rb
     app/services/smart_folder_query_builder.rb
     app/services/smart_folder_rule_factory.rb
-    app/services/smart_folder_service.rb
     app/services/subscriptions/guest_ceiling.rb
     app/services/subscriptions/seat_counter.rb
     app/services/summary_processing_service.rb

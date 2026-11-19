@@ -123,6 +123,38 @@ RSpec.describe User::PreferenceStore, type: :model do
     end
   end
 
+  # The lists read it back as their page size (Pageable#items_per_page). Until
+  # 19.11.2026 the preferences page and the select of a pagination bar (both
+  # PATCH /user_preferences, #update) stored any number, and only the reading
+  # side kept a list from loading in one piece.
+  describe 'the page size of the lists' do
+    it 'stores a page size at most at the ceiling of the lists, through either writer' do
+      store.set_items_per_page('1000000')
+      expect(user.reload.preferences['items_per_page']).to eq(Pageable::MAX_PER_PAGE)
+
+      store.set_items_per_page(50)
+      store.update('items_per_page' => 1_000_000)
+      expect(user.reload.preferences['items_per_page']).to eq(Pageable::MAX_PER_PAGE)
+    end
+
+    it 'stores a page size as a number, as the lists read it' do
+      store.update('items_per_page' => '50')
+
+      expect(user.reload.preferences['items_per_page']).to eq(50)
+    end
+
+    it 'stores no value that names no page size, and keeps the one it had' do
+      store.set_items_per_page(50)
+
+      ['abc', '0', '', ['20'], { 'a' => '20' }].each do |value|
+        expect(store.set_items_per_page(value)).to be(false)
+        store.update('items_per_page' => value, 'post_direction' => 'reverse')
+      end
+
+      expect(user.reload.preferences).to include('items_per_page' => 50, 'post_direction' => 'reverse')
+    end
+  end
+
   describe 'cockpit settings' do
     describe 'defaults (nothing stored — read straight off a fresh user, NOT the factory)' do
       it 'shows actions and todos by default' do

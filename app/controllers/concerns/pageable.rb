@@ -3,10 +3,8 @@
 # app/controllers/concerns/pageable.rb
 module Pageable
   extend ActiveSupport::Concern
-  include Pagy::Backend
 
   DEFAULT_PER_PAGE = 20
-  MIN_PER_PAGE = 1
   MAX_PER_PAGE = 200
 
   PAGINATION_PARAMS = %i[
@@ -29,54 +27,45 @@ module Pageable
   end
 
   # Applies pagination to a query.
-  # Returns an array [pagy_instance, records].
+  # Returns an array [Pagination::Page, records].
+  #
+  # Options:
+  #   items:    the page size, where the list has a rule of its own for it
+  #   count:    the total, from a caller that knows it (a GROUPED relation would
+  #             be loaded whole to learn its size, see Pagination::Page.of)
+  #   past_end: :last answers a page behind the end with the last page; the
+  #             default is an empty page
   def paginate(query, options = {})
-    permitted = permitted_pagination_params
-
-    page = [permitted[:page].to_i, 1].max
-    per_page = options[:items] || items_per_page
-
-    pagy_opts = {
-      page: page,
-      limit: per_page,
-      params: build_pagy_url_params(permitted, per_page)
-    }
-    # A caller that knows the total hands it in. Pagy would otherwise call
-    # .count(:all) itself, and on a GROUPED relation that returns a Hash of every
-    # group -- the whole result set in memory, to learn its size.
-    pagy_opts[:count] = options[:count] if options.key?(:count)
-    pagy_opts[:overflow] = options[:overflow] if options.key?(:overflow)
-
-    pagy(query, **pagy_opts)
+    Pagination::Page.of(
+      query,
+      page: permitted_pagination_params[:page],
+      limit: options[:items] || items_per_page,
+      count: options[:count],
+      past_end: options.fetch(:past_end, :empty)
+    )
   end
 
   # Determines the number of items per page.
-  # Priority: 1. URL parameter → 2. user DB preference → 3. controller default → 4. DEFAULT_PER_PAGE
+  # Priority: 1. `?items=`, then `?limit=` → 2. the reader's saved setting →
+  # 3. controller default → 4. DEFAULT_PER_PAGE.
+  # A value that names no size (no number, below 1, a list or a hash) is passed
+  # over, never read as one row: Pagination::Page.size, the reading of every list.
+  # Every answer is at most MAX_PER_PAGE, the stored preference too: it was
+  # written without a ceiling until 18.11.2026, and a full page load reads it
+  # without the `?items=` that ensure_items_parameter would have set.
   def items_per_page
     permitted = params.permit(:items, :limit)
+    named = [permitted[:items], permitted[:limit], saved_items_per_page].find { |value| Pagination::Page.size(value) }
 
-    # 1. URL parameter takes precedence
-    if permitted[:items].present?
-      return sanitize_per_page(permitted[:items])
-    elsif permitted[:limit].present?
-      return sanitize_per_page(permitted[:limit])
-    end
-
-    # 2. User preference from DB
-    if respond_to?(:current_user) && current_user.respond_to?(:items_per_page_preference)
-      value = current_user.items_per_page_preference
-      return value if value.is_a?(Integer) && value > 0
-    end
-
-    # 3. Controller default or absolute default
-    self.class.respond_to?(:default_per_page) && self.class.default_per_page.present? ? self.class.default_per_page.to_i : DEFAULT_PER_PAGE
+    Pagination::Page.size(named, default: default_items_per_page, max: MAX_PER_PAGE)
   end
 
   # Parameters for pagination links
   def pagination_params
     permitted = permitted_pagination_params
 
-    page = permitted[:page].present? ? [permitted[:page].to_i, 1].max : nil
+    # The reading of the page number is Pagination::Page's, as in #paginate.
+    page = Pagination::Page.number(permitted[:page]) if permitted[:page].present?
 
     items_value = if permitted[:items].present?
                     permitted[:items]
@@ -131,13 +120,8 @@ module Pageable
     end
   end
 
-  # NOTE: there used to be a second pagy_url_for here, a controller-side twin of
-  # the one in ApplicationHelper. It was unreachable: pagy_url_for is called from
-  # pagy_nav in the VIEW, and this concern never exposed it via helper_method.
-  # Proven rather than assumed -- putting `raise` in its body left 2664 request
-  # and view examples green. Two implementations of one URL rule, the better one
-  # of them dead, is also why the billing list (W5) hand-rolled its own links.
-  # One builder now, in ApplicationHelper.
+  # The address of a page link is built in the view: PaginationHelper#page_url_for
+  # and #pagination_page_url. This concern builds none.
 
   private
 
@@ -145,15 +129,13 @@ module Pageable
     params.permit(*PAGINATION_PARAMS)
   end
 
-  def sanitize_per_page(value)
-    value.to_i.clamp(MIN_PER_PAGE, MAX_PER_PAGE)
+  def saved_items_per_page
+    current_user.items_per_page_preference if respond_to?(:current_user) && current_user.respond_to?(:items_per_page_preference)
   end
 
-  def build_pagy_url_params(permitted, per_page)
-    url_params = { items: per_page }
-    url_params[:smart_folder_id] = permitted[:smart_folder_id] if permitted[:smart_folder_id].present?
-    url_params[:project_id] = permitted[:project_id] if permitted[:project_id].present?
-    url_params
+  def default_items_per_page
+    configured = self.class.default_per_page if self.class.respond_to?(:default_per_page)
+    configured.present? ? configured.to_i : DEFAULT_PER_PAGE
   end
 
   def load_smart_folder(smart_folder_id)

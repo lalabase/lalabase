@@ -82,7 +82,6 @@ class ApplicationController < ActionController::Base
   helper_method :level_home_path
 
   include Pundit::Authorization
-  include Pagy::Backend
   # selectable_projects belongs HERE, not only on Organisations::BaseController:
   # the layout renders the global search form behind global_search_available?
   # (below), and HelpController restores the session organisation outside that
@@ -311,14 +310,14 @@ class ApplicationController < ActionController::Base
     ).call
   end
 
-  # Update items_per_page from URL params if present (persists to DB)
+  # Update items_per_page from URL params if present (persists to DB). The store
+  # reads the value (User::PreferenceStore#set_items_per_page): capped at the
+  # lists' ceiling, and a value that names no size (`?items=abc`, `?items[]=20`)
+  # stores nothing.
   def update_items_per_page_from_params
     return unless user_signed_in? && params[:items].present?
 
-    new_value = params[:items].to_i
-    return unless new_value > 0
-
-    current_user.preference_store.set_items_per_page(new_value) if current_user.respond_to?(:preference_store)
+    current_user.preference_store.set_items_per_page(params[:items]) if current_user.respond_to?(:preference_store)
   end
 
   # Load user preferences (no-op, preferences are read from DB on demand via Pageable)

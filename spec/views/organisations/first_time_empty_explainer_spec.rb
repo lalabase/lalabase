@@ -93,7 +93,7 @@ RSpec.describe 'first-time empty-state explainer panels', type: :view do
   # leaves alone") and first_use_reduced_chrome_spec.rb, both in the CI list.
 
   describe 'organisations/meetings/_meetings_results' do
-    before { assign(:pagy, Pagy.new(count: 0)) }
+    before { assign(:pagy, Pagination::Page.new(count: 0, page: 1, limit: 20)) }
     let(:explainer_title) { I18n.t('views.organisations.meetings.index.explainer.title') }
 
     def render_results

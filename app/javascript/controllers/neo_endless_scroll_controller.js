@@ -94,8 +94,8 @@ export default class extends Controller {
         // rows that are all on screen (see _appendChildren) is no end of the list.
         if (found > 0) {
           this.pageValue = nextPage
-          // Read hasMore directly from the next page's data attribute
-          // (Pagy-driven), instead of looking for .pagy-nav.
+          // Read hasMore directly from the next page's data attribute (the
+          // server knows whether a page follows), not from a pagination bar.
           this.hasMoreValue =
             newScroller?.getAttribute('data-neo-endless-scroll-has-more-value') === 'true'
         } else {

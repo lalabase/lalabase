@@ -29,7 +29,7 @@ module Admin
   # - Uses denormalized fields (recipient_email instead of a User relation)
   #
   # PERFORMANCE OPTIMIZATIONS:
-  # - Pagy for efficient pagination (instead of Kaminari)
+  # - Paged by Pagination::Page, 25 rows a page (`?limit=` up to 100)
   # - Minimal eager loading (only :notification, :organisation)
   # - Aggregated statistics with database-level queries
   # - Table-prefixed columns for unambiguous join queries
@@ -87,7 +87,11 @@ module Admin
   #   GET /admin/email_logs/stats?days=30
   #
   class EmailLogsController < ApplicationController
-    include Pagy::Backend
+    LOGS_PER_PAGE = 25
+    # `?limit=` sets another page size, up to this, as it did under the pagination
+    # gem (its limit extra). No control on the page sets it; addresses that carry
+    # it keep working.
+    MAX_LOGS_PER_PAGE = 100
 
     # Whitelists for filtering and validation
     ALLOWED_STATUSES = %w[queued sent delivered opened clicked bounced failed complaint deferred unsubscribed].freeze
@@ -111,8 +115,7 @@ module Admin
       # Build scope without tenant restrictions (around_action handles tenant removal)
       email_logs_scope = build_filtered_scope
 
-      # Use pagy with unscoped collection
-      @pagy, @email_logs = pagy(email_logs_scope, items: 25)
+      @pagy, @email_logs = Pagination::Page.of(email_logs_scope, page: params[:page], limit: logs_per_page)
 
       # Resolve organisation names for the table in a single query (see
       # #organisation_names_for -- includes(:organisation) N+1s under this stack).
@@ -135,6 +138,10 @@ module Admin
     end
 
     private
+
+    def logs_per_page
+      Pagination::Page.size(params[:limit], default: LOGS_PER_PAGE, max: MAX_LOGS_PER_PAGE)
+    end
 
     def build_filtered_scope
       # NOTE: do NOT includes(:organisation) here. Under the admin without-tenant

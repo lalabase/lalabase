@@ -353,10 +353,6 @@ de:
           size: Größe
           deleted_at: Gelöscht am
           backup: Sicherung
-        pagination_label: Seitennavigation
-        previous: Zurück
-        next: Weiter
-        page_of: Seite %{page} von %{total}
     beusers:
       index:
         active_admins: Aktive Admins
@@ -413,6 +409,11 @@ de:
         system_settings: Systemeinstellungen
         user_menu_right: Benutzermenü (rechts)
         users: Benutzer
+      pagination:
+        label: Seitennavigation
+        previous: Zurück
+        next: Weiter
+        page_of: Seite %{page} von %{total}
     dashboard:
       title: Admin Dashboard
       subtitle: Systemübersicht und Verwaltung
@@ -2312,21 +2313,6 @@ de:
         cancel: Abbrechen
         required_field: Pflichtfeld
         save: Speichern
-  pagy:
-    combo_nav_js: "<label>Seite %{page_input} von %{pages}</label>"
-    info:
-      multiple_pages: Zeige %{item_name} <b>%{from}-%{to}</b> von <b>%{count}</b>
-        insgesamt
-      no_items: Keine %{item_name} gefunden
-      single_page: Zeige <b>%{count}</b> %{item_name}
-    item_name:
-      one: Eintrag
-      other: Einträge
-    items_selector_js: "<label>Zeige %{items_input} %{item_name} pro Seite</label>"
-    nav:
-      gap: "&hellip;"
-      next: Weiter&nbsp;&rsaquo;
-      prev: "&lsaquo;&nbsp;Zurück"
   projects:
     not_found: Projekt nicht gefunden
   roles:

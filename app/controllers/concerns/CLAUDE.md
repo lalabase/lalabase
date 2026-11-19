@@ -1,4 +1,4 @@
-# Karte: app/controllers/concerns (Stand: 2026-11-17)
+# Karte: app/controllers/concerns (Stand: 2026-11-18)
 
 > Für die Ticket-**Domäne** (Attributsystem, Kanban, Actors, Fallen) gilt zusätzlich
 > `docs/architektur/tickets_lesepfad.md`. Diese Karte hier beschreibt nur den **Stack**.
@@ -47,7 +47,9 @@ Lese-Reihenfolge, um eine Listen-Seite wirklich zu verstehen:
    Eine ganze Zeile braucht, was nur `index` kennt (Spalten des aktiven Ordners, den kein Formular
    mitschickt; ungelesene Benachrichtigungen) und verlor beides. Deshalb heißt „kein Wert“ am
    Eintrag unter dem Titel `:empty` (CSS), `hidden` nur „nicht angepinnt“.
-7. Rest: `pageable.rb`, `searchable.rb`, `performance_optimized.rb`,
+7. Rest: `pageable.rb` (seit 18.11.2026 ohne Gem: `#paginate` reicht Seite und Seitengröße an
+   `Pagination::Page.of` weiter, Karte `app/services/CLAUDE.md`; eine neue Liste der Anwendung
+   blättert hierüber, nie mit einer eigenen Rechnung), `searchable.rb`, `performance_optimized.rb`,
    `viewport_switchable.rb` (Mobile/Desktop-Umschaltung), `project_controller.rb`
    (Projekt-Scope-Basis, nutzt z. B. der MeetingsController), `ai_feature_gate.rb`
    (`ensure_ai_enabled`, org-Ebene; aus `project_controller.rb` extrahiert in S3a T2,

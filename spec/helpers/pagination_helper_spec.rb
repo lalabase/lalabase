@@ -19,66 +19,73 @@ RSpec.describe PaginationHelper, type: :helper do
     end
 
     it 'returns nil for empty results (count=0)' do
-      pagy = Pagy.new(count: 0, page: 1, limit: 20)
+      pagy = Pagination::Page.new(count: 0, page: 1, limit: 20)
+      expect(helper.pagination_info_text(pagy)).to be_nil
+    end
+
+    # A page behind the last one holds no rows. A computed range printed
+    # "161 – 45 von 45" for page 9 of 45 rows.
+    it 'returns nil for a page behind the last one' do
+      pagy = Pagination::Page.new(count: 45, page: 9, limit: 20)
       expect(helper.pagination_info_text(pagy)).to be_nil
     end
 
     it 'calculates correctly for page 1 with 20 items per page and 36 total' do
-      pagy = Pagy.new(count: 36, page: 1, limit: 20)
+      pagy = Pagination::Page.new(count: 36, page: 1, limit: 20)
       expect(helper.pagination_info_text(pagy)).to eq('1 – 20 von 36')
     end
 
     it 'calculates correctly for page 2 with 20 items per page and 36 total' do
-      pagy = Pagy.new(count: 36, page: 2, limit: 20)
+      pagy = Pagination::Page.new(count: 36, page: 2, limit: 20)
       expect(helper.pagination_info_text(pagy)).to eq('21 – 36 von 36')
     end
 
     it 'calculates correctly for page 1 with 10 items per page and 25 total' do
-      pagy = Pagy.new(count: 25, page: 1, limit: 10)
+      pagy = Pagination::Page.new(count: 25, page: 1, limit: 10)
       expect(helper.pagination_info_text(pagy)).to eq('1 – 10 von 25')
     end
 
     it 'calculates correctly for page 2 with 10 items per page and 25 total' do
-      pagy = Pagy.new(count: 25, page: 2, limit: 10)
+      pagy = Pagination::Page.new(count: 25, page: 2, limit: 10)
       expect(helper.pagination_info_text(pagy)).to eq('11 – 20 von 25')
     end
 
     it 'calculates correctly for last page with partial results' do
-      pagy = Pagy.new(count: 25, page: 3, limit: 10)
+      pagy = Pagination::Page.new(count: 25, page: 3, limit: 10)
       expect(helper.pagination_info_text(pagy)).to eq('21 – 25 von 25')
     end
 
     it 'calculates correctly when all items fit on one page' do
-      pagy = Pagy.new(count: 5, page: 1, limit: 20)
+      pagy = Pagination::Page.new(count: 5, page: 1, limit: 20)
       expect(helper.pagination_info_text(pagy)).to eq('1 – 5 von 5')
     end
 
     it 'calculates correctly with exactly one item' do
-      pagy = Pagy.new(count: 1, page: 1, limit: 20)
+      pagy = Pagination::Page.new(count: 1, page: 1, limit: 20)
       expect(helper.pagination_info_text(pagy)).to eq('1 – 1 von 1')
     end
 
     it 'calculates correctly when count equals limit exactly' do
-      pagy = Pagy.new(count: 20, page: 1, limit: 20)
+      pagy = Pagination::Page.new(count: 20, page: 1, limit: 20)
       expect(helper.pagination_info_text(pagy)).to eq('1 – 20 von 20')
     end
 
     it 'calculates correctly with 50 items per page' do
-      pagy = Pagy.new(count: 120, page: 2, limit: 50)
+      pagy = Pagination::Page.new(count: 120, page: 2, limit: 50)
       expect(helper.pagination_info_text(pagy)).to eq('51 – 100 von 120')
     end
 
     it 'calculates correctly for last page with 50 items per page' do
-      pagy = Pagy.new(count: 120, page: 3, limit: 50)
+      pagy = Pagination::Page.new(count: 120, page: 3, limit: 50)
       expect(helper.pagination_info_text(pagy)).to eq('101 – 120 von 120')
     end
 
     # Exact reproduction test for the reported bug:
     # Page 5, 20 items per page, 291 total → expected "81 – 100 von 291"
     it 'calculates correctly for page 5 with 20 items per page and 291 total (reported bug scenario)' do
-      pagy = Pagy.new(count: 291, page: 5, limit: 20)
+      pagy = Pagination::Page.new(count: 291, page: 5, limit: 20)
 
-      # Verify Pagy-internal values
+      # Verify the page's own values
       expect(pagy.page).to eq(5)
       expect(pagy.limit).to eq(20)
       expect(pagy.count).to eq(291)
@@ -90,12 +97,12 @@ RSpec.describe PaginationHelper, type: :helper do
     end
 
     it 'calculates correctly for page 1 with 20 items per page and 291 total' do
-      pagy = Pagy.new(count: 291, page: 1, limit: 20)
+      pagy = Pagination::Page.new(count: 291, page: 1, limit: 20)
       expect(helper.pagination_info_text(pagy)).to eq('1 – 20 von 291')
     end
 
     it 'calculates correctly for last page with 20 items per page and 291 total' do
-      pagy = Pagy.new(count: 291, page: 15, limit: 20)
+      pagy = Pagination::Page.new(count: 291, page: 15, limit: 20)
       expect(helper.pagination_info_text(pagy)).to eq('281 – 291 von 291')
     end
 
@@ -107,7 +114,7 @@ RSpec.describe PaginationHelper, type: :helper do
         { count: 55, page: 3, limit: 20, expected_from: 41, expected_to: 55 },
         { count: 1, page: 1, limit: 20, expected_from: 1, expected_to: 1 }
       ].each do |scenario|
-        pagy = Pagy.new(count: scenario[:count], page: scenario[:page], limit: scenario[:limit])
+        pagy = Pagination::Page.new(count: scenario[:count], page: scenario[:page], limit: scenario[:limit])
         expect(pagy.from).to eq(scenario[:expected_from]),
                              "Expected from=#{scenario[:expected_from]} for page=#{scenario[:page]} limit=#{scenario[:limit]}, got #{pagy.from}"
         expect(pagy.to).to eq(scenario[:expected_to]),
@@ -144,9 +151,11 @@ RSpec.describe PaginationHelper, type: :helper do
       expect(helper.pagination_frame_id).to eq('_top')
     end
 
-    it 'returns smart-folders-list for smart_folders controller' do
+    # The saved views have no <turbo-frame> around their list: an id named here
+    # is one the page-size select cannot load (until 2026-11-19 it named a <div>).
+    it 'falls back to _top for the smart_folders controller, whose list has no frame' do
       allow(helper).to receive(:controller_name).and_return('smart_folders')
-      expect(helper.pagination_frame_id).to eq('smart-folders-list')
+      expect(helper.pagination_frame_id).to eq('_top')
     end
 
     it 'returns _top for unknown controllers' do
@@ -209,7 +218,7 @@ RSpec.describe PaginationHelper, type: :helper do
   # --- pagination_page_url ---
 
   describe '#pagination_page_url' do
-    let(:pagy) { instance_double('Pagy', prev: 1, next: 3, page: 2, pages: 5) }
+    let(:pagy) { instance_double(Pagination::Page, prev: 1, next: 3, page: 2, pages: 5) }
     let(:mock_request) do
       instance_double('ActionDispatch::Request',
                       protocol: 'http://',

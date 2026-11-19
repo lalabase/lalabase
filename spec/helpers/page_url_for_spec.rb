@@ -2,19 +2,20 @@
 
 require 'rails_helper'
 
-# The pagination URL builder, pinned on the two ways it was broken.
+# The pagination URL builder of the full bar and the admin bar, pinned on the two
+# ways it was broken.
 #
-# These are the FIRST tests this builder has ever had. Until now
-# config/initializers/pagy.rb replaced Pagy::Frontend with a stub in the test
-# environment whose pagy_url_for answered '#', so nothing in the suite could
-# have caught either defect: not the 500 on a page without route-defining
-# params, and not the parameters lost on every page change.
-RSpec.describe ApplicationHelper, type: :helper do
+# These were the FIRST tests this builder ever had. Until 08.2026 the test
+# environment replaced the pagination frontend with a stub whose link builder
+# answered '#', so nothing in the suite could have caught either defect: not the
+# 500 on a page without route-defining params, and not the parameters lost on
+# every page change.
+RSpec.describe PaginationHelper, '#page_url_for', type: :helper do
   def url(page, path: '/admin/accounts', query: {}, format: nil)
     helper.request.path_info = path
     helper.request.query_parameters.replace(query.stringify_keys)
     helper.request.path_parameters = helper.request.path_parameters.merge(format: format)
-    helper.pagy_url_for(nil, page)
+    helper.page_url_for(page)
   end
 
   it 'builds a link from the request path, not from url_for' do
@@ -44,8 +45,8 @@ RSpec.describe ApplicationHelper, type: :helper do
 
   describe 'the format suffix' do
     # A pagination link points at the same screen one page further, never at
-    # another representation of it. These two cases moved here from the deleted
-    # Pageable#pagy_url_for, whose regex stripped a trailing UUID; asking routing
+    # another representation of it. These two cases moved here from a deleted
+    # controller-side twin, whose regex stripped a trailing UUID; asking routing
     # for the format covers that case AND every real format.
     it 'does not point at another representation of the page' do
       expect(url(2, path: '/tickets.turbo_stream', format: 'turbo_stream'))

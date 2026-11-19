@@ -1,4 +1,4 @@
-# Karte: app/services (Stand: 2026-11-18)
+# Karte: app/services (Stand: 2026-11-19)
 
 **Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
 Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
@@ -425,6 +425,31 @@ Verzeichnis-Übersicht (Auswahl):
   `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
   Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem
   MCP-Werkzeug `list_notifications`
+* `pagination/page.rb` (18.11.2026): `Pagination::Page`, the paging of every list of the web
+  interface and the admin area, the application's own since the pagination gem left. The
+  numbers of one page (`count`, `page`, `limit`, `pages`, `offset`, `from`, `to`, `prev`,
+  `next`, `series`) and `.of(scope, page:, limit:)` => `[page, rows]`. It reads the page
+  number of a request itself: below 1, no number or a list is page 1, never a 500. A page
+  behind the end is an EMPTY page (`past_end: :empty`, the default; the inbox appends pages and
+  needs it) or the last one (`:last`: meetings, knowledge), and never an OFFSET query. A list
+  of the application pages through `Pageable#paginate` (page size from `?items=`, then `?limit=`,
+  the reader's setting, the default, never above `Pageable::MAX_PER_PAGE`), an admin list through
+  `.of` with a size of its own (fixed; the mail log also takes `?limit=` up to 100) and the bar
+  `admin/common/_pagination` (which alone decides whether it shows).
+  `.size(value, default:, max:)` is the ONE reading of a page size, for a request (`?items=`,
+  `?limit=`), the reader's saved setting (`User::PreferenceStore`, the one writer, stores it
+  at most at `Pageable::MAX_PER_PAGE`) and every list with a rule of its own: no number, below
+  1, a list or a hash names no size, never one row. A bar asks `#links?` (more than one page,
+  or a page behind the end, which links back), never `pages > 1`. The saved views' results
+  (`SmartFolderService`) page through `Page` as well; every result unpaged only with
+  `unpaged: true`, which the lists that use a saved view as a filter ask for (tickets, times;
+  ⚠️ a view of ONE type that stays in SQL, today meetings, is cut to a page even then). A bar
+  names a frame only where a `<turbo-frame>` of that id surrounds it
+  (`PaginationHelper::FRAME_IDS`), else `_top`: the page-size select sets `src` on what it
+  finds. The token lists do NOT come through here, they keep
+  `list_paging.rb`. Guards: `spec/services/pagination/page_spec.rb`,
+  `spec/requests/list_page_parameter_spec.rb` (every list, every unshowable page),
+  `spec/requests/list_pagination_bars_spec.rb`.
 * `list_paging.rb` (05.11.2026): `page`/`per_page` of the lenient token lists (ticket list of
   REST and MCP via `Tickets::Filter`, the time session lists of `/api/v1`). A string that is no
   number stays the default, as before; refused (`InvalidArgument`, REST 400, MCP invalid input)

@@ -16,8 +16,6 @@ module Admin
   # complete than it is; without the second it implies that nothing was deleted
   # before that day.
   class DeletionRegistersController < Admin::ApplicationController
-    include Pagy::Backend
-
     ENTRIES_PER_PAGE = 50
 
     def show
@@ -31,7 +29,7 @@ module Admin
       # Only meaningful unfiltered: with a filter the scope already excludes them.
       @without_organisation = AttachmentDeletionRecord.without_organisation.count if @organisation_id.nil?
 
-      @pagy, @records = pagy(scope.recent_first, limit: ENTRIES_PER_PAGE)
+      @pagy, @records = Pagination::Page.of(scope.recent_first, page: params[:page], limit: ENTRIES_PER_PAGE)
     end
 
     private

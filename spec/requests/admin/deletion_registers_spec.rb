@@ -117,9 +117,8 @@ RSpec.describe 'Admin::DeletionRegisters', type: :request do
         expect(response.body).not_to include('fremd.pdf')
       end
 
-      # The app overrides pagy_url_for and rebuilds the query from a fixed
-      # allowlist that does not contain organisation_id, which is why the links
-      # are built by hand in the view. Without this test the second page falls
+      # The links name the organisation the controller checked (the `url:` the
+      # view hands to admin/common/_pagination). Without this test the second page falls
       # back to "all organisations": an answer about one controller's deletions
       # quietly becomes an answer about everybody's, and page one looks correct
       # the whole time. Found by a mutation probe, not by review.
@@ -134,6 +133,19 @@ RSpec.describe 'Admin::DeletionRegisters', type: :request do
         # raw string comparison would fail on a correct link.
         hrefs = Nokogiri::HTML(response.body).css('nav a').map { |a| a['href'] }
         expect(hrefs).to include(admin_deletion_register_path(page: 2, organisation_id: mine))
+      end
+
+      # Sent and checked differ here: the link of the next page carries what the
+      # controller accepted (nothing), not what the request sent.
+      it 'links the next page without a value the controller did not accept' do
+        stub_const('Admin::DeletionRegistersController::ENTRIES_PER_PAGE', 1)
+        2.times { record }
+
+        get admin_deletion_register_path(organisation_id: 'kein-uuid')
+
+        hrefs = Nokogiri::HTML(response.body).css('nav a').map { |a| a['href'] }
+        expect(hrefs).to include(admin_deletion_register_path(page: 2))
+        expect(hrefs.grep(/kein-uuid/)).to be_empty
       end
 
       # organisation_id is a uuid column. An unparsable value would reach

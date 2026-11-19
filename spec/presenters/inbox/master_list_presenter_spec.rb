@@ -2,17 +2,6 @@
 
 require 'rails_helper'
 
-# Minimal Pagy host: the presenter calls pagy_helper.send(:pagy, ...).
-class FakePagyHelper
-  include Pagy::Backend
-
-  def initialize(params = {})
-    @params = params
-  end
-
-  attr_reader :params
-end
-
 RSpec.describe Inbox::MasterListPresenter do
   include ActiveSupport::Testing::TimeHelpers
 
@@ -37,7 +26,7 @@ RSpec.describe Inbox::MasterListPresenter do
 
   def build(params = {}, options = {})
     described_class.new(
-      pagy_helper: FakePagyHelper.new,
+      page: nil,
       scope: scope,
       params: { view_mode: 'grouped' }.merge(params),
       **options
@@ -58,6 +47,35 @@ RSpec.describe Inbox::MasterListPresenter do
       # The representative of ticket A is the NEWEST notification
       rep_a = presenter.notifications.find { |n| n.notifiable_id == ticket_a.id }
       expect(rep_a.id).to eq(newest_a.id)
+    end
+
+    # The page takes the number of bundles from the counts per bundle; until
+    # 19.11.2026 every render ran one more COUNT over the DISTINCT ON subquery.
+    it 'counts its bundles without a second COUNT over the representatives' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      notif(ticket_a, created_at: 90.minutes.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      counts = []
+      callback = lambda do |*, payload|
+        counts << payload[:sql] if payload[:sql].match?(/\ASELECT COUNT\(.*FROM "notifications"/im)
+      end
+      presenter = ActiveSupport::Notifications.subscribed(callback, 'sql.active_record') { build }
+
+      expect(presenter.pagy).to have_attributes(count: 2, pages: 1)
+      expect(counts.grep(/DISTINCT ON/i)).to be_empty
+    end
+
+    # The inbox appends pages (endless scroll). A page behind the end is EMPTY:
+    # the last page again would hang the same rows under the list a second time.
+    it 'answers a page behind the end with no rows, not with the last page again' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      presenter = build({}, page: '2')
+
+      expect(presenter.pagy).to have_attributes(count: 2, pages: 1, page: 2)
+      expect(presenter.notifications).to be_empty
     end
 
     it 'liefert group_total = Gesamtzahl der Notifications des Tickets' do
@@ -141,6 +159,34 @@ RSpec.describe Inbox::MasterListPresenter do
 
       presenter = build(view_mode: 'chronological')
       expect(presenter.notifications.size).to eq(2)
+    end
+
+    it 'answers a page behind the end with no rows, not with the last page again' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      presenter = build({ view_mode: 'chronological' }, page: '2')
+
+      expect(presenter.pagy).to have_attributes(count: 2, pages: 1, page: 2)
+      expect(presenter.notifications).to be_empty
+    end
+
+    # The total of the list is counted once; the page takes it instead of a
+    # second COUNT over the same rows.
+    it 'counts its rows once' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      counts = []
+      callback = lambda do |*, payload|
+        counts << payload[:sql] if payload[:sql].match?(/\ASELECT COUNT\(.*FROM "notifications"/i)
+      end
+      presenter = ActiveSupport::Notifications.subscribed(callback, 'sql.active_record') do
+        build(view_mode: 'chronological')
+      end
+
+      expect(presenter.pagy).to have_attributes(count: 2)
+      expect(counts.size).to eq(1)
     end
   end
 

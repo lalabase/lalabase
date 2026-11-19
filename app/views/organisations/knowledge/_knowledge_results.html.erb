@@ -108,7 +108,7 @@
 </div>
 
 <!-- Pagination Navigation -->
-<% if defined?(pagy) && pagy && pagy.pages > 1 %>
+<% if defined?(pagy) && pagy&.links? %>
   <div class="mt-4">
     <% pagination_extra = {} %>
     <% pagination_extra[:type] = type if defined?(type) %>

@@ -24,7 +24,7 @@ class Organisations::TagsController < Organisations::BaseController
     respond_to do |format|
       format.html do
         # Apply pagination for HTML view
-        @pagy, @tags = pagy(@tags)
+        @pagy, @tags = paginate(@tags)
       end
       format.json do
         # Return all tags for autocomplete

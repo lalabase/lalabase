@@ -233,7 +233,7 @@
   <% end %>
 </div>
 
-<% if @pagy && @pagy.pages > 1 %>
+<% if @pagy&.links? %>
   <%= render 'shared/pagination_nav_compact', pagy: @pagy, frame_id: 'time_session_groups_list_frame' %>
 <% end %>
 

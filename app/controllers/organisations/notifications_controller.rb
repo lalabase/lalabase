@@ -818,7 +818,7 @@ class Organisations::NotificationsController < Organisations::BaseController
       merged, time_zone: current_user.time_zone
     )
     Inbox::MasterListPresenter.new(
-      pagy_helper: self,
+      page: params[:page],
       scope: base_scope,
       params: merged,
       time_zone: current_user.time_zone

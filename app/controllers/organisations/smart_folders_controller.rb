@@ -5,7 +5,7 @@
 # conversion to AdHocToSmartFolderService.
 class Organisations::SmartFoldersController < Organisations::BaseController
   include Sortable
-  include Pagy::Backend
+  include Pageable
 
   setup_sortable SmartFolder, 'smart_folders.updated_at', true
 
@@ -37,7 +37,7 @@ class Organisations::SmartFoldersController < Organisations::BaseController
     sort_direction = 'desc' unless %w[asc desc].include?(sort_direction)
 
     @smart_folders = base_scope.order(sort_column => sort_direction)
-    @pagy, @smart_folders = pagy(@smart_folders, items: 20)
+    @pagy, @smart_folders = paginate(@smart_folders)
 
     respond_to do |format|
       format.html
@@ -49,14 +49,14 @@ class Organisations::SmartFoldersController < Organisations::BaseController
   def show
     authorize @smart_folder
 
-    service = SmartFolderService.new(@smart_folder, current_user)
-    page = params[:page] || 1
-    per_page = params[:per_page] || 25
+    service = SmartFolderService.new(smart_folder: @smart_folder, current_user: current_user)
 
     begin
-      result = service.fetch_results(page: page, per_page: per_page)
+      # The page as the request names it: the service reads it (a list or a hash
+      # is page 1).
+      result = service.fetch_results(page: params[:page], per_page: results_page_size)
       @items = result[:items]
-      @results_pagy = Pagy.new(count: result[:total], page: result[:page], items: result[:per_page])
+      @results_pagy = Pagination::Page.new(count: result[:total], page: result[:page], limit: result[:per_page])
     rescue Pundit::NotAuthorizedError => e
       redirect_to organisation_smart_folders_path(organisation_id: @current_organisation.id), alert: e.message
       return
@@ -511,6 +511,15 @@ class Organisations::SmartFoldersController < Organisations::BaseController
   end
 
   private
+
+  # The page size of the results: `?items=`, which the select of the bar sends and
+  # every page link keeps, then `?per_page=`, which the JSON answer takes, then the
+  # reader's setting (Pageable#items_per_page), as on every list. Only reading
+  # `?per_page=` left the select without effect until 19.11.2026. The service
+  # applies its own ceiling (SmartFolderService::MAX_PER_PAGE).
+  def results_page_size
+    Pagination::Page.size(params[:items]) || Pagination::Page.size(params[:per_page]) || items_per_page
+  end
 
   def set_smart_folder
     @smart_folder = policy_scope(SmartFolder).find(params[:id])

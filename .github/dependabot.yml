@@ -31,10 +31,6 @@ updates:
         versions: [">= 4"]
       - dependency-name: tailwindcss-ruby
         versions: [">= 4"]
-      # pagy 43 is a new API (the initializer no longer boots, 56 files use pagy);
-      # moving to it is its own change, not a weekly update.
-      - dependency-name: pagy
-        update-types: ["version-update:semver-major"]
       # acts_as_tenant stays on version 1 for good (see the Gemfile): no version 2
       # or later, ever.
       - dependency-name: acts_as_tenant

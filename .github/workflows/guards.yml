@@ -387,6 +387,7 @@ jobs:
           spec/system/account_layer_spec.rb
           spec/system/browser_window_reset_spec.rb
           spec/system/note_edit_delete_spec.rb
+          spec/system/saved_view_page_size_select_spec.rb
           spec/requests/account_layer_spec.rb
           spec/requests/org_switcher_signal_spec.rb
           spec/requests/notifications_avatar_preload_spec.rb
@@ -843,7 +844,15 @@ jobs:
           spec/services/user_data_exports/registry_guards_spec.rb
           spec/helpers/assistant_artefacts_helper_spec.rb
           spec/helpers/assistant_context_helper_spec.rb
-          spec/helpers/pagy_url_for_spec.rb
+          spec/helpers/page_url_for_spec.rb
+          spec/services/pagination/page_spec.rb
+          spec/requests/list_page_parameter_spec.rb
+          spec/requests/list_pagination_bars_spec.rb
+          spec/controllers/concerns/pageable_spec.rb
+          spec/helpers/pagination_helper_spec.rb
+          spec/requests/organisations/ai_protocol_spec.rb
+          spec/requests/admin/deletion_registers_spec.rb
+          spec/requests/organisations/tickets_smart_folder_filter_spec.rb
           spec/helpers/time_sessions_helper_spec.rb
           spec/helpers/navigation_helper_spec.rb
           spec/helpers/mobile_navigation_helper_spec.rb

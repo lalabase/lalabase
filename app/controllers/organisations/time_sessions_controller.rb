@@ -136,8 +136,8 @@ class Organisations::TimeSessionsController < Organisations::BaseController
         # Check whether the smart folder is configured for TimeSessions
         if %w[TimeSession All].include?(@active_smart_folder.target_object_type)
           # Use the SmartFolderService to get the filtered TimeSessions
-          service = SmartFolderService.new(@active_smart_folder, current_user)
-          folder_results = service.fetch_results
+          service = SmartFolderService.new(smart_folder: @active_smart_folder, current_user: current_user)
+          folder_results = service.fetch_results(unpaged: true)
 
           # Filter the results down to TimeSessions
           if folder_results[:items].is_a?(ActiveRecord::Relation) && folder_results[:items].klass == TimeSession
@@ -1073,7 +1073,7 @@ class Organisations::TimeSessionsController < Organisations::BaseController
                     :project_id, :ticket_id, :meeting_id)
   end
 
-  # Pagy would call .count(:all) on the grouped relation itself, which returns a
+  # Pagination::Page.of would call .count(:all) on the grouped relation itself, which returns a
   # Hash of every group: the whole result set loaded into memory to learn its
   # size. Counting the subquery asks the database for the number instead.
   def row_count(keys_relation)

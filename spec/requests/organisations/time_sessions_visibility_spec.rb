@@ -152,6 +152,28 @@ RSpec.describe 'Organisations::TimeSessions visibility', type: :request do
       expect(response.body).not_to include('Fremde Zeile Gamma')
     end
 
+    # A saved view as a filter needs every hit (`fetch_results(unpaged: true)`).
+    # Asked for a page, the service answers its first 25 and the list would end
+    # there without a word. No stub: a stub answers whatever the list asks for.
+    it 'lists every hit of a saved view, not the first page of them' do
+      many = SmartFolderService::DEFAULT_PER_PAGE + 2
+      many.times { |index| create_time_entry(project: project_a, creator: viewer, duration: 5, description: "Viele Zeile #{index}.") }
+      smart_folder = ActsAsTenant.with_tenant(organisation) do
+        folder = create(:smart_folder, organisation: organisation, user: viewer,
+                                       project: nil, target_object_type: 'TimeSession')
+        group = create(:smart_folder_rule_group, smart_folder: folder, position: 1)
+        create(:smart_folder_rule, smart_folder_rule_group: group, position: 1,
+                                   field: 'created_at', operator: 'in_the_last_days', value: '30')
+        folder
+      end
+
+      get organisation_time_sessions_path(organisation, date_range: 'all', items: 50,
+                                                        smart_folder_id: smart_folder.id)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body.scan(/Viele Zeile \d+\./).uniq.size).to eq(many)
+    end
+
     it 'verengt auch den Smart-Folder-Zweig auf eigene Zeilen' do
       smart_folder = ActsAsTenant.with_tenant(organisation) do
         create(:smart_folder, organisation: organisation, user: viewer,

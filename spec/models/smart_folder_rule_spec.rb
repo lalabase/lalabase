@@ -185,7 +185,7 @@ RSpec.describe SmartFolderRule, :ci_guard, type: :model do
       expect(rule).to be_valid
 
       # But when applied, it should not try to search in a non-existent column
-      service = SmartFolderService.new(smart_folder, user)
+      service = SmartFolderService.new(smart_folder: smart_folder, current_user: user)
 
       # This should not raise an error about tickets.content column
       expect { service.fetch_results }.not_to raise_error

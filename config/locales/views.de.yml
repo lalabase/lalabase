@@ -1055,6 +1055,7 @@ de:
         download: Herunterladen
         section_title: Anhänge (%{count})
       pagination:
+        label: Seitennavigation
         of: von
         entries:
           one: "%{count} Eintrag"

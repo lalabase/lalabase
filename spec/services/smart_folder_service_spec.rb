@@ -25,26 +25,26 @@ RSpec.describe SmartFolderService, type: :service do
     it 'setzt current_user auf den übergebenen User' do
       other_user = create(:user)
       create(:membership, user: other_user, organisation: organisation, role: admin_role)
-      service = described_class.new(smart_folder, other_user)
+      service = described_class.new(smart_folder: smart_folder, current_user: other_user)
 
       expect(service.current_user).to eq(other_user)
     end
 
     it 'fällt auf smart_folder.user zurück wenn kein User übergeben' do
-      service = described_class.new(smart_folder)
+      service = described_class.new(smart_folder: smart_folder)
 
       expect(service.current_user).to eq(owner)
     end
   end
 
   describe '#fetch_results' do
-    subject(:service) { described_class.new(smart_folder, owner) }
+    subject(:service) { described_class.new(smart_folder: smart_folder, current_user: owner) }
 
     context 'Zugriffskontrolle' do
       it 'gibt leeres Ergebnis zurück wenn User keinen Zugriff hat' do
         unauthorized_user = create(:user)
         # No membership → no access
-        service = described_class.new(smart_folder, unauthorized_user)
+        service = described_class.new(smart_folder: smart_folder, current_user: unauthorized_user)
 
         result = service.fetch_results
 
@@ -55,7 +55,7 @@ RSpec.describe SmartFolderService, type: :service do
 
       it 'gibt leeres Ergebnis zurück wenn current_user nil ist' do
         # accessible_by?(nil) → false according to the SmartFolder model
-        service = described_class.new(smart_folder, nil)
+        service = described_class.new(smart_folder: smart_folder, current_user: nil)
         # current_user falls back to owner, but we are testing accessible_by?
         # To force nil, we have to mock the service
         allow(smart_folder).to receive(:accessible_by?).with(owner).and_return(false)
@@ -97,7 +97,7 @@ RSpec.describe SmartFolderService, type: :service do
                  value: 'Shared')
           create(:note, title: 'Shared Note', project: project, organisation: organisation, creator: owner)
 
-          shared_service = described_class.new(smart_folder, shared_user)
+          shared_service = described_class.new(smart_folder: smart_folder, current_user: shared_user)
           result = shared_service.fetch_results
 
           expect(result[:items]).not_to be_empty
@@ -125,7 +125,7 @@ RSpec.describe SmartFolderService, type: :service do
                  value: 'Public')
           create(:note, title: 'Public Test', project: project, organisation: organisation, creator: owner)
 
-          public_service = described_class.new(public_folder, other_user)
+          public_service = described_class.new(smart_folder: public_folder, current_user: other_user)
           result = public_service.fetch_results
 
           expect(result[:items]).not_to be_empty
@@ -150,13 +150,23 @@ RSpec.describe SmartFolderService, type: :service do
         end
       end
 
-      it 'liefert ohne Options alle Treffer ungecappt (page=1, per_page=total)' do
-        result = service.fetch_results
+      it 'liefert mit unpaged: true alle Treffer ungecappt (page=1, per_page=total)' do
+        result = service.fetch_results(unpaged: true)
 
         expect(result[:page]).to eq(1)
         expect(result[:per_page]).to eq(10)
         expect(result[:total]).to eq(10)
         expect(result[:items].size).to eq(10)
+      end
+
+      # Bis zum 19.11.2026 hieß eine leere Seite mit leerer Seitengröße "alle
+      # Treffer": ein Aufrufer, der die Parameter einer Anfrage weiterreichte,
+      # lud bis zu 1000 je Modell, und ein leeres Ergebnis warf ArgumentError.
+      it 'liest eine leere Seite und Seitengröße als Seite 1 in der Standardgröße, nie als alle Treffer' do
+        result = service.fetch_results(page: '', per_page: '')
+
+        expect(result).to include(page: 1, per_page: SmartFolderService::DEFAULT_PER_PAGE, total: 10)
+        expect(service.fetch_results).to include(page: 1, per_page: SmartFolderService::DEFAULT_PER_PAGE)
       end
 
       it 'paginiert korrekt mit page und per_page' do
@@ -188,6 +198,14 @@ RSpec.describe SmartFolderService, type: :service do
         expect(result[:items]).to be_empty
         expect(result[:total]).to eq(10)
         expect(result[:page]).to eq(100)
+      end
+
+      # Ein Offset jenseits von `long`: Array#[] warf RangeError.
+      it 'gibt leere items bei einer Seite jenseits jedes Offsets zurück' do
+        result = service.fetch_results(page: '9' * 30, per_page: 25)
+
+        expect(result[:items]).to be_empty
+        expect(result[:total]).to eq(10)
       end
     end
 
@@ -221,6 +239,19 @@ RSpec.describe SmartFolderService, type: :service do
 
         expect(result[:page]).to eq(1)
       end
+
+      # Die Seite kommt aus der Adresszeile (`?page[]=1`, `?page[a]=1`): Array#to_i
+      # warf, und der Controller leitete mit "results_error" auf die Liste um.
+      it 'liest eine Liste oder einen Hash als Seite 1' do
+        expect(service.fetch_results(page: ['2'])[:page]).to eq(1)
+        expect(service.fetch_results(page: ActionController::Parameters.new(a: '2'))[:page]).to eq(1)
+      end
+
+      it 'liest eine Seitengröße als Liste oder Hash als Default' do
+        result = service.fetch_results(page: 1, per_page: ['5'])
+
+        expect(result[:per_page]).to eq(SmartFolderService::DEFAULT_PER_PAGE)
+      end
     end
 
     context 'Per-Page Normalisierung (Edge Cases)' do
@@ -236,11 +267,10 @@ RSpec.describe SmartFolderService, type: :service do
         expect(result[:per_page]).to eq(SmartFolderService::DEFAULT_PER_PAGE)
       end
 
-      it 'behandelt nil per_page wie nicht uebergeben (ungecappt)' do
+      it 'liest per_page nil als Default' do
         result = service.fetch_results(per_page: nil)
 
-        expect(result[:per_page]).to eq(result[:total])
-        expect(result[:items].size).to eq(result[:total])
+        expect(result[:per_page]).to eq(SmartFolderService::DEFAULT_PER_PAGE)
       end
 
       it 'begrenzt per_page auf MAX_PER_PAGE' do
@@ -316,7 +346,7 @@ RSpec.describe SmartFolderService, type: :service do
         query_builder = instance_double(SmartFolderQueryBuilder, build_results_query: [])
         allow(SmartFolderQueryBuilder).to receive(:new).and_return(query_builder)
 
-        service = described_class.new(smart_folder, owner)
+        service = described_class.new(smart_folder: smart_folder, current_user: owner)
         service.fetch_results
 
         expect(query_builder).to have_received(:build_results_query)
@@ -325,7 +355,7 @@ RSpec.describe SmartFolderService, type: :service do
       it 'übergibt current_user an QueryBuilder' do
         allow(SmartFolderQueryBuilder).to receive(:new).and_call_original
 
-        described_class.new(smart_folder, owner)
+        described_class.new(smart_folder: smart_folder, current_user: owner)
 
         expect(SmartFolderQueryBuilder).to have_received(:new).with(smart_folder, owner)
       end
@@ -341,8 +371,25 @@ RSpec.describe SmartFolderService, type: :service do
       expect(SmartFolderService::MAX_PER_PAGE).to eq(100)
     end
   end
+  # Meetings are paged in SQL (paginate_relation), the other types in memory.
+  describe '#fetch_results for a folder of meetings' do
+    subject(:service) { described_class.new(smart_folder: meeting_folder, current_user: owner) }
+
+    let(:meeting_folder) do
+      create(:smart_folder, organisation: organisation, user: owner, project: project, target_object_type: 'Meeting')
+    end
+
+    before { 3.times { create(:meeting, project: project, organisation: organisation, creator: owner) } }
+
+    it 'answers a page behind the end with the last page, and a list or a hash with page 1' do
+      expect(service.fetch_results(page: '9' * 30, per_page: 2)).to include(page: 2, total: 3)
+      expect(service.fetch_results(page: ['2'], per_page: 2)).to include(page: 1)
+      expect(service.fetch_results(page: '2', per_page: ['2'])).to include(page: 1, per_page: SmartFolderService::DEFAULT_PER_PAGE)
+    end
+  end
+
   describe '#fetch_results Pagination' do
-    subject(:service) { described_class.new(smart_folder, owner) }
+    subject(:service) { described_class.new(smart_folder: smart_folder, current_user: owner) }
 
     before do
       rule_group = create(:smart_folder_rule_group, smart_folder: smart_folder)
@@ -356,8 +403,8 @@ RSpec.describe SmartFolderService, type: :service do
       end
     end
 
-    it 'liefert ohne Pagination-Options ALLE Treffer (Regression: implizites 25er-Default beschnitt Folder-Filter still)' do
-      result = service.fetch_results
+    it 'liefert mit unpaged: true ALLE Treffer (Regression: implizites 25er-Default beschnitt Folder-Filter still)' do
+      result = service.fetch_results(unpaged: true)
 
       expect(result[:items].size).to eq(30)
       expect(result[:total]).to eq(30)

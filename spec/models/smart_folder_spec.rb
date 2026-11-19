@@ -627,31 +627,32 @@ RSpec.describe SmartFolder, type: :model do
   describe '#results' do
     let(:expected_result) { { items: [], total: 0, page: 1, per_page: 25 } }
 
-    it 'delegates to SmartFolderService with self and user' do
+    it 'asks SmartFolderService for every result, with self and user' do
       service = instance_double(SmartFolderService, fetch_results: expected_result)
-      allow(SmartFolderService).to receive(:new).with(smart_folder, user).and_return(service)
+      allow(SmartFolderService).to receive(:new).with(smart_folder: smart_folder, current_user: user).and_return(service)
 
       result = smart_folder.results
       expect(result).to eq(expected_result)
-      expect(SmartFolderService).to have_received(:new).with(smart_folder, user)
+      expect(SmartFolderService).to have_received(:new).with(smart_folder: smart_folder, current_user: user)
+      expect(service).to have_received(:fetch_results).with(unpaged: true)
     end
 
     it 'passes current_user_context when provided' do
       other_user = create(:user, organisation: organisation)
       service = instance_double(SmartFolderService, fetch_results: expected_result)
-      allow(SmartFolderService).to receive(:new).with(smart_folder, other_user).and_return(service)
+      allow(SmartFolderService).to receive(:new).with(smart_folder: smart_folder, current_user: other_user).and_return(service)
 
       result = smart_folder.results(other_user)
       expect(result).to eq(expected_result)
-      expect(SmartFolderService).to have_received(:new).with(smart_folder, other_user)
+      expect(SmartFolderService).to have_received(:new).with(smart_folder: smart_folder, current_user: other_user)
     end
 
     it 'falls back to folder owner when current_user_context is nil' do
       service = instance_double(SmartFolderService, fetch_results: expected_result)
-      allow(SmartFolderService).to receive(:new).with(smart_folder, user).and_return(service)
+      allow(SmartFolderService).to receive(:new).with(smart_folder: smart_folder, current_user: user).and_return(service)
 
       smart_folder.results(nil)
-      expect(SmartFolderService).to have_received(:new).with(smart_folder, user)
+      expect(SmartFolderService).to have_received(:new).with(smart_folder: smart_folder, current_user: user)
     end
   end
 

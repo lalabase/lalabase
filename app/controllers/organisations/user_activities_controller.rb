@@ -2,7 +2,7 @@
 
 module Organisations
   class UserActivitiesController < Organisations::BaseController
-    include Pagy::Backend
+    include Pageable
 
     before_action :authenticate_user!
     before_action :set_user
@@ -30,8 +30,7 @@ module Organisations
 
       activities_scope = activities_scope.where('created_at <= ?', Date.parse(params[:date_to]).end_of_day) if params[:date_to].present?
 
-      # Pagination with Pagy
-      @pagy, @activities = pagy(activities_scope, items: 50)
+      @pagy, @activities = paginate(activities_scope)
 
       # User-specific statistics for this organisation
       @user_stats = {

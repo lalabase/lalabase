@@ -4,11 +4,15 @@
 # Used by shared/_pagination_nav.html.erb, shared/_pagination_nav_compact.html.erb
 # and admin/common/_pagination.html.erb.
 module PaginationHelper
+  # Only lists whose bar sits inside a <turbo-frame> of that id. The saved views
+  # stood here with `smart-folders-list` until 2026-11-19: a plain <div> on their
+  # list and no element on their results, so the page-size select loaded nothing
+  # (spec/system/saved_view_page_size_select_spec.rb). A list without a frame
+  # loads the page (`_top`).
   FRAME_IDS = {
     'tickets' => 'tickets_list_frame',
     'time_sessions' => 'time_sessions_list_frame',
-    'knowledge' => 'knowledge_results',
-    'smart_folders' => 'smart-folders-list'
+    'knowledge' => 'knowledge_results'
   }.freeze
 
   # The meetings lists, project page and "Alle Meetings": their links carry the

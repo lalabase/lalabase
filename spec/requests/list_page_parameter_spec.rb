@@ -76,9 +76,30 @@ RSpec.describe 'The page parameter of a list', type: :request do
       end
     end
 
-    it 'stores no page size from a list or a hash' do
-      expect { get organisation_ai_protocol_path(organisation, items: ['20']) }
-        .not_to(change { user.reload.items_per_page_preference })
+    # A size that is NOT the default: 20 stored from the list would read like
+    # nothing stored (User::PreferenceStore#items_per_page_preference).
+    { 'a list' => { items: ['37'] }, 'a hash' => { items: { a: '37' } } }.each do |kind, params|
+      it "stores no page size from #{kind}" do
+        get organisation_ai_protocol_path(organisation, params)
+
+        expect(response).to have_http_status(:ok)
+        expect(user.reload.preferences).not_to have_key('items_per_page')
+      end
+    end
+
+    # The sort header of the tag list carries the project and the saved view of
+    # the address into its links. Read past `permit`, a value sent as a hash
+    # raised while the header built its address (until 19.11.2026).
+    {
+      'a project sent as a hash' => { project_id: { a: '1' } },
+      'a saved view sent as a hash' => { smart_folder_id: { a: '1' } },
+      'a saved view sent as a list' => { smart_folder_id: ['1'] }
+    }.each do |kind, params|
+      it "tags: answers #{kind}" do
+        get organisation_tags_path(organisation, params)
+
+        expect(response).to have_http_status(:ok)
+      end
     end
   end
 

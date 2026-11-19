@@ -183,6 +183,16 @@ RSpec.describe 'Mobile application navigation', type: :request do
     expect(html.at_css('#mobile_project_switcher input[type="search"]')).to be_present
   end
 
+  # A page behind the end of a list of ONE page still shows the way back
+  # (Pagination::Page#links?); asked `pages > 1`, the bar showed nothing.
+  it 'links back from a mobile page behind the end, also of a list of one page' do
+    ticket
+    get organisation_project_tickets_path(organisation, project), params: { viewport: 'mobile', page: 2 }
+    expect(response).to have_http_status(:ok)
+    pages = html.css('.mobile-pagination a').map { |link| Rack::Utils.parse_nested_query(URI(link['href']).query)['page'] }
+    expect(pages).to eq(['1'])
+  end
+
   it 'keeps mobile page two while retaining the existing desktop page-one redirect' do
     create(:ticket, project: project, title: 'Ein zweiter Titel')
     get organisation_project_tickets_path(organisation, project), params: { viewport: 'mobile', page: 2, items: 1, search: 'Titel', search_mode: 'title_only' }

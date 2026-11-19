@@ -151,9 +151,11 @@ RSpec.describe PaginationHelper, type: :helper do
       expect(helper.pagination_frame_id).to eq('_top')
     end
 
-    it 'returns smart-folders-list for smart_folders controller' do
+    # The saved views have no <turbo-frame> around their list: an id named here
+    # is one the page-size select cannot load (until 2026-11-19 it named a <div>).
+    it 'falls back to _top for the smart_folders controller, whose list has no frame' do
       allow(helper).to receive(:controller_name).and_return('smart_folders')
-      expect(helper.pagination_frame_id).to eq('smart-folders-list')
+      expect(helper.pagination_frame_id).to eq('_top')
     end
 
     it 'returns _top for unknown controllers' do

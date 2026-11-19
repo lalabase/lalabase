@@ -211,6 +211,20 @@ RSpec.describe 'Organisations::TimeSessionGroups index filters', type: :request 
       get organisation_time_session_groups_path(organisation, page: 2)
       expect(assigns(:time_session_groups).size).to eq(1)
     end
+
+    # A page behind the end of a list of ONE page still shows the way back
+    # (Pagination::Page#links?); asked `pages > 1`, the bar showed nothing.
+    it 'links back from a page behind the end, also of a list of one page' do
+      create_group
+
+      get organisation_time_session_groups_path(organisation, page: 2)
+
+      expect(response).to have_http_status(:ok)
+      expect(assigns(:time_session_groups)).to be_empty
+      queries = Nokogiri::HTML(response.body).css('.pagination-container-compact a[href]')
+                        .map { |link| Rack::Utils.parse_nested_query(URI(link['href']).query.to_s) }
+      expect(queries).to include(a_hash_including('page' => '1'))
+    end
   end
 
   describe 'Summen je Zeile' do

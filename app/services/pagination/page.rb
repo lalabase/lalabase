@@ -151,7 +151,8 @@ module Pagination
     # The JSON answers of the saved views (`pagination`) serialised the gem's
     # object until 18.11.2026. Its numbers keep their names there: `last` (the
     # number of pages), `in` (rows on this page) and `offset`. Its settings
-    # (`vars`, `outset`) do not: they held the request's parameters.
+    # (`vars`, `outset`) do not: they held the request's parameters. Nor does
+    # `overflow`: a page behind the end shows in `in` 0 and `page` above `last`.
     def as_json(*)
       {
         count: count, page: page, limit: limit, pages: pages, last: pages, in: rows_on_page,

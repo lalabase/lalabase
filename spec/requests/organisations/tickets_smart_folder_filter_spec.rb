@@ -86,6 +86,34 @@ RSpec.describe 'Tickets index SmartFolder filter', type: :request do
     end
   end
 
+  # No stub: the stubbed examples above answer whatever the list asks the service
+  # for. A saved view as a FILTER needs every hit (`fetch_results(unpaged: true)`);
+  # asked for a page, the service answers its first 25, and the list, and "all
+  # hits" of a bulk change with it, would silently end there.
+  context 'with a real folder of more hits than a page of results' do
+    let(:smart_folder) do
+      ActsAsTenant.current_tenant = organisation
+      create(:smart_folder, organisation: organisation, user: user, project: project, target_object_type: 'Ticket').tap do |view|
+        group = create(:smart_folder_rule_group, smart_folder: view)
+        create(:smart_folder_rule, smart_folder_rule_group: group, field: 'title', operator: 'contains', value: 'Folder')
+      end
+    end
+
+    before do
+      Prosopite.pause
+      (SmartFolderService::DEFAULT_PER_PAGE - 1).times { |index| create_ticket("Folder Weiteres #{index}", 6.days.ago) }
+    end
+
+    after { Prosopite.resume }
+
+    it 'lists every hit of the folder, not the first page of them' do
+      get_index(smart_folder_id: smart_folder.id, items: 50)
+
+      expect(response).to have_http_status(:ok)
+      expect(listed_ticket_ids.size).to eq(SmartFolderService::DEFAULT_PER_PAGE + 2)
+    end
+  end
+
   context 'with a folder configured for another object type' do
     let(:smart_folder) do
       ActsAsTenant.current_tenant = organisation

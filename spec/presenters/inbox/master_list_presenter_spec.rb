@@ -66,6 +66,18 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(counts.grep(/DISTINCT ON/i)).to be_empty
     end
 
+    # The inbox appends pages (endless scroll). A page behind the end is EMPTY:
+    # the last page again would hang the same rows under the list a second time.
+    it 'answers a page behind the end with no rows, not with the last page again' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      presenter = build({}, page: '2')
+
+      expect(presenter.pagy).to have_attributes(count: 2, pages: 1, page: 2)
+      expect(presenter.notifications).to be_empty
+    end
+
     it 'liefert group_total = Gesamtzahl der Notifications des Tickets' do
       notif(ticket_a, created_at: 3.hours.ago)
       notif(ticket_a, created_at: 2.hours.ago)
@@ -147,6 +159,16 @@ RSpec.describe Inbox::MasterListPresenter do
 
       presenter = build(view_mode: 'chronological')
       expect(presenter.notifications.size).to eq(2)
+    end
+
+    it 'answers a page behind the end with no rows, not with the last page again' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      presenter = build({ view_mode: 'chronological' }, page: '2')
+
+      expect(presenter.pagy).to have_attributes(count: 2, pages: 1, page: 2)
+      expect(presenter.notifications).to be_empty
     end
 
     # The total of the list is counted once; the page takes it instead of a

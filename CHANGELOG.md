@@ -129,9 +129,15 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
   the token's owner and naming the refused value. Before, people, knowledge and meetings
   answered in English only, in two different wordings. Status codes and error codes stay as
   they were (#125).
-- The project and member activity pages show as many rows as "Items per page" in the
-  preferences says (20 unless changed), like the other lists. They showed 25 whatever it said.
-  The list length a person saves is at most 200 (#221).
+- The project and member activity pages, the list of saved views and the results of a saved
+  view show as many rows as "Items per page" in the preferences says (20 unless changed), like
+  the other lists. They showed 25 whatever it said. On the results of a saved view `?items=`
+  comes before `?per_page=`, and a page holds at most 100 results. The list length a person
+  saves is at most 200 (#221).
+- The `pagination` object in the JSON answers of the saved views (`/smart_folders.json`,
+  `/smart_folders/:id.json`) keeps `count`, `page`, `limit`, `offset`, `last`, `from`, `to`,
+  `in`, `prev` and `next` and adds `pages`. It no longer carries `vars`, `outset` and
+  `overflow`, and on the results its numbers follow the page size really used (#221).
 
 ### Fixed
 

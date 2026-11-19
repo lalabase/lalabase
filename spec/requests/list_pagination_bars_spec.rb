@@ -82,6 +82,15 @@ RSpec.describe 'Pagination bars', type: :request do
         expect(assigns(:pagy).pages).to eq(5)
       end
 
+      it 'marks the size the page was cut by in its select, also when it is the saved one' do
+        user.preference_store.set_items_per_page(10)
+
+        visit_list
+
+        selected = Nokogiri::HTML(response.body).at_css('.pagination-container-compact select option[selected]')
+        expect(selected&.text&.squish).to eq('10')
+      end
+
       # `?items=abc` paged by one row until 19.11.2026, while the select marked
       # no option and nothing was saved.
       it 'reads a page size that names no number as none' do
@@ -161,6 +170,14 @@ RSpec.describe 'Pagination bars', type: :request do
         expect(response.body).to include('1 – 5 of 12', '5 entries')
       end
 
+      it 'keeps the bar and its page-size select when the list fits on one page' do
+        get organisation_project_activities_path(organisation, project, items: 50)
+
+        expect(assigns(:pagy).pages).to eq(1)
+        selected = Nokogiri::HTML(response.body).at_css('.pagination-container select option[selected]')
+        expect(selected&.text&.squish).to eq(I18n.t('views.shared.pagination.entries', count: 50))
+      end
+
       # A list behind the end has a page of its own in the bar: the last one.
       it 'links back from a page behind the end, also of a list of one page' do
         get organisation_project_activities_path(organisation, project, items: 50, page: 3)
@@ -201,6 +218,51 @@ RSpec.describe 'Pagination bars', type: :request do
         get organisation_smart_folders_path(organisation, items: 5, format: :json)
 
         expect(response.parsed_body['pagination']).to include('count' => 7, 'page' => 1, 'last' => 2, 'in' => 5, 'offset' => 0)
+      end
+
+      it 'keeps the bar and its select when every view fits on one page' do
+        get organisation_smart_folders_path(organisation, items: 10)
+
+        expect(assigns(:pagy).pages).to eq(1)
+        selected = Nokogiri::HTML(response.body).at_css('.pagination-container select option[selected]')
+        expect(selected&.text&.squish).to eq(I18n.t('views.shared.pagination.entries', count: 10))
+      end
+
+      # Until 19.11.2026 the page asked for the rows of THIS page, found none and
+      # offered to create the first saved view, with no way back.
+      it 'links back from a page behind the end instead of saying there are no views' do
+        get organisation_smart_folders_path(organisation, items: 5, page: 9)
+
+        expect(response).to have_http_status(:ok)
+        expect(assigns(:smart_folders)).to be_empty
+        expect(response.body).not_to include(I18n.t('smart_folders.create_first', default: 'Erstellen Sie Ihren ersten Intelligenten Ordner'))
+        expect(page_queries).to include(a_hash_including('page' => '2', 'items' => '5'))
+      end
+    end
+
+    describe 'tags' do
+      before { 3.times { |index| create(:tag, organisation: organisation, name: "tag-#{index}") } }
+
+      def sort_queries
+        Nokogiri::HTML(response.body).css('th a').map { |link| Rack::Utils.parse_nested_query(URI(link['href']).query.to_s) }
+      end
+
+      # The list answered 500 until 19.11.2026: its sort header built the address
+      # through url_for with the path parameters.
+      it 'links each sortable column to this list and keeps the search' do
+        get organisation_tags_path(organisation, search: 'tag')
+
+        expect(response).to have_http_status(:ok)
+        expect(sort_queries).to include(a_hash_including('sort' => a_hash_including('column' => 'name'), 'search' => 'tag'))
+        expect(sort_queries.map { |query| query.dig('sort', 'column') }).to include('name', 'created_at', 'updated_at')
+      end
+
+      it 'shows the compact bar and pages by its select' do
+        get organisation_tags_path(organisation, items: 2)
+
+        expect(assigns(:tags).size).to eq(2)
+        expect(response.body).to include('pagination-container-compact')
+        expect(page_queries).to include(a_hash_including('page' => '2', 'items' => '2'))
       end
     end
 

@@ -24,7 +24,9 @@
 <%# TODO: add filter/search form %>
 
 <div id="smart-folders-list">
-  <% if @smart_folders.any? %>
+  <%# The count, not the rows of this page: a page behind the end has none, and
+      it shows the bar with the way back instead of "no saved views". %>
+  <% if @pagy.count.positive? %>
     <table class="min-w-full divide-y divide-black border border-stroke">
       <thead class="bg-gray-200">
         <tr>
@@ -132,9 +134,7 @@
 
     <%# Whenever the list has rows, not only with more than one page: the bar holds
         the page-size select, and a size that fits the whole list must stay changeable. %>
-    <% if @pagy.count.positive? %>
-      <%= render 'shared/pagination_nav', pagy: @pagy %>
-    <% end %>
+    <%= render 'shared/pagination_nav', pagy: @pagy %>
 
   <% else %>
     <div class="mt-6 text-center p-8 bg-gray-100 rounded-lg">

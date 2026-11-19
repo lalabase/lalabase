@@ -58,6 +58,7 @@ en:
           persona_default: Organisation default
           no_personas: No focus has been set up for this organisation yet.
           manage_personas: Manage focus templates
+          style_hint: Sets how the answers are written. Applies to all your conversations with the assistant.
         show:
           empty_title: Ask your assistant
           empty_hint: It sees the projects you are allowed to see, and it answers only you.

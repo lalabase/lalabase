@@ -79,6 +79,22 @@ RSpec.describe 'Assistant settings and the persona choice', type: :request do
       expect(response.body).to include('Test-Persona')
     end
 
+    # Style and length moved here from under the composer (2026-11-19, D9 of the
+    # writing-zone plan): they are a standing choice per person, set once, and
+    # the writing zone had five rows. Both dimensions, each with its label.
+    it 'carries the answer style and length beside the persona' do
+      sign_in owner
+
+      get organisation_assistant_panel_path(organisation_id: organisation.id, settings: '1')
+
+      settings = Nokogiri::HTML(response.body).at_css('[data-assistant-settings]')
+      expect(settings.css(".#{Neo::Chat::StyleControlComponent::DOM_CLASS} select").size)
+        .to eq(ChatStylePreference::DIMENSIONS.size)
+      ChatStylePreference::DIMENSIONS.each do |dimension|
+        expect(settings.text).to include(I18n.t("views.organisations.chats.style_level.dimensions.#{dimension}"))
+      end
+    end
+
     # The transcript must NOT come along. Two chatposts containers in one panel
     # and a streaming broadcast lands in whichever Turbo finds first -- the same
     # reason the history list replaces rather than joins.

@@ -33,7 +33,7 @@ module Neo
       # into yet. focus:border-ink keeps the focus visible without moving the
       # field: the translate pair shifted every element below it by two pixels
       # each time the cursor landed.
-      MESSAGE_FIELD_CLASSES = 'mt-1 block w-full px-4 py-2.5 pr-12 bg-surface-raised border border-cream-300 ' \
+      MESSAGE_FIELD_CLASSES = 'mt-1 block w-full px-4 py-2.5 pr-12 bg-surface-raised border border-cream-400 ' \
                               'rounded-2xl resize-none overflow-hidden placeholder-gray-400 focus:outline-none ' \
                               'focus:border-ink focus:ring-0 transition-colors'
 

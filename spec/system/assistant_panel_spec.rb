@@ -1344,6 +1344,16 @@ RSpec.describe 'Assistant companion panel', type: :system do
       wait_for_stimulus('#assistant_panel details[data-controller="neo-ai-disclosure"]', 'neo-ai-disclosure')
     end
 
+    # Since 2026-11-19 the notice sits in the panel HEAD, beside the title, and no
+    # longer under the field. The head is a permanent node outside the frame; the
+    # frame content carries a turbo stream that puts the notice there. Only a
+    # browser runs that stream, so only a browser can say it landed.
+    it 'sits in the head beside the title, not in the writing zone' do
+      expect(page).to have_css('#assistant_panel #assistant_panel_notice details[data-controller="neo-ai-disclosure"]',
+                               visible: :all)
+      expect(page).to have_no_css('#assistant_panel_body details[data-controller="neo-ai-disclosure"]', visible: :all)
+    end
+
     it 'unfolds on the summary and folds back on it' do
       expect(open_note?).to be(false)
 
@@ -1493,6 +1503,23 @@ RSpec.describe 'Assistant companion panel', type: :system do
         ChatStylePreference.find_by(user: user, organisation: organisation)&.prompt_persona_id
       end
       expect(stored).to eq(persona.id)
+    end
+
+    # Style and length moved here from under the composer (2026-11-19). The select
+    # auto-submits and the answer is a turbo stream that replaces the control by
+    # its class: only a browser runs both.
+    it 'stores a picked answer length and keeps it selected' do
+      open_settings
+      short = I18n.t('views.organisations.chats.style_level.length.1')
+      length_select = "#assistant_panel [data-assistant-settings] select[aria-label='#{I18n.t('views.organisations.chats.style_level.dimensions.length')}']"
+
+      find(length_select, visible: :all).select(short)
+
+      expect(page).to have_css("#{length_select} option[value='1'][selected]", visible: :all)
+      stored = ActsAsTenant.with_tenant(organisation) do
+        ChatStylePreference.find_by(user: user, organisation: organisation)&.length
+      end
+      expect(stored).to eq(1)
     end
 
     # The way back is what ?current= is for. Without it the arrow lands on the

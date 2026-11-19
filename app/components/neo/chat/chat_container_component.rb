@@ -101,17 +101,6 @@ module Neo
         )
       end
 
-      # The requesting user's persistent style pills, rendered here (has
-      # current_user/org) rather than in the viewer-agnostic chatpost broadcast.
-      # Sits UNDER the composer: it configures what comes next, so it belongs
-      # with the writing affordance, not in the header above the transcript.
-      def style_control
-        StyleControlComponent.new(
-          current_user: @current_user,
-          current_organisation: @current_organisation
-        )
-      end
-
       # What the assistant is pointed at (S3a T5 §9.3, S4 T2 §7.3), rendered next
       # to the composer it belongs to: the scope chip and the reference chip, in
       # the wrapper that is their turbo anchor. Each chip decides for itself

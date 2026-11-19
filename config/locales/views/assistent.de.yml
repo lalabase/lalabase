@@ -64,6 +64,7 @@ de:
           persona_default: Vorgabe der Organisation
           no_personas: Für diese Organisation ist noch kein Fokus hinterlegt.
           manage_personas: Fokus-Vorlagen verwalten
+          style_hint: Bestimmt, wie die Antworten geschrieben sind. Gilt für alle deine Gespräche mit dem Assistenten.
         show:
           empty_title: Frag deinen Assistenten
           empty_hint: Er sieht die Projekte, die du sehen darfst, und antwortet nur dir.

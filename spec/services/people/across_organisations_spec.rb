@@ -765,4 +765,68 @@ RSpec.describe People::AcrossOrganisations, :ci_guard do
       expect(many.size).to eq(few.size)
     end
   end
+
+  # D11: the lead of a person's sources is the source with the most values on the card
+  # (People::Lookup.value_count), on a tie the one with the newest last contact, then the
+  # first in the order of the list. It is a value of its own: the order of the sources and
+  # the name, kind and address of the row stay the first source's. Mara Mitglied: the
+  # north has a row (department, phone) beside the account's email, the south none.
+  describe 'the lead source' do
+    let(:mara) { "#{north.id}:member:#{shared.id}" }
+
+    def mara_row = row_named(list, 'Mara Mitglied')
+
+    def mara_card = People::MergedCard.call(viewer: User.find(viewer.id), address: mara)
+
+    it 'is the source with the most values, while the order, the name and the kind stay the first source\'s' do
+      expect(mara_row.lead).to eq(north.id)
+
+      person_in(south, user: shared, name: 'M. Mitglied', function: 'Beraterin', company: 'Suedwind AG',
+                       department: 'Vertrieb', phone: '+49 40 5550100')
+      row = mara_row
+
+      expect(row.lead).to eq(south.id)
+      expect(organisations_of(row)).to eq(['Nord GmbH', 'Sued AG'])
+      expect([row.name, row.kind]).to eq(['Mara Mitglied', 'member'])
+      expect(row.sources.map(&:value_count)).to eq([3, 5])
+    end
+
+    it 'goes to the newer last contact on equal counts' do
+      person_in(south, user: shared, name: 'Mara Mitglied', function: 'Beraterin', company: 'Suedwind AG')
+      expect(mara_row.sources.map(&:value_count)).to eq([3, 3])
+      expect(mara_row.lead).to eq(north.id)
+
+      Prosopite.pause do
+        meeting_in(north, at: 20.days.ago, user: shared)
+        meeting_in(south, at: 2.days.ago, user: shared)
+      end
+
+      expect(mara_row.lead).to eq(south.id)
+      expect(mara_card.lead).to eq(south.id)
+    end
+
+    it 'goes to the first source in the order of the list on equal counts without a last contact' do
+      person_in(south, user: shared, name: 'Mara Mitglied', function: 'Beraterin', company: 'Suedwind AG')
+
+      expect(mara_row.lead).to eq(north.id)
+      expect(mara_card.lead).to eq(north.id)
+    end
+
+    # The one rule, asked by the list and by the card: both name the same lead, also where
+    # it is not the first source, and the card keeps its address.
+    it 'is the same for a row and the card of its person, also when the lead is not the first source' do
+      person_in(south, user: shared, name: 'M. Mitglied', function: 'Beraterin', company: 'Suedwind AG',
+                       department: 'Vertrieb', phone: '+49 40 5550100')
+
+      card = mara_card
+
+      expect([mara_row.lead, card.lead]).to eq([south.id, south.id])
+      expect(card.address).to eq(mara)
+      expect(card.sources.map(&:organisation_name)).to eq(['Nord GmbH', 'Sued AG'])
+    end
+
+    it 'names no lead for no sources' do
+      expect(described_class.lead_of([])).to be_nil
+    end
+  end
 end

@@ -29,6 +29,20 @@ RSpec.describe 'Admin::Users#show', type: :request do
     expect(response.body).to include(user.email)
   end
 
+  # An account's address is checked by Devise alone and can carry what opens the headers
+  # of a mailto URI ("?bcc="). The link was built by hand; it goes through the one owner
+  # of that rule now (PersonDetail.mailto).
+  it 'links the address of the user with what ends a mailto address encoded' do
+    user = create(:user)
+    user.update_columns(email: 'nora?bcc=x@example.com')
+
+    get admin_user_path(user)
+
+    expect(response).to have_http_status(:ok)
+    links = Nokogiri::HTML(response.body).css('a[href^="mailto:"]').to_h { |link| [link.text.strip, link['href']] }
+    expect(links).to eq('nora?bcc=x@example.com' => 'mailto:nora%3Fbcc%3Dx@example.com')
+  end
+
   # The core regression: before the fix this returned 404 (blank page) because
   # ::User.find applied the soft-delete default scope while Admin::User did not.
   it 'renders the detail page for a soft-deleted user instead of 404ing' do

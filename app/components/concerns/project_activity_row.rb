@@ -154,7 +154,7 @@ module ProjectActivityRow
   end
 
   def project_row_link_classes
-    'grid min-w-0 grid-cols-[22px_minmax(0,1fr)_auto] gap-x-3 px-3 py-2.5 ' \
+    'grid min-w-0 grid-cols-[22px_minmax(0,1fr)_auto] gap-x-3 px-[var(--row-inset)] py-2.5 ' \
       'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink ' \
       "focus-visible:-outline-offset-2 #{'selected-row' if project_row_selected?}"
   end

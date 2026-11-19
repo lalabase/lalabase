@@ -36,6 +36,9 @@
   .members-table th { @apply border-b border-ink pb-3 text-left; }
   .members-table td { padding: 12px 0; @apply border-b border-cream-200; }
   .members-table td:first-child { padding-right: 16px; }
+  /* The row inset (layout.css, --row-inset), heads included. */
+  .members-table tr > :is(th, td):first-child { padding-inline-start: var(--row-inset); }
+  .members-table tr > :is(th, td):last-child { padding-inline-end: var(--row-inset); }
   .members-col-role { width: 164px; padding-right: 16px !important; }
   .members-col-since { width: 98px; padding-right: 16px !important; }
   td.members-col-since { @apply font-mono text-xs text-muted whitespace-nowrap; }
@@ -472,7 +475,8 @@
   .people-pill--active:hover { background-color: rgb(var(--selected-row-hover)); }
   .people-pill__count { @apply text-[11px] font-normal tabular-nums text-muted; }
   .people-list { @apply mb-6 border-t border-ink; }
-  .people-row { @apply -mx-2 flex cursor-pointer items-center gap-3 border-b border-cream-200 px-2 py-2.5 outline-none hover:bg-cream-100 focus-visible:bg-cream-100; }
+  /* The row's surface ends at the list's lines; its content stands --row-inset inside (layout.css). */
+  .people-row { @apply flex cursor-pointer items-center gap-3 border-b border-cream-200 px-[var(--row-inset)] py-2.5 outline-none hover:bg-cream-100 focus-visible:bg-cream-100; }
   .people-row.selected-row { background-color: rgb(var(--selected-row)); }
   .people-row__text { @apply flex min-w-0 flex-1 flex-col gap-0.5; }
   .people-row__name { @apply truncate text-sm font-medium text-heading; }
@@ -484,13 +488,14 @@
      The active one in ink with its arrow. */
   /* Measured against "Alle Meetings" (2026-11-11): the word 36 px below the tab
      row and 21 px above the ink line; the arrow makes the line box taller. */
-  .people-columns { @apply flex items-center gap-3 border-b border-ink pb-[15px] pt-[31px]; }
+  .people-columns { @apply flex items-center gap-3 border-b border-ink px-[var(--row-inset)] pb-[15px] pt-[31px]; }
   /* Under the bar the heads keep the air the tools row gave them. */
   /* The bar's divider is the line above the rows: a list right under it drops
      its own ink line (the glossary; the inbox does the same in its block). */
   .list-tab-bar + turbo-frame > .people-list:first-child { border-top-width: 0; }
   .people-columns + .people-list { border-top-width: 0; }
-  .people-columns__head--name { @apply min-w-0 flex-1; padding-inline-start: 42px; }
+  /* Over the names: the small avatar (26 px) and the row's gap (12 px). It said 42 until 2026-11-19, 4 px beside the names. */
+  .people-columns__head--name { @apply min-w-0 flex-1; padding-inline-start: 38px; }
   .people-columns__head--last { @apply w-[120px] flex-none text-end; }
   .people-columns__link { @apply inline-flex items-center gap-0.5 text-muted no-underline hover:text-heading; }
   .people-columns__link--active { @apply text-heading; }
@@ -526,7 +531,8 @@
   .all-people-table__wide { @apply hidden sm:table-cell; }
   /* The tick in front of a row and the menu of a merged row behind it: two narrow
      columns beside the four the reader compares. */
-  .all-people-table .all-people-table__tick { @apply w-8 pe-2; }
+  /* The row inset, the box (16 px) and 8 px to the name. */
+  .all-people-table .all-people-table__tick { @apply pe-2; width: calc(var(--row-inset) + 24px); }
   .all-people-table .all-people-table__menu { @apply w-9 ps-1; }
   .all-people-table .all-people-table__last { @apply text-end; }
   .all-people-row__tick { @apply flex items-center; }

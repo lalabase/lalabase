@@ -820,4 +820,58 @@ RSpec.describe 'People above the organisations, the card', :ci_guard, type: :req
       expect(response).to redirect_to(new_user_session_path)
     end
   end
+
+  # The card shares two partials with other pages. What those pages draw stays as it was
+  # before the card learnt its modes (the markup is pinned as the base rendered it).
+  describe 'the partials the card shares' do
+    let(:chip_action) { { url: '/org/1/people?edit=2', label: 'In Nord GmbH bearbeiten', data: { card_pencil: true } } }
+
+    def chip(**locals)
+      ApplicationController.render(partial: 'shared/organisation_chip', locals: { name: 'Nord GmbH', **locals })
+    end
+
+    it 'renders the identity of a person on the people page of an organisation as before' do
+      Prosopite.pause { get organisation_people_path(north, person_id: people[:north_only].id) }
+      contact = Nokogiri::HTML(response.body).at_css('.people-identity').to_html
+      Prosopite.pause { get organisation_people_path(north, member_id: user.id) }
+      member = Nokogiri::HTML(response.body).at_css('.people-identity').to_html
+
+      expect(contact).to eq("<div class=\"people-identity\">\n  <span class=\"relative inline-flex items-center justify-center shrink-0 neo-user-avatar rounded-[5px] bg-cream-200 border border-cream-300 font-bold text-cream-900 w-[52px] h-[52px] text-[15px] people-avatar people-avatar--contact\" data-controller=\"avatar-fallback\">NN</span>\n  <div class=\"people-identity__text\">\n    <h2 class=\"people-identity__name\">Nora Nord</h2>\n    <p class=\"people-identity__line\">Kontakt · Hosting AG</p>\n  </div>\n</div>")
+      expect(member).to eq("<div class=\"people-identity\">\n  <span class=\"relative inline-flex items-center justify-center shrink-0 neo-user-avatar rounded-[5px] bg-cream-200 border border-cream-300 font-bold text-cream-900 w-[52px] h-[52px] text-[15px] people-avatar \" title=\"Vera Viewer\" data-controller=\"avatar-fallback\">VV</span>\n  <div class=\"people-identity__text\">\n    <h2 class=\"people-identity__name\">Vera Viewer</h2>\n    <p class=\"people-identity__line\">Mitglied</p>\n  </div>\n</div>")
+    end
+
+    it 'renders the plain chip and the chip with a pencil as before' do
+      expect(chip(color: '#d1fae5')).to eq("  <span class=\"organisation-chip\" title=\"Nord GmbH\" data-organisation-chip=\"true\"><span class=\"organisation-chip__swatch\" aria-hidden=\"true\" style=\"background-color: #d1fae5;\"></span><span class=\"organisation-chip__name\">Nord GmbH</span></span>\n")
+      expect(chip).to eq("  <span class=\"organisation-chip\" title=\"Nord GmbH\" data-organisation-chip=\"true\"><span class=\"organisation-chip__swatch\" aria-hidden=\"true\"></span><span class=\"organisation-chip__name\">Nord GmbH</span></span>\n")
+      expect(chip(color: '#d1fae5', action: chip_action)).to eq("  <span class=\"organisation-chip organisation-chip--action\" data-organisation-chip=\"true\">\n    <span class=\"organisation-chip__swatch\" aria-hidden=\"true\" style=\"background-color: #d1fae5;\"></span><span class=\"organisation-chip__name\">Nord GmbH</span>\n    <a class=\"organisation-chip__action\" title=\"In Nord GmbH bearbeiten\" aria-label=\"In Nord GmbH bearbeiten\" data-turbo-frame=\"_top\" data-card-pencil=\"true\" href=\"/org/1/people?edit=2\">\n      <i class=\"bi bi-pencil\" aria-hidden=\"true\"></i>\n</a></span>")
+    end
+
+    it 'makes the whole chip one link into its organisation, out of the frame, named by its label' do
+      link = Nokogiri::HTML.fragment(chip(url: '/org/1/people', label: 'In Nord GmbH öffnen')).at_css('a')
+
+      expect([link['href'], link['data-turbo-frame'], link['aria-label'], link['title']])
+        .to eq(['/org/1/people', '_top', 'In Nord GmbH öffnen', 'In Nord GmbH öffnen'])
+      expect(link['class']).to eq('organisation-chip organisation-chip--link')
+      expect(link.key?('data-organisation-chip')).to be(true)
+      expect(link.at_css('.organisation-chip__name').text).to eq('Nord GmbH')
+    end
+
+    it 'puts the pencil beside the link of the name, never a link inside a link' do
+      node = Nokogiri::HTML.fragment(chip(url: '/org/1/people', label: 'In Nord GmbH öffnen', action: chip_action)).at_css('[data-organisation-chip]')
+
+      expect(node.name).to eq('span')
+      expect(node.css('a').map { |link| [link['class'], link['href']] })
+        .to eq([['organisation-chip__link', '/org/1/people'], ['organisation-chip__action', '/org/1/people?edit=2']])
+      expect(node.css('a a')).to be_empty
+    end
+
+    it 'gives a chip with a hint the hint as its title and for a screen reader, and no pencil' do
+      node = Nokogiri::HTML.fragment(chip(url: '/org/1/people', label: 'In Nord GmbH öffnen', hint: 'Nur lesen')).at_css('[data-organisation-chip]')
+
+      expect([node.name, node['title']]).to eq(['span', 'Nur lesen'])
+      expect(node.at_css('.sr-only').text).to eq('Nur lesen')
+      expect(node.css('a').map { |link| link['href'] }).to eq(['/org/1/people'])
+      expect(node.css('.organisation-chip__action')).to be_empty
+    end
+  end
 end

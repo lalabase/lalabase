@@ -83,6 +83,28 @@ RSpec.describe 'Globe to the pages above the organisations in the sidebar (Syste
     expect(style_of(row, 'backgroundColor')).to eq(hovered)
   end
 
+  # The current page's row is the raised surface. In every theme the tile must stand
+  # apart from it; in the dark theme cream-200 did not (19.11.2026).
+  { 'light' => nil, 'dark' => 'dark', 'pop' => 'theme-pop' }.each do |theme, theme_class|
+    it "sets the tile apart from the current page's row in the #{theme} theme" do
+      page.execute_script(<<~JS)
+        document.documentElement.classList.remove('dark', 'theme-pop');
+        #{"document.documentElement.classList.add('#{theme_class}');" if theme_class}
+      JS
+      item = row_item(organisation_people_path(north)) # the current page
+      row = item.find('a.sidebar-row')
+      row.hover
+      globe = item.find('a[data-sidebar-across]')
+      globe.hover
+      expect_style(globe, 'opacity', '1')
+
+      # Summed channel distance. cream-200 on the dark row was 24 (seen, hardly), the
+      # light theme's tile is 91, pop's 129.
+      tile, surface = [globe, row].map { |el| style_of(el, 'backgroundColor').scan(/\d+/).first(3).map(&:to_i) }
+      expect(tile.zip(surface).sum { |a, b| (a - b).abs }).to be >= 40
+    end
+  end
+
   it 'shows the globe faint while the row holds the keyboard focus' do
     item = row_item(organisation_notifications_path(north))
     globe = item.find('a[data-sidebar-across]', visible: :all)

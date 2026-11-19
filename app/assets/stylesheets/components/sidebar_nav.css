@@ -107,6 +107,13 @@
   color: rgb(var(--cream-900));
 }
 
+/* In the dark theme cream-200 sits a hair above the active row's raised surface
+ * (--white there), and the tile vanished on the current page's row. One step up. */
+.dark .sidebar-item--across > .sidebar-row__across:hover,
+.dark .sidebar-item--across > .sidebar-row__across:focus-visible {
+  background-color: rgb(var(--cream-300));
+}
+
 /* The keyboard's mark, as on the row itself: the tile alone is too quiet for it. */
 .sidebar-item--across > .sidebar-row__across:focus-visible {
   outline: 2px solid rgb(var(--ink));

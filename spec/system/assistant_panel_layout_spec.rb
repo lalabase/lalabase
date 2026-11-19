@@ -294,10 +294,9 @@ RSpec.describe 'Assistant panel layout (with stylesheets)', type: :system do
   #
   # Both chips render as display:contents into a wrapping flex row, so the open
   # <details> is a flex ITEM of that row. Without `open:basis-full` it does not
-  # break out -- it grows taller inside the row, and the scope chip, vertically
-  # centred beside it, ends up wedged between the "Bezug" label and the list. The
-  # class is pinned in the component spec; whether it actually does that can only
-  # be measured with stylesheets on.
+  # break out -- it grows taller inside the row. Since S2 of the writing-zone
+  # plan the open list floats above the row instead; only stylesheets can say it
+  # does.
   describe 'a reference collection of more than one' do
     # TWO projects, because the scope chip only renders where there is a choice to
     # make (ScopeChipComponent#render?), and this cell is about what the open list
@@ -326,43 +325,41 @@ RSpec.describe 'Assistant panel layout (with stylesheets)', type: :system do
       expect(page).to have_css('#assistant_panel .chat-context-row details summary')
     end
 
-    # ⚠️ Measured while writing this, and worth writing down: at the default 380px
-    # the context row ALREADY wraps with a reference set -- "Bezug [pill]" and
-    # "Sucht in [select]" do not fit on one line -- so the scope chip sits below
-    # the collection whether or not the list breaks out. Asserting "the chip
-    # dropped below" as the proof would therefore have been true of every
-    # implementation, `open:basis-full` removed included. What only the class can
-    # do is give the OPEN element the full width of the row, so that is the claim
-    # here; the rest follows from it and is asserted as consequence, not as proof.
-    it 'gives the open list the full width of the row, with the field still below' do
+    # Since 2026-11-19 (S2 of the writing-zone plan) the open list FLOATS above
+    # the context row, over the transcript, instead of growing the row and
+    # pushing the field down. What only stylesheets can settle: that it lands
+    # above the row, on top of the transcript, and that the field does not move.
+    it 'floats the open list above the row, over the transcript, and leaves the field where it was' do
+      field_before = box('#assistant_panel [data-neo-chat-composer-target="field"]')
       row = box('#assistant_panel .chat-context-row')
 
-      closed = box('#assistant_panel .chat-context-row details')
-      expect(closed['width']).to be < row['width']
-
       find('#assistant_panel .chat-context-row details summary').click
+      layer = '#assistant_panel .chat-context-row details [data-neo-disclosure-target="layer"]'
+      expect(page).to have_css(layer)
+      opened = box(layer)
 
-      eventually('the open list takes the full row width') do
-        box('#assistant_panel .chat-context-row details')['width'] >= row['width'] - 1
-      end
-      opened = box('#assistant_panel .chat-context-row details')
+      expect(opened['bottom']).to be <= row['top'] + 1
+      expect(page).to have_css("#{layer} form", count: 2)
+      on_top = page.evaluate_script(<<~JS)
+        (() => {
+          const layer = document.querySelector('#{layer}')
+          const r = layer.getBoundingClientRect()
+          return layer.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2))
+        })()
+      JS
+      expect(on_top).to be(true)
 
-      # Both entries are in it, and it is taller than the summary alone -- a
-      # full-width box that is still one line high would satisfy the width claim
-      # while showing nothing.
-      expect(opened['height']).to be > closed['height']
-      expect(page).to have_css('#assistant_panel .chat-context-row details form', count: 2)
+      field_after = box('#assistant_panel [data-neo-chat-composer-target="field"]')
+      expect(field_after['top']).to be_within(1).of(field_before['top'])
+    end
 
-      # The scope chip renders as display:contents, so its own element has no box;
-      # its inner group is the flex item. Nothing of it sits INSIDE the list's
-      # height.
-      expect(box("#chat_#{long_thread.id}_scope_chip > div")['top']).to be >= opened['bottom'] - 1
-      # And the reason the row lives above the field at all: a growing list pushes
-      # the composer down, it never covers it or shoves it out of the panel.
-      field = box('#assistant_panel [data-neo-chat-composer-target="field"]')
-      panel = box('#assistant_panel')
-      expect(field['top']).to be >= opened['bottom'] - 1
-      expect(field['bottom']).to be <= panel['bottom']
+    it 'closes the open list on Escape and keeps the panel open' do
+      find('#assistant_panel .chat-context-row details summary').click
+      expect(page).to have_css('#assistant_panel .chat-context-row details[open]')
+      find('#assistant_panel .chat-context-row details summary').send_keys(:escape)
+
+      expect(page).to have_no_css('#assistant_panel .chat-context-row details[open]')
+      expect(page).to have_css('#assistant_panel [data-neo-chat-composer-target="field"]')
     end
   end
 
@@ -449,7 +446,7 @@ RSpec.describe 'Assistant panel layout (with stylesheets)', type: :system do
       expect(summary['bottom']).to be <= head['bottom']
 
       find('#assistant_panel_notice summary').click
-      layer = '#assistant_panel_notice [data-neo-ai-disclosure-target="layer"]'
+      layer = '#assistant_panel_notice [data-neo-disclosure-target="layer"]'
       eventually('the layer opened') { page.evaluate_script("getComputedStyle(document.querySelector('#{layer}')).opacity") == '1' }
 
       opened = box(layer)

@@ -61,7 +61,7 @@ RSpec.describe Neo::Chat::ScopeRowComponent, type: :component do
 
     render_row(chat.reload)
 
-    expect(page.text).to include('Bezug').and include('Sucht in')
+    expect(page.text).to include('Thema:').and include('Sucht in:')
     expect(page).to have_css("div#chat_#{chat.id}_scope_row select[name='chat[scope_project_id]']", visible: :all)
     expect(page).to have_css("div#chat_#{chat.id}_scope_row [data-reference-keys='Ticket:#{referenced.id}']",
                              visible: :all)

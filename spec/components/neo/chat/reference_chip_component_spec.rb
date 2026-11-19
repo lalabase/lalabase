@@ -50,7 +50,7 @@ RSpec.describe Neo::Chat::ReferenceChipComponent, type: :component do
 
     render_chip(chat_with(referenced))
 
-    expect(page.text).to include('Bezug').and include("##{referenced.number} Anmeldung schlaegt fehl")
+    expect(page.text).to include('Thema:').and include("##{referenced.number} Anmeldung schlaegt fehl")
   end
 
   # The chip is the only place the panel can read WHICH objects the thread points
@@ -300,7 +300,7 @@ RSpec.describe Neo::Chat::ReferenceChipComponent, type: :component do
       render_chip(chat_referencing(ticket(title: 'Erstes'), ticket(title: 'Zweites')))
 
       expect(page).to have_css('details summary', visible: :all)
-      expect(page.find('details summary', visible: :all).text).to include('Bezug').and include('2 Aufgaben')
+      expect(page.find('details summary', visible: :all).text).to include('Thema:').and include('2 Aufgaben')
     end
 
     # ⚠️ Deliberately NOT rendered, and that is the finding: with one registered
@@ -338,7 +338,7 @@ RSpec.describe Neo::Chat::ReferenceChipComponent, type: :component do
 
       render_chip(chat_referencing(document, note, ticket(title: 'Erstes'), ticket(title: 'Zweites')))
 
-      expect(page.find('details summary', visible: :all).text).to include('2 Aufgaben, 1 Notiz, 1 Datei')
+      expect(page.find('details summary', visible: :all).text).to include('2 Aufgaben · 1 Notiz · 1 Datei')
       expect(page).to have_css('details i.bi-journal-text', visible: :all)
       expect(page).to have_css('details i.bi-file-earmark-text', visible: :all)
       expect(page.text).to include('Einarbeitung').and include('Angebot')
@@ -435,16 +435,43 @@ RSpec.describe Neo::Chat::ReferenceChipComponent, type: :component do
       expect(page).to have_no_css('details[open]', visible: :all)
     end
 
-    # §8.1, the layout half that markup CAN answer: the open list has to become a
-    # full-width item of the context row, or it wedges itself between the
-    # reference and the scope chip. Where it actually lands is measured with
-    # stylesheets on (assistant_panel_layout_spec); this cell only pins that the
-    # instruction is on the element that carries the `open` attribute -- the
-    # variant applies to that element and to no ancestor of it.
-    it 'tells the row to give the open list its own line' do
+    # S2 of the writing-zone plan (2026-11-19): on a wide panel the open list
+    # floats above the context row instead of growing it. The position belongs to
+    # the row (`relative`), so the <details> must stay `static`; where it lands
+    # is measured in assistant_panel_layout_spec. Below lg it stays in the flow
+    # (rule 7: moved, not shrunk), because the phone's writing zone scrolls and
+    # would clip a floating list.
+    it 'floats the open list above the row on a wide panel and keeps it in the flow below' do
       render_chip(chat_referencing(ticket(title: 'Erstes'), ticket(title: 'Zweites')))
 
-      expect(page).to have_css('details[class*="open:basis-full"]', visible: :all)
+      details = page.find('details', visible: :all)
+      layer = page.find('details [data-neo-disclosure-target="layer"]', visible: :all)
+      expect(details[:class]).to include('static')
+      expect(details[:'data-controller']).to eq('neo-disclosure')
+      expect(layer[:class].split).to include('lg:absolute', 'lg:bottom-full')
+    end
+
+    it 'names the list with the count and the limit, and closes it with a plain button' do
+      render_chip(chat_referencing(ticket(title: 'Erstes'), ticket(title: 'Zweites')))
+
+      head = page.find('[data-neo-disclosure-target="layer"]', visible: :all)
+      expect(head.text).to include(
+        I18n.t('views.organisations.assistant_panels.reference.list_title',
+               count: 2, limit: Assistant::ReferenceRegistry::MAX_REFERENCES)
+      )
+      close = head.find("button[aria-label='#{I18n.t('views.organisations.assistant_panels.reference.close_list')}']",
+                        visible: :all)
+      expect(close[:type]).to eq('button')
+    end
+
+    # The quiet chip of the writing-zone plan: the ink outline and the bold weight
+    # are gone, a reference is something you read, not the loudest thing in the zone.
+    it 'draws the pills quietly' do
+      render_chip(chat_referencing(ticket))
+
+      pill = page.find('div.rounded-full', text: 'Anmeldung schlaegt fehl', visible: :all)
+      expect(pill[:class]).not_to include('border-ink')
+      expect(pill[:class]).not_to include('font-semibold')
     end
   end
 end

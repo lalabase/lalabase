@@ -1,6 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Enhancement around a NATIVE <details> (review of #625). The disclosure itself is
+// Enhancement around a NATIVE <details> (review of #625). Named neo-disclosure since
+// 2026-11-19: it began as the AI notice's and now also folds the assistant's
+// reference list (ReferenceChipComponent), which needs the same three things.
+// The disclosure itself is
 // the browser's: without this controller the note still opens, which matters
 // because the Art. 13 half of the AI notice and the only privacy link on the chat
 // surfaces live inside it.
@@ -15,6 +18,10 @@ import { Controller } from "@hotwired/stimulus"
 // were silently dead on a note that was still standing open.
 export default class extends Controller {
   static targets = ["layer"]
+  // How the layer waits while closed. The AI notice slides DOWN out of the head
+  // (the default); the reference list slides UP out of the context row and says so
+  // with data-neo-disclosure-concealed-class.
+  static classes = ["concealed"]
 
   connect() {
     this.onDocumentClick = (event) => {
@@ -84,7 +91,7 @@ export default class extends Controller {
   }
 
   reveal() {
-    this.layerTarget?.classList.remove("-translate-y-2", "opacity-0")
+    if (this.hasLayerTarget) this.layerTarget.classList.remove(...this.concealedTokens)
   }
 
   // Back to the closed position, so the next opening slides again. No timer and no
@@ -92,7 +99,7 @@ export default class extends Controller {
   // is no invisible box left over the composer if this node is transplanted
   // mid-animation.
   conceal() {
-    this.layerTarget?.classList.add("-translate-y-2", "opacity-0")
+    if (this.hasLayerTarget) this.layerTarget.classList.add(...this.concealedTokens)
   }
 
   startListening() {
@@ -103,5 +110,9 @@ export default class extends Controller {
   stopListening() {
     document.removeEventListener("click", this.onDocumentClick)
     document.removeEventListener("keydown", this.onKeydown, true)
+  }
+
+  get concealedTokens() {
+    return this.hasConcealedClass ? this.concealedClasses : ["-translate-y-2", "opacity-0"]
   }
 }

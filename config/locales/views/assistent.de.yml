@@ -22,8 +22,12 @@ de:
           take: Übernehmen
           dismiss: Angebot ausblenden
         reference:
-          label: Bezug
-          remove: 'Bezug entfernen: %{title}'
+          # "Thema" since the writing-zone plan (2026-11-19, D3): the model takes the
+          # reference as the topic of the conversation, and the word says so.
+          label: 'Thema:'
+          remove: 'Aus dem Thema nehmen: %{title}'
+          list_title: Thema · %{count} von %{limit}
+          close_list: Liste schließen
           # Gruppenbezeichnung je Typ, zusammengeklappt: "2 Aufgaben",
           # ab S3 "1 Aufgabe, 3 Gespräche". Der Schlüssel ist der
           # Zitationstyp aus der Registry, nicht der Klassenname: dieselbe
@@ -49,8 +53,8 @@ de:
               one: "%{count} Datei"
               other: "%{count} Dateien"
         scope:
-          label: Sucht in
-          all_projects: Allen deinen Projekten
+          label: 'Sucht in:'
+          all_projects: Alle Projekte
           aria_label: Geltungsbereich des Assistenten
         settings:
           open: Einstellungen

@@ -3,7 +3,7 @@
 module Neo
   module Chat
     # The requesting user's persistent chat answer-style level (technicality /
-    # length, three steps each) as two compact selects under the composer. The
+    # length, three steps each) as two selects in the panel's settings. The
     # selected option IS the stored state -- display and control are the same
     # element, which is why there is no separate level readout and no reset link
     # (resetting = picking the middle step).
@@ -48,13 +48,10 @@ module Neo
       # pe-7 and not a plain px-2.5: @tailwindcss/forms paints the select's own
       # arrow into the inline-end padding it sets, and overriding that padding on
       # both sides puts the arrow straight on top of the last letter of the value.
-      SELECT_BASE = 'rounded-full border ps-2.5 pe-7 py-0.5 text-xs transition-colors ' \
+      SELECT_BASE = 'w-full rounded border ps-2.5 pe-7 py-1 text-xs transition-colors ' \
                     'focus:outline-none focus:ring-0'
       # Highlighted only where the stored level DIFFERS from the neutral middle
-      # step -- the same grammar the scope chip uses for "all your projects"
-      # versus one chosen project. A control sitting on its default has nothing
-      # to announce, and a row in which everything is emphasised emphasises
-      # nothing.
+      # step: a control sitting on its default has nothing to announce.
       SELECT_CHOSEN = 'border-ink bg-cream-200 text-cream-900 font-semibold'
       SELECT_NEUTRAL = 'border-cream-300 bg-cream-50 text-cream-700 hover:bg-cream-100 hover:border-cream-400'
 

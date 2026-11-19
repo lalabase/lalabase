@@ -84,7 +84,7 @@ export default class extends Controller {
   }
 
   reveal() {
-    this.layerTarget?.classList.remove("translate-y-2", "opacity-0")
+    this.layerTarget?.classList.remove("-translate-y-2", "opacity-0")
   }
 
   // Back to the closed position, so the next opening slides again. No timer and no
@@ -92,7 +92,7 @@ export default class extends Controller {
   // is no invisible box left over the composer if this node is transplanted
   // mid-animation.
   conceal() {
-    this.layerTarget?.classList.add("translate-y-2", "opacity-0")
+    this.layerTarget?.classList.add("-translate-y-2", "opacity-0")
   }
 
   startListening() {

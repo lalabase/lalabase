@@ -212,7 +212,7 @@ body.assistant-panel-full {
    room for the conversation and keeping focus/Send inside the sheet. */
 @media (max-width: 1023px) {
   #assistant_panel_body > div:has(> form[data-controller~="neo-chat-composer"]),
-  #assistant_panel_body > turbo-frame > turbo-frame:has(> form[data-controller~="neo-chat-composer"]) {
+  #assistant_panel_body > turbo-frame > .assistant-writing-zone {
     flex-shrink: 1;
     min-height: 0;
     max-height: 60%;

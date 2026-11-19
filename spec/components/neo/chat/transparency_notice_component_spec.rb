@@ -191,12 +191,26 @@ RSpec.describe Neo::Chat::TransparencyNoticeComponent,
       render_inline(described_class.new(organisation: organisation))
     end
 
-    it 'keeps "AI-generated" and the provider in the summary, outside the layer' do
+    it 'keeps "AI" and the provider in the summary, outside the layer' do
       summary = render_notice.css('summary').text.squish
 
-      expect(summary).to include(I18n.t('views.organisations.chats.chat_show.ai_transparency_summary',
+      expect(summary).to include(I18n.t('views.organisations.chats.chat_show.ai_transparency_head',
                                         provider: 'OpenAI (GPT)'))
       expect(summary).not_to include('Eingaben und Projektkontext werden dorthin übertragen')
+    end
+
+    # The notice sits in the panel head since 2026-11-19, beside the title. A
+    # narrow panel has no room for the provider there: the head shows the short
+    # form, and the provider stays one click away in the layer. Which of the two
+    # shows is the head's width (a container query), so both are in the markup.
+    it 'carries a short form for a narrow head, and the provider still in the layer' do
+      page = render_notice
+      short = page.css('summary [data-notice-form="short"]').text.squish
+      long = page.css('summary [data-notice-form="long"]').text.squish
+
+      expect(short).to eq(I18n.t('views.organisations.chats.chat_show.ai_transparency_head_short'))
+      expect(long).to eq(I18n.t('views.organisations.chats.chat_show.ai_transparency_head', provider: 'OpenAI (GPT)'))
+      expect(page.css('[data-neo-ai-disclosure-target="layer"]').text).to include('OpenAI (GPT)')
     end
 
     it 'moves the transfer sentence and the privacy link INTO the layer' do
@@ -241,7 +255,8 @@ RSpec.describe Neo::Chat::TransparencyNoticeComponent,
       summary = render_notice.css('summary').first
 
       expect(summary['aria-label']).to be_nil
-      expect(summary.text).to include(I18n.t('views.organisations.chats.chat_show.ai_transparency_details'))
+      expect(summary.text).to include(I18n.t('views.organisations.chats.chat_show.ai_transparency_head',
+                                             provider: 'OpenAI (GPT)'))
     end
 
     # Three surfaces render this component, and the assistant panel renders on TOP

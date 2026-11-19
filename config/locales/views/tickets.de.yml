@@ -752,8 +752,10 @@ de:
           ai_transparency_package_region: "Verarbeitungsort: %{region}."
           ai_transparency_embeddings: Für die semantische Suche werden Eingaben zusätzlich an %{provider} übertragen.
           ai_transparency_privacy_link: Datenschutzerklärung
-          ai_transparency_summary: KI-generiert mit %{provider}.
-          ai_transparency_details: Details
+          # Panel head (since 2026-11-19): the long form beside the title, the
+          # short one when the head is narrow. The provider is in the layer either way.
+          ai_transparency_head: KI mit %{provider}
+          ai_transparency_head_short: KI
           ai_transparency_heading: Wohin deine Eingaben gehen
         style_level:
           dimensions:

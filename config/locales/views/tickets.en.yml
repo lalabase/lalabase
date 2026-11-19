@@ -751,8 +751,10 @@ en:
           ai_transparency_package_region: "Processing location: %{region}."
           ai_transparency_embeddings: For semantic search, your input is additionally transferred to %{provider}.
           ai_transparency_privacy_link: Privacy policy
-          ai_transparency_summary: AI-generated with %{provider}.
-          ai_transparency_details: Details
+          # Panel head (since 2026-11-19): the long form beside the title, the
+          # short one when the head is narrow. The provider is in the layer either way.
+          ai_transparency_head: AI by %{provider}
+          ai_transparency_head_short: AI
           ai_transparency_heading: Where your input goes
         style_level:
           dimensions:

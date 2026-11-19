@@ -129,13 +129,11 @@ RSpec.describe 'Assistant panel layout (with stylesheets)', type: :system do
   # field -- both rows are flex parents of chips that render as display:contents,
   # which is precisely the kind of markup where source order and painted position
   # can part company.
-  it 'shows what it looks AT above the field, and how it answers below' do
+  it 'shows what it looks AT above the field' do
     context_row = box('#assistant_panel .chat-context-row')
     field = box('#assistant_panel [data-neo-chat-composer-target="field"]')
-    style_row = box('#assistant_panel .chat-style-row')
 
     expect(context_row['top']).to be <= field['top']
-    expect(style_row['top']).to be >= field['bottom']
   end
 
   # The reason this feature was asked for: the composer sits BELOW the log, so a
@@ -413,6 +411,62 @@ RSpec.describe 'Assistant panel layout (with stylesheets)', type: :system do
 
       expect(composer['bottom']).to be <= panel['bottom']
       expect(composer['bottom']).to be <= page.evaluate_script('window.innerHeight')
+    end
+  end
+  # The AI notice in the panel head (2026-11-19, D10 of the writing-zone plan).
+  # Which form shows is a container query on the head row, and where the layer
+  # opens is a position against that row: both only exist with stylesheets on.
+  describe 'the AI notice in the head' do
+    def head = box('#assistant_panel [data-assistant-panel-target="panel"] > div:first-child')
+
+    def visible?(form)
+      page.evaluate_script(
+        "getComputedStyle(document.querySelector('#assistant_panel_notice [data-notice-form=\"#{form}\"]')).display !== 'none'"
+      )
+    end
+
+    def set_panel_width(pixels)
+      page.execute_script(
+        "document.querySelector('#assistant_panel [data-assistant-panel-target=\"panel\"]').style.width = '#{pixels}px'"
+      )
+    end
+
+    before do
+      expect(page).to have_css('#assistant_panel_notice summary')
+    end
+
+    it 'shows the short form in a narrow head and the provider in a wide one' do
+      set_panel_width(AssistantPanelState::DEFAULT_WIDTH)
+      eventually('the short form shows at the default width') { visible?('short') && !visible?('long') }
+
+      set_panel_width(AssistantPanelState::MAX_WIDTH)
+      eventually('the long form shows at the widest panel') { visible?('long') && !visible?('short') }
+    end
+
+    it 'sits inside the head, and opens its layer below the head over the transcript' do
+      summary = box('#assistant_panel_notice summary')
+      expect(summary['top']).to be >= head['top']
+      expect(summary['bottom']).to be <= head['bottom']
+
+      find('#assistant_panel_notice summary').click
+      layer = '#assistant_panel_notice [data-neo-ai-disclosure-target="layer"]'
+      eventually('the layer opened') { page.evaluate_script("getComputedStyle(document.querySelector('#{layer}')).opacity") == '1' }
+
+      opened = box(layer)
+      expect(opened['top']).to be >= head['bottom'] - 1
+      log = box('#assistant_panel [role="log"]')
+      expect(opened['bottom']).to be < log['bottom']
+      # Painted ON TOP of the transcript, not under it: the element at the
+      # layer's centre is the layer (or inside it).
+      on_top = page.evaluate_script(<<~JS)
+        (() => {
+          const layer = document.querySelector('#{layer}')
+          const r = layer.getBoundingClientRect()
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+          return layer.contains(hit)
+        })()
+      JS
+      expect(on_top).to be(true)
     end
   end
 end

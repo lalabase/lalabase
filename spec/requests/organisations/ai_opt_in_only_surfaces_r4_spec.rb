@@ -262,10 +262,16 @@ RSpec.describe 'AI opt-in-only surfaces ask their feature row (R4)', type: :requ
              provider: AiCredential.provider_display_names.fetch('openai', 'openai'))
     end
 
+    # The notice travels to the panel head in a turbo stream inside the frame
+    # content (the head is a permanent node outside the frame).
+    def notice_stream
+      Nokogiri::HTML(response.body).at_css('turbo-stream[action="update"][target="assistant_panel_notice"]')
+    end
+
     it 'offers the composer while the chat lane is configured' do
       panel
 
-      expect(response.body).to include(transparency_snippet)
+      expect(notice_stream.to_html).to include(transparency_snippet)
       expect(response.body).not_to include(unavailable_sentence)
     end
 
@@ -275,6 +281,10 @@ RSpec.describe 'AI opt-in-only surfaces ask their feature row (R4)', type: :requ
 
       expect(response.body).to include(unavailable_sentence)
       expect(response.body).not_to include(transparency_snippet)
+      # Emptied, not left alone: a notice from an earlier load must not stay in
+      # the head while the lane is refused.
+      expect(notice_stream).to be_present
+      expect(notice_stream.at_css('template').inner_html.strip).to be_empty
     end
 
     # The half that makes the example above mean something: the surface asks the :chat

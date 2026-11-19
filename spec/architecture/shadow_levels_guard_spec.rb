@@ -59,7 +59,6 @@ module ShadowLevels
   # Shrink only: path => written hard values on 2026-11-08. Lower the count when a value
   # goes, delete the line when it reaches zero.
   LEGACY = {
-    'app/components/neo/chat/transparency_notice_component.html.erb' => 1,
     'app/components/neo_card_component.rb' => 1, # shadow: :always, removed in slice S3
     'app/javascript/controllers/attribute_form_controller.js' => 2,
     'app/javascript/controllers/neo_form_section_controller.js' => 4,

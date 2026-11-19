@@ -71,16 +71,25 @@ RSpec.describe Neo::Chat::ChatContainerComponent, type: :component do
       rendered_content.index(needle) || raise("not rendered: #{needle}")
     end
 
-    it 'puts what it looks AT above the field, and how it answers below' do
+    it 'puts what it looks AT above the field' do
       stub_policy(write: true)
       render_component
 
       scope_row = position_of("#{ActionView::RecordIdentifier.dom_id(chat)}_scope_row")
       field     = position_of('chatpost[content]')
-      style_row = position_of(Neo::Chat::StyleControlComponent::DOM_CLASS)
 
       expect(scope_row).to be < field
-      expect(field).to be < style_row
+    end
+
+    # Style and length live in the panel's settings since 2026-11-19 (D9 of the
+    # writing-zone plan). A copy left here would be a second control for one
+    # stored value, and the zone is what the move was for.
+    it 'no longer carries the answer style under the field' do
+      stub_policy(write: true)
+      render_component
+
+      expect(rendered_content).not_to include(Neo::Chat::StyleControlComponent::DOM_CLASS)
+      expect(rendered_content).to include('chatpost[content]')
     end
   end
 

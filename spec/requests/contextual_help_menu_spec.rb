@@ -205,11 +205,12 @@ RSpec.describe 'Contextual help menu', type: :request do
   end
 
   # The "?" takes the height of its neighbours in the row (F40 of the
-  # Belegungstabelle): 40 px only beside the big gear (the 30 px view switch is
+  # Belegungstabelle): 40 px only beside another 40 px control (the 30 px view switch is
   # none; the time list's 40 px groove left on 2026-11-11), the quiet 28 px trigger beside a "···" (the
   # members' help stood beside their search until 2026-11-11 and is in their head now), and
   # otherwise the 32 px of the head buttons (F1/F2). Until 2026-11-10 it was
-  # 40 px everywhere, a box bigger than "+" and "Glossar" beside it.
+  # 40 px everywhere, a box bigger than "+" and "Glossar" beside it. The overview's gear
+  # was a framed 40 px box until 2026-11-19, and its "?" grew to match.
   describe 'the size of the trigger follows its row' do
     def help_triggers(body)
       label = I18n.t('components.contextual_help.label')
@@ -228,7 +229,7 @@ RSpec.describe 'Contextual help menu', type: :request do
     {
       'Tickets' => [:medium, -> { organisation_project_tickets_path(organisation, project) }],
       'Zeiten' => [:medium, -> { organisation_time_sessions_path(organisation) }],
-      'Übersicht' => [:large, -> { organisation_root_path(organisation_id: organisation.id) }],
+      'Übersicht' => [:medium, -> { organisation_root_path(organisation_id: organisation.id) }],
       'Meetings' => [:medium, -> { organisation_project_meetings_path(organisation, project) }],
       'Alle Meetings' => [:medium, -> { organisation_meetings_path(organisation) }],
       'Personen' => [:medium, -> { organisation_people_path(organisation) }],
@@ -248,6 +249,28 @@ RSpec.describe 'Contextual help menu', type: :request do
         triggers = help_triggers(response.body)
         expect(triggers).not_to be_empty
         expect(triggers.map { |trigger| form_of(trigger) }.uniq).to eq([form])
+      end
+    end
+  end
+
+  # The gear of both dashboards stands like the "?" of every page head: borderless
+  # (ghost) and 32 px (user, 2026-11-19). It was a framed 40 px box on both.
+  describe 'the gear of a dashboard' do
+    {
+      'Übersicht' => -> { [organisation_root_path(organisation_id: organisation.id), 'overview.configuration.configure'] },
+      'Projekt-Dashboard' => lambda {
+        [organisation_project_path(organisation, project), 'views.organisations.projects.show.configure_dashboard']
+      }
+    }.each do |page_name, target|
+      it "#{page_name}: borderless and 32 px" do
+        path, title_key = instance_exec(&target)
+        get path
+
+        expect(response).to have_http_status(:ok)
+        gear = Nokogiri::HTML(response.body).at_css("a[title='#{I18n.t(title_key)}']")
+        classes = gear['class'].to_s.split
+        expect(classes).to include('h-8', 'border-transparent')
+        expect(classes).not_to include('h-10')
       end
     end
   end

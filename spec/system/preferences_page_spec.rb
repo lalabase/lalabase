@@ -36,6 +36,17 @@ RSpec.describe 'The preferences page', type: :system do
     lena.reload.preferences
   end
 
+  # "Saved" says that a save of the section is through, not which one. After a second
+  # change in the same section it may still stand there from the save before (it stays
+  # three seconds) while the last one is on its way, so the page cannot say when the last
+  # one is through: ask the database until it is.
+  def expect_saved_area_format(area, format)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + Capybara.default_max_wait_time
+    saved = -> { preferences.dig('date_display', 'areas', area) }
+    sleep 0.05 until saved.call == format || Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+    expect(saved.call).to eq(format)
+  end
+
   it 'saves a changed select at once and says so beside its own heading only' do
     within(section('general')) do
       expect(page).to have_no_button(I18n.t('user_preferences.edit.actions.save'))
@@ -90,19 +101,14 @@ RSpec.describe 'The preferences page', type: :system do
 
       uncheck I18n.t('user_preferences.edit.datetime.use_global.label')
       select I18n.t('user_preferences.edit.datetime.formats.german'), from: area
-      expect(page).to have_css('[role="status"][data-state="saved"]')
     end
-    expect(preferences.dig('date_display', 'areas', 'posts')).to eq('german')
+    expect_saved_area_format('posts', 'german')
 
     within(section('datetime')) do
       check I18n.t('user_preferences.edit.datetime.use_global.label')
       expect(page).to have_no_select(area)
     end
-    # "Saved" may still stand there from the save before, so the page cannot say
-    # when this one is through: ask the database until it is.
-    Timeout.timeout(Capybara.default_max_wait_time) do
-      sleep 0.05 until preferences.dig('date_display', 'areas', 'posts') == 'inherit'
-    end
+    expect_saved_area_format('posts', 'inherit')
   end
 
   it 'goes back to the date defaults after asking, and saves that too' do

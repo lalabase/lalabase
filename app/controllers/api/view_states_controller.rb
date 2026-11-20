@@ -3,8 +3,9 @@
 class Api::ViewStatesController < ApplicationController
   ALLOWED_VIEWABLE_TYPES = %w[Organisation Project Ticket Note Document].freeze
 
+  # Session-authenticated: a write needs the page's authenticity token, JSON or
+  # not (the format comes from the address). Guard: view_states_forgery_spec.rb.
   before_action :authenticate_user!
-  skip_before_action :verify_authenticity_token, if: :json_request?
 
   def show
     view_state = find_or_initialize_view_state
@@ -58,9 +59,5 @@ class Api::ViewStatesController < ApplicationController
       permitted[key.to_s] = value if value.is_a?(String) || value.is_a?(Numeric) || value.in?([true, false])
     end
     permitted
-  end
-
-  def json_request?
-    request.format.json?
   end
 end

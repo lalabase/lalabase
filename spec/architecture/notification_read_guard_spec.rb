@@ -74,9 +74,7 @@ module NotificationReadGuard
     'app/views/organisations/_cockpit_row.html.erb' =>
       [1, 'slice.notifications: the cockpit slice, built from Notification.inbox_unread'],
     'app/views/organisations/notifications/_master_list.html.erb' =>
-      [1, 'presenter.notifications: the inbox list the presenter built through policy_scope'],
-    'app/services/notifications/shared/scope_filter.rb' =>
-      [2, 'dead code, never instantiated (pinned in scope_filter_spec.rb); goes with its deletion']
+      [1, 'presenter.notifications: the inbox list the presenter built through policy_scope']
   }.freeze
 
   # What the guard does NOT see, so a reviewer looks for it: SQL text that names the

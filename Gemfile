@@ -139,6 +139,6 @@ gem 'redis', '~> 6.0' # Cache store (staging/production); no longer a job backen
 # required by Bundler: Active Storage loads it at boot and switches vips off when
 # libvips is missing (a CI step before libvips is installed), as before
 # image_processing 2. Requiring it here made such a boot crash instead.
-gem 'ruby-vips', '~> 2.2', require: false
+gem 'ruby-vips', '~> 2.3', require: false
 gem 'solid_queue', '~> 1.7' # The only job backend (Rails 8 native)
 gem 'whatlanguage', '~> 1.0'

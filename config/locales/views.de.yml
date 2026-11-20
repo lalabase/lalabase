@@ -181,10 +181,6 @@ de:
       created_at: Erstellt am
       updated_at: Zuletzt aktualisiert
       errors_occurred: 'Es sind %{count} Fehler aufgetreten:'
-      error_messages:
-        errors: Fehler
-      navigation_auth:
-        register: Registrieren
       button_container:
         delete: Löschen
         cancel: Abbrechen
@@ -1046,9 +1042,6 @@ de:
       empty_content:
         no_results_title: Keine Ergebnisse
         no_results_description: Versuche andere Filterkriterien oder entferne aktive Filter.
-      notification_override_hint:
-        manually_enabled: Benachrichtigung manuell aktiviert
-        manually_disabled: Benachrichtigung manuell deaktiviert
       attachment:
         open: Öffnen
         zoom: Vergrößerte Ansicht

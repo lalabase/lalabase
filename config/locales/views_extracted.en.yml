@@ -394,8 +394,6 @@ en:
         tag_form:
           placeholder: Enter tags, separated by commas
           hint: Separate tags with commas (e.g. "important, meeting, todo")
-        tag_list:
-          label: Tags
       ticket_attribute_definitions:
         form:
           errors_prevent_save: "%{count} error(s) prevent saving:"
@@ -449,12 +447,6 @@ en:
             priority_high: High
             time_verbose: 2.50 hours (total)
             subscriber_you: You
-      time_sessions:
-        show_errors:
-          errors_count:
-            one: "%{count} error"
-            other: "%{count} errors"
-          found_suffix: 'found:'
   components:
     neo_activity_filter:
       add_filter: Filter

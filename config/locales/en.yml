@@ -521,10 +521,6 @@ en:
     close: Close
     edit: Edit
     save: Save
-    help:
-      show_help: Show help
-      default_subtitle: Here you can find explanations for all available actions
-      footer_hint: "Tip: Hover over buttons for quick help"
     max_characters:
       one: Maximum %{count} character
       other: Maximum %{count} characters
@@ -2489,54 +2485,6 @@ en:
       errors_found:
         one: "%{count} error found:"
         other: "%{count} errors found:"
-  ticket_header_help:
-    title: Ticket Actions Explained
-    subtitle: These actions are available in the ticket header
-    groups:
-      viewing: View & Information
-      notifications: Notifications (Button cycles through 4 modes)
-      editing: Editing
-    buttons:
-      activity_timeline:
-        icon: activity
-        title: Activity Timeline
-        description: The "Changes" chip above the history shows or hides all status changes and other actions on this ticket. The number on the chip tells how many entries there are.
-        shortcut: ""
-      time_tracking:
-        icon: clock
-        title: Time Tracking
-        description: The "Time entries" chip above the history shows or hides the recorded work times for this ticket. The number on the chip shows the count.
-        shortcut: ""
-      watch:
-        icon: eye-fill
-        title: 'Watch = Default notifications'
-        description: "No active subscription. You still get notifications when:\n\n✅ You are assigned\n✅ You are @mentioned\n✅ You are the creator"
-      unwatch:
-        icon: bookmark-fill
-        title: '2. Following (Normal follow)'
-        description: You are following this ticket and will receive important updates according to your general settings.
-      immediate_mode:
-        icon: bell-fill
-        title: '3. Live Updates (Immediate mode)'
-        description: Receive ALL updates for this ticket immediately, regardless of your settings. For critical tickets.
-      mute_mode:
-        icon: power
-        title: '4. Muted = Completely silent'
-        description: "Active subscription in mute mode. BLOCKS ALL notifications:\n\n❌ None when assigned\n❌ None when @mentioned\n❌ None as creator"
-      notifications_toggle:
-        icon: bell
-        title: Toggle notifications
-        description: "Turn notifications for this ticket on or off.\n\n🔔 Active: You will receive notifications for changes to this ticket.\n🔕 Off: No notifications for this ticket."
-      edit:
-        icon: pencil
-        title: Edit Ticket
-        description: Change title, description, status, priority, and other properties of the ticket. Only available with write permissions.
-        shortcut: ""
-      move_ticket:
-        icon: arrow-right-square
-        title: Move Ticket
-        description: Moves the ticket to a different project. Assignments and subscriptions will be checked and adjusted if necessary.
-        shortcut: ""
   stimulus:
     admin_user_form:
       select_organisation_first: Please select an organisation first.
@@ -2572,9 +2520,6 @@ en:
       sort_update_error: Error updating sort order
       sort_updated: Sort order updated
       ticket_loading_error: Error loading ticket
-    help_modal:
-      closed: Help dialog closed
-      opened: Help dialog opened
     modal:
       confirm_close: Do you really want to close this modal?
       edit_time_session: Edit Time Session

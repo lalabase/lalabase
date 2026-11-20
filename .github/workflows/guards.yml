@@ -884,6 +884,7 @@ jobs:
           spec/requests/webhooks/repositories_spec.rb
           spec/requests/webhooks/email_controller_spec.rb
           spec/requests/api/v1/me_spec.rb
+          spec/requests/api/view_states_forgery_spec.rb
           spec/controllers/concerns/api/token_authenticatable_spec.rb
           spec/requests/users/personal_access_tokens_spec.rb
           spec/requests/users/personal_access_tokens_pages_spec.rb

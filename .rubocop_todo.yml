@@ -79,7 +79,6 @@ Lint/MissingSuper:
     - 'app/components/neo_flash_component.rb'
     - 'app/components/neo_flash_container_component.rb'
     - 'app/components/neo_form_section_component.rb'
-    - 'app/components/neo_help_icon_component.rb'
     - 'app/components/neo_inbox_master_item_component.rb'
     - 'app/components/neo_info_tag_component.rb'
     - 'app/components/neo_mobile_nav_component.rb'

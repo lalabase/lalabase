@@ -1,5 +1,6 @@
-// Shared a11y primitives for modal/drawer dialogs — used by help_modal_controller
-// and contextual_help_drawer_controller (doc/kontexthilfe_drawer_plan.md, D3:
+// Shared a11y primitives for modal/drawer dialogs, used by
+// contextual_help_drawer_controller and the other dialog controllers
+// (doc/kontexthilfe_drawer_plan.md, D3:
 // share, don't copy). Import via the bare specifier "dialog_a11y" (pinned in
 // config/importmap.rb) — NEVER a relative path: relative imports bypass importmap
 // resolution and 404 on the undigested URL in production.

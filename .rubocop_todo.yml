@@ -89,7 +89,6 @@ Lint/MissingSuper:
     - 'app/components/neo_notification_component.rb'
     - 'app/components/neo_notification_dropdown_component.rb'
     - 'app/components/neo_notification_filter_component.rb'
-    - 'app/components/neo_notification_grouped_item_component.rb'
     - 'app/components/neo_post_component.rb'
     - 'app/components/neo_project_layout_header_component.rb'
     - 'app/components/neo_project_navigation_component.rb'

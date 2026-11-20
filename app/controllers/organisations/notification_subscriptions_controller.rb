@@ -3,7 +3,6 @@
 module Organisations
   class NotificationSubscriptionsController < BaseController
     before_action :load_subscribable
-    before_action :load_subscription, only: [:destroy]
     before_action :authorize_access
 
     # POST /organisations/:id/tickets/:ticket_id/subscription/toggle
@@ -18,40 +17,6 @@ module Organisations
       respond_to do |format|
         format.turbo_stream { render_subscriber_list_response }
         format.html { redirect_back_with_notice }
-      end
-    end
-
-    # POST /organisations/:id/tickets/:ticket_id/subscription
-    # POST /organisations/:id/projects/:project_id/subscription
-    def create
-      @subscription = NotificationSubscription.find_or_initialize_for(
-        user: current_user,
-        item: @subscribable
-      )
-
-      @subscription.mode = params[:mode] || 'follow'
-
-      if @subscription.save
-        respond_to do |format|
-          format.turbo_stream { render_subscriber_list_response }
-          format.html { redirect_back_with_notice('Now following') }
-        end
-      else
-        respond_to do |format|
-          format.turbo_stream { render_error_response }
-          format.html { redirect_back_with_alert(@subscription.errors.full_messages.join(', ')) }
-        end
-      end
-    end
-
-    # DELETE /organisations/:id/tickets/:ticket_id/subscription
-    # DELETE /organisations/:id/projects/:project_id/subscription
-    def destroy
-      @subscription.destroy
-
-      respond_to do |format|
-        format.turbo_stream { render_subscriber_list_response }
-        format.html { redirect_back_with_notice('Unsubscribed') }
       end
     end
 
@@ -145,14 +110,6 @@ module Organisations
       @subscribable.is_a?(Project) ? @subscribable : @subscribable.project
     end
 
-    def load_subscription
-      @subscription = current_user.notification_subscriptions
-                                  .for_item(@subscribable)
-                                  .first!
-    rescue ActiveRecord::RecordNotFound
-      redirect_back_with_alert('Not subscribed to this item')
-    end
-
     def authorize_access
       # Check if user has view access to the subscribable item
       case @subscribable
@@ -177,25 +134,10 @@ module Organisations
       render turbo_stream: turbo_stream.replace(component.dom_id, component)
     end
 
-    def render_error_response
-      render turbo_stream: turbo_stream.replace(
-        'flash',
-        partial: 'shared/flash',
-        locals: { alert: @subscription.errors.full_messages.join(', ') }
-      )
-    end
-
     def redirect_back_with_notice(message = 'Subscription updated')
       redirect_back(
         fallback_location: organisation_root_path(@current_organisation),
         notice: message
-      )
-    end
-
-    def redirect_back_with_alert(message)
-      redirect_back(
-        fallback_location: organisation_root_path(@current_organisation),
-        alert: message
       )
     end
   end

@@ -12,7 +12,6 @@ class Organisations::TicketsController < Organisations::BaseController
   include ObjectListController
   include TicketListColumns
   include ActionView::RecordIdentifier
-  include PerformanceOptimized
   include ViewportSwitchable
 
   # Exclude set_object from ObjectListController for all actions, since we use set_ticket

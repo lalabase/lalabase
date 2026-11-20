@@ -18,7 +18,7 @@ const HIGHLIGHT_MS = 2100 // must outlast the 2s contextual-help-flash animation
 // src is DYNAMIC (set per clicked question), on turbo:frame-load the drawer
 // scrolls to the question's anchor and flashes it, and the header's full-page
 // link is re-pointed to the opened page (escape hatch, D5). Tab-trap + announce
-// are shared with help_modal_controller via "dialog_a11y" (D3).
+// come from "dialog_a11y", shared with the other dialog controllers (D3).
 export default class extends Controller {
   static targets = ["overlay", "panel", "frame", "fullPageLink", "scrollContainer"]
 

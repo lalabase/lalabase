@@ -160,25 +160,6 @@ class Organisations::PostsController < Organisations::BaseController
     end
   end
 
-  def cancel
-    @post = @ticket.posts.find(params[:id])
-
-    respond_to do |format|
-      format.turbo_stream do
-        render turbo_stream: turbo_stream.replace(
-          "post_#{@post.id}",
-          NeoPostComponent.new(
-            post: @post,
-            current_user: current_user,
-            current_organisation: @current_organisation,
-            turbo_frame: true
-          )
-        )
-      end
-      format.html { redirect_to organisation_project_ticket_path(@current_organisation, @project, @ticket) }
-    end
-  end
-
   def update
     authorize @post, :update?
 

@@ -79,7 +79,6 @@ Lint/MissingSuper:
     - 'app/components/neo_flash_component.rb'
     - 'app/components/neo_flash_container_component.rb'
     - 'app/components/neo_form_section_component.rb'
-    - 'app/components/neo_help_icon_component.rb'
     - 'app/components/neo_inbox_master_item_component.rb'
     - 'app/components/neo_info_tag_component.rb'
     - 'app/components/neo_mobile_nav_component.rb'
@@ -236,7 +235,6 @@ Naming/PredicatePrefix:
     - 'app/services/access_check/project_access_service.rb'
     - 'app/services/access_check/role_project_rights_service.rb'
     - 'app/services/codebase_import/tag_import_result.rb'
-    - 'app/services/notifications/shared/scope_filter.rb'
     - 'app/services/time_session_navigation_service.rb'
 
 # Offense count: 21
@@ -251,7 +249,6 @@ Naming/VariableNumber:
     - 'spec/models/smart_folders/filters/custom_attribute_date_filter_spec.rb'
     - 'spec/models/smart_folders/filters/number_filter_spec.rb'
     - 'spec/services/ad_hoc_filter_service_spec.rb'
-    - 'spec/services/import_management_service_spec.rb'
 
 # Offense count: 1
 # Configuration parameters: Severity, Include.

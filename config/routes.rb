@@ -98,7 +98,7 @@ Rails.application.routes.draw do
         delete 'memberships/:membership_id', to: 'users#destroy_membership', as: :membership
       end
     end
-    resources :beusers do
+    resources :beusers, except: [:show] do
       member do
         get 'edit_password'
         post 'update_password'
@@ -839,7 +839,7 @@ Rails.application.routes.draw do
           get 'available_users'
         end
 
-        resources :posts do
+        resources :posts, only: %i[show create edit update destroy] do
           resources :reactions, only: %i[create destroy], controller: 'post_reactions'
         end
       end

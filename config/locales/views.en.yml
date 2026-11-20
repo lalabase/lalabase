@@ -180,10 +180,6 @@ en:
       created_at: Created at
       updated_at: Last updated
       errors_occurred: "%{count} error(s) occurred:"
-      error_messages:
-        errors: Errors
-      navigation_auth:
-        register: Register
       button_container:
         delete: Delete
         cancel: Cancel
@@ -1044,9 +1040,6 @@ en:
       empty_content:
         no_results_title: No results
         no_results_description: Try different filter criteria or remove active filters.
-      notification_override_hint:
-        manually_enabled: Notification manually enabled
-        manually_disabled: Notification manually disabled
       attachment:
         open: Open
         zoom: Enlarged view

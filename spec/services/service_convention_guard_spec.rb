@@ -76,7 +76,6 @@ module ServiceConventionDetectors
     app/services/embeddings/default_model_migrator.rb
     app/services/embeddings/pending_backlog.rb
     app/services/extract_plain_text_processing_service.rb
-    app/services/import_management_service.rb
     app/services/kanban_board_presenter.rb
     app/services/lalabase.rb
     app/services/lalabase/citations.rb
@@ -128,8 +127,6 @@ module ServiceConventionDetectors
     app/services/notifications/group_key_builder.rb
     app/services/notifications/index_outcome_notifier.rb
     app/services/notifications/score_calculator.rb
-    app/services/notifications/shared/preference_resolver.rb
-    app/services/notifications/shared/scope_filter.rb
     app/services/notifications/suppressor.rb
     app/services/notifications/update_preferences_service.rb
     app/services/overview/portfolio_stats.rb

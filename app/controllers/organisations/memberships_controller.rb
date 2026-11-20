@@ -11,11 +11,6 @@ class Organisations::MembershipsController < Organisations::BaseController
     authorize @membership, :edit?
   end
 
-  def show
-    @membership = Membership.find(params[:id])
-    authorize @membership
-  end
-
   def edit
     @membership = policy_scope(Membership).find(params[:id])
     authorize @membership

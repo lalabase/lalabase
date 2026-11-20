@@ -577,10 +577,6 @@ de:
     close: Schließen
     edit: Bearbeiten
     save: Speichern
-    help:
-      show_help: Hilfe anzeigen
-      default_subtitle: Hier finden Sie Erklärungen zu allen verfügbaren Aktionen
-      footer_hint: "Tipp: Fahren Sie mit der Maus über Buttons für Kurzhilfe"
     max_characters:
       one: Maximal %{count} Zeichen
       other: Maximal %{count} Zeichen
@@ -2752,9 +2748,6 @@ de:
       sort_update_error: Fehler beim Aktualisieren der Sortierung
       sort_updated: Sortierung aktualisiert
       ticket_loading_error: Fehler beim Laden des Tickets
-    help_modal:
-      closed: Hilfe-Dialog geschlossen
-      opened: Hilfe-Dialog geöffnet
     modal:
       confirm_close: Möchten Sie dieses Modal wirklich schließen?
       edit_time_session: Zeit-Session bearbeiten
@@ -2884,38 +2877,6 @@ de:
       format_invalid_chars: Format enthält ungültige Zeichen
       invalid_format: Ungültiges Format
       unknown_format_codes: Unbekannte Format-Codes verwendet
-  ticket_header_help:
-    title: Ticket-Aktionen erklärt
-    subtitle: Diese Aktionen stehen Ihnen im Ticket-Header zur Verfügung
-    groups:
-      viewing: Ansicht & Informationen
-      notifications: Benachrichtigungen
-      editing: Bearbeitung
-    buttons:
-      activity_timeline:
-        icon: activity
-        title: Aktivitätsverlauf
-        description: Der Chip „Änderungen" über dem Verlauf blendet alle Statuswechsel und sonstigen Aktionen an diesem Ticket ein oder aus. Die Zahl am Chip zeigt, wie viele Einträge es gibt.
-        shortcut: ""
-      time_tracking:
-        icon: clock
-        title: Zeiterfassung
-        description: Der Chip „Zeiteinträge" über dem Verlauf blendet die erfassten Arbeitszeiten dieses Tickets ein oder aus. Die Zahl am Chip zeigt die Anzahl der Einträge.
-        shortcut: ""
-      notifications_toggle:
-        icon: bell
-        title: Benachrichtigungen ein/aus
-        description: "Schalten Sie Benachrichtigungen für dieses Ticket ein oder aus.\n\n🔔 Aktiv: Sie erhalten Benachrichtigungen bei Änderungen an diesem Ticket.\n🔕 Aus: Keine Benachrichtigungen für dieses Ticket."
-      edit:
-        icon: pencil
-        title: Ticket bearbeiten
-        description: Ändern Sie Titel, Beschreibung, Status, Priorität und andere Eigenschaften des Tickets. Nur verfügbar mit Schreibrechten.
-        shortcut: ""
-      move_ticket:
-        icon: arrow-right-square
-        title: Ticket verschieben
-        description: Verschiebt das Ticket in ein anderes Projekt. Zuweisungen und Abonnements werden geprüft und ggf. angepasst.
-        shortcut: ""
   tickets:
     new: Neues Ticket
     sections:

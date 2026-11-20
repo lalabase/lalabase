@@ -71,7 +71,7 @@ pin 'filter_bar/undo_handoff', to: 'lib/filter_bar/undo_handoff.js'
 # (the old bar behind the per-user flag, doc/filterleiste_s1_s4_plan.md).
 # Deleted together with the flag.
 # Shared dialog a11y primitives (tab trap + aria-live announce), imported by
-# help_modal_controller and contextual_help_drawer_controller.
+# contextual_help_drawer_controller and the other dialog controllers.
 pin 'dialog_a11y', to: 'lib/dialog_a11y.js'
 # Swipe-to-dismiss mixin for notification items. Imported by neo_notification_controller
 # via this bare specifier — NEVER a relative "../mixins/swipeable" import: relative paths
@@ -175,7 +175,6 @@ else
   pin 'controllers/frame_search_controller', to: 'controllers/frame_search_controller.js'
   pin 'controllers/glossary_run_poll_controller', to: 'controllers/glossary_run_poll_controller.js'
   pin 'controllers/help_copy_controller', to: 'controllers/help_copy_controller.js'
-  pin 'controllers/help_modal_controller', to: 'controllers/help_modal_controller.js'
   pin 'controllers/hover_arrows_controller', to: 'controllers/hover_arrows_controller.js'
   pin 'controllers/hover_reveal_controller', to: 'controllers/hover_reveal_controller.js'
   pin 'controllers/image_lightbox_controller', to: 'controllers/image_lightbox_controller.js'

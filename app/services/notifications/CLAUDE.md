@@ -1,4 +1,4 @@
-# Karte: app/services/notifications (Stand: 2026-11-14, S4b)
+# Karte: app/services/notifications (Stand: 2026-11-20)
 
 Verarbeitet OutboxEvents zu Notifications. Die Gesamtkette (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten.md`.
@@ -200,7 +200,7 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   Zählstelle gehört dort als Beispiel hinein. Die Projektmenge wird **einmal je Anfrage**
   aufgelöst, je Bereich (`Current.notification_source_projects`); ein Spec, der den Zugang mitten im
   Beispiel ändert und neu zählt, spielt die zweite Anfrage mit `Current.reset` nach.
-* `update_preferences_service.rb`, `index_outcome_notifier.rb`, `shared/scope_filter.rb`
+* `update_preferences_service.rb`, `index_outcome_notifier.rb`
 
 Wichtig:
 1. Event-Typen/Mapping leben in `app/models/concerns/notifications/constants.rb` — in

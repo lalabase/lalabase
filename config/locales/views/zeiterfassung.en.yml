@@ -241,8 +241,6 @@ en:
           no_data: No times have been booked yet.
           empty_period: 'No times are booked for the period "%{period}".'
           empty_period_reset: Show all times
-        show_errors:
-          errors_found: "%{count} error(s) found:"
       time_session_groups:
         groups_list:
           table:

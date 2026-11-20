@@ -859,6 +859,3 @@ en:
           cancel: Cancel
           create: Create Tag
           update: Update Tag
-        tag_list:
-          title: Tags
-          no_tags: No tags yet

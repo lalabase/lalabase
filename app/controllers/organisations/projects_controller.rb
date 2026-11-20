@@ -2,7 +2,6 @@
 
 class Organisations::ProjectsController < Organisations::BaseController
   include Sortable
-  include PerformanceOptimized
 
   class_attribute :default_sort_column
   self.default_sort_column = 'projects.created_at'

@@ -407,8 +407,6 @@ de:
         tag_form:
           placeholder: Tags eingeben, durch Kommas getrennt
           hint: Tags durch Kommas trennen (z.B. "wichtig, meeting, todo")
-        tag_list:
-          label: Tags
       ticket_attribute_definitions:
         form:
           errors_prevent_save: "%{count} Fehler verhindert das Speichern:"
@@ -463,12 +461,6 @@ de:
             priority_high: Hoch
             time_verbose: 2,50 Stunden (gesamt)
             subscriber_you: Du
-      time_sessions:
-        show_errors:
-          errors_count:
-            one: "%{count} Fehler"
-            other: "%{count} Fehler"
-          found_suffix: 'gefunden:'
   components:
     neo_activity_filter:
       add_filter: Filter

@@ -88,7 +88,6 @@ module ShadowLevels
     'app/views/organisations/personal_tasks/_form.html.erb' => 1,
     'app/views/organisations/project_repositories/index_runs.html.erb' => 1,
     'app/views/organisations/shared/_ai_disabled_notice.html.erb' => 1,
-    'app/views/organisations/smart_folders/_modal_form.html.erb' => 1,
     'app/views/organisations/smart_folders/edit.html.erb' => 1,
     'app/views/organisations/smart_folders/new.html.erb' => 1,
     'app/views/organisations/ticket_attribute_definitions/merge_option.html.erb' => 1,

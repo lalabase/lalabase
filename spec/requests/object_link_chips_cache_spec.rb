@@ -9,9 +9,8 @@ require 'rails_helper'
 #        reader may see it NOW: a renamed target must show its new name, and a reader who
 #        lost the right must not see the old one from the cache. The key carries a digest
 #        of the RENDERED content, chips included; this spec holds that it is enough.
-#        (The partial is rendered by no page today, organisations/tickets/_post_new has no
-#        caller; the timeline renders the component uncached. The spec holds the cache for
-#        the day it comes back.)
+#        (The partial is rendered by no page today; the timeline renders the component
+#        uncached. The spec holds the cache for the day it comes back.)
 RSpec.describe 'Object chips in a cached comment', :ci_guard, :object_link_render do
   let(:organisation) { create(:organisation) }
   let(:project) { create(:project, organisation: organisation) }

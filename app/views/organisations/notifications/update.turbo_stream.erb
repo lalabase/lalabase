@@ -2,8 +2,7 @@
 
 <% action_type = @action_type || params[:action_type] || params.dig(:notification, :state) %>
 
-<% view_variant = params[:view_variant].presence || params[:view_mode].presence %>
-<% view_variant ||= @action_type == 'mark_group_read' || params[:action_type] == 'mark_group_read' ? 'grouped' : nil %>
+<% view_variant = params[:view_variant].presence %>
 
 <%# If the affected notification is currently open in the inbox pane,
     swap ONLY the status pills in the pane header — NOT the whole
@@ -20,20 +19,13 @@
 <%# Re-render the master list entirely via the presenter — date headers
     disappear automatically when the last item of a group is removed,
     the empty state appears as soon as nothing is left.
-    For legacy callers (dropdown, briefing lane) the
-    single item-replace is still used — recognizable by view_variant. %>
-<% if view_variant.in?(%w[grouped card]) %>
-  <%# Legacy: single item-replace for external callers. %>
+    A card (NeoNotificationCardComponent, view_variant=card in its own action
+    addresses) still gets the single item-replace. %>
+<% if view_variant == 'card' %>
   <%= turbo_stream.replace dom_id(@notification) do %>
-    <% if view_variant == 'grouped' %>
-      <div id="<%= dom_id(@notification) %>" data-notification-item="<%= @notification.id %>" class="px-4 py-2 hover:bg-gray-50 transition-colors">
-        <%= render NeoNotificationGroupedItemComponent.new(notification: @notification, view_variant: 'grouped') %>
-      </div>
-    <% else %>
-      <div id="<%= dom_id(@notification) %>" data-notification-item="<%= @notification.id %>">
-        <%= render NeoNotificationCardComponent.new(notification: @notification, show_project: true, view_variant: 'card') %>
-      </div>
-    <% end %>
+    <div id="<%= dom_id(@notification) %>" data-notification-item="<%= @notification.id %>">
+      <%= render NeoNotificationCardComponent.new(notification: @notification, show_project: true, view_variant: 'card') %>
+    </div>
   <% end %>
 <% else %>
   <%# Inbox default: re-render the entire master via the presenter. %>

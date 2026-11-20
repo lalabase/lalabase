@@ -29,7 +29,7 @@ Germany.
 everything resets every night.
 
 [Website](https://lalabase.com/en) · [Self-hosting](https://lalabase.com/docs/en/self-hosting/getting-started/overview) ·
-[Cloud pricing](https://lalabase.com/en/pricing) · [Changelog](CHANGELOG.md)
+[Cloud pricing](https://lalabase.com/en/pricing) · [Changelog](CHANGELOG.md) · [Roadmap](ROADMAP.md)
 
 <table>
   <tr>

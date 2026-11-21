@@ -534,6 +534,7 @@ de:
           stat_active: Standard
           stat_inactive: Kein Standard
           stat_usage_30d: Usage (30d)
+          stat_usage_tokens: "%{count} Tokens"
           stat_created: Erstellt
           errors_title: 'Es sind %{count} Fehler aufgetreten:'
           section_basic: Grundinformationen

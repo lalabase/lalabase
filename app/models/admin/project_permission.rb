@@ -99,17 +99,6 @@ module Admin
     end
 
     # =========================================================================
-    # Scopes
-    # =========================================================================
-    scope :with_any_access, lambda {
-      where.not(
-        ACCESS_AREAS.to_h { |area| [:"#{area}_access", :no_access] }
-      )
-    }
-    scope :ordered_by_project, -> { joins(:project).order('projects.name') }
-    scope :ordered_by_user, -> { joins(:user).order('users.email') }
-
-    # =========================================================================
     # Delegations
     # =========================================================================
     delegate :email, to: :user, prefix: true, allow_nil: true
@@ -141,11 +130,6 @@ module Admin
           css: public_send(:"#{area}_access_css_class")
         }
       end
-    end
-
-    # Check whether at least one area has access
-    def has_any_access?
-      ACCESS_AREAS.any? { |area| public_send(:"#{area}_access") != 'no_access' }
     end
   end
 end

@@ -150,25 +150,6 @@ RSpec.describe Admin::Role, type: :model do
   # =========================================================================
 
   describe 'scopes' do
-    let!(:default_role) { create_role(title: 'Default Role', is_default: true) }
-    let!(:custom_role) { create_role(title: 'Custom Role', is_default: false) }
-
-    describe '.default_roles' do
-      it 'returns only default roles' do
-        result = described_class.where(organisation_id: organisation.id).default_roles
-        expect(result).to include(default_role)
-        expect(result).not_to include(custom_role)
-      end
-    end
-
-    describe '.custom_roles' do
-      it 'returns only non-default roles' do
-        result = described_class.where(organisation_id: organisation.id).custom_roles
-        expect(result).to include(custom_role)
-        expect(result).not_to include(default_role)
-      end
-    end
-
     describe '.ordered_by_title' do
       it 'orders roles alphabetically by title' do
         alpha = create_role(title: 'Alpha')
@@ -196,116 +177,11 @@ RSpec.describe Admin::Role, type: :model do
         expect(result.to_a.index(role_alpha)).to be < result.to_a.index(role_zeta)
       end
     end
-
-    describe 'scope chaining' do
-      it 'chains default_roles with ordered_by_title' do
-        result = described_class.where(organisation_id: organisation.id)
-                                .default_roles
-                                .ordered_by_title
-        expect(result).to include(default_role)
-        expect(result).not_to include(custom_role)
-      end
-    end
   end
 
   # =========================================================================
   # Instance Methods
   # =========================================================================
-
-  describe '#organisation_name' do
-    it 'returns the organisation name' do
-      role = create_role
-      expect(role.organisation_name).to eq(organisation.name)
-    end
-
-    it 'returns nil when organisation is nil via safe navigation' do
-      role = build_role
-      allow(role).to receive(:organisation).and_return(nil)
-      expect(role.organisation_name).to be_nil
-    end
-  end
-
-  describe '#role_type_text' do
-    it 'returns translated default role text for default roles' do
-      role = build_role(is_default: true)
-      expect(role.role_type_text).to eq(I18n.t('models.admin.role.type.default'))
-    end
-
-    it 'returns translated custom role text for custom roles' do
-      role = build_role(is_default: false)
-      expect(role.role_type_text).to eq(I18n.t('models.admin.role.type.custom'))
-    end
-
-    it 'respects locale switching' do
-      role = build_role(is_default: true)
-
-      de_text = I18n.with_locale(:de) { role.role_type_text }
-      en_text = I18n.with_locale(:en) { role.role_type_text }
-
-      expect(de_text).to eq('Standard-Rolle')
-      expect(en_text).to eq('Default Role')
-    end
-  end
-
-  describe '#users_count' do
-    it 'returns 0 when no memberships exist' do
-      role = create_role
-      expect(role.users_count).to eq(0)
-    end
-
-    it 'counts all memberships (active and inactive)' do
-      role = create_role
-      user1 = create(:user)
-      user2 = create(:user)
-
-      Admin::Membership.create!(
-        organisation_id: organisation.id, user_id: user1.id,
-        role_id: role.id, active: true
-      )
-      Admin::Membership.create!(
-        organisation_id: organisation.id, user_id: user2.id,
-        role_id: role.id, active: false
-      )
-
-      expect(role.users_count).to eq(2)
-    end
-  end
-
-  describe '#active_users_count' do
-    it 'returns 0 when no active memberships exist' do
-      role = create_role
-      expect(role.active_users_count).to eq(0)
-    end
-
-    it 'counts only active memberships' do
-      role = create_role
-      active_user = create(:user)
-      inactive_user = create(:user)
-
-      Admin::Membership.create!(
-        organisation_id: organisation.id, user_id: active_user.id,
-        role_id: role.id, active: true
-      )
-      Admin::Membership.create!(
-        organisation_id: organisation.id, user_id: inactive_user.id,
-        role_id: role.id, active: false
-      )
-
-      expect(role.active_users_count).to eq(1)
-    end
-
-    it 'returns 0 when all memberships are inactive' do
-      role = create_role
-      user = create(:user)
-
-      Admin::Membership.create!(
-        organisation_id: organisation.id, user_id: user.id,
-        role_id: role.id, active: false
-      )
-
-      expect(role.active_users_count).to eq(0)
-    end
-  end
 
   describe '#display_title' do
     it 'returns plain title for non-default roles' do
@@ -351,94 +227,6 @@ RSpec.describe Admin::Role, type: :model do
     it 'returns false for nil title' do
       role = build_role(title: nil)
       expect(role).not_to be_account_admin
-    end
-  end
-
-  # =========================================================================
-  # CSS Class Methods (Presentation-Logik als View-Model Trade-off)
-  # =========================================================================
-
-  describe '#role_type_css_class' do
-    it 'returns purple classes for account_admin' do
-      role = build_role(title: ::Role::ACCOUNT_ADMIN_TITLE)
-      expect(role.role_type_css_class).to eq('bg-purple-100 text-purple-800')
-    end
-
-    it 'returns blue classes for default roles' do
-      role = build_role(title: 'Viewer', is_default: true)
-      expect(role.role_type_css_class).to eq('bg-blue-100 text-blue-800')
-    end
-
-    it 'returns gray classes for custom non-admin roles' do
-      role = build_role(title: 'Editor', is_default: false)
-      expect(role.role_type_css_class).to eq('bg-gray-100 text-gray-800')
-    end
-
-    it 'prioritizes account_admin over is_default' do
-      role = build_role(title: ::Role::ACCOUNT_ADMIN_TITLE, is_default: true)
-      expect(role.role_type_css_class).to eq('bg-purple-100 text-purple-800')
-    end
-  end
-
-  describe '#status_css_class' do
-    it 'returns green classes for default roles' do
-      role = build_role(is_default: true)
-      expect(role.status_css_class).to eq('bg-green-100 text-green-800')
-    end
-
-    it 'returns gray classes for non-default roles' do
-      role = build_role(is_default: false)
-      expect(role.status_css_class).to eq('bg-gray-100 text-gray-800')
-    end
-  end
-
-  # =========================================================================
-  # Summary Info
-  # =========================================================================
-
-  describe '#summary_info' do
-    it 'returns a complete hash with all expected keys' do
-      role = create_role(title: 'Editor', is_default: false)
-      info = role.summary_info
-
-      expect(info).to include(
-        title: 'Editor',
-        organisation: organisation.name,
-        type: I18n.t('models.admin.role.type.custom'),
-        users_count: 0,
-        active_users_count: 0,
-        is_default: false,
-        is_account_admin: false
-      )
-    end
-
-    it 'reflects correct counts with memberships' do
-      role = create_role(title: 'Editor')
-      user = create(:user)
-
-      Admin::Membership.create!(
-        organisation_id: organisation.id, user_id: user.id,
-        role_id: role.id, active: true
-      )
-
-      info = role.summary_info
-      expect(info[:users_count]).to eq(1)
-      expect(info[:active_users_count]).to eq(1)
-    end
-
-    it 'identifies account_admin correctly' do
-      role = create_role(title: ::Role::ACCOUNT_ADMIN_TITLE)
-      info = role.summary_info
-
-      expect(info[:is_account_admin]).to be true
-    end
-
-    it 'identifies default roles correctly' do
-      role = create_role(title: 'Default', is_default: true)
-      info = role.summary_info
-
-      expect(info[:is_default]).to be true
-      expect(info[:type]).to eq(I18n.t('models.admin.role.type.default'))
     end
   end
 

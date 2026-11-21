@@ -414,81 +414,6 @@ RSpec.describe Admin::AiCredential, type: :model do
     end
   end
 
-  describe '#status_text' do
-    it 'returns active_enabled when active and enabled' do
-      credential = build(:admin_ai_credential, :active, enabled: true)
-      expect(credential.status_text).to eq(I18n.t('models.admin_ai_credential.status.active_enabled'))
-    end
-
-    it 'returns active_disabled when active but disabled' do
-      credential = build(:admin_ai_credential, :active_disabled)
-      expect(credential.status_text).to eq(I18n.t('models.admin_ai_credential.status.active_disabled'))
-    end
-
-    it 'returns inactive when not active' do
-      credential = build(:admin_ai_credential, active: false)
-      expect(credential.status_text).to eq(I18n.t('models.admin_ai_credential.status.inactive'))
-    end
-
-    it 'returns inactive when not active even if enabled' do
-      credential = build(:admin_ai_credential, active: false, enabled: true)
-      expect(credential.status_text).to eq(I18n.t('models.admin_ai_credential.status.inactive'))
-    end
-  end
-
-  describe '#organization_display' do
-    it 'returns organization_id when present' do
-      credential = build(:admin_ai_credential, :with_organization)
-      expect(credential.organization_display).to eq('org-12345')
-    end
-
-    it 'returns i18n fallback when nil' do
-      credential = build(:admin_ai_credential, organization_id: nil)
-      expect(credential.organization_display).to eq(I18n.t('models.admin_ai_credential.display.no_organization_id'))
-    end
-
-    it 'returns i18n fallback when empty string' do
-      credential = build(:admin_ai_credential, organization_id: '')
-      expect(credential.organization_display).to eq(I18n.t('models.admin_ai_credential.display.no_organization_id'))
-    end
-  end
-
-  describe '#model_display' do
-    it 'returns default_model when present' do
-      credential = build(:admin_ai_credential, default_model: 'gpt-4')
-      expect(credential.model_display).to eq('gpt-4')
-    end
-
-    it 'returns i18n fallback when nil' do
-      credential = build(:admin_ai_credential, default_model: nil)
-      expect(credential.model_display).to eq(I18n.t('models.admin_ai_credential.display.no_default_model'))
-    end
-
-    it 'returns i18n fallback when empty string' do
-      credential = build(:admin_ai_credential, default_model: '')
-      expect(credential.model_display).to eq(I18n.t('models.admin_ai_credential.display.no_default_model'))
-    end
-  end
-
-  describe '#has_access_token?' do
-    it 'returns true when token present' do
-      credential = build(:admin_ai_credential)
-      expect(credential.has_access_token?).to be true
-    end
-
-    it 'returns false when token nil' do
-      credential = build(:admin_ai_credential)
-      credential.access_token = nil
-      expect(credential.has_access_token?).to be false
-    end
-
-    it 'returns false when token blank' do
-      credential = build(:admin_ai_credential)
-      credential.access_token = ''
-      expect(credential.has_access_token?).to be false
-    end
-  end
-
   describe '#masked_access_token' do
     it 'is a fixed five-asterisk mask regardless of token length (no wall, no length leak)' do
       # A per-char mask turned a service-account JSON into a card-breaking wall.
@@ -577,23 +502,6 @@ RSpec.describe Admin::AiCredential, type: :model do
              used_at: 60.days.ago)
     end
 
-    describe '#total_usage_tokens' do
-      it 'sums all tokens across all usages' do
-        expect(credential.total_usage_tokens).to eq(1500)
-      end
-
-      it 'returns 0 when no usages exist' do
-        empty_cred = create(:admin_ai_credential)
-        expect(empty_cred.total_usage_tokens).to eq(0)
-      end
-    end
-
-    describe '#total_usage_cost_cents' do
-      it 'sums all cost_cents across all usages' do
-        expect(credential.total_usage_cost_cents).to eq(30)
-      end
-    end
-
     describe '#recent_usage_tokens' do
       it 'sums tokens only within the given period (default 30 days)' do
         expect(credential.recent_usage_tokens).to eq(500)
@@ -618,103 +526,11 @@ RSpec.describe Admin::AiCredential, type: :model do
       end
     end
 
-    describe '#usage_count' do
-      it 'returns total number of usages' do
-        expect(credential.usage_count).to eq(2)
-      end
-    end
-
     describe '#recent_usage_count' do
       it 'returns count within the given period' do
         expect(credential.recent_usage_count).to eq(1)
         expect(credential.recent_usage_count(90)).to eq(2)
       end
-    end
-  end
-
-  describe '#status_css_class' do
-    it 'returns green for active and enabled' do
-      credential = build(:admin_ai_credential, :active, enabled: true)
-      expect(credential.status_css_class).to eq('bg-green-100 text-green-800')
-    end
-
-    it 'returns yellow for active but disabled' do
-      credential = build(:admin_ai_credential, :active_disabled)
-      expect(credential.status_css_class).to eq('bg-yellow-100 text-yellow-800')
-    end
-
-    it 'returns red for inactive regardless of enabled' do
-      credential = build(:admin_ai_credential, active: false, enabled: true)
-      expect(credential.status_css_class).to eq('bg-red-100 text-red-800')
-    end
-
-    it 'returns red for inactive and disabled' do
-      credential = build(:admin_ai_credential, active: false, enabled: false)
-      expect(credential.status_css_class).to eq('bg-red-100 text-red-800')
-    end
-  end
-
-  describe '#provider_css_class' do
-    it 'returns green for openai' do
-      expect(build(:admin_ai_credential, provider: 'openai').provider_css_class)
-        .to eq('bg-green-100 text-green-800')
-    end
-
-    it 'returns blue for anthropic' do
-      expect(build(:admin_ai_credential, provider: 'anthropic').provider_css_class)
-        .to eq('bg-blue-100 text-blue-800')
-    end
-
-    it 'returns blue for claude' do
-      expect(build(:admin_ai_credential, provider: 'claude').provider_css_class)
-        .to eq('bg-blue-100 text-blue-800')
-    end
-
-    it 'returns yellow for google' do
-      expect(build(:admin_ai_credential, provider: 'google').provider_css_class)
-        .to eq('bg-yellow-100 text-yellow-800')
-    end
-
-    it 'returns gray default for unknown provider' do
-      expect(build(:admin_ai_credential, provider: 'cohere').provider_css_class)
-        .to eq('bg-gray-100 text-gray-800')
-    end
-
-    it 'handles mixed-case provider names' do
-      expect(build(:admin_ai_credential, provider: 'OpenAI').provider_css_class)
-        .to eq('bg-green-100 text-green-800')
-    end
-
-    it 'returns default when provider is nil' do
-      credential = build(:admin_ai_credential)
-      credential.provider = nil
-      expect(credential.provider_css_class).to eq('bg-gray-100 text-gray-800')
-    end
-  end
-
-  describe '#additional_config_display' do
-    it 'returns i18n fallback when config is nil' do
-      credential = build(:admin_ai_credential, additional_config: nil)
-      expect(credential.additional_config_display)
-        .to eq(I18n.t('models.admin_ai_credential.display.no_extra_config'))
-    end
-
-    it 'returns i18n fallback when config is empty hash' do
-      credential = build(:admin_ai_credential, additional_config: {})
-      expect(credential.additional_config_display)
-        .to eq(I18n.t('models.admin_ai_credential.display.no_extra_config'))
-    end
-
-    it 'formats config entries as humanized key-value pairs' do
-      credential = build(:admin_ai_credential, :with_additional_config)
-      result = credential.additional_config_display
-      expect(result).to include('Max tokens: 4096')
-      expect(result).to include('Temperature: 0.7')
-    end
-
-    it 'joins multiple entries with comma' do
-      credential = build(:admin_ai_credential, additional_config: { 'a' => 1, 'b' => 2 })
-      expect(credential.additional_config_display).to eq('A: 1, B: 2')
     end
   end
 
@@ -783,40 +599,6 @@ RSpec.describe Admin::AiCredential, type: :model do
   # #test_connection is covered in ONE place further down — it used to be split
   # across two describe blocks pinning two different halves of the old
   # per-provider behaviour.
-
-  describe '#credential_summary' do
-    let(:organisation) { create(:organisation) }
-    let(:credential) { create(:admin_ai_credential, :with_organization, name: 'Test Cred', provider: 'openai', default_model: 'gpt-4') }
-
-    before do
-      create(:admin_ai_usage, ai_credential: credential, organisation: organisation,
-                              tokens_used: 100, cost_cents: 2, used_at: 5.days.ago)
-    end
-
-    it 'returns a complete summary hash' do
-      summary = credential.credential_summary
-
-      expect(summary[:name]).to eq('Test Cred')
-      expect(summary[:provider]).to eq('OpenAI (GPT)')
-      expect(summary[:status]).to be_a(String)
-      expect(summary[:organization_id]).to eq('org-12345')
-      expect(summary[:default_model]).to eq('gpt-4')
-      expect(summary[:total_usage_tokens]).to eq(100)
-      expect(summary[:total_usage_cost_cents]).to eq(2)
-      expect(summary[:recent_usage_tokens]).to eq(100)
-      expect(summary[:recent_usage_cost_cents]).to eq(2)
-      expect(summary[:usage_count]).to eq(1)
-      expect(summary[:has_access_token]).to be true
-    end
-
-    it 'handles credential without usages' do
-      empty_cred = create(:admin_ai_credential)
-      summary = empty_cred.credential_summary
-
-      expect(summary[:total_usage_tokens]).to eq(0)
-      expect(summary[:usage_count]).to eq(0)
-    end
-  end
 
   # The admin backend is the REAL create/edit surface for AI credentials, so the
   # access_token (service-account JSON / API keys) must be encrypted at rest here —
@@ -919,17 +701,6 @@ RSpec.describe Admin::AiCredential, type: :model do
   describe 'constants' do
     it 'no longer carries its own display-name map (S1: one source on AiCredential)' do
       expect(Admin::AiCredential.const_defined?(:PROVIDER_DISPLAY_NAMES, false)).to be(false)
-    end
-
-    it 'has frozen PROVIDER_CSS_CLASSES' do
-      expect(Admin::AiCredential::PROVIDER_CSS_CLASSES).to be_frozen
-    end
-
-    it 'PROVIDER_CSS_CLASSES has a class for every implemented provider or a default fallback' do
-      Admin::AiCredential.implemented_providers.each do |provider|
-        css = build(:admin_ai_credential, provider: provider).provider_css_class
-        expect(css).to be_present
-      end
     end
   end
 

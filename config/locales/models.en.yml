@@ -534,15 +534,8 @@ en:
         edit_all: "Edit all"
         delete_all: "Delete all"
     admin_ai_credential:
-      status:
-        active_enabled: "Active & Enabled"
-        active_disabled: "Active but Disabled"
-        inactive: "Inactive"
       display:
-        no_organization_id: "No Organization ID"
-        no_default_model: "No default model"
         no_token: "No token"
-        no_extra_config: "No additional configuration"
     system_setting:
       registration_disabled_message: "New registrations are currently not possible."
     codebase_import_file:
@@ -563,9 +556,6 @@ en:
       no_messages: "No messages"
     admin:
       role:
-        type:
-          default: "Default Role"
-          custom: "Custom Role"
         default_suffix: "Default"
       membership:
         no_role: "No role"

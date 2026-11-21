@@ -254,15 +254,6 @@ RSpec.describe Admin::User, type: :model do
         expect(results.first).to eq(active_user)
       end
     end
-
-    describe '.ordered_by_email' do
-      it 'orders by email ascending' do
-        user_a = create(:admin_user, email: 'aaa@example.com')
-        user_z = create(:admin_user, email: 'zzz@example.com')
-        results = described_class.where(id: [user_z.id, user_a.id]).ordered_by_email
-        expect(results.first).to eq(user_a)
-      end
-    end
   end
 
   describe 'display methods' do
@@ -418,62 +409,6 @@ RSpec.describe Admin::User, type: :model do
         create_admin_membership(user: user, organisation: org1, role: regular_role)
         create_admin_membership(user: user, organisation: org2, role: admin_role)
         expect(user.account_admin_organisations_count).to eq(1)
-      end
-    end
-  end
-
-  describe 'membership helper methods' do
-    let(:user) { create(:admin_user) }
-    let(:org) { create(:organisation) }
-
-    describe '#membership_in_organisation' do
-      it 'returns the membership for given organisation' do
-        membership = create_admin_membership(user: user, organisation: org)
-        expect(user.membership_in_organisation(org.id)).to eq(membership)
-      end
-
-      it 'returns nil when no membership exists' do
-        expect(user.membership_in_organisation(org.id)).to be_nil
-      end
-
-      it 'returns nil for non-existent organisation_id' do
-        expect(user.membership_in_organisation(SecureRandom.uuid)).to be_nil
-      end
-    end
-
-    describe '#active_membership_in_organisation?' do
-      it 'returns true when membership is active' do
-        create_admin_membership(user: user, organisation: org, active: true)
-        expect(user.active_membership_in_organisation?(org.id)).to be(true)
-      end
-
-      it 'returns false when membership is inactive' do
-        create_admin_membership(user: user, organisation: org, active: false)
-        expect(user.active_membership_in_organisation?(org.id)).to be(false)
-      end
-
-      it 'returns nil when no membership exists' do
-        expect(user.active_membership_in_organisation?(org.id)).to be_nil
-      end
-    end
-
-    describe '#role_in_organisation' do
-      it 'returns the role for given organisation' do
-        role = ActsAsTenant.with_tenant(org) { create(:role, organisation: org) }
-        create_admin_membership(user: user, organisation: org, role: role)
-        expect(user.role_in_organisation(org.id).id).to eq(role.id)
-      end
-
-      it 'returns nil when membership has no role' do
-        Admin::Membership.create!(
-          user_id: user.id, organisation_id: org.id,
-          role_id: nil, active: true
-        )
-        expect(user.role_in_organisation(org.id)).to be_nil
-      end
-
-      it 'returns nil when no membership exists' do
-        expect(user.role_in_organisation(org.id)).to be_nil
       end
     end
   end

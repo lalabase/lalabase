@@ -69,28 +69,10 @@ module Admin
     # permissions via the admin path with nothing to stop it.
 
     # Scopes for admin filtering
-    scope :default_roles, -> { where(is_default: true) }
-    scope :custom_roles, -> { where(is_default: false) }
     scope :ordered_by_title, -> { order(:title) }
     scope :ordered_by_organisation, -> { joins(:organisation).order('organisations.name, title') }
 
     # Admin-specific helper methods
-    def organisation_name
-      organisation&.name
-    end
-
-    def role_type_text
-      I18n.t(is_default? ? 'models.admin.role.type.default' : 'models.admin.role.type.custom')
-    end
-
-    def users_count
-      memberships.count
-    end
-
-    def active_users_count
-      memberships.where(active: true).count
-    end
-
     def display_title
       suffix = is_default? ? " (#{I18n.t('models.admin.role.default_suffix')})" : ''
       "#{title}#{suffix}"
@@ -98,36 +80,6 @@ module Admin
 
     def account_admin?
       title == ::Role::ACCOUNT_ADMIN_TITLE
-    end
-
-    # CSS classes for badge display in the admin backend
-    # Note: presentation logic in the model is a DELIBERATE trade-off,
-    # since Admin::Role serves as a view model for the admin dashboard.
-    def role_type_css_class
-      if account_admin?
-        'bg-purple-100 text-purple-800'
-      elsif is_default?
-        'bg-blue-100 text-blue-800'
-      else
-        'bg-gray-100 text-gray-800'
-      end
-    end
-
-    def status_css_class
-      is_default? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-    end
-
-    # Summary for admin display
-    def summary_info
-      {
-        title: title,
-        organisation: organisation_name,
-        type: role_type_text,
-        users_count: users_count,
-        active_users_count: active_users_count,
-        is_default: is_default?,
-        is_account_admin: account_admin?
-      }
     end
   end
 end

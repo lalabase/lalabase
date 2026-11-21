@@ -71,17 +71,6 @@ module Admin
     # protection did nothing at all.
     include AiCredentialDestroyProtection
 
-    PROVIDER_CSS_CLASSES = {
-      ::AiCredential::PROVIDER_OPENAI => 'bg-green-100 text-green-800',
-      ::AiCredential::PROVIDER_ANTHROPIC => 'bg-blue-100 text-blue-800',
-      # 'claude' is NOT part of the provider vocabulary — a legacy value that
-      # only ever reached ai_usages rows, kept so old badges keep their colour.
-      'claude' => 'bg-blue-100 text-blue-800',
-      ::AiCredential::PROVIDER_GOOGLE => 'bg-yellow-100 text-yellow-800'
-    }.freeze
-
-    DEFAULT_PROVIDER_CSS_CLASS = 'bg-gray-100 text-gray-800'
-
     # Fixed-width token mask for the detail/edit surfaces. A per-character mask
     # turns a service-account JSON (thousands of chars) into a card-breaking wall
     # of asterisks; a constant five is all the "it's hidden" signal a single
@@ -178,26 +167,6 @@ module Admin
       reencrypt_tokens!
     end
 
-    def status_text
-      if active?
-        enabled? ? I18n.t('models.admin_ai_credential.status.active_enabled') : I18n.t('models.admin_ai_credential.status.active_disabled')
-      else
-        I18n.t('models.admin_ai_credential.status.inactive')
-      end
-    end
-
-    def organization_display
-      organization_id.presence || I18n.t('models.admin_ai_credential.display.no_organization_id')
-    end
-
-    def model_display
-      default_model.presence || I18n.t('models.admin_ai_credential.display.no_default_model')
-    end
-
-    def has_access_token?
-      access_token.present?
-    end
-
     def masked_access_token
       return I18n.t('models.admin_ai_credential.display.no_token') if access_token.blank?
 
@@ -217,14 +186,6 @@ module Admin
     end
 
     # Statistics methods for the admin dashboard
-    def total_usage_tokens
-      ai_usages.sum(:tokens_used)
-    end
-
-    def total_usage_cost_cents
-      ai_usages.sum(:cost_cents)
-    end
-
     def recent_usage_tokens(days = 30)
       ai_usages.recent(days).sum(:tokens_used)
     end
@@ -233,32 +194,8 @@ module Admin
       ai_usages.recent(days).sum(:cost_cents)
     end
 
-    def usage_count
-      ai_usages.count
-    end
-
     def recent_usage_count(days = 30)
       ai_usages.recent(days).count
-    end
-
-    def status_css_class
-      if active? && enabled?
-        'bg-green-100 text-green-800'
-      elsif active?
-        'bg-yellow-100 text-yellow-800'
-      else
-        'bg-red-100 text-red-800'
-      end
-    end
-
-    def provider_css_class
-      PROVIDER_CSS_CLASSES.fetch(provider&.downcase, DEFAULT_PROVIDER_CSS_CLASS)
-    end
-
-    def additional_config_display
-      return I18n.t('models.admin_ai_credential.display.no_extra_config') if additional_config.blank?
-
-      additional_config.map { |key, value| "#{key.humanize}: #{value}" }.join(', ')
     end
 
     # Display names come from the ONE source on the runtime model (S1 facade
@@ -285,21 +222,5 @@ module Admin
     # GoogleVertexProvider#connectivity_check, which mints the same OAuth token
     # and thereby validates the whole service-account JSON. The other providers
     # gained a real probe instead of their `access_token.present?` stub.
-
-    def credential_summary
-      {
-        name: name,
-        provider: provider_display_name,
-        status: status_text,
-        organization_id: organization_display,
-        default_model: model_display,
-        total_usage_tokens: total_usage_tokens,
-        total_usage_cost_cents: total_usage_cost_cents,
-        recent_usage_tokens: recent_usage_tokens,
-        recent_usage_cost_cents: recent_usage_cost_cents,
-        usage_count: usage_count,
-        has_access_token: has_access_token?
-      }
-    end
   end
 end

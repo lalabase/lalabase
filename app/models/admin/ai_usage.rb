@@ -66,118 +66,15 @@ module Admin
     # Scopes for admin filtering and statistics
     scope :recent, ->(days = 30) { where('used_at >= ?', days.days.ago) }
     scope :by_provider, ->(provider) { where(provider: provider) }
-    scope :ordered_by_date, -> { order(used_at: :desc) }
-    scope :ordered_by_usage, -> { order(tokens_used: :desc) }
-    scope :ordered_by_cost, -> { order(cost_cents: :desc) }
 
     # Admin-specific helper methods
-    def organisation_name
-      organisation&.name
-    end
-
-    def ai_credential_name
-      ai_credential&.name || 'System-Credentials'
-    end
-
-    def provider_display
-      provider&.capitalize || 'Unbekannt'
-    end
-
     def cost_in_euros
       cost_cents / 100.0
     end
 
-    def usage_date
-      used_at&.strftime('%d.%m.%Y %H:%M') || '-'
-    end
-
-    def model_display
-      model_used.presence || 'Unbekanntes Model'
-    end
-
-    # Statistics helper methods for the admin dashboard
-    def self.total_tokens_for_period(days = 30)
-      recent(days).sum(:tokens_used)
-    end
-
-    def self.total_cost_for_period(days = 30)
-      recent(days).sum(:cost_cents)
-    end
-
-    def self.average_tokens_per_request(days = 30)
-      scope = recent(days)
-      usage_count = scope.count
-      return 0 if usage_count == 0
-
-      scope.sum(:tokens_used) / usage_count
-    end
-
-    def self.usage_by_provider(days = 30)
-      recent(days)
-        .group(:provider)
-        .sum(:tokens_used)
-    end
-
-    def self.cost_by_provider(days = 30)
-      recent(days)
-        .group(:provider)
-        .sum(:cost_cents)
-    end
-
-    def self.usage_by_organisation(days = 30)
-      recent(days)
-        .joins(:organisation)
-        .group('organisations.name')
-        .sum(:tokens_used)
-    end
-
-    def self.top_consuming_organisations(limit = 10, days = 30)
-      recent(days)
-        .joins(:organisation)
-        .group('organisations.name')
-        .order('sum_tokens_used DESC')
-        .limit(limit)
-        .sum(:tokens_used)
-        .to_a
-    end
-
     # Formatting helper methods
-    def tokens_formatted
-      tokens_used.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
-    end
-
     def cost_formatted
       "€ #{format('%.2f', cost_in_euros)}"
-    end
-
-    # CSS classes for provider badges
-    def provider_css_class
-      case provider&.downcase
-      when ::AiCredential::PROVIDER_OPENAI
-        'bg-green-100 text-green-800'
-      # 'claude' is NOT part of the provider vocabulary — a legacy value that only
-      # ever reached ai_usages rows, kept so old rows keep their badge colour.
-      when 'claude', ::AiCredential::PROVIDER_ANTHROPIC
-        'bg-blue-100 text-blue-800'
-      when ::AiCredential::PROVIDER_GOOGLE
-        'bg-yellow-100 text-yellow-800'
-      else
-        'bg-gray-100 text-gray-800'
-      end
-    end
-
-    # Summary for admin display
-    def usage_summary
-      {
-        organisation: organisation_name,
-        provider: provider_display,
-        model: model_display,
-        tokens: tokens_used,
-        cost_cents: cost_cents,
-        cost_euros: cost_in_euros,
-        date: usage_date,
-        credential: ai_credential_name
-      }
     end
   end
 end

@@ -168,58 +168,6 @@ RSpec.describe Admin::ProjectPermission, type: :model do
   end
 
   # ===========================================================================
-  # Scopes
-  # ===========================================================================
-  describe 'scopes' do
-    describe '.with_any_access' do
-      it 'returns records where at least one area has access' do
-        with_access = create_permission(tickets_access: 'read_only')
-        create_permission(user: create(:user)) # all no_access
-
-        expect(described_class.with_any_access).to contain_exactly(with_access)
-      end
-
-      it 'returns records where only members_access is set' do
-        members_only = create_permission(members_access: 'read_write')
-        expect(described_class.with_any_access).to contain_exactly(members_only)
-      end
-
-      it 'returns records where multiple areas have access' do
-        multi = create_permission(tickets_access: 'read_write', notes_access: 'read_only')
-        expect(described_class.with_any_access).to contain_exactly(multi)
-      end
-
-      it 'excludes records where all areas are no_access' do
-        create_permission # all defaults = no_access
-        expect(described_class.with_any_access).to be_empty
-      end
-    end
-
-    describe '.ordered_by_project' do
-      it 'orders by project name ascending' do
-        project_b = ActsAsTenant.with_tenant(organisation) { create(:project, name: 'Beta', organisation: organisation) }
-        project_a = ActsAsTenant.with_tenant(organisation) { create(:project, name: 'Alpha', organisation: organisation) }
-        perm_b = create_permission(project: project_b)
-        perm_a = create_permission(user: create(:user), project: project_a)
-
-        expect(described_class.ordered_by_project.to_a).to eq([perm_a, perm_b])
-      end
-    end
-
-    describe '.ordered_by_user' do
-      it 'orders by user email ascending' do
-        user_z = create(:user, email: 'zara@example.com')
-        user_a = create(:user, email: 'alice@example.com')
-        perm_z = create_permission(user: user_z)
-        other_project = ActsAsTenant.with_tenant(organisation) { create(:project, organisation: organisation) }
-        perm_a = create_permission(user: user_a, project: other_project)
-
-        expect(described_class.ordered_by_user.to_a).to eq([perm_a, perm_z])
-      end
-    end
-  end
-
-  # ===========================================================================
   # Delegation Methods
   # ===========================================================================
   describe 'delegation methods' do
@@ -343,49 +291,6 @@ RSpec.describe Admin::ProjectPermission, type: :model do
       summary.each_value do |entry|
         expect(entry[:level]).to eq('no_access')
         expect(entry[:css]).to eq('bg-gray-100 text-gray-800')
-      end
-    end
-  end
-
-  # ===========================================================================
-  # #has_any_access?
-  # ===========================================================================
-  describe '#has_any_access?' do
-    it 'returns false when all areas are no_access' do
-      permission = create_permission
-      expect(permission.has_any_access?).to be false
-    end
-
-    it 'returns true when at least one area has read_only' do
-      permission = create_permission(notes_access: 'read_only')
-      expect(permission.has_any_access?).to be true
-    end
-
-    it 'returns true when at least one area has read_write' do
-      permission = create_permission(documents_access: 'read_write')
-      expect(permission.has_any_access?).to be true
-    end
-
-    it 'returns true when only members_access has access' do
-      permission = create_permission(members_access: 'read_only')
-      expect(permission.has_any_access?).to be true
-    end
-
-    it 'returns true when all areas have access' do
-      permission = create_permission(
-        tickets_access: 'read_write',
-        notes_access: 'read_write',
-        chats_access: 'read_write',
-        documents_access: 'read_write',
-        members_access: 'read_write'
-      )
-      expect(permission.has_any_access?).to be true
-    end
-
-    described_class::ACCESS_AREAS.each do |area|
-      it "detects access when only #{area} is set" do
-        permission = create_permission("#{area}_access": 'read_write')
-        expect(permission.has_any_access?).to be true
       end
     end
   end

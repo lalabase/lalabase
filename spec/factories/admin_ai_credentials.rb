@@ -17,11 +17,6 @@ FactoryBot.define do
       enabled { false }
     end
 
-    trait :active_disabled do
-      active { true }
-      enabled { false }
-    end
-
     trait :anthropic do
       provider { 'anthropic' }
       default_model { 'claude-3-opus' }
@@ -42,14 +37,6 @@ FactoryBot.define do
           client_email: 'vertex@lala-eu.iam.gserviceaccount.com' }.to_json
       end
       additional_config { { 'project_id' => 'lala-eu', 'location' => 'europe-west3' } }
-    end
-
-    trait :with_organization do
-      organization_id { 'org-12345' }
-    end
-
-    trait :with_additional_config do
-      additional_config { { 'max_tokens' => 4096, 'temperature' => 0.7 } }
     end
 
     trait :without_token do

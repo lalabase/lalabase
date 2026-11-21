@@ -26,9 +26,8 @@ class User < ApplicationRecord
   # spec/models/user/organisation_membership_spec.rb.
   #
   # SCOPE NOTE: Admin::User is a SEPARATE class (same users table, no Devise, no
-  # acts_as_tenant) with its OWN role_in_organisation that takes an organisation_id
-  # rather than an object. That copy is deliberately NOT unified here and
-  # Admin::User does NOT include this concern; this concern is included ONLY in User.
+  # acts_as_tenant) and does NOT include this concern; this concern is included
+  # ONLY in User.
   module OrganisationMembership
     extend ActiveSupport::Concern
 

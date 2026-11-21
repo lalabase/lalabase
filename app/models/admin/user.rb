@@ -131,7 +131,6 @@ module Admin
     scope :active, -> { where(active: true) }
     scope :inactive, -> { where(active: false) }
     scope :ordered_by_creation, -> { order(:created_at) }
-    scope :ordered_by_email, -> { order(:email) }
     # The "Lalabase" system account (onboarding seed actor) is invisible to the
     # admin backend: index uses this scope, destroy is aborted below. Canonical
     # definition lives in User::SystemAccount.
@@ -186,11 +185,6 @@ module Admin
       memberships.joins(:role).where('roles.title' => ::Role::ACCOUNT_ADMIN_TITLE).count
     end
 
-    # Membership helper methods
-    def membership_in_organisation(organisation_id)
-      memberships.find_by(organisation_id: organisation_id)
-    end
-
     def should_be_recommended_for_deletion?
       !deleted? && memberships.where(active: true).none?
     end
@@ -219,14 +213,6 @@ module Admin
       return false if source && source != 'backend'
 
       true
-    end
-
-    def active_membership_in_organisation?(organisation_id)
-      membership_in_organisation(organisation_id)&.active?
-    end
-
-    def role_in_organisation(organisation_id)
-      membership_in_organisation(organisation_id)&.role
     end
 
     # GDPR anonymization

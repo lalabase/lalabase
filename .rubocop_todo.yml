@@ -38,7 +38,6 @@ Lint/IneffectiveAccessModifier:
 # Configuration parameters: AutoCorrect.
 Lint/LiteralAsCondition:
   Exclude:
-    - 'app/models/admin/organisation.rb'
     - 'app/models/organisation.rb'
 
 # Offense count: 74
@@ -215,10 +214,7 @@ Naming/PredicatePrefix:
     - 'app/helpers/application_helper.rb'
     - 'app/helpers/projects_helper.rb'
     - 'app/models/activity.rb'
-    - 'app/models/admin/ai_credential.rb'
     - 'app/models/admin/organisation.rb'
-    - 'app/models/admin/project.rb'
-    - 'app/models/admin/project_permission.rb'
     - 'app/models/chatpost.rb'
     - 'app/models/concerns/custom_attributable.rb'
     - 'app/models/concerns/user_trackable.rb'
@@ -277,7 +273,6 @@ Rails/Blank:
     - 'app/helpers/sidebar_helper.rb'
     - 'app/helpers/smart_folder_helper.rb'
     - 'app/jobs/email_delivery_job.rb'
-    - 'app/models/admin/organisation.rb'
     - 'app/models/admin/user.rb'
     - 'app/models/ai_credential.rb'
     - 'app/models/codebase_import_file.rb'
@@ -567,7 +562,6 @@ Style/NumericPredicate:
     - 'app/controllers/organisations/time_session_groups_controller.rb'
     - 'app/helpers/application_helper.rb'
     - 'app/models/admin/ai_credential.rb'
-    - 'app/models/admin/ai_usage.rb'
     - 'app/models/codebase_import_file.rb'
     - 'app/models/email_log.rb'
     - 'app/models/system_setting.rb'
@@ -623,7 +617,6 @@ Style/StringConcatenation:
     - 'app/components/dynamic_field_component.rb'
     - 'app/controllers/organisations/time_session_groups_controller.rb'
     - 'app/helpers/application_helper.rb'
-    - 'app/models/admin/organisation.rb'
     - 'lib/tasks/i18n_hardcoded.rake'
     - 'lib/tasks/importmap_auto_pin.rake'
     - 'lib/tasks/importmap_verify_runtime.rake'

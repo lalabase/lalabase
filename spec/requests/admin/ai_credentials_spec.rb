@@ -150,6 +150,48 @@ RSpec.describe 'Admin::AiCredentials', type: :request do
     end
   end
 
+  # Both tiles looked the stats up by the provider name, a key the hash never
+  # has, and showed 0 for every credential, however much it was used.
+  describe 'the "Usage (30d)" tile of the detail and edit pages' do
+    let(:credential) { create(:admin_ai_credential) }
+    let(:tokens_in_window) { ActiveSupport::NumberHelper.number_to_delimited(60_328) }
+
+    before do
+      organisation = create(:organisation)
+      create(:admin_ai_usage, ai_credential: credential, organisation: organisation,
+                              tokens_used: 1_500, used_at: 2.days.ago)
+      create(:admin_ai_usage, ai_credential: credential, organisation: organisation,
+                              tokens_used: 58_828, used_at: 20.days.ago)
+      # Neither of these counts: one is older than 30 days, the other belongs
+      # to another credential.
+      create(:admin_ai_usage, ai_credential: credential, organisation: organisation,
+                              tokens_used: 9_999, used_at: 40.days.ago)
+      create(:admin_ai_usage, organisation: organisation, tokens_used: 7_777, used_at: 1.day.ago)
+      log_in_admin
+    end
+
+    def usage_tile_text(label_key)
+      label = Nokogiri::HTML(response.body).css('dt').find { |dt| dt.text.strip == I18n.t(label_key) }
+      expect(label).to be_present
+      label.parent.at_css('dd').text.squish
+    end
+
+    it 'shows the tokens of the last 30 days on the detail page' do
+      get admin_ai_credential_path(credential)
+
+      expect(response).to have_http_status(:ok)
+      expect(usage_tile_text('views.admin.ai_credentials.show.stat_usage_30d')).to eq(tokens_in_window)
+    end
+
+    it 'shows the tokens of the last 30 days on the edit page' do
+      get edit_admin_ai_credential_path(credential)
+
+      expect(response).to have_http_status(:ok)
+      expect(usage_tile_text('views.admin.ai_credentials.edit.stat_usage_30d'))
+        .to eq(I18n.t('views.admin.ai_credentials.edit.stat_usage_tokens', count: tokens_in_window))
+    end
+  end
+
   describe 'PATCH /admin/ai_credentials/:id' do
     it 'updates the endpoint URL' do
       credential = create(:ai_credential, provider: 'openai_compatible',

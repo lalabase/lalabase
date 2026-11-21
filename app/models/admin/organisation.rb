@@ -11,7 +11,6 @@
 #
 # MAIN DIFFERENCES FROM THE FRONTEND MODEL:
 # ❌ NO acts_as_tenant - enables cross-organisation queries
-# ✅ Admin-specific statistics methods
 # ✅ All organisations can be managed at the same time
 # ✅ Performance-optimized queries for the admin dashboard
 #
@@ -168,72 +167,10 @@ module Admin
     # Scopes for admin filtering
     scope :ordered_by_name, -> { order(:name) }
     scope :ordered_by_creation, -> { order(:created_at) }
-    scope :with_domain, -> { where.not(domain: [nil, '']) }
-    scope :with_subdomain, -> { where.not(subdomain: [nil, '']) }
 
     # Admin-specific helper methods
     def display_name
       name.presence || "Organisation #{id&.slice(0, 8)}"
-    end
-
-    def domain_info
-      parts = []
-      parts << "Domain: #{domain}" if domain.present?
-      parts << "Subdomain: #{subdomain}" if subdomain.present?
-      parts.join(' | ')
-    end
-
-    def full_url
-      return domain if domain.present?
-      return "#{subdomain}.example.com" if subdomain.present?
-
-      nil
-    end
-
-    # Statistics methods for the admin dashboard
-    def total_users_count
-      memberships.distinct.count(:user_id)
-    end
-
-    def active_users_count
-      memberships.where(active: true).distinct.count(:user_id)
-    end
-
-    def inactive_users_count
-      memberships.where(active: false).distinct.count(:user_id)
-    end
-
-    def total_projects_count
-      projects.count
-    end
-
-    def admin_users_count
-      memberships.joins(:role).where('roles.title' => ::Role::ACCOUNT_ADMIN_TITLE).count
-    end
-
-    # Membership helper methods
-    def membership_for_user(user_id)
-      memberships.find_by(user_id: user_id)
-    end
-
-    def has_active_user?(user_id)
-      memberships.where(user_id: user_id, active: true).exists?
-    end
-
-    # Loading memberships with preloaded associations for admin views
-    def memberships_with_details
-      memberships.includes(:user, :role).joins(:user).order('users.email')
-    end
-
-    # AI configuration (if relevant for the admin view)
-    def ai_provider_info
-      return 'Kein AI Provider' if ai_provider.blank?
-
-      "#{ai_provider.capitalize}#{ai_organization_id.present? ? " (#{ai_organization_id})" : ''}"
-    end
-
-    def ai_configured?
-      ai_access_token.present? && ai_provider.present?
     end
 
     # AI credentials check for the admin dashboard. Mirrors the regular
@@ -253,38 +190,6 @@ module Admin
     # Organisation#ai_provider_display_name so admin and app can never diverge.
     def ai_provider_display_name
       ::AiCredential.provider_display_names[ai_provider] || ai_provider&.capitalize || 'Standard'
-    end
-
-    # Get masked version of organisation's AI token for display purposes
-    # Mirrors the method from the regular Organisation model
-    def masked_ai_token
-      return nil unless ai_access_token.present?
-
-      case ai_provider || ::AiCredential::PROVIDER_OPENAI
-      when ::AiCredential::PROVIDER_OPENAI
-        'sk-' + '*' * 40 + ai_access_token.last(8)
-      when ::AiCredential::PROVIDER_ANTHROPIC
-        'sk-ant-' + '*' * 80 + ai_access_token.last(8)
-      else
-        '*' * 40 + ai_access_token.last(8)
-      end
-    end
-
-    # AI usage statistics
-    def total_ai_usage_tokens
-      ai_usages.sum(:tokens_used)
-    end
-
-    def total_ai_usage_cost_cents
-      ai_usages.sum(:cost_cents)
-    end
-
-    def recent_ai_usage_tokens(days = 30)
-      ai_usages.recent(days).sum(:tokens_used)
-    end
-
-    def recent_ai_usage_cost_cents(days = 30)
-      ai_usages.recent(days).sum(:cost_cents)
     end
 
     # ==========================================================================

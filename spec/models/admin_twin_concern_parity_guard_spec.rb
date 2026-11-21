@@ -69,10 +69,11 @@ module AdminTwinParity
 
     # No operator write path exists: there is no Admin::ProjectsController and
     # no create/update/save on Admin::Project anywhere in app/. The class is
-    # only reached through associations (admin/organisation.rb:126,
-    # admin/user.rb:100, admin/project_permission.rb:76); the single write is
-    # the cascaded dependent: :destroy when an organisation is deleted. Nothing
-    # for an audit trail to record. Revisit if an admin project screen appears.
+    # only reached through associations (Admin::Organisation#projects,
+    # Admin::User#permitted_projects, Admin::ProjectPermission#project); the
+    # single write is the cascaded dependent: :destroy when an organisation is
+    # deleted. Nothing for an audit trail to record. Revisit if an admin
+    # project screen appears.
     'projects|Trackable|Admin::Project',
     'projects|ProjectTrackable|Admin::Project',
 

@@ -16,6 +16,10 @@
 
    Everything down to the core-only appendix at the end is the website's auth.css
    (its sign-up page) word for word: keep it so, a change there is one copy here.
+   Not copied, each a consequence of the website's own change of November 2026 (a new
+   typeface, calm public pages): the weight of its headings, the block at the top of
+   its .lp-auth that sets the tokens back to the values landing_tokens.css still has
+   here, and the rule that keeps its language switch in mono.
    ============================================================ */
 
 .lp-auth {
@@ -406,22 +410,29 @@
 @media (max-width: 767px) {
   .lp-auth { grid-template-columns: 1fr; }
   .lp-auth-form-col { padding: 14px var(--lp-gutter) 24px; }
-  .lp-auth-main { padding: 24px 0; max-width: none; }
+  /* What does not fit beside the brand takes a line of its own, at the right edge,
+     instead of breaking into a column of single words. */
+  .lp-auth-top { flex-wrap: wrap; row-gap: 8px; }
+  .lp-auth-cross { margin-left: auto; }
+  /* The form starts under the brand row and the legal line closes the screen. Centred
+     as on a desktop it began a hand's width further down wherever the column fills
+     the screen, which it does once the panel is off (below). */
+  .lp-auth-main { margin: 0; padding: 24px 0; max-width: none; }
 
   .lp-auth-forgot-long { display: none; }
   .lp-auth-forgot-short { display: inline; }
 
+  /* On a phone the form is the page (22.11.2026). A panel that is a picture and states
+     nothing of its own (aria-hidden: the three steps beside the sign-up form, the
+     waiting inbox beside the sign-in of the app) is off there: whoever tapped "sign
+     up" is here to do that, and the dark block under the form drew the eye away from
+     it. A panel that carries a fact (how long a reset link is valid) can be read, so
+     it stays, under the form, and of a list of steps only the first two. */
+  .lp-auth-panel[aria-hidden="true"] { display: none; }
   .lp-auth-panel { padding: 40px var(--lp-gutter); border-left: 0; border-top: 2px solid var(--lp-black); }
-
-  /* Shortened panel: the third example row and the window chrome step back. */
-  .lp-auth-win-bar { display: none; }
-  .lp-auth-win { border: 0; box-shadow: none; }
-  .lp-auth-win-body { padding: 0; }
-  /* Two inbox rows on mobile -- the running timer stays, it is the hook. */
-  .lp-auth-row:nth-child(2) { display: none; }
   .lp-auth-step:last-child { display: none; }
 
-  .lp-auth-legal { justify-content: center; }
+  .lp-auth-legal { margin-top: auto; justify-content: center; }
 }
 
 /* ============================================================

@@ -178,5 +178,19 @@ RSpec.describe 'The skeleton of the signed-out pages', :ci_guard, type: :request
         expect(page.at_css('.lp-auth-panel')['aria-hidden']).to be_nil
       end
     end
+
+    # On a phone the panel stood under the form, and whoever came to sign in read "your
+    # inbox is waiting" below the button. Since 22.11.2026 the stylesheet takes a panel
+    # off there when it is hidden from screen readers, and no other: the attribute the
+    # examples above pin decides both. A mock that turns into a fact has to drop
+    # auth_panel_decorative, or nobody on a phone reads it.
+    it 'takes a mock off a phone, by the attribute and not by the page' do
+      phone = Rails.root.join('app/assets/stylesheets/auth.css').read[/^@media \(max-width: 767px\) \{.*?^\}/m]
+      hidden = phone.gsub(%r{/\*.*?\*/}m, '').scan(/([^{}]+)\{[^{}]*display:\s*none[^{}]*\}/).flatten
+                    .flat_map { |selectors| selectors.split(',').map(&:strip) }
+                    .grep(/\A\.lp-auth-panel(?![\w-])/)
+
+      expect(hidden).to eq(['.lp-auth-panel[aria-hidden="true"]'])
+    end
   end
 end

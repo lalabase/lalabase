@@ -518,7 +518,7 @@ Eine View liefert vier Dinge:
 | `yield` | Formularspalte: Vorzeile, Überschrift, Formular |
 | `content_for :auth_cross` | der Link oben rechts |
 | `content_for :auth_panel` | der Inhalt des dunklen Panels |
-| `content_for :auth_panel_decorative` | gesetzt, wenn das Panel ein Schaubild ist |
+| `content_for :auth_panel_decorative` | gesetzt, wenn das Panel ein Schaubild ist (dann vor Screenreadern versteckt und auf dem Handy aus) |
 
 * Der Guard hat **keine Ausnahmeliste**: keine View unter `app/views/devise/` enthält
   `lp-auth-form-col`, `lp-auth-legal` oder ein `<aside>`. Bis zum 20.09.2026 war das Gerüst
@@ -548,7 +548,11 @@ dem Link und prüft die Zielseite.
 
 ⚠️ **`aria-hidden` nur auf einem Schaubild.** Das Panel der Anmeldung zeigt erfundene
 Inbox-Zeilen und bleibt versteckt. Ein Panel mit der einzigen Fassung einer Tatsache muss
-lesbar sein. Und auf dem Handy blendet `auth.css` den letzten Schritt einer Schrittliste aus
+lesbar sein. **Am selben Attribut hängt das Handy** (seit 22.11.2026): Dort blendet `auth.css`
+ein verstecktes Panel ganz aus (`.lp-auth-panel[aria-hidden="true"]`), wer sich anmelden oder
+registrieren will, sieht nur das Formular. Ein lesbares Panel bleibt unter dem Formular stehen.
+Wird aus einem Schaubild eine Tatsache, fällt `auth_panel_decorative` weg, sonst liest sie auf
+dem Handy niemand. Und auf dem Handy blendet `auth.css` den letzten Schritt einer Schrittliste aus
 (`.lp-auth-step:last-child`) — dort darf keine Tatsache allein stehen, und eine Überschrift
 darf die Schritte nicht zählen.
 

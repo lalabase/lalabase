@@ -25,6 +25,9 @@ module AuthStyles
   # (hover, press, focus, an error) may throw one anyway.
   SHADOW_AT_REST = [/\.lp-btn--(primary|dark)\b/, /\.lp-auth-win\b/, /\.lp-mark\b/].freeze
   STATE = /:(hover|active|focus|focus-visible|focus-within)\b|aria-pressed="true"|\.is-open\b|--error\b/
+
+  # The faces the tokens name come from lalabase-fonts.css, which the auth layout loads.
+  FONTS = STYLESHEETS.join('lalabase-fonts.css')
 end
 
 RSpec.describe 'Sign-in page stylesheets follow the website guide', type: :model do
@@ -105,5 +108,36 @@ RSpec.describe 'Sign-in page stylesheets follow the website guide', type: :model
 
     expect(css).not_to match(/#E4552B/i)
     expect(css).not_to include('--lp-signal')
+  end
+
+  # Until 22.11.2026 the website's sign-up set its heading in Geist and this sign-in in
+  # Archivo, one click apart. The heading face is the website's, and every face a token
+  # names is one the instance serves: a family without @font-face falls back to
+  # system-ui without a word.
+  describe 'faces' do
+    def token(name)
+      AuthStyles::STYLESHEETS.join('landing_tokens.css').read[/--lp-font-#{name}:\s*'([^']+)'/, 1]
+    end
+
+    def served
+      AuthStyles::FONTS.read.scan(/@font-face\s*\{([^}]*)\}/).flatten.map do |body|
+        [body[/font-family:\s*'([^']+)'/, 1], body[%r{url\('(/fonts/[^']+)'\)}, 1]]
+      end
+    end
+
+    it 'sets the headings in Geist, as the website does' do
+      expect(token('display')).to eq('Geist')
+    end
+
+    it 'serves every face a token names, from a file in the repository' do
+      families = %w[display body mono brand].map { token(_1) }
+      expect(families).to all(be_present)
+
+      families.uniq.each do |family|
+        files = served.filter_map { |name, url| url if name == family }
+        expect(files).not_to be_empty, "No @font-face for #{family} in lalabase-fonts.css"
+        files.each { |url| expect(Rails.public_path.join(url.delete_prefix('/'))).to exist }
+      end
+    end
   end
 end

@@ -1,4 +1,4 @@
-/* Mirror of lalabase-website, app/assets/stylesheets/lp_base.css (05.11.2026): the public
+/* Mirror of lalabase-website, app/assets/stylesheets/lp_base.css (22.11.2026): the public
    pages and these sign-in pages are one design (doc/design/DESIGN.md there), and a
    visitor steps from one into the other. Keep the two files identical; a change
    there is one copy here. */
@@ -30,13 +30,13 @@
 
 /* The logo, exactly as on the live page before the redesign and as in the app: the
    lime tile with the L (shared/_brand_mark) and the wordmark in Archivo 800. The
-   guide forbids changing it, so the face is set here and not inherited from the
-   body, which turned to Inter with the redesign. */
+   guide forbids changing it, so the face is set here (--lp-font-brand) and not
+   inherited from the headings, which turned to Geist on 21.11.2026. */
 .lp-brand {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--lp-font-display);
+  font-family: var(--lp-font-brand);
   font-size: 21px;
   line-height: 24px;
   font-weight: 800;
@@ -46,7 +46,7 @@
 /* Hero label of a page: mono capitals in the meta tone, like the numbered section
    labels below it but without a number. The homepage sets it as a badge. */
 /* The icons are <i> elements, and an <i> is italic. It holds no text, but the browser
-   still fetched the italic face of Inter for it, 55 KB that set no word (measured
+   still fetched an italic face for it, 55 KB that set no word (measured
    05.11.2026). Upright, the icon reuses the face the page has already loaded. */
 .lp i.bi { font-style: normal; }
 
@@ -63,11 +63,12 @@
 }
 
 /* ---------- buttons ----------
-   Primary: ink with a lime shadow, up and out on hover, down and flat on click; the
-   shadow keeps its colour while it grows, so a primary button stays the primary one
-   under the pointer. Secondary: white and flat, its black shadow shows only under the
-   pointer (DESIGN.md, "Hervorhebungen staffeln"): with a shadow at rest it weighed as
-   much as the primary beside it. Both are 2px framed and 44px high at least. */
+   Primary: ink in a 2px ink frame with a lime shadow, up and out on hover, down and
+   flat on click; the shadow keeps its colour while it grows, so a primary button stays
+   the primary one under the pointer. Secondary: white and flat with the grey edge of a
+   control; under the pointer the frame turns ink and the black shadow shows (DESIGN.md,
+   "Hervorhebungen staffeln"). With a black frame and a shadow at rest it weighed as
+   much as the primary beside it. Both are 44px high at least. */
 
 .lp-btn {
   display: inline-flex;
@@ -81,20 +82,21 @@
   font-weight: 700;
   line-height: 1.25;
   text-align: center;
-  border: var(--lp-border);
+  border: var(--lp-border-control);
   border-radius: var(--lp-r-control);
   background: var(--lp-white);
   color: var(--lp-ink);
   box-shadow: 0 0 0 var(--lp-black);
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
   cursor: pointer;
 }
 
-.lp-btn:hover { transform: translate(-2px, -2px); box-shadow: var(--lp-shadow-m); }
+.lp-btn:hover { transform: translate(-2px, -2px); border-color: var(--lp-black); box-shadow: var(--lp-shadow-m); }
 .lp-btn:active { transform: none; box-shadow: 0 0 0 var(--lp-black); }
 
 .lp-btn--primary,
 .lp-btn--dark {
+  border: var(--lp-border-ink);
   background: var(--lp-ink);
   color: var(--lp-white);
   box-shadow: var(--lp-shadow-primary);
@@ -131,20 +133,19 @@
 /* ---------- language switch ---------- */
 /* Moved here from landing.css on 21.09.2026. The sign-up page renders the switch
    too (static/_language_switch), and its layout loads auth.css, not landing.css:
-   from the W5 switch until that day the public site showed an unstyled "DE / EN" in
+   from the W5 switch until that day lalabase.com showed an unstyled "DE / EN" in
    the middle of the sign-up top row. Guard: spec/system/signup_form_chrome_spec.rb.
 
-   A segmented control since the redesign: one 2px frame, the current language filled
-   lime. The current language is still a span, not a link (static/_language_switch),
-   so it carries no hover rule; the separator the partial renders becomes the 2px
-   divider between the two halves. */
+   A segmented control since the redesign: one frame in the edge of a control, the
+   current language filled lime. The current language is still a span, not a link
+   (static/_language_switch), so it carries no hover rule; the separator the partial
+   renders becomes the divider between the two halves, in the colour of the frame. */
 .lp-nav-lang {
   display: inline-flex;
   align-items: stretch;
-  border: var(--lp-border);
+  border: var(--lp-border-control);
   border-radius: var(--lp-r-control);
   overflow: hidden;
-  font-family: var(--lp-font-mono);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -165,12 +166,12 @@
 .lp-nav-lang a { transition: background 120ms ease; }
 .lp-nav-lang a:hover { background: var(--lp-paper-muted); }
 .lp-nav-lang-current { background: var(--lp-accent); }
-.lp-nav-lang-sep { width: 2px; background: var(--lp-black); color: transparent; font-size: 0; }
+.lp-nav-lang-sep { width: 2px; background: var(--lp-control-line); color: transparent; font-size: 0; }
 
 /* ---------- bot trap ---------- */
 /* shared/_bot_trap_fields. This rule lived in the core's views.css and did not
    come along when the sign-up form moved here (W3.4): the trap was VISIBLE on
-   the public site until 21.09.2026. That is not cosmetic -- a password manager or
+   lalabase.com until 21.09.2026. That is not cosmetic -- a password manager or
    autofill fills a visible input, and the trap answers a filled field with a
    pretended success, so a real customer is told they signed up and no account
    exists.

@@ -10,23 +10,38 @@
 /* ============================================================
    Sign-in pages (app/views/devise): sign in, password, confirmation, unlock and the
    invitation sign-up. Split screen: the form on the page ground, the dark context
-   panel beside it. Since 05.11.2026 in the language of the public pages
-   (lalabase-website, doc/design/DESIGN.md): 2px black frames, hard shadows only where
-   the eye should go first, lime as the one accent.
+   panel beside it, in the language of the public pages (lalabase-website,
+   doc/design/DESIGN.md): Geist for headings and text since 22.11.2026, as on the
+   website's sign-up, the logo in Archivo.
 
    Everything down to the core-only appendix at the end is the website's auth.css
-   (its sign-up page) word for word: keep it so, a change there is one copy here.
-   Not copied, each a consequence of the website's own change of November 2026 (a new
-   typeface, calm public pages): the weight of its headings, the block at the top of
-   its .lp-auth that sets the tokens back to the values landing_tokens.css still has
-   here, and the rule that keeps its language switch in mono.
+   (its sign-up page) word for word, header aside: keep it so, a change there is one
+   copy here. A visitor steps from that sign-up straight into this sign-in, and until
+   22.11.2026 the two headings stood in two different faces.
    ============================================================ */
 
 .lp-auth {
+  /* The public pages turned calm on 22.11.2026 (landing_tokens.css): hairlines, a darker
+     ground, rounder cards. This page keeps the values they had until then, because it
+     speaks the app's language and the app has not changed. */
+  --lp-paper: #FBFAF7;
+  --lp-paper-muted: #F4F4F1;
+  --lp-border: 2px solid var(--lp-black);
+  --lp-control-line: var(--lp-black);
+  --lp-border-control: 2px solid var(--lp-control-line);
+  --lp-r-card: 8px;
+  --lp-r-frame: 10px;
+
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 100vh;
 }
+
+/* The language switch comes from lp_base.css, where it took the text face with the
+   public pages. Here it keeps the mono capitals of the app. It shares a row with the
+   brand and the way to the sign-in and never gives way in it: squeezed, a phone cut
+   its second half ("DE | E"). */
+.lp-auth .lp-nav-lang { font-family: var(--lp-font-mono); flex: none; }
 
 .lp-auth-form-col {
   background: var(--lp-paper);
@@ -77,7 +92,7 @@
   font-size: var(--lp-fs-title);
   line-height: 1.05;
   letter-spacing: -0.03em;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 /* Keep the sign-up heading on the same shared title scale as the sign-in heading. */
@@ -260,7 +275,7 @@
 .lp-auth-panel-h2 {
   margin: 0;
   font-size: var(--lp-fs-section);
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.03em;
 }

@@ -34,12 +34,14 @@
           <% if tickets_first_use?(project) %>
             <% ticket_cta = nil %>
             <% if policy(project).area_access?(:tickets, :write) %>
-              <%# Opens the inline "New Ticket" modal (like the +-header button), NOT new_ticket_path →
-                  otherwise the link loads into the list frame and Turbo reports "Content missing". %>
+              <%# Opens the writing surface, like the "+" of the list head. The frame is
+                  named: this card sits inside tickets_list_frame, and a link without it
+                  would load tickets#new into the list, where Turbo reports "Content missing". %>
               <% ticket_cta = capture do %>
                 <%= render Neo::Buttons::ButtonComponent.new(
-                      variant: :primary, icon: "plus-lg", size: :large, tag: :button, type: "button",
-                      data: { action: "click->modal#open", context: "index_page" }
+                      variant: :primary, icon: "plus-lg", size: :large,
+                      url: new_organisation_project_ticket_path(@current_organisation, project, source: 'index_page'),
+                      data: { turbo_frame: "writing_surface" }
                     ) do %>
                   <%= t('views.organisations.tickets.tickets_results.empty_first_time_cta') %>
                 <% end %>

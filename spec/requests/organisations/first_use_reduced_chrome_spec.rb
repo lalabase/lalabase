@@ -40,6 +40,61 @@ RSpec.describe 'first-use reduced index chrome', type: :request do
       get path
       expect(response.body).to include('data-controller="filter-bar"')
     end
+
+    # Regression (#259): the first-use button still fired the action of the
+    # pop-up that the writing surface had replaced. No element mounted that
+    # controller any more, so a click did nothing and logged nothing, in every
+    # release up to 2026.11.1. It is a link now, like the "+" of the list head.
+    #
+    # The card sits inside tickets_list_frame, so the link has to NAME its frame:
+    # without it the form would load into the list, where Turbo reports "Content
+    # missing" (the trap the time list's button below fell into).
+    describe 'the first-use button' do
+      let(:new_ticket_path) { new_organisation_project_ticket_path(organisation, project, source: 'index_page') }
+      let(:label) { I18n.t('views.organisations.tickets.tickets_results.empty_first_time_cta') }
+
+      def first_use_button
+        Nokogiri::HTML(response.body)
+                .css('#tickets_list_frame a, #tickets_list_frame button')
+                .find { |element| element.text.strip == label }
+      end
+
+      it 'is a link to the new ticket into the writing surface the layout owns' do
+        get path
+        button = first_use_button
+
+        expect(button).to be_present
+        expect([button.name, button['href'], button['data-turbo-frame']]).to eq(['a', new_ticket_path, 'writing_surface'])
+        expect(Nokogiri::HTML(response.body).at_css('turbo-frame#writing_surface')).to be_present
+      end
+
+      # Followed the way the browser follows it: a request for the frame it names.
+      it 'is answered with the ticket form for that frame' do
+        get path
+        button = first_use_button
+        expect(button&.[]('href')).to be_present
+
+        get button['href'], headers: { 'Turbo-Frame' => button['data-turbo-frame'] }
+
+        expect(response).to have_http_status(:ok)
+        form = Nokogiri::HTML(response.body).at_css('turbo-frame#writing_surface form')
+        expect(form['action']).to eq(organisation_project_tickets_path(organisation, project))
+      end
+
+      it 'is not offered to a reader who may not write tickets' do
+        reader = create(:user)
+        create(:membership, user: reader, organisation: organisation, role: create(:role, organisation: organisation), active: true)
+        create(:project_permission, user: reader, project: project, tickets_access: 'read_only')
+        sign_in reader
+
+        get path
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t('views.organisations.tickets.tickets_results.empty_first_time_title'))
+        expect(first_use_button).to be_nil
+        expect(response.body).not_to include(new_organisation_project_ticket_path(organisation, project))
+      end
+    end
   end
 
   describe 'knowledge index' do
@@ -112,7 +167,8 @@ RSpec.describe 'first-use reduced index chrome', type: :request do
     # Regression: the first-use CTA lived INSIDE time_sessions_list_frame as a
     # link to #new — Turbo then replaced the frame with "Content missing"
     # (the #new response has no such frame). It must open the inline modal
-    # instead, like the header "+" button and the tickets first-use CTA.
+    # instead, like the header "+" button. (The tickets button above is a link
+    # again, into the frame of the ticket form, which it names.)
     it 'wires the first-use CTA to the inline modal instead of linking into the list frame' do
       get path
       expect(response.body).to include(I18n.t('views.organisations.time_sessions.index_table.empty_first_time_cta'))

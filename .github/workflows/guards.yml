@@ -375,6 +375,8 @@ jobs:
           spec/components/neo_inbox_master_item_component_spec.rb
           spec/components/neo_notification_dropdown_component_spec.rb
           spec/components/dashboard/notifications_component_spec.rb
+          spec/components/overview/my_mentions_component_spec.rb
+          spec/services/dashboard/cross_org_action_summary_spec.rb
           spec/helpers/inbox_helper_spec.rb
           spec/system/inbox_spec.rb
           spec/system/all_inboxes_spec.rb

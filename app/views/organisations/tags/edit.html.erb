@@ -1,13 +1,43 @@
-<div class="container mx-auto px-4 py-8">
-  <div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold">Edit Tag</h1>
-    <div class="flex space-x-2">
-      <%= render(Neo::Buttons::ButtonComponent.new(variant: :secondary, url: organisation_tag_path(@current_organisation, @tag))) { "View Tag" } %>
-      <%= render(Neo::Buttons::ButtonComponent.new(variant: :secondary, url: organisation_tags_path(@current_organisation))) { "Back to Tags" } %>
-    </div>
-  </div>
+<%# Rename a tag, a page below the section "Tags": its head, then the crumb line
+    "‹ Tags / „name“ umbenennen" (F45), the only way back. The crumb names the
+    stored name, not the one just typed: after a refusal the field shows the
+    attempt. The field follows F24 when the name is refused; a name another tag
+    has already offers the merge into that tag instead, which is what two tags
+    with one name are. One block for head, crumb and form: the layout's content
+    column puts a gap between its children. %>
+<div>
+  <%= render 'organisations/shared/settings_subnav', active: :tags %>
+  <%= render 'organisations/shared/section_crumb', back_label: management_section_label(:tags),
+                                                    back_path: organisation_tags_path(current_organisation),
+                                                    page: t('views.organisations.tags.edit.title', name: @tag.name_in_database) %>
 
-  <div class="rounded-lg border border-slate-200 shadow-sm bg-surface-raised p-6">
-    <%= render 'form', tag: @tag %>
+  <div class="width-capped">
+    <%= form_with model: @tag, url: organisation_tag_path(current_organisation, @tag), method: :patch, class: 'people-form' do |form| %>
+      <div class="people-form__field">
+        <%= form.label :name, t('views.organisations.tags.edit.name_label'), for: 'tag-name' %>
+        <%= form.text_field :name, value: @name, id: 'tag-name', required: true, autofocus: true, autocomplete: 'off',
+                                   class: class_names('people-input', 'border-red-500 bg-red-50' => @error.present?),
+                                   aria: { invalid: (@error.present? || nil), describedby: (@error.present? ? 'tag-name-error tag-name-hint' : 'tag-name-hint') } %>
+        <% if @error.present? %>
+          <p id="tag-name-error" class="text-xs text-red-700">
+            <%= @error %>
+            <% if @taken %>
+              <%= link_to t('views.organisations.tags.edit.merge_instead', name: @taken.name),
+                          new_merge_organisation_tag_path(current_organisation, @tag, target_id: @taken.id),
+                          class: 'ms-1 font-medium underline underline-offset-2 hover:text-red-900' %>
+            <% end %>
+          </p>
+        <% end %>
+        <p id="tag-name-hint" class="people-form__hint">
+          <%= t('views.organisations.tags.edit.hint', count: @usage.uses_count, max: Tag::MAX_NAME_LENGTH) %>
+        </p>
+      </div>
+
+      <div class="flex items-center justify-end">
+        <%= render Neo::Buttons::ButtonComponent.new(variant: :primary, size: :large, tag: :button, type: 'submit') do %>
+          <%= t('views.organisations.tags.edit.submit') %>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 </div>

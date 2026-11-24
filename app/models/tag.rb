@@ -66,8 +66,18 @@ class Tag < ApplicationRecord
 
   # Whether a name, normalized, may be given to a new tag.
   def self.acceptable_new_name?(name)
+    name_problem(name).nil?
+  end
+
+  # What keeps a typed name, normalized, from being a tag's: :blank, :separator
+  # (a comma would split it into two names) or :too_long; nil when nothing does.
+  # One rule for a new tag (the bulk change) and a new name (Actors::RenameTag).
+  def self.name_problem(name)
     name = normalize_name(name)
-    name.present? && name.length <= MAX_NAME_LENGTH && !name.include?(NAME_SEPARATOR)
+    return :blank if name.blank?
+    return :separator if name.include?(NAME_SEPARATOR)
+
+    :too_long if name.length > MAX_NAME_LENGTH
   end
 
   validates :name, presence: true, uniqueness: { scope: :organisation_id }
@@ -77,6 +87,44 @@ class Tag < ApplicationRecord
 
   def normalize_name
     self.name = self.class.normalize_name(name) if name.present?
+  end
+
+  # The kinds of entries a tag hangs on, in the order the tag list shows them
+  # (Organisations::TagsController), each with the column .with_usage_counts reads
+  # its number into. `uses_count` is the sum of them.
+  USAGE_COLUMNS = {
+    'Ticket' => :tickets_count,
+    'Note' => :notes_count,
+    'Document' => :documents_count,
+    'TimeSession' => :time_sessions_count
+  }.freeze
+
+  # One row per tag, so the list counts in the query that reads its page: a lateral
+  # aggregate over the tag's taggings (index_taggings_on_tag_and_type). A deleted
+  # time entry keeps its taggings and is counted nowhere (TimeSession's default
+  # scope hides it everywhere else). Join and select are written out instead of
+  # built from USAGE_COLUMNS: fixed texts, nothing interpolated into SQL;
+  # spec/models/tag_spec.rb holds the three together.
+  USAGE_JOIN = <<~SQL.squish.freeze
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*) FILTER (WHERE taggings.taggable_type = 'Ticket') AS tickets_count,
+             COUNT(*) FILTER (WHERE taggings.taggable_type = 'Note') AS notes_count,
+             COUNT(*) FILTER (WHERE taggings.taggable_type = 'Document') AS documents_count,
+             COUNT(*) FILTER (WHERE taggings.taggable_type = 'TimeSession') AS time_sessions_count,
+             COUNT(*) AS uses_count
+      FROM taggings
+      LEFT JOIN time_sessions ON taggings.taggable_type = 'TimeSession' AND time_sessions.id = taggings.taggable_id
+      WHERE taggings.tag_id = tags.id AND time_sessions.deleted_at IS NULL
+    ) tag_usage ON TRUE
+  SQL
+
+  USAGE_SELECT = 'tags.*, tag_usage.tickets_count, tag_usage.notes_count, tag_usage.documents_count, ' \
+                 'tag_usage.time_sessions_count, tag_usage.uses_count'
+
+  # Every tag of the relation with the number of entries it hangs on, per kind
+  # (USAGE_COLUMNS) and in all (uses_count), readable as attributes of the rows.
+  def self.with_usage_counts
+    joins(USAGE_JOIN).select(USAGE_SELECT)
   end
 
   def self.counts_by_type(taggable_type)

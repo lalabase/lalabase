@@ -123,6 +123,7 @@ RSpec.describe NavigationHelper, type: :helper do
         members: 'memberships',
         roles: 'roles',
         archive: 'archives',
+        tags: 'tags',
         appearance: 'appearances',
         ai: 'ai_overviews',
         import: 'codebase_import_files',
@@ -130,7 +131,7 @@ RSpec.describe NavigationHelper, type: :helper do
       }
     end
 
-    it 'maps exactly these eight keys to these controllers, in this order' do
+    it 'maps exactly these nine keys to these controllers, in this order' do
       actual = NavigationHelper::SETTINGS_TABS.map { |tab| [tab[:key], tab[:controller_name]] }
       expect(actual).to eq(expected_key_to_controller.to_a)
     end
@@ -189,6 +190,7 @@ RSpec.describe NavigationHelper, type: :helper do
         members: organisation_memberships_path(organisation),
         roles: organisation_roles_path(organisation),
         archive: organisation_archives_path(organisation),
+        tags: organisation_tags_path(organisation),
         appearance: organisation_appearance_path(organisation),
         ai: organisation_ai_overview_path(organisation),
         import: organisation_codebase_import_files_path(organisation),

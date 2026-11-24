@@ -87,9 +87,11 @@ RSpec.describe 'The page parameter of a list', type: :request do
       end
     end
 
-    # The sort header of the tag list carries the project and the saved view of
-    # the address into its links. Read past `permit`, a value sent as a hash
-    # raised while the header built its address (until 19.11.2026).
+    # The old sort header of the tag list carried the project and the saved view
+    # of the address into its links. Read past `permit`, a value sent as a hash
+    # raised while the header built its address (until 19.11.2026). The list of
+    # the management section (2026-11-24) reads neither and must still answer;
+    # its page links keep the address as it came.
     {
       'a project sent as a hash' => { project_id: { a: '1' } },
       'a saved view sent as a hash' => { smart_folder_id: { a: '1' } },

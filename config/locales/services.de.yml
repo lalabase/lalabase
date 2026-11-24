@@ -23,6 +23,17 @@ de:
       claim_meeting_participants:
         conflict: "Die Teilnahmen wurden zwischenzeitlich anderweitig verknüpft. Bitte neu laden und erneut versuchen."
       stale_object: "Der Datensatz wurde zwischenzeitlich von jemand anderem geändert. Bitte neu laden und erneut speichern."
+      rename_tag:
+        blank: "Bitte gib einen Namen ein."
+        separator: "Ein Tag-Name enthält kein Komma: Das Komma trennt Tags voneinander."
+        too_long: "Ein Tag-Name hat höchstens %{count} Zeichen."
+        name_taken: "Den Tag „%{name}“ gibt es schon."
+      merge_tags:
+        same_tag: "Ein Tag lässt sich nicht mit sich selbst zusammenführen."
+        other_organisation: "Die beiden Tags gehören zu verschiedenen Organisationen."
+        not_found: "Einen der beiden Tags gibt es nicht mehr. Bitte lade die Seite neu."
+        concurrent_change: "Während des Zusammenführens hat sich etwas geändert. Bitte versuche es noch einmal."
+        no_target: "Bitte wähle den Tag, mit dem du zusammenführen willst."
       destroy_document_version:
         not_found: "Die zu löschende Version wurde nicht gefunden oder gehört nicht zu diesem Dokument."
       generate_group_customer_descriptions:

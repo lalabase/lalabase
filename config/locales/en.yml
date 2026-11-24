@@ -2389,6 +2389,7 @@ en:
     organisation_settings: General
     organisations: Organisations
     roles_permissions: Roles and permissions
+    tags: Tags
     appearance: Appearance
     billing: Billing
   shared:

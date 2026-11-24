@@ -23,6 +23,17 @@ en:
       claim_meeting_participants:
         conflict: "These participations were linked elsewhere in the meantime. Please reload and try again."
       stale_object: "This record was changed by someone else in the meantime. Please reload and save again."
+      rename_tag:
+        blank: "Please enter a name."
+        separator: "A tag name contains no comma: the comma separates tags."
+        too_long: "A tag name has at most %{count} characters."
+        name_taken: "The tag “%{name}” exists already."
+      merge_tags:
+        same_tag: "A tag cannot be merged with itself."
+        other_organisation: "The two tags belong to different organisations."
+        not_found: "One of the two tags no longer exists. Please reload the page."
+        concurrent_change: "Something changed while merging. Please try again."
+        no_target: "Please choose the tag to merge into."
       destroy_document_version:
         not_found: "The version to delete could not be found or does not belong to this document."
       generate_group_customer_descriptions:

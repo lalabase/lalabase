@@ -1,73 +1,105 @@
-<div class="container mx-auto px-4 py-8">
-  <div class="mb-6 flex flex-wrap items-center justify-between">
-    <h1 class="text-2xl font-bold">Tags</h1>
-    <div class="flex space-x-2">
-      <%= form_with url: organisation_tags_path(@current_organisation), method: :get, class: "flex" do |f| %>
-        <div class="mr-2">
-          <%= f.text_field :search,
-            placeholder: "Search tags...",
-            value: params[:search],
-            class: "w-full px-3 py-2 border border-slate-200 rounded text-sm focus:outline-none focus:shadow-sm focus:-translate-x-0.5 focus:-translate-y-0.5 transition-all" %>
-        </div>
-        <%= render(Neo::Buttons::ButtonComponent.new(variant: :primary, type: :submit)) { "Search" } %>
+<%# The management section "Tags" (Organisations::TagsController): every tag of the
+    organisation with the entries it hangs on, per kind and in all. A tag comes into
+    being by tagging, so the head has no main action; the number beside the title
+    counts the tags, the search narrows the rows. A 0 in "Gesamt" is a tag nothing
+    carries any more.
+
+    The rarer actions of a row sit behind its "···" (the menu of the members page):
+    rename and merge are pages below the section with the crumb line (F45), delete
+    asks first and names the uses. Delete stands apart under a line (F33).
+
+    On a phone the four counts per kind give way to "Gesamt" (F43: a column that
+    does not fit goes with its head). The table is capped like a list with a few
+    values per row (layout.css, "Page widths"). Full keys, not the lazy t('.x'):
+    see archives/index. %>
+<div>
+  <%= render 'organisations/shared/settings_subnav', active: :tags, badge: @tag_count %>
+
+  <% if @tag_count.zero? %>
+    <%= render 'shared/empty_content', icon_class: 'bi bi-tags',
+                                       title: t('views.organisations.tags.index.empty_title'),
+                                       description: t('views.organisations.tags.index.empty_text') %>
+  <% else %>
+    <div class="width-capped--wide">
+      <div class="mb-4 flex justify-end">
+        <%= form_with url: organisation_tags_path(current_organisation), method: :get, class: 'relative w-full sm:w-72',
+                      html: { role: 'search' } do %>
+          <% if params[:sort].present? %>
+            <%= hidden_field_tag :sort, list_sort, id: nil %>
+            <%= hidden_field_tag :direction, list_direction, id: nil %>
+          <% end %>
+          <i class="bi bi-search pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-xs text-faint" aria-hidden="true"></i>
+          <%= search_field_tag :q, list_query, id: 'tags-search', autocomplete: 'off', placeholder: t('views.organisations.tags.index.search'),
+                                               'aria-label': t('views.organisations.tags.index.search'),
+                                               class: 'h-8 w-full rounded-md border border-cream-300 bg-surface-raised ps-8 pe-2 text-[13px] text-body placeholder:text-faint focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10' %>
+        <% end %>
+      </div>
+
+      <% if @tags.any? %>
+        <table class="min-w-full border-collapse" data-tag-list>
+          <thead>
+            <tr>
+              <th scope="col" class="column-head px-4 py-4 first:ps-0 last:pe-0 text-start border-b border-ink" aria-sort="<%= tag_list_aria_sort('name') %>">
+                <%= tag_list_sort_link('name', t('views.organisations.tags.index.columns.name')) %>
+              </th>
+              <% Tag::USAGE_COLUMNS.each_value do |column| %>
+                <th scope="col" class="column-head hidden md:table-cell px-4 py-4 text-end border-b border-ink">
+                  <%= t("views.organisations.tags.index.columns.#{column}") %>
+                </th>
+              <% end %>
+              <th scope="col" class="column-head px-4 py-4 text-end border-b border-ink" aria-sort="<%= tag_list_aria_sort('uses') %>">
+                <%= tag_list_sort_link('uses', t('views.organisations.tags.index.columns.uses_count')) %>
+              </th>
+              <th scope="col" class="column-head w-10 px-4 py-4 first:ps-0 last:pe-0 border-b border-ink">
+                <span class="sr-only"><%= t('views.organisations.tags.index.columns.actions') %></span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-cream-200">
+            <% @tags.each do |tag| %>
+              <tr id="<%= dom_id(tag) %>">
+                <td class="px-4 py-3 first:ps-0 last:pe-0">
+                  <span class="text-sm font-medium text-heading [overflow-wrap:anywhere]"><%= tag.name %></span>
+                </td>
+                <% Tag::USAGE_COLUMNS.each_value do |column| %>
+                  <td class="hidden md:table-cell px-4 py-3 text-end text-sm tabular-nums text-cream-600"><%= tag.public_send(column) %></td>
+                <% end %>
+                <td class="px-4 py-3 text-end text-sm font-medium tabular-nums text-heading"><%= tag.uses_count %></td>
+                <td class="px-4 py-3 first:ps-0 last:pe-0 text-end">
+                  <details class="more-menu inline-block text-start" data-controller="details-autoclose">
+                    <summary class="more-menu__trigger" title="<%= t('views.organisations.tags.index.actions_for', name: tag.name) %>"
+                             aria-label="<%= t('views.organisations.tags.index.actions_for', name: tag.name) %>"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
+                    <div class="more-menu__items">
+                      <%= link_to t('views.organisations.tags.index.rename'), edit_organisation_tag_path(current_organisation, tag) %>
+                      <% if @tag_count > 1 %>
+                        <%= link_to t('views.organisations.tags.index.merge'), new_merge_organisation_tag_path(current_organisation, tag) %>
+                      <% end %>
+                      <div class="my-1 border-t border-divider" role="separator"></div>
+                      <%= button_to t('views.organisations.tags.index.delete'), organisation_tag_path(current_organisation, tag),
+                                    method: :delete, class: 'more-menu__danger',
+                                    form: { data: { turbo_confirm: t('views.organisations.tags.index.confirm_delete', name: tag.name, count: tag.uses_count) } } %>
+                    </div>
+                  </details>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <p class="text-sm text-muted" role="status">
+          <%= t('views.organisations.tags.index.no_hits', query: list_query) %>
+          <%= link_to t('views.organisations.tags.index.clear_search'), organisation_tags_path(current_organisation),
+                      class: 'ms-1 font-medium text-body underline underline-offset-2 hover:text-heading' %>
+        </p>
       <% end %>
-      <%= render(Neo::Buttons::ButtonComponent.new(variant: :primary, url: new_organisation_tag_path(@current_organisation), class: "ml-4")) { "New Tag" } %>
-    </div>
-  </div>
 
-  <div class="overflow-hidden bg-surface-raised border border-slate-200 rounded-lg shadow-sm">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-100 border-b border-slate-200">
-        <tr>
-          <%= render 'shared/sortable_header', title: "Name", column: "name" %>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-            Usage Count
-          </th>
-          <%= render 'shared/sortable_header', title: "Created At", column: "created_at" %>
-          <%= render 'shared/sortable_header', title: "Updated At", column: "updated_at" %>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 bg-surface-raised">
-        <% @tags.each do |tag| %>
-          <tr class="hover:bg-gray-50">
-            <td class="whitespace-nowrap px-6 py-4">
-              <%= link_to tag.name, organisation_tag_path(@current_organisation, tag), class: "text-cream-900 font-medium hover:underline" %>
-            </td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-              <%= tag.taggings.count %>
-            </td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-              <%= tag.created_at.strftime("%Y-%m-%d %H:%M") %>
-            </td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-              <%= tag.updated_at.strftime("%Y-%m-%d %H:%M") %>
-            </td>
-            <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-              <div class="flex space-x-2">
-                <%= link_to "Edit", edit_organisation_tag_path(@current_organisation, tag), class: "text-cream-900 font-medium hover:underline" %>
-                <%= button_to "Delete", organisation_tag_path(@current_organisation, tag), method: :delete, data: { turbo_confirm: t('views.confirm.delete_tag') }, class: "text-red-600 hover:text-red-900 bg-transparent border-none p-0 cursor-pointer" %>
-              </div>
-            </td>
-          </tr>
-        <% end %>
-
-        <% if @tags.empty? %>
-          <tr>
-            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No tags found.</td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </div>
-
-  <%# Whenever the list has rows, not only with more than one page: the bar holds
-      the page-size select, and a size that fits the whole list must stay changeable. %>
-  <% if @pagy.count.positive? %>
-    <div class="mt-4">
-      <%= render 'shared/pagination_nav_compact', pagy: @pagy %>
+      <%# Whenever the list has rows, not only with more than one page: the bar holds
+          the page-size select, and a size that fits the whole list must stay changeable. %>
+      <% if @pagy.count.positive? %>
+        <div class="mt-4">
+          <%= render 'shared/pagination_nav_compact', pagy: @pagy %>
+        </div>
+      <% end %>
     </div>
   <% end %>
 </div>

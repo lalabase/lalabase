@@ -11,6 +11,50 @@ en:
           restore: Restore
           empty_title: Nothing archived
           empty_description: Archived projects collect here and can be restored from here.
+      # The management section "Tags" (Organisations::TagsController).
+      tags:
+        index:
+          search: Search tags
+          columns:
+            name: Name
+            tickets_count: Tickets
+            notes_count: Notes
+            documents_count: Documents
+            time_sessions_count: Time entries
+            uses_count: Total
+            actions: Actions
+          actions_for: "Actions for “%{name}”"
+          rename: Rename
+          merge: Merge
+          delete: Delete
+          confirm_delete:
+            zero: "Delete the tag “%{name}”? No entry carries it."
+            one: "Delete the tag “%{name}”? It is removed from one entry."
+            other: "Delete the tag “%{name}”? It is removed from %{count} entries."
+          no_hits: "No tag matches “%{query}”."
+          clear_search: Clear search
+          empty_title: No tags yet
+          empty_text: "Tags come into being when you tag: whoever edits a ticket, a note, a document or a time entry adds them there. Here you can rename, merge and delete them afterwards."
+        edit:
+          title: "Rename “%{name}”"
+          name_label: New name
+          hint:
+            zero: "No entry carries this tag. A name has at most %{max} characters and no comma. Capital letters become lower case."
+            one: "The new name applies to the one entry with this tag and to the saved filters that name it. A name has at most %{max} characters and no comma. Capital letters become lower case."
+            other: "The new name applies to all %{count} entries with this tag and to the saved filters that name it. A name has at most %{max} characters and no comma. Capital letters become lower case."
+          merge_instead: "Merge with “%{name}” instead"
+          submit: Rename
+        new_merge:
+          title: "Merge “%{name}”"
+          target_label: Merge into
+          choose: Choose a tag
+          hint:
+            zero: "No entry carries “%{name}”. It is deleted, and saved filters with “%{name}” name the chosen tag afterwards."
+            one: "The one entry with “%{name}” gets the chosen tag. Then “%{name}” is deleted, and saved filters with “%{name}” name the chosen tag."
+            other: "The %{count} entries with “%{name}” get the chosen tag. Then “%{name}” is deleted, and saved filters with “%{name}” name the chosen tag."
+          confirm: "Merge “%{name}” into the chosen tag? “%{name}” is deleted afterwards."
+          submit: Merge
+          no_targets: There is no second tag. Merging needs at least two tags.
       projects:
         index:
           archived_projects: Archived Projects

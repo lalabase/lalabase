@@ -375,9 +375,9 @@ de:
         success: "Zugriffstoken für %{name} aktualisiert. Du kannst jetzt neu indexieren."
         error: "Der Zugriffstoken für %{name} konnte nicht aktualisiert werden."
     tags:
-      created: "Tag wurde erfolgreich erstellt."
-      updated: "Tag wurde erfolgreich aktualisiert."
-      deleted: "Tag wurde erfolgreich gelöscht."
+      renamed: "„%{old}“ heißt jetzt „%{new}“."
+      merged: "„%{source}“ ist mit „%{target}“ zusammengeführt."
+      deleted: "Der Tag „%{name}“ ist gelöscht."
     appearances:
       saved: "Erscheinungsbild wurde gespeichert."
     all_inboxes:

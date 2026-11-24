@@ -220,7 +220,6 @@ de:
       toggle_user_deactivate: deaktivieren
       toggle_user_activate: aktivieren
       remove_membership: "%{name} aus %{organisation} entfernen?"
-      delete_tag: Sind Sie sicher?
       really_delete: Wirklich löschen?
       remove_user: Möchten Sie diesen Benutzer wirklich entfernen?
       unblock_user: Sperre aufheben? Danach gilt wieder, was die Rolle erlaubt.

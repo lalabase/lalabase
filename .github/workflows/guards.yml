@@ -393,6 +393,7 @@ jobs:
           spec/requests/org_switcher_signal_spec.rb
           spec/requests/notifications_avatar_preload_spec.rb
           spec/requests/organisations/archives_spec.rb
+          spec/requests/organisations/tags_management_spec.rb
           spec/requests/organisations/access_matrix_spec.rb
           spec/requests/organisations/projects_index_spec.rb
           spec/requests/organisations/memberships_index_scoping_spec.rb

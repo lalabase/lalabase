@@ -371,9 +371,9 @@ en:
         success: "Access token for %{name} updated. You can reindex now."
         error: "The access token for %{name} could not be updated."
     tags:
-      created: "Tag was successfully created."
-      updated: "Tag was successfully updated."
-      deleted: "Tag was successfully deleted."
+      renamed: "“%{old}” is now called “%{new}”."
+      merged: "“%{source}” has been merged into “%{target}”."
+      deleted: "The tag “%{name}” has been deleted."
     appearances:
       saved: "Appearance has been saved."
     all_inboxes:

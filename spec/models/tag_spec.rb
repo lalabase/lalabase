@@ -120,6 +120,55 @@ RSpec.describe Tag, type: :model do
     end
   end
 
+  # The reason behind a refusal, for the rename (Actors::RenameTag): the same rule
+  # as .acceptable_new_name?, which is its nil.
+  describe '.name_problem' do
+    it 'names the problem of a typed name, nil for an acceptable one' do
+      expect(described_class.name_problem('  Kunde A ')).to be_nil
+      expect(described_class.name_problem(" \n")).to eq(:blank)
+      expect(described_class.name_problem("kunde#{described_class::NAME_SEPARATOR}a")).to eq(:separator)
+      expect(described_class.name_problem('a' * (described_class::MAX_NAME_LENGTH + 1))).to eq(:too_long)
+    end
+  end
+
+  describe '.with_usage_counts' do
+    it 'counts the entries per kind and in all, a deleted time entry and another tag not' do
+      ActsAsTenant.with_tenant(organisation) do
+        project = create(:project, organisation: organisation)
+        tag = create(:tag, name: 'kunde-a', organisation: organisation)
+        other = create(:tag, name: 'intern', organisation: organisation)
+        unused = create(:tag, name: 'vergessen', organisation: organisation)
+        attach = ->(entry, to = tag) { create(:tagging, tag: to, taggable: entry) }
+        2.times { attach.call(create(:ticket, project: project, organisation: organisation)) }
+        attach.call(create(:note, project: project, organisation: organisation))
+        attach.call(create(:document, project: project, organisation: organisation))
+        attach.call(create(:time_session, project: project, organisation: organisation))
+        create(:time_session, project: project, organisation: organisation).tap { |entry| attach.call(entry) }
+                                                                           .update_column(:deleted_at, Time.current)
+        attach.call(create(:ticket, project: project, organisation: organisation), other)
+
+        rows = described_class.with_usage_counts.where(id: [tag.id, unused.id]).index_by(&:id)
+        counts = ->(row) { (described_class::USAGE_COLUMNS.values + [:uses_count]).map { |column| row.public_send(column) } }
+
+        expect(counts.call(rows.fetch(tag.id))).to eq([2, 1, 1, 1, 5])
+        expect(counts.call(rows.fetch(unused.id))).to eq([0, 0, 0, 0, 0])
+      end
+    end
+
+    # Join and select are fixed texts beside USAGE_COLUMNS; this holds the three
+    # together, so a fifth kind of entry cannot be shown without being counted.
+    it 'counts every kind of USAGE_COLUMNS and selects every count' do
+      described_class::USAGE_COLUMNS.each do |type, column|
+        expect(described_class::USAGE_JOIN).to include("taggable_type = '#{type}') AS #{column}")
+        expect(described_class::USAGE_SELECT).to include("tag_usage.#{column}")
+      end
+      expect(described_class::USAGE_SELECT).to include('tag_usage.uses_count')
+      Rails.application.eager_load!
+      taggable = ApplicationRecord.descendants.select { |model| model.include?(Taggable) }.map(&:name)
+      expect(described_class::USAGE_COLUMNS.keys).to match_array(taggable)
+    end
+  end
+
   describe '.counts_by_type' do
     it 'returns tag counts for a given taggable type' do
       ActsAsTenant.with_tenant(organisation) do

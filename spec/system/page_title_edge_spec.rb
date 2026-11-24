@@ -92,7 +92,7 @@ RSpec.describe 'Page title edge', type: :system do
   end
 
   # The other sections. Import shows only where it is switched on for the organisation.
-  it 'puts the title of Rollen und Rechte, its matrix, Archiv, Darstellung and Import where "Alle Meetings" puts it' do
+  it 'puts the title of Rollen und Rechte, its matrix, Archiv, Tags, Darstellung and Import where "Alle Meetings" puts it' do
     organisation.update!(data_import_enabled: true)
     reference = edges(organisation_meetings_path(organisation), 'main h1')
 
@@ -100,6 +100,7 @@ RSpec.describe 'Page title edge', type: :system do
       'Rollen und Rechte' => organisation_roles_path(organisation),
       'Rechte-Matrix' => organisation_roles_path(organisation, view: 'matrix'),
       'Archiv' => organisation_archives_path(organisation),
+      'Tags' => organisation_tags_path(organisation),
       'Darstellung' => organisation_appearance_path(organisation),
       'Import' => organisation_codebase_import_files_path(organisation)
     }.each do |name, path|
@@ -122,14 +123,16 @@ RSpec.describe 'Page title edge', type: :system do
   # under it: its title stands where the section's stands, and the crumb starts
   # on the title's left edge. Measured at the crumb's link, the first thing the
   # line shows: a padding inside the line moves the text, not the line's box.
-  # Every page below a section: the two role forms, the invitation form and the
-  # eight pages of the import, each with the file it needs
+  # Every page below a section: the two role forms, the invitation form, the two
+  # forms of a tag and the eight pages of the import, each with the file it needs
   # (spec/requests/organisations/management_pages_below_spec.rb), and with the name
   # its crumb gives it: an import preview of an unfit file lands on the file's page,
   # which has a crumb at the same place.
   it 'puts the title of the pages below a section where "Alle Meetings" puts it, and their crumb on its left edge' do
     organisation.update!(data_import_enabled: true)
     team = ActsAsTenant.with_tenant(organisation) { create(:role, organisation: organisation, title: 'Team') }
+    tag = ActsAsTenant.with_tenant(organisation) { create(:tag, organisation: organisation, name: 'kunde-a') }
+    ActsAsTenant.with_tenant(organisation) { create(:tag, organisation: organisation, name: 'kunde a') }
     tickets = import_file(:with_valid_tickets_xml, original_filename: 'beispiel_tickets.xml')
     users = import_file(:with_valid_users_xml, original_filename: 'beispiel_users.xml')
     times = import_file(:with_valid_time_tracking_xml, original_filename: 'beispiel_zeiten.xml')
@@ -146,6 +149,9 @@ RSpec.describe 'Page title edge', type: :system do
       'Neue Rolle' => [new_organisation_role_path(organisation), I18n.t('organisations.roles.new.title')],
       'Rolle bearbeiten' => [edit_organisation_role_path(organisation, team), 'Team'],
       'Mitglied einladen' => [new_organisation_invitation_path(organisation), I18n.t('organisations.invitations.new.title')],
+      'Tag umbenennen' => [edit_organisation_tag_path(organisation, tag), I18n.t('views.organisations.tags.edit.title', name: 'kunde-a')],
+      'Tag zusammenführen' => [new_merge_organisation_tag_path(organisation, tag),
+                               I18n.t('views.organisations.tags.new_merge.title', name: 'kunde-a')],
       'CodebaseHQ Datei hochladen' => [new_organisation_codebase_import_file_path(organisation), import_title.call('new.title')],
       'Importdatei' => [organisation_codebase_import_file_path(organisation, tickets), 'beispiel_tickets.xml'],
       'User-Import Vorschau' => [preview_import_organisation_codebase_import_file_path(organisation, users), import_title.call('preview_import.title')],
@@ -212,15 +218,17 @@ RSpec.describe 'Page title edge', type: :system do
 
   # The content keeps the distance under the crumb that it has under a head
   # without one (organisations/shared/_section_crumb): 24 px under the title
-  # box, 14 px under a tab bar. On the upload form and the invitation form the
-  # crumb alone holds it; on the role form the form's own mt-6 would hold the
-  # 24 px even without the crumb's margin.
+  # box, 14 px under a tab bar. On the upload form, the invitation form and the
+  # form of a tag the crumb alone holds it; on the role form the form's own mt-6
+  # would hold the 24 px even without the crumb's margin.
   it 'keeps the content 24 px under the crumb, and 14 px where a tab bar stands above the crumb' do
     organisation.update!(data_import_enabled: true)
+    tag = ActsAsTenant.with_tenant(organisation) { create(:tag, organisation: organisation, name: 'kunde-a') }
 
     {
       'Neue Rolle' => [new_organisation_role_path(organisation), 24],
       'CodebaseHQ Datei hochladen' => [new_organisation_codebase_import_file_path(organisation), 24],
+      'Tag umbenennen' => [edit_organisation_tag_path(organisation, tag), 24],
       'Mitglied einladen' => [new_organisation_invitation_path(organisation), 14]
     }.each do |name, (path, distance)|
       visit path

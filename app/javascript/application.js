@@ -10,6 +10,7 @@ import "@hotwired/stimulus"
 import "controllers"
 
 import { listFrameAddress, reloadWait } from "list_frame_reload"
+import { duplicateRequestKey, DUPLICATE_WINDOW_MS } from "duplicate_request_guard"
 
 // Debug: Check if Stimulus controllers are loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -96,8 +97,8 @@ Turbo.StreamActions.makeRowsClickable = function () {
 // open ticket. The address carries all of them; the frame request through
 // index does too. An unchanged src does not fetch, so a frame that already
 // stands at that address reloads instead.
-// The first reload runs at once. One that comes too soon waits past the duplicate guard below,
-// and everything that arrives meanwhile shares it: it reads the list after all of them.
+// The first reload runs at once. One that comes too soon waits, and everything that arrives
+// meanwhile shares it: it reads the list after all of them.
 const frameReloads = new WeakMap();
 
 Turbo.StreamActions.reloadFrame = function () {
@@ -111,9 +112,8 @@ Turbo.StreamActions.reloadFrame = function () {
   const reload = () => {
     state.timer = null;
     state.at = Date.now();
-    // Every assignment fetches, an unchanged value too (Turbo's attributeChangedCallback). A
-    // frame.reload() behind it would fetch again, the guard below blocks that and the frame
-    // stops loading.
+    // Every assignment fetches, an unchanged value too (Turbo's attributeChangedCallback), so
+    // no frame.reload() follows it: that would fetch the list a second time.
     frame.src = listFrameAddress(window.location.href, frame.getAttribute('src'));
   };
 
@@ -192,18 +192,13 @@ document.addEventListener("turbo:before-fetch-request", function(event) {
   // Convert URL to string if it's a URL object
   const urlString = url instanceof URL ? url.toString() : url;
 
-  // Try to detect and block duplicate requests within a short time window.
-  // A duplicate is the SAME request: same address, same method, same target
-  // frame. Keyed on the address alone, the board's reload GET of its frame
-  // after a fast "+ Ticket" POST to the same index address was swallowed
-  // inside the 500ms, and the surface closed on an unchanged board
-  // (doc/kanban_ticket_als_bahn_plan.md, section 4.2).
-  if (urlString && (urlString.includes('/notes') || urlString.includes('/tickets') || urlString.includes('/documents') || urlString.includes('/time_sessions')) && !urlString.includes('frame=content')) {
-    const method = String(event.detail.fetchOptions.method || 'GET').toUpperCase();
-    const targetFrame = event.detail.fetchOptions.headers['Turbo-Frame'] || '';
-    const requestKey = `${method} ${targetFrame} ${urlString}`;
+  // Hold back the same write sent twice inside a short window. Which requests count, and why a
+  // GET never does, says lib/duplicate_request_guard.js (lalabase/lalabase#262).
+  const { method, headers } = event.detail.fetchOptions;
+  const requestKey = duplicateRequestKey(urlString, method, headers['Turbo-Frame']);
+  if (requestKey) {
     const lastRequest = recentTurboRequests.get(requestKey);
-    if (lastRequest && (now - lastRequest) < 500) {
+    if (lastRequest && (now - lastRequest) < DUPLICATE_WINDOW_MS) {
       event.preventDefault();
       return;
     }

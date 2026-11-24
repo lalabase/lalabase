@@ -1,10 +1,12 @@
 // What: the address and the timing of a list frame's reload (lib/list_frame_reload.js).
 // Why:  the first version reloaded from the page's address and threw away sort and page, which
 //   live only in the frame's src. And a second reload inside the 500 ms duplicate guard of
-//   application.js was dropped unseen, so the row of the later write never reached the list.
+//   application.js was dropped unseen, so the row of the later write never reached the list
+//   (the guard lets every GET through since lalabase/lalabase#262).
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { listFrameAddress, reloadWait, RELOAD_GAP_MS } from "../../../app/javascript/lib/list_frame_reload.js"
+import { duplicateRequestKey } from "../../../app/javascript/lib/duplicate_request_guard.js"
 
 const live = "https://lalabase.test/org/o/projects/p/tickets?ticket_id=new&search=Filler"
 
@@ -53,6 +55,6 @@ test("a reload after the gap does not wait", () => {
   assert.equal(reloadWait(1000, 1000 + RELOAD_GAP_MS), 0)
 })
 
-test("the gap clears the 500 ms duplicate guard in application.js", () => {
-  assert.ok(RELOAD_GAP_MS > 500)
+test("a reload is a GET, which the duplicate guard of application.js never holds back", () => {
+  assert.equal(duplicateRequestKey(listFrameAddress(live, null), "GET", "tickets_list_frame"), null)
 })

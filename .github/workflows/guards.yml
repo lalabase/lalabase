@@ -557,6 +557,7 @@ jobs:
           spec/requests/organisations/time_sessions_title_spec.rb
           spec/requests/organisations/first_use_reduced_chrome_spec.rb
           spec/system/ticket_first_use_button_spec.rb
+          spec/system/turbo_double_click_spec.rb
           spec/requests/organisations/tickets_edited_view_spec.rb
           spec/requests/organisations/tickets_selection_spec.rb
           spec/requests/organisations/tickets_filtered_objects_spec.rb

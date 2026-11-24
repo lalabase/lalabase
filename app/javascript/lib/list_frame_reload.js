@@ -4,8 +4,9 @@
 // frame's own src: a click on a column head or on page 2 navigates the frame, not the page.
 // Reloading from the address alone would throw them away, so they come from the frame.
 
-// More than the duplicate guard in application.js blocks (500 ms): the same GET again inside
-// that window is dropped unseen, and the row of the later write would never reach the list.
+// Reloads closer together than this share one: it reads the list after all the writes that asked
+// for it. The duplicate guard of application.js lets every GET through
+// (lib/duplicate_request_guard.js), so a reload no longer has to outlast it.
 export const RELOAD_GAP_MS = 600
 
 const frameOwned = (name) => name === "page" || name.startsWith("sort")

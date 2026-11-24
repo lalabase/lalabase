@@ -130,9 +130,9 @@ RSpec.describe Neo::ColumnPickerComponent, type: :component do
     expect(page).to have_text(I18n.t('components.column_picker.read_only'))
   end
 
-  it 'offers "für alle Ansichten übernehmen" as a form when it has an address for it, and not otherwise' do
+  it 'offers "für alle Filter übernehmen" as a form when it has an address for it, and not otherwise' do
     render_inline(described_class.new(available: available, chosen: chosen, view_name: 'Von Guido', fit: 2, apply_all_url: '/apply'))
-    expect(page).to have_css('form.column-picker__apply[action="/apply"] button[type="submit"]', text: 'für alle Ansichten übernehmen', visible: :all)
+    expect(page).to have_css('form.column-picker__apply[action="/apply"] button[type="submit"]', text: 'für alle Filter übernehmen', visible: :all)
     expect(page).to have_css('form.column-picker__apply input[name="_method"][value="patch"]', visible: :all)
 
     render_picker

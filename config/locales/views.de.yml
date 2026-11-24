@@ -1140,10 +1140,10 @@ de:
       done: fertig
       boundary: ab hier reicht die Breite nicht
       applies_to_html: gilt für %{name}
-      read_only: Diese Ansicht ist geteilt und nur lesbar. Ihre Spalten wählt, wem sie gehört; sichere sie als neue Ansicht, um eigene zu wählen.
+      read_only: "Dieser Filter ist geteilt und nur lesbar. Seine Spalten wählt, wem er gehört; sichere ihn als neuen Filter, um eigene zu wählen."
       save_failed: Konnte nicht speichern. Bitte noch einmal.
       columns_unknown: Diese Spalten gibt es in dieser Liste nicht.
-      apply_to_all: für alle Ansichten übernehmen
+      apply_to_all: "für alle Filter übernehmen"
       trigger_title: Spalten wählen
       # Die Beschriftung nennt die WIRKUNG, nicht den Namen der Spalte: was der
       # Leser gewinnt, ist "bleibt lesbar", und der Satz ist für jede Zeile
@@ -1157,7 +1157,7 @@ de:
       pin_hint: Wird es eng, weichen die unteren zuerst. Angepinntes bleibt.
       moved: "%{name} an Position %{position}"
     filter_bar:
-      view_tabs_label: Gespeicherte Ansichten
+      view_tabs_label: "Gespeicherte Filter"
       more_views: "%{count} weitere"
       unsaved: Noch nicht gespeichert
       connector_not: nicht
@@ -1174,7 +1174,7 @@ de:
       remove_condition: "Bedingung entfernen: %{category}"
       remove_value: "%{value} entfernen"
       add_condition: Bedingung
-      name_of_view: Name der Ansicht
+      name_of_view: "Name des Filters"
       name_save: Sichern
       name_cancel: Abbrechen
       nothing_selected: nichts gewählt
@@ -1194,17 +1194,17 @@ de:
         one: Filter · 1 Bedingung
         other: "Filter · %{count} Bedingungen"
       save_changes: Änderung speichern
-      save_as_new_view: Als neue Ansicht
-      save_as_view: Als Ansicht sichern
+      save_as_new_view: "Als neuer Filter"
+      save_as_view: "Als Filter sichern"
       discard: Verwerfen
       reset: Zurücksetzen
       undo: Rückgängig
       change_discarded: Änderung verworfen
       conditions_reset: Bedingungen zurückgesetzt
-      view_saved: Ansicht gespeichert
+      view_saved: "Filter gespeichert"
       save_failed: Speichern fehlgeschlagen
       retry: Erneut versuchen
-      view_menu: Ansicht verwalten
+      view_menu: "Filter verwalten"
       rename: Umbenennen
       duplicate_view: Duplizieren
       duplicate_failed: Duplizieren fehlgeschlagen
@@ -1214,15 +1214,15 @@ de:
       rename_failed: Umbenennen fehlgeschlagen
       share: Teilen…
       open_expert_filter: Im Expertenfilter öffnen…
-      delete_view: Ansicht löschen
-      delete_confirm: "Ansicht „%{name}“ löschen? Das lässt sich nicht rückgängig machen."
+      delete_view: "Filter löschen"
+      delete_confirm: "Filter „%{name}“ löschen? Das lässt sich nicht rückgängig machen."
       view_deleted: "„%{name}“ gelöscht"
       delete_failed: Löschen fehlgeschlagen
       proposal_question_html: "Auch nach %{condition} filtern?"
       accept: Übernehmen
       decline: Ablehnen
       search_open: Suche öffnen
-      save_filter_type_widened_hint: "Mehr als ein Typ, oder ein Typ ohne eigene Ordnerart: die Ansicht wird für alle Typen gesichert."
+      save_filter_type_widened_hint: "Mehr als ein Typ, oder ein Typ ohne eigene Filterart: der Filter wird für alle Typen gesichert."
     overflow_menu:
       label: Weitere Aktionen
     contextual_help:
@@ -1249,7 +1249,7 @@ de:
         document: Dokument
         note: Notiz
         chat: Chat
-        smart_folder: Smart Folder
+        smart_folder: "Filter"
       titles:
         created: "%{trackable_type} erstellt"
         updated: "%{trackable_type} aktualisiert"
@@ -1265,7 +1265,7 @@ de:
         chat_created: Chat erstellt
         meeting_created: Meeting erstellt
         meeting_deleted: Meeting gelöscht
-        smart_folder_created: Smart Folder erstellt
+        smart_folder_created: "Filter erstellt"
         codebase_imported: Codebase importiert
         subscriber_added: Beobachter hinzugefügt
         subscriber_removed: Beobachter entfernt
@@ -1288,7 +1288,7 @@ de:
         chat_created: Chat "%{chat_title}" wurde erstellt
         meeting_created: Meeting "%{meeting_title}" wurde erstellt
         meeting_deleted: Meeting "%{meeting_title}" wurde gelöscht
-        smart_folder_created: Smart Folder "%{folder_name}" wurde erstellt
+        smart_folder_created: "Filter „%{folder_name}“ wurde erstellt"
         codebase_imported_with_count: "%{files_count} Dateien wurden importiert"
         codebase_imported: Codebase wurde importiert
         created_project: "%{actor} hat das Projekt erstellt"
@@ -1304,7 +1304,7 @@ de:
         note: Notiz
         chat: Chat
         meeting: Meeting
-        smart_folder: Smart Folder
+        smart_folder: "Filter"
       defaults:
         unknown_user: Unbekannter Benutzer
         unknown_document: Unbekanntes Dokument
@@ -1312,7 +1312,7 @@ de:
         unknown_project: Unbekanntes Projekt
         unknown_chat: Unbekannter Chat
         unknown_meeting: Unbekanntes Meeting
-        unknown_folder: Unbekannter Ordner
+        unknown_folder: "Unbekannter Filter"
         new_chat: Neuer Chat
         system_actor: System
         empty_value: leer

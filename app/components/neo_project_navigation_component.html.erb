@@ -49,11 +49,11 @@
       <% end %>
     <% end %>
 
-    <!-- Smart Folders -->
+    <!-- Saved filters -->
     <% if @is_admin %>
       <%= link_to helpers.organisation_project_smart_folders_path(organisation_id: @project.organisation_id, project_id: @project.id),
           class: tab_classes(tab_active?('smart_folders')) do %>
-        Smart Folders
+        <%= t('smart_folders.title') %>
       <% end %>
     <% end %>
 

@@ -53,7 +53,7 @@ RSpec.describe 'Meetings overview', type: :system do
     page.send_keys(:escape)
     page.send_keys(:escape)
 
-    click_button 'Als Ansicht sichern'
+    click_button 'Als Filter sichern'
     view_name_field.set('Nur Alpha')
     click_button 'Sichern'
     expect(page).to have_css('[role="tab"][aria-selected="true"]', text: 'Nur Alpha', wait: 5)
@@ -574,7 +574,7 @@ RSpec.describe 'Meetings overview', type: :system do
       row_of('Beta Retro').click
       expect(lane_title).to have_text('Beta Retro')
 
-      click_button 'Als Ansicht sichern'
+      click_button 'Als Filter sichern'
       view_name_field.set('Mit Anna')
       click_button 'Sichern'
 

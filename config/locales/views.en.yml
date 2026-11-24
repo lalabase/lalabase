@@ -1138,10 +1138,10 @@ en:
       done: done
       boundary: the width runs out from here
       applies_to_html: applies to %{name}
-      read_only: This view is shared and read-only. Its owner chooses its columns; save it as a new view to choose your own.
+      read_only: "This filter is shared and read-only. Its owner chooses its columns; save it as a new filter to choose your own."
       save_failed: Could not save. Please try again.
       columns_unknown: These columns do not exist in this list.
-      apply_to_all: apply to all views
+      apply_to_all: "apply to all filters"
       trigger_title: Choose columns
       # The caption names the EFFECT, not the column: what the reader gains is
       # "stays readable", and that sentence is the same for every row. The
@@ -1155,7 +1155,7 @@ en:
       pin_hint: When it gets tight the lower ones go first. Pinned stays.
       moved: "%{name} at position %{position}"
     filter_bar:
-      view_tabs_label: Saved views
+      view_tabs_label: "Saved filters"
       more_views: "%{count} more"
       unsaved: Not saved yet
       connector_not: not
@@ -1172,7 +1172,7 @@ en:
       remove_condition: "Remove condition: %{category}"
       remove_value: "Remove %{value}"
       add_condition: condition
-      name_of_view: Name of the view
+      name_of_view: "Name of the filter"
       name_save: Save
       name_cancel: Cancel
       nothing_selected: nothing selected
@@ -1192,17 +1192,17 @@ en:
         one: Filter · 1 condition
         other: "Filter · %{count} conditions"
       save_changes: Save change
-      save_as_new_view: As a new view
-      save_as_view: Save as a view
+      save_as_new_view: "As a new filter"
+      save_as_view: "Save as a filter"
       discard: Discard
       reset: Reset
       undo: Undo
       change_discarded: Change discarded
       conditions_reset: Conditions reset
-      view_saved: View saved
+      view_saved: "Filter saved"
       save_failed: Save failed
       retry: Try again
-      view_menu: Manage view
+      view_menu: "Manage filter"
       rename: Rename
       duplicate_view: Duplicate
       duplicate_failed: Duplicating failed
@@ -1212,15 +1212,15 @@ en:
       rename_failed: Rename failed
       share: Share…
       open_expert_filter: Open in the expert filter…
-      delete_view: Delete view
-      delete_confirm: "Delete the view \"%{name}\"? This cannot be undone."
+      delete_view: "Delete filter"
+      delete_confirm: "Delete the filter \"%{name}\"? This cannot be undone."
       view_deleted: "\"%{name}\" deleted"
       delete_failed: Delete failed
       proposal_question_html: "Also filter by %{condition}?"
       accept: Accept
       decline: Decline
       search_open: Open search
-      save_filter_type_widened_hint: "More than one type, or a type without a folder kind of its own: the view is saved for all types."
+      save_filter_type_widened_hint: "More than one type, or a type without a filter kind of its own: the filter is saved for all types."
     overflow_menu:
       label: More actions
     contextual_help:
@@ -1247,7 +1247,7 @@ en:
         document: Document
         note: Note
         chat: Chat
-        smart_folder: Smart Folder
+        smart_folder: "Filter"
       titles:
         created: "%{trackable_type} created"
         updated: "%{trackable_type} updated"
@@ -1263,7 +1263,7 @@ en:
         chat_created: Chat created
         meeting_created: Meeting created
         meeting_deleted: Meeting deleted
-        smart_folder_created: Smart Folder created
+        smart_folder_created: "Filter created"
         codebase_imported: Codebase imported
         subscriber_added: Subscriber added
         subscriber_removed: Subscriber removed
@@ -1286,7 +1286,7 @@ en:
         chat_created: Chat "%{chat_title}" was created
         meeting_created: Meeting "%{meeting_title}" was created
         meeting_deleted: Meeting "%{meeting_title}" was deleted
-        smart_folder_created: Smart Folder "%{folder_name}" was created
+        smart_folder_created: "Filter \"%{folder_name}\" was created"
         codebase_imported_with_count: "%{files_count} files were imported"
         codebase_imported: Codebase was imported
         created_project: "%{actor} created the project"
@@ -1302,7 +1302,7 @@ en:
         note: Note
         chat: Chat
         meeting: Meeting
-        smart_folder: Smart Folder
+        smart_folder: "Filter"
       defaults:
         unknown_user: Unknown user
         unknown_document: Unknown document
@@ -1310,7 +1310,7 @@ en:
         unknown_project: Unknown project
         unknown_chat: Unknown chat
         unknown_meeting: Unknown meeting
-        unknown_folder: Unknown folder
+        unknown_folder: "Unknown filter"
         new_chat: New Chat
         system_actor: System
         empty_value: empty

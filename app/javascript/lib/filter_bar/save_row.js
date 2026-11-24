@@ -62,7 +62,7 @@ export function buildNamingRowHtml({ saveUrl, projectId, filters, operators, sug
       ${buildFilterHiddenFields(filters, operators)}
       ${buildSortHiddenFields()}
       ${hidden}
-      <label class="text-body" for="filter-bar-view-name">${escapeHtml(labels.name_of_view || 'Name der Ansicht')}</label>
+      <label class="text-body" for="filter-bar-view-name">${escapeHtml(labels.name_of_view || 'Name des Filters')}</label>
       <input type="text" id="filter-bar-view-name" name="smart_folder_name" required autocomplete="off"
              value="${escapeAttr(suggestion || '')}" class="${NAME_INPUT}">
       <button type="submit" class="${ACTION}">${escapeHtml(labels.name_save || 'Sichern')}</button>
@@ -91,10 +91,10 @@ export function buildSaveRowHtml({ layer, sentence, labels = {}, canSave = false
   if (layer === 'saved') {
     if (saveState === 'error') actions.push(action(labels.retry || 'Erneut versuchen', 'saveChanges'))
     else if (canSave) actions.push(action(labels.save_changes || 'Änderung speichern', 'saveChanges'))
-    if (canCreate) actions.push(action(labels.save_as_new_view || 'Als neue Ansicht', 'openSaveModal'))
+    if (canCreate) actions.push(action(labels.save_as_new_view || 'Als neuer Filter', 'openSaveModal'))
     actions.push(action(labels.discard || 'Verwerfen', 'discardChanges', DISCARD))
   } else {
-    if (canCreate) actions.push(action(labels.save_as_view || 'Als Ansicht sichern', 'openSaveModal'))
+    if (canCreate) actions.push(action(labels.save_as_view || 'Als Filter sichern', 'openSaveModal'))
     actions.push(action(labels.reset || 'Zurücksetzen', 'resetConditions', DISCARD))
   }
 

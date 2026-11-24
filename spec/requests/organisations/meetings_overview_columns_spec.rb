@@ -102,7 +102,7 @@ RSpec.describe 'Organisations::MeetingsOverview columns', :ci_guard, type: :requ
       expect(picker_keys).to include('project')
     end
 
-    it 'points "für alle Ansichten übernehmen" at the overview, and the project page at its project' do
+    it 'points "für alle Filter übernehmen" at the overview, and the project page at its project' do
       get overview_path
       expect(page_body).to have_css('#column-picker form.column-picker__apply', visible: :all)
       expect(page_body.find('#column-picker form.column-picker__apply', visible: :all)['action'])
@@ -322,7 +322,7 @@ RSpec.describe 'Organisations::MeetingsOverview columns', :ci_guard, type: :requ
     end
   end
 
-  describe '"für alle Ansichten übernehmen" on the overview' do
+  describe '"für alle Filter übernehmen" on the overview' do
     let(:apply_path) { apply_columns_to_all_organisation_meetings_view_configuration_path(organisation) }
 
     it 'writes the base view of the overview and the own meeting views without a project, nothing else' do
@@ -338,7 +338,7 @@ RSpec.describe 'Organisations::MeetingsOverview columns', :ci_guard, type: :requ
       patch apply_path, params: { view_configuration: { table_columns: %w[project creator nope] } }
 
       expect(response).to redirect_to(overview_path)
-      expect(flash[:notice]).to eq('Spalten für 2 Ansichten übernommen.')
+      expect(flash[:notice]).to eq('Spalten für 2 Filter übernommen.')
       expect(overview_config(reader).ordered_columns).to eq(%w[title project creator])
       expect(columns_of(own_overview_view)).to eq(%w[title project creator])
       expect(columns_of(own_project_view)).to eq(%w[title occurred_at])

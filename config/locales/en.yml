@@ -633,7 +633,7 @@ en:
       team_members: Team Members
       notifications: Notifications
       time_tracking: Time Tracking
-      smart_folder_tickets: Ticket Filter
+      smart_folder_tickets: "Saved filter"
       project_info: Project Info
     placeholder:
       unavailable: This area is currently unavailable
@@ -710,9 +710,9 @@ en:
       view_all: View All
       all: All
       updated: Updated
-      no_tickets: No tickets in this folder
-      unavailable: Ticket Filter
-      unavailable_message: This Ticket Filter is no longer available
+      no_tickets: "No tickets in this filter"
+      unavailable: "Saved filter"
+      unavailable_message: "This filter is no longer available"
     time_tracking:
       title: Time Tracking
       view_all: View All
@@ -737,7 +737,7 @@ en:
       move_right: Move right
       remove_row: Remove row
       select_widget: Select widget
-      select_folder: Select Ticket Filter
+      select_folder: "Select a saved filter"
       select_cards: Select cards
       add_row: Add row
       row_full: Row is full — make a widget narrower to free up space.
@@ -757,7 +757,7 @@ en:
       saved_as_default_all: Saved as project default for %{count} projects
       saved_personal_all: Saved as your personal layout for %{count} projects
       confirm_apply_all: This layout will be applied to ALL projects, overwriting the existing layouts there. Continue?
-      smart_folder_warning: This layout contains Ticket Filter widgets. These are project-specific and will appear empty in other projects.
+      smart_folder_warning: "This layout contains widgets with saved filters. These are project-specific and will appear empty in other projects."
       display_mode: Display
       item_count: Number of entries
       display_cards: Cards
@@ -1324,13 +1324,13 @@ en:
       smart_folder_share:
         attributes:
           user_id:
-            already_has_access: This user already has access to the folder
-            cannot_share_with_owner: The owner already has full access to this Ticket Filter
+            already_has_access: "This user already has access to the filter"
+            cannot_share_with_owner: "The owner already has full access to this filter"
   generic:
     'no': 'No'
     'yes': 'Yes'
     actions: Actions
-    back_to_details: Back to folder
+    back_to_details: "Back to filter"
     back_to_list: Back to overview
     cancel: Cancel
     create: Create
@@ -1460,7 +1460,7 @@ en:
     show_all_projects: Show all projects
     org_dashboard: Dashboard
     activities: Activities
-    smart_folders: Ticket Filters
+    smart_folders: "Saved filters"
     invite_member: Invite member
     account_section: My Account
     billing_accounts: Billing accounts
@@ -2040,26 +2040,26 @@ en:
         title_label: Title
     smart_folders:
       create:
-        success: Ticket Filter created successfully
+        success: "Filter created"
       destroy:
-        success: Ticket Filter deleted successfully
+        success: "Filter deleted"
       share:
         add_new_share: Add new share
         can_edit: Edit
         can_edit_hint: User can edit rules and settings
         can_share: Share
-        can_share_hint: User can share the folder with others
+        can_share_hint: "User can share the filter with others"
         confirm_remove_share: Are you sure?
-        no_shares: This folder has not been shared yet
+        no_shares: "This filter has not been shared yet"
         permissions: Permissions
         remove_share: Remove share
         select_users: Select users
         share_button: Save sharing
         shared_with: Shared with
-        title: Share Ticket Filter
+        title: "Share filter"
         users_hint: Hold Ctrl/Cmd for multiple selection
       update:
-        success: Ticket Filter updated successfully
+        success: "Filter updated"
     tickets:
       index:
         chat_description: In the future, a chat could be displayed here
@@ -2544,9 +2544,9 @@ en:
     slim_select:
       select_user_placeholder: Select user
     smart_folder:
-      confirm_delete: Do you really want to delete this ticket filter?
-      folder_created: Ticket filter created
-      folder_updated: Ticket filter updated
+      confirm_delete: "Do you really want to delete this filter?"
+      folder_created: "Filter created"
+      folder_updated: "Filter updated"
       field_load_error: Error loading the input field
       no_options: No options available
       please_select: Please select...

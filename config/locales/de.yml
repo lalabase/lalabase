@@ -689,7 +689,7 @@ de:
       team_members: Teammitglieder
       notifications: Benachrichtigungen
       time_tracking: Zeiterfassung
-      smart_folder_tickets: Ticket Filter
+      smart_folder_tickets: "Gespeicherter Filter"
       project_info: Projektinfo
     placeholder:
       unavailable: Dieser Bereich ist aktuell nicht verfügbar
@@ -766,9 +766,9 @@ de:
       view_all: Alle anzeigen
       all: Alle
       updated: Aktualisiert
-      no_tickets: Keine Tickets in diesem Folder
-      unavailable: Ticket Filter
-      unavailable_message: Dieser Ticket Filter ist nicht mehr verfügbar
+      no_tickets: "Keine Tickets in diesem Filter"
+      unavailable: "Gespeicherter Filter"
+      unavailable_message: "Dieser Filter ist nicht mehr verfügbar"
     time_tracking:
       title: Zeiterfassung
       view_all: Alle anzeigen
@@ -793,7 +793,7 @@ de:
       move_right: Nach rechts
       remove_row: Zeile entfernen
       select_widget: Widget wählen
-      select_folder: Ticket Filter wählen
+      select_folder: "Gespeicherten Filter wählen"
       select_cards: Karten auswählen
       add_row: Zeile hinzufügen
       row_full: Zeile voll — mach ein Widget schmaler, um Platz zu schaffen.
@@ -813,7 +813,7 @@ de:
       saved_as_default_all: Als Projekt-Standard für %{count} Projekte gespeichert
       saved_personal_all: Als dein persönliches Layout für %{count} Projekte gespeichert
       confirm_apply_all: Dieses Layout wird auf ALLE Projekte angewendet und überschreibt die dort bestehenden Layouts. Fortfahren?
-      smart_folder_warning: Dieses Layout enthält Ticket-Filter-Widgets. Diese sind projektspezifisch und werden in anderen Projekten leer angezeigt.
+      smart_folder_warning: "Dieses Layout enthält Widgets mit gespeicherten Filtern. Diese sind projektspezifisch und werden in anderen Projekten leer angezeigt."
       display_mode: Darstellung
       item_count: Anzahl Einträge
       display_cards: Karten
@@ -1427,14 +1427,13 @@ de:
       smart_folder_share:
         attributes:
           user_id:
-            already_has_access: Dieser Benutzer hat bereits Zugriff auf den Ordner
-            cannot_share_with_owner: Der Besitzer hat bereits vollen Zugriff auf diesen
-              Ticket Filter
+            already_has_access: "Dieser Benutzer hat bereits Zugriff auf den Filter"
+            cannot_share_with_owner: "Der Besitzer hat bereits vollen Zugriff auf diesen Filter"
   generic:
     'no': Nein
     'yes': Ja
     actions: Aktionen
-    back_to_details: Zurück zum Ordner
+    back_to_details: "Zurück zum Filter"
     back_to_list: Zurück zur Übersicht
     cancel: Abbrechen
     create: Erstellen
@@ -1566,7 +1565,7 @@ de:
     show_all_projects: Alle Projekte anzeigen
     org_dashboard: Dashboard
     activities: Aktivitäten
-    smart_folders: Ticket Filter
+    smart_folders: "Gespeicherte Filter"
     invite_member: Mitglied einladen
     account_section: Mein Konto
     billing_accounts: Rechnungskonten
@@ -2127,26 +2126,26 @@ de:
         title_label: Titel
     smart_folders:
       create:
-        success: Ticket Filter erfolgreich erstellt
+        success: "Filter erstellt"
       destroy:
-        success: Ticket Filter erfolgreich gelöscht
+        success: "Filter gelöscht"
       share:
         add_new_share: Neue Freigabe hinzufügen
         can_edit: Bearbeiten
         can_edit_hint: Benutzer kann Regeln und Einstellungen bearbeiten
         can_share: Teilen
-        can_share_hint: Benutzer kann den Ordner mit anderen teilen
+        can_share_hint: "Benutzer kann den Filter mit anderen teilen"
         confirm_remove_share: Sind Sie sicher?
-        no_shares: Dieser Ordner wurde noch nicht geteilt
+        no_shares: "Dieser Filter ist noch nicht geteilt"
         permissions: Berechtigungen
         remove_share: Freigabe entfernen
         select_users: Benutzer auswählen
         share_button: Freigabe speichern
         shared_with: Geteilt mit
-        title: Ticket Filter teilen
+        title: "Filter teilen"
         users_hint: Halten Sie Strg/Cmd gedrückt für Mehrfachauswahl
       update:
-        success: Ticket Filter erfolgreich aktualisiert
+        success: "Filter aktualisiert"
     tickets:
       index:
         chat_description: Hier könnte in Zukunft ein Chat angezeigt werden
@@ -2585,10 +2584,10 @@ de:
       date_between: zwischen %{start} und %{end}
     general_settings: Allgemeine Einstellungen
     is_public: Öffentlich
-    no_document_folders: Keine Dokument-Ordner vorhanden
+    no_document_folders: "Keine gespeicherten Filter für Dokumente"
     no_rules_in_group: Keine Regeln in dieser Gruppe
-    no_ticket_folders: Keine Ticket-Ordner vorhanden
-    no_time_session_folders: Keine Zeitsession-Ordner vorhanden
+    no_ticket_folders: "Keine gespeicherten Filter für Tickets"
+    no_time_session_folders: "Keine gespeicherten Filter für Zeiten"
     public_access: Öffentlicher Zugriff
     remove_group: Gruppe entfernen
     remove_rule: Regel entfernen
@@ -2601,15 +2600,15 @@ de:
     all_notes: Alle Notizen
     and: UND
     clone: Kopieren
-    confirm_delete_group: Sind Sie sicher, dass Sie diese Regelgruppe löschen möchten?
-    confirm_delete_rule: Sind Sie sicher, dass Sie diese Regel löschen möchten?
+    confirm_delete_group: "Diese Regelgruppe löschen?"
+    confirm_delete_rule: "Diese Regel löschen?"
     create_document_folder: Neuen Filter erstellen
-    create_first: Erstellen Sie Ihren ersten Ticket Filter
+    create_first: "Erstelle deinen ersten Filter"
     create_note_folder: Neuen Filter erstellen
     create_ticket_folder: Neuen Filter erstellen
     create_time_session_folder: Neuen Filter erstellen
     details: Details
-    edit: Ticket Filter bearbeiten
+    edit: "Filter bearbeiten"
     edit_rules: Regeln bearbeiten
     fields:
       assignee: Zugewiesen an
@@ -2635,11 +2634,11 @@ de:
     max_value: Max. Wert
     min_value: Min. Wert
     new_folder: Neuer Filter
-    no_folders: Keine Ticket Filter gefunden.
-    no_note_folders: Keine Ticket Filter für Notizen verfügbar
+    no_folders: "Keine gespeicherten Filter gefunden."
+    no_note_folders: "Keine gespeicherten Filter für Notizen"
     no_results: Keine Ergebnisse entsprechen den definierten Regeln.
-    no_rules: Keine Regeln definiert. Fügen Sie Regeln hinzu, um Ergebnisse zu sehen.
-    not_found: Der angegebene Ticket Filter wurde nicht gefunden.
+    no_rules: "Keine Regeln definiert. Füge Regeln hinzu, um Ergebnisse zu sehen."
+    not_found: "Der Filter wurde nicht gefunden."
     object_types:
       All: Alle Objekttypen
       Document: Dokumente
@@ -2682,13 +2681,12 @@ de:
     share:
       add_new_share: Neue Freigabe hinzufügen
       can_edit: Bearbeiten
-      can_edit_hint: Benutzer können die Regeln und Einstellungen des Ordners bearbeiten
+      can_edit_hint: "Benutzer können die Regeln und Einstellungen des Filters bearbeiten"
       can_share: Weiterfreigeben
-      can_share_hint: Benutzer können den Ordner mit anderen teilen
-      confirm_remove_share: Sind Sie sicher, dass Sie die Freigabe für diesen Benutzer
-        entfernen möchten?
+      can_share_hint: "Benutzer können den Filter mit anderen teilen"
+      confirm_remove_share: "Freigabe für diesen Benutzer entfernen?"
       edit_permissions: Berechtigungen bearbeiten
-      no_shares: Dieser Ordner wurde noch nicht geteilt.
+      no_shares: "Dieser Filter ist noch nicht geteilt."
       owner: "(Besitzer)"
       permissions: Berechtigungen für ausgewählte Benutzer
       remove_share: Freigabe entfernen
@@ -2696,9 +2694,9 @@ de:
       select_users: Benutzer zum Teilen auswählen
       share_button: Freigabe speichern
       shared_with: Geteilt mit
-      title: Ticket Filter '%{name}' teilen
-      users_hint: Halten Sie Strg/Cmd gedrückt, um mehrere Benutzer auszuwählen
-    sidebar_title: Ticket Filter
+      title: "Filter „%{name}“ teilen"
+      users_hint: "Halte Strg/Cmd gedrückt, um mehrere Benutzer auszuwählen"
+    sidebar_title: "Gespeicherte Filter"
     sorting:
       created_asc: Älteste zuerst
       created_desc: Neueste zuerst
@@ -2706,11 +2704,10 @@ de:
       title_desc: Titel Z-A
       updated_asc: Zuerst aktualisiert
       updated_desc: Zuletzt aktualisiert
-    success: Ticket Filter wurde erfolgreich gespeichert.
+    success: "Filter gespeichert."
     target_object_type: Objekttyp
-    title: Ticket Filter
-    try_editing: Versuchen Sie die Filterregeln zu bearbeiten, um andere Ergebnisse
-      zu erhalten.
+    title: "Gespeicherte Filter"
+    try_editing: "Ändere die Regeln, um andere Ergebnisse zu bekommen."
     value_placeholder: Wert eingeben...
   stimulus:
     admin_user_form:
@@ -2772,9 +2769,9 @@ de:
     slim_select:
       select_user_placeholder: Benutzer auswählen
     smart_folder:
-      confirm_delete: Möchten Sie diesen Ticket Filter wirklich löschen?
-      folder_created: Ticket Filter erstellt
-      folder_updated: Ticket Filter aktualisiert
+      confirm_delete: "Diesen Filter wirklich löschen?"
+      folder_created: "Filter erstellt"
+      folder_updated: "Filter aktualisiert"
       field_load_error: Fehler beim Laden des Eingabefelds
       no_options: Keine Optionen verfügbar
       please_select: Bitte wählen...

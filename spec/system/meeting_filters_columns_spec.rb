@@ -38,7 +38,7 @@ RSpec.describe 'Meeting filters and columns', type: :system do
     page.driver.browser.manage.window.resize_to(1440, 1000)
     visit path(filter: { participant: ['Anna'] }, search: 'a', search_mode: 'title_only')
     expect(page).to have_css('[data-fb-hits-total="2"]')
-    click_button 'Als Ansicht sichern'
+    click_button 'Als Filter sichern'
     view_name_field.set('Mit Anna')
     click_button 'Sichern'
     expect(page).to have_css('[role="tab"][aria-selected="true"]', text: 'Mit Anna')

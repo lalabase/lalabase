@@ -5,7 +5,7 @@ en:
       imports: "Data import"
       invitations: "Invitations"
       overview_configuration: "Customize start page"
-      smart_folders: "Views"
+      smart_folders: "Saved filters"
       tags: "Tags"
       user_activities: "Activities"
     start: "Home"

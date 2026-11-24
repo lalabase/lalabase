@@ -2,7 +2,7 @@
 de:
   generic:
     actions: Aktionen
-    back_to_details: Zurück zum Ordner
+    back_to_details: "Zurück zum Filter"
     back_to_list: Zurück zur Übersicht
     cancel: Abbrechen
     create: Erstellen
@@ -28,16 +28,16 @@ de:
     clone: Kopieren
     copy_of: Kopie von %{name}
     delete: Filter löschen
-    confirm_delete: Sind Sie sicher, dass Sie diesen Filter löschen möchten?
-    confirm_delete_group: Sind Sie sicher, dass Sie diese Regelgruppe löschen möchten?
-    confirm_delete_rule: Sind Sie sicher, dass Sie diese Regel löschen möchten?
+    confirm_delete: "Diesen Filter löschen? Das lässt sich nicht rückgängig machen."
+    confirm_delete_group: "Diese Regelgruppe löschen?"
+    confirm_delete_rule: "Diese Regel löschen?"
     create_document_folder: Neuen Filter erstellen
-    create_first: Erstellen Sie Ihren ersten Ticket Filter
+    create_first: "Erstelle deinen ersten Filter"
     create_note_folder: Neuen Filter erstellen
     create_ticket_folder: Neuen Filter erstellen
     create_time_session_folder: Neuen Filter erstellen
     details: Details
-    edit: Ticket Filter bearbeiten
+    edit: "Filter bearbeiten"
     edit_rules: Regeln bearbeiten
     edit_title: Filter bearbeiten
     edit_title_by_type:
@@ -77,11 +77,11 @@ de:
       Document: Neuer Dokumenten-Filter
       TimeSession: Neuer Zeitsession-Filter
     new_folder: Neuer Filter
-    no_folders: Keine Ticket Filter gefunden.
-    no_note_folders: Keine Ticket Filter für Notizen verfügbar
+    no_folders: "Keine gespeicherten Filter gefunden."
+    no_note_folders: "Keine gespeicherten Filter für Notizen"
     no_results: Keine Ergebnisse entsprechen den definierten Regeln.
-    no_rules: Keine Regeln definiert. Fügen Sie Regeln hinzu, um Ergebnisse zu sehen.
-    not_found: Der angegebene Ticket Filter wurde nicht gefunden.
+    no_rules: "Keine Regeln definiert. Füge Regeln hinzu, um Ergebnisse zu sehen."
+    not_found: "Der Filter wurde nicht gefunden."
     object_types:
       All: Alle Objekttypen
       Document: Dokumente
@@ -136,12 +136,12 @@ de:
     share:
       add_new_share: Neue Freigabe hinzufügen
       can_edit: Bearbeiten
-      can_edit_hint: Benutzer können die Regeln und Einstellungen des Ordners bearbeiten
+      can_edit_hint: "Benutzer können die Regeln und Einstellungen des Filters bearbeiten"
       can_share: Weiterfreigeben
-      can_share_hint: Benutzer können den Ordner mit anderen teilen
-      confirm_remove_share: Sind Sie sicher, dass Sie die Freigabe für diesen Benutzer entfernen möchten?
+      can_share_hint: "Benutzer können den Filter mit anderen teilen"
+      confirm_remove_share: "Freigabe für diesen Benutzer entfernen?"
       edit_permissions: Berechtigungen bearbeiten
-      no_shares: Dieser Ordner wurde noch nicht geteilt.
+      no_shares: "Dieser Filter ist noch nicht geteilt."
       owner: "(Besitzer)"
       permissions: Berechtigungen für ausgewählte Benutzer
       remove_share: Freigabe entfernen
@@ -149,9 +149,9 @@ de:
       select_users: Benutzer zum Teilen auswählen
       share_button: Freigabe speichern
       shared_with: Geteilt mit
-      title: Ticket Filter '%{name}' teilen
-      users_hint: Halten Sie Strg/Cmd gedrückt, um mehrere Benutzer auszuwählen
-    sidebar_title: Ticket Filter
+      title: "Filter „%{name}“ teilen"
+      users_hint: "Halte Strg/Cmd gedrückt, um mehrere Benutzer auszuwählen"
+    sidebar_title: "Gespeicherte Filter"
     sorting:
       created_asc: Älteste zuerst
       created_desc: Neueste zuerst
@@ -159,8 +159,8 @@ de:
       title_desc: Titel Z-A
       updated_asc: Zuerst aktualisiert
       updated_desc: Zuletzt aktualisiert
-    success: Ticket Filter wurde erfolgreich gespeichert.
+    success: "Filter gespeichert."
     target_object_type: Objekttyp
-    title: Ticket Filter
-    try_editing: Versuchen Sie die Filterregeln zu bearbeiten, um andere Ergebnisse zu erhalten.
+    title: "Gespeicherte Filter"
+    try_editing: "Ändere die Regeln, um andere Ergebnisse zu bekommen."
     value_placeholder: Wert eingeben...

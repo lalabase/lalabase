@@ -294,7 +294,7 @@ en:
       no_view_permission: "You do not have permission to view documents."
       file_required: "A file must be selected"
       no_edit_permission: "You do not have permission to edit documents."
-      smart_folder_not_found: "The specified Ticket Filter was not found."
+      smart_folder_not_found: "The filter was not found."
       save_error_detail: "The document could not be saved: %{errors}"
     time_sessions:
       created: "Time session was successfully created"
@@ -311,7 +311,7 @@ en:
       no_create_permission: "You do not have permission to create time sessions."
       no_edit_permission: "You do not have permission to edit this time session."
       no_overview_permission: "You do not have permission to view the time tracking overview."
-      smart_folder_not_found: "The specified Ticket Filter was not found."
+      smart_folder_not_found: "The filter was not found."
     time_session_groups:
       created: "Time session group was successfully created."
       updated: "Time session group was successfully updated."
@@ -322,21 +322,21 @@ en:
       export_error: "Error creating the export."
     smart_folders:
       results_error: "Error loading results."
-      cloned: "Ticket Filter was successfully copied."
-      clone_error: "Ticket Filter could not be copied: %{error}"
-      not_found: "Ticket Filter not found."
+      cloned: "Filter copied."
+      clone_error: "Filter could not be copied: %{error}"
+      not_found: "Filter not found."
       share_success:
         one: "%{count} share added successfully."
         other: "%{count} shares added successfully."
       share_error: "Sharing could not be saved."
-      share_select_users: "Please select at least one user to share with."
+      share_select_users: "Choose at least one user to share with."
       unshared: "Sharing removed."
-      created_from_filters: "View saved."
-      create_from_filters_error: "View could not be saved."
-      updated_from_filters: "Filter has been saved."
-      update_from_filters_error: "Error saving filter."
+      created_from_filters: "Filter saved."
+      create_from_filters_error: "Filter could not be saved."
+      updated_from_filters: "Filter saved."
+      update_from_filters_error: "Filter could not be saved."
       destroy:
-        success: "SmartFolder has been deleted."
+        success: "Filter deleted."
     assistant_preferences:
       persona_error: That focus is not available to you.
     assistant_chats:
@@ -434,8 +434,8 @@ en:
     view_configurations:
       updated: "View settings were updated."
       applied_to_all:
-        one: "Columns applied to one view."
-        other: "Columns applied to %{count} views."
+        one: "Columns applied to one filter."
+        other: "Columns applied to %{count} filters."
     ticket_attribute_definitions:
       created: "Attribute was successfully added."
       updated: "Attribute was successfully updated."

@@ -35,7 +35,7 @@ RSpec.describe 'Organisations::SmartFolders Formular-Titel', type: :request do
       get edit_organisation_smart_folder_path(organisation, folder_for('Note'), modal: true)
 
       expect(response.body).to include('Wissens-Filter bearbeiten')
-      expect(response.body).not_to include('Ticket Filter bearbeiten')
+      expect(response.body).not_to include('Ticket-Filter bearbeiten')
     end
 
     it 'titelt einen Ticket-Filter typbezogen' do
@@ -48,7 +48,7 @@ RSpec.describe 'Organisations::SmartFolders Formular-Titel', type: :request do
       get edit_organisation_smart_folder_path(organisation, folder_for('All'), modal: true)
 
       expect(response.body).to include('Filter bearbeiten')
-      expect(response.body).not_to include('Ticket Filter bearbeiten')
+      expect(response.body).not_to include('Ticket-Filter bearbeiten')
     end
   end
 
@@ -57,14 +57,14 @@ RSpec.describe 'Organisations::SmartFolders Formular-Titel', type: :request do
       get new_organisation_smart_folder_path(organisation, modal: true, context_type: 'Note', project_id: project.id)
 
       expect(response.body).to include('Neuer Wissens-Filter')
-      expect(response.body).not_to include('Neuer Ticket Filter')
+      expect(response.body).not_to include('Neuer Ticket-Filter')
     end
 
     it 'titelt generisch ohne context_type' do
       get new_organisation_smart_folder_path(organisation, modal: true, project_id: project.id)
 
       expect(response.body).to include('Neuer Filter')
-      expect(response.body).not_to include('Neuer Ticket Filter')
+      expect(response.body).not_to include('Neuer Ticket-Filter')
     end
   end
 end

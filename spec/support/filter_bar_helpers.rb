@@ -2,7 +2,7 @@
 
 # The filter bar in a browser spec.
 module FilterBarHelpers
-  # The name field of "Als Ansicht sichern", ready to be typed into.
+  # The name field of "Als Filter sichern", ready to be typed into.
   #
   # The bar fills the field with a suggested name and selects it one animation
   # frame after the row shows (filter_bar#openSaveModal), so that Enter alone

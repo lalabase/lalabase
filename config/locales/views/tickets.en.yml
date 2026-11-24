@@ -23,7 +23,7 @@ en:
       picked_up: picked up
       dropped: "dropped in column %{column}, position %{position} of %{count}"
       put_back: put back
-    toggle_filter_sidebar: Toggle ticket filter sidebar
+    toggle_filter_sidebar: "Toggle filter sidebar"
   attribute_types:
     select: Dropdown Field
     multiselect: Multi-Select Field
@@ -341,7 +341,7 @@ en:
           filter_connector_and: and
           filter_connector_or: or
           save_as_smart_folder: Save filter
-          save_filter_title: Save filter as Smart Folder
+          save_filter_title: "Save filter"
           save_filter_name_label: Name
           save_filter_name_placeholder: e.g. Open Bugs
           save_filter_save_button: Save
@@ -460,7 +460,7 @@ en:
           meeting_deleted: Meeting deleted
           meeting_moved_in: "Meeting moved here from “%{project}”"
           meeting_moved_out: "Meeting moved to “%{project}”"
-          smart_folder_created: Smart folder created
+          smart_folder_created: "Filter created"
           codebase_imported: Codebase imported
           member_added: "Member added: %{name}"
           member_removed: "Member removed: %{name}"
@@ -505,7 +505,7 @@ en:
             note: Note
             chat: Chat
             meeting: Meeting
-            smart_folder: Smart folder
+            smart_folder: "Filter"
             time_session: Time entry
           steps:
             one: "%{count} single step"
@@ -666,8 +666,8 @@ en:
           affected: affected
           auto_update_hint: These tickets will be automatically updated to the target option.
           no_tickets_hint: No tickets currently use this value.
-          smart_folder_hint_title: Note about Ticket Filters
-          smart_folder_hint_text: If there are Ticket Filters that filter by the source option, they will need to be adjusted manually.
+          smart_folder_hint_title: "Note on saved filters"
+          smart_folder_hint_text: "Saved filters that filter by the source option have to be adjusted by hand."
           merge_button: Merge
         form:
           errors:

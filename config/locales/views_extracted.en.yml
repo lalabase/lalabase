@@ -387,9 +387,9 @@ en:
           rules_hint_3: Groups are combined with OR.
           columns_chosen_in_list: Which columns this view shows is chosen at the list, with the sliders icon at the end of the header row.
         edit:
-          title: Edit smart folder
+          title: "Edit filter"
         new:
-          title: New smart folder
+          title: "New filter"
       tags:
         tag_form:
           placeholder: Enter tags, separated by commas
@@ -426,9 +426,8 @@ en:
             other: "%{count} tickets affected"
           affected_hint: These tickets are automatically rewritten to the new value.
           none_affected_hint: No tickets use this value. The option is only removed.
-          smart_folders_hint_title: Note on smart folders
-          smart_folders_hint_body: Smart folder rules that use the source value are
-            not updated automatically and must be adjusted manually.
+          smart_folders_hint_title: "Note on saved filters"
+          smart_folders_hint_body: "Saved filters whose rules use the source value are not updated automatically. Change them by hand."
       tickets:
         overdue: "overdue"
         due_on: "due on %{date}"
@@ -509,7 +508,7 @@ en:
         meeting_deleted: Meeting deleted
         meeting_moved_in: Meeting moved into project
         meeting_moved_out: Meeting moved out of project
-        smart_folder_created: Smart folder created
+        smart_folder_created: "Filter created"
         codebase_imported: Codebase imported
         started: Started
         stopped: Stopped

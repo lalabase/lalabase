@@ -27,6 +27,21 @@ RSpec.describe Inbox::ActivityLine, :ci_guard do
     expect(line_for(ghost).actor_name).to eq('ghost.team')
   end
 
+  # The time of a line is the row's latest event (last_event_at), the moment the list
+  # orders by: a row created days ago whose latest event came a moment ago says so.
+  describe '#time_ago' do
+    include ActiveSupport::Testing::TimeHelpers
+
+    it 'speaks of the latest event, not of the moment the row was created' do
+      freeze_time do
+        line = described_class.new(instance_double(Notification, created_at: 3.days.ago, last_event_at: 5.minutes.ago))
+
+        expect(line.time_ago).to eq(I18n.t('views.common.relative_time_ago',
+                                           time: I18n.t('datetime.distance_in_words.x_minutes', count: 5)))
+      end
+    end
+  end
+
   # S4: a notification about a PROJECT reports one of its events, and the line reads what the
   # event is about from the payload the fanout wrote. Nothing but the notification is read.
   describe 'an event on a project' do

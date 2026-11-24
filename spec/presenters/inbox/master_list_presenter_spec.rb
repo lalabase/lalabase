@@ -13,12 +13,16 @@ RSpec.describe Inbox::MasterListPresenter do
 
   let(:scope) { Notification.where(recipient: user, channel: 'in_app') }
 
-  def notif(ticket, created_at:, state: 'queued')
+  # last_event_at: the row's latest event. It moves when a later event folds into
+  # the row (Notifications::GroupKeyBuilder), created_at does not; the factory lets
+  # both follow created_at.
+  def notif(ticket, created_at:, last_event_at: created_at, state: 'queued', **attributes)
     ActsAsTenant.with_tenant(organisation) do
       create(:notification,
              recipient: user, organisation: organisation, project: project,
              notifiable: ticket, channel: 'in_app', state: state,
-             created_at: created_at, read_at: state == 'read' ? created_at : nil)
+             created_at: created_at, first_event_at: created_at, last_event_at: last_event_at,
+             read_at: state == 'read' ? created_at : nil, **attributes)
     end
   end
 
@@ -149,6 +153,81 @@ RSpec.describe Inbox::MasterListPresenter do
         expect(grouped.transform_values { |reps| reps.map(&:notifiable_id) })
           .to eq(today: [ticket_a.id], yesterday: [ticket_b.id])
       end
+    end
+  end
+
+  # A row's latest event (last_event_at) decides which row stands for a bundle, where
+  # the bundle stands in the list and under which heading: a row created days ago
+  # that got an event a moment ago is the most recent row, as in the token inbox.
+  describe 'the latest event of a row' do
+    it 'lets the row with the latest event represent the bundle, also when it was created first' do
+      old_but_active = notif(ticket_a, created_at: 3.days.ago, last_event_at: 5.minutes.ago)
+      notif(ticket_a, created_at: 1.hour.ago)
+
+      presenter = build
+
+      expect(presenter.notifications.map(&:id)).to eq([old_but_active.id])
+      expect(presenter.group_total(old_but_active)).to eq(2)
+      expect(presenter.group_unread(old_but_active)).to eq(2)
+    end
+
+    it 'picks the representative among rows of the same latest event by descending id' do
+      # Written in ascending id order, so that a missing tie-break most likely picks the
+      # first row written. The id is random: it only makes the choice stable, it says
+      # nothing about which row is newer.
+      moment = 10.minutes.ago
+      ids = Array.new(4) { SecureRandom.uuid }.sort
+      ids.each_with_index { |id, index| notif(ticket_a, id: id, created_at: (index + 1).days.ago, last_event_at: moment) }
+
+      presenter = build
+
+      expect(presenter.notifications.map(&:id)).to eq([ids.last])
+      expect(presenter.group_total(presenter.notifications.first)).to eq(4)
+    end
+
+    it 'orders the bundles by the latest event of their representative' do
+      notif(ticket_a, created_at: 3.days.ago, last_event_at: 5.minutes.ago)
+      notif(ticket_b, created_at: 1.hour.ago)
+
+      expect(build.notifications.map(&:notifiable_id)).to eq([ticket_a.id, ticket_b.id])
+    end
+
+    it 'puts a bundle created last week with an event today under today' do
+      travel_to Time.zone.local(2026, 11, 11, 12) do # a Wednesday; the week began on Monday the 9th
+        notif(ticket_a, created_at: Time.zone.local(2026, 11, 4, 10), last_event_at: Time.zone.local(2026, 11, 11, 9))
+        notif(ticket_b, created_at: Time.zone.local(2026, 11, 10, 9)) # yesterday
+
+        grouped = build.grouped_notifications
+
+        expect(grouped.transform_values { |reps| reps.map(&:notifiable_id) })
+          .to eq(today: [ticket_a.id], yesterday: [ticket_b.id])
+      end
+    end
+
+    # The event-time twin of the zone example above: both rows were created weeks ago.
+    it "counts the day of the latest event in the reader's zone, not in UTC" do
+      berlin = ActiveSupport::TimeZone['Europe/Berlin']
+      travel_to berlin.local(2026, 11, 11, 0, 30) do # 23:30 UTC on the 10th
+        long_ago = berlin.local(2026, 10, 1, 12)
+        notif(ticket_a, created_at: long_ago, last_event_at: berlin.local(2026, 11, 11, 0, 10)) # today in Berlin
+        notif(ticket_b, created_at: long_ago, last_event_at: berlin.local(2026, 11, 10, 15)) # yesterday in Berlin
+
+        in_berlin = build({}, time_zone: berlin).grouped_notifications
+        in_utc = build({}, time_zone: ActiveSupport::TimeZone['UTC']).grouped_notifications
+
+        expect(in_berlin.transform_values { |reps| reps.map(&:notifiable_id) })
+          .to eq(today: [ticket_a.id], yesterday: [ticket_b.id])
+        # In UTC both events fall on the 10th, which is today there.
+        expect(in_utc.transform_values { |reps| reps.map(&:notifiable_id) })
+          .to eq(today: [ticket_a.id, ticket_b.id])
+      end
+    end
+
+    it 'orders the chronological list by the latest event' do
+      old_but_active = notif(ticket_a, created_at: 3.days.ago, last_event_at: 5.minutes.ago)
+      new_but_quiet = notif(ticket_b, created_at: 1.hour.ago)
+
+      expect(build(view_mode: 'chronological').notifications.map(&:id)).to eq([old_but_active.id, new_but_quiet.id])
     end
   end
 

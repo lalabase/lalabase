@@ -1,4 +1,4 @@
-# Karte: app/services/notifications (Stand: 2026-11-20)
+# Karte: app/services/notifications (Stand: 2026-11-24)
 
 Verarbeitet OutboxEvents zu Notifications. Die Gesamtkette (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten.md`.
@@ -38,6 +38,16 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   mit einem Token für alle Organisationen sind das die Cockpit-Kacheln. `organisation_id`
   (seit 07.10.2026) und `project_id` engen Liste und alle Zahlen ein; was nicht erreichbar
   ist, wirft `NotReachable` mit derselben Antwort wie etwas, das es nicht gibt.
+* **Reihenfolge und Zeitraum jeder Liste von Meldungen** (seit 24.11.2026): Jede Liste in der
+  Web-App ordnet über `Notification.recent` (`last_event_at DESC, id DESC`, dieselbe Reihenfolge wie
+  `InboxQuery#relation`) und engt den Zeitraum über `Notification.active_in_period` ein (der Tag des
+  letzten Ereignisses in der Zone des Lesers). Die Zeit an einer Zeile ist ebenfalls `last_event_at`.
+  Eine Zeile, in die ein späteres Ereignis fällt (`GroupKeyBuilder`), behält ihr `created_at` und
+  rückt nach oben. Kein Leser schreibt `order(created_at: …)` oder `order(last_event_at: …)` von
+  Hand; einzige Stelle mit eigenem `ORDER BY` ist der Vertreter eines Stapels in
+  `Inbox::MasterListPresenter` (`DISTINCT ON` verlangt es), mit derselben Regel. Die Suchen im
+  Fanout (`group_key_builder.rb`, `fanout_service.rb`, `score_calculator.rb`) bleiben mit Absicht
+  bei `created_at`.
 * **Die Inbox über den Organisationen** („Gesamt-Inbox“, `GET /inbox`, `AllInboxesController`,
   seit 13.11.2026): dieselbe Liste wie die Inbox einer Organisation, mit der Reichweite der
   Person (`PersonalAccessToken::Reach.for_person`). Sie liest über `InboxQuery.reading`, filtert

@@ -11,6 +11,50 @@ de:
           restore: Wiederherstellen
           empty_title: Nichts archiviert
           empty_description: Archivierte Projekte sammeln sich hier und lassen sich von hier aus wiederherstellen.
+      # The management section "Tags" (Organisations::TagsController).
+      tags:
+        index:
+          search: Tags durchsuchen
+          columns:
+            name: Name
+            tickets_count: Tickets
+            notes_count: Notizen
+            documents_count: Dokumente
+            time_sessions_count: Zeiten
+            uses_count: Gesamt
+            actions: Aktionen
+          actions_for: "Aktionen für „%{name}“"
+          rename: Umbenennen
+          merge: Zusammenführen
+          delete: Löschen
+          confirm_delete:
+            zero: "Den Tag „%{name}“ löschen? Er hängt an keinem Eintrag."
+            one: "Den Tag „%{name}“ löschen? Er wird von einem Eintrag entfernt."
+            other: "Den Tag „%{name}“ löschen? Er wird von %{count} Einträgen entfernt."
+          no_hits: "Kein Tag passt zu „%{query}“."
+          clear_search: Suche leeren
+          empty_title: Noch keine Tags
+          empty_text: "Tags entstehen beim Taggen: Wer ein Ticket, eine Notiz, ein Dokument oder eine Zeit bearbeitet, trägt sie dort ein. Hier kannst du sie danach umbenennen, zusammenführen und löschen."
+        edit:
+          title: "„%{name}“ umbenennen"
+          name_label: Neuer Name
+          hint:
+            zero: "Der Tag hängt an keinem Eintrag. Ein Name hat höchstens %{max} Zeichen und kein Komma. Großbuchstaben werden klein geschrieben."
+            one: "Der neue Name gilt an dem einen Eintrag mit diesem Tag und in den gespeicherten Filtern, die ihn nennen. Ein Name hat höchstens %{max} Zeichen und kein Komma. Großbuchstaben werden klein geschrieben."
+            other: "Der neue Name gilt an allen %{count} Einträgen mit diesem Tag und in den gespeicherten Filtern, die ihn nennen. Ein Name hat höchstens %{max} Zeichen und kein Komma. Großbuchstaben werden klein geschrieben."
+          merge_instead: "Stattdessen mit „%{name}“ zusammenführen"
+          submit: Umbenennen
+        new_merge:
+          title: "„%{name}“ zusammenführen"
+          target_label: Zusammenführen mit
+          choose: Tag wählen
+          hint:
+            zero: "„%{name}“ hängt an keinem Eintrag. Er wird gelöscht, und gespeicherte Filter mit „%{name}“ nennen danach den gewählten Tag."
+            one: "Der eine Eintrag mit „%{name}“ bekommt den gewählten Tag. Danach wird „%{name}“ gelöscht, und gespeicherte Filter mit „%{name}“ nennen den gewählten Tag."
+            other: "Die %{count} Einträge mit „%{name}“ bekommen den gewählten Tag. Danach wird „%{name}“ gelöscht, und gespeicherte Filter mit „%{name}“ nennen den gewählten Tag."
+          confirm: "„%{name}“ mit dem gewählten Tag zusammenführen? „%{name}“ wird danach gelöscht."
+          submit: Zusammenführen
+          no_targets: Es gibt keinen zweiten Tag. Zusammenführen geht erst ab zwei Tags.
       projects:
         index:
           archived_projects: Archivierte Projekte

@@ -46,7 +46,7 @@ RSpec.describe 'Management sidebar', type: :request do
     it 'lists the sections in three blocks instead of the app, the open one marked' do
       doc = doc_for(organisation_memberships_path(organisation))
 
-      expect(section_words(doc)).to eq(%w[organisation_settings members roles_permissions archive appearance ai billing]
+      expect(section_words(doc)).to eq(%w[organisation_settings members roles_permissions archive tags appearance ai billing]
         .map { |key| I18n.t("settings.#{key}") })
       expect(sidebar(doc).css('[data-management-nav] ul').size).to eq(3)
       active = sidebar(doc).css('[data-management-nav] a.sidebar-row--active').map { |link| link.text.squish }
@@ -187,6 +187,7 @@ RSpec.describe 'Management sidebar', type: :request do
       members: :organisation_memberships_path,
       roles: :organisation_roles_path,
       archive: :organisation_archives_path,
+      tags: :organisation_tags_path,
       appearance: :organisation_appearance_path,
       ai: :organisation_ai_overview_path,
       import: :organisation_codebase_import_files_path,
@@ -210,7 +211,7 @@ RSpec.describe 'Management sidebar', type: :request do
         end
       end
 
-      %w[general roles archive ai import billing].each do |section|
+      %w[general roles archive tags ai import billing].each do |section|
         it "falls back to the destination dashboard when #{section} is forbidden there" do
           post set_organisation_path, params: { organisation_id: other_organisation.id, section: section },
                                       headers: { 'Referer' => "http://www.example.com#{organisation_settings_path(organisation)}" }
@@ -272,6 +273,6 @@ RSpec.describe 'Management sidebar', type: :request do
     doc = doc_for(organisation_mobile_more_path(organisation))
 
     expect(doc.css('[data-management-nav] a').map { |link| link.text.squish })
-      .to eq(%w[organisation_settings members roles_permissions archive appearance ai billing].map { |key| I18n.t("settings.#{key}") })
+      .to eq(%w[organisation_settings members roles_permissions archive tags appearance ai billing].map { |key| I18n.t("settings.#{key}") })
   end
 end

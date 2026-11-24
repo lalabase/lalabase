@@ -1,0 +1,42 @@
+<%# Merge a tag into another one, a page below the section "Tags": its head, the
+    crumb line "‹ Tags / „name“ zusammenführen" (F45), then the choice of the tag
+    it goes into. What happens is said before the click, the question after it
+    repeats the one thing that cannot be undone: the tag is gone. A refusal (no
+    tag chosen, the other tag deleted meanwhile) stands under the field (F24).
+    A tag that has no other tag to go into gets a sentence instead of a form; the
+    row's menu offers no merge then either. %>
+<div>
+  <%= render 'organisations/shared/settings_subnav', active: :tags %>
+  <%= render 'organisations/shared/section_crumb', back_label: management_section_label(:tags),
+                                                    back_path: organisation_tags_path(current_organisation),
+                                                    page: t('views.organisations.tags.new_merge.title', name: @tag.name) %>
+
+  <div class="width-capped">
+    <% if @targets.any? %>
+      <%= form_with url: merge_organisation_tag_path(current_organisation, @tag), method: :post, class: 'people-form',
+                    data: { turbo_confirm: t('views.organisations.tags.new_merge.confirm', name: @tag.name) } do %>
+        <div class="people-form__field">
+          <%= label_tag 'tag-merge-target', t('views.organisations.tags.new_merge.target_label', name: @tag.name) %>
+          <%= select_tag :target_id, options_for_select(@targets.map { |target| [target.name, target.id] }, @target_id),
+                         include_blank: t('views.organisations.tags.new_merge.choose'), id: 'tag-merge-target', required: true,
+                         class: class_names('people-input', 'border-red-500 bg-red-50' => @error.present?),
+                         aria: { invalid: (@error.present? || nil), describedby: (@error.present? ? 'tag-merge-error tag-merge-hint' : 'tag-merge-hint') } %>
+          <% if @error.present? %>
+            <p id="tag-merge-error" class="text-xs text-red-700"><%= @error %></p>
+          <% end %>
+          <p id="tag-merge-hint" class="people-form__hint">
+            <%= t('views.organisations.tags.new_merge.hint', name: @tag.name, count: @usage.uses_count) %>
+          </p>
+        </div>
+
+        <div class="flex items-center justify-end">
+          <%= render Neo::Buttons::ButtonComponent.new(variant: :primary, size: :large, tag: :button, type: 'submit') do %>
+            <%= t('views.organisations.tags.new_merge.submit') %>
+          <% end %>
+        </div>
+      <% end %>
+    <% else %>
+      <p class="text-sm text-muted"><%= t('views.organisations.tags.new_merge.no_targets') %></p>
+    <% end %>
+  </div>
+</div>

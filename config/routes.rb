@@ -946,7 +946,16 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :tags
+    # The tags of the organisation, a section of its management area: the list,
+    # renaming (edit/update), merging into another tag and deleting. A tag is
+    # created by tagging, so there is no new/create; the old detail page and the
+    # JSON list are gone (the tag field gets its suggestions with the form).
+    resources :tags, only: %i[index edit update destroy] do
+      member do
+        get :merge, action: :new_merge, as: :new_merge
+        post :merge
+      end
+    end
 
     # Ticket Attribute Definitions are now nested under projects (see projects block above)
 

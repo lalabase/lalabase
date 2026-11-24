@@ -248,13 +248,16 @@ RSpec.describe 'Pagination bars', type: :request do
       end
 
       # The list answered 500 until 19.11.2026: its sort header built the address
-      # through url_for with the path parameters.
+      # through url_for with the path parameters. Since 2026-11-24 it is the
+      # management section "Tags" with two orders, name and uses.
       it 'links each sortable column to this list and keeps the search' do
-        get organisation_tags_path(organisation, search: 'tag')
+        get organisation_tags_path(organisation, q: 'tag')
 
         expect(response).to have_http_status(:ok)
-        expect(sort_queries).to include(a_hash_including('sort' => a_hash_including('column' => 'name'), 'search' => 'tag'))
-        expect(sort_queries.map { |query| query.dig('sort', 'column') }).to include('name', 'created_at', 'updated_at')
+        expect(sort_queries).to contain_exactly(
+          { 'q' => 'tag', 'sort' => 'name', 'direction' => 'desc' },
+          { 'q' => 'tag', 'sort' => 'uses', 'direction' => 'desc' }
+        )
       end
 
       it 'shows the compact bar and pages by its select' do

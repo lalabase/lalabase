@@ -219,7 +219,6 @@ en:
       toggle_user_deactivate: deactivate
       toggle_user_activate: activate
       remove_membership: Remove %{name} from %{organisation}?
-      delete_tag: Are you sure?
       really_delete: Really delete?
       remove_user: Are you sure you want to remove this user?
       unblock_user: Lift the block? What the role allows will apply again.

@@ -134,6 +134,7 @@ class OrganisationsController < ApplicationController
       when :members then MembershipPolicy.new(current_user, Membership).index?
       when :roles then RolePolicy.new(current_user, Role).index?
       when :archive then OrganisationPolicy.new(current_user, organisation).admin?
+      when :tags then TagPolicy.new(current_user, Tag).index?
       when :appearance then OrganisationPolicy.new(current_user, organisation).show?
       when :ai then AiOverviewPolicy.new(current_user, organisation).show?
       when :import then CodebaseImportFilePolicy.new(current_user, CodebaseImportFile).index?

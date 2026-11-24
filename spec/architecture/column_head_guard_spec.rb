@@ -32,8 +32,7 @@ require 'rails_helper'
 # Not read: app/views/admin/ (its own style guide, decided 2026-06-01) and
 # app/views/style_guide/ (it shows samples).
 # Not seen: a class list put together at run time from parts; a <th> in a
-# partial that is rendered into a <thead> elsewhere (shared/_sortable_header);
-# a head of a list that is no table and writes another look than the recipe
+# partial that is rendered into a <thead> elsewhere; a head of a list that is no table and writes another look than the recipe
 # (the flex heads of the time groups wear the recipe and are held by B). It is
 # a tripwire, not a proof.
 #
@@ -48,12 +47,9 @@ module ColumnHeads
 
   # Head cells without column-head, per file, on 2026-11-11. Only shrinks:
   # a file that moves to the class lowers its entry, a count too high is red
-  # as well. Left are the tag pages, which no navigation links to and which
-  # raise as soon as an organisation has a tag (url_for with a hash in
-  # shared/_sortable_header): repair or removal is a decision of its own.
-  HEAD_LEGACY = {
-    'app/views/organisations/tags/index.html.erb' => 2
-  }.freeze
+  # as well. Empty since 2026-11-24: the last entry, the old tag list, became
+  # the management section "Tags", and its shared/_sortable_header went with it.
+  HEAD_LEGACY = {}.freeze
 
   # The recipe written out, per file, on 2026-11-11. Only shrinks.
   RECIPE_LEGACY = {

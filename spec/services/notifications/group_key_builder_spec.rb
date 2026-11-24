@@ -724,6 +724,79 @@ RSpec.describe Notifications::GroupKeyBuilder do
 
       # The lookup query already filters size and age, so only a row handed in
       # through existing_groups reaches these two checks of can_add_to_group?.
+      # The fanout hands in rows it loaded before its loop. The rule must be
+      # asked about the row as the lock reads it again, not about that object.
+      context 'when a row handed in through existing_groups changed in the database after it was loaded' do
+        def changed_after_load(row, **changes)
+          loaded_row = Notification.find(row.id)
+          Notification.where(id: row.id).update_all(changes)
+          loaded_row
+        end
+
+        def expect_new_row_and_unchanged(row, loaded_row)
+          before_call = row_values(row)
+          answer = nil
+          expect { answer = preloaded_builder(loaded_row).find_or_create_group(params_for(loaded_row)) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+
+        def params_for(loaded_row)
+          notification_params.merge(channel: loaded_row.channel)
+        end
+
+        def preloaded_builder(row)
+          described_class.new(activity, recipient,
+                              existing_groups: { [recipient.id, builder.build, row.channel] => row })
+        end
+
+        it 'does not fold into a row raised to high priority after it was loaded' do
+          row = create_row
+          loaded_row = changed_after_load(row, priority: 'high')
+          expect(loaded_row).to have_attributes(priority: 'normal', group_count: 1)
+          expect(row_values(row)).to include('group_count' => 1, 'last_event_at' => row_time,
+                                             'updated_at' => row_time)
+
+          expect_new_row_and_unchanged(row, loaded_row)
+          expect(Notification.find(row.id).priority).to eq('high')
+        end
+
+        it 'does not fold into an email row sent after it was loaded' do
+          row = create_row(channel: 'email')
+          loaded_row = changed_after_load(row, state: 'sent', sent_at: now)
+          expect(loaded_row).to have_attributes(channel: 'email', state: 'queued', group_count: 1)
+          expect(row_values(row)).to include('state' => 'sent', 'group_count' => 1, 'last_event_at' => row_time)
+
+          expect_new_row_and_unchanged(row, loaded_row)
+        end
+
+        it 'does not fold into a row that reached MAX_GROUP_SIZE after it was loaded' do
+          row = create_row
+          loaded_row = changed_after_load(row, group_count: described_class::MAX_GROUP_SIZE)
+          expect(loaded_row.group_count).to eq(1)
+          expect(row_values(row)).to include('group_count' => described_class::MAX_GROUP_SIZE,
+                                             'last_event_at' => row_time)
+
+          expect_new_row_and_unchanged(row, loaded_row)
+        end
+      end
+
+      # The fanout names the actor as a record (`actor:`), never as `actor_id:`.
+      context 'when the actor of the event comes as a record' do
+        it 'writes that actor into the row and into its actor ids' do
+          row = create_row
+          params = notification_params.except(:actor_id).merge(actor: other_actor)
+          expect(row.reload).to have_attributes(actor_id: actor.id)
+
+          expect { builder.find_or_create_group(params) }.not_to change(Notification, :count)
+
+          row.reload
+          expect(row.actor_id).to eq(other_actor.id)
+          expect(row.payload['actor_ids']).to contain_exactly(actor.id, other_actor.id)
+        end
+      end
+
       context 'when a row handed in through existing_groups is full or old' do
         it 'does not fold into a row that holds MAX_GROUP_SIZE events' do
           row = create_row(group_count: described_class::MAX_GROUP_SIZE)

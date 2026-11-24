@@ -51,9 +51,9 @@ module NotificationRowEventsGuard
 
   # Each writes the columns it names, on a record or on a relation.
   WRITE_METHODS = %i[
-    update update! update_all update_columns update_column update_attribute assign_attributes attributes=
-    write_attribute increment increment! decrement decrement! toggle toggle! touch upsert upsert_all
-    update_counters increment_counter decrement_counter
+    update update! update_all update_columns update_column update_attribute update_attribute! assign_attributes
+    attributes= write_attribute _write_attribute increment increment! decrement decrement! toggle toggle! touch
+    touch_all upsert upsert_all update_counters increment_counter decrement_counter
   ].freeze
 
   # An option of a write method whose value names the columns it writes.
@@ -276,6 +276,9 @@ RSpec.describe 'Notification event fields are folded only by Notifications::RowE
         'row.update_columns(first_event_at: stamp)',
         'row.update_column(:group_count, 3)',
         "row.update_attribute('last_event_at', stamp)",
+        'row.update_attribute!(:group_count, 2)',
+        "row._write_attribute('last_event_at', stamp)",
+        'scope.touch_all(:last_event_at)',
         'row.assign_attributes(group_count: 1)',
         'row.attributes = { last_event_at: stamp }',
         'row.write_attribute(:first_event_at, stamp)',

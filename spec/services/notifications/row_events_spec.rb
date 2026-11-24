@@ -122,6 +122,19 @@ RSpec.describe Notifications::RowEvents do
                                                'message' => 'Second comment')
     end
 
+    # The actor is merged before the payload, as it was in the builder: actor
+    # ids that the payload itself brings come after the row's and the new actor.
+    it 'merges the actor before the payload' do
+      row = create_row
+      third_actor_id = SecureRandom.uuid
+      expect(row_values(row)['payload']['actor_ids']).to eq([actor.id])
+
+      described_class.fold!(notification: row, at: later_time, actor_id: other_actor.id,
+                            payload: { 'actor_ids' => [third_actor_id] })
+
+      expect(row_values(row)['payload']['actor_ids']).to eq([actor.id, other_actor.id, third_actor_id])
+    end
+
     it 'answers true and saves the row' do
       row = create_row
 

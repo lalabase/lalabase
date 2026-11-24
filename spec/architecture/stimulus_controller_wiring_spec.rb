@@ -80,7 +80,7 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
     'app/views/organisations/time_sessions/_form_index.html.erb' => {
       'time-session-modal' => 'default of close_action, its controller is deleted. Only an edit request for a frame ' \
                               "renders this form, and the one link that sends it (the pencil of a phone's time " \
-                              'card) asks for the list frame, which the answer does not carry'
+                              'card) asks for the list frame, which the answer does not carry (lalabase/lalabase#263)'
     }
   }.freeze
 

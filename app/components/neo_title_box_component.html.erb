@@ -4,7 +4,7 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 items-center">
       <!-- Title Section (Left) -->
       <div class="min-w-0">
-        <div class="flex items-baseline gap-3">
+        <div class="<%= title_row_classes %>">
           <h1 class="text-2xl leading-tight font-bold text-heading">
             <%= @title %>
           </h1>
@@ -13,7 +13,7 @@
           <% end %>
         </div>
         <% if resolved_subtitle.present? %>
-          <p class="text-sm text-muted truncate"><%= resolved_subtitle %></p>
+          <p class="<%= subtitle_classes %>"><%= resolved_subtitle %></p>
         <% end %>
       </div>
 
@@ -40,7 +40,7 @@
     <div class="flex flex-wrap items-start justify-between gap-4">
       <!-- Title Section (Left) -->
       <div class="min-w-0">
-        <div class="flex items-baseline gap-3">
+        <div class="<%= title_row_classes %>">
           <h1 class="text-2xl leading-tight font-bold text-heading">
             <%= @title %>
           </h1>
@@ -49,7 +49,7 @@
           <% end %>
         </div>
         <% if resolved_subtitle.present? %>
-          <p class="text-sm text-muted truncate"><%= resolved_subtitle %></p>
+          <p class="<%= subtitle_classes %>"><%= resolved_subtitle %></p>
         <% end %>
       </div>
 

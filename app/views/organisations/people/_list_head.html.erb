@@ -16,28 +16,21 @@
      lane_link_remove_value: people_new_form_removes.to_json,
      lane_link_focus_value: '#person_name'
    } %>
-<%# The head on a desktop is the shared title box with the square primary
-    "+" as its title action and the "?" of the contextual help, as on "Alle
-    Meetings" and "Zeiten". On a phone the shell already names the page; the
-    head keeps a larger square "+". %>
+<%# The head is the shared title box with the square primary "+" as its
+    title action and the "?" of the contextual help, as on "Alle Meetings"
+    and "Zeiten". On a phone the fixed head names the page, the box keeps
+    only its tools (MobileNavigationHelper#mobile_head_echo), and the "+"
+    grows to 40 px. %>
 <div class="people-head">
-  <% if mobile %>
+  <%= render NeoTitleBoxComponent.new(title: t('views.organisations.people.index.title'), variant: :organisation, margin_bottom: nil) do |box| %>
     <% if policy(Person).create? %>
-      <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: :large, url: add_url,
-                                                       title: t('views.organisations.people.index.new_person'),
-                                                       class: 'people-head__action', data: add_data) %>
+      <% box.with_title_action do %>
+        <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: mobile ? :large : :medium, url: add_url,
+                                                         title: t('views.organisations.people.index.new_person'), data: add_data) %>
+      <% end %>
     <% end %>
-  <% else %>
-    <%= render NeoTitleBoxComponent.new(title: t('views.organisations.people.index.title'), variant: :organisation, margin_bottom: nil) do |box| %>
-      <% if policy(Person).create? %>
-        <% box.with_title_action do %>
-          <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: :medium, url: add_url,
-                                                           title: t('views.organisations.people.index.new_person'), data: add_data) %>
-        <% end %>
-      <% end %>
-      <% box.with_right_content do %>
-        <%= render 'common/contextual_help_menu', context: :people %>
-      <% end %>
+    <% box.with_right_content do %>
+      <%= render 'common/contextual_help_menu', context: :people %>
     <% end %>
   <% end %>
 </div>

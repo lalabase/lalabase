@@ -7,6 +7,11 @@ class NeoTitleBoxComponent < ViewComponent::Base
   # edge (overflow auto), and the main action's offset shadow needs the room.
   TITLE_ACTION_CLASSES = 'ms-1 me-[3px] flex items-center'
 
+  # A line the phone's fixed head already shows: hidden there
+  # (components/mobile_app.css), shown everywhere else. Which lines that are
+  # is MobileNavigationHelper#mobile_head_echo's answer, asked once per head.
+  PHONE_ECHO_CLASS = 'mobile-head-echo'
+
   renders_one :title_action
   renders_one :center_content
   renders_one :right_content
@@ -33,7 +38,22 @@ class NeoTitleBoxComponent < ViewComponent::Base
     @margin_bottom = margin_bottom
   end
 
+  # Asked while the template renders: the first head of a page leaves its
+  # words there for the fixed head, which the layout renders afterwards.
+  def before_render
+    @phone_echo = helpers.mobile_head_echo(title: @title, line: resolved_subtitle)
+  end
+
   private
+
+  # The title line (the badge belongs to it) and the second line.
+  def title_row_classes
+    class_names('flex items-baseline gap-3', PHONE_ECHO_CLASS => @phone_echo[:title])
+  end
+
+  def subtitle_classes
+    class_names('text-sm text-muted truncate', PHONE_ECHO_CLASS => @phone_echo[:line])
+  end
 
   def resolved_subtitle
     return @subtitle if @subtitle.present?
@@ -63,7 +83,15 @@ class NeoTitleBoxComponent < ViewComponent::Base
       @margin_right,
       @margin_left,
       @padding_y,
-      @margin_bottom
+      @margin_bottom,
+      (PHONE_ECHO_CLASS if nothing_left_on_phone?)
     ].compact.join(' ')
+  end
+
+  # Every line repeats the fixed head and there is no tool: on a phone the
+  # head would stand as an empty box with its margin, so it goes as a whole.
+  def nothing_left_on_phone?
+    @phone_echo[:title] && (resolved_subtitle.blank? || @phone_echo[:line]) &&
+      !title_action? && !right_content? && !center_content? && content.blank?
   end
 end

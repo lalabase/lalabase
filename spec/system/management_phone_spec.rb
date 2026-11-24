@@ -12,8 +12,9 @@ require 'rails_helper'
 #         tapped from there. Only the row moves, never the page. Once the reader
 #         has swiped the row, it stays there when a tab changes size later;
 #       - on a desk (md and wider) the row wraps as before and does not scroll;
-#       - the mobile header names each management page by its own title
-#         (MobileNavigationHelper::PAGE_TITLE_KEYS), never by the fallback "Mehr".
+#       - the mobile header names each management page in the words of its page
+#         head (MobileNavigationHelper#mobile_head_echo): the section, as on the
+#         desk, never the fallback "Mehr"; the open tab or the crumb names the page.
 # Why:  until 2026-11-11 the row wrapped (flex-wrap): on a phone the six KI tabs
 #       took two rows (tops 0 and 42 px, the bar 80 px high instead of 38). A row
 #       that scrolls instead hides the tabs past its end, the open one too unless
@@ -143,7 +144,9 @@ RSpec.describe 'Management area on a phone', type: :system do
       row = settled_row
       expect(row['scroll_width']).to be > row['client_width'], "Protokoll: the row does not scroll: #{row.inspect}"
       expect_one_row_with_the_open_tab_in_view('Protokoll', row)
-      expect(mobile_title).to eq(tab_labels.last)
+      # The fixed head says what the page head says: the section, on every tab
+      # (MobileNavigationHelper#mobile_head_echo). The open tab names the page.
+      expect(mobile_title).to eq(section)
 
       tab_labels.each do |label|
         within("main nav[aria-label='#{section}']") { click_link label }
@@ -246,23 +249,33 @@ RSpec.describe 'Management area on a phone', type: :system do
   end
 
   describe 'the mobile header' do
-    it 'names each management page by its own title, not the fallback' do
+    # Since 2026-11-24 the fixed head says what the page head says
+    # (MobileNavigationHelper#mobile_head_echo): the section, as on the desk, where
+    # the title stays the section's on every tab (user, 2026-11-11). The page's own
+    # name stands where the desk has it, on the open tab or in the crumb line, and
+    # the phone shows it there. Until then a table of controller names
+    # (PAGE_TITLE_KEYS) named the page above a head in other words: "Verwaltung"
+    # over "Allgemein", "Protokoll" over "KI".
+    it 'names each management page in the words of its page head, never the fallback' do
       fallback = I18n.t('mobile.more')
+      members = I18n.t('settings.members')
+      tab = 'main nav:not([data-section-crumb]) [aria-current="page"]'
+      crumb = 'main [data-section-crumb] [aria-current="page"]'
 
       {
-        'Allgemein' => [organisation_settings_path(organisation), 'organisation_settings'],
-        'Mitglieder' => [organisation_memberships_path(organisation), 'memberships'],
-        'Zugriffsübersicht' => [organisation_access_matrix_index_path(organisation), 'access_matrix'],
-        'Mitglied einladen' => [new_organisation_invitation_path(organisation), 'invitations'],
-        'Rollen und Rechte' => [organisation_roles_path(organisation), 'roles'],
-        'KI' => [organisation_ai_overview_path(organisation), 'ai_overviews']
-      }.each do |name, (path, controller)|
+        organisation_settings_path(organisation) => [I18n.t('settings.organisation_settings')],
+        organisation_memberships_path(organisation) => [members, tab, members],
+        organisation_access_matrix_index_path(organisation) => [members, tab, I18n.t('views.organisations.access_matrix.index.title')],
+        new_organisation_invitation_path(organisation) => [members, crumb, I18n.t('organisations.invitations.new.title')],
+        organisation_roles_path(organisation) => [I18n.t('settings.roles_permissions')],
+        organisation_ai_overview_path(organisation) => [section, tab, I18n.t('views.organisations.ai_overview.pages.overview')]
+      }.each do |path, (title, selector, own_name)|
         visit path
         expect(page).to have_current_path(path)
 
-        title = mobile_title
-        expect(title).not_to eq(fallback), "#{name}: the mobile header falls back to #{fallback.inspect}"
-        expect(title).to eq(I18n.t(MobileNavigationHelper::PAGE_TITLE_KEYS.fetch(controller))), "#{name}: #{title.inspect}"
+        expect(mobile_title).not_to eq(fallback), "#{path}: the mobile header falls back to #{fallback.inspect}"
+        expect(mobile_title).to eq(title), "#{path}: #{mobile_title.inspect}"
+        expect(page).to have_css(selector, exact_text: own_name) if selector
       end
     end
   end

@@ -38,7 +38,7 @@ RSpec.describe 'Mobile application navigation', type: :request do
     expect(html.at_css('#tickets_list_frame table')).to be_nil
     expect(html.at_css('.mobile-ticket-title').text).to eq(ticket.title)
     expect(html.at_css('.mobile-header a[data-turbo-frame="writing_surface"]')).to be_present
-    expect(html.css('.mobile-bottom-links a').map(&:text).join).to include('Start', 'Inbox', 'Projekte', 'Zeiten', 'Mehr')
+    expect(html.css('.mobile-bottom-links a').map(&:text).join).to include('Übersicht', 'Inbox', 'Projekte', 'Zeiten', 'Mehr')
     expect(html.at_css('.mobile-bottom-links .is-active')['href']).to eq(organisation_mobile_projects_path(organisation))
     expect(html.at_css('.mobile-project-tabs [aria-current]').text).to include('Tickets')
   end

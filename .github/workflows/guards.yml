@@ -906,6 +906,7 @@ jobs:
           spec/system/mobile_ticket_navigation_spec.rb
           spec/system/mobile_assistant_layout_spec.rb
           spec/system/mobile_shell_regressions_spec.rb
+          spec/system/phone_page_head_spec.rb
 
       - name: Save browser failure evidence
         if: failure()

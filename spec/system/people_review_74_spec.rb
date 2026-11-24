@@ -62,9 +62,10 @@ RSpec.describe 'People page, review of PR #74', type: :system do
     page.driver.browser.execute_cdp('Emulation.setDeviceMetricsOverride', width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
     visit organisation_people_path(organisation)
 
-    expect(page).to have_css('.people-mobile-grid .people-head__action')
+    add_selector = ".people-mobile-grid .people-head a[title='#{I18n.t('views.organisations.people.index.new_person')}']"
+    expect(page).to have_css(add_selector)
     sleep 0.4 # past the viewport controller's 200 ms: the phone layout must still stand
-    add = find('.people-mobile-grid .people-head__action')
+    add = find(add_selector)
     size = page.evaluate_script('(function (e) { const r = e.getBoundingClientRect(); return [r.width, r.height] })(arguments[0])',
                                 add.native)
     expect(size[0]).to be_within(1).of(size[1])

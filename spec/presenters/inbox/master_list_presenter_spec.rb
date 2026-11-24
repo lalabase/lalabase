@@ -192,6 +192,21 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(build.notifications.map(&:notifiable_id)).to eq([ticket_a.id, ticket_b.id])
     end
 
+    it 'orders bundles of the same latest event by descending id, so that pages never share or drop a row' do
+      # One row per ticket, written in ascending id order: a missing tie-break most likely
+      # hands them back in the order they were written.
+      moment = 10.minutes.ago
+      ids = Array.new(4) { SecureRandom.uuid }.sort
+      Prosopite.pause do # setup: the factory reads the organisation once per row
+        ids.each_with_index do |id, index|
+          ticket = ActsAsTenant.with_tenant(organisation) { create(:ticket, project: project) }
+          notif(ticket, id: id, created_at: (index + 1).days.ago, last_event_at: moment)
+        end
+      end
+
+      expect(build.notifications.map(&:id)).to eq(ids.reverse)
+    end
+
     it 'puts a bundle created last week with an event today under today' do
       travel_to Time.zone.local(2026, 11, 11, 12) do # a Wednesday; the week began on Monday the 9th
         notif(ticket_a, created_at: Time.zone.local(2026, 11, 4, 10), last_event_at: Time.zone.local(2026, 11, 11, 9))

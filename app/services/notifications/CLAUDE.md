@@ -38,16 +38,22 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   mit einem Token für alle Organisationen sind das die Cockpit-Kacheln. `organisation_id`
   (seit 07.10.2026) und `project_id` engen Liste und alle Zahlen ein; was nicht erreichbar
   ist, wirft `NotReachable` mit derselben Antwort wie etwas, das es nicht gibt.
-* **Reihenfolge und Zeitraum jeder Liste von Meldungen** (seit 24.11.2026): Jede Liste in der
-  Web-App ordnet über `Notification.recent` (`last_event_at DESC, id DESC`, dieselbe Reihenfolge wie
-  `InboxQuery#relation`) und engt den Zeitraum über `Notification.active_in_period` ein (der Tag des
-  letzten Ereignisses in der Zone des Lesers). Die Zeit an einer Zeile ist ebenfalls `last_event_at`.
-  Eine Zeile, in die ein späteres Ereignis fällt (`GroupKeyBuilder`), behält ihr `created_at` und
-  rückt nach oben. Kein Leser schreibt `order(created_at: …)` oder `order(last_event_at: …)` von
-  Hand; einzige Stelle mit eigenem `ORDER BY` ist der Vertreter eines Stapels in
-  `Inbox::MasterListPresenter` (`DISTINCT ON` verlangt es), mit derselben Regel. Die Suchen im
-  Fanout (`group_key_builder.rb`, `fanout_service.rb`, `score_calculator.rb`) bleiben mit Absicht
-  bei `created_at`.
+* **Reihenfolge und Zeitraum der Meldungslisten der Web-App** (seit 24.11.2026): Jede Liste ordnet
+  über `Notification.recent` (`last_event_at DESC, id DESC`) und engt den Zeitraum über
+  `Notification.active_in_period` ein (der Tag des letzten Ereignisses in der Zone des Lesers). Die
+  Zeit an einer Zeile ist ebenfalls `last_event_at`. Kein Leser der Web-App schreibt
+  `order(created_at: …)` oder `order(last_event_at: …)` von Hand; einzige Stelle mit eigenem
+  `ORDER BY` ist der Vertreter eines Stapels in `Inbox::MasterListPresenter` (`DISTINCT ON`
+  verlangt es), mit derselben Regel. Die Token-Inbox schreibt dieselbe Reihenfolge in
+  `InboxQuery#relation` selbst. Noch `created_at` drucken zwei ältere Zeichnungen, die keine
+  Liste dieser Regel sind: `NeoNotificationCardComponent` (Broadcast-Partial) und
+  `notifications/_notification` (Antwort `?partial=list`).
+  Folgen: Eine Zeile, in die ein späteres Ereignis fällt (`GroupKeyBuilder`), behält ihr
+  `created_at` und rückt nach oben. Eine Zeile, die erst spät angelegt wird (ein Outbox-Event
+  nach Wiederholungen), beginnt bei der Zeit ihrer Aktivität (`create_new_group`) und steht
+  deshalb unter jüngeren Zeilen, wie in REST und MCP. Die Suchen im Fanout
+  (`group_key_builder.rb`, `fanout_service.rb`, `score_calculator.rb`) bleiben mit Absicht bei
+  `created_at`.
 * **Die Inbox über den Organisationen** („Gesamt-Inbox“, `GET /inbox`, `AllInboxesController`,
   seit 13.11.2026): dieselbe Liste wie die Inbox einer Organisation, mit der Reichweite der
   Person (`PersonalAccessToken::Reach.for_person`). Sie liest über `InboxQuery.reading`, filtert

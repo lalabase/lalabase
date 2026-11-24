@@ -521,7 +521,10 @@ head already shows and keeps its tools; with nothing left it takes no room.
   tab or the crumb line names the page.
 * **A page head is `NeoTitleBoxComponent`**: directly, through `organisations/shared/_subnav`
   (and `_settings_subnav`, `_times_subnav`) or through `NeoProjectLayoutHeaderComponent`. A page
-  with a hand-written `<h1>` as its head is not covered and shows its title twice on a phone.
+  below a section outside a project (a management form, the inbox's settings, the form of a
+  saved view) keeps the section's head and names itself in the crumb line
+  (`organisations/shared/_section_crumb`). A page with a hand-written `<h1>` as its head is not
+  covered and shows its title twice on a phone.
 * One condition for the shell: `mobile_shell?` puts the body class `mobile-app`, the fixed head
   and the bottom bar on a page together. The CSS rule (`components/mobile_app.css`) hangs on
   `.mobile-app`, so it never hides a line where no fixed head stands.

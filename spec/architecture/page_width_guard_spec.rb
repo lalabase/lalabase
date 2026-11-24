@@ -60,8 +60,6 @@ RSpec.describe 'page width guard' do
       'app/views/organisations/documentation_sets/new.html.erb' => 1,
       'app/views/organisations/invitations/new.html.erb' => 1,
       'app/views/organisations/new.html.erb' => 1,
-      'app/views/organisations/notifications/preferences.html.erb' => 1,
-      'app/views/organisations/notifications/ticket_exceptions.html.erb' => 1,
       'app/views/organisations/power_search/index.html.erb' => 1,
       'app/views/organisations/project_permissions/index.html.erb' => 1,
       'app/views/organisations/project_permissions/info.html.erb' => 1,

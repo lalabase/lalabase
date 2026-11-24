@@ -25,9 +25,15 @@
     </div>
   </turbo-frame>
 <% else %>
-  <h1 class="page-title mb-4">
-    <%= smart_folder_form_title(:new, params[:context_type]) %>
-  </h1>
+  <%# A page below the saved views (F45 of the UI table): the head names the
+      list, the crumb line the way back and this page. On a phone the fixed
+      head says the list and the crumb stays (MobileNavigationHelper#mobile_head_echo). %>
+  <div>
+    <%= render NeoTitleBoxComponent.new(title: t('smart_folders.title'), variant: :organisation) %>
+    <%= render 'organisations/shared/section_crumb', back_label: t('smart_folders.title'),
+                                                      back_path: organisation_smart_folders_path(@current_organisation, project_id: params[:project_id].presence),
+                                                      page: smart_folder_form_title(:new, params[:context_type]) %>
 
-  <%= render 'form', smart_folder: @smart_folder %>
+    <%= render 'form', smart_folder: @smart_folder %>
+  </div>
 <% end %>

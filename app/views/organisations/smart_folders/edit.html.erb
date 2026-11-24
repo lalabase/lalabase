@@ -25,15 +25,15 @@
     </div>
   </turbo-frame>
 <% else %>
-  <div class="flex justify-between items-center mb-4">
-    <h1 class="page-title">
-      <%= smart_folder_form_title(:edit, @smart_folder.target_object_type) %>
-    </h1>
-  </div>
+  <%# A page below the saved views (F45 of the UI table): the head names the
+      list, the crumb line the way back to the view and this page. On a phone the fixed
+      head says the list and the crumb stays (MobileNavigationHelper#mobile_head_echo). %>
+  <div>
+    <%= render NeoTitleBoxComponent.new(title: t('smart_folders.title'), variant: :organisation) %>
+    <%= render 'organisations/shared/section_crumb', back_label: @smart_folder.name,
+                                                      back_path: organisation_smart_folder_path(@current_organisation, @smart_folder),
+                                                      page: smart_folder_form_title(:edit, @smart_folder.target_object_type) %>
 
-  <%= render 'form', smart_folder: @smart_folder %>
-
-  <div class="mt-4">
-    <%= render(Neo::Buttons::ButtonComponent.new(variant: :secondary, url: organisation_smart_folder_path(@current_organisation, @smart_folder))) { t('generic.back_to_details', default: 'Zurück zu Details') } %>
+    <%= render 'form', smart_folder: @smart_folder %>
   </div>
 <% end %>

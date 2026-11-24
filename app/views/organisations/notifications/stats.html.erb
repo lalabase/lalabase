@@ -1,13 +1,18 @@
 <% content_for :title, t('views.organisations.notifications.stats.title') %>
 
+<%# A page below the inbox (F45 of the UI table): the head names the inbox,
+    the crumb line the way back and this page, as on every page below a
+    section. On a phone the fixed head says "Inbox" and the crumb stays
+    (MobileNavigationHelper#mobile_head_echo). Head, crumb and content are one
+    block: the layout's content column puts its gap between its children. %>
+<div>
+  <%= render NeoTitleBoxComponent.new(title: t('views.organisations.notifications.index.title'), variant: :organisation) %>
+  <%= render 'organisations/shared/section_crumb', back_label: t('views.organisations.notifications.index.title'),
+                                                    back_path: organisation_notifications_path(current_organisation),
+                                                    page: t('views.organisations.notifications.stats.title') %>
+
 <div class="notification-stats">
-  <div class="page-header">
-    <h1 class="page-title">
-      <i class="bi bi-graph-up me-2"></i>
-      <%= t('views.organisations.notifications.stats.title') %>
-    </h1>
-    <p class="page-description"><%= t('views.organisations.notifications.stats.description') %></p>
-  </div>
+  <p class="text-sm text-muted"><%= t('views.organisations.notifications.stats.description') %></p>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 my-8">
     <div class="bg-surface-raised border border-slate-200 rounded-lg shadow-sm p-6 flex items-center gap-4 hover:-translate-y-0.5 hover:shadow-md transition-all">
@@ -61,7 +66,5 @@
     </div>
   </div>
 
-  <div class="mt-12 text-center">
-    <%= render(Neo::Buttons::ButtonComponent.new(variant: :primary, icon: "arrow-left", url: organisation_notifications_path(current_organisation))) { t('views.organisations.notifications.stats.back_to_notifications') } %>
-  </div>
+</div>
 </div>

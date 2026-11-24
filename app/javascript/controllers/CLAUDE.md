@@ -1,4 +1,4 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-18)
+# Karte: app/javascript/controllers (Stand: 2026-11-24)
 
 ~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
 `eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
@@ -14,7 +14,12 @@ Konventionen:
 * **Nach jedem Anlegen/Löschen/Umbenennen: `rails importmap:auto_pin` ausführen und committen**
   (sonst bricht das Prod-Precompile). NIEMALS `rails stimulus:manifest:update` direkt —
   siehe Root-`CLAUDE.md`, „Critical Bug Fixes".
-* Guard: `spec/architecture/stimulus_controller_wiring_spec.rb` (kein Mount ohne Controller-Datei).
+* Guard: `spec/architecture/stimulus_controller_wiring_spec.rb` (kein Mount ohne Controller-Datei,
+  keine Aktion auf einen Controller, den kein Template mountet). ⚠️ Wer ein Pop-up, eine Bahn oder
+  ein Formular ersetzt, nimmt dessen Auslöser mit: Stimulus bindet eine Aktion nur unterhalb eines
+  Mounts und meldet eine ohne Mount nicht, der Klick tut dann nichts. So stand der Knopf im
+  Leerzustand der Ticketliste bis 2026.11.1 (lalabase/lalabase#259). Ein Selektor in einem Skript
+  (`[data-controller="x"]`) sucht einen Mount und ist keiner.
 * Modals: IMMER zuerst `docs/dokumentation/modal_pattern.md` und `README_MODAL_PATTERN.md`
   (hier im Ordner) lesen. Referenz-Implementierung ist `ticket_relation_modal_controller.js`
   (Fokusfalle über `dialog_a11y`, Schließen über Hintergrund und Escape, Fokus zurück an den

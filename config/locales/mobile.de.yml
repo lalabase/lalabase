@@ -5,7 +5,7 @@ de:
       imports: "Datenimport"
       invitations: "Einladungen"
       overview_configuration: "Startseite anpassen"
-      smart_folders: "Ansichten"
+      smart_folders: "Gespeicherte Filter"
       tags: "Schlagwörter"
       user_activities: "Aktivitäten"
     start: "Übersicht"

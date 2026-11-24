@@ -23,7 +23,7 @@ de:
       picked_up: aufgenommen
       dropped: "in Spalte %{column} abgelegt, Position %{position} von %{count}"
       put_back: zurückgelegt
-    toggle_filter_sidebar: Ticket Filter ein-/ausblenden
+    toggle_filter_sidebar: "Filter ein-/ausblenden"
   attribute_types:
     select: Auswahl-Feld
     multiselect: Mehrfachauswahl-Feld
@@ -341,7 +341,7 @@ de:
           filter_connector_and: und
           filter_connector_or: oder
           save_as_smart_folder: Filter speichern
-          save_filter_title: Filter als Smart Folder speichern
+          save_filter_title: "Filter speichern"
           save_filter_name_label: Name
           save_filter_name_placeholder: z.B. Offene Bugs
           save_filter_save_button: Speichern
@@ -460,7 +460,7 @@ de:
           meeting_deleted: Meeting gelöscht
           meeting_moved_in: "Meeting aus „%{project}“ hierher verschoben"
           meeting_moved_out: "Meeting nach „%{project}“ verschoben"
-          smart_folder_created: Smart Folder erstellt
+          smart_folder_created: "Filter erstellt"
           codebase_imported: Codebase importiert
           member_added: "Mitglied hinzugefügt: %{name}"
           member_removed: "Mitglied entfernt: %{name}"
@@ -505,7 +505,7 @@ de:
             note: Notiz
             chat: Chat
             meeting: Meeting
-            smart_folder: Smart Folder
+            smart_folder: "Filter"
             time_session: Zeiteintrag
           steps:
             one: "%{count} Einzelschritt"
@@ -666,8 +666,8 @@ de:
           affected: betroffen
           auto_update_hint: Diese Tickets werden automatisch auf die Ziel-Option aktualisiert.
           no_tickets_hint: Keine Tickets verwenden diesen Wert aktuell.
-          smart_folder_hint_title: Hinweis zu Ticket Filtern
-          smart_folder_hint_text: Falls Ticket Filter existieren, die nach der Quell-Option filtern, müssen diese manuell angepasst werden.
+          smart_folder_hint_title: "Hinweis zu gespeicherten Filtern"
+          smart_folder_hint_text: "Gespeicherte Filter, die nach der Quell-Option filtern, musst du von Hand anpassen."
           merge_button: Zusammenführen
         form:
           errors:

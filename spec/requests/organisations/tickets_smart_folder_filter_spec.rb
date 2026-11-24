@@ -178,7 +178,7 @@ RSpec.describe 'Tickets index SmartFolder filter', type: :request do
   private
 
   def t_smart_folder_not_found
-    I18n.t('smart_folders.not_found', default: 'Der angegebene Ticket Filter wurde nicht gefunden.')
+    I18n.t('smart_folders.not_found')
   end
 
   # First folder ticket in the actual sort order (direction-independent):

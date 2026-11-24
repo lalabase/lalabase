@@ -175,9 +175,9 @@ RSpec.describe 'Column picker', type: :system do
     find('#column-picker li[data-key="tags"] label', wait: 5).click
     expect(page).to have_css('th[data-rank="3"][data-col-min="140"]', wait: 5)
 
-    within('#column-picker') { click_on 'für alle Ansichten übernehmen' }
+    within('#column-picker') { click_on 'für alle Filter übernehmen' }
 
-    expect(page).to have_css('[data-controller="neo-flash"]', text: 'Spalten für 2 Ansichten übernommen.', wait: 5)
+    expect(page).to have_css('[data-controller="neo-flash"]', text: 'Spalten für 2 Filter übernommen.', wait: 5)
     expect(stored_columns(view_configuration)).to eq(%w[number title assignees created_at tags])
     expect(stored_columns(own_view)).to eq(%w[number title assignees created_at tags])
     expect(page).to have_css('th[data-rank="3"][data-col-min="140"]')

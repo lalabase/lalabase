@@ -298,7 +298,7 @@ de:
       no_view_permission: "Sie haben keine Berechtigung, Dokumente anzusehen."
       file_required: "Eine Datei muss ausgewählt werden"
       no_edit_permission: "Sie haben keine Berechtigung, Dokumente zu bearbeiten."
-      smart_folder_not_found: "Der angegebene Ticket Filter wurde nicht gefunden."
+      smart_folder_not_found: "Der Filter wurde nicht gefunden."
       save_error_detail: "Das Dokument konnte nicht gespeichert werden: %{errors}"
     time_sessions:
       created: "Zeitsession wurde erfolgreich erstellt"
@@ -315,7 +315,7 @@ de:
       no_create_permission: "Sie haben keine Berechtigung, Zeitsessions zu erstellen."
       no_edit_permission: "Sie haben keine Berechtigung, diese Zeitsession zu bearbeiten."
       no_overview_permission: "Sie haben keine Berechtigung, die Zeiterfassung-Übersicht zu sehen."
-      smart_folder_not_found: "Der angegebene Ticket Filter wurde nicht gefunden."
+      smart_folder_not_found: "Der Filter wurde nicht gefunden."
     time_session_groups:
       created: "Abrechnung wurde erfolgreich erstellt."
       updated: "Abrechnung wurde erfolgreich aktualisiert."
@@ -326,21 +326,21 @@ de:
       export_error: "Fehler beim Erstellen des Exports."
     smart_folders:
       results_error: "Fehler beim Laden der Ergebnisse."
-      cloned: "Ticket Filter wurde erfolgreich kopiert."
-      clone_error: "Ticket Filter konnte nicht kopiert werden: %{error}"
-      not_found: "Ticket Filter nicht gefunden."
+      cloned: "Filter kopiert."
+      clone_error: "Filter konnte nicht kopiert werden: %{error}"
+      not_found: "Filter nicht gefunden."
       share_success:
         one: "%{count} Freigabe erfolgreich hinzugefügt."
         other: "%{count} Freigaben erfolgreich hinzugefügt."
       share_error: "Freigabe konnte nicht gespeichert werden."
-      share_select_users: "Bitte wählen Sie mindestens einen Benutzer zum Teilen aus."
+      share_select_users: "Wähle mindestens einen Benutzer zum Teilen aus."
       unshared: "Freigabe entfernt."
-      created_from_filters: "Ansicht gespeichert."
-      create_from_filters_error: "Ansicht konnte nicht gespeichert werden."
-      updated_from_filters: "Filter wurde gespeichert."
-      update_from_filters_error: "Fehler beim Speichern des Filters."
+      created_from_filters: "Filter gespeichert."
+      create_from_filters_error: "Filter konnte nicht gespeichert werden."
+      updated_from_filters: "Filter gespeichert."
+      update_from_filters_error: "Filter konnte nicht gespeichert werden."
       destroy:
-        success: "SmartFolder wurde gelöscht."
+        success: "Filter gelöscht."
     assistant_preferences:
       persona_error: Dieser Fokus steht dir nicht zur Auswahl.
     assistant_chats:
@@ -447,8 +447,8 @@ de:
     view_configurations:
       updated: "Ansichtseinstellungen wurden aktualisiert."
       applied_to_all:
-        one: "Spalten für eine Ansicht übernommen."
-        other: "Spalten für %{count} Ansichten übernommen."
+        one: "Spalten für einen Filter übernommen."
+        other: "Spalten für %{count} Filter übernommen."
     ticket_attribute_definitions:
       created: "Attribut wurde erfolgreich hinzugefügt."
       updated: "Attribut wurde erfolgreich aktualisiert."

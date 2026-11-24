@@ -33,7 +33,7 @@ en:
           view_list: List
           overview_trail_back: to the overview
           overview_trail_all: all time
-          smart_folder_badge: Ticket Filter
+          smart_folder_badge: "Saved filter"
           record_button: Record
           search_placeholder: Search in time sessions
           modal_title: Record Time Session

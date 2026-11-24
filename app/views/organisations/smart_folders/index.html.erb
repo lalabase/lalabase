@@ -12,7 +12,7 @@
         variant: :primary,
         icon: "plus-lg",
         size: :medium,
-        title: "Neuen intelligenten Ordner erstellen",
+        title: t('smart_folders.create_ticket_folder'),
         tag: :a,
         url: new_organisation_smart_folder_path(@current_organisation, project_id: params[:project_id], modal: true),
         data: { turbo_frame: "modal" }
@@ -60,11 +60,11 @@
                   </h5>
                   <% if folder.user == current_user %>
                     <span class="text-xs text-gray-500">
-                      <%= t('smart_folders.ownership.own', default: 'Eigener Ordner') %>
+                      <%= t('smart_folders.ownership.own') %>
                     </span>
                   <% else %>
                     <span class="text-xs text-gray-500">
-                      <%= t('smart_folders.ownership.from', default: 'Von') %> <%= viewer_display_name(folder.user) %>
+                      <%= t('smart_folders.ownership.from') %> <%= viewer_display_name(folder.user) %>
                     </span>
                   <% end %>
                 </div>
@@ -139,7 +139,7 @@
   <% else %>
     <div class="mt-6 text-center p-8 bg-gray-100 rounded-lg">
       <p class="text-gray-600">
-        <%= t('smart_folders.no_folders', default: 'Keine Intelligenten Ordner gefunden.') %>
+        <%= t('smart_folders.no_folders') %>
       </p>
       <p class="mt-2">
         <%= link_to new_organisation_smart_folder_path(@current_organisation, project_id: params[:project_id], modal: true),

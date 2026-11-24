@@ -30,7 +30,7 @@ en:
           filter_connector_and: and
           filter_connector_or: or
           save_as_smart_folder: Save filter
-          save_filter_title: Save filter as Smart Folder
+          save_filter_title: "Save filter"
           save_filter_name_label: Name
           save_filter_name_placeholder: e.g. Weekly planning
           save_filter_save_button: Save
@@ -320,9 +320,9 @@ en:
     object_types:
       Meeting: Meetings
     new_title_by_type:
-      Meeting: New meeting view
+      Meeting: "New Meeting Filter"
     edit_title_by_type:
-      Meeting: Edit meeting view
+      Meeting: "Edit Meeting Filter"
     field_operators:
       participant:
         equals: has participant

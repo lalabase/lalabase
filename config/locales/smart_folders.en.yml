@@ -2,7 +2,7 @@
 en:
   generic:
     actions: Actions
-    back_to_details: Back to folder
+    back_to_details: "Back to filter"
     back_to_list: Back to overview
     cancel: Cancel
     create: Create
@@ -28,16 +28,16 @@ en:
     clone: Copy
     copy_of: Copy of %{name}
     delete: Delete filter
-    confirm_delete: Are you sure you want to delete this filter?
-    confirm_delete_group: Are you sure you want to delete this rule group?
-    confirm_delete_rule: Are you sure you want to delete this rule?
+    confirm_delete: "Delete this filter? This cannot be undone."
+    confirm_delete_group: "Delete this rule group?"
+    confirm_delete_rule: "Delete this rule?"
     create_document_folder: Create new filter
-    create_first: Create your first Ticket Filter
+    create_first: "Create your first filter"
     create_note_folder: Create new filter
     create_ticket_folder: Create new filter
     create_time_session_folder: Create new filter
     details: Details
-    edit: Edit Ticket Filter
+    edit: "Edit filter"
     edit_rules: Edit rules
     edit_title: Edit Filter
     edit_title_by_type:
@@ -77,11 +77,11 @@ en:
       Document: New Document Filter
       TimeSession: New Time Session Filter
     new_folder: New Filter
-    no_folders: No Ticket Filters found.
-    no_note_folders: No Ticket Filters for notes available
+    no_folders: "No saved filters found."
+    no_note_folders: "No saved filters for notes"
     no_results: No results match the defined rules.
     no_rules: No rules defined. Add rules to see results.
-    not_found: The specified Ticket Filter was not found.
+    not_found: "The filter was not found."
     object_types:
       All: All object types
       Document: Documents
@@ -136,12 +136,12 @@ en:
     share:
       add_new_share: Add new share
       can_edit: Edit
-      can_edit_hint: Users can edit the rules and settings of the folder
+      can_edit_hint: "Users can edit the rules and settings of the filter"
       can_share: Re-share
-      can_share_hint: Users can share the folder with others
-      confirm_remove_share: Are you sure you want to remove sharing for this user?
+      can_share_hint: "Users can share the filter with others"
+      confirm_remove_share: "Remove sharing for this user?"
       edit_permissions: Edit permissions
-      no_shares: This folder has not been shared yet.
+      no_shares: "This filter has not been shared yet."
       owner: "(Owner)"
       permissions: Permissions for selected users
       remove_share: Remove share
@@ -149,9 +149,9 @@ en:
       select_users: Select users to share with
       share_button: Save sharing
       shared_with: Shared with
-      title: Share Ticket Filter '%{name}'
+      title: "Share filter \"%{name}\""
       users_hint: Hold Ctrl/Cmd to select multiple users
-    sidebar_title: Ticket Filters
+    sidebar_title: "Saved filters"
     sorting:
       created_asc: Oldest first
       created_desc: Newest first
@@ -159,10 +159,10 @@ en:
       title_desc: Title Z-A
       updated_asc: Updated first
       updated_desc: Last updated
-    success: Ticket Filter was saved successfully.
+    success: "Filter saved."
     target_object_type: Object type
-    title: Ticket Filters
-    try_editing: Try editing the filter rules to get different results.
+    title: "Saved filters"
+    try_editing: "Change the rules to get different results."
     value_placeholder: Enter value...
     all_documents: All Documents
     all_tickets: All Tickets
@@ -171,10 +171,10 @@ en:
       date_between: between %{start} and %{end}
     general_settings: General Settings
     is_public: Public
-    no_document_folders: No document folders available
+    no_document_folders: "No saved filters for documents"
     no_rules_in_group: No rules in this group
-    no_ticket_folders: No ticket folders available
-    no_time_session_folders: No time session folders available
+    no_ticket_folders: "No saved filters for tickets"
+    no_time_session_folders: "No saved filters for times"
     public_access: Public access
     remove_group: Remove group
     remove_rule: Remove rule

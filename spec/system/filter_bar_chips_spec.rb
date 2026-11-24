@@ -164,10 +164,10 @@ RSpec.describe 'FilterBar Chip-Zeile bei aktivem Smart Folder', type: :system do
     visit organisation_project_knowledge_index_path(organisation, project, smart_folder_id: folder.id)
 
     find('[data-filter-bar-target="viewMenuButton"]', wait: 5).click
-    dismiss_confirm(/Chip-Spec-Folder/) { click_on 'Ansicht löschen' }
+    dismiss_confirm(/Chip-Spec-Folder/) { click_on 'Filter löschen' }
     expect(SmartFolder.exists?(folder.id)).to be true
 
-    accept_confirm(/Chip-Spec-Folder/) { click_on 'Ansicht löschen' }
+    accept_confirm(/Chip-Spec-Folder/) { click_on 'Filter löschen' }
 
     expect(page).to have_current_path(organisation_project_knowledge_index_path(organisation, project), wait: 5)
     expect(page).to have_css('[data-controller="neo-flash"]', text: 'gelöscht', wait: 5)
@@ -233,7 +233,7 @@ RSpec.describe 'FilterBar Chip-Zeile bei aktivem Smart Folder', type: :system do
     visit organisation_project_knowledge_index_path(organisation, project, filter: { tag: ['chip-spec-tag'] })
 
     expect(page).to have_css('[data-filter-bar-target="saveRow"]', wait: 5)
-    click_on 'Als Ansicht sichern'
+    click_on 'Als Filter sichern'
 
     expect(page).to have_css('[data-fb-naming]', wait: 3)
     expect(page).not_to have_css('#filter-bar-save-modal')

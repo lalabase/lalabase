@@ -79,7 +79,7 @@ RSpec.describe 'Waiting filters in the filter bar', type: :system do
     expect(page).to have_css('[data-filter-bar-target="valueMenu"].hidden', visible: :all, wait: 5)
     page.send_keys(:escape)
     expect(page).to have_css('[data-filter-bar-target="filterMenu"].hidden', visible: :all, wait: 5)
-    within('[data-filter-bar-target="saveRow"]') { click_on 'Als Ansicht sichern' }
+    within('[data-filter-bar-target="saveRow"]') { click_on 'Als Filter sichern' }
     field = view_name_field
     field.set('Wartet nicht')
     field.send_keys(:enter)

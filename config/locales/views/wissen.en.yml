@@ -40,7 +40,7 @@ en:
           filter_connector_and: and
           filter_connector_or: or
           save_as_smart_folder: Save filter
-          save_filter_title: Save filter as Smart Folder
+          save_filter_title: "Save filter"
           save_filter_name_label: Name
           save_filter_name_placeholder: e.g. Project documents
           save_filter_save_button: Save

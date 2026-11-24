@@ -30,7 +30,7 @@ de:
           filter_connector_and: und
           filter_connector_or: oder
           save_as_smart_folder: Filter speichern
-          save_filter_title: Filter als Smart Folder speichern
+          save_filter_title: "Filter speichern"
           save_filter_name_label: Name
           save_filter_name_placeholder: z. B. Wochenplanung
           save_filter_save_button: Speichern
@@ -321,9 +321,9 @@ de:
     object_types:
       Meeting: Meetings
     new_title_by_type:
-      Meeting: Neue Meeting-Ansicht
+      Meeting: "Neuer Meeting-Filter"
     edit_title_by_type:
-      Meeting: Meeting-Ansicht bearbeiten
+      Meeting: "Meeting-Filter bearbeiten"
     field_operators:
       participant:
         equals: hat Teilnehmer

@@ -35,7 +35,7 @@ RSpec.describe 'Organisations::SmartFolders Formular-Titel', type: :request do
       get edit_organisation_smart_folder_path(organisation, folder_for('Note'), modal: true)
 
       expect(response.body).to include('Wissens-Filter bearbeiten')
-      expect(response.body).not_to include('Ticket Filter bearbeiten')
+      expect(response.body).not_to include('Ticket-Filter bearbeiten')
     end
 
     it 'titelt einen Ticket-Filter typbezogen' do
@@ -48,7 +48,7 @@ RSpec.describe 'Organisations::SmartFolders Formular-Titel', type: :request do
       get edit_organisation_smart_folder_path(organisation, folder_for('All'), modal: true)
 
       expect(response.body).to include('Filter bearbeiten')
-      expect(response.body).not_to include('Ticket Filter bearbeiten')
+      expect(response.body).not_to include('Ticket-Filter bearbeiten')
     end
   end
 
@@ -57,14 +57,41 @@ RSpec.describe 'Organisations::SmartFolders Formular-Titel', type: :request do
       get new_organisation_smart_folder_path(organisation, modal: true, context_type: 'Note', project_id: project.id)
 
       expect(response.body).to include('Neuer Wissens-Filter')
-      expect(response.body).not_to include('Neuer Ticket Filter')
+      expect(response.body).not_to include('Neuer Ticket-Filter')
     end
 
     it 'titelt generisch ohne context_type' do
       get new_organisation_smart_folder_path(organisation, modal: true, project_id: project.id)
 
       expect(response.body).to include('Neuer Filter')
-      expect(response.body).not_to include('Neuer Ticket Filter')
+      expect(response.body).not_to include('Neuer Ticket-Filter')
+    end
+  end
+
+  # A saved filter is called a filter for every type (2026-11-24). The meeting
+  # titles still said "Meeting-Ansicht" after the rename.
+  describe 'the titles per type' do
+    it 'call every type a filter, in both languages' do
+      titles = %i[de en].flat_map do |locale|
+        %w[new edit].flat_map do |mode|
+          SmartFolder::SUPPORTED_OBJECT_TYPES.keys.filter_map do |type|
+            I18n.t("smart_folders.#{mode}_title_by_type.#{type}", locale: locale, default: nil)
+          end
+        end
+      end
+
+      expect(titles.size).to be >= 20
+      expect(titles).to all(match(/Filter/))
+      expect(titles).to all(satisfy { |title| !title.match?(/Ansicht|\bview\b/i) })
+    end
+  end
+
+  it 'calls the saved filter a filter in the column hint of the form' do
+    %i[de en].each do |locale|
+      hint = I18n.t('views.organisations.smart_folders.form.columns_chosen_in_list', locale: locale)
+
+      expect(hint).to match(/Filter/i)
+      expect(hint).not_to match(/Ansicht|\bview\b/i)
     end
   end
 end

@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-# The endpoint behind the column picker's "für alle Ansichten übernehmen"
+# The endpoint behind the column picker's "für alle Filter übernehmen"
 # (doc/spaltenwahl_plan.md, D5): the reader's exception. One list into the base
 # view and into every ticket view of the reader's OWN in this project, and into
 # nothing else: a view someone else owns, shared or public, is theirs.
@@ -53,7 +53,7 @@ RSpec.describe 'Organisations::ViewConfigurations#apply_columns_to_all', type: :
 
     expect(response).to have_http_status(:see_other)
     expect(response).to redirect_to(organisation_project_tickets_path(organisation, project))
-    expect(flash[:notice]).to eq('Spalten für 3 Ansichten übernommen.')
+    expect(flash[:notice]).to eq('Spalten für 3 Filter übernommen.')
 
     applied = %w[number title created_at tags]
     base = ActsAsTenant.with_tenant(organisation) { ViewConfiguration.for_user_project(user, project, 'tickets') }
@@ -72,12 +72,12 @@ RSpec.describe 'Organisations::ViewConfigurations#apply_columns_to_all', type: :
     patch apply_columns_to_all_organisation_project_view_configuration_path(organisation, project),
           params: { view_configuration: { table_columns: %w[created_at] } }
 
-    expect(flash[:notice]).to eq('Spalten für eine Ansicht übernommen.')
+    expect(flash[:notice]).to eq('Spalten für einen Filter übernommen.')
   end
 
   # A meeting view without a project belongs to "Alle Meetings" and shows only
   # there (meetings_uebersicht_vereinheitlichen_plan.md, decision 3). Until PR 2
-  # the project page's "für alle Ansichten übernehmen" still wrote into it, so a
+  # the project page's "für alle Filter übernehmen" still wrote into it, so a
   # click on a project page changed the columns of a list it does not show.
   # Ticket views without a project keep showing in every project list and keep
   # taking the list (first example).
@@ -98,7 +98,7 @@ RSpec.describe 'Organisations::ViewConfigurations#apply_columns_to_all', type: :
             params: { view_configuration: { table_columns: %w[creator] } }
 
       expect(response).to redirect_to(organisation_project_meetings_path(organisation, project))
-      expect(flash[:notice]).to eq('Spalten für 2 Ansichten übernommen.')
+      expect(flash[:notice]).to eq('Spalten für 2 Filter übernommen.')
       expect(columns_of(own_project_view)).to eq(%w[title creator])
       expect(columns_of(own_overview_view)).to eq(%w[title occurred_at])
       expect(columns_of(own_elsewhere)).to eq(%w[title occurred_at])

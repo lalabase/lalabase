@@ -233,8 +233,8 @@ en:
         smart_folder_share:
           attributes:
             user_id:
-              taken: "This user already has access to the folder."
-              cannot_share_with_owner: "The owner already has full access to this Ticket Filter."
+              taken: "This user already has access to the filter."
+              cannot_share_with_owner: "The owner already has full access to this filter."
         ai_credential:
           attributes:
             access_token:
@@ -313,7 +313,7 @@ en:
               header_columns_not_array: "header_columns must be an Array"
               list_columns_invalid: "list_columns must be a Hash with cells and metadata"
           conversion_error: "Conversion error: %{error}"
-          too_many_rule_groups: "Too many conditions: a view may have at most %{count} rule groups. Choose fewer values."
+          too_many_rule_groups: "Too many conditions: a filter may have at most %{count} rule groups. Choose fewer values."
           too_many_rules: "Too many conditions: a rule group may have at most %{count} rules. Choose fewer values."
         dashboard_configuration:
           attributes:

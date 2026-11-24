@@ -36,7 +36,7 @@ de:
           view_list: Liste
           overview_trail_back: zur Übersicht
           overview_trail_all: alle Zeiten
-          smart_folder_badge: Ticket Filter
+          smart_folder_badge: "Gespeicherter Filter"
           record_button: Erfassen
           search_placeholder: Suche in Zeit-Sessions
           modal_title: Zeit-Session erfassen

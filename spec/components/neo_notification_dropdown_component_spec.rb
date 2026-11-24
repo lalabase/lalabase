@@ -27,8 +27,10 @@ RSpec.describe NeoNotificationDropdownComponent, type: :component do
   end
 
   it 'lists a row by its latest event first and prints the time of that event' do
-    folded = row(created_at: 3.days.ago, last_event_at: 5.minutes.ago)
     fresh = row(created_at: 1.hour.ago, last_event_at: 1.hour.ago)
+    # Written last: without an order the table hands rows back as written, so the
+    # row with the latest event must not come first by accident.
+    folded = row(created_at: 3.days.ago, last_event_at: 5.minutes.ago)
 
     render_inline(described_class.new(user: user, organisation: organisation, limit: 10))
 

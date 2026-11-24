@@ -133,12 +133,14 @@ RSpec.describe Dashboard::CrossOrgActionSummary do
       ActsAsTenant.with_tenant(org_a) do
         admin_member(user, org_a)
         project = create(:project, organisation: org_a)
-        folded = create(:notification, recipient: user, organisation: org_a, project: project, channel: 'in_app',
-                                       state: 'queued', created_at: 3.days.ago, first_event_at: 3.days.ago,
-                                       last_event_at: 5.minutes.ago)
         fresh = create(:notification, recipient: user, organisation: org_a, project: project, channel: 'in_app',
                                       state: 'queued', created_at: 1.hour.ago, first_event_at: 1.hour.ago,
                                       last_event_at: 1.hour.ago)
+        # Written last: without an order the table hands rows back as written, so the
+        # row with the latest event must not come first by accident.
+        folded = create(:notification, recipient: user, organisation: org_a, project: project, channel: 'in_app',
+                                       state: 'queued', created_at: 3.days.ago, first_event_at: 3.days.ago,
+                                       last_event_at: 5.minutes.ago)
       end
 
       slice = summary.slices.find { |s| s.organisation == org_a }

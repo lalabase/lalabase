@@ -78,10 +78,12 @@ RSpec.describe Overview::RecentNotificationsComponent, type: :component do
     end
 
     it 'lists a row by its latest event first and prints the time of that event' do
-      row(actor: create(:user, first_name: 'Anna', last_name: 'Nord'),
-          created_at: 3.days.ago, last_event_at: 5.minutes.ago)
       row(actor: create(:user, first_name: 'Ben', last_name: 'Sued'),
           created_at: 1.hour.ago, last_event_at: 1.hour.ago)
+      # Written last: without an order the table hands rows back as written, so the
+      # row with the latest event must not come first by accident.
+      row(actor: create(:user, first_name: 'Anna', last_name: 'Nord'),
+          created_at: 3.days.ago, last_event_at: 5.minutes.ago)
 
       # Paused for the render only: each row's link reads its organisation once
       # (NotificationsHelper#notification_target_path), an N+1 this widget had

@@ -53,8 +53,10 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
   end
 
   describe 'the list' do
-    let!(:old_but_active) { row_about(ticket_titled('Lange offen'), created_at: 3.days.ago, last_event_at: 5.minutes.ago) }
+    # The row with the latest event is written last: without an order the table hands
+    # rows back as written, so it must not come first by accident.
     let!(:new_but_quiet) { row_about(ticket_titled('Gerade neu'), created_at: 1.hour.ago) }
+    let!(:old_but_active) { row_about(ticket_titled('Lange offen'), created_at: 3.days.ago, last_event_at: 5.minutes.ago) }
 
     def list_page(**params)
       get organisation_notifications_path(organisation, state_filters: %w[read unread], **params)
@@ -102,10 +104,11 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
     let(:ticket) { ticket_titled('Lange offen') }
     let(:active_actor) { create(:user, first_name: 'Ada', last_name: 'Aktiv') }
     let(:quiet_actor) { create(:user, first_name: 'Nils', last_name: 'Neu') }
+    let!(:new_but_quiet) { row_about(ticket, created_at: 1.hour.ago, actor: quiet_actor) }
+    # Written last, see the list above.
     let!(:old_but_active) do
       row_about(ticket, created_at: 3.days.ago, last_event_at: 5.minutes.ago, actor: active_actor)
     end
-    let!(:new_but_quiet) { row_about(ticket, created_at: 1.hour.ago, actor: quiet_actor) }
 
     it 'lists the row with the latest event first in "what was new", with the time of that event' do
       get organisation_notifications_path(organisation, state_filters: %w[read unread], notification: new_but_quiet.id)
@@ -126,7 +129,6 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
   # order of its own (one that put a late row on top by its created_at would split
   # the two).
   describe 'a row the fanout creates late' do
-    let!(:yesterday) { row_about(ticket_titled('Gestern'), created_at: 1.day.ago) }
     let!(:late) do
       ticket = ticket_titled('Spät verteilt')
       activity = ActsAsTenant.with_tenant(organisation) do
@@ -141,6 +143,8 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
         )
       end
     end
+    # Written after the late row: without an order the table would hand them back as written.
+    let!(:yesterday) { row_about(ticket_titled('Gestern'), created_at: 1.day.ago) }
     let(:token) do
       pat = build(:personal_access_token, user: user, organisations: [organisation], read_only: true)
       pat.token_hash = nil

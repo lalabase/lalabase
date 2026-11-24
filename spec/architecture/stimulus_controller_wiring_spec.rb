@@ -25,12 +25,16 @@ require 'rails_helper'
 # A selector ([data-controller="modal"] in a script) LOOKS FOR a mount, it is not one.
 # It counted as one until that button was found, and that alone kept `modal` out of the
 # census while no template mounted it. What a script looks for still has to exist
-# (invariant 1), and that is all it proves.
+# (invariant 1), and that is all it proves. A comment that quotes a mount is none
+# either: mounts and actions are both read without comments (without_comments).
 #
 # ⚠️ Not seen: whether the mount stands ABOVE the action on the page that is rendered
 # (a controller mounted on another page only passes), an identifier put together at
-# run time, and a mount a script would build (none does). Those are for a browser spec
-# of the page: spec/system/ticket_first_use_button_spec.rb clicks the button of #259.
+# run time, and a mount a script would build (none does). Those are for a spec of the
+# rendered page: a request spec that asks whether the action stands inside its
+# controller's element (spec/requests/organisations/ticket_move_modal_scope_spec.rb),
+# or a browser spec that presses it (spec/system/ticket_first_use_button_spec.rb,
+# the button of #259).
 RSpec.describe 'Stimulus controller wiring', type: :model do
   CONTROLLERS_DIR = Rails.root.join('app/javascript/controllers')
   VALID_IDENT = /\A[a-z][a-z0-9]*(?:-[a-z0-9]+)*\z/
@@ -45,8 +49,9 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
   }.freeze
 
   # Controllers without a detectable mount. Every entry deliberately noted.
-  # On deletion the file vanishes -> remove the entry here too (test 4 enforces that).
-  # Empty = every controller is (statically provable) mounted. New dead ones surface via test 3.
+  # On deletion the file vanishes -> remove the entry here too ('hält die
+  # KNOWN_UNMOUNTED-Allowlist sauber' enforces that). Empty = every controller is
+  # (statically provable) mounted. New dead ones surface in the Dead-Mount-Census.
   KNOWN_UNMOUNTED = {
     # Mounted by app/views/admin/price_lists/new.html.erb of the operator engine
     # (gboyke/lalabase-operator, S3.2 of doc/oss_core_split_plan.md). The engine
@@ -55,8 +60,10 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
     'price-ladder' => 'operator engine view, app/views/admin/price_lists/new.html.erb there',
     # Dead: no template has mounted it since the ticket pop-up became the writing
     # surface. time_session_form_controller.js still LOOKS for it, which this census
-    # took for a mount. Goes together with the two actions below that still name it.
-    'modal' => 'dead since the writing surface replaced the ticket pop-up; delete with its last actions'
+    # took for a mount. Goes together with the two actions below that still name it,
+    # and with those lookups: invariant 1 asks that what a script looks for exists.
+    'modal' => 'dead since the writing surface replaced the ticket pop-up; delete with its last actions ' \
+               'and the lookups for it in time_session_form_controller.js'
   }.freeze
 
   # Actions whose controller nothing mounts, by the file they stand in. Per file and
@@ -83,8 +90,10 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
   ACTION_DESCRIPTOR = /->([a-z][a-z0-9]*(?:-[a-z0-9]+)*)#[A-Za-z_]\w*/
   ACTION_ATTRIBUTES = [/data-action=["']([^"']+)["']/, /\baction:\s*["']([^"']+)["']/].freeze
   # An ERB comment explains and renders nothing. The strict-locals line is code: its
-  # defaults reach the page.
+  # defaults reach the page. An HTML comment reaches the page and still mounts and
+  # binds nothing.
   ERB_COMMENT = /<%#(?!\s*locals:).*?%>/m
+  HTML_COMMENT = /<!--.*?-->/m
 
   CRUFT = /\.(backup|bak|orig)\z|~\z/
 
@@ -135,13 +144,17 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
 
   ERB_DYNAMIC = /<%|%>|#\{/
 
-  # Identifiers that actually MOUNT a controller: markup only. No script mounts one,
-  # and what a script searches for is no mount (selector_hook_identifiers).
+  # Identifiers that actually MOUNT a controller: markup only, without its comments. No
+  # script mounts one, and what a script searches for is no mount (selector_hook_identifiers).
   def mounted_identifiers
-    valid(mounts_in(markup_blob))
+    valid(markup_files.flat_map { |file| mounts_in(File.read(file), file) })
   end
 
-  def mounts_in(markup)
+  # A comment that quotes a mount counts as none. Read with its comments, a line like
+  # <%# the pop-up had data-controller="modal" %> made `modal` count as mounted, and
+  # click->modal#open passed this guard again: the shape of #259.
+  def mounts_in(source, file)
+    markup = without_comments(source, file)
     tokens = []
     add = ->(val) { tokens.concat(val.split(/\s+/)) unless val.match?(ERB_DYNAMIC) }
     # Literal data-controller="a b c"   (skip ERB-interpolated values, and a selector:
@@ -186,9 +199,13 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
     valid(tokens)
   end
 
-  # The source without what only explains: comments render nothing and bind nothing.
+  # The source without what only explains: comments mount nothing and bind nothing.
+  # Their line breaks stay, so a line number still points at the same line.
   def without_comments(source, file)
-    return source.gsub(ERB_COMMENT) { |comment| "\n" * comment.count("\n") } if file.end_with?('.erb')
+    if file.end_with?('.erb')
+      keep_lines = ->(comment) { "\n" * comment.count("\n") }
+      return source.gsub(ERB_COMMENT, &keep_lines).gsub(HTML_COMMENT, &keep_lines)
+    end
 
     marks = file.end_with?('.js') ? ['//', '*', '/*'] : ['#']
     source.lines.reject { |line| line.lstrip.start_with?(*marks) }.join
@@ -228,12 +245,14 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
   it 'mountet keinen Controller, der weder existiert noch dokumentiert dangling ist' do
     dangling = (mounted | selector_hook_identifiers) - controllers - allowed
     expect(dangling).to be_empty,
-                        "data-controller mountet unbekannte Controller: #{dangling.to_a.sort.inspect}"
+                        "Mount oder Skript-Selektor nennt unbekannte Controller: #{dangling.to_a.sort.inspect}"
   end
 
-  it 'reads a mount and an action where they are written, and takes no search for a mount' do
+  it 'reads a mount and an action where they are written, and takes no search and no comment for a mount' do
     template = <<~ERB
       <%# An explanation may quote click->explained#open: it renders nothing. %>
+      <%# The pop-up used to mount data-controller="quoted-in-erb" here. %>
+      <!-- <div data-controller="quoted-in-html" data-action="click->quoted-in-html#open"> -->
       <%# locals: (cancel_action: "click->from-a-local#close") %>
       <div data-controller="first second">
         <button data-action="click->first#open keydown.esc@window->second#close third#toggle"></button>
@@ -243,6 +262,7 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
     ERB
     component = <<~RUBY
       # attrs[:data][:action] = 'click->commented-out#run'
+      # tag.div(data: { controller: "quoted-in-ruby" })
       attrs[:data][:controller] = ['from-an-array', attrs[:data][:controller]].compact.join(' ')
       attrs[:data][:action] = 'click->assigned#run'
     RUBY
@@ -254,8 +274,10 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
     JS
 
     # Whatever is read for mounts, a selector is none: the three forms a script writes.
-    expect(mounts_in(script)).to be_empty
-    expect(valid(mounts_in(template) + mounts_in(component))).to eq(%w[first second from-a-hash from-an-array].to_set)
+    expect(mounts_in(script, 'controller.js')).to be_empty
+    # Nor is a comment that quotes a mount: ERB, HTML and Ruby comments are left out.
+    expect(valid(mounts_in(template, 'page.html.erb') + mounts_in(component, 'component.rb')))
+      .to eq(%w[first second from-a-hash from-an-array].to_set)
     expect(actions_in(template, 'page.html.erb')).to eq(%w[first second third conditional from-a-local].to_set)
     expect(actions_in(component, 'component.rb')).to eq(%w[assigned].to_set)
     expect(actions_in(script, 'controller.js')).to eq(%w[from-a-script].to_set)

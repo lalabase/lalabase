@@ -4,25 +4,25 @@ require 'rails_helper'
 
 # What:  The button of the ticket list's first-use empty state ("Create ticket") opens
 #        the writing surface, and the ticket saved there takes the empty state's place.
-# Type:  System spec with headless Chrome. A request spec cannot see this: the markup
-#        was complete, the click did nothing.
+# Type:  System spec with headless Chrome. The markup was complete, the click did
+#        nothing. A request spec sees that only if it asks whether the button stands
+#        inside its controller's element, as
+#        spec/requests/organisations/ticket_move_modal_scope_spec.rb does for the move
+#        dialog.
 # Why:   In every release up to 2026.11.1 the button fired the action of a pop-up that
 #        the writing surface had replaced (lalabase/lalabase#259). No element mounted
 #        that controller any more, so Stimulus bound nothing: no request, no error, not
 #        a line in the console. spec/architecture/stimulus_controller_wiring_spec.rb
 #        knows that shape now, and only that shape. This one presses the button,
 #        whatever it is wired with.
-RSpec.describe 'First ticket from the empty list', type: :system do
+#
+# Tagged :ci_guard: the wiring guard hands this spec what it cannot see, so dropping its
+# line from the CI list has to turn red (spec/architecture/ci_guard_list_spec.rb).
+RSpec.describe 'First ticket from the empty list', :ci_guard, type: :system do
   before { Prosopite.pause }
   after { Prosopite.resume }
 
-  around do |example|
-    adapter_was = ActiveJob::Base.queue_adapter
-    ActiveJob::Base.queue_adapter = :test
-    example.run
-  ensure
-    ActiveJob::Base.queue_adapter = adapter_was
-  end
+  around { |example| with_test_queue_adapter { example.run } }
 
   let(:organisation) { create(:organisation) }
   let(:user) { create(:user) }

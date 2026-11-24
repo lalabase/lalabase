@@ -135,25 +135,16 @@ module Notifications
       end
     end
 
+    # The state can change after the lookup (read, archived, an email that left
+    # the queue), so RowEvents reads the row again under its lock and asks this
+    # rule there. A refused row stays as it is and the event gets a new row.
     def update_existing_group(notification, new_params)
-      notification.with_lock do
-        # State can change after lookup (read/archive/email delivery). Recheck
-        # while holding the row lock before mutating the group.
-        return create_new_group(new_params) unless can_add_to_group?(notification) && complete_post_group?(notification, new_params)
-
-        notification.group_count += 1
-        # The span only widens: activities of one bucket can arrive out of order (a
-        # retried outbox event). The lists order and print by last_event_at, and
-        # Posts::MarkRead matches a comment by first_event_at..last_event_at.
-        notification.first_event_at = [notification.first_event_at, @activity.created_at].compact.min
-        notification.last_event_at = [notification.last_event_at, @activity.created_at].compact.max
-        merge_actors(notification, new_params[:actor_id] || new_params[:actor]&.id)
-        merge_payload(notification, new_params[:payload])
-        notification.state = :queued if notification.state_read?
-        notification.save!
+      folded = RowEvents.fold!(notification: notification, at: @activity.created_at,
+                               actor_id: new_params[:actor_id] || new_params[:actor]&.id,
+                               payload: new_params[:payload]) do |row|
+        can_add_to_group?(row) && complete_post_group?(row, new_params)
       end
-
-      notification
+      folded ? notification : create_new_group(new_params)
     end
 
     # Email content can be rendered while its lifecycle row is still queued.
@@ -198,35 +189,6 @@ module Notifications
         @trackable.project
       elsif @trackable.respond_to?(:ticket)
         @trackable.ticket&.project
-      end
-    end
-
-    def merge_actors(notification, new_actor_id)
-      actors = (notification.payload['actor_ids'] || []).dup
-      actors << notification.actor_id if notification.actor_id
-      actors << new_actor_id if new_actor_id
-      notification.payload['actor_ids'] = actors.uniq.compact
-      notification.actor_id = new_actor_id if new_actor_id
-    end
-
-    def merge_payload(notification, new_payload)
-      return unless new_payload
-
-      notification.payload ||= {}
-
-      new_payload.each do |key, value|
-        key = key.to_s
-        existing = notification.payload[key]
-
-        notification.payload[key] = if existing.is_a?(Array) && value.is_a?(Array)
-                                      (existing + value).uniq
-                                    elsif existing.is_a?(Array)
-                                      (existing + [value]).uniq
-                                    elsif value.is_a?(Array)
-                                      ([existing] + value).compact.uniq
-                                    else
-                                      value
-                                    end
       end
     end
 

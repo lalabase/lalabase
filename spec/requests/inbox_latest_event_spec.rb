@@ -119,4 +119,51 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
       expect(lines.first.at_css('.inbox-new-activity__time').text.strip).to eq(minutes)
     end
   end
+
+  # A row the fanout creates late (an outbox event retried after a failure) starts at
+  # the time of its activity, not of its delivery (GroupKeyBuilder#create_new_group).
+  # It stands where the token inbox has always put it: the web inbox has no second
+  # order of its own (one that put a late row on top by its created_at would split
+  # the two).
+  describe 'a row the fanout creates late' do
+    let!(:yesterday) { row_about(ticket_titled('Gestern'), created_at: 1.day.ago) }
+    let!(:late) do
+      ticket = ticket_titled('Spät verteilt')
+      activity = ActsAsTenant.with_tenant(organisation) do
+        create(:activity, actor: create(:user), organisation: organisation, trackable: ticket,
+                          action: 'ticket_commented', key: 'ticket.ticket_commented', created_at: 2.days.ago)
+      end
+      ActsAsTenant.with_tenant(organisation) do
+        Notifications::GroupKeyBuilder.new(activity, user).find_or_create_group(
+          recipient_id: user.id, actor_id: activity.actor_id, notifiable_type: 'Ticket', notifiable_id: ticket.id,
+          event_type: 'ticket_commented', channel: 'in_app', payload: { 'action' => 'commented' },
+          organisation_id: organisation.id
+        )
+      end
+    end
+    let(:token) do
+      pat = build(:personal_access_token, user: user, organisations: [organisation], read_only: true)
+      pat.token_hash = nil
+      pat.token_prefix = nil
+      pat.generate_token!
+      pat
+    end
+
+    before { make_token_owner_a_member(user, organisation, projects: [project]) }
+
+    it 'stands where the token inbox puts it, at the time of its activity' do
+      expect(late.created_at).to be > yesterday.created_at
+      expect(late.last_event_at).to be < yesterday.last_event_at
+
+      get '/api/v1/notifications', params: { status: 'all' }, headers: { 'Authorization' => "Bearer #{token.token}" }
+      expect(response).to have_http_status(:ok)
+      token_order = JSON.parse(response.body)['data'].pluck('id')
+
+      get organisation_notifications_path(organisation, view_mode: 'chronological')
+      expect(response).to have_http_status(:ok)
+      web = Nokogiri::HTML(response.body)
+      expect(row_ids(web)).to eq([yesterday.id, late.id])
+      expect(row_ids(web)).to eq(token_order)
+    end
+  end
 end

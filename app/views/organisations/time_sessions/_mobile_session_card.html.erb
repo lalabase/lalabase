@@ -68,12 +68,7 @@
       at once, because every booking of every row was open at all times. %>
   <div class="no-click flex shrink-0 gap-1">
     <% if time_session.creator == current_user && !time_session.billed? %>
-      <%= render Neo::Buttons::IconButtonComponent.new(
-        variant: :edit, size: :small, tag: :a,
-        href: edit_organisation_project_time_session_path(current_organisation, time_session.project, time_session, context: 'index_page'),
-        icon: 'pencil',
-        title: t('views.organisations.time_sessions.index_table.edit_tooltip')
-      ) %>
+      <%= render 'organisations/time_sessions/session_edit_button', time_session: time_session %>
       <%= render Neo::Buttons::IconButtonComponent.new(
         variant: :danger, size: :small,
         confirm: t('views.confirm.delete_time_session'),

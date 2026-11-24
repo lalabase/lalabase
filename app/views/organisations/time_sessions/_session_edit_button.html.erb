@@ -1,0 +1,15 @@
+<%# locals: (time_session:) %>
+<%# The pencil of one booking in the time list. The desk's line (_session_line) and the
+    phone's card (_mobile_session_card) both render this one: time-session-popup loads the
+    edit form into an overlay (lib/time_session_modal.js), and saving reloads the list.
+    The phone's pencil used to be a link of its own into the list's frame. The answer
+    carried no such frame, and the list turned into "Content missing"
+    (lalabase/lalabase#263). %>
+<div data-controller="time-session-popup" data-project-id="<%= time_session.project_id %>" data-context="index_page">
+  <%= render Neo::Buttons::IconButtonComponent.new(
+    variant: :edit, size: :small, icon: 'pencil',
+    title: t('views.organisations.time_sessions.index_table.edit_tooltip'),
+    class: 'no-click',
+    data: { action: 'click->time-session-popup#editTimeSession', time_session_id: time_session.id, context: 'index_page' }
+  ) %>
+</div>

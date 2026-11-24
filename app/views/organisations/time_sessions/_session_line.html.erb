@@ -54,14 +54,7 @@
       <% end %>
       <div class="no-click flex h-6 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         <% if time_session.creator == current_user && !time_session.billed? %>
-          <div data-controller="time-session-popup" data-project-id="<%= time_session.project.id %>" data-context="index_page">
-            <%= render Neo::Buttons::IconButtonComponent.new(
-              variant: :edit, size: :small, icon: 'pencil',
-              title: t('views.organisations.time_sessions.index_table.edit_tooltip'),
-              class: 'no-click',
-              data: { action: 'click->time-session-popup#editTimeSession', time_session_id: time_session.id, context: 'index_page' }
-            ) %>
-          </div>
+          <%= render 'organisations/time_sessions/session_edit_button', time_session: time_session %>
           <%= render Neo::Buttons::IconButtonComponent.new(
             variant: :danger, size: :small, icon: 'trash',
             title: t('views.organisations.time_sessions.index_table.delete_tooltip'),

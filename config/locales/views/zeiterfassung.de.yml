@@ -114,11 +114,6 @@ de:
           recorded_by: erfasst von %{name}
         ticket_select:
           no_ticket_assignment: Keine Ticket-Zuordnung
-        form_index:
-          ticket_label: Ticket (optional)
-          ticket_search_placeholder: Ticket suchen...
-          no_ticket_assignment: Keine Ticket-Zuordnung
-          subject_label: Betreff
         subject_popover:
           heading: Zeit eintragen
           heading_edit: Zeit bearbeiten

@@ -277,7 +277,6 @@ else
   pin 'controllers/ticket_pane_links_controller', to: 'controllers/ticket_pane_links_controller.js'
   pin 'controllers/ticket_relation_modal_controller', to: 'controllers/ticket_relation_modal_controller.js'
   pin 'controllers/ticket_selection_controller', to: 'controllers/ticket_selection_controller.js'
-  pin 'controllers/ticket_selector_controller', to: 'controllers/ticket_selector_controller.js'
   pin 'controllers/time_session_actions_controller', to: 'controllers/time_session_actions_controller.js'
   pin 'controllers/time_session_bulk_controller', to: 'controllers/time_session_bulk_controller.js'
   pin 'controllers/time_session_form_controller', to: 'controllers/time_session_form_controller.js'

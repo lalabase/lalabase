@@ -518,13 +518,11 @@ class Organisations::TimeSessionsController < Organisations::BaseController
           render partial: 'organisations/time_sessions/form', locals: { time_session: @time_session, ticket: @ticket, project: @project }
         end)
       end
+      # The overlay of lib/time_session_modal.js fetches this, on the ticket and in the time
+      # list alike. A frame of its own (_form_index) had no caller but a link of the phone's
+      # time card, whose answer lacked the frame it asked for (lalabase/lalabase#263).
       format.html do
-        # Check if it's a Turbo Frame request
-        if turbo_frame_request?
-          render partial: 'organisations/time_sessions/form_index', locals: { time_session: @time_session, project: @project, ticket: @ticket }
-        else
-          render partial: 'organisations/time_sessions/form', locals: { time_session: @time_session, project: @project, ticket: @ticket }
-        end
+        render partial: 'organisations/time_sessions/form', locals: { time_session: @time_session, project: @project, ticket: @ticket }
       end
     end
   end

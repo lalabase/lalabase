@@ -111,11 +111,6 @@ en:
           recorded_by: recorded by %{name}
         ticket_select:
           no_ticket_assignment: No ticket assignment
-        form_index:
-          ticket_label: Ticket (optional)
-          ticket_search_placeholder: Search ticket...
-          no_ticket_assignment: No ticket assignment
-          subject_label: Subject
         subject_popover:
           heading: Log time
           heading_edit: Edit time

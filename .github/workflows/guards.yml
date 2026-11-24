@@ -553,6 +553,8 @@ jobs:
           spec/requests/organisations/time_sessions_overview_view_spec.rb
           spec/requests/organisations/time_sessions_project_redirect_spec.rb
           spec/requests/organisations/time_sessions_ticket_drilldown_spec.rb
+          spec/requests/organisations/time_sessions_edit_pencil_spec.rb
+          spec/system/time_list_phone_edit_spec.rb
           spec/requests/organisations/time_sessions_booking_rights_spec.rb
           spec/requests/organisations/time_sessions_title_spec.rb
           spec/requests/organisations/first_use_reduced_chrome_spec.rb

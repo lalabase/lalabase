@@ -79,13 +79,17 @@ found=$(docker compose exec -T db psql -U lalabase -d lalabase -tAc \
 test "$found" = "1"
 
 # The compiled CSS carries its font URLs with the asset host burnt in. A
-# self-hosted instance must not load anything from our host. grep exits 1 for
+# self-hosted instance must not load anything from our host. The pattern is an
+# address of our host (after "//", any subdomain, any case), not the bare name:
+# Sprockets keeps comments, and lp_base.css mirrors the website's word for word,
+# comments that name the public site included. A bare name loads nothing; it
+# turned this check red twice (06.11. and 22.11.2026). grep exits 1 for
 # "no match"; 0 is a match and 2 a failed search, both red.
 echo "No asset names our host"
 rc=0
-docker compose exec -T web grep -rl 'lalabase.com' public/assets || rc=$?
+docker compose exec -T web grep -rliE '//([a-z0-9-]+\.)*lalabase\.com' public/assets || rc=$?
 if [ "$rc" -ne 1 ]; then
-  echo "::error::grep exited $rc: assets name lalabase.com (0) or could not be searched (2)"
+  echo "::error::grep exited $rc: assets name an address on lalabase.com (0) or could not be searched (2)"
   exit 1
 fi
 

@@ -14,7 +14,7 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline gap-2">
                 <span class="flex-1 truncate text-sm text-cream-900"><%= title_for(notification) %></span>
-                <span class="font-mono text-xs text-cream-500 shrink-0"><%= t('overview.notifications.time_ago', time: helpers.time_ago_in_words(notification.created_at)) %></span>
+                <span class="font-mono text-xs text-cream-500 shrink-0"><%= t('overview.notifications.time_ago', time: helpers.time_ago_in_words(notification.last_event_at)) %></span>
               </div>
               <% context = context_label(notification) %>
               <% if context.present? %>

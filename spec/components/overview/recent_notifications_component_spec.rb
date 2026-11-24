@@ -58,4 +58,39 @@ RSpec.describe Overview::RecentNotificationsComponent, type: :component do
       expect(component.send(:context_label, notification)).to eq('')
     end
   end
+
+  # The widget lists through Notification.recent, by the latest event of a row: a row whose later
+  # event folded into it keeps its created_at, still comes first and prints the time of that event.
+  # Renders avatars and links in real time: no freeze_time, times relative to Time.current.
+  describe 'order and printed time' do
+    let(:project) { create(:project, organisation: organisation) }
+    let(:ticket) { create(:ticket, project: project, organisation: organisation) }
+
+    before do
+      role = create(:role, title: 'account_admin', organisation: organisation)
+      create(:membership, user: user, organisation: organisation, role: role, active: true)
+    end
+
+    def row(actor:, created_at:, last_event_at:)
+      create(:notification, recipient: user, organisation: organisation, project: project, notifiable: ticket,
+                            actor: actor, channel: 'in_app', state: 'queued', event_type: 'ticket_commented',
+                            created_at: created_at, first_event_at: created_at, last_event_at: last_event_at)
+    end
+
+    it 'lists a row by its latest event first and prints the time of that event' do
+      row(actor: create(:user, first_name: 'Anna', last_name: 'Nord'),
+          created_at: 3.days.ago, last_event_at: 5.minutes.ago)
+      row(actor: create(:user, first_name: 'Ben', last_name: 'Sued'),
+          created_at: 1.hour.ago, last_event_at: 1.hour.ago)
+
+      # Paused for the render only: each row's link reads its organisation once
+      # (NotificationsHelper#notification_target_path), an N+1 this widget had
+      # before and that is not about the order.
+      Prosopite.pause { render_inline(component) }
+
+      rows = page.all('li')
+      expect(rows.map { |node| node.text[/Anna Nord|Ben Sued/] }).to eq(['Anna Nord', 'Ben Sued'])
+      expect(rows.first.text).to include('5 Minuten')
+    end
+  end
 end

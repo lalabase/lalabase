@@ -125,6 +125,25 @@ RSpec.describe Dashboard::CrossOrgActionSummary do
       expect(slice.unread_count).to eq(2)        # tile count == notification_count by construction
       expect(summary.total).to eq(2)             # 0 tickets + 2 unread notifications
     end
+
+    # The slice lists through Notification.recent, by the latest event of a row: a row whose
+    # later event folded into it keeps its created_at and still comes first.
+    it 'lists a row by its latest event first' do
+      folded = fresh = nil
+      ActsAsTenant.with_tenant(org_a) do
+        admin_member(user, org_a)
+        project = create(:project, organisation: org_a)
+        folded = create(:notification, recipient: user, organisation: org_a, project: project, channel: 'in_app',
+                                       state: 'queued', created_at: 3.days.ago, first_event_at: 3.days.ago,
+                                       last_event_at: 5.minutes.ago)
+        fresh = create(:notification, recipient: user, organisation: org_a, project: project, channel: 'in_app',
+                                      state: 'queued', created_at: 1.hour.ago, first_event_at: 1.hour.ago,
+                                      last_event_at: 1.hour.ago)
+      end
+
+      slice = summary.slices.find { |s| s.organisation == org_a }
+      expect(slice.notifications.map(&:id)).to eq([folded.id, fresh.id])
+    end
   end
 
   describe 'importance levels (ticket filtering)' do

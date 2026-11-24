@@ -36,7 +36,7 @@
                 <%= notification.payload&.dig('title') || notification.event_type&.humanize || t('dashboard.notifications.notification') %>
               </p>
               <p class="text-xs text-cream-900 opacity-50 mt-0.5">
-                <%= helpers.time_ago_in_words(notification.created_at) %> <%= t('dashboard.notifications.ago') %>
+                <%= helpers.time_ago_in_words(notification.last_event_at) %> <%= t('dashboard.notifications.ago') %>
               </p>
             </div>
           </div>

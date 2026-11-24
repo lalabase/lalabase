@@ -75,12 +75,7 @@ RSpec.describe 'Stimulus controller wiring', type: :model do
                  'and gives it a listener of its own; the action never fires'
     },
     'app/views/organisations/time_sessions/_form_fields.html.erb' => {
-      'modal' => 'default of cancel_action; each of the three forms passes its own'
-    },
-    'app/views/organisations/time_sessions/_form_index.html.erb' => {
-      'time-session-modal' => 'default of close_action, its controller is deleted. Only an edit request for a frame ' \
-                              "renders this form, and the one link that sends it (the pencil of a phone's time " \
-                              'card) asks for the list frame, which the answer does not carry (lalabase/lalabase#263)'
+      'modal' => 'default of cancel_action; each form that renders it passes its own'
     }
   }.freeze
 

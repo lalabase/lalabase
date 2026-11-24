@@ -16,18 +16,6 @@ RSpec.describe 'time sessions cancel button views' do
     end
   end
 
-  describe '_form_index.html.erb' do
-    it 'defaults the cancel action to the time-session-modal close' do
-      form_path = Rails.root.join('app/views/organisations/time_sessions/_form_index.html.erb')
-      form_content = File.read(form_path)
-
-      # The default applies on ticket pages (time_session_modal_form frame);
-      # the index page passes close_action explicitly (see index.html.erb tests).
-      expect(form_content).to include('click->time-session-modal#close')
-      expect(form_content).to include('cancel_action: close_action')
-    end
-  end
-
   describe '_form_organization_wide.html.erb' do
     it 'wires the cancel action to the index modal close' do
       form_path = Rails.root.join('app/views/organisations/time_sessions/_form_organization_wide.html.erb')

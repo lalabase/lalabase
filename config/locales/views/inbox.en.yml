@@ -154,12 +154,9 @@ en:
           read: Read
           archived: Archived
           last_7_days: Last 7 Days
-          back_to_notifications: Back to Notifications
         preferences:
           page_title: Notification Preferences
-          title: Notifications
           subtitle: Choose which notifications you receive
-          back: Back
           ticket_notifications: Ticket Notifications
           ticket_notifications_desc: Choose what you get notified about for watched tickets
           on_status_change: On status change
@@ -183,9 +180,7 @@ en:
           code_index_desc: Notifications when a repository's code index finishes or fails
           save: Save
         ticket_exceptions:
-          title: Ticket Exceptions
           subtitle: Tickets with individual notification settings that differ from your default settings
-          back: Back
           muted: muted
           manually_followed: manually followed
           badge_muted: Muted

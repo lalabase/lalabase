@@ -1,7 +1,9 @@
 <%# locals: (back_label:, back_path:, page:) %>
-<%# The crumb line of a page below a section of the management area:
-    "‹ Rollen und Rechte / Neue Rolle". back_label and back_path lead to the
-    section or tab the page belongs to, page names the page itself.
+<%# The crumb line of a page below a section: "‹ Rollen und Rechte / Neue Rolle".
+    The management area wrote it first; the inbox's settings and the form of a
+    saved view use it as well (since 2026-11-24), and on a phone it is what names
+    the page under the fixed head. back_label and back_path lead to the section
+    or tab the page belongs to, page names the page itself.
 
     Where it stands: right under the page head (organisations/shared/_settings_subnav),
     under the tab row where the section has one, before the content. Render it

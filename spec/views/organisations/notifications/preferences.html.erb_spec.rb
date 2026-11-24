@@ -17,9 +17,11 @@ RSpec.describe 'organisations/notifications/preferences', type: :view do
     assign(:available_event_types, NotificationPreference.event_types.keys)
     assign(:available_channels, %w[in_app email])
     # current_organisation is a controller helper_method, not present on the bare
-    # view object — bypass partial-double verification to stub it.
+    # view object — bypass partial-double verification to stub it. So is Devise's
+    # user_signed_in?, which the page head asks (MobileNavigationHelper#mobile_shell?):
+    # no phone shell in a view spec.
     without_partial_double_verification do
-      allow(view).to receive(:current_organisation).and_return(organisation)
+      allow(view).to receive_messages(current_organisation: organisation, user_signed_in?: false)
     end
     render
   end

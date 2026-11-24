@@ -1,21 +1,18 @@
-<% content_for :title, t('views.organisations.notifications.ticket_exceptions.title') %>
+<% content_for :title, t('views.organisations.notifications.index.ticket_exceptions') %>
 
-<div class="max-w-4xl mx-auto px-6 py-8">
-  <!-- Header -->
-  <div class="flex items-start justify-between mb-6">
-    <div>
-      <h1 class="text-3xl font-black text-cream-900 uppercase mb-1"><%= t('views.organisations.notifications.ticket_exceptions.title') %></h1>
-      <p class="text-gray-600 text-sm"><%= t('views.organisations.notifications.ticket_exceptions.subtitle') %></p>
-    </div>
-    <%= render Neo::Buttons::ButtonComponent.new(
-      variant: :secondary,
-      size: :medium,
-      url: organisation_notifications_path(current_organisation),
-      icon: "arrow-left"
-    ) do %>
-      <span class="whitespace-nowrap"><%= t('views.organisations.notifications.ticket_exceptions.back') %></span>
-    <% end %>
-  </div>
+<%# A page below the inbox (F45 of the UI table): the head names the inbox,
+    the crumb line the way back and this page, as on every page below a
+    section. On a phone the fixed head says "Inbox" and the crumb stays
+    (MobileNavigationHelper#mobile_head_echo). Head, crumb and content are one
+    block: the layout's content column puts its gap between its children. %>
+<div>
+  <%= render NeoTitleBoxComponent.new(title: t('views.organisations.notifications.index.title'), variant: :organisation) %>
+  <%= render 'organisations/shared/section_crumb', back_label: t('views.organisations.notifications.index.title'),
+                                                    back_path: organisation_notifications_path(current_organisation),
+                                                    page: t('views.organisations.notifications.index.ticket_exceptions') %>
+
+<div class="width-capped--wide">
+  <p class="mb-6 text-sm text-muted"><%= t('views.organisations.notifications.ticket_exceptions.subtitle') %></p>
 
   <% if @exceptions.any? %>
     <%# Zusammenfassung %>
@@ -93,4 +90,5 @@
       <p class="text-sm text-gray-500"><%= t('views.organisations.notifications.ticket_exceptions.all_default') %></p>
     </div>
   <% end %>
+</div>
 </div>

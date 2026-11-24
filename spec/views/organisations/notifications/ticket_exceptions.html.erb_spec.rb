@@ -17,8 +17,10 @@ RSpec.describe 'organisations/notifications/ticket_exceptions', type: :view do
   before do
     # Set after the suite-level before(:each) tenant reset, so factory creates see it.
     ActsAsTenant.current_tenant = organisation
+    # Controller helpers the bare view object lacks; the page head asks both
+    # (MobileNavigationHelper#mobile_shell?). No phone shell in a view spec.
     without_partial_double_verification do
-      allow(view).to receive(:current_organisation).and_return(organisation)
+      allow(view).to receive_messages(current_organisation: organisation, user_signed_in?: false)
     end
   end
 

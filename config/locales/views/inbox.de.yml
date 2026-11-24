@@ -154,12 +154,9 @@ de:
           read: Gelesen
           archived: Archiviert
           last_7_days: Letzte 7 Tage
-          back_to_notifications: Zurück zu Benachrichtigungen
         preferences:
           page_title: Benachrichtigungseinstellungen
-          title: Benachrichtigungen
           subtitle: Wähle aus, welche Benachrichtigungen du erhältst
-          back: Zurück
           ticket_notifications: Ticket-Benachrichtigungen
           ticket_notifications_desc: Wähle aus, worüber du bei beobachteten Tickets informiert wirst
           on_status_change: Bei Statusänderung
@@ -183,9 +180,7 @@ de:
           code_index_desc: Benachrichtigungen, wenn der Code-Index eines Repositories fertig ist oder fehlschlägt
           save: Speichern
         ticket_exceptions:
-          title: Ticket Ausnahmen
           subtitle: Tickets mit individuellen Benachrichtigungseinstellungen, die von deinen Standard-Einstellungen abweichen
-          back: Zurück
           muted: stummgeschaltet
           manually_followed: manuell gefolgt
           badge_muted: Stumm

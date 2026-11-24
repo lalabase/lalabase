@@ -8,7 +8,9 @@ require 'rails_helper'
 #       in the page's own words (the words of the desk), the organisation once,
 #       and the page head keeps its tools. Inside a project the fixed head keeps
 #       the project and the area tabs; an area's head drops its title and the
-#       project, a page below an area keeps its own title.
+#       project, a page below an area keeps its own title. A page below a
+#       section outside a project (F45: the inbox's settings, a saved view's form)
+#       has the section's head and names itself in the crumb line, which stays.
 #       MobileNavigationHelper#mobile_head_echo decides, components/mobile_app.css hides.
 # Why:  until 2026-11-24 the page head stood under the fixed head on nearly
 #       every page: "Zeiten" and the organisation twice, "Start" over
@@ -131,5 +133,31 @@ RSpec.describe 'The page head on a phone', type: :system do
     expect(page).to have_css('main h1', exact_text: title)
     expect(visible_headings).to eq(['Leuchtturm', title])
     expect(page_head_line('Leuchtturm')).to be_empty
+  end
+
+  # Until 2026-11-24 these pages wrote a heading of their own under the fixed
+  # head ("Inbox" over "BENACHRICHTIGUNGEN") and led back with an arrow button.
+  it 'says the section of a page below it up there, and the page in the crumb line' do
+    folder = ActsAsTenant.with_tenant(organisation) { create(:smart_folder, organisation: organisation, user: admin) }
+    inbox = I18n.t('views.organisations.notifications.index.title')
+    views = I18n.t('smart_folders.title')
+
+    {
+      preferences_organisation_notifications_path(organisation) => [inbox, inbox, I18n.t('views.organisations.notifications.index.settings')],
+      ticket_exceptions_organisation_notifications_path(organisation) => [inbox, inbox, I18n.t('views.organisations.notifications.index.ticket_exceptions')],
+      stats_organisation_notifications_path(organisation) => [inbox, inbox, I18n.t('views.organisations.notifications.stats.title')],
+      edit_organisation_smart_folder_path(organisation, folder) => [views, folder.name, nil]
+    }.each do |path, (section, back_label, own_name)|
+      visit path
+      expect(page).to have_css('.mobile-heading h1', exact_text: section)
+
+      expect(visible_headings).to eq([section]), "#{path}: #{visible_headings.inspect}"
+      expect(fixed_head_lines).to eq([section, 'Beispiel GmbH']), path
+      within('main [data-section-crumb]') do
+        expect(page).to have_link(back_label)
+        expect(page).to have_css('[aria-current="page"]', exact_text: own_name) if own_name
+        expect(page).to have_css('[aria-current="page"]', text: /\S/)
+      end
+    end
   end
 end

@@ -61,7 +61,7 @@ module Inbox
 
     # The rows of `scope` the cleaned filters leave: project, type, search, period.
     def self.narrow(scope, filters, time_zone:)
-      scope.apply_filters(filters).created_in_period(filters['period'], time_zone: time_zone)
+      scope.apply_filters(filters).active_in_period(filters['period'], time_zone: time_zone)
     end
 
     # How many notifications the list bundles into the row of this notification's

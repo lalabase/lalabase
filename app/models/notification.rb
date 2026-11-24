@@ -121,7 +121,11 @@ class Notification < ApplicationRecord
   scope :unread, -> { where(state: %i[queued sent delivered]) }
   scope :read, -> { state_read }
   scope :inbox, -> { where.not(state: :archived) }
-  scope :recent, -> { order(created_at: :desc) }
+  # Every list of notifications in the app orders by a row's latest event, the order
+  # the token inbox has (Notifications::InboxQuery#relation): a row that gets a later
+  # event (GroupKeyBuilder folds it in) moves up, its created_at does not. The id
+  # only makes rows with the same moment stable across pages.
+  scope :recent, -> { order(last_event_at: :desc, id: :desc) }
   scope :for_user, ->(user) { where(recipient: user) }
   scope :high_priority, -> { where(priority: %i[high critical]) }
   scope :today, -> { where(created_at: Date.current.all_day) }
@@ -320,15 +324,16 @@ class Notification < ApplicationRecord
 
   # The inbox's period filter: the time area's presets (TimeSessions::ListPeriod,
   # one vocabulary for "diese Woche" and its bounds), a notification counted
-  # by the day it arrived in the reader's zone. "all" and an unknown key are
-  # no window. Guard: spec/requests/inbox_period_filter_spec.rb.
-  scope :created_in_period, lambda { |key, time_zone: Time.zone|
+  # by the day of its latest event (last_event_at) in the reader's zone, the
+  # moment `recent` orders by. "all" and an unknown key are no window.
+  # Guards: spec/requests/inbox_period_filter_spec.rb, spec/models/notification_scopes_spec.rb.
+  scope :active_in_period, lambda { |key, time_zone: Time.zone|
     zone = time_zone || Time.zone
     period = TimeSessions::ListPeriod.normalize_for_table(key)
     from, to = TimeSessions::ListPeriod.bounds_for(period, today: Time.current.in_time_zone(zone).to_date)
     next all unless from && to
 
-    where(created_at: zone.local(from.year, from.month, from.day)..zone.local(to.year, to.month, to.day).end_of_day)
+    where(last_event_at: zone.local(from.year, from.month, from.day)..zone.local(to.year, to.month, to.day).end_of_day)
   }
 
   # Date grouping scope with database-level grouping

@@ -20,11 +20,15 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
     ActsAsTenant.with_tenant(org) { create(:project, organisation: org, **attributes) }
   end
 
-  def ticket_row(org, project, title, recipient: user, state: :delivered, created_at: Time.current)
+  # last_event_at: the row's latest event, which moves when a later event folds into
+  # the row; created_at does not. The factory lets both follow created_at.
+  def ticket_row(org, project, title, recipient: user, state: :delivered, created_at: Time.current,
+                 last_event_at: created_at)
     ActsAsTenant.with_tenant(org) do
       ticket = create(:ticket, project: project, title: title)
       create(:notification, recipient: recipient, organisation: org, project: project, notifiable: ticket,
                             event_type: 'ticket_commented', channel: 'in_app', state: state, created_at: created_at,
+                            first_event_at: created_at, last_event_at: last_event_at,
                             read_at: %i[read archived].include?(state) ? 1.hour.ago : nil,
                             archived_at: state == :archived ? 1.hour.ago : nil)
     end
@@ -69,6 +73,17 @@ RSpec.describe 'Inbox above the organisations', :ci_guard, :real_transactions, t
   describe 'the list' do
     it 'shows the rows of every organisation in one list, newest first' do
       expect(listed_ids(page)).to eq([south_row.id, north_row.id])
+    end
+
+    # The order of the token inbox: a row created days ago whose latest event came a
+    # moment ago is the most recent row, in both views of the page.
+    it 'puts the row with the latest event first, also when it was created first' do
+      old_but_active = Prosopite.pause do
+        ticket_row(north, north_project, 'Lange offen', created_at: 3.days.ago, last_event_at: 5.minutes.ago)
+      end
+
+      expect(listed_ids(page)).to eq([old_but_active.id, south_row.id, north_row.id])
+      expect(listed_ids(page(view_mode: 'chronological'))).to eq([old_but_active.id, south_row.id, north_row.id])
     end
 
     it 'names the organisation on every row' do

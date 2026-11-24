@@ -269,14 +269,30 @@ RSpec.describe NeoNotificationComponent, type: :component do
     end
 
     context 'when helper raises error' do
+      # The fallback counts days since the latest event too: created five days ago,
+      # latest event two days ago.
       before do
         allow(component).to receive(:helpers).and_raise(StandardError.new('helper error'))
-        notification.update!(created_at: 2.days.ago)
+        notification.update!(created_at: 5.days.ago, first_event_at: 5.days.ago, last_event_at: 2.days.ago)
       end
 
-      it 'falls back to simple calculation' do
+      it 'falls back to a day count of the latest event' do
         expect(component.send(:time_ago_text)).to eq('2d ago')
       end
+    end
+
+    # A row whose later event folded into it keeps its created_at; the lists order it by
+    # that latest event (Notification.recent), so the row prints the same moment.
+    # Rendered in real time: no freeze_time, times relative to Time.current.
+    it 'prints the time of the latest event, not of the creation' do
+      # Lift the argument-pinned I18n stub of the outer before block, so the
+      # real time helper answers instead of the fallback.
+      allow(I18n).to receive(:t).and_call_original
+      notification.update!(created_at: 3.days.ago, first_event_at: 3.days.ago, last_event_at: 5.minutes.ago)
+
+      render_inline(described_class.new(notification: notification))
+
+      expect(page.find('.notification-time').text).to include('5 Minuten')
     end
   end
 

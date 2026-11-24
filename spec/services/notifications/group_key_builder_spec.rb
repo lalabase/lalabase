@@ -291,6 +291,48 @@ RSpec.describe Notifications::GroupKeyBuilder do
         expect(existing_notification.reload.payload['message']).to eq('Updated comment')
       end
 
+      # Two activities of the same five minutes can reach the fanout out of order (a
+      # retried outbox event). The later one made the row; the earlier one folds in.
+      # The row's span of events only ever widens: the lists order and print by
+      # last_event_at (Notification.recent), and Posts::MarkRead matches a comment
+      # by first_event_at..last_event_at.
+      context 'when an earlier activity of the same bucket folds in after a later one' do
+        include ActiveSupport::Testing::TimeHelpers
+
+        let(:bucket_start) { Time.zone.local(2026, 11, 24, 14, 0, 0) }
+        let(:earlier) do
+          create(:activity, actor: actor, organisation: organisation, trackable: ticket,
+                            action: 'ticket_commented', key: 'ticket.ticket_commented',
+                            created_at: bucket_start + 30.seconds)
+        end
+        let!(:row_of_later) do
+          create(:notification,
+                 recipient: recipient, organisation: organisation, notifiable: ticket,
+                 group_key: described_class.new(earlier, recipient).build, group_count: 1,
+                 event_type: 'ticket_commented', state: 'queued', priority: 'normal', actor: actor,
+                 payload: { 'action' => 'commented', 'actor_ids' => [] },
+                 created_at: bucket_start + 3.minutes,
+                 first_event_at: bucket_start + 3.minutes, last_event_at: bucket_start + 3.minutes)
+        end
+
+        before { travel_to(bucket_start + 4.minutes) }
+        after { travel_back }
+
+        it 'folds into the row and keeps its latest event' do
+          described_class.new(earlier, recipient).find_or_create_group(notification_params)
+
+          row_of_later.reload
+          expect(row_of_later.group_count).to eq(2)
+          expect(row_of_later.last_event_at).to eq(bucket_start + 3.minutes)
+        end
+
+        it 'moves its first event back to the earlier activity' do
+          described_class.new(earlier, recipient).find_or_create_group(notification_params)
+
+          expect(row_of_later.reload.first_event_at).to eq(bucket_start + 30.seconds)
+        end
+      end
+
       context 'when existing notification was read' do
         let!(:existing_notification) do
           create(:notification,

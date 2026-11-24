@@ -142,7 +142,11 @@ module Notifications
         return create_new_group(new_params) unless can_add_to_group?(notification) && complete_post_group?(notification, new_params)
 
         notification.group_count += 1
-        notification.last_event_at = @activity.created_at
+        # The span only widens: activities of one bucket can arrive out of order (a
+        # retried outbox event). The lists order and print by last_event_at, and
+        # Posts::MarkRead matches a comment by first_event_at..last_event_at.
+        notification.first_event_at = [notification.first_event_at, @activity.created_at].compact.min
+        notification.last_event_at = [notification.last_event_at, @activity.created_at].compact.max
         merge_actors(notification, new_params[:actor_id] || new_params[:actor]&.id)
         merge_payload(notification, new_params[:payload])
         notification.state = :queued if notification.state_read?

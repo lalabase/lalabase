@@ -35,8 +35,19 @@ RSpec.describe 'Ticket writing surface', type: :system do
     login_as(user, scope: :user)
   end
 
+  # A click right after a visit can come before the page's scripts run. A link is then a
+  # plain visit of the browser, not one into the frame, and a row's click goes nowhere:
+  # "keeps showing the new ticket" failed two runs in four on an unchanged main
+  # (spec/support/stimulus_helpers.rb).
+  # A controller of the body connects after Turbo has started (application.js imports
+  # Turbo first).
+  def visit_when_ready(path)
+    visit path
+    wait_for_stimulus('body', 'turbo-cache')
+  end
+
   def open_surface
-    visit organisation_project_tickets_path(organisation, project)
+    visit_when_ready organisation_project_tickets_path(organisation, project)
     find('a[href*="/tickets/new"][data-turbo-frame="writing_surface"]', match: :first).click
     expect(page).to have_css('turbo-frame#writing_surface .writing-surface', wait: 10)
   end
@@ -81,7 +92,9 @@ RSpec.describe 'Ticket writing surface', type: :system do
       create(:ticket, project: project, organisation: organisation, creator: user, title: 'Altes Ticket', content: '<div>x</div>')
     end
 
-    visit organisation_project_tickets_path(organisation, project)
+    visit_when_ready organisation_project_tickets_path(organisation, project)
+    # The row's own controller, which may connect after the body's.
+    wait_for_stimulus(%(tr[data-ticket-id="#{old_ticket.id}"]), 'list-row')
     find(%(tr[data-ticket-id="#{old_ticket.id}"])).click
     expect(page).to have_css('#ticket_display_frame', text: 'Altes Ticket', wait: 10)
 
@@ -105,7 +118,7 @@ RSpec.describe 'Ticket writing surface', type: :system do
       create(:ticket, project: project, organisation: organisation, creator: user, title: 'Alter Titel', content: '<div>x</div>')
     end
 
-    visit organisation_project_ticket_path(organisation, project, ticket)
+    visit_when_ready organisation_project_ticket_path(organisation, project, ticket)
     find('a[href*="/edit"][data-turbo-frame="writing_surface"]', match: :first).click
     expect(page).to have_css('turbo-frame#writing_surface .writing-surface', wait: 10)
     expect(find('.writing-surface input[name="ticket[title]"]').value).to eq('Alter Titel')

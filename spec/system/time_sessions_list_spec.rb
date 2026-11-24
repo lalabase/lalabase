@@ -36,8 +36,16 @@ RSpec.describe 'Zeiten-Index Ticket-Gruppen', type: :system do
     sign_in user
   end
 
+  # The chevron answers only once ticket-group has connected. On a cold browser the
+  # click right after the visit came first, and the sessions stayed shut: alone, the
+  # first example failed every run (spec/support/stimulus_helpers.rb).
+  def visit_list(path)
+    visit path
+    wait_for_stimulus('[data-controller="ticket-group"]', 'ticket-group')
+  end
+
   it 'klappt die Sessions über den Chevron-Button auf und wieder zu' do
-    visit organisation_time_sessions_path(organisation, project_id_filter: project.id, date_range: 'all')
+    visit_list organisation_time_sessions_path(organisation, project_id_filter: project.id, date_range: 'all')
 
     group = find('[data-controller="ticket-group"]', match: :first)
     sessions = group.find('[data-ticket-group-target="sessions"]', visible: :all)
@@ -58,20 +66,20 @@ RSpec.describe 'Zeiten-Index Ticket-Gruppen', type: :system do
   # underneath them.
   it 'laesst eine aufgeklappte Zeile einen Seitenwechsel ueberleben' do
     path = organisation_time_sessions_path(organisation, project_id_filter: project.id, date_range: 'all')
-    visit path
+    visit_list path
 
     group = find('[data-controller="ticket-group"]', match: :first)
     group.find('button[aria-label]', visible: :all).click
     expect(group).to have_css('[data-ticket-group-target="sessions"]:not(.hidden)', visible: :all, wait: 3)
 
-    visit path
+    visit_list path
 
     expect(page).to have_css('[data-ticket-group-target="sessions"]:not(.hidden)', visible: :all, wait: 3)
   end
 
   it 'laesst eine wieder zugeklappte Zeile zugeklappt' do
     path = organisation_time_sessions_path(organisation, project_id_filter: project.id, date_range: 'all')
-    visit path
+    visit_list path
 
     button = find('[data-controller="ticket-group"]', match: :first).find('button[aria-label]', visible: :all)
     button.click
@@ -79,7 +87,7 @@ RSpec.describe 'Zeiten-Index Ticket-Gruppen', type: :system do
     button.click
     expect(page).to have_css('[data-ticket-group-target="sessions"].hidden', visible: :all, wait: 3)
 
-    visit path
+    visit_list path
 
     expect(page).to have_css('[data-ticket-group-target="sessions"].hidden', visible: :all, wait: 3)
   end

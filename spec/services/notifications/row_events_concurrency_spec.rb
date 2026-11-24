@@ -6,7 +6,7 @@ require 'rails_helper'
 # A fold waits for a connection that holds the row and decides on what that
 # connection committed, not on the object its caller loaded before. And while
 # it asks the caller's rule, it holds the row, so a reader waits for the fold.
-RSpec.describe Notifications::RowEvents, 'under a second connection' do
+RSpec.describe Notifications::RowEvents, 'under a second connection', :ci_guard do
   self.use_transactional_tests = false
 
   before do

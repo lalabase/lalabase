@@ -6,7 +6,7 @@ require 'rails_helper'
 # fold writes, what a refusal leaves alone, and that the decision is taken on
 # the row as the database holds it under the lock. The lock itself, against a
 # second connection: row_events_concurrency_spec.rb.
-RSpec.describe Notifications::RowEvents do
+RSpec.describe Notifications::RowEvents, :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:project) { create(:project, organisation: organisation) }
   let(:actor) { create(:user) }
@@ -108,6 +108,20 @@ RSpec.describe Notifications::RowEvents do
       values = row_values(row)
       expect(values['actor_id']).to eq(other_actor.id)
       expect(values['payload']['actor_ids']).to eq([actor.id, other_actor.id])
+    end
+
+    # The builder merged the actors also when the event brought none: the row's
+    # actor still lands in actor_ids, and actor_id stays.
+    it 'keeps the row\'s actor and lists it in actor_ids when the event brings none' do
+      row = create_row(payload: { 'action' => 'commented', 'actor_ids' => [] })
+      expect(row_values(row)).to include('actor_id' => actor.id,
+                                         'payload' => { 'action' => 'commented', 'actor_ids' => [] })
+
+      described_class.fold!(notification: row, at: later_time)
+
+      values = row_values(row)
+      expect(values['actor_id']).to eq(actor.id)
+      expect(values['payload']['actor_ids']).to eq([actor.id])
     end
 
     it 'merges the payload' do

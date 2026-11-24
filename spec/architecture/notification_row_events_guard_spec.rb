@@ -26,14 +26,18 @@ require 'prism'
 #     on_duplicate:, touch:);
 #   * the SQL text of such a call (update_all with a string, an interpolated
 #     string, a heredoc, Arel.sql or the first element of an array).
+#   A literal is read through a call without arguments (`<<~SQL.squish`,
+#   `'...'.freeze`, `{ ... }.compact`, `%i[...].index_with { }`), through a
+#   condition (`cond ? { ... } : {}`), `||` and `&&`, `begin` and a splat.
 #   A new row is not counted: new, build, create, create!, insert and insert_all
 #   with these keys, merged hashes included, are not WRITE_METHODS. Reading a
 #   field (order, where, pluck, maximum) is not a write either.
-# A tripwire, not a proof. Not seen: a write through send or public_send; a
+# A tripwire, not a proof. Not seen: a write through send, public_send or __send__; a
 #   field name held in a variable or a constant (`update!(FIELD => t)`); a hash
 #   built elsewhere and handed over in a variable (`update!(attrs)`,
-#   `upsert_all(rows)`); SQL text built by a method (sanitize_sql_*, a string in a
-#   constant); raw SQL through the connection (connection.execute, exec_update, an
+#   `upsert_all(rows)`), or picked by a method with arguments (`attrs.slice(:group_count)`);
+#   SQL text built by a method with arguments (sanitize_sql_*, `format`, `%`, `+`) or held in
+#   a constant; raw SQL through the connection (connection.execute, exec_update, an
 #   Arel::UpdateManager); a counter cache declared on an association
 #   (`counter_cache: :group_count`); templates, specs and factories.
 #   Counted although harmless: Hash#update and an index write on a plain hash read
@@ -144,9 +148,15 @@ module NotificationRowEventsGuard
 
   # The fields a node names as a column: a symbol, a string (SQL text included), the
   # keys of a hash and the values of its WRITING_OPTIONS, the elements of an array,
-  # a merged hash, Arel.sql. Never the value of another key, never another call.
+  # a merged hash, Arel.sql, a literal passed through a call without arguments, both
+  # branches of a condition, both sides of || and &&, a begin block and a splat.
+  # Never the value of another key, never the arguments of another call.
   def self.names_in(node)
     case node
+    when Prism::IfNode, Prism::UnlessNode then node.compact_child_nodes.drop(1).flat_map { |child| names_in(child) }
+    when Prism::ElseNode, Prism::BeginNode then node.compact_child_nodes.flat_map { |child| names_in(child) }
+    when Prism::OrNode, Prism::AndNode then names_in(node.left) + names_in(node.right)
+    when Prism::SplatNode then names_in(node.expression)
     when Prism::SymbolNode, Prism::StringNode then node.unescaped.scan(FIELD)
     when Prism::InterpolatedStringNode, Prism::InterpolatedSymbolNode then node.parts.flat_map { |part| names_in(part) }
     when Prism::HashNode, Prism::KeywordHashNode then node.elements.flat_map { |element| names_in_element(element) }
@@ -172,6 +182,8 @@ module NotificationRowEventsGuard
       names_in(node.receiver) + arguments.flat_map { |argument| names_in(argument) }
     elsif node.name == :sql && node.receiver&.slice&.delete_prefix('::') == 'Arel'
       names_in(arguments.first)
+    elsif node.receiver && arguments.empty?
+      names_in(node.receiver)
     else
       []
     end
@@ -302,6 +314,15 @@ RSpec.describe 'Notification event fields are folded only by Notifications::RowE
         "scope.update_all(['first_event_at = ?', stamp])",
         "scope.update_all(Arel.sql('last_event_at = now()'))",
         "scope.update_all(<<~SQL)\n  group_count = 0\nSQL\n",
+        "scope.update_all(<<~SQL.squish)\n  group_count = group_count + 1\nSQL\n",
+        "scope.update_all('last_event_at = now()'.freeze)",
+        'row.update!({ last_event_at: stamp }.compact)',
+        'row.update!({ group_count: 1 }.with_indifferent_access)',
+        'row.update!(%i[last_event_at].index_with { stamp })',
+        'row.update!(cond ? { first_event_at: stamp } : {})',
+        'row.update!(attrs || { group_count: 1 })',
+        "row.update!(begin\n  { last_event_at: stamp }\nend)\n",
+        "scope.update_all(*['first_event_at = ?', stamp])",
         "scope\n  .where(state: :read)\n  .update_all(\n    last_event_at: stamp\n  )\n"
       ]
 
@@ -348,6 +369,10 @@ RSpec.describe 'Notification event fields are folded only by Notifications::RowE
         'row.update!(state: :read, read_at: stamp)',
         "row.update!(note: 'group_count')",
         "scope.update_all(score: Arel.sql('group_count * 2'))",
+        "scope.update_all('state = 1'.freeze)",
+        'row.update!(cond ? { state: :read } : {})',
+        'row.update!(summary_for(:group_count))',
+        'row.update!(label: summary.group_count)',
         'row.update!(previous_last_event_at: stamp)',
         "row.last_event_at_label = 'x'",
         'Notification.upsert_all(rows, unique_by: :id)',

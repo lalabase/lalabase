@@ -320,9 +320,9 @@ en:
     object_types:
       Meeting: Meetings
     new_title_by_type:
-      Meeting: New meeting view
+      Meeting: "New Meeting Filter"
     edit_title_by_type:
-      Meeting: Edit meeting view
+      Meeting: "Edit Meeting Filter"
     field_operators:
       participant:
         equals: has participant

@@ -1194,7 +1194,7 @@ de:
         one: Filter · 1 Bedingung
         other: "Filter · %{count} Bedingungen"
       save_changes: Änderung speichern
-      save_as_new_view: "Als neuer Filter"
+      save_as_new_view: "Als neuen Filter"
       save_as_view: "Als Filter sichern"
       discard: Verwerfen
       reset: Zurücksetzen

@@ -398,7 +398,7 @@ de:
           rules_hint_1: Definieren Sie eine oder mehrere Regelgruppen.
           rules_hint_2: Regeln innerhalb einer Gruppe werden mit UND verknüpft.
           rules_hint_3: Gruppen untereinander werden mit ODER verknüpft.
-          columns_chosen_in_list: Welche Spalten diese Ansicht zeigt, wählst du in der Liste über das Reglersymbol am Ende der Kopfzeile.
+          columns_chosen_in_list: Welche Spalten dieser Filter zeigt, wählst du in der Liste über das Reglersymbol am Ende der Kopfzeile.
         edit:
           title: "Filter bearbeiten"
         new:

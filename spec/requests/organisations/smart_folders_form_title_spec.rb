@@ -67,4 +67,31 @@ RSpec.describe 'Organisations::SmartFolders Formular-Titel', type: :request do
       expect(response.body).not_to include('Neuer Ticket-Filter')
     end
   end
+
+  # A saved filter is called a filter for every type (2026-11-24). The meeting
+  # titles still said "Meeting-Ansicht" after the rename.
+  describe 'the titles per type' do
+    it 'call every type a filter, in both languages' do
+      titles = %i[de en].flat_map do |locale|
+        %w[new edit].flat_map do |mode|
+          SmartFolder::SUPPORTED_OBJECT_TYPES.keys.filter_map do |type|
+            I18n.t("smart_folders.#{mode}_title_by_type.#{type}", locale: locale, default: nil)
+          end
+        end
+      end
+
+      expect(titles.size).to be >= 20
+      expect(titles).to all(match(/Filter/))
+      expect(titles).to all(satisfy { |title| !title.match?(/Ansicht|\bview\b/i) })
+    end
+  end
+
+  it 'calls the saved filter a filter in the column hint of the form' do
+    %i[de en].each do |locale|
+      hint = I18n.t('views.organisations.smart_folders.form.columns_chosen_in_list', locale: locale)
+
+      expect(hint).to match(/Filter/i)
+      expect(hint).not_to match(/Ansicht|\bview\b/i)
+    end
+  end
 end

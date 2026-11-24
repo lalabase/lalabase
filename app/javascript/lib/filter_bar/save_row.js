@@ -91,7 +91,7 @@ export function buildSaveRowHtml({ layer, sentence, labels = {}, canSave = false
   if (layer === 'saved') {
     if (saveState === 'error') actions.push(action(labels.retry || 'Erneut versuchen', 'saveChanges'))
     else if (canSave) actions.push(action(labels.save_changes || 'Änderung speichern', 'saveChanges'))
-    if (canCreate) actions.push(action(labels.save_as_new_view || 'Als neuer Filter', 'openSaveModal'))
+    if (canCreate) actions.push(action(labels.save_as_new_view || 'Als neuen Filter', 'openSaveModal'))
     actions.push(action(labels.discard || 'Verwerfen', 'discardChanges', DISCARD))
   } else {
     if (canCreate) actions.push(action(labels.save_as_view || 'Als Filter sichern', 'openSaveModal'))

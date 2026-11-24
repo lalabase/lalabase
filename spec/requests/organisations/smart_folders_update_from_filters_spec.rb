@@ -67,7 +67,7 @@ RSpec.describe 'Organisations::SmartFolders#update_from_filters', type: :request
 
   # S7: the type condition is the folder's target, which is immutable. The
   # sanitizer would slice it away and the bar would record it as saved; the
-  # endpoint refuses instead, and the bar offers "Als neuer Filter" for that.
+  # endpoint refuses instead, and the bar offers "Als neuen Filter" for that.
   it 'refuses a set that carries a type condition and leaves the rules as they are' do
     folder = folder_with_tag_rule(project: project)
 

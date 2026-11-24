@@ -385,7 +385,7 @@ en:
           rules_hint_1: Define one or more rule groups.
           rules_hint_2: Rules within a group are combined with AND.
           rules_hint_3: Groups are combined with OR.
-          columns_chosen_in_list: Which columns this view shows is chosen at the list, with the sliders icon at the end of the header row.
+          columns_chosen_in_list: Which columns this filter shows is chosen at the list, with the sliders icon at the end of the header row.
         edit:
           title: "Edit filter"
         new:

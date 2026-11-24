@@ -321,9 +321,9 @@ de:
     object_types:
       Meeting: Meetings
     new_title_by_type:
-      Meeting: Neue Meeting-Ansicht
+      Meeting: "Neuer Meeting-Filter"
     edit_title_by_type:
-      Meeting: Meeting-Ansicht bearbeiten
+      Meeting: "Meeting-Filter bearbeiten"
     field_operators:
       participant:
         equals: hat Teilnehmer

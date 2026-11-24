@@ -1,5 +1,5 @@
 <div class="mobile-destination width-capped">
-  <h1 class="desktop-mobile-title"><%= t('mobile.more') %></h1>
+  <%= render NeoTitleBoxComponent.new(title: t('mobile.more')) %>
   <div class="mobile-person">
     <%= render Neo::Users::AvatarComponent.new(user: current_user) %>
     <div><strong><%= viewer_display_name(current_user) %></strong><p><%= current_organisation.name %></p></div>

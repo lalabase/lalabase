@@ -439,9 +439,9 @@
      head 20 px at the top) until 2026-11-10; guard:
      spec/system/page_title_edge_spec.rb. */
   .people-head { @apply flex items-center gap-4; }
-  /* The title box takes the width; the phone's square "+" keeps its size. */
-  .people-head > :not(.people-head__action) { @apply min-w-0 flex-1; }
-  .people-head__action { margin-inline-start: auto; }
+  /* The title box takes the width. On a phone it keeps only its tools
+     (NeoTitleBoxComponent::PHONE_ECHO_CLASS), and they stay at the right. */
+  .people-head > * { @apply min-w-0 flex-1; }
   .people-tools { @apply flex flex-wrap items-center gap-2 pb-3 pt-4; }
   /* The bar of the ticket list (NeoFilterBarComponent) on a list without the
      filter bar, the inbox, Personen and Glossar (user, 2026-11-10/11): the
@@ -812,9 +812,6 @@
     .inbox-page .layout > .column.list { overflow: visible; opacity: 1 !important; transform: none !important; pointer-events: auto !important; }
     .inbox-page .layout > .column.content,
     .inbox-page .layout > .lane-split { display: none !important; }
-    /* The shell's head already names the page and the organisation. */
-    .inbox-page .people-head :is(h1, p) { display: none; }
-    .inbox-page .people-head { @apply pt-0; }
   }
 }
 

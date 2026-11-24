@@ -87,7 +87,7 @@
       the correct resting place. %>
   <% assistant_panel_full = assistant_panel_open && assistant_panel_state.full? %>
   <% assistant_panel_offset = assistant_panel_open ? assistant_panel_state.content_offset : nil %>
-  <body x-data="{ sidebar: false }" class="<%= 'mobile-app' if user_signed_in? && @current_organisation.present? %> font-sans text-base font-normal text-slate-700 bg-cream-100<%= ' assistant-panel-open' if assistant_panel_open %><%= ' assistant-panel-full' if assistant_panel_full %>" style="<%= "--assistant-panel-offset: #{assistant_panel_offset}px" if assistant_panel_offset %>" data-controller="undefined-url-guard turbo-cache search-overlay personal-tasks-drawer contextual-help-drawer" data-turbo-cache-target="body">
+  <body x-data="{ sidebar: false }" class="<%= 'mobile-app' if mobile_shell? %> font-sans text-base font-normal text-slate-700 bg-cream-100<%= ' assistant-panel-open' if assistant_panel_open %><%= ' assistant-panel-full' if assistant_panel_full %>" style="<%= "--assistant-panel-offset: #{assistant_panel_offset}px" if assistant_panel_offset %>" data-controller="undefined-url-guard turbo-cache search-overlay personal-tasks-drawer contextual-help-drawer" data-turbo-cache-target="body">
 
     <%= render 'layouts/session_sync' if user_signed_in? %>
     <%= render 'layouts/session_timeout' if user_signed_in? %>
@@ -270,7 +270,7 @@
     </aside>
 
     <div class="mobile-app-screen">
-    <%= render 'layouts/mobile_header' if user_signed_in? && @current_organisation.present? %>
+    <%= render 'layouts/mobile_header' if mobile_shell? %>
     <!-- main -->
     <main class="content-compact relative lg:ms-64 transition-all duration-500 ease-in-out px-4 lg:px-6 py-4 bg-cream-100">
 
@@ -308,7 +308,7 @@
          <%= yield %>
       </div>
     </main>
-    <% if user_signed_in? && @current_organisation.present? %>
+    <% if mobile_shell? %>
       <%= render NeoMobileNavComponent.new(user: current_user, organisation: @current_organisation, current_project: current_project) %>
     <% end %>
     </div>

@@ -11,7 +11,8 @@ require 'rails_helper'
 #         - it is ordered alphabetically and capped at ORG_MENU_LIMIT (boundary n / n+1);
 #         - the switcher appears for ANY multi-org user, invite/management gate independently;
 #         - "Verwaltung" is its own sidebar entry, lit across ALL management tabs;
-#         - the org dashboard nav item now reads "Dashboard", never "Übersicht".
+#         - the org dashboard nav item reads "Übersicht", the page's own title, as on the
+#           phone (user, 2026-11-24; from the nav rebuild until then it read "Dashboard").
 #       The POST switch itself is covered by organisations_controller_spec (#set); here the menu is
 #       only the form that drives it.
 #
@@ -286,12 +287,12 @@ RSpec.describe 'Organisation switcher navigation', type: :request do
       expect(page_doc).to have_no_css("#{management_gear(org)}.bg-cream-200")
     end
 
-    it 'labels the org dashboard nav item "Dashboard", not "Übersicht"' do
+    it 'labels the org dashboard nav item "Übersicht", as the page names itself, not "Dashboard"' do
       get organisation_root_path(org)
 
       expect(page_doc).to have_css("a[href='#{organisation_root_path(org)}'] span",
-                                   text: 'Dashboard', exact_text: true)
-      expect(page_doc).to have_no_css("a[href='#{organisation_root_path(org)}'] span", text: 'Übersicht')
+                                   text: I18n.t('dashboard.briefing.global_overview_title'), exact_text: true)
+      expect(page_doc).to have_no_css("a[href='#{organisation_root_path(org)}'] span", text: 'Dashboard')
     end
   end
 end

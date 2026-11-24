@@ -33,26 +33,19 @@
                                                 glossary_import_link: true)) %>
   <% end %>
 <% end %>
+<%# On a phone the fixed head names the page and the title box keeps only
+    its tools (MobileNavigationHelper#mobile_head_echo): the "···", then the
+    "+", both 40 px there. %>
 <div class="people-head">
-  <% if mobile %>
-    <div class="people-head__action flex items-center gap-2">
-      <%= more_menu %>
-      <% if can_create %>
-        <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: :large, url: add_url,
+  <%= render NeoTitleBoxComponent.new(title: t('views.organisations.glossary.index.title'), variant: :organisation, margin_bottom: nil) do |box| %>
+    <% if can_create %>
+      <% box.with_title_action do %>
+        <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: mobile ? :large : :medium, url: add_url,
                                                          title: t('views.organisations.glossary.index.new_term'), data: add_data) %>
       <% end %>
-    </div>
-  <% else %>
-    <%= render NeoTitleBoxComponent.new(title: t('views.organisations.glossary.index.title'), variant: :organisation, margin_bottom: nil) do |box| %>
-      <% if can_create %>
-        <% box.with_title_action do %>
-          <%= render Neo::Buttons::IconButtonComponent.new(variant: :primary, icon: 'plus-lg', size: :medium, url: add_url,
-                                                           title: t('views.organisations.glossary.index.new_term'), data: add_data) %>
-        <% end %>
-      <% end %>
-      <% box.with_right_content do %>
-        <%= more_menu %>
-      <% end %>
+    <% end %>
+    <% box.with_right_content do %>
+      <%= more_menu %>
     <% end %>
   <% end %>
 </div>

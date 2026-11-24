@@ -108,4 +108,59 @@ RSpec.describe NeoTitleBoxComponent, type: :component do
       expect(page).to have_no_css('div.mb-6')
     end
   end
+
+  # On a phone the fixed head (layouts/_mobile_header) names the page, and
+  # the head marks each line it would only repeat (MobileNavigationHelper#mobile_head_echo);
+  # components/mobile_app.css hides the marked lines there. In a browser:
+  # spec/system/phone_page_head_spec.rb.
+  describe 'under the phone shell' do
+    let(:echo) { ".#{described_class::PHONE_ECHO_CLASS}" }
+    let(:organisation) { build_stubbed(:organisation, name: 'Nordlicht') }
+
+    before do
+      allow(vc_test_controller).to receive_messages(current_organisation: organisation, user_signed_in?: true,
+                                                    current_project: nil)
+    end
+
+    it 'marks the title line and the organisation line, never the tools' do
+      render_inline(described_class.new(title: 'Zeiten', badge: '3', variant: :organisation)) do |c|
+        c.with_title_action { '<a id="main-action" href="/new">+</a>'.html_safe }
+        c.with_right_content { '<button id="help">?</button>'.html_safe }
+      end
+
+      expect(page).to have_css("div#{echo} > h1", text: 'Zeiten')
+      expect(page).to have_css("div#{echo} > span", text: '3')
+      expect(page).to have_css("p#{echo}", text: 'Nordlicht')
+      expect(page).to have_css('#help')
+      expect(page).to have_css('#main-action')
+      expect(page).to have_no_css("#{echo} #help, #{echo} #main-action")
+    end
+
+    it 'marks the whole head when nothing is left in it, so it takes no room' do
+      render_inline(described_class.new(title: 'Projekte'))
+
+      expect(page.find('h1', text: 'Projekte').ancestor('div.mb-6')[:class].split).to include(described_class::PHONE_ECHO_CLASS)
+    end
+
+    it 'keeps the head itself when a tool is left' do
+      render_inline(described_class.new(title: 'Projekte')) { |c| c.with_right_content { '<button id="help">?</button>'.html_safe } }
+
+      expect(page.find('h1', text: 'Projekte').ancestor('div.mb-6')[:class].split).not_to include(described_class::PHONE_ECHO_CLASS)
+    end
+
+    it 'keeps what the fixed head does not show: a later head of the page names its own title' do
+      render_inline(described_class.new(title: 'Allgemein', variant: :organisation))
+      render_inline(described_class.new(title: 'Vorschau', variant: :organisation))
+
+      expect(page).to have_css('h1', text: 'Vorschau')
+      expect(page).to have_no_css("#{echo} > h1")
+      expect(page).to have_css("p#{echo}", text: 'Nordlicht')
+    end
+  end
+
+  it 'marks nothing outside the phone shell' do
+    render_inline(described_class.new(title: 'Zeiten', variant: :organisation))
+
+    expect(page).to have_no_css(".#{described_class::PHONE_ECHO_CLASS}")
+  end
 end

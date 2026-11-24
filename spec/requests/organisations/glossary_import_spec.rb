@@ -143,12 +143,18 @@ RSpec.describe 'Organisations::Glossary import', :ci_guard, type: :request do
 
       get organisation_glossary_terms_path(organisation, viewport: 'mobile')
 
-      action = page.at_css('.people-head__action')
-      expect(action.at_css('a[data-glossary-import-link]').ancestors('[data-dropdown-target="menu"]')).to be_present
-      add = action.at_css("a[title='#{I18n.t('views.organisations.glossary.index.new_term')}']")
+      # The phone draws the same title box; its title gives way to the fixed
+      # head there (spec/system/phone_page_head_spec.rb), its tools stay.
+      head = page.at_css('.people-head')
+      expect(head.at_css('a[data-glossary-import-link]').ancestors('[data-dropdown-target="menu"]')).to be_present
+      add_title = I18n.t('views.organisations.glossary.index.new_term')
+      menu_title = I18n.t('components.overflow_menu.label')
+      add = head.at_css("a[title='#{add_title}']")
       expect(add['class']).to include('h-10')
-      trigger = action.at_css("[title='#{I18n.t('components.overflow_menu.label')}']")
+      trigger = head.at_css("[title='#{menu_title}']")
       expect(trigger['class']).to include('h-10')
+      expect(head.css("[title='#{menu_title}'], a[title='#{add_title}']").map { |node| node['title'] })
+        .to eq([menu_title, add_title])
     end
   end
 

@@ -8,7 +8,7 @@ en:
       smart_folders: "Views"
       tags: "Tags"
       user_activities: "Activities"
-    start: "Home"
+    start: "Overview"
     inbox: "Inbox"
     projects: "Projects"
     times: "Time"

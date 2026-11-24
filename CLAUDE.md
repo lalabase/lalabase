@@ -61,8 +61,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   (not on a push to main, and a new push cancels the superseded run; by hand via
   `workflow_dispatch`, reasons in the workflow header):
   `guards` (curated specs plus `browser_database_cleanup_spec.rb`,
-  `mobile_ticket_navigation_spec.rb`,
-  `mobile_assistant_layout_spec.rb` and `mobile_shell_regressions_spec.rb`),
+  `mobile_ticket_navigation_spec.rb`, `mobile_assistant_layout_spec.rb`,
+  `mobile_shell_regressions_spec.rb` and `phone_page_head_spec.rb`),
   `javascript` (Node unit tests), `lala` (Python tests of `bin/lala`, `spec/python/`),
   `rubocop`, `brakeman` and `dependencies`.
   The Rails/browser job needs no `RAILS_MASTER_KEY` (Rails generates a local test secret); npm lifecycle scripts are disabled
@@ -502,6 +502,34 @@ liest man waagerecht Zeilen?** (Abschnitt „Breiten“ in `doc/belegungstabelle
   volle Breite.
 * Die Altlasten stehen im Guard auf einer Liste, die **nur schrumpfen** darf: eine umgestellte
   Seite senkt ihren Eintrag, ein zu hoher Eintrag schlägt ebenfalls an.
+
+### View convention: on a phone the page head never repeats the fixed head
+
+**Binding** (guard spec: `spec/system/phone_page_head_spec.rb`, in the mobile step of the
+`guards` job; the rule itself: `spec/helpers/mobile_navigation_helper_spec.rb` and
+`spec/components/neo_title_box_component_spec.rb`):
+
+Below 1024 px the phone shell's fixed head (`layouts/_mobile_header`) names the page: outside a
+project the page's title and the organisation, inside a project the project (it opens the
+switcher) and the area tabs. The page head (`NeoTitleBoxComponent`) hides every line the fixed
+head already shows and keeps its tools; with nothing left it takes no room.
+
+* **The words are the page's.** The first page head of a request leaves its title and second
+  line for the fixed head (`MobileNavigationHelper#mobile_head_echo`, read by
+  `#mobile_page_title` and `#mobile_page_line`); `PAGE_TITLE_KEYS` only names a page without a
+  page head. A management page therefore says its section up there, as on the desk; the open
+  tab or the crumb line names the page.
+* **A page head is `NeoTitleBoxComponent`**: directly, through `organisations/shared/_subnav`
+  (and `_settings_subnav`, `_times_subnav`) or through `NeoProjectLayoutHeaderComponent`. A page
+  with a hand-written `<h1>` as its head is not covered and shows its title twice on a phone.
+* One condition for the shell: `mobile_shell?` puts the body class `mobile-app`, the fixed head
+  and the bottom bar on a page together. The CSS rule (`components/mobile_app.css`) hangs on
+  `.mobile-app`, so it never hides a line where no fixed head stands.
+* ⚠️ Not a page head: the title of a record in a lane or on its own page on a phone (a ticket,
+  a note). It names the record, not the page, and stays.
+* Until 2026-11-24 the page head stood under the fixed head on nearly every page, often in other
+  words ("Start" over "Übersicht", "Verwaltung" over "Allgemein"), and five pages had each
+  dropped it in a way of their own.
 
 ### View-Konvention: die Seiten ohne Anmeldung teilen EIN Gerüst
 

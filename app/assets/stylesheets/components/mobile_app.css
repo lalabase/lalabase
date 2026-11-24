@@ -50,7 +50,10 @@
   .mobile-bottom-actions > :first-child { flex: 1; }
   .mobile-selection-head { display: flex; align-items: center; padding: 16px; gap: 12px; }
   .mobile-selection-head > strong { flex: 1; }
-  .desktop-mobile-title { display: none; }
+  /* A page head says nothing the fixed head above it already says: those
+     lines go, the tools stay (MobileNavigationHelper#mobile_head_echo,
+     NeoTitleBoxComponent). A head with nothing left takes no room at all. */
+  .mobile-app .mobile-head-echo { display: none; }
   .mobile-destination { padding: 12px 0 24px; }
   #assistant_panel { display: block; }
   #assistant_panel .assistant-panel { inset: auto 0 0; width: 100% !important; height: 85vh; height: 85dvh; border-radius: 20px 20px 0 0; border: 1px solid rgb(var(--cream-300)); padding-bottom: env(safe-area-inset-bottom); overscroll-behavior: contain; }

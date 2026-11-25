@@ -87,4 +87,15 @@ RSpec.describe 'The plain text mirror of a rich text body', :ci_guard, type: :mo
 
     it_behaves_like 'a carrier of the plain text mirror'
   end
+
+  describe ConversationPost do
+    let(:conversation) { create(:conversation, creator: author) }
+    let(:unrelated_change) { { origin: 'token' } }
+
+    def carrier_with(html)
+      create(:conversation_post, conversation: conversation, user: author, content: html)
+    end
+
+    it_behaves_like 'a carrier of the plain text mirror'
+  end
 end

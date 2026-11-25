@@ -210,6 +210,9 @@ jobs:
           spec/models/action_text/rich_text_embed_plain_text_spec.rb
           spec/models/action_text/rich_text_embed_validation_spec.rb
           spec/models/concerns/rich_text_body_spec.rb
+          spec/models/conversation_spec.rb
+          spec/models/conversation_participant_spec.rb
+          spec/models/conversation_post_spec.rb
           spec/models/admin/user_spec.rb
           spec/models/admin_twin_concern_parity_guard_spec.rb
           spec/models/assistant_panel_state_spec.rb

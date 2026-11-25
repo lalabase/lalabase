@@ -260,6 +260,29 @@ module UserDataExports
              attributes: %w[subscribable_type source created_at],
              scope: ->(user) { NotificationSubscription.where(user: user) }),
 
+      # Conversations: INVENTORY only, as for ticket comments. A person gets the
+      # dates of the messages they wrote and of their own participations, and
+      # nothing else: no title (it may be somebody else's words, and a person who
+      # no longer takes part would get the title of something they may not see
+      # any more), no text, no id of a conversation, no id of another person.
+      # Listed by user_id and NOT through Conversation.visible_to: what a person
+      # wrote stays theirs to ask for after they left a conversation. That is
+      # why this file stands in the allow list of
+      # spec/architecture/conversation_visibility_guard_spec.rb.
+      # System entries are left out (kind message only): they are written about
+      # a step in the conversation, not by the person as a message.
+      # Person references that are NOT exported, named here because the guard
+      # only checks the table: conversation_posts.subject_user_id and
+      # second_user_id (whom a system entry is about, a step between other
+      # members) and conversation_participants.added_by_id (who added somebody,
+      # authoring metadata on org content).
+      source(key: :conversation_posts, model: 'ConversationPost', tenant_scoped: true,
+             attributes: %w[created_at],
+             scope: ->(user) { ConversationPost.where(user_id: user.id, kind: 'message') }),
+      source(key: :conversation_participations, model: 'ConversationParticipant', tenant_scoped: true,
+             attributes: %w[created_at archived_at],
+             scope: ->(user) { ConversationParticipant.where(user_id: user.id) }),
+
       # Invitations — sent addresses are data the user provided themselves;
       # received ones matched by the CURRENT address (token NEVER exported):
       source(key: :invitations_sent, model: 'Invitation', tenant_scoped: true,
@@ -282,6 +305,10 @@ module UserDataExports
     # (doc/org_data_export_plan.md), not the personal one.
     EXCLUDED = {
       'activities' => 'Org audit trail (role model); actor is a bare reference, PII-minimised by design',
+      'conversations' => 'creator_id is authoring metadata on org content (role model); the messages a ' \
+                         'person wrote are exported as conversation_posts.json, their participations as ' \
+                         'conversation_participations.json. The title is not exported: it may be ' \
+                         "somebody else's words",
       'session_handoffs' => 'Login hand-off between hosts: digests only, valid 60 seconds, cleared within the hour',
       'notifications' => 'Transient delivery copies of org events; preferences + subscriptions ARE exported',
       'taggings' => 'Linkage metadata; the tags themselves are exported',

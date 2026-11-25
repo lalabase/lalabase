@@ -137,6 +137,16 @@ en:
               invalid_date: "(no. %{position}): not a valid date"
             user:
               not_an_active_member: "must be an active member of this organisation"
+        conversation_participant:
+          attributes:
+            user:
+              not_an_active_member: "must be an active member of this organisation"
+        conversation_post:
+          attributes:
+            content:
+              not_for_a_system_entry: "must be empty on a system entry"
+            system_event:
+              not_for_a_message: "must be empty on a message"
         beuser:
           last_active_admin: "The last active admin cannot be demoted, deactivated or deleted."
         seat_event:

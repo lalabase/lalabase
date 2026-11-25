@@ -260,6 +260,8 @@ guard stood before the first reader did.
      `app/policies/conversation_policy.rb`, comments left out.
   4. A Turbo broadcast in any file under `app/` that names one of the three models: a stream
      carries content to whoever listens. The one owner of a live signal comes with a later change.
+     ⚠️ It goes by the name of the method, so the application's own
+     `Notifications::BroadcastService#broadcast_update` counts in such a file as well.
   5. One of the three models under `app/services/{assistant,embeddings,chats,lalabase/tools}`,
      `app/controllers/admin` and `app/views/admin`: a conversation is not searched, not read by
      the assistant and not shown in the admin area.

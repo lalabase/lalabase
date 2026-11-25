@@ -400,7 +400,7 @@ module ConversationVisibilityGuard
   end
 end
 
-RSpec.describe 'Conversation reads go through Conversation.visible_to', type: :architecture do
+RSpec.describe 'Conversation reads go through Conversation.visible_to', :ci_guard, type: :architecture do
   # The shapes of the reads (refusals 1 and 2) in one sample
   def shapes(source, **options)
     ConversationVisibilityGuard.reads(source, **options).map(&:last)

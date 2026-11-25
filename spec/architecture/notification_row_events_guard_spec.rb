@@ -37,9 +37,10 @@ require 'prism'
 #   built elsewhere and handed over in a variable (`update!(attrs)`,
 #   `upsert_all(rows)`), or picked by a method with arguments (`attrs.slice(:group_count)`);
 #   SQL text built by a method with arguments (sanitize_sql_*, `format`, `%`, `+`) or held in
-#   a constant; raw SQL through the connection (connection.execute, exec_update, an
-#   Arel::UpdateManager); a counter cache declared on an association
-#   (`counter_cache: :group_count`); templates, specs and factories.
+#   a constant; code inside `#{...}` of an interpolated string (its literal parts are
+#   read); raw SQL through the connection (connection.execute, exec_update, an
+#   Arel::UpdateManager); an association option that names a field
+#   (`counter_cache: :group_count`, `touch: :last_event_at`); templates, specs and factories.
 #   Counted although harmless: Hash#update and an index write on a plain hash read
 #   the same as a write of a row, and a field set through its writer on a row that
 #   is still new (`Notification.new.tap { |n| n.group_count = 1 }`) reads the same
@@ -53,11 +54,12 @@ module NotificationRowEventsGuard
   FIELD = /\b(?:#{FIELDS.join('|')})\b/
   WRITERS = FIELDS.map { |field| :"#{field}=" }.freeze
 
-  # Each writes the columns it names, on a record or on a relation.
+  # Each writes the columns it names, on a record or on a relation. bulk_transition! is
+  # Notification's own bulk writer: it hands its keys to update_all.
   WRITE_METHODS = %i[
     update update! update_all update_columns update_column update_attribute update_attribute! assign_attributes
     attributes= write_attribute _write_attribute increment increment! decrement decrement! toggle toggle! touch
-    touch_all upsert upsert_all update_counters increment_counter decrement_counter
+    touch_all upsert upsert_all update_counters increment_counter decrement_counter bulk_transition!
   ].freeze
 
   # An option of a write method whose value names the columns it writes.
@@ -323,7 +325,8 @@ RSpec.describe 'Notification event fields are folded only by Notifications::RowE
         'row.update!(attrs || { group_count: 1 })',
         "row.update!(begin\n  { last_event_at: stamp }\nend)\n",
         "scope.update_all(*['first_event_at = ?', stamp])",
-        "scope\n  .where(state: :read)\n  .update_all(\n    last_event_at: stamp\n  )\n"
+        "scope\n  .where(state: :read)\n  .update_all(\n    last_event_at: stamp\n  )\n",
+        "scope.unread.bulk_transition!(state: 'queued', last_event_at: stamp)"
       ]
 
       aggregate_failures do
@@ -376,7 +379,8 @@ RSpec.describe 'Notification event fields are folded only by Notifications::RowE
         'row.update!(previous_last_event_at: stamp)',
         "row.last_event_at_label = 'x'",
         'Notification.upsert_all(rows, unique_by: :id)',
-        'row.touch'
+        'row.touch',
+        "scope.unread.bulk_transition!(state: 'read', read_at: stamp)"
       ]
 
       aggregate_failures do

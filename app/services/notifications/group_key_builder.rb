@@ -107,6 +107,10 @@ module Notifications
     def can_add_to_group?(notification)
       return false if notification.group_count >= MAX_GROUP_SIZE
       return false if notification.created_at < GROUP_TIME_WINDOW.ago
+      # Deliberate duplication of the first refusal in RowEvents.fold!, which runs
+      # before this rule; the line keeps the rule whole. If fold! gets a second
+      # caller, decide then whether fold! owns the row-state checks (this one and
+      # the email check below).
       return false if notification.state_read? || notification.state_archived?
       # Once an email has left the queue its content is immutable. Reusing a
       # sent row would append a comment that was never present in the delivered

@@ -22,6 +22,10 @@ module Notifications
       # reloads it and raises otherwise.
       def fold!(notification:, at:, actor_id: nil, payload: nil)
         notification.with_lock do
+          # Deliberate duplication of a check in GroupKeyBuilder#can_add_to_group?:
+          # here it holds for every caller. The caller's block brings the rest; for
+          # the builder that includes an email that left the queue. If fold! gets a
+          # second caller, decide then whether those checks move here.
           next false if notification.state_read? || notification.state_archived?
           next false if block_given? && !yield(notification)
 

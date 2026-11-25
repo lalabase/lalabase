@@ -171,12 +171,12 @@ module Notifications
     end
 
     # Ordered by ACTIVITY, the same column the `since` cursor cuts on: a grouped
-    # row (GroupKeyBuilder#update_existing_group) keeps its created_at, moves
-    # last_event_at and turns unread again, so on created_at a polling client
-    # would never see the second to tenth comment on a ticket, and a client that
-    # advances `since` to the newest row of a page would skip rows further down
-    # whose activity is newer. The id breaks ties, so rows of one fanout pass
-    # cannot straddle a page boundary twice.
+    # row (GroupKeyBuilder, through RowEvents.fold!) keeps its created_at and
+    # moves last_event_at forward, so on created_at a polling client would never
+    # see the second to tenth comment on a ticket, and a client that advances
+    # `since` to the newest row of a page would skip rows further down whose
+    # activity is newer. The id breaks ties, so rows of one fanout pass cannot
+    # straddle a page boundary twice.
     def relation
       rel = base
       rel = rel.where('notifications.last_event_at > ?', @since) if @since

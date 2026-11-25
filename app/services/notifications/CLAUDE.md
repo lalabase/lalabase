@@ -9,7 +9,13 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   müssen IMMER beide Pfade prüfen.
 * `score_calculator.rb` — Prioritäts-Score (nur Non-Ticket-Pfad)
 * `suppressor.rb` — unterdrückt Duplikate/Selbst-Benachrichtigung
-* `group_key_builder.rb` — Notification-Gruppierung (`find_or_create_group`)
+* `group_key_builder.rb` — Notification-Gruppierung (`find_or_create_group`): wann eine Zeile ein
+  Ereignis aufnimmt (`can_add_to_group?`, `complete_post_group?`), Suche, Schlüssel, Sperre, Anlegen.
+* `row_events.rb` — **der eine Ort**, der `group_count`, `first_event_at` und `last_event_at` einer
+  Zeile ändert, die es schon gibt, mit dem Akteur und der Payload des Ereignisses
+  (`RowEvents.fold!`): sperrt die Zeile, liest sie neu, lehnt eine gelesene oder archivierte ab,
+  fragt die Regel des Aufrufers (Block) unter der Sperre, weitet die Spanne nur, speichert mit
+  `save!` (Callbacks, Signal). Antwortet wahr oder falsch; bei falsch legt der Builder eine neue Zeile an.
 * `broadcast_service.rb` — In-App-Zustellung via Turbo Streams. Das Banner „Neue Meldungen“
   (`notifications/_new_notifications_banner`, geteilt mit der Gesamt-Inbox) ERSETZT den leeren
   Platzhalter, in der Sprache des Empfängers; bis 13.11.2026 landete der Text im versteckten
@@ -48,7 +54,7 @@ OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten
   `InboxQuery#relation` selbst. Noch `created_at` drucken zwei ältere Zeichnungen, die keine
   Liste dieser Regel sind: `NeoNotificationCardComponent` (Broadcast-Partial) und
   `notifications/_notification` (Antwort `?partial=list`).
-  Folgen: Eine Zeile, in die ein späteres Ereignis fällt (`GroupKeyBuilder`), behält ihr
+  Folgen: Eine Zeile, in die ein späteres Ereignis fällt (`GroupKeyBuilder` über `RowEvents.fold!`), behält ihr
   `created_at` und rückt nach oben. Eine Zeile, die erst spät angelegt wird (ein Outbox-Event
   nach Wiederholungen), beginnt bei der Zeit ihrer Aktivität (`create_new_group`) und steht
   deshalb unter jüngeren Zeilen, wie in REST und MCP. Die Suchen im Fanout
@@ -230,3 +236,9 @@ Wichtig:
    nacktes `update_all(state: …)`: `update_all` überspringt den `after_commit`, und der Punkt
    am Org-Umschalter bliebe bis zum Neuladen falsch. Wächter:
    `spec/models/notification_bulk_transition_guard_spec.rb`.
+6. **Die Ereignisfelder einer bestehenden Zeile schreibt nur `RowEvents.fold!`.** Ein neuer Schreiber
+   ruft ihn, statt `group_count`, `first_event_at` oder `last_event_at` selbst zu setzen; die Regel
+   der Spanne (nur weiter, seit #274) steht dort einmal. Beim Anlegen setzen die Felder
+   `create_new_group` und `Notification#set_timestamps`. Wächter:
+   `spec/architecture/notification_row_events_guard_spec.rb` (liest `app/` und `lib/` mit Prism; was
+   er nicht sieht, steht in seinem Kopf). Die Sperre belegt `row_events_concurrency_spec.rb`.

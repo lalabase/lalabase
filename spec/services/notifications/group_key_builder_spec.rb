@@ -546,6 +546,320 @@ RSpec.describe Notifications::GroupKeyBuilder do
         expect(fp1).not_to eq(fp2)
       end
     end
+
+    # --- Folding into a found row, under the row lock -------------------------
+    # What happens to a row the lookup found: when the event folds in, what a
+    # fold writes, and what a refusal leaves alone. The clock stands still four
+    # minutes into a bucket: the window reads the clock, the key reads the
+    # activity's time. Every row sets its own times, because the factory copies
+    # created_at into both event times and so would hide a wrong span.
+    describe 'folding into a found row' do
+      include ActiveSupport::Testing::TimeHelpers
+
+      let(:bucket_start) { Time.zone.local(2026, 11, 24, 14, 0, 0) }
+      let(:row_time) { bucket_start + 1.minute }
+      let(:now) { bucket_start + 4.minutes }
+      let(:activity) do
+        create(:activity, actor: actor, organisation: organisation, trackable: ticket,
+                          action: 'ticket_commented', key: 'ticket.ticket_commented',
+                          created_at: bucket_start + 3.minutes)
+      end
+      let(:kept_columns) do
+        %w[group_count first_event_at last_event_at payload updated_at state read_at created_at actor_id]
+      end
+
+      before { travel_to(now) }
+      after { travel_back }
+
+      def create_row(**attributes)
+        defaults = {
+          recipient: recipient, organisation: organisation, notifiable: ticket,
+          group_key: builder.build, group_count: 1, event_type: 'ticket_commented',
+          channel: 'in_app', state: 'queued', priority: 'normal', actor: actor,
+          payload: { 'action' => 'commented', 'actor_ids' => [] },
+          created_at: row_time, updated_at: row_time,
+          first_event_at: row_time, last_event_at: row_time
+        }
+        create(:notification, **defaults.merge(attributes))
+      end
+
+      # The values a fold writes, read from the database.
+      def row_values(row)
+        row.reload.attributes.slice(*kept_columns)
+      end
+
+      # A builder whose lookup answers from the preloaded hash, the way the
+      # fanout hands in the rows it loaded for all recipients at once.
+      def preloaded_builder(row)
+        described_class.new(activity, recipient,
+                            existing_groups: { [recipient.id, builder.build, 'in_app'] => row })
+      end
+
+      context 'when a row handed in through existing_groups was read after it was loaded' do
+        it 'creates a new row and leaves the read row as it is' do
+          row = create_row
+          loaded_row = Notification.find(row.id)
+          Notification.where(id: row.id).update_all(state: 'read', read_at: now)
+          preloaded = preloaded_builder(loaded_row)
+
+          expect(loaded_row).to have_attributes(state: 'queued', read_at: nil)
+          before_call = row_values(row)
+          expect(before_call).to include('state' => 'read', 'read_at' => now, 'group_count' => 1,
+                                         'first_event_at' => row_time, 'last_event_at' => row_time,
+                                         'updated_at' => row_time,
+                                         'payload' => { 'action' => 'commented', 'actor_ids' => [] })
+
+          answer = nil
+          expect { answer = preloaded.find_or_create_group(notification_params) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+      end
+
+      context 'when the found in-app row is unread' do
+        # Only an email row is refused once it left the queue; an in-app row in
+        # sent or delivered still takes the event and keeps its state.
+        %w[queued sent delivered].each do |unread_state|
+          it "folds the event in and keeps the state #{unread_state}" do
+            row = create_row(state: unread_state)
+            expect(row.reload).to have_attributes(state: unread_state, read_at: nil, group_count: 1,
+                                                  created_at: row_time)
+
+            expect { builder.find_or_create_group(notification_params) }
+              .not_to change(Notification, :count)
+
+            expect(row.reload).to have_attributes(state: unread_state, read_at: nil, group_count: 2,
+                                                  created_at: row_time)
+          end
+        end
+      end
+
+      context 'with post ids on an in-app row' do
+        let(:first_post_id) { SecureRandom.uuid }
+        let(:second_post_id) { SecureRandom.uuid }
+        let(:payload_with_post) { { 'action' => 'commented', 'actor_ids' => [], 'post_ids' => [first_post_id] } }
+
+        it 'does not put an event with post ids into a row without them' do
+          row = create_row
+          before_call = row_values(row)
+          expect(before_call).to include('group_count' => 1, 'first_event_at' => row_time,
+                                         'last_event_at' => row_time, 'updated_at' => row_time,
+                                         'payload' => { 'action' => 'commented', 'actor_ids' => [] })
+
+          answer = nil
+          expect { answer = builder.find_or_create_group(notification_params.merge(payload: { post_ids: [second_post_id] })) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+
+        it 'does not put an event without post ids into a row with them' do
+          row = create_row(payload: payload_with_post)
+          before_call = row_values(row)
+          expect(before_call).to include('group_count' => 1, 'first_event_at' => row_time,
+                                         'last_event_at' => row_time, 'updated_at' => row_time,
+                                         'payload' => payload_with_post)
+
+          answer = nil
+          expect { answer = builder.find_or_create_group(notification_params) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+
+        it 'puts an event with post ids into a row with them and keeps both ids' do
+          row = create_row(payload: payload_with_post)
+
+          expect { builder.find_or_create_group(notification_params.merge(payload: { post_ids: [second_post_id] })) }
+            .not_to change(Notification, :count)
+
+          row.reload
+          expect(row.group_count).to eq(2)
+          expect(row.payload['post_ids']).to contain_exactly(first_post_id, second_post_id)
+        end
+      end
+
+      context 'when the event folds in' do
+        around { |example| with_test_queue_adapter { example.run } }
+
+        it 'refreshes the unread signal of the recipient' do
+          row = create_row
+          clear_enqueued_jobs
+          expect(activity.created_at).to be > row.reload.last_event_at
+          count_before = Notification.count
+
+          expect { builder.find_or_create_group(notification_params) }
+            .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: recipient.id)
+
+          expect(Notification.count).to eq(count_before)
+          expect(row.reload).to have_attributes(group_count: 2, last_event_at: activity.created_at)
+        end
+
+        it 'moves updated_at to the time of the fold' do
+          row = create_row
+          expect(row.reload.updated_at).to eq(row_time)
+
+          builder.find_or_create_group(notification_params)
+
+          expect(row.reload).to have_attributes(group_count: 2, updated_at: now)
+        end
+      end
+
+      context 'when the row lock refuses the fold' do
+        it 'leaves a high priority row as it is and creates a new row' do
+          row = create_row(priority: 'high')
+          before_call = row_values(row)
+          expect(before_call).to include('group_count' => 1, 'first_event_at' => row_time,
+                                         'last_event_at' => row_time, 'updated_at' => row_time,
+                                         'payload' => { 'action' => 'commented', 'actor_ids' => [] })
+
+          answer = nil
+          expect { answer = builder.find_or_create_group(notification_params) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+      end
+
+      # The lookup query already filters size and age, so only a row handed in
+      # through existing_groups reaches these two checks of can_add_to_group?.
+      # The fanout hands in rows it loaded before its loop. The rule must be
+      # asked about the row as the lock reads it again, not about that object.
+      context 'when a row handed in through existing_groups changed in the database after it was loaded' do
+        def changed_after_load(row, **changes)
+          loaded_row = Notification.find(row.id)
+          Notification.where(id: row.id).update_all(changes)
+          loaded_row
+        end
+
+        def expect_new_row_and_unchanged(row, loaded_row)
+          before_call = row_values(row)
+          answer = nil
+          expect { answer = preloaded_builder(loaded_row).find_or_create_group(params_for(loaded_row)) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+
+        def params_for(loaded_row)
+          notification_params.merge(channel: loaded_row.channel)
+        end
+
+        def preloaded_builder(row)
+          described_class.new(activity, recipient,
+                              existing_groups: { [recipient.id, builder.build, row.channel] => row })
+        end
+
+        it 'does not fold into a row raised to high priority after it was loaded' do
+          row = create_row
+          loaded_row = changed_after_load(row, priority: 'high')
+          expect(loaded_row).to have_attributes(priority: 'normal', group_count: 1)
+          expect(row_values(row)).to include('group_count' => 1, 'last_event_at' => row_time,
+                                             'updated_at' => row_time)
+
+          expect_new_row_and_unchanged(row, loaded_row)
+          expect(Notification.find(row.id).priority).to eq('high')
+        end
+
+        it 'does not fold into an email row sent after it was loaded' do
+          row = create_row(channel: 'email')
+          loaded_row = changed_after_load(row, state: 'sent', sent_at: now)
+          expect(loaded_row).to have_attributes(channel: 'email', state: 'queued', group_count: 1)
+          expect(row_values(row)).to include('state' => 'sent', 'group_count' => 1, 'last_event_at' => row_time)
+
+          expect_new_row_and_unchanged(row, loaded_row)
+        end
+
+        it 'does not fold into a row that reached MAX_GROUP_SIZE after it was loaded' do
+          row = create_row
+          loaded_row = changed_after_load(row, group_count: described_class::MAX_GROUP_SIZE)
+          expect(loaded_row.group_count).to eq(1)
+          expect(row_values(row)).to include('group_count' => described_class::MAX_GROUP_SIZE,
+                                             'last_event_at' => row_time)
+
+          expect_new_row_and_unchanged(row, loaded_row)
+        end
+      end
+
+      # The fanout names the actor as a record (`actor:`), never as `actor_id:`.
+      context 'when the actor of the event comes as a record' do
+        it 'writes that actor into the row and into its actor ids' do
+          row = create_row
+          params = notification_params.except(:actor_id).merge(actor: other_actor)
+          expect(row.reload).to have_attributes(actor_id: actor.id)
+
+          expect { builder.find_or_create_group(params) }.not_to change(Notification, :count)
+
+          row.reload
+          expect(row.actor_id).to eq(other_actor.id)
+          expect(row.payload['actor_ids']).to contain_exactly(actor.id, other_actor.id)
+        end
+      end
+
+      context 'when a row handed in through existing_groups is full or old' do
+        it 'does not fold into a row that holds MAX_GROUP_SIZE events' do
+          row = create_row(group_count: described_class::MAX_GROUP_SIZE)
+          before_call = row_values(row)
+          expect(before_call).to include('group_count' => described_class::MAX_GROUP_SIZE,
+                                         'first_event_at' => row_time, 'last_event_at' => row_time,
+                                         'updated_at' => row_time)
+
+          answer = nil
+          expect { answer = preloaded_builder(row).find_or_create_group(notification_params) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+
+        it 'does not fold into a row created before the time window' do
+          old_time = now - 6.minutes
+          row = create_row(created_at: old_time, updated_at: old_time,
+                           first_event_at: old_time, last_event_at: old_time)
+          before_call = row_values(row)
+          expect(before_call).to include('group_count' => 1, 'created_at' => old_time,
+                                         'first_event_at' => old_time, 'last_event_at' => old_time,
+                                         'updated_at' => old_time)
+
+          answer = nil
+          expect { answer = preloaded_builder(row).find_or_create_group(notification_params) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+      end
+
+      context 'when the found row is about another kind of record' do
+        # A project that shares the ticket's id: only the type tells the two
+        # apart, so the id check after it cannot refuse the row instead.
+        it 'does not fold into a row of another notifiable type with the same id' do
+          same_id_project = create(:project, id: ticket.id, organisation: organisation)
+          row = create_row(notifiable: same_id_project)
+          before_call = row_values(row)
+          expect(row).to have_attributes(notifiable_type: 'Project', notifiable_id: ticket.id)
+          expect(before_call).to include('group_count' => 1, 'first_event_at' => row_time,
+                                         'last_event_at' => row_time, 'updated_at' => row_time)
+
+          answer = nil
+          expect { answer = builder.find_or_create_group(notification_params) }
+            .to change(Notification, :count).by(1)
+          expect(answer.id).not_to eq(row.id)
+          expect(row_values(row)).to eq(before_call)
+        end
+      end
+
+      context 'when the found row is a queued email' do
+        it 'folds an event without post ids into it' do
+          row = create_row(channel: 'email')
+          expect(row.reload).to have_attributes(channel: 'email', state: 'queued', group_count: 1)
+
+          expect { builder.find_or_create_group(notification_params.merge(channel: 'email')) }
+            .not_to change(Notification, :count)
+
+          expect(row.reload).to have_attributes(group_count: 2, last_event_at: activity.created_at)
+        end
+      end
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -581,107 +895,6 @@ RSpec.describe Notifications::GroupKeyBuilder do
       it 'handles nil-ish values via to_s' do
         result = builder.send(:compatible_event_types?, nil, nil)
         expect(result).to be true # both convert to empty string, which are equal
-      end
-    end
-
-    describe '#merge_payload' do
-      let(:notification) { Notification.new(payload: { 'tags' => %w[a b], 'status' => 'open' }) }
-
-      it 'merges two arrays by concatenation and deduplication' do
-        builder.send(:merge_payload, notification, { 'tags' => %w[b c] })
-        expect(notification.payload['tags']).to eq(%w[a b c])
-      end
-
-      it 'appends a scalar to an existing array' do
-        builder.send(:merge_payload, notification, { 'tags' => 'c' })
-        expect(notification.payload['tags']).to eq(%w[a b c])
-      end
-
-      it 'prepends existing scalar to a new array' do
-        builder.send(:merge_payload, notification, { 'status' => %w[closed archived] })
-        expect(notification.payload['status']).to eq(%w[open closed archived])
-      end
-
-      it 'overwrites scalar with latest scalar' do
-        builder.send(:merge_payload, notification, { 'status' => 'closed' })
-        expect(notification.payload['status']).to eq('closed')
-      end
-
-      it 'adds new keys that did not exist before' do
-        builder.send(:merge_payload, notification, { 'new_key' => 'new_value' })
-        expect(notification.payload['new_key']).to eq('new_value')
-      end
-
-      it 'handles nil new_payload gracefully' do
-        expect { builder.send(:merge_payload, notification, nil) }.not_to raise_error
-        expect(notification.payload).to eq({ 'tags' => %w[a b], 'status' => 'open' })
-      end
-
-      it 'handles nil existing payload' do
-        notification.payload = nil
-        builder.send(:merge_payload, notification, { 'key' => 'val' })
-        expect(notification.payload['key']).to eq('val')
-      end
-
-      it 'deduplicates when merging arrays' do
-        builder.send(:merge_payload, notification, { 'tags' => %w[a a b c c] })
-        expect(notification.payload['tags']).to eq(%w[a b c])
-      end
-
-      it 'merges symbol-keyed arrays into persisted string-keyed payloads' do
-        notification.payload = { 'post_ids' => ['post-1'] }
-
-        builder.send(:merge_payload, notification, { post_ids: ['post-2'] })
-
-        expect(notification.payload['post_ids']).to contain_exactly('post-1', 'post-2')
-      end
-
-      it 'compacts nil values when prepending scalar to array' do
-        notification.payload['nullable'] = nil
-        builder.send(:merge_payload, notification, { 'nullable' => %w[x y] })
-        expect(notification.payload['nullable']).to eq(%w[x y])
-      end
-    end
-
-    describe '#merge_actors' do
-      let(:notification) do
-        Notification.new(
-          actor_id: actor.id,
-          payload: { 'actor_ids' => [] }
-        )
-      end
-
-      it 'adds the existing actor_id and the new actor_id' do
-        builder.send(:merge_actors, notification, other_actor.id)
-        expect(notification.payload['actor_ids']).to contain_exactly(actor.id, other_actor.id)
-      end
-
-      it 'updates actor_id to the new actor' do
-        builder.send(:merge_actors, notification, other_actor.id)
-        expect(notification.actor_id).to eq(other_actor.id)
-      end
-
-      it 'deduplicates actor ids' do
-        builder.send(:merge_actors, notification, actor.id)
-        expect(notification.payload['actor_ids']).to eq([actor.id])
-      end
-
-      it 'handles nil new_actor_id' do
-        builder.send(:merge_actors, notification, nil)
-        expect(notification.payload['actor_ids']).to eq([actor.id])
-        expect(notification.actor_id).to eq(actor.id)
-      end
-
-      it 'handles nil existing actor_id' do
-        notification.actor_id = nil
-        builder.send(:merge_actors, notification, other_actor.id)
-        expect(notification.payload['actor_ids']).to eq([other_actor.id])
-      end
-
-      it 'handles missing actor_ids key in payload' do
-        notification.payload = {}
-        builder.send(:merge_actors, notification, other_actor.id)
-        expect(notification.payload['actor_ids']).to contain_exactly(actor.id, other_actor.id)
       end
     end
 

@@ -81,7 +81,7 @@ class Post < ApplicationRecord
   validate :private_post_visibility_consistency
   validate :addressee_in_organisation
 
-  before_save :extract_plain_text_content
+  include RichTextBody
   after_create_commit :auto_subscribe_author
 
   # Returns the total duration of all time sessions for this post's ticket
@@ -113,15 +113,6 @@ class Post < ApplicationRecord
   end
 
   private
-
-  def extract_plain_text_content
-    self.plain_text_version = content&.to_plain_text
-    self.plain_text_word_count = count_words(content&.to_plain_text)
-  end
-
-  def count_words(text)
-    text.split(/\s+/).reject(&:blank?).size
-  end
 
   def set_visible_to_user_on_private
     # The id, not the association: an id that resolves to nobody stays and fails the

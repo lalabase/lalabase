@@ -114,6 +114,7 @@ jobs:
           spec/architecture/
           spec/requests/csv_exports_spec.rb
           spec/services/codebase_import/progress_serialization_spec.rb
+          spec/services/conversations_spec.rb
           spec/services/docs/catalogue_spec.rb
           spec/services/docs/docs_catalogue_format_spec.rb
           spec/requests/help_without_catalogue_spec.rb

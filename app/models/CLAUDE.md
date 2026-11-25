@@ -297,7 +297,10 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
     Assoziation namens `posts`: Die heißen `conversation_posts` und `conversation_participants`,
     ein `.posts` gehört den Ticket-Kommentaren und ihrem Wächter.
   * ⚠️ **Gelöscht wird über das Modell** (`dependent: :destroy`). Die Kaskade der Datenbank
-    nimmt die Zeilen der Beiträge mit, nie ihren Text in `action_text_rich_texts`.
+    nimmt die Zeilen der Beiträge mit, nie ihren Text in `action_text_rich_texts`. Das gilt auch
+    eine Ebene höher: An der Organisation hängen die Konversationen nur über die Kaskade der
+    Datenbank. Heute löscht kein Weg eine Organisation; der erste, der es tut, löscht ihre
+    Konversationen vorher über das Modell.
   * **Klartext-Spiegel**: `plain_text_version` und `plain_text_word_count` schreibt EIN Ort,
     `concerns/rich_text_body.rb`, eingebunden von `post`, `note` und `conversation_post`. Wo das
     `include` steht, ist die Stelle in der Kette der `before_save`-Callbacks (`note` leitet

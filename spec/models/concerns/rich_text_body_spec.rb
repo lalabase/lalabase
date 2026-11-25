@@ -8,9 +8,10 @@ require 'rails_helper'
 #   The examples hold what the mirror does for every carrier alike, so the code can
 #   have one owner and a new carrier joins by one line below.
 #
-# A group that includes the shared examples defines two things:
-#   carrier_with(html)  a saved record whose body is the given HTML
-#   unrelated_change    attributes that change the record and leave its body alone
+# A group that includes the shared examples defines three things:
+#   carrier_with(html)    a saved record whose body is the given HTML
+#   unrelated_change      attributes that change the record and leave its body alone
+#   carrier_without_body  a new record whose body was never assigned, not yet saved
 RSpec.shared_examples 'a carrier of the plain text mirror' do
   it 'mirrors the plain text of the body and counts its words when the record is created' do
     carrier = carrier_with('<p>Guten <strong>Morgen</strong> zusammen</p>').reload
@@ -57,6 +58,17 @@ RSpec.shared_examples 'a carrier of the plain text mirror' do
     expect(carrier.reload.plain_text_version).to eq('')
     expect(carrier.plain_text_word_count).to eq(0)
   end
+
+  # The other way to have no body: nothing was ever assigned, so no rich text record
+  # exists when the mirror asks. It asks `content`, which answers with an empty one.
+  it 'mirrors an empty text and no word for a record that never had a body' do
+    carrier = carrier_without_body
+
+    carrier.save!(validate: false)
+
+    expect(carrier.reload.plain_text_version).to eq('')
+    expect(carrier.plain_text_word_count).to eq(0)
+  end
 end
 
 RSpec.describe 'The plain text mirror of a rich text body', :ci_guard, type: :model do
@@ -75,6 +87,10 @@ RSpec.describe 'The plain text mirror of a rich text body', :ci_guard, type: :mo
       create(:post, ticket: ticket, organisation: organisation, user: author, content: html)
     end
 
+    def carrier_without_body
+      Post.new(ticket: ticket, organisation: organisation, user: author)
+    end
+
     it_behaves_like 'a carrier of the plain text mirror'
   end
 
@@ -83,6 +99,10 @@ RSpec.describe 'The plain text mirror of a rich text body', :ci_guard, type: :mo
 
     def carrier_with(html)
       create(:note, project: project, organisation: organisation, creator: author, content: html)
+    end
+
+    def carrier_without_body
+      Note.new(title: 'Ohne Text', project: project, organisation: organisation, creator: author)
     end
 
     it_behaves_like 'a carrier of the plain text mirror'
@@ -94,6 +114,10 @@ RSpec.describe 'The plain text mirror of a rich text body', :ci_guard, type: :mo
 
     def carrier_with(html)
       create(:conversation_post, conversation: conversation, user: author, content: html)
+    end
+
+    def carrier_without_body
+      ConversationPost.new(conversation: conversation, user: author)
     end
 
     it_behaves_like 'a carrier of the plain text mirror'

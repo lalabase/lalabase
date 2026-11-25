@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 require 'prism'
+require 'tmpdir'
 
 # What: a conversation is read only by somebody who takes part in it and is an
 #   active member of its organisation. The rule has one place, the scope
@@ -79,9 +80,13 @@ require 'prism'
 #   is written without the namespace (`module Foo; Conversation.all; end`), a type
 #   test written as `Conversation === record` (use `is_a?` or a `when`), a model
 #   constant in an array or in a hash literal, prose in a string that reads like
-#   SQL ("removed from conversations"), and a method of the application that
+#   SQL ("removed from conversations"), a method of the application that
 #   carries the name of a Turbo broadcast
-#   (Notifications::BroadcastService#broadcast_update) in a file that names a model.
+#   (Notifications::BroadcastService#broadcast_update) in a file that names a
+#   model, and a preload of the posts behind the rule
+#   (`Conversation.visible_to(user).includes(:conversation_posts)`): whoever reads
+#   a conversation reads all of its posts, but the list of its participants holds
+#   deactivated members too, and one refusal for both is the simpler rule.
 module ConversationVisibilityGuard
   MODELS = %w[Conversation ConversationPost ConversationParticipant].freeze
   TABLES = %w[conversations conversation_posts conversation_participants].freeze
@@ -373,14 +378,14 @@ module ConversationVisibilityGuard
   end
 
   # Every .rb and .erb file below the directories, as paths from the root
-  def self.files(directories)
-    directories.flat_map { |directory| Dir[Rails.root.join(directory, '**/*.{rb,erb}')] }
-               .map { |path| Pathname(path).relative_path_from(Rails.root).to_s }.uniq.sort
+  def self.files(directories, root: Rails.root)
+    directories.flat_map { |directory| Dir[root.join(directory, '**/*.{rb,erb}')] }
+               .map { |path| Pathname(path).relative_path_from(root).to_s }.uniq.sort
   end
 
   # Every file refusals 1 and 2 read: all of app/ outside the keepers of the rule
-  def self.reader_files
-    files(%w[app]).reject { |file| KEEPER_DIRECTORIES.any? { |directory| file.start_with?("#{directory}/") } }
+  def self.reader_files(root: Rails.root)
+    files(%w[app], root: root).reject { |file| KEEPER_DIRECTORIES.any? { |directory| file.start_with?("#{directory}/") } }
   end
 
   # One check (:reads, :broadcasts, :mentions) on one file of the tree, as
@@ -504,6 +509,22 @@ RSpec.describe 'Conversation reads go through Conversation.visible_to', :ci_guar
       end
       expect(files.grep(/\.rb\z/).size).to be > 100
       expect(files.grep(/\.erb\z/).size).to be > 100
+    end
+
+    # Every directory of today is named in one of the two lists, so the real tree cannot
+    # tell "all of app/ but the keepers" from "the named directories". A made-up tree can.
+    it 'reads a directory under app/ that nobody named, and never the keepers of the rule' do
+      Dir.mktmpdir do |directory|
+        root = Pathname(directory)
+        %w[app/forms/new_reader.rb app/models/conversation.rb app/policies/conversation_policy.rb
+           app/views/things/show.html.erb app/assets/stylesheets/things.css].each do |file|
+          root.join(file).dirname.mkpath
+          root.join(file).write("# nothing\n")
+        end
+
+        expect(ConversationVisibilityGuard.reader_files(root: root))
+          .to eq(%w[app/forms/new_reader.rb app/views/things/show.html.erb])
+      end
     end
 
     it 'reads all of app/ for broadcasts, and knows the files that name a model' do

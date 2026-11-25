@@ -269,6 +269,17 @@ RSpec.describe ConversationPolicy, :ci_guard, type: :policy do
       expect(described_class.new(fresh(participant), conversation).destroy?).to be(true)
     end
 
+    # One policy object answers several questions of a page. What it learnt about one
+    # membership must not stand in for another: the asker's yes is not the creator's.
+    it 'asks about the creator afresh on a policy object that already answered create?' do
+      policy = described_class.new(participant, conversation)
+      expect(policy.create?).to be(true)
+
+      membership_of(creator).update!(active: false)
+
+      expect(policy.destroy?).to be(true)
+    end
+
     it 'says no to a creator whose own membership is deactivated' do
       expect(described_class.new(creator, conversation).destroy?).to be(true)
 

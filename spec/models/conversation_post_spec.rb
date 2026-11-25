@@ -247,7 +247,8 @@ RSpec.describe ConversationPost, :ci_guard, type: :model do
 
     it 'holds a key, never a sentence' do
       valid = ['participant_added', 'guest_invited_2', 'a' * 64]
-      invalid = ['Participant added', 'participant-added', 'Hinzugefügt', 'a' * 65, 'x y']
+      invalid = ['Participant added', 'participant-added', 'Hinzugefügt', 'a' * 65, 'x y', "participant_added\n",
+                 "participant_added\nmore"]
 
       # One validation per key is the point here, not an N+1 to report.
       Prosopite.pause do

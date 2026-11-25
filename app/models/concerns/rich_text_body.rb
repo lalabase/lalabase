@@ -11,9 +11,10 @@
 # (spec/models/action_text/rich_text_embed_guard_inclusion_spec.rb), so
 # has_rich_text cannot move in here.
 #
-# ⚠️ Where the include stands decides where the callback runs among the
-# carrier's other before_save callbacks. Note derives its markdown body right
-# after it and relies on that order.
+# Where the include stands decides where the callback runs among the
+# carrier's other before_save callbacks. Post and Note include it where their
+# own before_save line stood, so their chains are what they were. (Note
+# derives its markdown body right after it; the two do not read each other.)
 #
 # The method keeps its name: the N+1 watch of the specs allows the queries of
 # extract_plain_text_content by that name (spec/support/prosopite.rb).

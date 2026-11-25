@@ -283,7 +283,10 @@ guard stood before the first reader did.
   conversation; SQL built from parts; `app/models`, `app/policies` and `lib/`. A comment that
   quotes a forbidden form trips nothing, a string does not count as a call.
 * ⚠️ **A conversation is deleted through the model** (`dependent: :destroy`). The cascade of the
-  database removes the rows of the posts and leaves their rich text behind.
+  database removes the rows of the posts and leaves their rich text behind. That holds for the
+  organisation above it as well: its conversations hang on it by the database cascade alone.
+  No path deletes an organisation today; the first one that does destroys its conversations
+  through the model first.
 * **The switch** is `Conversations.enabled?` (`app/services/conversations.rb`): the environment
   variable `LALABASE_CONVERSATIONS`, read at every call, on for the value `1` only, for the whole
   instance. Nothing asks it yet. The models, the policy and the export never ask it: who reads

@@ -212,6 +212,18 @@ RSpec.describe ConversationPolicy, :ci_guard, type: :policy do
       expect(described_class.new(member_of(organisation, active: false), Conversation).create?).to be(false)
     end
 
+    # User#active_member_of_organisation? remembers a yes on the object. The policy asks
+    # the membership itself, so the answer does not outlive a deactivation.
+    it 'says no after a deactivation to the very user object that got a yes before' do
+      member = member_of(organisation)
+      expect(described_class.new(member, Conversation).create?).to be(true)
+      expect(member.active_member_of_organisation?(organisation)).to be(true)
+
+      membership_of(member).update!(active: false)
+
+      expect(described_class.new(member, Conversation).create?).to be(false)
+    end
+
     it 'says no where no organisation is set' do
       member = member_of(organisation)
       expect(described_class.new(member, Conversation).create?).to be(true)

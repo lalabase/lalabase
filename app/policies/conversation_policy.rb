@@ -57,7 +57,7 @@ class ConversationPolicy < ApplicationPolicy
 
   # Starting a conversation: any active member of the organisation.
   def create?
-    organisation.present? && user.active_member_of_organisation?(organisation)
+    organisation.present? && active_member?(organisation.id, user.id)
   end
 
   # The creator deletes. Once the creator is no active member of the
@@ -74,8 +74,14 @@ class ConversationPolicy < ApplicationPolicy
     record.visible_to?(user)
   end
 
-  # Membership carries no tenant, so the organisation is named: the one of the conversation.
   def creator_active_member?
-    Membership.active.exists?(organisation_id: record.organisation_id, user_id: record.creator_id)
+    active_member?(record.organisation_id, record.creator_id)
+  end
+
+  # Membership carries no tenant, so the organisation is named. Asked of the
+  # table every time, not of the user object: the yes an object remembers
+  # would outlive a deactivation.
+  def active_member?(organisation_id, user_id)
+    Membership.active.exists?(organisation_id: organisation_id, user_id: user_id)
   end
 end

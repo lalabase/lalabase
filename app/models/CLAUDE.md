@@ -1,4 +1,4 @@
-# Karte: app/models (Stand: 2026-11-17)
+# Karte: app/models (Stand: 2026-11-25)
 
 ~80 Modelle liegen flach in diesem Verzeichnis; Namespaces existieren nur für `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Die Domänen-Zugehörigkeit ist am
@@ -222,7 +222,7 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
     einer beliebigen Seite ohne Morph-Meta mit, wo aus dem Refresh ein voller Replace-Visit
     würde. Dort wird stattdessen gezielt die VORHERIGE Antwort ersetzt (Regenerier-Pille).
     Wer diesen Zweig anfasst, prüft beide Seiten.
-  ⚠️ **Bilder im Rich-Text**: jedes `has_rich_text :content` (Ticket, Post, Note) bindet
+  ⚠️ **Bilder im Rich-Text**: jedes `has_rich_text :content` (Ticket, Post, Note, ConversationPost) bindet
   `concerns/rich_text_embed_guard.rb` ein (Guard-Spec erzwingt das). Der Validator prüft nur das
   **Delta** eines Speicherns (neue Blobs, neue tote `sgid`s), identifiziert den Typ selbst,
   streicht `url`/`href` aus den Attachment-Knoten (war ein unbefristeter Link) und reiht je
@@ -252,6 +252,62 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Selbst-Erwähnung hat keinen Verweis und bleibt liegen. Specs:
   `spec/models/action_text/rich_text_embed_key_rotation_spec.rb`,
   `spec/services/rich_text_sgid_resign_spec.rb`.
+* **Konversationen** (Stand 25.11.2026: Tabellen, Modelle und Leseregel; noch keine Route, keine
+  Seite, kein Schreiber): `conversation`, `conversation_participant`, `conversation_post`.
+  Nachrichten zwischen Mitgliedern EINER Organisation, etwa zwischen Agentur und Kunde.
+  * ⚠️ **Wer eine Konversation liest, entscheidet EINE Regel: `Conversation.visible_to(user)`.**
+    Teilnehmer-Zeile UND aktive Mitgliedschaft in der Organisation der Konversation, beides.
+    `#visible_to?` fragt den Scope und hat keine eigene Regel. `#visible_participants` ist
+    dieselbe Regel vom anderen Ende (wer von den Teilnehmern jetzt liest, als Relation von
+    `User`). `ConversationPost.visible_to` mischt den Scope ein, `ConversationPolicy` fragt nur
+    ihn. `spec/models/conversation_spec.rb` hält die Enden zusammen.
+  * ⚠️ **Kein Projekt-Term, kein Admin-Term.** `project_id` ist ein Etikett und steht in keiner
+    Rechteprüfung: Wer vollen Zugriff auf das Projekt hat und nicht teilnimmt, liest nichts.
+    Ein Kontoadmin ohne Teilnahme liest nichts, keinen Titel und keine Zahl: Eine Konversation
+    ist Korrespondenz der Beteiligten. Die Abkürzung „Admin sieht alles“, mit der andere
+    Policies beginnen, bricht hier die wichtigste Regel. Wächter:
+    `spec/architecture/conversation_visibility_guard_spec.rb` (liest Regel und Policy auf beide
+    Wörter und lehnt jeden Leser an der Regel vorbei ab; Abschnitt in der Wurzel-`CLAUDE.md`).
+  * **Teilnahme**: Eine Zeile nennt ein Konto (`user_id` nie leer) und endet, indem sie gelöscht
+    wird. Es gibt kein „beendet“-Feld, das ein Leser vergessen könnte: Eine fehlende Zeile kann
+    kein Leck sein. Der Teilnehmer ist beim Schreiben der Zeile aktives Mitglied der
+    Organisation (`user_must_be_active_member`, nur wenn sich `user_id` ändert, die Regel von
+    `person`). Wird das Mitglied später deaktiviert oder entfernt, bleibt die Zeile stehen und
+    speicherbar, und die Leseregel zeigt ihm nichts, bis die Mitgliedschaft wieder aktiv ist.
+    Noch beendet nichts eine Teilnahme, auch die Löschung eines Kontos nicht.
+  * **Verweise bleiben in der Organisation der Zeile**: `conversation.project`,
+    `conversation_post.invitation` und `conversation` an Teilnahme und Beitrag stehen VOR
+    `acts_as_tenant` und werden zusätzlich von `same_organisation_references` gehalten, auch
+    ohne Mandant und unter einem fremden (der Mandant stempelt `organisation_id`, nicht die
+    Konversation). Muster des Glossars, bewusst je Modell eine Kopie. Das ist die einzige Stelle
+    der drei Modelle, die den Mandanten hebt; die Leseregel hebt ihn nie.
+  * **Beitrag**: eine Nachricht (`kind` `message`, Text als `has_rich_text :content`, kein
+    `system_event`) oder ein Systemeintrag (`kind` `system`, ein `system_event` als Schlüssel,
+    kein Text). Ein Systemeintrag hält Schlüssel und IDs (`subject_user`, `second_user`,
+    `invitation`), nie einen Namen und nie einen Satz: Namen werden beim Anzeigen gelesen, also
+    bleibt nach der Löschung eines Kontos nichts Persönliches darin. Er schreibt keinen
+    Rich-Text-Datensatz und keinen Spiegel (`skip_callback` am Modell; `content` zu fragen
+    würde einen leeren Datensatz bauen). `KINDS` und `ORIGINS` sind Listen mit `inclusion` und
+    Check-Constraints, keine Postgres-Enums; `origin` sagt, durch welche Tür ein Beitrag kam,
+    geschrieben wird bisher nur `web`.
+  * **Bewusst nicht**: kein `Trackable` (keine Activity, kein Feed), kein `has_many :fragments`
+    (keine Embeddings, keine Suche, kein Assistent), keine Dateianhänge, kein `archived_at` an
+    der Konversation (archivieren ist Sache einer Person, an ihrer Teilnahme) und keine
+    Assoziation namens `posts`: Die heißen `conversation_posts` und `conversation_participants`,
+    ein `.posts` gehört den Ticket-Kommentaren und ihrem Wächter.
+  * ⚠️ **Gelöscht wird über das Modell** (`dependent: :destroy`). Die Kaskade der Datenbank
+    nimmt die Zeilen der Beiträge mit, nie ihren Text in `action_text_rich_texts`.
+  * **Klartext-Spiegel**: `plain_text_version` und `plain_text_word_count` schreibt EIN Ort,
+    `concerns/rich_text_body.rb`, eingebunden von `post`, `note` und `conversation_post`. Wo das
+    `include` steht, ist die Stelle in der Kette der `before_save`-Callbacks (`note` leitet
+    direkt danach sein Markdown ab). `has_rich_text` und `include RichTextEmbedGuard` nennt
+    jeder Träger selbst, weil der Wächter der Einbettungen jede Datei einzeln liest. Pin für
+    alle drei Träger: `spec/models/concerns/rich_text_body_spec.rb`.
+  * **Export und Schalter**: Der persönliche Export listet nur die Daten eigener Nachrichten und
+    Teilnahmen, über `user_id` und nicht über die Leseregel (`user_data_exports/registry.rb`,
+    der eine Eintrag in der Ausnahmeliste des Wächters). `Conversations.enabled?`
+    (`app/services/conversations.rb`, `LALABASE_CONVERSATIONS=1`) hat noch keinen Aufrufer;
+    Modelle, Policy und Export fragen ihn nie.
 * **Dokumente/Doku/Codebase**: `document`, `document_version`, `documentation_*`
   (`documentation_asset` = ein Bild einer synchronisierten Doku, aus dem Repository kopiert;
   die gecachte Seite zeigt per ID darauf, ausgeliefert nur über `FileDownloadsController`),

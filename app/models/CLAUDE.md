@@ -256,7 +256,8 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
   Seite, kein Schreiber): `conversation`, `conversation_participant`, `conversation_post`.
   Nachrichten zwischen Mitgliedern EINER Organisation, etwa zwischen Agentur und Kunde.
   * ⚠️ **Wer eine Konversation liest, entscheidet EINE Regel: `Conversation.visible_to(user)`.**
-    Teilnehmer-Zeile UND aktive Mitgliedschaft in der Organisation der Konversation, beides.
+    Teilnehmer-Zeile UND aktive Mitgliedschaft in der Organisation der Konversation, beides
+    (dazu das Konto selbst: ein gelöschtes Konto liest nichts, was auch immer es hinterlassen hat).
     `#visible_to?` fragt den Scope und hat keine eigene Regel. `#visible_participants` ist
     dieselbe Regel vom anderen Ende (wer von den Teilnehmern jetzt liest, als Relation von
     `User`). `ConversationPost.visible_to` mischt den Scope ein, `ConversationPolicy` fragt nur

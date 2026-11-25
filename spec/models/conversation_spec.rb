@@ -145,6 +145,40 @@ RSpec.describe Conversation, :ci_guard, type: :model do
 
       expect(seen_by(nil)).to be_empty
       expect(conversation.visible_to?(nil)).to be(false)
+      expect(build(:conversation, creator: creator).visible_to?(creator)).to be(false)
+    end
+
+    # No path of the application leaves this state behind: both ways of erasing an
+    # account remove its memberships first. The two ends of the rule agree in it all the same.
+    it 'shows nothing to an account that is deleted, even with its row and its membership still there' do
+      participant = member_of(organisation)
+      take_part(participant)
+      expect(seen_by(participant)).to contain_exactly(conversation)
+
+      User.where(id: participant.id).update_all(deleted_at: Time.current)
+      deleted = User.with_deleted.find(participant.id)
+
+      expect(membership_of(deleted).active).to be(true)
+      expect(conversation.conversation_participants.exists?(user_id: deleted.id)).to be(true)
+      expect(seen_by(deleted)).to be_empty
+      expect(seen_by(participant)).to be_empty
+      expect(conversation.visible_participants.exists?(id: deleted.id)).to be(false)
+    end
+
+    # The tenant stamps a new row. A row that carries another organisation than its
+    # conversation can only be written past the model, and it opens nothing on either side.
+    it 'shows nothing through a participant row that stands in another organisation than the conversation' do
+      person = member_of(organisation)
+      create(:membership, user: person, organisation: other_organisation, role: role_in(other_organisation))
+      row = take_part(person)
+      expect(seen_by(fresh(person))).to contain_exactly(conversation)
+
+      ConversationParticipant.where(id: row.id).update_all(organisation_id: other_organisation.id)
+
+      expect(seen_by(fresh(person))).to be_empty
+      ActsAsTenant.with_tenant(other_organisation) do
+        expect(described_class.visible_to(fresh(person))).to be_empty
+      end
     end
 
     it 'shows under each tenant the conversations of that organisation only, and asks the membership there' do
@@ -310,6 +344,15 @@ RSpec.describe Conversation, :ci_guard, type: :model do
         expect(record.organisation_id).to eq(other_organisation.id)
         expect(record.errors.added?(:project, :invalid)).to be(true)
       end
+    end
+
+    it 'refuses it as well on a conversation that exists, and takes a project of its own there' do
+      existing = create(:conversation, creator: creator)
+
+      expect(existing.update(project_id: foreign_project.id)).to be(false)
+      expect(existing.errors.added?(:project, :invalid)).to be(true)
+      expect(existing.reload.project_id).to be_nil
+      expect(existing.update(project: project)).to be(true)
     end
 
     it 'keeps the conversation and empties the label when the project row is deleted' do

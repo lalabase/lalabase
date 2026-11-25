@@ -160,6 +160,16 @@ RSpec.describe ConversationPost, :ci_guard, type: :model do
       end
     end
 
+    it 'refuses it as well on an entry that exists, for the invitation and for the conversation' do
+      entry = system_entry.tap(&:save!)
+
+      expect(entry.update(invitation_id: foreign_invitation.id)).to be(false)
+      expect(entry.errors.added?(:invitation, :invalid)).to be(true)
+      expect(described_class.find(entry.id).update(conversation_id: foreign_conversation.id)).to be(false)
+      expect(entry.reload).to have_attributes(invitation_id: nil, conversation_id: conversation.id)
+      expect(entry.update(invitation: invitation)).to be(true)
+    end
+
     it 'empties the reference when the invitation row is deleted' do
       entry = system_entry(invitation: invitation).tap(&:save!)
 

@@ -225,6 +225,7 @@ directory entry `spec/architecture/` in the CI guard list):
 A conversation (messages between members of one organisation, for instance an agency and its
 client) is read by somebody who has a participant row **and** is an active member of the
 conversation's organisation. That is decided **only** by the scope `Conversation.visible_to(user)`.
+(Its third term is the account itself: an erased account reads nothing, whatever rows it left.)
 A conversation holds correspondence with a client, and the section above tells how a rule that
 had to be remembered at every read was forgotten at seven. So this rule has one place, and its
 guard stood before the first reader did.

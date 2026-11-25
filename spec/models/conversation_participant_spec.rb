@@ -86,6 +86,14 @@ RSpec.describe ConversationParticipant, :ci_guard, type: :model do
       end
     end
 
+    it 'refuses it as well on a row that exists' do
+      row = row_for(member).tap(&:save!)
+
+      expect(row.update(conversation_id: foreign_conversation.id)).to be(false)
+      expect(row.errors.added?(:conversation, :invalid)).to be(true)
+      expect(row.reload.conversation_id).to eq(conversation.id)
+    end
+
     it 'refuses it as well under the other tenant, which stamps the row as its own' do
       own_id = conversation.id
       visitor = member_of(other_organisation)

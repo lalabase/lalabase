@@ -212,6 +212,15 @@ RSpec.describe ConversationPolicy, :ci_guard, type: :policy do
       expect(described_class.new(member_of(organisation, active: false), Conversation).create?).to be(false)
     end
 
+    it 'says no where no organisation is set' do
+      member = member_of(organisation)
+      expect(described_class.new(member, Conversation).create?).to be(true)
+
+      ActsAsTenant.current_tenant = nil
+
+      expect(described_class.new(fresh(member), Conversation).create?).to be(false)
+    end
+
     it 'says no to somebody without a membership here' do
       visitor = member_of(other_organisation)
 

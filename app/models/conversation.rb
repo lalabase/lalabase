@@ -18,6 +18,7 @@
 # * No participant row, no reading. A participation ends by deleting its row.
 # * No active membership, no reading. A deactivated or removed member keeps
 #   the row and reads nothing until the membership is back.
+# * No account, no reading. An erased account is not among the users any more.
 #
 # #visible_to? asks the scope and has no rule of its own. #visible_participants
 # is the same rule from the other end (who of the participants reads now).
@@ -55,11 +56,15 @@ class Conversation < ApplicationRecord
 
   # THE read rule. Inside the tenant like every query of this model, so it
   # raises without one. Each conversation once, and it chains.
+  # Three terms: a participant row, an active membership in the organisation of
+  # the conversation, and an account that still is one (User leaves erased
+  # accounts out by itself, which is also what #visible_participants reads).
   scope :visible_to, lambda { |user|
     next none if user.nil?
 
     where(id: ConversationParticipant.where(user_id: user.id).select(:conversation_id))
       .where(organisation_id: Membership.active.where(user_id: user.id).select(:organisation_id))
+      .where(User.where(id: user.id).arel.exists)
   }
 
   def visible_to?(user)

@@ -249,7 +249,9 @@ guard stood before the first reader did.
   organisation by the model, also where no tenant is set (the tenant stamps a new row as its own,
   whatever the row names).
 * **The guard refuses five things:**
-  1. In controllers, services, queries, mailers, components, views, presenters, jobs and helpers:
+  1. Everywhere under `app/` outside `app/models` and `app/policies` (controllers, channels,
+     services, queries, mailers, components, views, presenters, jobs, helpers, and a directory
+     that is added later):
      a use of `Conversation`, `ConversationPost` or `ConversationParticipant` on the class that is
      not on its list of what may stand (`visible_to`, `new`, `create`, a constant behind `::`, the
      class as an argument as in `policy_scope(Conversation)`), and SQL text that names one of
@@ -271,7 +273,9 @@ guard stood before the first reader did.
 * The allow list `OWNERS` (a file and its reason) only shrinks; an entry without a finding or
   for a missing file is red. It has one entry, `app/services/user_data_exports/registry.rb`: the
   personal data export lists a person's own rows by `user_id`, dates only, and on purpose not
-  through the rule, so what somebody wrote stays theirs to ask for after they left.
+  through the rule, so what somebody wrote stays theirs to ask for after they left a
+  conversation or were deactivated. (Like the whole export it covers only organisations the
+  person still has a membership row in.)
 * ⚠️ **A tripwire against accidental readers, not a proof.** Not seen: a read built at run time
   (a class in a variable, `constantize`, `send`); a read through an association on a record
   (`conversation.conversation_posts`), which is fine when the record came through the rule and

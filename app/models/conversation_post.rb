@@ -13,6 +13,12 @@
 # The author is always a person (user). origin says through which door the
 # post came; only `web` is written so far.
 #
+# ⚠️ For whoever writes the first one: the model holds the conversation and the
+# invitation to the row's organisation. It does not check that the author, or
+# the people a system entry is about (subject_user, second_user), belong to
+# it: users carry no organisation. The writer takes the author from the
+# signed-in participant and the others from the members it may pick from.
+#
 # On purpose this model has no embeddings (no fragments), no activity trail
 # (not Trackable) and no file attachments: a conversation is not searched, not
 # read by the assistant and not listed in a feed.

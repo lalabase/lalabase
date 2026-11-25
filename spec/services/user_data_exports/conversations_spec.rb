@@ -145,6 +145,23 @@ RSpec.describe 'Conversations in the personal data export', :ci_guard do
       expect(exported(person, 'conversation_participations.json')).to eq([])
     end
 
+    # The boundary of the whole export, not of these two sources: it covers the
+    # organisations a person still has a membership row in.
+    it 'gives a deactivated member the dates still, and somebody removed from the organisation nothing of it' do
+      take_part(person)
+      write(person, 'Vor der Deaktivierung', at: Time.utc(2026, 11, 2, 9, 0))
+      membership = Membership.find_by!(user_id: person.id, organisation_id: organisation.id)
+
+      membership.update!(active: false)
+      expect(exported(person, 'conversation_posts.json').size).to eq(1)
+
+      membership.destroy!
+      files = UserDataExports::Builder.new(User.find(person.id)).files
+
+      expect(files.keys.grep(/conversation/)).to be_empty
+      expect(ActsAsTenant.with_tenant(organisation) { ConversationPost.where(user_id: person.id).count }).to eq(1)
+    end
+
     it 'keeps the rows of one organisation out of the folder of another' do
       elsewhere = create(:organisation, name: 'Süd AG')
       ActsAsTenant.with_tenant(elsewhere) do

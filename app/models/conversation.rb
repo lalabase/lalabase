@@ -27,6 +27,12 @@
 # past the rule and the two terms above inside it.
 #
 # Nothing writes or reads these rows yet: no route, no screen, no notification.
+#
+# ⚠️ For whoever writes the first one: the model checks that a PARTICIPANT is an
+# active member of the organisation. It does not check the creator. The writer
+# takes the creator from the signed-in member; a creator who never was a
+# member would count as "gone" at once, and ConversationPolicy#destroy? would
+# then let every participant delete.
 class Conversation < ApplicationRecord
   MAX_TITLE_LENGTH = 255
 

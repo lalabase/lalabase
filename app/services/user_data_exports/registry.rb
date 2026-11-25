@@ -266,9 +266,12 @@ module UserDataExports
       # no longer takes part would get the title of something they may not see
       # any more), no text, no id of a conversation, no id of another person.
       # Listed by user_id and NOT through Conversation.visible_to: what a person
-      # wrote stays theirs to ask for after they left a conversation. That is
-      # why this file stands in the allow list of
+      # wrote stays theirs to ask for after they left a conversation or were
+      # deactivated. That is why this file stands in the allow list of
       # spec/architecture/conversation_visibility_guard_spec.rb.
+      # Like every source here it stops where the export stops: at the
+      # organisations a person still has a membership row in (also an inactive
+      # one). After a removal from the organisation nothing of it is exported.
       # System entries are left out (kind message only): they are written about
       # a step in the conversation, not by the person as a message.
       # Person references that are NOT exported, named here because the guard

@@ -19,7 +19,9 @@ require 'prism'
 #   ConversationParticipant, also with a leading `::`. Not by the word: the module
 #   Conversations, ConversationPolicy, ConversationsController, Foo::Conversation
 #   and a variable named conversation are other things. Five refusals:
-#   1. In the reader directories (READER_DIRECTORIES, .rb and .erb) a model
+#   1. Everywhere under app/ but in the two places that keep the rule
+#      (KEEPER_DIRECTORIES: the models and the policies), in .rb and .erb files,
+#      also in a directory that is added later, a model
 #      constant stands only where the list allows it: as the receiver of a call
 #      of SAFE_CALLS (`Conversation.visible_to(user)`, and the chain behind it may
 #      go on), in front of `::` (`ConversationPost::KINDS`), as an argument of a
@@ -85,9 +87,15 @@ module ConversationVisibilityGuard
   TABLES = %w[conversations conversation_posts conversation_participants].freeze
   ASSOCIATIONS = %w[conversations conversation_posts conversation_participants].freeze
 
-  # Where readers live. The models and the policy are no readers: they keep the rule.
+  # Where the rule is kept, not read: the models and the policy.
+  KEEPER_DIRECTORIES = %w[app/models app/policies].freeze
+
+  # Where readers live today. Refusals 1 and 2 read every other directory under
+  # app/ as well (reader_files), so a new one is read from its first file on;
+  # these are named so that a renamed directory cannot empty the walk unseen.
   READER_DIRECTORIES = %w[
-    app/controllers app/services app/queries app/mailers app/components app/views app/presenters app/jobs app/helpers
+    app/channels app/controllers app/services app/queries app/mailers app/components app/views app/presenters app/jobs
+    app/helpers
   ].freeze
 
   # Places that must not know the three models at all
@@ -370,6 +378,11 @@ module ConversationVisibilityGuard
                .map { |path| Pathname(path).relative_path_from(Rails.root).to_s }.uniq.sort
   end
 
+  # Every file refusals 1 and 2 read: all of app/ outside the keepers of the rule
+  def self.reader_files
+    files(%w[app]).reject { |file| KEEPER_DIRECTORIES.any? { |directory| file.start_with?("#{directory}/") } }
+  end
+
   # One check (:reads, :broadcasts, :mentions) on one file of the tree, as
   # "file:line: finding"
   def self.in_file(check, file)
@@ -407,7 +420,7 @@ RSpec.describe 'Conversation reads go through Conversation.visible_to', :ci_guar
   end
 
   it 'finds no read past the rule outside the allow list' do
-    files = ConversationVisibilityGuard.files(ConversationVisibilityGuard::READER_DIRECTORIES)
+    files = ConversationVisibilityGuard.reader_files
     offenders = (files - ConversationVisibilityGuard::OWNERS.keys).flat_map do |file|
       ConversationVisibilityGuard.in_file(:reads, file)
     end
@@ -477,11 +490,15 @@ RSpec.describe 'Conversation reads go through Conversation.visible_to', :ci_guar
   # Pinned so a broken glob or a renamed directory cannot pass by reading nothing
   describe 'the walks' do
     it 'reads Ruby files and templates of every reader directory, the allow-listed files among them' do
-      files = ConversationVisibilityGuard.files(ConversationVisibilityGuard::READER_DIRECTORIES)
+      files = ConversationVisibilityGuard.reader_files
 
       expect(files.size).to be > 500
       expect(files).to include('app/controllers/application_controller.rb', 'app/views/layouts/application.html.erb',
-                               'app/jobs/application_job.rb', *ConversationVisibilityGuard::OWNERS.keys)
+                               'app/jobs/application_job.rb', 'app/channels/application_cable/channel.rb',
+                               *ConversationVisibilityGuard::OWNERS.keys)
+      expect(files.grep(%r{\Aapp/(?:models|policies)/})).to be_empty
+      left_out = ConversationVisibilityGuard.files(%w[app]) - files
+      expect(left_out).to include('app/models/conversation.rb', 'app/policies/conversation_policy.rb')
       ConversationVisibilityGuard::READER_DIRECTORIES.each do |directory|
         expect(files.grep(%r{\A#{directory}/})).not_to be_empty, "no file read under #{directory}"
       end
@@ -568,6 +585,7 @@ RSpec.describe 'Conversation reads go through Conversation.visible_to', :ci_guar
         "Conversation\n  .where(archived: false)\n" => 'Conversation.where',
         "ConversationPost\n  .joins(:conversation)\n" => 'ConversationPost.joins',
         'Conversation.joins(:creator)' => 'Conversation.joins',
+        'stream_for Conversation.find(params[:id])' => 'Conversation.find',
         'ConversationPost.count' => 'ConversationPost.count',
         'Conversation.exists?(id: id)' => 'Conversation.exists?',
         'Conversation.order(:created_at)' => 'Conversation.order',

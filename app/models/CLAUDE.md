@@ -306,7 +306,9 @@ Verzeichnis-Layout nicht ablesbar — diese Karte gruppiert sie:
     alle drei Träger: `spec/models/concerns/rich_text_body_spec.rb`.
   * **Export und Schalter**: Der persönliche Export listet nur die Daten eigener Nachrichten und
     Teilnahmen, über `user_id` und nicht über die Leseregel (`user_data_exports/registry.rb`,
-    der eine Eintrag in der Ausnahmeliste des Wächters). `Conversations.enabled?`
+    der eine Eintrag in der Ausnahmeliste des Wächters): Wer eine Konversation verlassen hat
+    oder deaktiviert ist, bekommt sie weiter; wer aus der Organisation entfernt ist, bekommt wie
+    überall im Export nichts mehr von ihr. `Conversations.enabled?`
     (`app/services/conversations.rb`, `LALABASE_CONVERSATIONS=1`) hat noch keinen Aufrufer;
     Modelle, Policy und Export fragen ihn nie.
 * **Dokumente/Doku/Codebase**: `document`, `document_version`, `documentation_*`

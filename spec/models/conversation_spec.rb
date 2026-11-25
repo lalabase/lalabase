@@ -45,9 +45,9 @@ RSpec.describe Conversation, :ci_guard, type: :model do
                                       user: user)
   end
 
-  # What the scope lists for the person. Beside it the predicate is asked for every
-  # conversation of the tenant, and for a participant the list from the other end:
-  # the three must give the same answer.
+  # What the scope lists for the person. Beside it the predicate and the list from the
+  # other end are asked for every conversation of the tenant, also for one the person
+  # does not take part in: the three must give the same answer, yes and no.
   def seen_by(user)
     listed = described_class.visible_to(user).to_a
     # One question per conversation is the point here, not an N+1 to report.
@@ -55,7 +55,7 @@ RSpec.describe Conversation, :ci_guard, type: :model do
       described_class.find_each do |each_conversation|
         expect(each_conversation.visible_to?(user)).to eq(listed.include?(each_conversation)),
                                                        "visible_to? disagrees with the scope for #{each_conversation.title}"
-        next unless user && each_conversation.conversation_participants.exists?(user_id: user.id)
+        next unless user
 
         expect(each_conversation.visible_participants.exists?(id: user.id)).to eq(listed.include?(each_conversation)),
                                                                                'visible_participants disagrees with the scope'
@@ -229,14 +229,16 @@ RSpec.describe Conversation, :ci_guard, type: :model do
   end
 
   describe '#visible_participants, the same rule from the other end' do
-    it 'is a relation of users: the participants who are active members now' do
+    it 'is a relation of users: the participants of this conversation who are active members now' do
       active = member_of(organisation)
       deactivated = member_of(organisation)
       removed = member_of(organisation)
       bystander = member_of(organisation)
+      elsewhere = member_of(organisation)
       rows = [take_part(active)]
       rows << take_part(deactivated)
       rows << take_part(removed)
+      take_part(elsewhere, second_conversation)
       membership_of(deactivated).update!(active: false)
       membership_of(removed).destroy!
 
@@ -246,6 +248,10 @@ RSpec.describe Conversation, :ci_guard, type: :model do
       expect(participants.klass).to eq(User)
       expect(participants).to contain_exactly(active)
       expect(participants).not_to include(bystander)
+      # An active member who takes part in ANOTHER conversation of the same organisation
+      # is nobody to tell about this one.
+      expect(second_conversation.visible_participants).to contain_exactly(elsewhere)
+      expect(participants).not_to include(elsewhere)
       expect(rows.map(&:user_id)).to contain_exactly(active.id, deactivated.id, removed.id)
       # For every participant row: in the list exactly when the scope shows the conversation.
       expect(described_class.visible_to(fresh(active)).exists?(conversation.id)).to be(true)

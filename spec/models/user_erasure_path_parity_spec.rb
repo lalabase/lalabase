@@ -357,6 +357,43 @@ RSpec.describe 'Account erasure path parity', type: :model do
       end
     end
 
+    # Nothing is added to the erasure for conversations. What a person wrote there
+    # stays as content of the organisation, like a public ticket comment, and reads
+    # as anonymous. The reading ends with the membership, through the one read rule:
+    # the participant row may stay, it opens nothing without a membership.
+    describe 'conversations (the posts stay, the reading ends with the membership)' do
+      let(:conversation) { create(:conversation, creator: colleague) }
+      let!(:own_message) { create(:conversation_post, conversation: conversation, user: user) }
+
+      before do
+        create(:conversation_participant, conversation: conversation, user: user)
+        create(:conversation_participant, conversation: conversation, user: colleague)
+      end
+
+      it 'keeps the posts of the account, and their author reads as anonymous' do
+        record.soft_delete_and_anonymize!
+
+        kept = ConversationPost.find(own_message.id)
+        author = User.with_deleted.find(kept.user_id)
+        expect(kept.user_id).to eq(user.id)
+        expect(kept.content.to_plain_text).to be_present
+        expect([author.first_name, author.last_name]).to all(eq(User::DeletionLifecycle::ANONYMIZED_NAME))
+      end
+
+      it 'shows the conversation to the erased account no longer, and to a colleague as before' do
+        expect(Conversation.visible_to(User.find(user.id))).to contain_exactly(conversation)
+        expect(conversation.visible_participants.pluck(:id)).to contain_exactly(user.id, colleague.id)
+
+        record.soft_delete_and_anonymize!
+
+        erased = User.with_deleted.find(user.id)
+        expect(Conversation.visible_to(erased)).to be_empty
+        expect(conversation.visible_to?(erased)).to be(false)
+        expect(conversation.visible_participants.pluck(:id)).to contain_exactly(colleague.id)
+        expect(Conversation.visible_to(User.find(colleague.id))).to contain_exactly(conversation)
+      end
+    end
+
     it 'still erases the users row itself' do
       record.soft_delete_and_anonymize!
 

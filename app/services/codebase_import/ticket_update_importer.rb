@@ -105,8 +105,13 @@ module CodebaseImport
       end
     end
 
+    # The history of the ticket, at the time of the update it came with: nobody
+    # is told about it. Without skip_notifications the outbox fans each imported
+    # change out as new, on top of the inbox of whom it names (a row stands at
+    # the moment its event reached the inbox, Notifications::RowEvents.arrival).
     def create_activity_without_callbacks(attributes)
       activity = Activity.new(attributes)
+      activity.skip_notifications = true
       activity.save!
       activity
     rescue StandardError => e

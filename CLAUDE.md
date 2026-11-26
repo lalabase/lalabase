@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## Projektstruktur & Architektur
+## Project Structure & Architecture
 
 ### Core Domain Models
 - **Account**: Billing entity ABOVE organisations (bundles orgs for billing; tenant-independent, owner ≠ org data access — see `doc/billing_agentur_konto_plan.md`)
@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Activity Tracking**: Automatic audit trail via callbacks and observers
 - **Notification System**: Event-driven notifications with fanout service
 - **Service Objects**: Complex business logic encapsulation
-- **Background Processing**: Solid Queue (einziges Job-Backend; Sidekiq ist entfernt)
+- **Background Processing**: Solid Queue (the only job backend; Sidekiq has been removed)
 
 ---
 
@@ -32,31 +32,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 * **Runtime**: Ruby 4.0.10 (`.ruby-version`), Rails 8.1.4.1, `config.load_defaults 7.2`.
   CI reads Ruby from `.ruby-version`.
 
-* **Development server**: **zwei Prozesse nötig** — `bin/dev` (Tailwind-Watch + Solid Queue via
-  `Procfile.dev`) UND `bin/rails server -b 0.0.0.0`. `Procfile.dev` enthält **keinen** `web:`-Eintrag
-  (entfernt in `9e4673fc`), `bin/dev` allein startet also keine Anwendung.
-* **Background jobs**: Jobs laufen automatisch mit Solid Queue in Development
-* **Tests ausführen**:
-  * Alle Tests: `rspec`
-  * Einzelne Datei: `rspec spec/path/to/file_spec.rb`
-  * Einzelner Test: `rspec spec/path/to/file_spec.rb:LINE_NUMBER`
-  * Mit Debug-Output: `RAILS_LOG_LEVEL=debug rspec ...`
-* **JS-Tests** (reine Stimulus-Lib/Parser via Node `node:test`, kein Chrome nötig): `npm test`
-* **Python-Tests** (`bin/lala`, Attrappe des MCP-Endpunkts im selben Prozess, nur Standardbibliothek):
+* **Development server**: **two processes required** — `bin/dev` (Tailwind watch + Solid Queue via
+  `Procfile.dev`) AND `bin/rails server -b 0.0.0.0`. `Procfile.dev` contains **no** `web:` entry
+  (removed in `9e4673fc`), so `bin/dev` alone does not start the application.
+* **Background jobs**: Jobs run automatically with Solid Queue in development
+* **Run tests**:
+  * All tests: `rspec`
+  * Single file: `rspec spec/path/to/file_spec.rb`
+  * Single test: `rspec spec/path/to/file_spec.rb:LINE_NUMBER`
+  * With debug output: `RAILS_LOG_LEVEL=debug rspec ...`
+* **JS tests** (pure Stimulus libraries/parsers via Node `node:test`, no Chrome required): `npm test`
+* **Python tests** (`bin/lala`, in-process fake MCP endpoint, standard library only):
   `python3 -m unittest discover -s spec/python -p '*_test.py'`
 * **Product screenshots** for the project website: `MARKETING_SCREENSHOTS=1 bundle exec rspec spec/marketing/screenshots_spec.rb`,
   output in `tmp/screenshots/marketing/<locale>/`, excluded from every normal run. The README's
   four pictures are copied from there by hand to `.github/readme/`; then
   `bundle exec ruby script/readme_gallery` redraws the framed tiles of its gallery.
-* **System-/JS-Tests auf einer ARM-Maschine** (Parallels-VM): `selenium-webdriver` liefert für
-  Linux nur eine x86-64-Binary von `selenium-manager`, für macOS dagegen eine Universal-Binary.
-  Auf aarch64 lehnt der Kernel sie ab und `/bin/sh` meldet stattdessen
-  `1: Syntax error: "(" unexpected`, ohne die Architektur zu erwähnen. Abhilfe: chromedriver aus
-  der Distribution installieren (`sudo apt install chromium-driver`) und, falls er nicht unter
-  einem der Standardpfade liegt, `CHROMEDRIVER_BIN` (und bei Bedarf `CHROME_BIN`) setzen.
-  Besitzer der Auflösung ist `LocalChrome` in `spec/support/capybara.rb`, Guard:
-  `spec/architecture/chrome_driver_binary_guard_spec.rb`. Auf dem Mac greift nichts davon, dort
-  bleibt Selenium Manager zuständig.
+* **System/JS tests on an ARM machine** (Parallels VM): `selenium-webdriver` ships only
+  an x86-64 `selenium-manager` binary for Linux, but a universal binary for macOS.
+  On aarch64, the kernel rejects it and `/bin/sh` instead reports
+  `1: Syntax error: "(" unexpected`, without mentioning the architecture. Remedy: install chromedriver
+  from the distribution (`sudo apt install chromium-driver`) and, if it is not in
+  a standard path, set `CHROMEDRIVER_BIN` (and `CHROME_BIN` if needed).
+  Resolution is owned by `LocalChrome` in `spec/support/capybara.rb`, guard:
+  `spec/architecture/chrome_driver_binary_guard_spec.rb`. None of this applies on Mac;
+  Selenium Manager remains responsible there.
 * **CI**: `.github/workflows/guards.yml` runs six jobs on every PR, with no path filter
   (not on a push to main, and a new push cancels the superseded run; by hand via
   `workflow_dispatch`, reasons in the workflow header):
@@ -71,18 +71,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `tmp/screenshots/`, `tmp/capybara/` and explicit mobile captures.
   A red RuboCop run means a new offense against the frozen baseline. A red guards
   job needs inspection of the failing step, including browser/infrastructure failures.
-  ⚠️ **Die kuratierte Liste ist handgepflegt.** Wer eine Spec löscht, löscht ihre Zeile dort
-  mit: rspec kann die Datei nicht LADEN und meldet „0 examples, 1 error occurred outside of
-  examples", was nach Infrastruktur aussieht und keine ist. Ein lokaler Lauf der Liste fängt
-  das nicht, wenn man die Pfade vorher auf existierende filtert. Wächter:
-  `spec/architecture/ci_guard_list_spec.rb` (prüft auch, dass kein `.js` an rspec geht, das
-  fährt der `javascript`-Job mit Node).
-  ⚠️ **Ein Sicherheits-Spec trägt `:ci_guard`** an seinem `describe`
-  (`RSpec.describe Foo, :ci_guard, type: :request do`, das Tag vor den Keyword-Argumenten).
-  Derselbe Wächter verlangt, dass jede so markierte Datei in der Liste steht, einzeln oder über
-  ein Verzeichnis darüber. Eine gestrichene Zeile wird damit rot statt still. Bis zum
-  27.09.2026 liefen die Regressions-Specs von #895 und #896 nirgends. Neue Specs zu Rechten,
-  Mandantengrenzen oder behobenen Lücken: Tag setzen **und** Pfad eintragen.
+  ⚠️ **The curated list is maintained manually.** Anyone deleting a spec must also delete its line
+  there: rspec cannot LOAD the file and reports “0 examples, 1 error occurred outside of
+  examples”, which looks like an infrastructure failure but is not. A local run of the list does not catch
+  this if paths are first filtered to existing files. Guard:
+  `spec/architecture/ci_guard_list_spec.rb` (also checks that no `.js` is passed to rspec;
+  the `javascript` job runs those with Node).
+  ⚠️ **A security spec carries `:ci_guard`** on its `describe`
+  (`RSpec.describe Foo, :ci_guard, type: :request do`, tag before keyword arguments).
+  The same guard requires every tagged file to be listed, individually or through
+  a parent directory. A removed line therefore fails instead of silently disappearing. Until
+  27 September 2026, the regression specs from #895 and #896 ran nowhere. New specs for permissions,
+  tenant boundaries or fixed vulnerabilities: add the tag **and** the path.
   The full suite and full `erblint` still run locally (known drift, separate cleanup).
 * **Docker** (`Dockerfile`, `compose.yml`, `compose.build.yml`, `.env.docker.example`): for
   self-hosters only, our servers deploy with Capistrano and never run the image. Each published
@@ -133,89 +133,89 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   and sets `permissions:` at the top (read-only unless a job needs more); a new workflow
   does the same. All four raise the OpenSSF Scorecard (SAST, Dependency-Update-Tool,
   Pinned-Dependencies, Token-Permissions).
-* **Zwei Sicherheits-Jobs, absichtlich getrennt.** Ein Job trägt genau einen Status, und
-  `dependencies` ist heute rot (s. u.). Zusammengelegt wäre brakemans Rot von diesem Rot nicht
-  mehr zu unterscheiden, und brakemans ganzer Wert ist die Aussage „Rot = NEUER Befund":
-  * `brakeman`, gegen die frozen `config/brakeman.ignore`-Baseline (38 Einträge, Stand
-    20.10.2026; der `constantize`-Eintrag im Datei-Proxy ist mit #915 behoben statt neu
-    eingefroren, der Eintrag der Titelsuche ging mit dem Umbau der Ticketsuche).
-    Rot = NEUER Befund. **Jeder Eintrag ist geprüft** und nennt im `note`-Feld
-    den Grund, warum er sicher ist; die Datei darf nur schrumpfen, und ein neuer Eintrag
-    braucht dieselbe Begründung. Ausnahme seit 20.10.2026: das TRUNCATE des Demo-Resets
-    (`lib/lalabase/demo/reset.rb`), ohne Eingabe; Brakeman sieht die Quotierung durch
-    `map` und `join` nicht. Bei der Prüfung am 26.09.2026 war einer eine echte
-    SQL-Injection (Ticketsuche, #889); fünf weitere wurden gehärtet statt eingefroren.
-    ⚠️ Ein eingefrorener Eintrag ist öffentlich sichtbar: „ungeprüft" darin ist eine Liste mit
-    Angriffszielen.
-    Ein früherer hochkonfidenter Eintrag, `_filter_pills.html.erb:97` (XSS), wurde am 31.08.2026 **behoben
-    statt neu eingefroren**: eine Zeilenverschiebung änderte seinen Fingerabdruck, und da die
-    Datei nur schrumpfen darf, sind die fünf handgebauten `"#{request.path}?#{...}"` jetzt ein
-    Erbauer mit benannter Route (`TimeSessionsHelper#time_list_filter_url`). Genauso am
-    08.09.2026 `ad_hoc_filter_service.rb:248` (SQLi im Datumsfilter): die Zeile verschob sich,
-    der Fingerabdruck änderte sich, und die Bedingung ist jetzt Arel statt SQL-String
-  * `dependencies` (`bundler-audit`), **ohne** Ignore-Liste. Ein verwundbares Gem ist keine Drift,
-    sondern eine Versionsnummer; die Antwort ist ein Update, kein Vermerk. Seit dem fünften
-    Schritt der Abhängigkeits-Serie (#640, #641, #649, #657, Rails 8.0.5.1 auf main) ist der
-    Job grün: rot = NEUE Meldung, und die Antwort ist wieder eine Versionsnummer
-* **Code-Qualität**:
-  * Ruby linten: `rubocop`
-  * ERB linten: `erblint --lint-all`  
-  * Security Scanner: `bundle exec brakeman` — **nicht** `bin/brakeman`: der Shim erzwingt `--ensure-latest` und bricht mit Exit 5 ab, sobald es upstream eine neuere Version gibt, ohne überhaupt zu scannen
-  * Abhängigkeiten prüfen: `gem install bundler-audit && bundle-audit check --update` (bewusst nicht im Gemfile: das Werkzeug prüft die `Gemfile.lock` und darf nicht von ihr gepinnt werden)
+* **Two security jobs, deliberately separate.** A job has exactly one status, and
+  `dependencies` is currently red (see below). Combined, Brakeman's red would be
+  indistinguishable from that red, and Brakeman's entire value is “red = NEW finding”:
+  * `brakeman`, against the frozen `config/brakeman.ignore` baseline (38 entries as of
+    20 October 2026; the `constantize` entry in the file proxy was fixed with #915 instead of
+    being frozen again; the title-search entry disappeared with the ticket-search redesign).
+    Red = NEW finding. **Every entry has been reviewed** and its `note` field states
+    why it is safe; the file may only shrink, and a new entry
+    needs the same justification. Exception since 20 October 2026: the demo reset's TRUNCATE
+    (`lib/lalabase/demo/reset.rb`), with no input; Brakeman cannot see quoting through
+    `map` and `join`. During the 26 September 2026 review, one was a real
+    SQL injection (ticket search, #889); five others were hardened instead of frozen.
+    ⚠️ A frozen entry is publicly visible: “unreviewed” entries form a list of
+    attack targets.
+    An earlier high-confidence entry, `_filter_pills.html.erb:97` (XSS), was **fixed
+    instead of frozen again** on 31 August 2026: a line shift changed its fingerprint, and because the
+    file may only shrink, the five handmade `"#{request.path}?#{...}"` expressions are now one
+    builder using a named route (`TimeSessionsHelper#time_list_filter_url`). Likewise on
+    8 September 2026, `ad_hoc_filter_service.rb:248` (SQLi in the date filter): the line moved,
+    the fingerprint changed, and the condition is now Arel instead of an SQL string
+  * `dependencies` (`bundler-audit`), **without** an ignore list. A vulnerable gem is not drift,
+    but a version number; the answer is an update, not a note. Since the fifth
+    step of the dependency series (#640, #641, #649, #657, Rails 8.0.5.1 on main), the
+    job is green: red = NEW alert, and the answer is again a version number
+* **Code quality**:
+  * Lint Ruby: `rubocop`
+  * Lint ERB: `erblint --lint-all`
+  * Security scanner: `bundle exec brakeman` — **not** `bin/brakeman`: the shim forces `--ensure-latest` and exits with code 5 as soon as a newer upstream version exists, without scanning at all
+  * Check dependencies: `gem install bundler-audit && bundle-audit check --update` (deliberately not in the Gemfile: the tool checks `Gemfile.lock` and must not be pinned by it)
 * **Assets**:
-  * Tailwind-CSS baut `tailwindcss-rails` (dev: `bin/rails tailwindcss:watch` via Procfile.dev, einmalig: `bin/rails tailwindcss:build`); die übrigen Stylesheets bündelt Sprockets über die `*= require`-Direktiven in `application.css`
-  * Bootstrap-Icons-Fonts nach `public/fonts` kopieren (einmalig nach `npm install`): `npm run copy:fonts`
-* **Database**: 
-  * Migrationen: `bin/rails db:migrate`
-  * Schema laden: `bin/rails db:schema:load`
-  * Seeds: `bin/rails db:seed` (läuft auch automatisch, wenn `db:prepare` eine Datenbank neu anlegt).
-    Lädt immer die Persona-Stammdaten, in Development zusätzlich eine kleine Demo
-    (`db/seeds/demo.rb`). Die Seeds löschen **nie** etwas und enthalten keine echten Adressen,
-    nur `@example.com` (Guard: `spec/architecture/seeds_guard_spec.rb`)
-  * Erster Instanz-Admin einer frischen Installation: `bin/rails lalabase:setup`
-    (`LALABASE_ADMIN_EMAIL`/`LALABASE_ADMIN_PASSWORD` oder Abfrage im Terminal; verweigert,
-    sobald ein Beuser existiert). Der erste Nutzer registriert sich danach unter `/users/sign_up`
+  * `tailwindcss-rails` builds Tailwind CSS (dev: `bin/rails tailwindcss:watch` via Procfile.dev, one-off: `bin/rails tailwindcss:build`); Sprockets bundles the other stylesheets through the `*= require` directives in `application.css`
+  * Copy Bootstrap Icons fonts to `public/fonts` (once after `npm install`): `npm run copy:fonts`
+* **Database**:
+  * Migrations: `bin/rails db:migrate`
+  * Load schema: `bin/rails db:schema:load`
+  * Seeds: `bin/rails db:seed` (also runs automatically when `db:prepare` creates a new database).
+    Always loads persona reference data, plus a small demo in development
+    (`db/seeds/demo.rb`). Seeds **never** delete anything and contain no real addresses,
+    only `@example.com` (guard: `spec/architecture/seeds_guard_spec.rb`)
+  * First instance admin for a fresh installation: `bin/rails lalabase:setup`
+    (`LALABASE_ADMIN_EMAIL`/`LALABASE_ADMIN_PASSWORD` or terminal prompt; refuses
+    once a Beuser exists). The first user then registers at `/users/sign_up`
 
 ---
 
 ## Multi-Tenancy & Security
 
 ### acts_as_tenant Essentials
-**Kritische Prüfungen:**
-* `acts_as_tenant` gesetzt?
-* Default-Scope korrekt?
-* Seeds/Factories tenant-aware?
-* Queries filtern korrekt auf tenant?
-* **Optionaler `belongs_to` auf ein mandantenfähiges Modell steht VOR `acts_as_tenant`** (oder
-  hat eine eigene Validierung). acts_as_tenant 1.0.1 prüft Fremd-IDs nur für Verweise, die vor
-  dem Aufruf deklariert sind. Pflicht-Verweise schützt Rails selbst, weil der Lesezugriff durch
-  den Mandanten-Scope läuft. `SmartFolder.project` stand dahinter und nahm bis zum 16.09.2026
-  das Projekt einer fremden Organisation an (Guard: `smart_folders_tenant_boundary_spec.rb`).
-* Eine rohe `*_id` aus Params wird über eine mandanten- oder policy-gebundene Abfrage aufgelöst,
-  nie direkt zugewiesen. Ein Wechsel des Projekts prüft die Rechte im **Ziel**projekt
-  (Vorbild: `TimeSessionsController#move_to_requested_project`).
+**Critical checks:**
+* `acts_as_tenant` set?
+* Default scope correct?
+* Seeds/factories tenant-aware?
+* Queries correctly filtered by tenant?
+* **An optional `belongs_to` to a tenant-aware model must precede `acts_as_tenant`** (or
+  have its own validation). acts_as_tenant 1.0.1 checks foreign IDs only for associations declared
+  before the call. Rails itself protects required associations because reads go through
+  the tenant scope. `SmartFolder.project` was declared afterwards and accepted a foreign
+  organisation's project until 16 September 2026 (guard: `smart_folders_tenant_boundary_spec.rb`).
+* A raw `*_id` from params is resolved through a tenant- or policy-scoped query,
+  never assigned directly. A project change checks permissions in the **target** project
+  (reference: `TimeSessionsController#move_to_requested_project`).
 
-### Private Kommentare: eine Regel, kein nacktes `ticket.posts`
+### Private comments: one rule, no bare `ticket.posts`
 
-**Verbindlich** (Guard-Spec: `spec/architecture/post_visibility_guard_spec.rb`; läuft über den
-Verzeichnis-Eintrag `spec/architecture/` in der CI-Guard-Liste):
+**Binding** (guard spec: `spec/architecture/post_visibility_guard_spec.rb`; runs through the
+`spec/architecture/` directory entry in the CI guard list):
 
-Einen privaten Kommentar lesen sein Adressat, sein Autor und die Kontoadmins. Das entscheidet
-**nur** `Post.readable_by(user, organisation)` (bzw. `#readable_by?`, `PostPolicy` fragt es).
+A private comment may be read by its recipient, its author and account admins. **Only**
+`Post.readable_by(user, organisation)` decides this (or `#readable_by?`, which `PostPolicy` queries).
 
-| Wer liest das Ergebnis? | Dann |
+| Who reads the result? | Then use |
 |---|---|
-| eine Person (Zeitleiste, Suche, Mail an sie, API, MCP) | `ticket.posts.readable_by(user, organisation)` |
-| alle Leser des Tickets (Aktivitäts-Auszug, Zusammenfassung, KI-Antwort) | `ticket.posts.public_posts` |
+| one person (timeline, search, email to them, API, MCP) | `ticket.posts.readable_by(user, organisation)` |
+| all ticket readers (activity excerpt, summary, AI answer) | `ticket.posts.public_posts` |
 
-* Der Wächter lehnt in Controllern, Services, Queries, Mailern, Komponenten, Views, Presentern,
-  Jobs und Helpern jedes `.posts` ohne eine dieser Fortsetzungen ab (erlaubt sind noch `find`,
-  `build`, `create!`), dazu `association(:posts)` und ein `JOIN posts` ohne `posts.id IN (`.
-  Die Ausnahmeliste darf nur schrumpfen, jeder Eintrag nennt seinen Grund.
-* ⚠️ **Kein Vorladen von `posts` für eine Anzeige.** Eine vorgeladene Assoziation enthält alle
-  Posts. Die Zeitleiste hat bis zum 27.09.2026 genau so jeden privaten Kommentar gezeigt.
-* Bis zum Audit vom 26.09.2026 stand die Regel nur in `PostPolicy`. Fünf Leser hatten sie
-  vergessen, zwei weitere fanden sich beim Beheben.
+* In controllers, services, queries, mailers, components, views, presenters,
+  jobs and helpers, the guard rejects every `.posts` without one of these continuations (`find`,
+  `build`, `create!` are also allowed), plus `association(:posts)` and a `JOIN posts` without `posts.id IN (`.
+  The exception list may only shrink, and every entry states its reason.
+* ⚠️ **Do not preload `posts` for display.** A preloaded association contains all
+  posts. This is exactly how the timeline exposed every private comment until 27 September 2026.
+* Until the audit on 26 September 2026, the rule existed only in `PostPolicy`. Five readers had
+  forgotten it; two more were found while fixing them.
 
 ### A conversation is read through `Conversation.visible_to`
 
@@ -366,15 +366,15 @@ person may see it. Rights stay the membership and policy checks of every request
 
 ## ViewComponent & Design System
 
-### Komponenten-Entwicklung Patterns
-* **Naming**: `Neo[Name]Component` für Komponenten, Buttons unter `Neo::Buttons::` Namespace (z.B. `Neo::Buttons::ButtonComponent`)
-* **Stimulus Controller**: `neo_[name]_controller.js` (z.B. `neo_button_controller.js`)
-* **Hybrid-Ansatz**: Struktur/Styling in ViewComponent, Interaktivität in Stimulus
+### Component Development Patterns
+* **Naming**: `Neo[Name]Component` for components, buttons in the `Neo::Buttons::` namespace (e.g. `Neo::Buttons::ButtonComponent`)
+* **Stimulus controller**: `neo_[name]_controller.js` (e.g. `neo_button_controller.js`)
+* **Hybrid approach**: structure/styling in ViewComponent, interactivity in Stimulus
 
 ### Neo Brutalist Design Language
-* **Stil**: Border-2 black, a hard offset shadow only where you press (see "Shadows" below), bold typography
-* **Components verfügbar**: Button, Card, Tag, Flash, Modal, Forms
-* **Style Guide**: Entwicklung unter `/style-guide`, Dokumentation `docs/design/grundlegendes.md`
+* **Style**: Border-2 black, a hard offset shadow only where you press (see "Shadows" below), bold typography
+* **Available components**: Button, Card, Tag, Flash, Modal, Forms
+* **Style guide**: development at `/style-guide`, documentation in `docs/design/grundlegendes.md`
 
 ### Icons: one set, Bootstrap Icons
 
@@ -409,7 +409,7 @@ directory entry `spec/architecture/` in the CI guard list, no allowlist):
   the luck of their parent. The guard reads class lists in templates and scripts; a list
   put together in Ruby (`NeoInfoTagComponent`) is held by its component spec.
 * The cross of a removable tag says what it removes (`components.neo_tag.remove`,
-  "%{name} entfernen"): a row of chips is a row of buttons.
+  "Remove %{name}"): a row of chips is a row of buttons.
 
 ### Shadows: a hard shadow means "press me"
 
@@ -465,17 +465,17 @@ stands apart by tone and edge (rule 5 in `doc/belegungstabelle_oberflaeche.md`, 
 * Menus, modals and drawers get a soft shadow in a later slice. `shadow-layer` and `shadow-modal`
   do not exist yet: `--ink` is light in the dark theme, and a soft shadow from it would glow.
 
-### CSS-Konvention: KEINE `<style>`-Blöcke in Views
-**Verbindlich** (Guard-Spec: `spec/views/no_style_blocks_guard_spec.rb` schlägt sonst fehl):
-* CSS gehört in `app/assets/stylesheets/*`, niemals als `<style>`-Block in eine View:
-  * `layout.css` → globales Spalten-/Layout-System, Listen-/Karten-Interaktionen
-  * `views.css` → seitenspezifische Regeln (gescoped auf Seiten-Anker, thematisch gruppiert)
-  * `components/rich_text_embeds.css` → Rich-Text-Anzeige (Zoom-Link, Lightbox, Platzhalter); Editor und Inhalt stylt Lexxys eigenes Stylesheet (`lexxy-content`)
-  * `components/*.css` → gekapselte Komponenten (Vorbild: `components/custom_select.css`)
-  * `style_guide.css` → lädt nur im Style-Guide-Layout
-* **Einzige Ausnahme**: Mailer-Layouts (`layouts/mailer.html.erb`, `layouts/notification_mailer.html.erb`) — E-Mail-Clients laden keine externen Stylesheets (Allowlist im Guard-Spec).
-* **`@apply` funktioniert NUR in `application.tailwind.css`** (Build-Zeit). In Runtime-CSS oder `<style>`-Blöcken ist `@apply` wirkungslos und damit toter Code.
-* Generische Klassennamen (z. B. SortableJS `.sortable-ghost`) beim Zentralisieren auf einen Seiten-Anker scopen, sonst kollidieren Seiten-Varianten.
+### CSS Convention: NO `<style>` Blocks in Views
+**Binding** (otherwise guard spec `spec/views/no_style_blocks_guard_spec.rb` fails):
+* CSS belongs in `app/assets/stylesheets/*`, never in a `<style>` block inside a view:
+  * `layout.css` → global column/layout system, list/card interactions
+  * `views.css` → page-specific rules (scoped to page anchors, grouped by topic)
+  * `components/rich_text_embeds.css` → rich-text display (zoom link, lightbox, placeholders); Lexxy's own stylesheet styles editor and content (`lexxy-content`)
+  * `components/*.css` → encapsulated components (reference: `components/custom_select.css`)
+  * `style_guide.css` → loaded only in the style-guide layout
+* **Only exception**: mailer layouts (`layouts/mailer.html.erb`, `layouts/notification_mailer.html.erb`) — email clients do not load external stylesheets (allowlist in the guard spec).
+* **`@apply` works ONLY in `application.tailwind.css`** (build time). In runtime CSS or `<style>` blocks, `@apply` has no effect and is therefore dead code.
+* When centralizing generic class names (e.g. SortableJS `.sortable-ghost`), scope them to a page anchor to prevent collisions between page variants.
 
 ### Frontend: the application loads nothing from a foreign host
 
@@ -516,24 +516,24 @@ The guard asks three questions:
 * The list of public CDNs is incomplete by nature. It is there for the case the first question
   cannot see.
 
-### View-Konvention: KEINE rails-ujs-Optionen
-**Verbindlich** (Guard-Spec: `spec/views/no_rails_ujs_options_guard_spec.rb`, in der CI-Guard-Liste):
+### View Convention: NO rails-ujs Options
+**Binding** (guard spec: `spec/views/no_rails_ujs_options_guard_spec.rb`, in the CI guard list):
 
-`rails-ujs` ist in dieser App **nicht geladen** (`config/importmap.rb`: „Not used with Turbo").
-Zwei verbreitete Rails-Idiome sind damit **stiller toter Code** — sie werfen keinen Fehler,
-sie tun einfach nichts:
+`rails-ujs` is **not loaded** in this app (`config/importmap.rb`: “Not used with Turbo”).
+Two common Rails idioms are therefore **silent dead code** — they raise no error;
+they simply do nothing:
 
-| ❌ rails-ujs (wirkungslos) | ✅ Turbo | Symptom ohne Fix |
+| ❌ rails-ujs (no effect) | ✅ Turbo | Symptom without the fix |
 |---|---|---|
-| `link_to path, method: :delete` | `link_to path, data: { turbo_method: :delete }` | Link feuert ein **GET** → RoutingError bei POST/PATCH-only-Routen, oder stille Navigation, wenn die Route auch GET beantwortet |
-| `data: { confirm: "..." }` | `data: { turbo_confirm: "..." }` | Der Bestätigungsdialog **erscheint nie**, destruktive Aktionen feuern beim ersten Klick |
+| `link_to path, method: :delete` | `link_to path, data: { turbo_method: :delete }` | Link sends a **GET** → RoutingError for POST/PATCH-only routes, or silent navigation if the route also handles GET |
+| `data: { confirm: "..." }` | `data: { turbo_confirm: "..." }` | The confirmation dialog **never appears**; destructive actions execute on the first click |
 
-* Bei `Neo::Buttons::*`-Komponenten stattdessen den Top-Level-Kwarg `confirm:` nutzen — die
-  Komponente mappt ihn selbst korrekt auf `turbo_confirm`.
-* `button_to` darf `method:` verwenden: dort ist es die dokumentierte Rails-API und rendert ein
-  echtes Formular. Nur bei `link_to` ist `method:` die Falle.
-* Der Guard hat **keine Allowlist** — er startet bei null. Neue Ausnahme heißt: Eintrag anlegen
-  **und** begründen, warum UJS-Semantik in einer App ohne UJS nötig ist.
+* For `Neo::Buttons::*` components, use the top-level `confirm:` kwarg instead — the
+  component maps it correctly to `turbo_confirm` itself.
+* `button_to` may use `method:`: there, it is the documented Rails API and renders an
+  actual form. `method:` is a pitfall only with `link_to`.
+* The guard has **no allowlist** — it starts at zero. A new exception requires adding an entry
+  **and** explaining why UJS semantics are needed in an app without UJS.
 
 ### View convention: no form inside a form
 
@@ -557,28 +557,28 @@ like that, and one click deleted the record.
   `spec/system/note_edit_delete_spec.rb` and "deletes from the lane" in
   `spec/system/meetings_overview_spec.rb` (a "no" must keep the record).
 
-### View-Konvention: Seitenbreite nur über die Klasse
-**Verbindlich** (Guard-Spec: `spec/architecture/page_width_guard_spec.rb`; läuft über den
-Verzeichnis-Eintrag `spec/architecture/` automatisch in der CI-Guard-Liste):
+### View Convention: Page Width Only Through the Class
+**Binding** (guard spec: `spec/architecture/page_width_guard_spec.rb`; automatically runs through the
+`spec/architecture/` directory entry in the CI guard list):
 
-Welche Breite eine Seite bekommt, entscheidet eine Frage: **vergleicht man senkrecht Spalten, oder
-liest man waagerecht Zeilen?** (Abschnitt „Breiten“ in `doc/belegungstabelle_oberflaeche.md`)
+One question determines a page's width: **are users comparing columns vertically, or
+reading rows horizontally?** (“Widths” section in `doc/belegungstabelle_oberflaeche.md`)
 
-| Klasse | Wann | Im Code |
+| Class | When | In code |
 |---|---|---|
-| Voll | Tabelle, Kanban, Matrix: man vergleicht Spalten | kein Deckel |
-| Geteilt | Liste und Bahn nebeneinander | kein Deckel; eine offene Bahn hebt jeden Deckel auf |
-| Gedeckelt | pro Zeile ein Gegenstand mit einem Wert | `.width-capped` (620 px), mit Zeichen- oder Zeitspalte `.width-capped--wide` (820 px) |
+| Full | Table, Kanban, matrix: comparing columns | no cap |
+| Split | List and lane side by side | no cap; an open lane removes every cap |
+| Capped | One subject with one value per row | `.width-capped` (620 px), with a symbol or time column `.width-capped--wide` (820 px) |
 
-* Fließtext in jeder Klasse: `.width-text` (70ch).
-* Die Werte stehen **einmal** in `layout.css` (`--width-capped`, `--width-capped-wide`,
-  `--width-text`). Eine View nennt die Klasse, nie ein eigenes `max-w-*`; neues CSS liest die
-  Variable und gibt derselben Zahl keinen zweiten Namen.
-* Der Deckel sitzt am Inhaltsblock, nie an der Schale, und ist **nie zentriert**: gedeckelt heißt
-  „endet früher“, nicht „beginnt woanders“. Der Seitenkopf (Titel, Reiter, Titelaktion) bleibt
-  volle Breite.
-* Die Altlasten stehen im Guard auf einer Liste, die **nur schrumpfen** darf: eine umgestellte
-  Seite senkt ihren Eintrag, ein zu hoher Eintrag schlägt ebenfalls an.
+* Prose in every class: `.width-text` (70ch).
+* Values are defined **once** in `layout.css` (`--width-capped`, `--width-capped-wide`,
+  `--width-text`). A view names the class, never its own `max-w-*`; new CSS reads the
+  variable and does not give the same number a second name.
+* The cap sits on the content block, never the shell, and is **never centered**: capped means
+  “ends earlier”, not “starts elsewhere”. The page header (title, tabs, title action) remains
+  full width.
+* Legacy cases are in a guard list that **may only shrink**: a migrated
+  page lowers its entry; an entry that is too high also fails.
 
 ### View convention: on a phone the page head never repeats the fixed head
 
@@ -608,63 +608,64 @@ head already shows and keeps its tools; with nothing left it takes no room.
 * ⚠️ Not a page head: the title of a record in a lane or on its own page on a phone (a ticket,
   a note). It names the record, not the page, and stays.
 * Until 2026-11-24 the page head stood under the fixed head on nearly every page, often in other
-  words ("Start" over "Übersicht", "Verwaltung" over "Allgemein"), and five pages had each
+  words (German labels: "Start" over "Übersicht" — "Home" over "Overview";
+  "Verwaltung" over "Allgemein" — "Management" over "General"), and five pages had each
   dropped it in a way of their own.
 
-### View-Konvention: die Seiten ohne Anmeldung teilen EIN Gerüst
+### View Convention: Pages Before Sign-in Share ONE Skeleton
 
-**Verbindlich** (Guard-Spec: `spec/requests/auth_pages_skeleton_spec.rb`; steht mit eigenem
-Eintrag in der CI-Guard-Liste, `spec/requests/` ist dort kein Verzeichnis-Eintrag):
+**Binding** (guard spec: `spec/requests/auth_pages_skeleton_spec.rb`; has its own
+entry in the CI guard list, where `spec/requests/` is not a directory entry):
 
-Sieben Seiten sieht ein Besucher, bevor er angemeldet ist: Anmeldung, Registrierung,
-Registrierung gesperrt, Passwort vergessen, neues Passwort, Bestätigung erneut, Entsperren.
-Sie teilen ein Gerüst, und **das Gerüst gehört dem Layout `application_auth`**, nicht der View.
-Eine View liefert vier Dinge:
+Visitors see seven pages before signing in: sign-in, registration,
+registration disabled, forgot password, new password, resend confirmation, unlock.
+They share one skeleton, and **the skeleton belongs to the `application_auth` layout**, not the view.
+A view supplies four things:
 
-| Schlitz | Inhalt |
+| Slot | Content |
 |---|---|
-| `yield` | Formularspalte: Vorzeile, Überschrift, Formular |
-| `content_for :auth_cross` | der Link oben rechts |
-| `content_for :auth_panel` | der Inhalt des dunklen Panels |
-| `content_for :auth_panel_decorative` | gesetzt, wenn das Panel ein Schaubild ist (dann vor Screenreadern versteckt und auf dem Handy aus) |
+| `yield` | Form column: eyebrow text, heading, form |
+| `content_for :auth_cross` | The top-right link |
+| `content_for :auth_panel` | The dark panel's content |
+| `content_for :auth_panel_decorative` | Set when the panel is a diagram (then hidden from screen readers and on phones) |
 
-* Der Guard hat **keine Ausnahmeliste**: keine View unter `app/views/devise/` enthält
-  `lp-auth-form-col`, `lp-auth-legal` oder ein `<aside>`. Bis zum 20.09.2026 war das Gerüst
-  dreimal von Hand abgeschrieben, und die vier fehlenden Seiten hätten sieben daraus gemacht.
-* **`application_sessionless` ist NICHT dasselbe Layout.** Es behält die Admin-Anmeldung
-  (eigener Styleguide) und die Rechtsseiten einer Instanz und lädt `auth.css` nicht.
-* Passwortfelder rendert **immer** `devise/shared/_password_field` (Augen-Umschalter,
-  optional Stärkeanzeige). Die Beschriftungen stehen unter
-  `views.devise.shared.password_field`, nicht je Seite.
-* Eine neue Seite braucht einen Controller-Eintrag in `devise_for` **und** `layout
-  'application_auth'`. Ohne den `devise_for`-Eintrag läuft Devise's eigener Controller mit dem
-  Standard-Layout und rendert die Anwendungshülle für jemanden ohne Sitzung. Genau so stand
-  `/users/unlock/new` da, seit `:lockable` scharf ist.
+* The guard has **no exception list**: no view under `app/views/devise/` contains
+  `lp-auth-form-col`, `lp-auth-legal` or an `<aside>`. Until 20 September 2026, the skeleton
+  had been copied manually three times, and the four missing pages would have made seven copies.
+* **`application_sessionless` is NOT the same layout.** It retains admin sign-in
+  (own style guide) and an instance's legal pages, and does not load `auth.css`.
+* Password fields are **always** rendered by `devise/shared/_password_field` (eye toggle,
+  optional strength indicator). Labels live under
+  `views.devise.shared.password_field`, not separately per page.
+* A new page needs a controller entry in `devise_for` **and** `layout
+  'application_auth'`. Without the `devise_for` entry, Devise's own controller runs with the
+  default layout and renders the application shell for someone without a session. This is exactly
+  how `/users/unlock/new` had appeared since `:lockable` was enabled.
 
-⚠️ **Eine Frist im Panel kommt aus der Konfiguration, nie aus dem Text.** „Der Link gilt
-6 Stunden" liest `Devise.reset_password_within`, „nach 5 Fehlversuchen" liest
-`Devise.maximum_attempts`. Ein getippter Wert überlebt die geänderte Einstellung und belügt den
-Leser; der Guard ändert die Einstellung und holt die Seite noch einmal. Ein Satz, der nur für
-bestimmte Einstellungen gilt (Selbstentsperrung nur bei `unlock_strategy` `:time`/`:both`),
-steht hinter der passenden Bedingung.
+⚠️ **A time limit in the panel comes from configuration, never from text.** “The link is valid for
+6 hours” reads `Devise.reset_password_within`; “after 5 failed attempts” reads
+`Devise.maximum_attempts`. A typed value survives a changed setting and misleads the
+reader; the guard changes the setting and fetches the page again. A sentence that applies only to
+certain settings (self-unlocking only with `unlock_strategy` `:time`/`:both`)
+belongs behind the matching condition.
 
-⚠️ **Keine Sackgassen.** Jede Seite ohne Anmeldung ist von der Anmeldeseite aus anklickbar.
-Bis zum 20.09.2026 verlinkte nur `devise/shared/_links` auf Bestätigung und Entsperrung, und
-gerendert hat dieses Partial **nichts**: beide Seiten waren nur über die Adresszeile
-erreichbar, während die Hilfeseite den Link „auf der Anmeldeseite" versprach. Der Guard folgt
-dem Link und prüft die Zielseite.
+⚠️ **No dead ends.** Every page available before sign-in is reachable by clicking from the sign-in page.
+Until 20 September 2026, only `devise/shared/_links` linked to confirmation and unlocking,
+and **nothing** rendered this partial: both pages were reachable only through the address bar,
+while help promised a link “on the sign-in page”. The guard follows
+the link and checks the target page.
 
-⚠️ **`aria-hidden` nur auf einem Schaubild.** Das Panel der Anmeldung zeigt erfundene
-Inbox-Zeilen und bleibt versteckt. Ein Panel mit der einzigen Fassung einer Tatsache muss
-lesbar sein. **Am selben Attribut hängt das Handy** (seit 22.11.2026): Dort blendet `auth.css`
-ein verstecktes Panel ganz aus (`.lp-auth-panel[aria-hidden="true"]`), wer sich anmelden oder
-registrieren will, sieht nur das Formular. Ein lesbares Panel bleibt unter dem Formular stehen.
-Wird aus einem Schaubild eine Tatsache, fällt `auth_panel_decorative` weg, sonst liest sie auf
-dem Handy niemand. Und auf dem Handy blendet `auth.css` den letzten Schritt einer Schrittliste aus
-(`.lp-auth-step:last-child`) — dort darf keine Tatsache allein stehen, und eine Überschrift
-darf die Schritte nicht zählen.
+⚠️ **`aria-hidden` only on a diagram.** The sign-in panel shows fictional
+inbox rows and stays hidden. A panel containing the only copy of a fact must be
+readable. **The same attribute controls phone display** (since 22 November 2026): there, `auth.css`
+hides a decorative panel entirely (`.lp-auth-panel[aria-hidden="true"]`); anyone signing in or
+registering sees only the form. A readable panel remains below the form.
+If a diagram becomes factual content, remove `auth_panel_decorative`, or nobody on a phone
+will read it. On phones, `auth.css` also hides the final step of a step list
+(`.lp-auth-step:last-child`) — no fact may appear exclusively there, and a heading
+must not count the steps.
 
-### Beispiel-Implementation
+### Implementation Example
 ```erb
 <%= render Neo::Buttons::ButtonComponent.new(
   variant: :primary,
@@ -700,7 +701,7 @@ export default class extends Controller {
 3. **ScoreCalculator**: Calculates notification priority
 4. **Notification**: Final notification with channels (in_app, email, webhook)
 
-### Zentrales Constants System
+### Central Constants System
 ```ruby
 # app/models/concerns/notifications/constants.rb
 module Notifications::Constants
@@ -711,79 +712,79 @@ module Notifications::Constants
 end
 ```
 
-**Thread-Safety**: Verwende vollqualifizierte Namespaces in Background Jobs
+**Thread safety**: Use fully qualified namespaces in background jobs
 ```ruby
-# ✅ Richtig in Jobs/Services
+# ✅ Correct in jobs/services
 event_type = Notifications::Constants::EVENT_TYPE_MAPPING[key]
 ```
 
 ---
 
-## Critical Bug Fixes (NICHT ÜBERSCHREIBEN!)
+## Critical Bug Fixes (DO NOT OVERWRITE!)
 
-### Turbo URL-Objekt Bug (12.08.2025)
-**Problem**: Paginierung funktionierte nicht von Detail-Ansichten, generierte `/tickets/undefined` URLs.
+### Turbo URL Object Bug (12 August 2025)
+**Problem**: Pagination did not work from detail views and generated `/tickets/undefined` URLs.
 
-**Fix**: Zeile ~211 in application.js:
+**Fix**: Line ~211 in application.js:
 ```javascript
-// ✅ RICHTIG - Turbo erwartet URL-Objekt
+// ✅ CORRECT - Turbo expects a URL object
 event.detail.url = currentUrl;
 
-// ❌ FALSCH - würde Bug verursachen!
+// ❌ WRONG - would cause the bug!
 // event.detail.url = currentUrl.toString();
 ```
 
-**Wichtig**: Diese Zeile NIEMALS auf `.toString()` ändern! Turbo's interne Verarbeitung erwartet ein URL-Objekt.
+**Important**: NEVER change this line to `.toString()`! Turbo's internal processing expects a URL object.
 
-### Stimulus Controller Index Bug (20.08.2025)
-**Problem**: JavaScript Stimulus Controller 404-Fehler auf Production/Staging durch relative Imports.
+### Stimulus Controller Index Bug (20 August 2025)
+**Problem**: JavaScript Stimulus controller 404 errors in production/staging caused by relative imports.
 
-**KRITISCHE REGEL**: Die Datei `app/javascript/controllers/index.js` verwendet eine **custom Implementierung** mit `eagerLoadControllersFrom`. 
+**CRITICAL RULE**: `app/javascript/controllers/index.js` uses a **custom implementation** with `eagerLoadControllersFrom`.
 
-**NIEMALS:**
-- Die Datei mit expliziten Controller-Imports überschreiben
-- `rails stimulus:manifest:update` direkt ausführen (zerstört custom Version)
-- Zurück zu relativen Imports (`from "./controller"`) gehen
+**NEVER:**
+- Overwrite the file with explicit controller imports
+- Run `rails stimulus:manifest:update` directly (destroys the custom version)
+- Revert to relative imports (`from "./controller"`)
 
-**IMMER:**
-- Die custom `eagerLoadControllersFrom`-Lösung beibehalten
-- Bei Updates `rails stimulus:manifest:update_safe` verwenden
-- Dokumentation in `docs/STIMULUS_CONTROLLER_MANAGEMENT.md` beachten
+**ALWAYS:**
+- Retain the custom `eagerLoadControllersFrom` solution
+- Use `rails stimulus:manifest:update_safe` for updates
+- Follow the documentation in `docs/STIMULUS_CONTROLLER_MANAGEMENT.md`
 
-**Warum**: Relative Imports umgehen Importmap-Resolution → ungehashte URLs → 404-Fehler in Production.
+**Why**: Relative imports bypass importmap resolution → unhashed URLs → 404 errors in production.
 
-### Signierte Active-Storage-Adressen in Listen (08.09.2026)
-**Problem**: Die Ticketliste antwortete auf Production manchmal mit 429 „Zu viele Anfragen".
-Jede Avatar-Kachel lud ihr Bild über `rails_storage_proxy_path`, und die Route stempelt den
-Ablauf (`config.active_storage.urls_expire_in`, 15 Minuten) millisekundengenau in die Signatur.
-Dasselbe Bild war damit in jeder Zeile eine andere Adresse: kein Browser-Cache, 53 bis 59
-Rails-Requests je Listenaufruf, und Rack::Attack (`requests/ip`, 300 je 5 Minuten,
-`/rails/active_storage` zählt mit) drosselte die Liste selbst.
+### Signed Active Storage URLs in Lists (8 September 2026)
+**Problem**: The ticket list sometimes returned 429 “Too many requests” in production.
+Every avatar tile loaded its image through `rails_storage_proxy_path`, and the route stamps
+expiry (`config.active_storage.urls_expire_in`, 15 minutes) into the signature with millisecond precision.
+The same image therefore had a different URL in every row: no browser caching, 53 to 59
+Rails requests per list load, and Rack::Attack (`requests/ip`, 300 per 5 minutes,
+`/rails/active_storage` included) throttled the list itself.
 
-**Fix**: `Neo::Users::AvatarComponent#picture_url_expires_at` rundet den Ablauf auf Slots der
-konfigurierten Länge und übergibt ihn als `expires_at:`; der Link gilt bis zum Ende des
-übernächsten Slots. Guards: `spec/components/neo/users/avatar_component_spec.rb` (Slot-Regel)
-und `spec/requests/organisations/tickets_name_display_spec.rb` (vier Zeilen, eine Adresse).
-Hergang: `docs/letzte_arbeiten/2026_09_08_1_letzte_arbeiten_avatar_adresse_slot.md`.
+**Fix**: `Neo::Users::AvatarComponent#picture_url_expires_at` rounds expiry to slots of the
+configured length and passes it as `expires_at:`; the link is valid until the end of the
+slot after the next one. Guards: `spec/components/neo/users/avatar_component_spec.rb` (slot rule)
+and `spec/requests/organisations/tickets_name_display_spec.rb` (four rows, one URL).
+History: `docs/letzte_arbeiten/2026_09_08_1_letzte_arbeiten_avatar_adresse_slot.md`.
 
-**Wichtig**:
-- Wer ein Bild **je Zeile** über eine signierte Adresse rendert (`rails_storage_proxy_path`,
-  `rails_blob_path`, `url_for(variant)`), bekommt ohne gerundetes `expires_at:` denselben
-  Fehler. Die Adresse stabil machen, **nicht** die Drossel lockern.
-- `freeze_time` macht diesen Fehler in einer Spec unsichtbar: alle Zeilen rendern dann zur
-  selben Millisekunde und auch der alte Code liefert eine Adresse. Solche Guards laufen in
-  Echtzeit.
+**Important**:
+- Anyone rendering an image **per row** through a signed URL (`rails_storage_proxy_path`,
+  `rails_blob_path`, `url_for(variant)`) gets the same bug without rounded `expires_at:`.
+  Stabilize the URL; **do not** loosen the throttle.
+- `freeze_time` makes this bug invisible in a spec: all rows then render in the
+  same millisecond, and even the old code returns one URL. Such guards run in
+  real time.
 
 ---
 
 ## Database Schema & Migrations
 
 ### UUID Primary Keys
-Alle Tabellen verwenden UUID als Primary Key mit `gen_random_uuid()` default.
+All tables use UUID primary keys with a `gen_random_uuid()` default.
 
 ### PostgreSQL Enums
 ```sql
--- Beispiel für Event Types
+-- Example event types
 CREATE TYPE notification_event_type AS ENUM (
   'ticket_commented', 'ticket_assigned', 'ticket_unassigned', 
   'ticket_status_changed', 'ticket_blocker', 'project_announcement',
@@ -792,30 +793,30 @@ CREATE TYPE notification_event_type AS ENUM (
 ```
 
 ### Migration Best Practices
-* Migrationen mit `ActiveRecord::Migration[8.1]` erstellen
-* Enum-Erweiterungen: `ALTER TYPE ... ADD VALUE IF NOT EXISTS`
-* Reversible Migrationen schreiben
-* Lange Locks vermeiden (add_column ohne Default, dann UPDATE separat)
-* Datenmigrationen als Task/Service, **NICHT** in Schema-Migration
+* Create migrations with `ActiveRecord::Migration[8.1]`
+* Enum extensions: `ALTER TYPE ... ADD VALUE IF NOT EXISTS`
+* Write reversible migrations
+* Avoid long locks (add_column without a default, then UPDATE separately)
+* Data migrations as tasks/services, **NOT** in schema migrations
 
 ---
 
 ## Background Jobs & Performance
 
 ### Solid Queue (Rails 8 Native)
-Haupt-Job-System für Notifications, E-Mails, Cleanup-Tasks.
+Main job system for notifications, emails and cleanup tasks.
 ```ruby
-# Job-Definition
+# Job definition
 class ProcessNotificationJob < ApplicationJob
   queue_as :notifications
   
   def perform(notification)
-    # Job-Logik
+    # Job logic
   end
 end
 ```
 
-### Performance-kritische Scopes
+### Performance-Critical Scopes
 ```ruby
 # app/models/notification.rb
 scope :for_notification_center, -> {
@@ -830,23 +831,23 @@ scope :with_email_log_counts, -> {
 ```
 
 ### Caching Strategy
-* Fragment Caching für Komponenten: `cache [@notification, 'card_v2']`
-* Russian Doll Caching für verschachtelte Strukturen
-* Database-Level Indizierung für häufige Queries
+* Fragment caching for components: `cache [@notification, 'card_v2']`
+* Russian doll caching for nested structures
+* Database-level indexing for frequent queries
 
 ---
 
 ## Testing Strategy
 
-### Test-Pyramide
-* **System-Tests** (Capybara): Haupte User-Flows
-* **Request-Tests**: Authentication, Authorization, API-Endpunkte  
-* **Model-Tests**: Validations, Scopes, Callbacks, Business Logic
-* **Component-Tests**: ViewComponent isoliert testen
-* **JS-Tests**: Stimulus Controller (wenn komplexe Logik)
+### Test Pyramid
+* **System tests** (Capybara): Main user flows
+* **Request tests**: Authentication, authorization, API endpoints
+* **Model tests**: Validations, scopes, callbacks, business logic
+* **Component tests**: Test ViewComponents in isolation
+* **JS tests**: Stimulus controllers (when logic is complex)
 
-### Bugfix-Regel
-**IMMER**: Erst reproduzierenden, fehlschlagenden Test schreiben → dann fixen → Test bleibt als Regression Guard.
+### Bug-Fix Rule
+**ALWAYS**: First write a failing test that reproduces the bug → then fix it → keep the test as a regression guard.
 
 ```ruby
 # spec/models/notification_spec.rb
@@ -860,28 +861,28 @@ it 'prevents duplicate notifications for ticket creation with assignees' do
 end
 ```
 
-### Test-Konvention: Statussymbole gehen ungeschützt an Rack
+### Test Convention: Status Symbols Go Directly to Rack
 
-**Verbindlich** (Guard-Spec: `spec/architecture/rack_status_symbol_guard_spec.rb`; läuft über den
-Verzeichnis-Eintrag `spec/architecture/` automatisch in der CI-Guard-Liste, ohne eigenen Eintrag):
+**Binding** (guard spec: `spec/architecture/rack_status_symbol_guard_spec.rb`; automatically runs through the
+`spec/architecture/` directory entry in the CI guard list, without its own entry):
 
-Rack 3.1 hat zwei Statussymbole umbenannt, Rack 3.2 warnt bei jedem Aufruf der alten Schreibweise
-und kündigt ihre Entfernung an. Der Zahlenwert bleibt in beiden Fällen gleich.
+Rack 3.1 renamed two status symbols; Rack 3.2 warns on every use of the old spelling
+and announces their removal. The numeric value remains the same in both cases.
 
-| ❌ veraltet | ✅ aktuell | Code |
+| ❌ Deprecated | ✅ Current | Code |
 |---|---|---|
 | `:unprocessable_entity` | `:unprocessable_content` | 422 |
 | `:payload_too_large` | `:content_too_large` | 413 |
 
-* **Im Controller ist die alte Schreibweise harmlos, aber erst ab actionpack 8.0.5.1**:
-  `ActionDispatch::Response.rack_status_code` übersetzt in beide Richtungen, bevor Rack gefragt
-  wird. Unter 8.0.2 gibt es diese Schicht noch nicht, dort warnt auch `render status:`. Rails und
-  Rack müssen deshalb zusammen wandern.
-* **In Specs gibt es die Schicht nie.** rspec-rails reicht das Symbol unverändert an
-  `Rack::Utils.status_code` weiter (`have_http_status.rb:219`). Genau darum deckt der Guard `spec/`
-  ab und nicht `app/`.
-* Der Guard prüft gegen `Rack::Utils::SYMBOL_TO_STATUS_CODE` statt gegen eine Wortliste: was dort
-  fehlt, ist veraltet. Die nächste Umbenennung fängt er ohne Pflege mit ab.
+* **In controllers, the old spelling is harmless, but only from actionpack 8.0.5.1 onwards**:
+  `ActionDispatch::Response.rack_status_code` translates in both directions before asking
+  Rack. Under 8.0.2, this layer does not yet exist, so `render status:` warns too. Rails and
+  Rack must therefore move together.
+* **In specs, this layer never exists.** rspec-rails passes the symbol unchanged to
+  `Rack::Utils.status_code` (`have_http_status.rb:219`). That is exactly why the guard covers `spec/`,
+  not `app/`.
+* The guard checks against `Rack::Utils::SYMBOL_TO_STATUS_CODE` instead of a word list: anything
+  absent there is deprecated. It catches the next rename without maintenance too.
 
 ### Browser specs: the window goes back after every example
 
@@ -914,119 +915,119 @@ end
 
 ---
 
-## Verzeichnis-Karten (nested CLAUDE.md)
+## Directory Maps (nested CLAUDE.md)
 
-Für die teuersten Bereiche existieren verzeichnis-lokale Karten, die Claude Code automatisch
-lädt, sobald dort gearbeitet wird: `app/models/`, `app/services/` (+ `notifications/`,
-`lalabase/`), `app/controllers/concerns/`, `app/javascript/controllers/`. Karten sind ≤ ~40 Zeilen,
-tragen ein Stand-Datum und **verweisen statt zu duplizieren**.
+The most costly areas have directory-local maps, which Claude Code loads automatically
+when work begins there: `app/models/`, `app/services/` (+ `notifications/`,
+`lalabase/`), `app/controllers/concerns/`, `app/javascript/controllers/`. Maps are ≤ ~40 lines,
+carry an as-of date and **reference rather than duplicate**.
 
-### Boy-Scout-Regeln (bei ohnehin anstehender Berührung, kein Big Bang)
+### Boy Scout Rules (when already touching the code, no big bang)
 
-* Flaches Modell einer Namespace-Domäne substanziell angefasst → in den Namespace ziehen (`self.table_name` behalten).
-* Nicht-trivialer Controller-Write angefasst → Actor extrahieren (Seam-Regel oben).
-* Service ohne `.call(**kwargs)`-Konvention substanziell geändert → migrieren + von der Guard-Allowlist streichen.
-* Inline-`<script>`-Heredocs in Controller-Actions angefasst → in Turbo-Stream-Templates/Stimulus verlagern.
-* Duplikat-Stimulus-Controller berührt → auf die `neo_*`-Variante konsolidieren (Liste: `app/javascript/controllers/CLAUDE.md`).
-
----
-
-## Pattern-Auswahl Quick Reference
-
-* **ViewComponent**: Wiederverwendbare UI-Komponenten mit Kapselung, Testbarkeit
-* **Service Object**: Komplexe Business-Logik, mehrere Schritte, externe APIs
-* **Concern**: Kleine, wiederverwendbare Logik über mehrere Modelle/Controller
-* **Job (Solid Queue)**: >200 ms, externe Requests, Batch/Retry nötig
-* **Turbo Stream**: Kleines, lokales UI-Update, serverseitig getriggert
-* **Stimulus Controller**: Komplexere Client-Interaktionen oder State im Browser
-* **Feature Flag**: Riskante Änderungen, inkrementelles Rollout
-* **Form Object / View Model**: Komplexe Formulare, mehrere Modelle
+* Substantial changes to a flat model belonging to a namespaced domain → move it into the namespace (keep `self.table_name`).
+* Touching a nontrivial controller write → extract an actor (seam rule above).
+* Substantial changes to a service without the `.call(**kwargs)` convention → migrate it + remove it from the guard allowlist.
+* Touching inline `<script>` heredocs in controller actions → move them into Turbo Stream templates/Stimulus.
+* Touching a duplicate Stimulus controller → consolidate on the `neo_*` variant (list: `app/javascript/controllers/CLAUDE.md`).
 
 ---
 
-## Actor-Pattern (Write-Seam)
+## Pattern Selection Quick Reference
 
-Nicht-triviale Schreibvorgänge laufen über **Command-Objekte** unter `app/services/actors/`
-(`Actors::SaveTicket`, `Actors::DestroyPost`, …). Ein Actor kapselt **einen** Write: Transaktion,
-Validierungs-/Fehler-Mapping, `Current.user` fürs Activity-Tracking, Side-Effect-Jobs nach Commit.
-Gehärtet in `Actors::BaseActor`; der Vertrag wird per Guard-Spec
-(`spec/services/actors/actor_contract_guard_spec.rb`) erzwungen.
-
-### Naming (Kollision auflösen)
-„Actor" meint hier ein **Command-Objekt**. Es hat **nichts** mit `Activity#actor` /
-`Notification#actor` zu tun — die bezeichnen den **Audit-User**, der eine Änderung ausgelöst hat.
-Bewusst disjunkt; nicht vermischen.
-
-### Seam-Regel: wann Actor, wann Controller?
-* **Nicht-trivialer Write → Actor.** Nicht-trivial = Multi-Step / eigene Transaktion /
-  Activity-Tracking / Fanout / Background-Job / externer API-Call / Assoziations-Sync.
-* **Trivialer Write → Controller.** Trivial = einzelnes `update!`/`create!` auf einem Model
-  ohne Side-Effects. Triviales CRUD bleibt im Controller (kein Blanket-Rollout).
-
-### Vertrag (verbindlich, Guard-geprüft)
-* **Keyword-Args** überall: `Actors::X.new(project:, params:, id: nil, current_user:)`. Der
-  User-Parameter heißt `current_user:` (NICHT `actor:` — Kollision, s. Naming).
-* Einstieg bevorzugt `Actors::X.call(...)`; `.new(...).call` nur, wenn der Aufrufer `#record`
-  vor `#call` braucht (z. B. `PostUpdateService`).
-* **Tier 1** (Standardfall): nur `#perform` (+ `#record`, optional `#enqueue_jobs`)
-  implementieren — `BaseActor#call` übernimmt Transaktion, Fehler-Mapping, `Current.user`, Enqueue.
-* **Tier 2** (Ausnahme, in der Guard-Allowlist `tier_2_actors` im Guard-Spec): eigener `#call`, teilt nur die
-  Helper. Die maßgebliche Liste ist die Allowlist selbst (aktuell 5: `SaveTicket`,
-  `AcceptTicketSuggestion`, `CreateAiPost`, `GenerateGroupCustomerDescriptions`, `CreateSignup`; `MoveTicket` ist seit
-  08.09.2026 Tier 1, sein Nummern-Retry lebt in `Tickets::Mover`) — Begründungen je Actor
-  stehen als Kommentar am `tier_2_actors`-Let im Guard-Spec.
-* **Fehler:** Domänen-Fehlschläge per `raise Actors::ActorError, msg` (→ failure-Result);
-  `RecordInvalid` wird automatisch gemappt. Alles andere ist „unerwartet" →
-  `handle_unexpected_error`: dev/test **re-raise** (laut crashen), production loggen + failure.
-* **Jobs:** NIE rohes `perform_later` — immer `enqueue_after_commit { SomeJob.perform_later(...) }`,
-  damit der Job erst nach dem äußersten echten Commit feuert (korrekt bei Verschachtelung).
-* **`Current.user`:** NIE selbst setzen — `with_actor_context` setzt + stellt wieder her (kein Leak).
-* **`#record`:** liefert den primären Datensatz oder `nil` (nie eine Collection).
+* **ViewComponent**: Reusable UI components with encapsulation and testability
+* **Service object**: Complex business logic, multiple steps, external APIs
+* **Concern**: Small reusable logic shared across models/controllers
+* **Job (Solid Queue)**: >200 ms, external requests, batching/retries needed
+* **Turbo Stream**: Small local UI update, triggered server-side
+* **Stimulus controller**: More complex client interactions or browser state
+* **Feature flag**: Risky changes, incremental rollout
+* **Form object / view model**: Complex forms, multiple models
 
 ---
 
-## Service-Konvention (app/services)
+## Actor Pattern (Write Seam)
 
-Neue Services: Entry-Point ist `Klass.call(**kwargs)`, `#initialize` nur Keyword-Args, mindestens
-eine erklärende Kommentarzeile am Dateikopf. Read-/Query-Objekte mit Domänen-Verben deklarieren
-stattdessen `# Entry point: <methode>` im Header. Erzwungen durch
-`spec/services/service_convention_guard_spec.rb` (Bestand auf shrink-only-Legacy-Allowlist —
-bei substanzieller Änderung migrieren + streichen). Details: `app/services/CLAUDE.md`.
+Nontrivial writes go through **command objects** under `app/services/actors/`
+(`Actors::SaveTicket`, `Actors::DestroyPost`, …). An actor encapsulates **one** write: transaction,
+validation/error mapping, `Current.user` for activity tracking, side-effect jobs after commit.
+Hardened in `Actors::BaseActor`; the contract is enforced by a guard spec
+(`spec/services/actors/actor_contract_guard_spec.rb`).
+
+### Naming (Resolving the Collision)
+“Actor” here means a **command object**. It has **nothing** to do with `Activity#actor` /
+`Notification#actor` — those identify the **audit user** who triggered a change.
+Deliberately distinct; do not conflate them.
+
+### Seam Rule: When Actor, When Controller?
+* **Nontrivial write → actor.** Nontrivial = multiple steps / own transaction /
+  activity tracking / fanout / background job / external API call / association sync.
+* **Trivial write → controller.** Trivial = a single `update!`/`create!` on one model
+  without side effects. Trivial CRUD stays in the controller (no blanket rollout).
+
+### Contract (Binding, Guard-Checked)
+* **Keyword arguments** everywhere: `Actors::X.new(project:, params:, id: nil, current_user:)`. The
+  user parameter is named `current_user:` (NOT `actor:` — collision, see Naming).
+* Prefer `Actors::X.call(...)` as the entry point; `.new(...).call` only when the caller needs `#record`
+  before `#call` (e.g. `PostUpdateService`).
+* **Tier 1** (default): implement only `#perform` (+ `#record`, optionally `#enqueue_jobs`)
+  — `BaseActor#call` handles transaction, error mapping, `Current.user` and enqueuing.
+* **Tier 2** (exception, in the guard spec's `tier_2_actors` allowlist): own `#call`, shares only the
+  helpers. The authoritative list is the allowlist itself (currently 5: `SaveTicket`,
+  `AcceptTicketSuggestion`, `CreateAiPost`, `GenerateGroupCustomerDescriptions`, `CreateSignup`; `MoveTicket` has been
+  Tier 1 since 8 September 2026, with its number retry in `Tickets::Mover`) — per-actor reasons
+  are comments on the `tier_2_actors` let in the guard spec.
+* **Errors:** Domain failures through `raise Actors::ActorError, msg` (→ failure result);
+  `RecordInvalid` is mapped automatically. Everything else is “unexpected” →
+  `handle_unexpected_error`: dev/test **re-raise** (crash loudly), production log + failure.
+* **Jobs:** NEVER raw `perform_later` — always `enqueue_after_commit { SomeJob.perform_later(...) }`,
+  so the job fires only after the outermost real commit (correct under nesting).
+* **`Current.user`:** NEVER set it manually — `with_actor_context` sets + restores it (no leak).
+* **`#record`:** returns the primary record or `nil` (never a collection).
 
 ---
 
-## API-Namensräume (Kern gegen getrennte Website)
+## Service Convention (app/services)
 
-Vier Namensräume unter `/api`, und sie unterscheiden sich darin, **wer** ruft:
+New services: entry point is `Klass.call(**kwargs)`, `#initialize` takes only keyword arguments, at least
+one explanatory comment line at the file's top. Read/query objects with domain verbs instead declare
+`# Entry point: <method>` in the header. Enforced by
+`spec/services/service_convention_guard_spec.rb` (existing code on a shrink-only legacy allowlist —
+migrate + remove on substantial changes). Details: `app/services/CLAUDE.md`.
 
-| Namensraum | Aufrufer | Ausweis | Vertrag |
+---
+
+## API Namespaces (Core and Separate Website)
+
+Four namespaces under `/api`, distinguished by **who** calls:
+
+| Namespace | Caller | Authentication | Contract |
 |---|---|---|---|
-| `Api::V1::*`, `Api::McpController` | ein Mensch mit Konto | persönliches Zugangstoken + Pundit | `doc/mcp_server_plan.md` |
-| `Api::Public::*` | jeder, auch niemand | keiner, nur lesend | `docs/api/public_v1.md` |
-| `Api::Provisioning::*` | die getrennte Website | ein geteiltes Geheimnis aus ENV | `docs/api/provisioning_v1.md` |
-| `Api::Auth::*` | ein Programm, das einen Menschen anmeldet, noch ohne Token | E-Mail und Passwort im Body, einmal | Absatz „Sign-in door" unten, die Specs unter `spec/requests/api/auth/` |
+| `Api::V1::*`, `Api::McpController` | A person with an account | Personal access token + Pundit | `doc/mcp_server_plan.md` |
+| `Api::Public::*` | Anyone, including anonymous callers | None, read-only | `docs/api/public_v1.md` |
+| `Api::Provisioning::*` | The separate website | A shared secret from ENV | `docs/api/provisioning_v1.md` |
+| `Api::Auth::*` | A program signing a person in, without a token yet | Email and password in the body, once | “Sign-in door” section below, specs under `spec/requests/api/auth/` |
 
-* Beide neuen Namensräume erben von einer **eigenen** `ActionController::API`-Basis, nie von
-  `ApplicationController`: keine Session, kein Pundit, kein Mandant aus der Sitzung. Wächter:
-  `spec/architecture/{public,provisioning}_api_contract_guard_spec.rb` prüfen die **Klassen**,
-  nicht den Text.
-* Die Provisioning-Tür ist **aus, wenn kein Geheimnis gesetzt ist** (404, nicht 403): eine
-  fremde Instanz trägt keine Tür, die sie nicht benutzt. Ein persönliches Zugangstoken wird dort
-  nie akzeptiert, es gehört zu einem Menschen mit Organisationen.
-* Der Schreibvorgang selbst gehört dem Actor, den auch das Formular im Kern nutzt
-  (`Actors::CreateSignup`). Eine zweite Registrierungslogik neben ihm ist der Fehler, den W2
-  gerade beseitigt hat.
-* **Zwei Formulare, ein Schreibvorgang.** Unser Registrierungsformular lebt in
-  `gboyke/lalabase-website` und darf aussehen, wie wir wollen; das Formular im Kern gehört den
-  Instanzen, die ihn selbst betreiben, und den Eingeladenen (ein Einladungstoken kann eine
-  fremde Anmeldeseite nicht einlösen). Getrennt sind die **Formulare**, nie der Actor. Was nur
-  unserem Geschäft gehört, steht deshalb im Website-Formular: der Neugründer-Rabatt ist am
-  20.09.2026 aus dem Kern-Formular verschwunden, `FounderSignup` und die Provisioning-Tür
-  bleiben.
-* Antworten tragen **eine** Hülle: `data.<ding>` im Erfolg, `error.{code,messages}` im Fehler.
-  `code` ist maschinenlesbar, `messages` sind übersetzter Text. Ausnahme mit Absicht: `Api::Auth`
-  antwortet im Fehler in der Form von `/api/v1` (`Api::V1::ErrorBody`), weil derselbe Client beide
-  Türen liest.
+* Both new namespaces inherit from their **own** `ActionController::API` base, never from
+  `ApplicationController`: no session, no Pundit, no tenant from the session. Guards:
+  `spec/architecture/{public,provisioning}_api_contract_guard_spec.rb` check **classes**,
+  not text.
+* The provisioning entry point is **disabled when no secret is set** (404, not 403):
+  another instance exposes no entry point it does not use. A personal access token is
+  never accepted there; it belongs to a person with organisations.
+* The write itself belongs to the actor also used by the core's form
+  (`Actors::CreateSignup`). A second registration implementation alongside it is the mistake W2
+  just eliminated.
+* **Two forms, one write.** Our registration form lives in
+  `gboyke/lalabase-website` and may look however we want; the core's form belongs to
+  self-hosted instances and invited users (an invitation token cannot be redeemed by
+  an external sign-in page). The **forms** are separate, never the actor. Anything specific
+  to our business therefore belongs in the website form: the new-founder discount was
+  removed from the core form on 20 September 2026; `FounderSignup` and the provisioning entry point
+  remain.
+* Responses carry **one** envelope: `data.<thing>` on success, `error.{code,messages}` on error.
+  `code` is machine-readable, `messages` are translated text. Deliberate exception: `Api::Auth`
+  returns errors in the `/api/v1` shape (`Api::V1::ErrorBody`) because the same client reads both
+  entry points.
 
 **Sign-in door `/api/auth/v1` (K6b, 2026-11-16, API 1.14.0, capability `app_sessions`).** A client
 signs a person in with e-mail address and password and gets a device token
@@ -1374,66 +1375,66 @@ A failure the rule does not name answers 500 without its text. Guards:
 (the same trail as MCP), `spec/requests/api/v1/ticket_changes_concurrency_spec.rb`
 (the response against a concurrent move), `spec/services/tickets/change_spec.rb`.
 
-## Admin: Betreiber-Teile kommen nur über Schlitze
+## Admin: Operator Features Enter Only Through Slots
 
-**Verbindlich** (Guard-Spec: `spec/architecture/admin_operator_boundary_guard_spec.rb`; läuft über
-den Verzeichnis-Eintrag `spec/architecture/` in der CI-Guard-Liste):
+**Binding** (guard spec: `spec/architecture/admin_operator_boundary_guard_spec.rb`; runs through
+the `spec/architecture/` directory entry in the CI guard list):
 
-Der Adminbereich wird geteilt (`doc/oss_core_split_plan.md` 5.5 bis 5.7). 17 Controller bleiben
-als Instanz-Admin im Kern. Sieben werden eine private Engine, die nur ein interner Prozess lädt:
+The admin area is being split (`doc/oss_core_split_plan.md` 5.5 through 5.7). 17 controllers remain
+in the core for instance administration. Seven become a private engine loaded only by an internal process:
 `accounts`, `account_discounts`, `price_lists`, `billing_lists`, `founder_signups`,
-`founder_signup_settings`, `acquisitions`. Im öffentlichen Prozess und auf jeder fremden Instanz
-gibt es ihre Routen nicht.
+`founder_signup_settings`, `acquisitions`. Their routes do not exist in the public process or
+on any other instance.
 
-* **Kein Kern-Code ruft eine Route dieser sieben Controller.** Ein `admin_account_path` in einer
-  Kern-View rendert dort keinen toten Link, er **wirft**, und die Seite ist weg. Der Wächter liest
-  Routennamen und Pfade aus dem Router, nicht aus einer Wortliste, und kennt drei Formen: den
-  benannten Helfer, das polymorphe Array (`[:admin, account]`) und den getippten Pfad
-  (`'/admin/accounts'`, auch in `.js`). Ein Grep sieht nur **Namen**: `[:admin, record]` mit
-  einem Konto in `record` findet erst der Request-Spec mit leerem Register.
-* **Keine Ausnahmeliste.** Es gab eine, mit den beiden Templates der Gründer-Mail, und sie ist
-  seit dem 22.09.2026 leer und gelöscht.
-* ⚠️ **Ein Link aus dem Kern in die Konsole ist eine gespeicherte Adresse, nie eine Route.** Die
-  Gründer-Mail rendert im öffentlichen Prozess und zeigt auf eine Seite der Konsole, die unter
-  einem anderen Host läuft (Tunnel). Der Betreiber hinterlegt deshalb eine Vorlage mit einem
-  Platzhalter (`SystemSetting.founder_signup_console_url`, `%{account_id}`), und der Kern setzt
-  nur die ID ein. Leer heißt: kein Link. Eingesetzt wird per Ersetzung, **nicht** mit
-  `Kernel#format`: das wirft bei einem zweiten Platzhalter oder einem losen Prozentzeichen,
-  und zwar in einem Mailer-Job, für einen Wert, den jemand Wochen vorher getippt hat.
-* Eine Kern-Seite, die einen Betreiber-Abschnitt zeigen soll, nennt einen **Schlitz**:
-  `<%= admin_extension_slot(:user_sections, user: @user) %>`. Wer geladen ist, meldet ein Partial
-  an (`Lalabase::AdminExtensions.register`). Ohne Anmeldung rendert der Schlitz nichts.
-* Die Schlitz-Liste ist eine **geschlossene Konstante** (`Lalabase::AdminExtensions::SLOTS`). Ein
-  vertippter Name wirft, statt auf einer Seite still nichts zu rendern, auf der „nichts" ein
-  gültiger Zustand ist. Ein neuer Schlitz heißt: Konstante ergänzen.
-* **Anmelden nur in `config.to_prepare`.** `lib/` wird automatisch geladen; ein Code-Reload
-  ersetzt das Register, `to_prepare` läuft danach erneut.
-* Der Controller einer Kern-Seite lädt nichts, was nur die Konsole zeigt. Das Partial holt es
-  sich selbst (Vorbild: `Admin::Operator::UserBillingAccounts`).
-* Wie der öffentliche Prozess den Admin ausliefert, hält
-  `spec/requests/admin/without_operator_extensions_spec.rb` fest: die Seiten mit leerem
-  Register (`Lalabase::AdminExtensions.with_empty_registry`).
+* **No core code calls a route of these seven controllers.** An `admin_account_path` in a
+  core view does not render a dead link there; it **raises**, and the page is gone. The guard reads
+  route names and paths from the router, not a word list, and recognizes three forms: the
+  named helper, the polymorphic array (`[:admin, account]`) and the literal path
+  (`'/admin/accounts'`, also in `.js`). Grep sees only **names**: `[:admin, record]` with
+  an account in `record` is caught only by the request spec with an empty registry.
+* **No exception list.** There was one, with the two founder-email templates; it has been
+  empty and deleted since 22 September 2026.
+* ⚠️ **A link from the core to the console is a stored URL, never a route.** The
+  founder email renders in the public process and points to a console page under
+  another host (tunnel). The operator therefore stores a template with a
+  placeholder (`SystemSetting.founder_signup_console_url`, `%{account_id}`), and the core inserts
+  only the ID. Empty means no link. Insertion uses replacement, **not**
+  `Kernel#format`: that raises on a second placeholder or a stray percent sign,
+  inside a mailer job, for a value someone typed weeks earlier.
+* A core page that should display an operator section names a **slot**:
+  `<%= admin_extension_slot(:user_sections, user: @user) %>`. A loaded extension registers a partial
+  (`Lalabase::AdminExtensions.register`). Without a registration, the slot renders nothing.
+* The slot list is a **closed constant** (`Lalabase::AdminExtensions::SLOTS`). A
+  mistyped name raises instead of silently rendering nothing on a page where “nothing” is a
+  valid state. A new slot means adding to the constant.
+* **Register only in `config.to_prepare`.** `lib/` is autoloaded; a code reload
+  replaces the registry, and `to_prepare` runs again afterwards.
+* A core-page controller loads nothing displayed only by the console. The partial fetches it
+  itself (reference: `Admin::Operator::UserBillingAccounts`).
+* `spec/requests/admin/without_operator_extensions_spec.rb` pins how
+  the public process serves the admin area: pages with an empty
+  registry (`Lalabase::AdminExtensions.with_empty_registry`).
 
-## Was lalabase.com über diesen Code behauptet
+## What lalabase.com Claims About This Code
 
-Die öffentlichen Seiten liegen seit W3 in `gboyke/lalabase-website` und können den Code nicht
-mehr lesen. **Drei** Wächter in `spec/architecture/` halten die Verbindung, alle über den
-Verzeichnis-Eintrag automatisch in der CI-Guard-Liste:
+Since W3, public pages live in `gboyke/lalabase-website` and can no longer read this
+code. **Three** guards in `spec/architecture/` preserve the connection, all automatically in the
+CI guard list through its directory entry:
 
-| Wächter | Hält |
+| Guard | Pins |
 |---|---|
-| `website_quoted_facts_guard_spec.rb` | **Werte**, die eine Seite wörtlich nennt: Devise `confirm_within`, `UnconfirmedSignupPurgeJob::RETENTION`, `AcquisitionSource::RETENTION`, `FounderSignup::REVENUE_BANDS`, der `path_prefix`-Default. Die Website hält die Kopie in `CoreFacts` |
-| `website_feature_claims_guard_spec.rb` | **Mechanismen** hinter den Zusagen der Funktionsseiten: keine Stoppuhr, keine Beträge, sieben Schalter, nur GitHub und GitLab, Chat schreibt nicht, … |
-| `ai_provider_disclosure_guard_spec.rb` | **Welche KI-Anbieter** der Code anbieten kann. Die Datenschutzerklärung drüben muss jeden davon formell nennen; hier steht die Hälfte, die nur dieses Repo beantworten kann |
+| `website_quoted_facts_guard_spec.rb` | **Values** quoted literally by a page: Devise `confirm_within`, `UnconfirmedSignupPurgeJob::RETENTION`, `AcquisitionSource::RETENTION`, `FounderSignup::REVENUE_BANDS`, the `path_prefix` default. The website keeps its copy in `CoreFacts` |
+| `website_feature_claims_guard_spec.rb` | **Mechanisms** behind feature-page promises: no stopwatch, no monetary amounts, seven switches, only GitHub and GitLab, chat does not write, … |
+| `ai_provider_disclosure_guard_spec.rb` | **Which AI providers** the code can offer. The privacy policy in the other repository must formally name each of them; this is the half only this repository can answer |
 
-* **Rot heißt hier nie nur „Code".** Entweder die Änderung ist falsch, oder ein Satz auf einer
-  öffentlichen Seite ist gerade unwahr geworden und muss dort umgeschrieben werden. Die
-  Fehlermeldung nennt die Datei im anderen Repo.
-* Jeder Wächter zitiert den Satz, den er stützt; die Spec drüben nennt das Beispiel, das ihn
-  stützt. Wer eine Seite ändert, findet die Mechanik, und umgekehrt.
-* ⚠️ **Bei W6 nicht mitlöschen.** Wenn der Kern seine Kopien der Seiten entfernt, gehen die
-  Seiten-Specs mit. Diese beiden bleiben: sie sind das Einzige, was eine öffentliche Zusage
-  noch an den Code bindet (`doc/oss_core_split_plan.md` § 11.4).
+* **Red never means only “code” here.** Either the change is wrong, or a sentence on a
+  public page has just become untrue and must be rewritten there. The
+  failure message names the file in the other repository.
+* Every guard quotes the sentence it supports; the spec in the other repository names the example
+  supporting it. Anyone changing a page can find the mechanism, and vice versa.
+* ⚠️ **Do not delete these along with the pages in W6.** When the core removes its copies of the pages, the
+  page specs go with them. These two remain: they are the only thing still tying a public
+  promise to the code (`doc/oss_core_split_plan.md` § 11.4).
 
 ## Third-party licenses: every dependency is permissive
 
@@ -1487,83 +1488,83 @@ ends that, and a `bundle update` can bring one without anybody noticing.
 
 ---
 
-## Development Checklisten
+## Development Checklists
 
 ### Multi-Tenancy
-- [ ] `acts_as_tenant` gesetzt?
-- [ ] Default-Scope korrekt?
-- [ ] Seeds/Factories tenant-aware?
-- [ ] Queries filtern korrekt auf tenant?
+- [ ] `acts_as_tenant` set?
+- [ ] Default scope correct?
+- [ ] Seeds/factories tenant-aware?
+- [ ] Queries correctly filtered by tenant?
 
 ### Security & Authorization
-- [ ] Strong Parameters korrekt?
-- [ ] Pundit Policies angewendet?
-- [ ] Negative Tests: Unberechtigte bekommen 403?
-- [ ] Positive Tests: Berechtigte dürfen Aktion?
+- [ ] Strong parameters correct?
+- [ ] Pundit policies applied?
+- [ ] Negative tests: unauthorized users receive 403?
+- [ ] Positive tests: authorized users may perform the action?
 
 ### Performance
-- [ ] N+1 Queries vermieden mit `includes`/`joins`?
-- [ ] Indizes für neue komplexe Queries?
-- [ ] Caching-Strategie bedacht?
+- [ ] N+1 queries avoided with `includes`/`joins`?
+- [ ] Indexes for new complex queries?
+- [ ] Caching strategy considered?
 
 ### i18n
-- [ ] Alle neuen User-facing Strings via `t()` eingebunden?
-- [ ] Keys in DE **UND** EN der passenden Bereichsdatei (`config/locales/views/<bereich>.{de,en}.yml`) angelegt?
-- [ ] **Geänderte** Texte in DE **UND** EN nachgezogen, auch wenn nur eine Sprache besprochen wurde?
-- [ ] Keine hardcoded deutschen/englischen Strings in Views/Controllers?
-- [ ] JavaScript-Strings über ERB oder `data-*` Attribute übersetzt?
+- [ ] All new user-facing strings use `t()`?
+- [ ] Keys added in German **AND** English in the appropriate area file (`config/locales/views/<area>.{de,en}.yml`)?
+- [ ] **Changed** text updated in German **AND** English, even if only one language was discussed?
+- [ ] No hardcoded German/English strings in views/controllers?
+- [ ] JavaScript strings translated through ERB or `data-*` attributes?
 
 ### Code Quality
-- [ ] Tests grün: `rspec`
-- [ ] Linter clean: `rubocop`, `erblint`
+- [ ] Tests green: `rspec`
+- [ ] Linters clean: `rubocop`, `erblint`
 - [ ] Security clean: `brakeman`
-- [ ] Policies geprüft/neu angelegt
+- [ ] Policies checked/created
 
 ---
 
-## Häufige Scripts & Hilfsmittel
+## Common Scripts & Tools
 
-* **Style Guide**: Entwicklung unter `/style-guide` verfügbar
-* **Wording der öffentlichen Seiten ändern**: `/de?wording=1` schaltet in Development den
-  In-Place-Editor ein (`?wording=0` aus). Text anklicken, Deutsch und Englisch stehen
-  nebeneinander, Speichern schreibt zeilengenau in `config/locales`. Nur `static.*`, nur
-  Development, keine mehrzeiligen Werte. Details: `lib/dev/wording_mode.rb`
-* **Server-Betrieb (Backup, Log-Retention)**: `ops/backup/` — Skripte, systemd-Units und logrotate-Konfigurationen der Produktion, plus Restore-Anleitung in `ops/backup/README.md`. Die Dateien werden **nicht** automatisch ausgerollt: bei Änderungen Repo **und** Server nachziehen. **Unsere konkreten Koordinaten stehen hier nicht** (Storage-Box-Unterkonten, Hosts, Schlüsselpfade): die Skripte lesen sie zur Laufzeit aus `/etc/lalabase-backup/backup.conf` (Vorlage: `ops/backup/backup.conf.example`) und brechen ohne sie laut ab.
-
----
-
-## Authentication für Development
-- Für die Entwicklung ein lokales Demo-Konto anlegen.
-- **Demo aus den Seeds** (frische Dev-Datenbank): `anna@example.com` (Admin), `ben@example.com` (Standardrolle), `clara@example.com` (Projektmanager), `david@example.com` (Betrachter), `/admin` mit `admin@example.com`, Passwort jeweils `lalabase-demo`
+* **Style guide**: Available in development at `/style-guide`
+* **Change public-page wording**: `/de?wording=1` enables the in-place editor in
+  development (`?wording=0` disables it). Click text; German and English appear
+  side by side; saving writes to the exact lines in `config/locales`. Only `static.*`, development
+  only, no multiline values. Details: `lib/dev/wording_mode.rb`
+* **Server operations (backup, log retention)**: `ops/backup/` — production scripts, systemd units and logrotate configurations, plus restore instructions in `ops/backup/README.md`. These files are **not** deployed automatically: update **both** repository and server when changing them. **Our actual connection details are not stored here** (Storage Box subaccounts, hosts, key paths): scripts read them at runtime from `/etc/lalabase-backup/backup.conf` (template: `ops/backup/backup.conf.example`) and fail loudly without them.
 
 ---
 
-## Internationalisierung (i18n)
+## Authentication for Development
+- Create a local demo account for development.
+- **Demo from seeds** (fresh development database): `anna@example.com` (admin), `ben@example.com` (standard role), `clara@example.com` (project manager), `david@example.com` (viewer), `/admin` with `admin@example.com`, password for each: `lalabase-demo`
 
-### Grundregel
-**NIEMALS** hardcoded User-facing Strings in Views, Controllers, Models oder Mailers. **IMMER** `t()` verwenden.
+---
 
-### Locale-Struktur
-* **Dateien**: View-Strings liegen pro Bereich in `config/locales/views/<bereich>.{de,en}.yml`
-  (tickets, ansichten, zeiterfassung, meetings, inbox, wissen, dokumente, hilfe, organisation,
-  personen, glossar);
-  Rest (common/shared/layouts/devise/admin/components) in `views.{de,en}.yml`. Unterordner werden
-  von Rails automatisch geladen. Cross-File-Duplikate mit abweichenden Werten bricht der Guard
-  (`spec/locales/no_duplicate_keys_guard_spec.rb`) — jeder Key hat genau EINEN Besitzer.
-* **Key-Konvention**: `views.organisations.<controller>.<action>.<key>` für Views
-* **Shared Keys**: `views.organisations.<controller>.shared.<key>` für partialübergreifende Strings
-* **Flash Messages**: `controllers.<controller>.<action>.<key>`
-* **Models/Validations**: `activerecord.errors.models.<model>.<key>`
-* **Zahlen/Beträge**: `rails-i18n` ist **nicht** eingebunden — die Formate stehen selbst
-  gepflegt unter `number.*` in `de.yml` **und** `en.yml`. Ohne den DE-Zweig fällt
-  `number_to_currency` & Co. lautlos auf die englischen Rails-Defaults zurück und die deutsche
-  Oberfläche zeigt „€14.50" statt „14,50 €". Preisbeträge nie selbst formatieren, sondern über
-  `PriceHelper#format_price_cents` (Guard: `spec/helpers/price_helper_spec.rb` pinnt beide
-  Locales).
-* **Aufzählungen**: Aus demselben Grund steht `support.array` selbst gepflegt in `de.yml`
-  **und** `en.yml`. Ohne den DE-Zweig verbindet `to_sentence` auf deutschen Seiten mit
-  „, and" („Status, Priorität, and Titel"), auch in jeder Flash-Meldung, die
-  Validierungsfehler aneinanderreiht (Guard: `spec/helpers/timeline_helper_spec.rb`).
+## Internationalization (i18n)
+
+### Basic Rule
+**NEVER** hardcode user-facing strings in views, controllers, models or mailers. **ALWAYS** use `t()`.
+
+### Locale Structure
+* **Files**: View strings live per area in `config/locales/views/<area>.{de,en}.yml`
+  (`tickets`, `ansichten`, `zeiterfassung`, `meetings`, `inbox`, `wissen`, `dokumente`, `hilfe`, `organisation`,
+  `personen`, `glossar`);
+  the rest (common/shared/layouts/devise/admin/components) in `views.{de,en}.yml`. Rails loads
+  subdirectories automatically. The guard (`spec/locales/no_duplicate_keys_guard_spec.rb`)
+  rejects cross-file duplicates with different values — every key has exactly ONE owner.
+* **Key convention**: `views.organisations.<controller>.<action>.<key>` for views
+* **Shared keys**: `views.organisations.<controller>.shared.<key>` for strings shared across partials
+* **Flash messages**: `controllers.<controller>.<action>.<key>`
+* **Models/validations**: `activerecord.errors.models.<model>.<key>`
+* **Numbers/amounts**: `rails-i18n` is **not** included — formats are maintained manually
+  under `number.*` in **both** `de.yml` and `en.yml`. Without the German branch,
+  `number_to_currency` and similar helpers silently fall back to English Rails defaults, and the German
+  interface displays “€14.50” instead of “14,50 €”. Never format prices manually; use
+  `PriceHelper#format_price_cents` (guard: `spec/helpers/price_helper_spec.rb` pins both
+  locales).
+* **Enumerations**: For the same reason, `support.array` is maintained manually in `de.yml`
+  **and** `en.yml`. Without the German branch, `to_sentence` joins items on German pages with
+  “, and” (`Status, Priorität, and Titel` in the German UI), including every flash message that
+  concatenates validation errors (guard: `spec/helpers/timeline_helper_spec.rb`).
 * **Dates** (guard: `spec/architecture/locale_date_format_guard_spec.rb`): a date on a page
   goes through `l()` with a named format from `date.formats` / `time.formats`, never through
   `strftime` with a format of its own. strftime writes English month names on the German
@@ -1571,134 +1572,135 @@ ends that, and a `bundle update` can bring one without anybody noticing.
   where it reads the same in both languages (ISO dates, the clock, month or day names alone
   through `l()`). The legacy list (51 formats in 29 files on 2026-10-18) only shrinks.
 
-### Die Sprache einer Anfrage (seit 20.08.2026, Kern-Fassung seit D5)
+### A Request's Language (Since 20 August 2026, Core Version Since D5)
 
-Die öffentlichen Seiten liegen seit W6 in `gboyke/lalabase-website`, die Dokumentation seit
-D5 in `gboyke/lalabase-documentation`. Was hier blieb, ist die Frage, in welcher Sprache der
-Kern antwortet.
+Public pages have lived in `gboyke/lalabase-website` since W6, and documentation in
+`gboyke/lalabase-documentation` since D5. What remains here is the question of which language
+the core uses in its response.
 
-* **Entschieden wird sie in `ApplicationController#switch_locale`**, einem `around_action`
-  vor `authenticate_user!` (Devise übersetzt seine Anmelde-Hinweise in der Sprache, die in
-  diesem Moment gilt). Reihenfolge: gültiges `?locale=`, Profilsprache eines Angemeldeten,
-  gemerkte Sprache dieser Sitzung (`session[:public_locale]`), `Accept-Language`, Deutsch.
-  Im Demo-Modus (`LALABASE_DEMO=1`) gilt davor immer `Lalabase::Demo::LOCALE`: Die Welt ist
-  in dieser Sprache geschrieben, und das geteilte Konto darf keine Wahl festhalten
-  (Guard: `spec/requests/demo_mode_spec.rb`).
-  Ein gültiges `?locale=` wird gemerkt. Die Registrierung übernimmt die Sprache des
-  Formulars ins Profil. Guard: `spec/requests/locale_per_request_spec.rb`.
-  ⚠️ **Über dieser Leiter stand eine Sprosse: die Sprache im PFAD.** `/docs/:locale/…`
-  waren die letzten Routen, die eine trugen, und sie sind mit D5 weg (die öffentlichen
-  Seiten nahmen ihre bei W6 mit). `request.path_parameters[:locale]` kann von keiner Route
-  mehr gesetzt werden, also ist die Sprosse gelöscht statt ungeprüft behalten. Wer eine
-  Route mit Sprache im Pfad baut, holt sie zurück: zuerst lesen, und wie `?locale=` merken.
-* ⚠️ `I18n.locale` ist Thread-Zustand und **überlebt die Anfrage**. `switch_locale` setzt es
-  per `I18n.with_locale` und stellt es danach zurück; eine Action darf es darin umsetzen
-  (die Spracheinstellung). Außerhalb dieses Rahmens, etwa in einem Controller, der nicht
-  von `ApplicationController` erbt, bleibt es für die nächste Anfrage auf demselben
-  Puma-Thread liegen. Genau so bekamen Registrierung und Login bis zum 10.09.2026 die
-  Sprache der vorigen Anfrage.
-* Die Sprache kommt aus `request.query_parameters['locale']`, **nicht** aus `params`:
-  `params` erzwingt das Parsen des Request-Bodys, und dieser Callback läuft auf jedem
-  Controller, auch auf den Mail-Webhooks mit ihren fremden Nutzlasten.
-* Welche Sprachen es gibt, beantwortet **I18n**, nicht mehr eine Tabelle der öffentlichen
-  Seiten (`supported_locale`). Ein fehlender englischer Text ist dabei nicht laut:
-  `config/initializers/i18n.rb` setzt `fallbacks = [:de]`.
+* **It is decided in `ApplicationController#switch_locale`**, an `around_action`
+  before `authenticate_user!` (Devise translates its sign-in messages into the language in
+  effect at that moment). Precedence: valid `?locale=`, signed-in user's profile language,
+  remembered language of this session (`session[:public_locale]`), `Accept-Language`, German.
+  In demo mode (`LALABASE_DEMO=1`), `Lalabase::Demo::LOCALE` always takes precedence: the demo world is
+  written in that language, and the shared account must not retain a choice
+  (guard: `spec/requests/demo_mode_spec.rb`).
+  A valid `?locale=` is remembered. Registration copies the form's language
+  into the profile. Guard: `spec/requests/locale_per_request_spec.rb`.
+  ⚠️ **There used to be one higher precedence level: the language in the PATH.** `/docs/:locale/…`
+  were the last routes carrying it, and they disappeared with D5 (public
+  pages took theirs with them in W6). No route can set `request.path_parameters[:locale]`
+  anymore, so this level was deleted instead of retained without checks. Anyone building a
+  route with a language in the path must restore it: read it first, and remember it like `?locale=`.
+* ⚠️ `I18n.locale` is thread state and **outlives the request**. `switch_locale` sets it
+  through `I18n.with_locale` and restores it afterwards; an action may change it inside that context
+  (the language setting). Outside this context, for example in a controller that does not
+  inherit from `ApplicationController`, it remains for the next request on the same
+  Puma thread. This is exactly how registration and login received the previous request's
+  language until 10 September 2026.
+* The language comes from `request.query_parameters['locale']`, **not** `params`:
+  `params` forces request-body parsing, and this callback runs on every
+  controller, including mail webhooks with their external payloads.
+* **I18n** determines which languages exist, no longer a table belonging to the public
+  pages (`supported_locale`). Missing English text does not fail loudly:
+  `config/initializers/i18n.rb` sets `fallbacks = [:de]`.
 
-### Rechtsangaben gehören dem Betreiber, nicht uns
+### Legal Information Belongs to the Operator, Not Us
 
-Der Kern hostet keine Rechtsseiten und nennt unsere Firma nirgends. Betreibername und die
-Adressen von Impressum, Datenschutz und AGB stehen in den Systemeinstellungen
-(`LegalIdentity`, vier `SystemSetting`-Zeilen, eine Abfrage je Anfrage über `Current`).
+The core hosts no legal pages and names our company nowhere. The operator's name and the
+URLs of the legal notice, privacy policy and terms are stored in system settings
+(`LegalIdentity`, four `SystemSetting` rows, one query per request through `Current`).
 
-* Gerendert wird **ausschließlich** über `legal_operator_credit`, `legal_page_link` und
-  `legal_footer_links`. Ohne Betreibername steht dort der übersetzte Text
-  `powered by Lalabase`, ohne Adresse erscheint kein Link.
-* **Wer keine eigene Website hat**, schreibt den Text im Adminbereich; die Instanz liefert
-  ihn unter `/legal/<seite>` aus (`LegalPagesController`, Markdown, sanitisiert). Eine
-  eingetragene **Adresse gewinnt** über den Text.
-* ⚠️ Kein Kern-Code liest die öffentliche Website: keine `StaticHelper`-Konstante, keine
-  öffentliche Rechts-Route, kein `static.*`-Text. Guard:
-  `spec/architecture/app_legal_identity_guard_spec.rb`, **ohne Ausnahmeliste**.
-* Was lalabase.com über diesen Code behauptet, halten zwei weitere Wächter fest — siehe
-  den eigenen Abschnitt dazu.
+* Render **exclusively** through `legal_operator_credit`, `legal_page_link` and
+  `legal_footer_links`. Without an operator name, the translated text
+  `powered by Lalabase` appears; without a URL, no link appears.
+* **Operators without their own website** enter text in the admin area; the instance serves
+  it under `/legal/<page>` (`LegalPagesController`, Markdown, sanitized). An
+  entered **URL takes precedence** over text.
+* ⚠️ No core code reads the public website: no `StaticHelper` constant, no
+  public legal route, no `static.*` text. Guard:
+  `spec/architecture/app_legal_identity_guard_spec.rb`, **without an exception list**.
+* Two further guards pin what lalabase.com claims about this code — see
+  the dedicated section.
 
-### Der Kern wirbt nicht für unsere Cloud
+### The Core Does Not Advertise Our Cloud
 
-**Verbindlich** (Guard-Spec: `spec/architecture/app_operator_claims_guard_spec.rb`; läuft über
-den Verzeichnis-Eintrag `spec/architecture/` in der CI-Guard-Liste):
+**Binding** (guard spec: `spec/architecture/app_operator_claims_guard_spec.rb`; runs through
+the `spec/architecture/` directory entry in the CI guard list):
 
-Die Seiten ohne Anmeldung liest ein Besucher, der nicht weiß, auf wessen Instanz er ist. Was
-dort steht, muss der **Betreiber** sagen können, nicht nur wir. Bis zum 20.09.2026 stand auf
-jeder Anmeldeseite „Hosting in Deutschland | AVV inklusive", in der Fensterleiste des Panels
-`lalabase.app/inbox`, und die Registrierung bot unseren Gründerrabatt an.
+Visitors to pages before sign-in do not know whose instance they are on. Anything stated
+there must be something the **operator** can say, not just us. Until 20 September 2026, every
+sign-in page said “Hosting in Germany | DPA included”, the panel's window bar showed
+`lalabase.app/inbox`, and registration offered our founder discount.
 
-Der Wächter prüft die I18n-Bereiche der sieben Seiten ohne Anmeldung gegen fünf Muster:
+The guard checks the I18n areas of the seven pages before sign-in against five patterns
+(examples retain the German words matched by the guard):
 
-| Muster | Beispiel |
+| Pattern | Example |
 |---|---|
-| unsere Domain | `lalabase.app`, `lalabase.com` |
-| Ort des Hostings | „Deutschland", „Germany", „hosted" |
-| Vertrag mit uns | „AVV", „DPA", „Auftragsverarbeitung" |
-| Preis oder Rabatt | „50 %", „14,50 €" |
-| Zahlungsbedingungen | „Rechnung", „kündbar", „Abo" |
+| Our domain | `lalabase.app`, `lalabase.com` |
+| Hosting location | `Deutschland` (“Germany”), `Germany`, `hosted` |
+| Contract with us | `AVV`, `DPA` (data processing agreement), `Auftragsverarbeitung` (“data processing”) |
+| Price or discount | “50 %”, “14,50 €” |
+| Payment terms | `Rechnung` (“invoice”), `kündbar` (“cancelable”), `Abo` (“subscription”) |
 
-Dazu die Auszeichnung selbst: kein `lalabase.*` in `app/views/devise/**` und im Auth-Layout.
-Der Instanz-Name kommt aus `request.host`.
+Also the markup itself: no `lalabase.*` in `app/views/devise/**` or the auth layout.
+The instance name comes from `request.host`.
 
-* ⚠️ **`app_legal_identity_guard_spec.rb` deckt das NICHT ab.** Es sucht `StaticHelper::`,
-  öffentliche Rechts-Routen und `t('static.`. Diese Texte lagen unter `views.devise.*`, weil
-  die Keys eigens aus der Preisseite herauskopiert wurden, damit sie nicht mehr `static.*`
-  heißen. Die Zusage ist dabei mitgewandert. Zwei Wächter, zwei Fragen: der eine hält den Kern
-  von der **Website** fern, dieser von unserem **Geschäft**.
-* **Keine Ausnahmeliste.** Es gab eine, mit einem Eintrag, und der Gründerrabatt verließ das
-  Registrierungsformular am 20.09.2026. Eine leere Liste lädt den ersten neuen Eintrag ein.
-* ⚠️ **Die Auszeichnung wird mit weggeschnittenen ERB-Tags gelesen**
-  (`AppOperatorClaimsGuard.literal_text`). Sonst liest sich `<%= index + 1 %>` als „1 %" und
-  schlägt beim Preismuster an, und jeder Kommentar, der eine entfernte Zusage erklärt, schlägt
-  bei ihrem eigenen Muster an.
-* Die Vorzeile einer Auth-Seite nennt einen **Zustand** („Konto gesperrt", „Bestätigung fehlt"),
-  nie eine Zusage.
+* ⚠️ **`app_legal_identity_guard_spec.rb` does NOT cover this.** It looks for `StaticHelper::`,
+  public legal routes and `t('static.`. These texts lived under `views.devise.*` because
+  their keys had been copied specifically from the pricing page so they would no longer be named
+  `static.*`. The promise moved with them. Two guards, two questions: one keeps the core
+  separate from the **website**, this one from our **business**.
+* **No exception list.** There was one, with one entry, and the founder discount left the
+  registration form on 20 September 2026. An empty list invites the first new entry.
+* ⚠️ **Markup is read with ERB tags stripped out**
+  (`AppOperatorClaimsGuard.literal_text`). Otherwise, `<%= index + 1 %>` reads as “1 %” and
+  triggers the price pattern, and every comment explaining a removed promise triggers
+  that promise's own pattern.
+* An auth page's eyebrow text names a **state** (“Account locked”, “Confirmation missing”),
+  never a promise.
 
-### Bei jedem neuen Feature / jeder Änderung
-0. **Bestehende Texte ändern** → IMMER beide Sprachen. Eine Wording-Änderung an einem
-   deutschen Text ohne die englische Fassung ist unfertig, und sie fällt niemandem auf:
-   der Key existiert, die Seite rendert, nur der Satz ist veraltet. Gilt auch dann, wenn
-   nur die deutsche Seite besprochen wurde (Anweisung des Users, 21.08.2026).
-1. **Neue Strings** → sofort als `t()` Call schreiben, Key in DE + EN Locale anlegen
-2. **Bestehende Views ändern** → prüfen ob noch hardcoded Strings vorhanden sind, ggf. gleich mit extrahieren
-3. **JavaScript-Strings** → über ERB-Interpolation (`<%= t("...") %>`) in `.js.erb` oder via `data-*` Attribute
-4. **Confirmation-Dialoge** → Keys unter `views.confirm.<key>` in beiden Locales
+### For Every New Feature / Change
+0. **Change existing text** → ALWAYS both languages. A wording change to
+   German text without the English version is unfinished and goes unnoticed:
+   the key exists, the page renders, only the sentence is stale. This applies even when
+   only the German page was discussed (user instruction, 21 August 2026).
+1. **New strings** → write as a `t()` call immediately, add the key in German + English locales
+2. **Change existing views** → check for remaining hardcoded strings and extract them at the same time if present
+3. **JavaScript strings** → through ERB interpolation (`<%= t("...") %>`) in `.js.erb` or via `data-*` attributes
+4. **Confirmation dialogs** → keys under `views.confirm.<key>` in both locales
 
-### Beispiel
+### Example
 ```erb
-<%# ✅ Richtig %>
+<%# ✅ Correct %>
 <h1><%= t('views.organisations.tickets.index.title') %></h1>
 <%= link_to t('views.organisations.tickets.shared.back'), tickets_path %>
 
-<%# ❌ Falsch — hardcoded String %>
-<h1>Aufgaben</h1>
-<%= link_to "Zurück", tickets_path %>
+<%# ❌ Incorrect — hardcoded string %>
+<h1>Tasks</h1>
+<%= link_to "Back", tickets_path %>
 ```
 
 ---
 
-## Konstanten & Magic Numbers
+## Constants & Magic Numbers
 
-* Keine "Magic Numbers/Strings" im Code – in **Konstanten** (`ALL_CAPS`) oder I18n auslagern
-* Konstanten in thematischen Namespaces bündeln: `Notifications::Constants::EVENT_TYPE_MAPPING`
-* Immutable machen (`.freeze` bei Arrays/Hashes)
-* Thread-safe Zugriff in Background Jobs: `Notifications::Constants::EVENT_TYPE_MAPPING`
+* No “magic numbers/strings” in code — move them into **constants** (`ALL_CAPS`) or I18n
+* Group constants in topical namespaces: `Notifications::Constants::EVENT_TYPE_MAPPING`
+* Make them immutable (`.freeze` for arrays/hashes)
+* Thread-safe access in background jobs: `Notifications::Constants::EVENT_TYPE_MAPPING`
 
 ---
 
-## Code-Review Checklist
+## Code Review Checklist
 
-- [ ] Tests grün & vollständig (System-, Request-, Unit-Tests)
-- [ ] Regressions-Test bei Bugfix hinzugefügt  
-- [ ] Policies geprüft/neu angelegt & Tests vorhanden
-- [ ] Linter & Security-Scanner clean
-- [ ] Multi-Tenancy korrekt implementiert
-- [ ] Background Jobs verwenden thread-safe Konstanten-Zugriff
-- [ ] ViewComponents folgen Neo-Brutalist Design System
-- [ ] **i18n**: Alle Strings via `t()`, Keys in DE + EN vorhanden
+- [ ] Tests green & complete (system, request, unit tests)
+- [ ] Regression test added for bug fixes
+- [ ] Policies checked/created & tests present
+- [ ] Linters & security scanners clean
+- [ ] Multi-tenancy correctly implemented
+- [ ] Background jobs use thread-safe constant access
+- [ ] ViewComponents follow the Neo Brutalist design system
+- [ ] **i18n**: All strings through `t()`, keys present in German + English
 

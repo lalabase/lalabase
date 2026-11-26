@@ -1,557 +1,557 @@
-# Karte: app/javascript/controllers (Stand: 2026-11-24)
+# Map: app/javascript/controllers (as of 2026-11-24)
 
-~109 Stimulus-Controller, bewusst FLACH gehalten: Unterordner würden via
-`eagerLoadControllersFrom` alle Identifier ändern (`meetings/row_controller.js` →
-`data-controller="meetings--row"`) — bei ~145 `data-controller`-Stellen in ERB zu viel Churn.
-Die Domäne steckt im Dateinamen-Präfix (`ticket_*`, `time_session_*`, `meeting*`, `neo_*`).
+~109 Stimulus controllers, deliberately kept FLAT: subdirectories would change every identifier through
+`eagerLoadControllersFrom` (`meetings/row_controller.js` →
+`data-controller="meetings--row"`) — too much churn across ~145 `data-controller` locations in ERB.
+The domain is encoded in the filename prefix (`ticket_*`, `time_session_*`, `meeting*`, `neo_*`).
 
-Konventionen:
-* `neo_*` (~20 Stück) = Design-System-Controller (Pendants zu den Neo-ViewComponents).
-  Unpräfixierte Controller sind Legacy bzw. feature-spezifisch.
-* Wiring läuft NUR über `data-controller`-Attribute in ERB. Controller→View finden: nach dem
-  Identifier grepen (Dateiname ohne `_controller`, Unterstriche → Bindestriche). Achtung:
-  manche Mounts entstehen per Ruby-Array-Join — ein Literal-grep kann fälschlich „unused" melden.
-* **Nach jedem Anlegen/Löschen/Umbenennen: `rails importmap:auto_pin` ausführen und committen**
-  (sonst bricht das Prod-Precompile). NIEMALS `rails stimulus:manifest:update` direkt —
-  siehe Root-`CLAUDE.md`, „Critical Bug Fixes".
-* Guard: `spec/architecture/stimulus_controller_wiring_spec.rb` (kein Mount ohne Controller-Datei,
-  keine Aktion auf einen Controller, den kein Template mountet). ⚠️ Wer ein Pop-up, eine Bahn oder
-  ein Formular ersetzt, nimmt dessen Auslöser mit: Stimulus bindet eine Aktion nur unterhalb eines
-  Mounts und meldet eine ohne Mount nicht, der Klick tut dann nichts. So stand der Knopf im
-  Leerzustand der Ticketliste bis 2026.11.1 (lalabase/lalabase#259). Ein Selektor in einem Skript
-  (`[data-controller="x"]`) sucht einen Mount und ist keiner.
-* Modals: IMMER zuerst `docs/dokumentation/modal_pattern.md` und `README_MODAL_PATTERN.md`
-  (hier im Ordner) lesen. Referenz-Implementierung ist `ticket_relation_modal_controller.js`
-  (Fokusfalle über `dialog_a11y`, Schließen über Hintergrund und Escape, Fokus zurück an den
-  Auslöser). `meeting_modal_controller.js` ist seit 17.10.2026 gelöscht („Neues Meeting“ auf
-  „Alle Meetings“ öffnet in der Bahn), `time_session_modal_controller.js` seit 16.09.2026.
-  Seine Form hat KEINEN gemeinsamen Scope mit dem Auslöser: das Modal ist der Inhalt eines
-  Frames neben dem Abschnitt, beide Auslöser sind Links mit `data-turbo-frame`, Verbinden heißt
-  Öffnen, Schließen leert den Frame. Jede Öffnung trägt eine eigene ID (Token): Ablehnung und
-  Speichern treffen nur sie, eine späte Antwort an ein geschlossenes Modal findet nichts. Das
-  Fokus-Rücksprungziel liegt am Frame, nicht an der Instanz.
-  Ein weiteres Modal derselben Form erbt den Controller statt ihn zu kopieren
-  (`participant_link_modal_controller.js`, seit 27.10.2026: nur das erste Feld ist anders;
-  `term_correction_modal_controller.js`, seit 05.11.2026: Fokus aufs Feld „Richtig“, die Zahl
-  lädt in ihren eigenen Frame nach; `person_takeover_modal_controller.js`, seit 16.11.2026:
-  Fokus aufs Ziel, der Satz zur Sichtbarkeit und die Dubletten-Frage folgen der Auswahl; der
-  Auslöser steht in einem `<details>`-Menü, das der Controller beim Öffnen schließt (ein Klick
-  darin schließt es nicht, Escape gehört dem Modal), und der Fokus geht immer an „···“ zurück:
-  an den Knopf, den der Frame nennt (`data-person-takeover-return-id`, die Karte über den
-  Organisationen, wo EIN Menü die Dialoge mehrerer Kontakte öffnet), sonst an den des
-  Kontakts (`returnId`).
-* `transcript_selection` (K4b, 05.11.2026): eine Markierung im Transkript zeigt „Korrigieren“
-  (über der Markierung, auf dem Telefon darunter, wo sonst das Systemmenü steht). Der Knopf ist
-  ein Link in den Frame des Dialogs; der Controller hält nur seine Adresse aktuell:
-  Markierung, Kontext und Versatz in CODEPUNKTEN über den sichtbaren Text
-  (`lib/transcript_mark.js`, Pin `transcript_mark`, node-Tests). ⚠️ Nie Positionen aus dem HTML
-  an den Server: die Seite zeigt Markdown, die Stelle findet `Meetings::TranscriptMark`. Im Panel
-  neben einem Ticket nicht eingebunden.
-* `all_inboxes_live` (S2a, 13.11.2026): hält die Gesamt-Inbox aktuell. Zwei Targets tragen je
-  einen Stempel: `signal` (ersetzt vom Stream `Notifications::Streams.all_inboxes`) und `drawn`
-  (ersetzt mit jeder Liste). Die Regel ist rein (`lib/inbox_live.js`, Pin `inbox_live`,
-  node-Tests): gleich = nichts, sichtbar = Zahlen holen + Banner, versteckter Tab = beim
-  Zurückkommen die Liste. Nach Cable-Reconnect/online werden die Zahlen mit dem Server
-  abgeglichen, auch wenn beide lokalen Stempel gleich sind; `X-Inbox-Stamp` liefert den
-  aktuellen Stand. Abfragen werden beim Disconnect, bei neuen Signalen und Zeilenaktionen
-  verworfen. Vor dem synchronen Replace-Batch werden URL, Liste und Targets erneut geprüft.
-  Ein inzwischen gewachsener Seitenbereich wird erneut geladen. Transiente Fehler werden
-  mit wachsender Pause (maximal 30 Sekunden) wiederholt, solange der Kontext noch gilt.
-* `inbox_master_item` (Klick auf eine Inbox-Zeile): öffnet seit S3 (14.11.2026) auch in der
-  Gesamt-Inbox die Bahn; der Wert `lane` ist gelöscht, beide Seiten verhalten sich gleich (breit:
-  Frame laden, Adresse schreiben, Bahn öffnen; schmal: Vollansicht in der Organisation).
-* `inbox_lane_head` (S3, 14.11.2026) und `pane_mark_read_delay` mit `followAddress`: Kopf und
-  5-s-Timer der Bahn oben schreiben beim Absenden den Listenzustand der SEITE in ihre Adresse
-  (`listActionAddress` aus `lib/inbox_live.js`, Seiten des Endlos-Scrolls inklusive), behalten
-  aber die offene Zeile und `quiet` aus der eigenen Adresse (eine Suche nimmt `notification` aus
-  der Seitenadresse). Die Sammelleiste (`inbox_bulk_select#_carryListState`) folgt derselben Regel
-  mit eigener Kopie; zusammenlegen, wenn sie wieder angefasst wird.
-  ⚠️ Der Timer zeichnet eine Antwort nur, wenn er noch die Bahn ist, die gefragt hat (`disconnect`
-  bricht die Anfrage ab; geschlossene Bahn, entferntes Element und eine überholte Anfrage
-  verwerfen sie). Oben wendet er die Streams selbst an, ohne Turbos Warteschlange: die Liste nur,
-  wenn Seitenadresse, Listenelement und Aktionsadresse noch dieselben sind, den Kopf über den
-  Selektor mit `data-notification-id`, also nie den Kopf einer anderen Meldung. Er kennt nur
-  `replace`: Trägt die stille Antwort eine andere Aktion, fällt sie ganz weg (Wächter auf der
-  Serverseite: „answers the timer with replace alone" in `all_inboxes_row_actions_spec.rb`).
-* `inbox_bulk_select` (Leiste der Inbox, seit S2b auch in der Gesamt-Inbox): hält die Auswahl
-  über jedes Neuzeichnen und über nachgeladene Seiten. In der Gesamt-Inbox
-  (`followAddress`) zwei Dinge mehr, beide beim Absenden in `guardSubmit`: Die Formularadresse
-  bekommt den Listenzustand aus der Adresse der SEITE und die geladenen Seiten
-  (`redrawAddress` aus `inbox_live`), denn die Leiste liegt außerhalb des Frames, den die
-  Suche neu lädt, und ihre gerenderte Adresse kann älter sein als die Liste. Und berührt die
-  Auswahl mehr als eine Organisation (`data-organisation-id` am Kästchen), setzt er
-  `data-turbo-confirm` am Formular, mit Anzahl und Namen; Turbo liest das Attribut erst nach
-  dem `submit`-Listener am Formular. Innerhalb einer Organisation keine Frage.
-  Die Liste bewegt sich nie von selbst unter dem Leser.
-  ⚠️ Ohne Zeile in `config/importmap.rb` lädt ein neuer Controller in Development
-  (`pin_all_from`), aber NICHT in Test und Produktion; ein Browser-Spec war so zuerst rot.
-* **Escape gehört dem Obersten** (`lib/escape_owner.js`, seit 17.10.2026): Jeder Controller, der
-  auf Escape reagiert, beantwortet `ownsEscape()` (wahr, solange sein nächstes Escape etwas
-  Eigenes schließt). Ein Overlay, das ein Skript außerhalb eines Controllers baut, trägt
-  `data-owns-escape`. Die Bahn (`layout-toggle`) fragt das in der Capture-Phase auf `window`,
-  bevor irgendein Listener lief, und schließt nur, wenn niemand antwortet. Bis dahin stand
-  eine Selektor-Liste in `layout-toggle`, und jedes vergessene Overlay schloss die Bahn
-  DAHINTER. Wächter: `spec/architecture/escape_owner_guard_spec.rb` (auch `keydown.esc->` in
-  Templates; geschlossene Liste `NOT_OWNERS` mit Grund). ⚠️ Ein `ownsEscape()`, das wahr
-  bleibt, obwohl nichts offen ist, hält die Bahn für immer offen: an den Zustand binden, den
-  der eigene Escape-Handler prüft.
-* `neo_autosuggest` hat zwei Modi: ohne `url` filtert er vorgeladene Optionen im Browser, mit `url`
-  fragt er den Server; bestätigte Auswahl, Anfragenummer, Entprellen und Abbruch liegen in
-  `lib/autosuggest_search.js` (Pin `autosuggest_search`, node-Tests).
-* ⚠️ Kein `#anker`-Link auf einer Bahn-Seite: er legt einen History-Eintrag an, „Zurück" gilt dann
-  als Bahn-Wechsel und lädt die Bahn neu (Kommentarentwurf weg), und der Hash wandert in Adressen,
-  die aus `window.location` gebaut werden. Für Sprünge `scroll_into_view` (Knopf, scrollt und
-  fokussiert, Adresse bleibt).
-* Bahn-Historie (`index_page` + `lib/lane/history.js`): ein Eintrag mit ANDEREM Pfad gehört einer
-  anderen Seite; Turbos eigenen stellt Turbo wieder her. Sonst brach „Link in Projekt B, Zurück"
-  Turbos Besuch ab und lief in den 500-ms-Doppelklick-Schutz von `application.js`.
+Conventions:
+* `neo_*` (~20) = design-system controllers (counterparts of the Neo ViewComponents).
+  Unprefixed controllers are legacy or feature-specific.
+* Wiring runs ONLY through `data-controller` attributes in ERB. To find controller→view: grep for the
+  identifier (filename without `_controller`, underscores → hyphens). Beware:
+  some mounts are built by joining Ruby arrays — a literal grep may falsely report “unused”.
+* **After every creation/deletion/rename: run `rails importmap:auto_pin` and commit**
+  (otherwise production precompilation breaks). NEVER run `rails stimulus:manifest:update` directly —
+  see the root `CLAUDE.md`, “Critical Bug Fixes”.
+* Guard: `spec/architecture/stimulus_controller_wiring_spec.rb` (no mount without a controller file,
+  no action targeting a controller that no template mounts). ⚠️ When replacing a popup, lane or
+  form, update its trigger too: Stimulus binds an action only beneath a
+  mount and does not report a missing mount; the click then does nothing. This affected the ticket list's
+  empty-state button until 2026.11.1 (lalabase/lalabase#259). A selector in a script
+  (`[data-controller="x"]`) looks for a mount; it is not a mount.
+* Modals: ALWAYS first read `docs/dokumentation/modal_pattern.md` and `README_MODAL_PATTERN.md`
+  (in this directory). The reference implementation is `ticket_relation_modal_controller.js`
+  (focus trap through `dialog_a11y`, close via backdrop and Escape, return focus to the
+  trigger). `meeting_modal_controller.js` was deleted on 17 October 2026 (“New meeting” on
+  “All meetings” opens in the lane), `time_session_modal_controller.js` on 16 September 2026.
+  Its form has NO shared scope with the trigger: the modal is the content of a
+  frame beside the section; both triggers are links with `data-turbo-frame`. Connecting means
+  opening; closing clears the frame. Each opening carries its own ID (token): rejection and
+  save target only that opening; a late response to a closed modal finds nothing. The
+  focus-return target lives on the frame, not the instance.
+  Another modal of the same shape inherits the controller instead of copying it
+  (`participant_link_modal_controller.js`, since 27 October 2026: only the first field differs;
+  `term_correction_modal_controller.js`, since 5 November 2026: focus on the “Correct” field, the count
+  loads into its own frame; `person_takeover_modal_controller.js`, since 16 November 2026:
+  focus on the target, the visibility sentence and duplicate question follow the selection; the
+  trigger is in a `<details>` menu that the controller closes on opening (a click
+  inside does not close it, Escape belongs to the modal), and focus always returns to “···”:
+  to the button named by the frame (`data-person-takeover-return-id`, the card above the
+  organisations, where ONE menu opens dialogs for several contacts), otherwise to the contact's
+  button (`returnId`).
+* `transcript_selection` (K4b, 5 November 2026): selecting transcript text shows “Correct”
+  (above the selection, below it on phones where the system menu would otherwise appear). The button is
+  a link into the dialog frame; the controller only keeps its URL current:
+  selection, context and offset in CODE POINTS over the visible text
+  (`lib/transcript_mark.js`, pin `transcript_mark`, Node tests). ⚠️ Never send HTML positions
+  to the server: the page displays Markdown; `Meetings::TranscriptMark` locates the passage. Not mounted in the panel
+  beside a ticket.
+* `all_inboxes_live` (S2a, 13 November 2026): keeps the combined inbox current. Two targets each carry
+  a stamp: `signal` (replaced by the `Notifications::Streams.all_inboxes` stream) and `drawn`
+  (replaced with every list). The rule is pure (`lib/inbox_live.js`, pin `inbox_live`,
+  Node tests): equal = nothing, visible = fetch counts + banner, hidden tab = fetch the
+  list on return. After Cable reconnect/online, counts are reconciled with the server
+  even if both local stamps match; `X-Inbox-Stamp` provides the
+  current state. Requests are discarded on disconnect, new signals and row actions.
+  Before the synchronous replace batch, the URL, list and targets are checked again.
+  A page range that has grown in the meantime is fetched again. Transient errors are
+  retried with increasing delays (at most 30 seconds) while the context remains valid.
+* `inbox_master_item` (click on an inbox row): since S3 (14 November 2026), also opens the lane in the
+  combined inbox; the `lane` value has been deleted, both pages behave identically (wide:
+  load frame, write URL, open lane; narrow: full view within the organisation).
+* `inbox_lane_head` (S3, 14 November 2026) and `pane_mark_read_delay` with `followAddress`: the header and
+  5-second timer of the lane above the organisations write the PAGE's list state into their URL on submit
+  (`listActionAddress` from `lib/inbox_live.js`, including infinite-scroll pages), but retain
+  the open row and `quiet` from their own URL (a search removes `notification` from
+  the page URL). The bulk toolbar (`inbox_bulk_select#_carryListState`) follows the same rule
+  with its own copy; consolidate when next touched.
+  ⚠️ The timer renders a response only if it still belongs to the lane that requested it (`disconnect`
+  aborts the request; a closed lane, removed element and superseded request
+  discard it). Above the organisations, it applies streams itself without Turbo's queue: the list only
+  if the page URL, list element and action URL are still the same; the header through the
+  selector with `data-notification-id`, thus never another notification's header. It understands only
+  `replace`: if the quiet response contains another action, the entire response is discarded (server-side guard:
+  “answers the timer with replace alone” in `all_inboxes_row_actions_spec.rb`).
+* `inbox_bulk_select` (inbox toolbar, also in the combined inbox since S2b): retains selection
+  across every redraw and newly loaded page. In the combined inbox
+  (`followAddress`), two additional tasks, both on submit in `guardSubmit`: the form URL
+  receives the list state from the PAGE's URL and the loaded pages
+  (`redrawAddress` from `inbox_live`), because the toolbar is outside the frame reloaded by
+  search, and its rendered URL may be older than the list. And if the
+  selection spans more than one organisation (`data-organisation-id` on the checkbox), it sets
+  `data-turbo-confirm` on the form with the count and names; Turbo reads the attribute only after
+  the form's `submit` listener. No confirmation within one organisation.
+  The list never moves by itself underneath the reader.
+  ⚠️ Without a line in `config/importmap.rb`, a new controller loads in development
+  (`pin_all_from`), but NOT in test or production; this initially caused a browser spec to fail.
+* **Escape belongs to the topmost element** (`lib/escape_owner.js`, since 17 October 2026): Every controller
+  that responds to Escape answers `ownsEscape()` (true while its next Escape closes
+  something of its own). An overlay built by a script outside a controller carries
+  `data-owns-escape`. The lane (`layout-toggle`) checks this in the capture phase on `window`,
+  before any listener has run, and closes only if no one claims it. Previously,
+  `layout-toggle` held a selector list, and every forgotten overlay closed the lane
+  BEHIND it. Guard: `spec/architecture/escape_owner_guard_spec.rb` (also `keydown.esc->` in
+  templates; closed `NOT_OWNERS` list with reasons). ⚠️ An `ownsEscape()` that remains true
+  when nothing is open keeps the lane open forever: tie it to the state checked by
+  its own Escape handler.
+* `neo_autosuggest` has two modes: without `url`, it filters preloaded options in the browser; with `url`,
+  it queries the server. Confirmed selection, request numbering, debouncing and cancellation live in
+  `lib/autosuggest_search.js` (pin `autosuggest_search`, Node tests).
+* ⚠️ No `#anchor` links on a lane page: they create a history entry, so “Back” is treated
+  as a lane change and reloads the lane (losing the comment draft), and the hash spreads into URLs
+  built from `window.location`. For jumps, use `scroll_into_view` (button, scrolls and
+  focuses, URL unchanged).
+* Lane history (`index_page` + `lib/lane/history.js`): an entry with a DIFFERENT path belongs to
+  another page; Turbo restores its own entries. Otherwise, “link to project B, Back”
+  aborted Turbo's visit and hit the 500-ms double-click protection in `application.js`.
 
-Ähnlich benannte Controller — Analyse 2026-07-13 (KI-DX Slice 5), KEINE Duplikate:
-* `toggle` (generisches, umkehrbares Ein-/Ausblenden, Targets `content`/`icon`, 13+ Mounts) vs.
-  `neo_toggle` (Form-Switch mit Visuals + `relatedSelect`/`relatedInput`) vs. `reveal_more`
-  (EINWEG-Reveal: zeigt `[data-more-item]` unter seinem Element + blendet den Trigger aus, kein
-  Zurückklappen) — drei verschiedene Zwecke. `reveal_more` speist aus EINER Quelle das
-  Projekt-„mehr …" der Sidebar (`neo_sidebar_project_item_component`) UND seit S5b (02.09.2026)
-  die Stand-Tabelle der Zeitenliste, die Projekte ohne Zeiten faltet
-  (`time_sessions/_billing_overview_panel`). Die Org-Nav (`_navigation_application`) nutzt ihn
-  nicht mehr.
-* `clamp_toggle` ist der VIERTE aus dieser Familie und der einzige mit einer Vorschau:
-  er kürzt einen langen Block auf eine Vorschauhöhe und klappt ihn wieder auf. Die
-  Kürzungsklasse kommt über die Stimulus-Classes-API von außen, er ist also inhaltsneutral.
-  ⚠️ **Sein Markup nicht mehr von Hand verdrahten** — seit 04.09.2026 gehört es
-  `Neo::MarkdownPreviewComponent` (Transkript, Analyse-Vorschau, Ticket-Zusammenfassung).
-  Er blendet den Knopf nur ein, wenn der Text die Kürzung wirklich überläuft; ein Block,
-  der beim `connect()` nicht messbar ist (`clientHeight === 0`, verstecktes Lane),
-  behält Kürzung und Knopf.
-* `neo_price_interval` (öffentliche Preisseite, `doc/billing_preisliste_rabatt_plan.md` §7.4)
-  ist KEIN weiterer `toggle`: er blendet nicht ein Element auf/zu, sondern wählt **eine von n**
-  Varianten anhand `data-interval` — alle serverseitig gerendert, er flippt nur `hidden`. Die
-  Seite ist ohne JavaScript vollständig; wer das als Ein/Aus nachbaut, verliert genau diese
-  Eigenschaft.
-* `billing_form` (Rechnungsformular, `doc/billing_stammdaten_plan.md` §9) ist ebenfalls KEIN
-  weiterer `toggle`: er blendet nicht auf Knopfdruck etwas auf/zu, sondern leitet aus dem
-  gewählten Land ab, welche Felder überhaupt gelten. Alle Listen und Subdivisionen kommen als
-  `data-*`-Werte aus `Accounts::BillingRules` und dem `countries`-Gem, nie als Kopie im JS.
-  Setzt bewusst KEIN `required`: das Formular muss vollständig leerbar bleiben (E3),
-  verbindlich ist die Server-Validierung im `:billing`-Kontext.
-* `dropdown` (Targets `menu`/`button`) vs. `neo_dropdown` (Target `trigger`, auto-close-Value,
-  Keyboard-Nav) — beide live. **Für neuen Code `neo_dropdown` bevorzugen**; `dropdown`-Mounts
-  opportunistisch migrieren (Boy-Scout). ⚠️ **Ausnahme: eine Fläche, die ohne JavaScript
-  vollständig bleiben muss.** `neo_dropdown` blendet sein Menü per JS ein, ohne JS gibt es also
-  gar kein Menü. Die Filterzeile der Zeitenliste (S7, `time_sessions/_filter_pill`) nimmt darum
-  `<details>` + `details_autoclose`: der Zeitraumfilter war vorher neun Links und hätte sein
-  Ohne-JS-Verhalten sonst verloren.
-* `details_autoclose` hat seit S7 **zwei** Verbraucher: den Org-Umschalter der Navigation und
-  jede Pille der Zeitenliste. Sein `panel`-Target und `reposition` gehören nur dem ersten (sie
-  ankern an `#sidebar`); die Pillen mounten ihn ohne Target und nutzen nur „außen klicken" und
-  Escape. Alles im `reposition`-Pfad prüft `hasPanelTarget`, das muss so bleiben.
-* `filter_menu_search` (S7) filtert die bereits gerenderten Links EINES Pillen-Menüs nach
-  getipptem Text. Reine Verbesserung: ohne JS listet das Menü einfach alle. Mount sitzt
-  literal an jedem Menü, auch ohne Suchfeld — der Verdrahtungs-Zensus liest Mounts als
-  Literale und sieht eine aus Ruby gebaute Bedingung nicht.
-* `project_cascade` ist mit S7 **gelöscht**: sein einziger Mount war das Projekt-Auswahlfeld
-  der Zeitenliste. Was er tat (Projektwechsel räumt beide Bezugs-Ids weg) steht jetzt in der
-  Adresse jeder Menü-Option und gilt damit auch ohne JavaScript.
-* `slim_select` (Wrapper um die SlimSelect-Lib) vs. `neo_select` — getrennte Zwecke.
-* `ticket_selection` (08.09.2026, `doc/ticket_bulk_edit_plan.md` Scheibe 1): die Auswahl der
-  Ticketliste. Zustand in `lib/ticket_selection.js` (Pin `ticket_selection`, node-Tests), Mount
-  UM Kopf und Listenrahmen in `_index_desktop`, rendert nach jedem Nachladen neu.
-  ⚠️ Hört `turbo:frame-load` in der CAPTURE-Phase am Mount: auf der Ticketseite erreicht das
-  Ereignis das `document` NICHT (gemessen 08.09.2026; jedes andere Frame-Ereignis schon). Damit
-  sind auch die `document`-Listener von `filter_bar` (`_hits` bleibt nach einem Nachladen auf
-  dem alten Wert), `column_picker` und `keyboard_navigation` blind. Ursache ungeklärt, offener
-  Befund, eigener Strang.
-* `ticket_bulk_panel` (Scheiben 3 und 4): das Panel in der Bahn, Gerüst vom Server, fügt die
-  Änderungszeilen aus `<template>`s hinzu, holt den Bestand (`bulk_summary.json`) nach jeder
-  Änderung der Auswahl und spricht mit `ticket_selection` über Window-Ereignisse (`:ready`,
-  `:close`, `:draft`, `ticket-selection:change`), weil Panel (Bahn-Rahmen) und Auswahl
-  (Listenspalte) in verschiedenen Rahmen leben. Der Entwurf (`lib/ticket_bulk_draft.js`, Pin
-  `ticket_bulk_draft`, node-Tests) wird von `ticket_selection` über den Wechsel mit dem Ticket
-  bewahrt. `ticket_selection` fängt den Schließen-Knopf der Bahn in der
-  Capture-Phase am `document` ab, solange eine Auswahl steht. `execute` (Scheibe 6) schickt Auswahl, Entwurf und Bestands-Digests als JSON an
-  `bulk_update` (Adresse in der Query), rendert die Turbo-Stream-Antwort selbst
-  (`Turbo.renderStreamMessage`) und meldet die geänderten Ids als `ticket-bulk-panel:done`;
-  `ticket_selection#afterRun` macht daraus die neue Auswahl. ⚠️ Turbo wendet einen Stream
-  erst beim nächsten Repaint an: die Ids kommen aus dem Antworttext (`runTicketIds`), und die
-  Häkchen der neuen Zeilen setzt `ticket_selection#onStreamRender` über den `render`-Haken
-  von `turbo:before-stream-render`, nicht über ein `setTimeout`. Scheibe 7: die anderen
-  Aktionen unter dem Knopf öffnen native `<dialog>`s im Panel (`openMove`/`openDelete`), holen
-  die Zahlen per `POST bulk_impact` (JSON-Body, wie seit Scheibe 7 auch `bulk_summary`: 200 Ids
-  passen in keine Request-Zeile) und antworten wie ein Durchlauf; `done` mit `clear: true` leert
-  die Auswahl, `ticket_selection` hält die Ergebniszeile ohne Auswahl bis zum ✕ (`dismissResult`).
-* `filter_bar` ist die EINE Filterleiste (Reiter, Pillen, Speicherzeile; Zustand kommt aus der
-  Adresse, Logik in `lib/filter_bar/change_set.js`). Die eingefrorene Kopie `filter_bar_legacy`
-  samt `lib/filter_bar_legacy/` und dem Nutzer-Flag ist am 07.09.2026 gelöscht.
-* `sidebar_layer` (12.11.2026) sitzt an der Seitenleiste (`<aside id="sidebar">`) einer
-  Organisationsseite und führt die Konto-Ebene (`common/_account_layer`, Belegungstabelle F47):
-  ein Klick auf den eigenen Namen lässt „Mein Konto" von unten bis unter das Logo hochfahren,
-  die Seite dahinter bleibt. Er setzt nur Attribute (`hidden`, `data-state="open"`,
-  `aria-expanded`, `inert` auf dem Verdeckten); Fläche und Fahrt sind
-  `components/sidebar_layer.css`. Schließen: Name, Kreuz, Escape (`ownsEscape()`), Druck
-  daneben, und `turbo:before-cache` (sonst steht die Ebene nach „Zurück" wieder offen).
-  Der Name ist ohne JS ein Link auf die Account-Seite. ⚠️ Die Bühne im Layout ist EINE
-  Rasterzelle und bewusst NICHT positioniert: das Menü des Organisations-Umschalters hängt
-  am `aside` (`details_autoclose#reposition`). KEIN weiterer `toggle`/`dropdown`: er öffnet
-  eine Ebene über einem ganzen Bereich und sperrt, was darunter liegt.
-* `preferences_autosave` (12.11.2026) sitzt an jedem Abschnitt der Präferenzen-Seite
-  (`user_preferences/_section`): eine Änderung schickt das Formular des Abschnitts sofort
-  (JSON), das Ergebnis steht neben der Überschrift. Antwortet der Server `reload: true`
-  (andere Sprache, andere Session-Dauer), lädt die Seite neu. Ohne JS sendet der Knopf im
-  `<noscript>`. `user_preferences` (Datum/Zeit) arbeitet ihm zu: ein abgelehntes Format wird
-  per `setCustomValidity` ungültig und nicht gesendet, eine ausgeblendete Zeile wird wieder
-  gültig. Browser-Spec: `spec/system/preferences_page_spec.rb`.
-* `page_outline` (12.11.2026) sitzt an der Sprungliste einer langen Seite
-  (`shared/_page_outline`, Belegungstabelle F46; heute die Präferenzen): die Links sind
-  schlichte `#anker`, der Controller setzt nur die Marke (`aria-current="location"`),
-  gezeichnet wird sie in `components/page_outline.css`. Welcher Abschnitt dran ist,
-  entscheidet `lib/page_outline.js` (Pin `page_outline`, node-Tests): der letzte über der
-  Leselinie, am Seitenende der letzte, und ein eben gewählter bleibt, solange er im Fenster
-  steht und niemand von Hand weiterscrollt (`wheel`, `touchmove`, `keydown`).
-  ⚠️ Turbo folgt einem Anker-Link derselben Seite selbst und meldet ein eigenes `hashchange`,
-  BEVOR es die Adresse ändert: das Ziel aus `event.newURL` lesen, nie aus `window.location`.
-  ⚠️ Nicht auf einer Bahn-Seite (siehe oben: dort `scroll_into_view`).
-* Echte Duplikate/Leichen wurden 2026-07-13 gelöscht (`sort`, `search_clear`, `search_input`,
-  `permission_radio`, `neo_grouped_notification`, `.disabled`-Dateien) — der Census-Guard
-  meldet neue.
+Similarly named controllers — analysis 2026-07-13 (AI DX slice 5), NOT duplicates:
+* `toggle` (generic reversible show/hide, targets `content`/`icon`, 13+ mounts) vs.
+  `neo_toggle` (form switch with visuals + `relatedSelect`/`relatedInput`) vs. `reveal_more`
+  (ONE-WAY reveal: shows `[data-more-item]` beneath its element + hides the trigger, no
+  collapse) — three distinct purposes. From ONE source, `reveal_more` powers
+  the sidebar's project “more …” (`neo_sidebar_project_item_component`) AND, since S5b (2 September 2026),
+  the time list's status table, which collapses projects without recorded time
+  (`time_sessions/_billing_overview_panel`). Org navigation (`_navigation_application`) no longer
+  uses it.
+* `clamp_toggle` is the FOURTH in this family and the only one with a preview:
+  it shortens a long block to a preview height and expands it again. The
+  clamping class comes from outside through the Stimulus Classes API, so it is content-neutral.
+  ⚠️ **Do not wire its markup manually anymore** — since 4 September 2026, it belongs to
+  `Neo::MarkdownPreviewComponent` (transcript, analysis preview, ticket summary).
+  It shows the button only when the text actually exceeds the clamped height; a block
+  that cannot be measured at `connect()` (`clientHeight === 0`, hidden lane)
+  retains both clamping and button.
+* `neo_price_interval` (public pricing page, `doc/billing_preisliste_rabatt_plan.md` §7.4)
+  is NOT another `toggle`: it does not show/hide one element, but chooses **one of n**
+  variants by `data-interval` — all server-rendered; it only flips `hidden`. The
+  page is complete without JavaScript; rebuilding this as on/off loses precisely that
+  property.
+* `billing_form` (billing form, `doc/billing_stammdaten_plan.md` §9) is also NOT
+  another `toggle`: it does not show/hide something on a button click, but derives which fields
+  apply from the selected country. All lists and subdivisions arrive as
+  `data-*` values from `Accounts::BillingRules` and the `countries` gem, never as copies in JS.
+  Deliberately does NOT set `required`: the form must remain fully clearable (E3);
+  server validation in the `:billing` context is authoritative.
+* `dropdown` (targets `menu`/`button`) vs. `neo_dropdown` (target `trigger`, auto-close value,
+  keyboard navigation) — both live. **Prefer `neo_dropdown` for new code**; migrate `dropdown` mounts
+  opportunistically (Boy Scout). ⚠️ **Exception: an interface that must remain
+  complete without JavaScript.** `neo_dropdown` shows its menu through JS, so without JS there is
+  no menu at all. The time list's filter row (S7, `time_sessions/_filter_pill`) therefore uses
+  `<details>` + `details_autoclose`: the period filter previously consisted of nine links and would otherwise
+  have lost its no-JS behavior.
+* Since S7, `details_autoclose` has **two** consumers: the navigation's organisation switcher and
+  every time-list pill. Its `panel` target and `reposition` belong only to the first (they
+  anchor to `#sidebar`); the pills mount it without a target and use only outside clicks and
+  Escape. Everything in the `reposition` path checks `hasPanelTarget`; this must stay that way.
+* `filter_menu_search` (S7) filters the already rendered links of ONE pill menu by
+  typed text. Pure enhancement: without JS, the menu simply lists everything. The mount is
+  literal on every menu, even without a search field — the wiring census reads mounts as
+  literals and cannot see a condition built in Ruby.
+* `project_cascade` was **deleted** in S7: its only mount was the time list's project picker.
+  What it did (changing project clears both reference IDs) is now encoded in
+  each menu option's URL, so it also works without JavaScript.
+* `slim_select` (wrapper around the SlimSelect library) vs. `neo_select` — separate purposes.
+* `ticket_selection` (8 September 2026, `doc/ticket_bulk_edit_plan.md` slice 1): ticket-list
+  selection. State in `lib/ticket_selection.js` (pin `ticket_selection`, Node tests), mounted
+  AROUND the header and list frame in `_index_desktop`, rerenders after every load.
+  ⚠️ Listens for `turbo:frame-load` in the CAPTURE phase on the mount: on the ticket page, the
+  event does NOT reach `document` (observed 8 September 2026; every other frame event does). Thus,
+  the `document` listeners of `filter_bar` (`_hits` stays at the old value after
+  loading), `column_picker` and `keyboard_navigation` are also blind. Cause unresolved, open
+  finding, separate workstream.
+* `ticket_bulk_panel` (slices 3 and 4): the lane panel, skeleton from the server, adds
+  change rows from `<template>` elements, fetches current data (`bulk_summary.json`) after every
+  selection change and communicates with `ticket_selection` through window events (`:ready`,
+  `:close`, `:draft`, `ticket-selection:change`), because panel (lane frame) and selection
+  (list column) live in different frames. `ticket_selection` preserves the draft (`lib/ticket_bulk_draft.js`, pin
+  `ticket_bulk_draft`, Node tests) when switching between the panel and a ticket.
+  `ticket_selection` intercepts the lane's close button in the
+  capture phase on `document` while a selection exists. `execute` (slice 6) sends selection, draft and current-data digests as JSON to
+  `bulk_update` (URL state in the query), renders the Turbo Stream response itself
+  (`Turbo.renderStreamMessage`) and reports changed IDs as `ticket-bulk-panel:done`;
+  `ticket_selection#afterRun` turns them into the new selection. ⚠️ Turbo applies a stream
+  only on the next repaint: IDs come from the response text (`runTicketIds`), and
+  `ticket_selection#onStreamRender` checks the new rows' boxes through the `render` hook
+  of `turbo:before-stream-render`, not through `setTimeout`. Slice 7: the other
+  actions below the button open native `<dialog>` elements in the panel (`openMove`/`openDelete`), fetch
+  counts via `POST bulk_impact` (JSON body, as also used by `bulk_summary` since slice 7: 200 IDs
+  do not fit in a request line) and respond like a run; `done` with `clear: true` clears
+  the selection, and `ticket_selection` retains the result row without a selection until ✕ (`dismissResult`).
+* `filter_bar` is the SINGLE filter bar (tabs, pills, save row; state comes from the
+  URL, logic in `lib/filter_bar/change_set.js`). The frozen copy `filter_bar_legacy`,
+  together with `lib/filter_bar_legacy/` and the user flag, was deleted on 7 September 2026.
+* `sidebar_layer` (12 November 2026) is mounted on the sidebar (`<aside id="sidebar">`) of an
+  organisation page and controls the account layer (`common/_account_layer`, assignment table F47):
+  clicking one's own name slides “My account” up from the bottom to just below the logo,
+  leaving the page behind it. It only sets attributes (`hidden`, `data-state="open"`,
+  `aria-expanded`, `inert` on the covered content); the surface and motion belong to
+  `components/sidebar_layer.css`. Close: name, cross, Escape (`ownsEscape()`), click
+  outside, and `turbo:before-cache` (otherwise the layer reopens on “Back”).
+  Without JS, the name links to the account page. ⚠️ The layout's stage is ONE
+  grid cell and deliberately NOT positioned: the organisation switcher's menu attaches
+  to the `aside` (`details_autoclose#reposition`). NOT another `toggle`/`dropdown`: it opens
+  a layer over an entire area and disables what lies beneath.
+* `preferences_autosave` (12 November 2026) is mounted on every section of the preferences page
+  (`user_preferences/_section`): a change submits the section's form immediately
+  (JSON), and the result appears beside the heading. If the server answers `reload: true`
+  (different language, different session duration), the page reloads. Without JS, the button in
+  `<noscript>` submits. `user_preferences` (date/time) supports it: a rejected format is marked
+  invalid through `setCustomValidity` and is not submitted; a hidden row becomes
+  valid again. Browser spec: `spec/system/preferences_page_spec.rb`.
+* `page_outline` (12 November 2026) is mounted on a long page's jump list
+  (`shared/_page_outline`, assignment table F46; currently preferences): the links are
+  plain `#anchor` links; the controller only sets the marker (`aria-current="location"`),
+  styled in `components/page_outline.css`. `lib/page_outline.js` decides which section is current
+  (pin `page_outline`, Node tests): the last one above the
+  reading line, the last one at the page bottom, and a just-selected section remains current while it is in view
+  and no one scrolls manually (`wheel`, `touchmove`, `keydown`).
+  ⚠️ Turbo follows a same-page anchor link itself and emits its own `hashchange`
+  BEFORE changing the URL: read the target from `event.newURL`, never `window.location`.
+  ⚠️ Not on a lane page (see above: use `scroll_into_view` there).
+* Actual duplicates/dead code were deleted on 2026-07-13 (`sort`, `search_clear`, `search_input`,
+  `permission_radio`, `neo_grouped_notification`, `.disabled` files) — the census guard
+  reports new ones.
 
-## Rich-Text (seit Paket 2 Inline-Bilder, 2026-08-23)
+## Rich text (since inline images package 2, 2026-08-23)
 
-Lexxy ist der einzige Editor; Trix ist aus Importmap, JS und CSS verschwunden
-(Guard: `spec/views/no_trix_guard_spec.rb`). Zwei Controller gehören dazu:
+Lexxy is the only editor; Trix has been removed from the importmap, JS and CSS
+(guard: `spec/views/no_trix_guard_spec.rb`). Two controllers belong to it:
 
-* `neo_rich_text_embeds` sitzt am `<lexxy-editor>` (Attribute aus
-  `RichTextEmbedsHelper#lexxy_embed_editor_options`), hört `lexxy:file-accept` und prüft NUR
-  neue Dateien gegen Typ und Größe aus `RichTextEmbeds` (`lib/rich_text_embed_accept.js`,
-  `node:test`). Abgelehnte Dateien wandern in das Anhang-Feld des Formulars, das er über
-  einen Selektor im umschließenden `form` findet. ⚠️ Nie Lexxys eigenes
-  `permitted-attachment-types` setzen: Lexxy filtert damit auch beim LADEN und wirft
-  Bestands-Attachments weg.
-* `neo_rich_text_zoom` sitzt am Wrapper jedes gerenderten Rich-Texts
-  (`layouts/action_text/contents/_content.html.erb`), nie am Bild: ActionText streicht
-  `data-*` aus den Attachment-Partials. Delegierter Klick auf `a.attachment__zoom`
-  (`lib/rich_text_zoom.js`) öffnet ein natives `<dialog>`; ohne JS öffnet der Link die
-  große Variante. Funktioniert in Turbo-Streams, weil der Listener am Wrapper hängt.
-* `neo_writing_surface` (Paket 3) sitzt an der großen Ticket-Schreibfläche
-  (`tickets/_writing_surface.html.erb`, gerendert in `turbo-frame#writing_surface` von
-  `tickets#new` und `#edit`; der leere Frame gehört dem Application-Layout, damit Liste,
-  Dashboard UND Inbox-Pane ihn erreichen). ⚠️ Bewusst NICHT `turbo-frame#modal`:
-  `filter_bar_controller` besucht die Seite nach jedem erfolgreichen Submit in `#modal`
-  neu, und die URL trägt noch das vorher gewählte Ticket. Er kennt nur den Weg HINAUS ohne Speichern: Escape und Abbrechen schließen
-  ein unverändertes Formular sofort, sonst `window.confirm`; Klick daneben schließt nie.
-  „Verändert" ist ein Vergleich von FormData-Snapshots (`lib/form_snapshot.js`,
-  `node:test`), flüchtige Felder wie `authenticity_token` ausgenommen. Speichern schließt
-  nicht er, sondern der Turbo-Stream `update('writing_surface', '')` der Controller-Antwort.
+* `neo_rich_text_embeds` is mounted on `<lexxy-editor>` (attributes from
+  `RichTextEmbedsHelper#lexxy_embed_editor_options`), listens for `lexxy:file-accept` and checks ONLY
+  new files against the types and sizes from `RichTextEmbeds` (`lib/rich_text_embed_accept.js`,
+  `node:test`). Rejected files go into the form's attachment field, found through
+  a selector in the enclosing `form`. ⚠️ Never set Lexxy's own
+  `permitted-attachment-types`: Lexxy also filters on LOAD and discards
+  existing attachments.
+* `neo_rich_text_zoom` is mounted on the wrapper of every rendered rich text
+  (`layouts/action_text/contents/_content.html.erb`), never on the image: ActionText strips
+  `data-*` from attachment partials. A delegated click on `a.attachment__zoom`
+  (`lib/rich_text_zoom.js`) opens a native `<dialog>`; without JS, the link opens the
+  large variant. Works in Turbo Streams because the listener is attached to the wrapper.
+* `neo_writing_surface` (package 3) is mounted on the large ticket writing surface
+  (`tickets/_writing_surface.html.erb`, rendered in `turbo-frame#writing_surface` by
+  `tickets#new` and `#edit`; the empty frame belongs to the application layout so the list,
+  dashboard AND inbox pane can reach it). ⚠️ Deliberately NOT `turbo-frame#modal`:
+  `filter_bar_controller` revisits the page after every successful submit in `#modal`,
+  and the URL still contains the previously selected ticket. It handles only the way OUT without saving: Escape and Cancel close
+  an unchanged form immediately, otherwise `window.confirm`; clicking outside never closes it.
+  “Changed” is a comparison of FormData snapshots (`lib/form_snapshot.js`,
+  `node:test`), excluding transient fields such as `authenticity_token`. Saving is closed
+  by the controller response's Turbo Stream `update('writing_surface', '')`, not by this controller.
 
-## Begleit-Panel des Assistenten (S3a T4, 2026-08-24)
+## Assistant companion panel (S3a T4, 2026-08-24)
 
-Zwei Controller, ein Grund für die Trennung: das Panel liegt auf Body-Ebene (es muss, um
-`data-turbo-permanent` zu sein und dem `transform`/`overflow` der Sidebar zu entkommen),
-die Sidebar-Zeile liegt in der Navigation. Damit sind sie NICHT im selben Stimulus-Scope.
+Two controllers, one reason for the separation: the panel sits at body level (it must, to be
+`data-turbo-permanent` and escape the sidebar's `transform`/`overflow`),
+while the sidebar row is in navigation. They therefore do NOT share a Stimulus scope.
 
-* `assistant_panel` sitzt am permanenten Knoten `#assistant_panel`
-  (`layouts/_assistant_panel.html.erb`). Turbo VERPFLANZT diesen Knoten bei jedem
-  Drive-Besuch, deshalb gilt hier durchgehend: Zustand gehört auf den Knoten, nicht in die
-  Instanz — die Stimulus-Values (`open`, `width`) tun genau das, weil sie Attribute sind.
-  ⚠️ `disconnect()` feuert bei JEDER Verpflanzung, nicht nur beim Abbau: dort nichts
-  abräumen und vor allem nichts MESSEN (`scrollTop` liest dort 0, der Knoten hängt schon
-  aus). ⚠️ Ein permanenter Knoten sieht die frisch gerenderte Fassung nie — serverseitige
-  Änderungen an seinen Attributen kommen nicht an; der Weg vom Server dorthin ist die URL
-  (`?assistant_chat_id=`, `honourRequestedChat`; ebenso `?assistant=full`,
-  `honourRequestedMode`). Umgekehrt gilt dasselbe für den KOPF des
-  Panels: er weiß nie, welchen Verlauf der Frame gerade zeigt. Deshalb ist „Frühere
-  Verläufe" ein Knopf und kein Link — `showHistory` liest die offene Id am Chat-Frame ab
-  (`#assistant-panel-chat[data-chat-id]`, gesetzt von `ChatContainerComponent`) und baut
-  die Adresse selbst.
-  ⚠️ Wer Zustand aus der URL übernimmt, MARKIERT die Adresse (`dataset.honouredChat`,
-  `dataset.honouredMode`, `dataset.honouredArtefact`) — der Morph-Refresh besucht dieselbe
-  URL erneut und macht sonst eine Nutzerentscheidung rückgängig. Wer sie SCHREIBT
-  (`publishArtefactAddress`, `replaceState`), markiert sie im selben Zug.
-* **Drei Zustände, EIN Knoten** (S3c T2): Die Vollansicht ist eine KLASSE am selben Knoten
-  plus ein Grid darin, nie eine Seite — eine Seite nähme Entwurf, Bildlauf und laufenden
-  Stream mit. Das Raster aus `layout.css` ist dafür unbrauchbar (lebt in `<main>`); Regeln
-  in `components/assistant_panel.css`.
-* ⚠️ **Ein Marker im Panel-Knoten ist NICHT eindeutig.** `showHistory` fragt, ob die
-  Verlaufsliste schon offen ist, und muss dafür den CHAT-FRAME fragen, nicht
-  `this.element`: seit T2 rendert die Verlaufs-Lane dieselbe Komponente mit demselben
-  `data-assistant-history` im selben Knoten. Ein Ausflug in die Vollansicht lud die Lane,
-  der Marker blieb danach im DOM (die Lane ist nur `display:none`), und der Uhr-Knopf tat
-  bis zum nächsten Neuladen nichts mehr. In PRODUKTION gefunden, nicht im Test. Wer hier
-  einen Marker oder eine Id sucht, fragt die Fläche, die ihn besitzt.
-* **`showSettings`** (Zahnrad, 30.08.2026) ist derselbe Bau wie `showHistory`: dritter
-  Zustand des Chat-Frames (`?settings=1`), `data-assistant-settings` als Marker, und der
-  offene Verlauf reist als `?current=` mit, damit der Rückweg dort landet, wo das Zahnrad
-  gedrückt wurde. Ohne diesen Parameter fällt der Rückweg auf die Panel-Vorgabe, also den
-  NEUESTEN Verlauf. ⚠️ Ein Test dagegen ist nur dann echt, wenn der Ziel-Verlauf nicht
-  selbst der neueste ist: sonst ist der Rückfall vom Rückweg nicht zu unterscheiden
-  (gemessen, `spec/system/assistant_panel_spec.rb`).
-* **Die Artefakt-Lane** (S3c T3) ist die dritte Spur, sichtbar nur wenn BEIDE Klassen
-  stehen (`assistant-panel--full` + `assistant-panel--artefact`). Ein einziger delegierter
-  Klick-Handler (`handleClick`) entscheidet beides: ein Link mit `data-assistant-artefact`
-  öffnet in der Vollansicht die Lane statt zu navigieren, und jeder Link, der das Panel
-  VERLÄSST, klappt vorher auf die Begleitspur zurück — sonst lädt die Seite hinter einem
-  bildschirmfüllenden Panel und der Klick sieht folgenlos aus (der Defekt, mit dem T2 lief).
-  Links, die einen Frame IM Panel adressieren (`data-turbo-frame="assistant_panel_body"`),
-  sind davon ausgenommen. ⚠️ Der Frame-`src` wird IMMER aus dem eigenen Endpunkt
-  (`artefactSrcValue`) plus Query gebaut, nie aus einem Adress-Wert als Ganzem.
-  ⚠️ `handleClick` steigt bei ⌘/Strg/Shift/Alt und `button !== 0` sofort aus. Beide
-  Zweige lägen sonst falsch: `preventDefault()` verschluckt den neuen Tab, und die
-  Rückklappe faltet das Panel weg, obwohl Turbo modifizierte Klicks selbst ignoriert
-  und die Seite gar nicht navigiert. Dasselbe für `#`-Anker und `mailto:`/`tel:`.
-* ⚠️ **`turbo_stream.update` feuert KEIN `turbo:frame-load`.** Das Kontext-Angebot
-  (S4 T2 Schritt 5b) muss wissen, welchen Gegenstand die Seite gerade zeigt, und ein
-  Frame-Load-Listener beantwortet das fast nie: `#ticket_display_frame` hat ACHT
-  Schreiber, und genau einer davon (`list_row_controller`, setzt eine `src`) ist ein
-  Load. Der Rest sind Streams, dazu zwei Stellen, die `innerHTML` direkt zuweisen
-  (`turbo_cache_controller`, und der Kanban-Ausklapper beim Schliessen) und damit gar
-  nichts feuern. Drei Defekte im Review liefen auf diese eine Tatsache hinaus. Deshalb
-  ein `MutationObserver` — **auf `<main>`, nicht auf `document.body`**: das Panel ist ein
-  Geschwister von `<main>`, und eine laufende Antwort schreibt den Verlauf pro Token neu,
-  ein body-weiter Beobachter liefe also während jeder Antwort sechzigmal pro Sekunde.
-* **Das Angebot liegt im FRAME, nicht mehr in der Hülle** (27.08.2026). Sein Markup ist
-  `Neo::Chat::ContextOfferComponent`, gerendert von `ChatContainerComponent`, und zwar NUR
-  für `PANEL_FRAME_ID`: es steht jetzt direkt über der Zeile, deren Bezug es setzen will,
-  weil es unten am Panelrand niemand ansah. Der Preis dafür steht oben: was der Client in
-  `assistant_panel_body` schreibt, ist beim nächsten Frame-Load weg. Beantwortet wird das
-  am Ladeereignis selbst, `handleChatFrameLoad` fragt danach erneut, und zwar ZWEIMAL:
-  sofort und im nächsten `requestAnimationFrame`. Stimulus findet die Targets eines frisch
-  getauschten Teilbaums über einen `MutationObserver`, also einen Microtask NACH
-  `turbo:frame-load`; der erste Aufruf redet unter Umständen noch mit dem abgehängten
-  Knoten. Seit 10.09.2026 rendert auch der Empty State das Angebot. Ohne gespeicherten
-  Verlauf landen angenommene Bezüge in `DraftReferencesComponent` als sichtbare Chips
-  und versteckte Formularfelder (`chat[reference_keys][]`). Der permanente Panel-Knoten
-  erhält diese Auswahl bei Navigation; „Neuer Chat“ tauscht das Formular aus und leert sie.
-  `Actors::SaveChat` prüft die Sammlung über `Tools::Scope#references` und speichert sie
-  mit der ersten Nachricht, bevor der Antwort-Job startet. Fehler rendern die Nachricht
-  samt weiterhin lesbaren Bezügen erneut. Während des Sendens sperrt der Controller die
-  Auswahl und weitere Submits. Bei einer Turbo-Stream-Antwort bleibt das alte Formular
-  bis zum Austausch gesperrt: `submit-end` kann vor dem Lesen des Antworttexts feuern.
-  `offerTargetConnected` erneuert das Angebot auch nach einem Stream-Austausch.
-  Verlaufsliste und Einstellungen rendern weiterhin kein Angebot.
-* **`chat_scroll_controller` hat zwei Akte, und der zweite ist neu** (27.08.2026): der
-  Sprung (die eigene Frage an den oberen Rand) und danach das FOLGEN, das das Ende des
-  Verlaufs sichtbar hält, während die Antwort Token für Token hereinkommt. Beide sind nur
-  durch das `turbo:submit-end` des eigenen Composers scharf, nie durch einen Broadcast.
-  ⚠️ Dass der Leser selbst gescrollt hat, wird OHNE Scroll-Listener erkannt: ein
-  programmatischer Bildlauf feuert dieselben Ereignisse wie ein echter, eine gemerkte
-  Position unterscheidet die beiden. Der Sprung ist darum bewusst NICHT smooth: ein
-  laufender Smooth-Scroll hätte keine verlässliche Bezugsposition, und das Folgen
-  würde ihn überschreiben (eine frühere Schonfrist `JUMP_SETTLE_MS` gibt es nicht mehr).
-* **Das Ende beim Öffnen** (10.09.2026) gehört dem PANEL-Controller, nicht dem
-  Scroll-Controller: `showTranscriptEnd` läuft in `open()` und bei `turbo:frame-load` des
-  Chat-Frames. ⚠️ Nicht in `connect()` des Scroll-Controllers: der feuert bei jeder
-  Verpflanzung und würde die Leseposition überschreiben, die `restoreTranscriptScroll`
-  gerade zurückgeholt hat. Ein Seitenwechsel bei offenem Panel behält die Position,
-  jedes Öffnen und jeder Verlaufswechsel zeigt das Ende. Steht eine Antwort noch aus,
-  lädt der Resync den Frame beim Seitenwechsel ohnehin neu, und der frische Verlauf
-  zeigt dann ebenfalls das Ende (gemessen: ein Verlauf, dessen letzte Blase
-  `data-answer-pending="true"` trägt, wird bei jedem Besuch neu geholt).
-* ⚠️ **Der permanente Knoten stirbt auf jeder Seite OHNE Organisation** (Org-Wechsler,
-  Kontoseiten, Admin, `/hilfe`): `assistant_available?` verlangt `current_organisation`,
-  also rendert das Layout das Panel dort nicht und Turbo verpflanzt nichts. Die Listener
-  auf `document`/`window` sterben aber nicht mit, sie halten die tote Instanz samt
-  abgehängtem Teilbaum am Leben, einer mehr pro Rundreise. `disconnect()` kann das nicht
-  aufräumen (eine Verpflanzung feuert es auch), deshalb melden sich die Listener selbst ab
-  (`releaseIfGone`) — und erst nach einer ZWEITEN Frage in einer späteren Task, weil eine
-  Verpflanzung den Knoten kurz aus dem Dokument nimmt.
-* ⚠️ **Für das Ergebnis eines Chip-Schreibens gibt es kein Ereignis.** `turbo:submit-end`
-  feuert, bevor der Stream die Chip-Zeile ersetzt hat, und ein Div-Tausch ist kein
-  Frame-Load. Wer dort zu früh aufräumt, bietet das gerade gesetzte Ticket erneut an; wer
-  nie aufräumt, lässt das Ticket für die Lebensdauer des Tabs verstummen. `settleAfterScopeWrite`
-  wartet deshalb, bis die Zeile sich WIRKLICH ändert, mit einem Frame-Budget als Rückfall
-  für den Fall, dass sie unverändert zurückkommt — was genau die Form einer Ablehnung ist.
-* **Der Bezug ist eine SAMMLUNG, und ihre Vokabel ist der Schlüssel `<Typ>:<uuid>`**
-  (Bezugs-Sammlung S1, 27.08.2026, `doc/assistent_bezug_sammlung_plan.md` §7.1/§8.3).
-  Derselbe Wert im URL-Segment, im Formularfeld, in `data-reference-keys` am Chip und in
-  `dismissedContexts`/`refusedContexts`/`pendingContext`; Meeting-Einstiege führen daneben
-  ihre noch nicht erfüllte Absicht in `pendingMeetingIntents`. Zusammengesetzt wird der
-  Schlüssel an genau zwei Stellen:
-  `assistant_trigger#adopt` aus seinen beiden Values, und `pageContext()` aus
-  `data-assistant-context` plus `data-assistant-context-type`. Beide Attributsätze
-  schreibt auf der Server-Seite EIN Besitzer, `AssistantContextHelper`
-  (`assistant_context_attributes` für den Marker, `assistant_trigger_attributes` für den
-  Knopf), seit Wissen sie neben den Tickets rendert (10.09.2026,
-  `doc/assistent_wissen_kontext_plan.md`). ⚠️ `pageContext()` überspringt Marker in einer
-  GESCHLOSSENEN Bahn (`.layout.hide-content`): das ✕ blendet die Spalte per Klasse aus und
-  lässt den Inhalt stehen, sonst bliebe die eben geschlossene Notiz im Angebot. Deshalb
-  beobachtet `observePageContent` neben der Kinderliste von `<main>` das `class`-Attribut
-  des `.layout`-Knotens, und nur dieses. `standingReferenceKeys()`
-  liest die ganze Zeichenkette (das ist es, was `settleAfterScopeWrite` vergleicht),
-  `standingKeySet()` beantwortet die Mitgliedschaftsfrage. Geschrieben wird per POST auf
-  `.../assistant_chats/:id/references`, entfernt per DELETE auf den Schlüssel.
-  Eine Server-ABLEHNUNG landet in `refusedContexts` (S2, §8.3), sonst entsteht mit der
-  Obergrenze 10 eine Schleife: Klick, 422 „höchstens zehn", Angebot wieder da. Sie wird
-  nicht aus einer unveränderten Zeile geraten, sondern nur aus `success:false` MIT
-  `fetchResponse` des eigenen Kontextformulars gelesen; ein Netzfehler darf den Bezug
-  nicht für den Tab verstummen lassen. `settleAfterScopeWrite` wartet trotzdem auf die
-  wirklich gerenderte Chip-Zeile, bevor Angebot und Meeting-Absicht neu bewertet werden.
-  ⚠️ Mehrere Scope-Schreiben können einander in Turbo abbrechen. Deshalb zählt
-  `contextSubmissionsInFlight` pro Schlüssel bereits VOR `requestSubmit()`: nur der letzte
-  Settle darf `pendingContext` und `pendingMeetingIntents` löschen oder den Modus aktivieren.
-* `assistant_trigger` wirft ein Custom-Event auf `window`: neben dem Bezug trägt ein
-  Meeting-Einstieg optional `analysis` oder `ticket-suggestions` als Absicht. Der Panel-
-  Controller erfüllt sie erst, wenn `Meeting:<uuid>` sichtbar in der aktuellen Sammlung
-  steht. Ein zweiter Klick auf denselben fliegenden Bezug ersetzt nur die Absicht; ein
-  erneutes `requestSubmit()` würde Turbos erste Übernahme abbrechen.
-* ⚠️ Solange eine solche Meeting-Absicht auf die Bezugsübernahme wartet, hält
-  `guardPendingMeetingIntentSubmit` ausschließlich das Nachrichtenformular an. Andere
-  Formulare im Panel — Vorschläge übernehmen/verwerfen, Lauf wiederholen, Chip oder Chat
-  löschen — bleiben bedienbar. Der Guard lauscht in der Capture-Phase, zeigt seinen
-  `role="alert"`-Status aus `ComposerComponent` in neuem UND bestehendem Chat und verhindert
-  so, dass ein sichtbarer alter Aufgabenmodus versehentlich für Meeting A absendet,
-  während der Einstieg für Meeting B noch geprüft wird.
-* `assistant_suggestion_composer` (Meeting-Migration Schritt 3) ergänzt das vorhandene
-  Nachrichtenfeld um einen sichtbaren, aufhebbaren Aufgabenmodus. Das versteckte Feld
-  `ticket_suggestion_meeting_id` trägt dessen Absicht; `assistant_panel` erhält es beim
-  Frame-Abgleich zusammen mit dem Entwurf. Ziele kommen aus den übernommenen Meeting-Bezügen
-  und einem berechtigungsgeprüften Endpunkt, nie aus der gerade geöffneten Seite. Ein
-  ausdrücklicher Meeting-Einstieg wartet nur, solange genau der Fetch läuft, der dieses
-  Meeting entscheiden kann. Nach einem Fehler fällt die Absicht weg, normale Nachrichten
-  lassen sich wieder senden; der sichtbare Wiederholen-Knopf oder derselbe Einstieg lädt
-  die Auswahl erneut.
-* `meeting_section_sync` hält gespeicherte Analysen und die gemeinsame Vorschlagsliste am
-  geöffneten Meeting mit den Assistenten-Karten synchron. `assistant:analyses-changed` und
-  `assistant:suggestions-changed` sind nur Hinweise: die Meeting-Seite lädt ihre eigene,
-  berechtigungsgeprüfte Darstellung mit `Turbo-Frame: meeting_display_frame`, bündelt
-  Ereignisse während eines laufenden Abrufs und versucht einen flüchtigen Fehler einmal
-  erneut. Nur eine erfolgreiche Ticket-Übernahme trägt `refreshLinks` und ersetzt im selben
-  Abruf auch die Verknüpfungsliste; Start, Abschluss und Verwerfen lassen einen dort noch
-  nicht abgesendeten Autosuggest-Entwurf stehen. Ein eingereihtes Ereignis darf dieses Flag
-  auch dann nicht verlieren, wenn der erste Abruf fehlschlägt.
-* `assistant_suggestion_result` aktualisiert genau einen gespeicherten Lauf per HTTP,
-  solange Panel, Dokument und Karte sichtbar sind und der Lauf aktiv ist (Backoff bis
-  30 Sekunden, bei 429 mindestens 60 Sekunden). Fertige Karten aktualisieren ausdrücklich
-  oder beim Zurückkehren mit mindestens 60 Sekunden Abstand zum letzten Abruf.
-  Wiederandocken setzt die Observer-Markierung zurück und löst keinen Abruf aus.
-  Ein Server-Digest berücksichtigt Aktionsfehler, ignoriert aber wechselnde CSRF-Tokens. Vor dem Einsetzen einer Antwort prüft er die Sichtbarkeit erneut; wird die Karte während
-  des Abrufs versteckt, bleibt sie `stale` und holt beim nächsten Anzeigen sofort nach.
-  `disconnect` bricht den Request ab und entwertet über eine Generation alte Timer.
-  Geschlossene Ergebnisflächen erhalten keine Inhalte. Der allgemeine Chat-Resync
-  überspringt diese Ergebnisse, damit nicht zwei Polling-Wege denselben Auftrag aktualisieren.
-* `glossary_run_poll` (K5b, 08.11.2026) lädt den Listen-Frame der Prüfliste des Glossars alle 5 s
-  neu (Value `interval`), solange ein Lauf der Extraktion aktiv ist. Sitzt an der Lauf-Leiste IM
-  Frame: die frische Leiste entscheidet, ob es weitergeht (`active`). HTTP 408, 429 und 5xx
-  werden nach 5 s erneut abgefragt, solange die Leiste aktiv und verbunden ist; 429/503 beachten ein
-  gültiges `Retry-After` (Sekunden oder HTTP-Datum, mindestens das Intervall, innerhalb des
-  Browser-Timerbereichs). Ungültige Werte fallen auf das Intervall zurück. Netzwerkfehler
-  behalten ihren bisherigen Wiederholungsrhythmus. Andere HTTP-Fehler, Weiterleitungen und
-  Antworten ohne Liste stoppen; Disconnect, inaktive oder entfernte Leisten lassen keine
-  späte Antwort rendern oder einen Timer starten. Versteckte Tabs senden keine Anfrage.
-  Kein Broadcast, die Rechte bleiben in der View (Form von
-  `meeting_section_sync`, node-Tests).
-  Zweiter Aufrufer seit K5c (09.11.2026): der Glossar-Knopf in der Bahn eines Dokuments
-  (`documents#glossary_source`), solange Text fehlt oder ein anderer Lauf aktiv ist. Value
-  `maxWait` begrenzt das Warten auf Text (10 min, Wiederholungen eingeschlossen); die Frist liegt
-  im `dataset` des äußeren Frames, weil jede Antwort den Controller selbst ersetzt und eine Frist
-  am Controller bei jedem `connect` neu begänne. Ein Fragment ohne `maxWait` (Lauf aktiv, Text da)
-  löscht sie wieder.
-* Die Grenzen des lebenden Knotens stehen in `doc/persoenlicher_assistent_plan.md` §7.7.
-  Kurzform: Org-Wechsel und globale Suche sind `turbo: false`, und
-  `knowledge/index.html.erb` trägt `<meta name="turbo-visit-control" content="reload">` —
-  jeder dieser Wege ist ein Vollreload und tötet den Knoten samt getipptem Entwurf. Das
-  Cookie (`AssistantPanelState`) stellt danach Geometrie und Offen-Zustand wieder her.
-  Guard gegen die Rückkehr der TOTEN Attribut-Variante:
+* `assistant_panel` is mounted on the permanent node `#assistant_panel`
+  (`layouts/_assistant_panel.html.erb`). Turbo TRANSPLANTS this node on every
+  Drive visit, so the rule throughout is: state belongs on the node, not in the
+  instance — Stimulus values (`open`, `width`) do exactly that because they are attributes.
+  ⚠️ `disconnect()` fires on EVERY transplant, not only teardown: do not
+  clean up there, and especially do not MEASURE (`scrollTop` reads 0 there; the node is already
+  detached). ⚠️ A permanent node never sees the freshly rendered version — server-side
+  changes to its attributes do not arrive; the path from server to node is the URL
+  (`?assistant_chat_id=`, `honourRequestedChat`; likewise `?assistant=full`,
+  `honourRequestedMode`). The same applies in reverse to the panel HEADER:
+  it never knows which conversation the frame currently displays. This is why “Previous
+  conversations” is a button, not a link — `showHistory` reads the open ID from the chat frame
+  (`#assistant-panel-chat[data-chat-id]`, set by `ChatContainerComponent`) and builds
+  the URL itself.
+  ⚠️ Anyone adopting state from the URL MARKS that URL (`dataset.honouredChat`,
+  `dataset.honouredMode`, `dataset.honouredArtefact`) — a morph refresh revisits the same
+  URL and would otherwise undo a user's decision. Anyone WRITING it
+  (`publishArtefactAddress`, `replaceState`) marks it at the same time.
+* **Three states, ONE node** (S3c T2): Full view is a CLASS on the same node
+  plus a grid inside, never a page — a page would take the draft, scroll position and ongoing
+  stream away. The grid from `layout.css` is unsuitable (it lives in `<main>`); rules
+  belong in `components/assistant_panel.css`.
+* ⚠️ **A marker in the panel node is NOT unique.** `showHistory` asks whether the
+  conversation list is already open, and must ask the CHAT FRAME, not
+  `this.element`: since T2, the history lane renders the same component with the same
+  `data-assistant-history` inside the same node. Visiting full view loaded the lane,
+  the marker remained in the DOM afterwards (the lane is merely `display:none`), and the clock button did
+  nothing until the next reload. Found in PRODUCTION, not in a test. When looking for
+  a marker or ID here, query the surface that owns it.
+* **`showSettings`** (gear, 30 August 2026) follows the same structure as `showHistory`: third
+  state of the chat frame (`?settings=1`), `data-assistant-settings` as marker, and the
+  open conversation travels as `?current=` so the return path lands where the gear
+  was pressed. Without this parameter, the return path falls back to the panel default, the
+  NEWEST conversation. ⚠️ A test for this is meaningful only if the target conversation is not
+  itself the newest: otherwise, fallback and correct return are indistinguishable
+  (observed, `spec/system/assistant_panel_spec.rb`).
+* **The artefact lane** (S3c T3) is the third column, visible only when BOTH classes
+  are set (`assistant-panel--full` + `assistant-panel--artefact`). A single delegated
+  click handler (`handleClick`) handles both cases: a link with `data-assistant-artefact`
+  opens the lane in full view instead of navigating, and every link that LEAVES the panel
+  first collapses it back to the companion panel — otherwise, the page loads behind a
+  full-screen panel and the click appears to do nothing (the defect shipped in T2).
+  Links targeting a frame INSIDE the panel (`data-turbo-frame="assistant_panel_body"`)
+  are exempt. ⚠️ The frame `src` is ALWAYS built from its own endpoint
+  (`artefactSrcValue`) plus query, never from an entire URL value.
+  ⚠️ `handleClick` exits immediately on ⌘/Ctrl/Shift/Alt and `button !== 0`. Both
+  branches would otherwise be wrong: `preventDefault()` swallows the new tab, and
+  collapsing hides the panel even though Turbo itself ignores modified clicks
+  and the page does not navigate. The same applies to `#` anchors and `mailto:`/`tel:`.
+* ⚠️ **`turbo_stream.update` does NOT fire `turbo:frame-load`.** The context offer
+  (S4 T2 step 5b) needs to know which subject the page currently displays, and a
+  frame-load listener almost never answers that: `#ticket_display_frame` has EIGHT
+  writers, and exactly one (`list_row_controller`, sets a `src`) is a
+  load. The rest are streams, plus two locations that assign `innerHTML` directly
+  (`turbo_cache_controller`, and the Kanban expander on closing), firing
+  nothing at all. Three review defects came down to this one fact. Hence
+  a `MutationObserver` — **on `<main>`, not `document.body`**: the panel is a
+  sibling of `<main>`, and an ongoing answer rewrites the conversation for each token,
+  so a body-wide observer would run sixty times per second during every answer.
+* **The offer lives in the FRAME, no longer in the shell** (27 August 2026). Its markup is
+  `Neo::Chat::ContextOfferComponent`, rendered by `ChatContainerComponent`, ONLY
+  for `PANEL_FRAME_ID`: it now sits directly above the row whose reference it intends to set,
+  because no one looked at it at the panel's bottom edge. The cost is described above: anything the client
+  writes into `assistant_panel_body` disappears on the next frame load. This is handled at
+  the load event itself: `handleChatFrameLoad` checks again, TWICE:
+  immediately and in the next `requestAnimationFrame`. Stimulus finds the targets of a freshly
+  replaced subtree through a `MutationObserver`, a microtask AFTER
+  `turbo:frame-load`; the first call may still address the detached
+  node. Since 10 September 2026, the empty state also renders the offer. Without a saved
+  conversation, accepted references appear in `DraftReferencesComponent` as visible chips
+  and hidden form fields (`chat[reference_keys][]`). The permanent panel node
+  preserves this selection across navigation; “New chat” replaces the form and clears it.
+  `Actors::SaveChat` checks the collection through `Tools::Scope#references` and saves it
+  with the first message before the response job starts. Errors rerender the message
+  with the references that remain readable. While sending, the controller locks
+  selection and further submits. With a Turbo Stream response, the old form
+  stays locked until replacement: `submit-end` can fire before the response text is read.
+  `offerTargetConnected` also renews the offer after a stream replacement.
+  The conversation list and settings still render no offer.
+* **`chat_scroll_controller` has two acts, and the second is new** (27 August 2026): the
+  jump (the user's own question to the top) and then FOLLOWING, which keeps the end of
+  the conversation visible as the answer arrives token by token. Both are armed only
+  by the controller's own composer's `turbo:submit-end`, never by a broadcast.
+  ⚠️ Detecting that the reader scrolled manually uses NO scroll listener: a
+  programmatic scroll fires the same events as a real one; a stored
+  position distinguishes them. The jump is therefore deliberately NOT smooth: an
+  ongoing smooth scroll would have no reliable reference position, and following
+  would overwrite it (the former grace period `JUMP_SETTLE_MS` no longer exists).
+* **Showing the end on opening** (10 September 2026) belongs to the PANEL controller, not the
+  scroll controller: `showTranscriptEnd` runs in `open()` and on the chat frame's `turbo:frame-load`.
+  ⚠️ Not in the scroll controller's `connect()`: that fires on every
+  transplant and would overwrite the reading position that `restoreTranscriptScroll`
+  has just restored. Navigating with the panel open retains the position;
+  every opening and conversation switch shows the end. If an answer is pending,
+  resync reloads the frame on navigation anyway, and the fresh conversation
+  then also shows the end (observed: a conversation whose last bubble
+  carries `data-answer-pending="true"` is fetched again on every visit).
+* ⚠️ **The permanent node dies on every page WITHOUT an organisation** (org switcher,
+  account pages, admin, `/hilfe`): `assistant_available?` requires `current_organisation`,
+  so the layout does not render the panel there and Turbo transplants nothing. But the listeners
+  on `document`/`window` do not die with it; they keep the dead instance and
+  detached subtree alive, one more per round trip. `disconnect()` cannot
+  clean this up (a transplant fires it too), so listeners unsubscribe themselves
+  (`releaseIfGone`) — only after a SECOND check in a later task, because a
+  transplant briefly removes the node from the document.
+* ⚠️ **There is no event for the result of a chip write.** `turbo:submit-end`
+  fires before the stream has replaced the chip row, and a div replacement is not a
+  frame load. Cleaning up too early offers the just-set ticket again;
+  never cleaning up silences that ticket for the tab's lifetime. `settleAfterScopeWrite`
+  therefore waits until the row REALLY changes, with a frame budget as fallback
+  if it returns unchanged — exactly what a rejection looks like.
+* **References form a COLLECTION, and its vocabulary is the key `<Type>:<uuid>`**
+  (reference collection S1, 27 August 2026, `doc/assistent_bezug_sammlung_plan.md` §7.1/§8.3).
+  The same value appears in the URL segment, form field, `data-reference-keys` on the chip and
+  `dismissedContexts`/`refusedContexts`/`pendingContext`; meeting entry points additionally keep
+  their unfulfilled intent in `pendingMeetingIntents`. The key is assembled
+  in exactly two places:
+  `assistant_trigger#adopt` from its two values, and `pageContext()` from
+  `data-assistant-context` plus `data-assistant-context-type`. On the server, ONE owner writes
+  both attribute sets: `AssistantContextHelper`
+  (`assistant_context_attributes` for the marker, `assistant_trigger_attributes` for the
+  button), since Knowledge renders them alongside Tickets (10 September 2026,
+  `doc/assistent_wissen_kontext_plan.md`). ⚠️ `pageContext()` skips markers in a
+  CLOSED lane (`.layout.hide-content`): ✕ hides the column through a class and
+  leaves the content in place; otherwise, the just-closed note would remain offered. Thus,
+  besides `<main>`'s child list, `observePageContent` observes the `class` attribute
+  of the `.layout` node, and only that attribute. `standingReferenceKeys()`
+  reads the whole string (which `settleAfterScopeWrite` compares);
+  `standingKeySet()` answers the membership question. Writes use POST to
+  `.../assistant_chats/:id/references`, removal uses DELETE on the key.
+  A server REJECTION goes into `refusedContexts` (S2, §8.3); otherwise, the
+  limit of 10 creates a loop: click, 422 “höchstens zehn” (“at most ten”), offer reappears. It is
+  not inferred from an unchanged row, but read only from `success:false` WITH
+  `fetchResponse` from the controller's own context form; a network error must not
+  silence the reference for the tab. `settleAfterScopeWrite` still waits for the
+  actually rendered chip row before reevaluating the offer and meeting intent.
+  ⚠️ Multiple scope writes can cancel one another in Turbo. Therefore,
+  `contextSubmissionsInFlight` counts per key already BEFORE `requestSubmit()`: only the last
+  settle may clear `pendingContext` and `pendingMeetingIntents` or activate the mode.
+* `assistant_trigger` dispatches a custom event on `window`: besides the reference, a
+  meeting entry point optionally carries `analysis` or `ticket-suggestions` as intent. The panel
+  controller fulfills it only once `Meeting:<uuid>` is visibly in the current collection.
+  A second click on the same in-flight reference replaces only the intent;
+  another `requestSubmit()` would cancel Turbo's first adoption request.
+* ⚠️ While such a meeting intent waits for reference adoption,
+  `guardPendingMeetingIntentSubmit` blocks only the message form. Other
+  forms in the panel — accept/dismiss suggestions, retry a run, delete a chip or chat —
+  remain usable. The guard listens in the capture phase, shows its
+  `role="alert"` status from `ComposerComponent` in BOTH new and existing chats, and thus prevents
+  a visible old task mode from accidentally submitting for meeting A
+  while the entry for meeting B is still being checked.
+* `assistant_suggestion_composer` (meeting migration step 3) adds a visible, cancelable task mode
+  to the existing message field. The hidden
+  `ticket_suggestion_meeting_id` field carries its intent; `assistant_panel` preserves it
+  along with the draft during frame reconciliation. Targets come from adopted meeting references
+  and an authorization-checked endpoint, never from the currently open page. An
+  explicit meeting entry waits only while the specific fetch that can resolve that
+  meeting is running. After an error, the intent is dropped and normal messages
+  can be sent again; the visible retry button or the same entry point reloads
+  the selection.
+* `meeting_section_sync` keeps saved analyses and the shared suggestion list of the
+  open meeting in sync with assistant cards. `assistant:analyses-changed` and
+  `assistant:suggestions-changed` are only signals: the meeting page loads its own
+  authorized rendering with `Turbo-Frame: meeting_display_frame`, coalesces
+  events during an in-flight fetch and retries a transient error once.
+  Only successful ticket adoption carries `refreshLinks` and also replaces the links list
+  in the same fetch; start, completion and dismissal preserve any unsubmitted
+  autosuggest draft there. A queued event must not lose this flag
+  even if the first fetch fails.
+* `assistant_suggestion_result` refreshes exactly one stored run through HTTP
+  while panel, document and card are visible and the run is active (backoff up to
+  30 seconds, at least 60 seconds on 429). Completed cards refresh explicitly
+  or on return, with at least 60 seconds since the last fetch.
+  Redocking resets the observer marker and triggers no fetch.
+  A server digest includes action errors but ignores changing CSRF tokens. Before inserting a response, it rechecks visibility; if the card is hidden during
+  the fetch, it remains `stale` and catches up immediately when next shown.
+  `disconnect` aborts the request and invalidates old timers through a generation counter.
+  Closed result surfaces receive no content. General chat resync
+  skips these results so two polling paths do not refresh the same job.
+* `glossary_run_poll` (K5b, 8 November 2026) reloads the glossary review list's frame every 5 s
+  (value `interval`) while an extraction run is active. Mounted on the run bar INSIDE
+  the frame: the fresh bar decides whether to continue (`active`). HTTP 408, 429 and 5xx
+  are retried after 5 s while the bar is active and connected; 429/503 respect a
+  valid `Retry-After` (seconds or HTTP date, at least the interval, within the
+  browser timer range). Invalid values fall back to the interval. Network errors
+  retain their existing retry cadence. Other HTTP errors, redirects and
+  responses without a list stop polling; disconnect, inactive or removed bars prevent
+  late responses from rendering or starting a timer. Hidden tabs send no requests.
+  No broadcast; permissions remain in the view (same shape as
+  `meeting_section_sync`, Node tests).
+  Second caller since K5c (9 November 2026): the glossary button in a document's lane
+  (`documents#glossary_source`), while text is missing or another run is active. Value
+  `maxWait` limits the wait for text (10 min, including retries); the deadline lives
+  in the outer frame's `dataset`, because each response replaces the controller itself and a deadline
+  on the controller would restart at every `connect`. A fragment without `maxWait` (run active, text present)
+  clears it again.
+* The live node's boundaries are documented in `doc/persoenlicher_assistent_plan.md` §7.7.
+  Briefly: org switching and global search use `turbo: false`, and
+  `knowledge/index.html.erb` carries `<meta name="turbo-visit-control" content="reload">` —
+  each path is a full reload and kills the node along with the typed draft. The
+  cookie (`AssistantPanelState`) then restores geometry and open state.
+  Guard against the return of the DEAD attribute variant:
   `spec/architecture/turbo_visit_control_guard_spec.rb`.
-## Spaltenwahl der Ticketliste (07.09.2026, `doc/spaltenwahl_plan.md`)
+## Ticket-list column selection (7 September 2026, `doc/spaltenwahl_plan.md`)
 
-* `column_picker` sitzt am Wrapper der Ticketliste (`tickets/index.html.erb`) und erreicht von
-  dort das Grid (Target `grid`, Klasse `column-picker-open`), das Panel
-  (`Neo::ColumnPickerComponent`, außerhalb des Listen-Frames, überlebt jeden Reload) und den
-  Auslöser in der Filterleiste (`[data-column-picker-trigger]`, seit 20a/S2; er saß bis dahin
-  im Tabellenkopf). Ob das Panel schwebt, entscheidet `placePanel` und schreibt es als
-  `data-floating` an das Panel selbst — nicht der Stylesheet aus Klassen am Grid.
-  Drei Aufgaben: öffnen/schließen (Escape, Klick außen; gleitet ein über `column-picker-entering`
-  am Grid, einen Frame beim Öffnen, den ganzen Weg beim Schließen; schwebend sitzt das Panel 10 px
-  neben der Liste, `placePanel`), die **Passung** messen (Listenbreite minus Nr. und Titel, ohne Auslöserzelle
-  gegen die Mindestbreiten in Rangfolge, `data-fit` am `<table>`, Grenzlinie im Panel an dieselbe
-  Stelle; neu bei jedem Resize der Listenspalte und jedem Frame-Load) und jede Änderung **sofort
-  speichern** (User 07.09.2026: kein Entwurf): PATCH `cols[]` an den `columns`-Endpunkt des Ordners
-  oder der Grundansicht, dann `frame.reload()`. Nur „für alle Ansichten übernehmen" ist ein
-  eigener Schritt (Formular, `fillApplyForm`). Nicht änderbare Ansicht: `editable=false`, keine
-  Haken. Reine Teile ohne Imports in `lib/column_picker/fit.js` und `order.js` (node:test).
-  ⚠️ `applyFit` liest die Mindestbreiten aus den Panel-Zeilen (`data-min`), ohne Panel aus den
-  `th[data-col-min]`; beide kommen aus `ViewConfiguration::COLUMN_MIN_WIDTH_PX`.
-* `table_config`, `view_config_modal` und `filter_bar_legacy` sind gelöscht (07.09.2026):
-  sie bedienten die Legacy-Filterleiste und ihr Ein-Listen-Modal, und mit dem Flag
-  `new_filter_bar?` ist beides weg. `smart_folder_display` ist ebenfalls gelöscht
-  (der Spaltenabschnitt des Expertenformulars ist weg, D8).
+* `column_picker` is mounted on the ticket-list wrapper (`tickets/index.html.erb`) and from there reaches
+  the grid (target `grid`, class `column-picker-open`), the panel
+  (`Neo::ColumnPickerComponent`, outside the list frame, survives every reload) and the
+  trigger in the filter bar (`[data-column-picker-trigger]`, since 20a/S2; previously
+  in the table header). `placePanel` decides whether the panel floats and writes
+  `data-floating` on the panel itself — the stylesheet does not infer it from grid classes.
+  Three tasks: open/close (Escape, outside click; slides through `column-picker-entering`
+  on the grid, for one frame on opening and throughout closing; when floating, the panel sits 10 px
+  beside the list, `placePanel`), measure **fit** (list width minus number and title, excluding the trigger cell,
+  against minimum widths in ranked order; `data-fit` on `<table>`, boundary line at the same
+  position in the panel; recalculated on every list-column resize and frame load), and **save every change
+  immediately** (user, 7 September 2026: no draft): PATCH `cols[]` to the folder's
+  or base view's `columns` endpoint, then `frame.reload()`. Only “apply to all views” is a
+  separate step (form, `fillApplyForm`). Non-editable view: `editable=false`, no
+  checkboxes. Pure parts without imports in `lib/column_picker/fit.js` and `order.js` (node:test).
+  ⚠️ `applyFit` reads minimum widths from panel rows (`data-min`), or without a panel from
+  `th[data-col-min]`; both come from `ViewConfiguration::COLUMN_MIN_WIDTH_PX`.
+* `table_config`, `view_config_modal` and `filter_bar_legacy` have been deleted (7 September 2026):
+  they served the legacy filter bar and its single-list modal, both now gone along with the
+  `new_filter_bar?` flag. `smart_folder_display` has also been deleted
+  (the expert form's column section is gone, D8).
 
-- **`lane_split`** (Tickets UND Wissen seit 10.09.2026, Schlüssel je Kontext) — die Grenze zwischen Liste und Detailbahn, gezogen am Griff auf der
-  Trennlinie. EIN Wert besitzt sie: `--list-split` am Grid, gelesen von der Spur UND vom
-  Griff, damit der Griff nicht von der Kante wegläuft, die er verschiebt. Gespeichert als
-  ANTEIL (localStorage, je Bereich), angewendet in Pixeln: eine gemerkte Pixelbreite vom
-  großen Monitor lässt auf dem Notebook eine handygroße Liste übrig.
-- **`list_row` auf einer Zeile mit eigenen Bedienelementen** (17.11.2026, die Personen über
-  den Organisationen): die Zeile ist ein `<tr>` mit einem Haken und einem Menü. Der Klick der
-  Zeile überspringt nur `a, button, form, .dropdown, .no-click`; ein Haken (`<input>` in einem
-  `<label>`) und ein `<details>`-Menü sind keins davon, ihre Zelle trägt darum `no-click`,
-  sonst öffnet das Ankreuzen die Karte. Die DETAIL-Adresse dieser Zeile ist die Adresse der
-  Seite selbst (`/people?card=…`): der Server erkennt die Bahn am Header ihres Frames. Jede
-  Zeile trägt als `id` nur ihre EIGENE Adresse (die erste Quelle der Zeile). Bis zum Review
-  von #197 (18.11.2026) bekam die offene Zeile die Adresse aus der Adressleiste; die Suche
-  zeichnet die Zeilen aber ohne Karte neu, die Zeile verlor danach die Markierung, und ein
-  Klick auf sie lud die Karte neu statt die Bahn zu schließen. Nennt die Adresse die Person
-  über eine andere Quelle, schreibt `layout_toggle#renameResolvedSelection` sie im SELBEN Eintrag auf die der Zeile um
-  (`renamedSelection`, `{ card: [genannt, die der Zeile] }`, aus
-  `all_people_renamed_lane_params`), und die Zeilen markieren sich neu (`lane:restored`).
-- **Ein Formular mit `data-lane-keep`** (18.11.2026): wie ein so markierter Link nimmt es
-  beim Klick und beim Absenden die Bahn der Adresse mit, als versteckte Felder
-  (`layout_toggle#keepLiveLane`), auch ein GET-Formular, dessen eigene Felder sonst
-  unberührt bleiben. Die Leiste „Zusammenführen“ und die Organisationsauswahl der Personen
-  über den Organisationen tragen es: die Karte öffnet sich nur in der Adresse, und ohne das
-  schloss eine Zusammenführung oder eine andere Organisation die offene Karte.
-- **`list_row`** (bis 10.09.2026 `ticket_row`; `knowledge_row` ist darin aufgegangen,
-  `doc/wissen_als_bahn_plan.md` S2) sitzt auf der Ticket-Tabellenzeile, der Board-Karte
-  UND der Wissen-Zeile: ein Controller, drei Mounts. Values: `url` (die DETAIL-Adresse,
-  die der Frame lädt), `id`, `param` (der eigene Auswahlparameter), `params` (ALLE der
-  Seite, sie schließen sich aus), `frame`, `navigate` (Meeting-Treffer verlassen die
-  Seite). Die Adresslogik ist rein in `lib/list_row/address.js` (node:test). Die eine
-  Markierung heißt `.selected-row` (Server-Zeile und Client gleich). Die Adresse ist die Wahrheit (Index + `ticket_id`, gebaut
-  aus `data-index-url` am Container, gefunden per `closest`), und jedes Element markiert
-  sich auf `connect` selbst aus der Adresse; darum überlebt die Tönung jeden Karten- oder
-  Board-Tausch ohne „nach X neu anwenden". `index_page` normalisiert den Deep-Link
-  `/tickets/:id` beim Laden auf diese Adresse (D7). `kanban_board` öffnet nichts mehr
-  (kein `openTicket`); er zieht, hält die Pfeile über einen `ResizeObserver` aktuell und
-  scrollt die gewählte Karte per Rechtecken ins Bild (`revealSelected`, nie
-  `scrollIntoView`). `kanban_ticket_modal` ist gelöscht. ⚠️ `turbo:frame-load` hört das
-  Board in der Capture-Phase am `document`, aus dem Grund oben bei `ticket_selection`.
-  ⚠️ Die Doppel-Sperre in `application.js` schlüsselt seitdem auf Methode + Ziel-Frame,
-  nicht nur auf die Adresse: der Reload-GET des Boards nach „+ Ticket" wäre sonst im
-  500-ms-Fenster verschluckt worden.
-- **Bahn einer fremden Liste** (17.10.2026, „Alle Meetings“, PR 3): die Übersicht zeigt das
-  Meeting eines Projekts in ihrer Bahn. `layout_toggle#syncFilterContext` gibt den Listenzustand
-  nur Links und Formularen unter dem Index der Seite (`data-index-url`) UND unter dem Index, den
-  der Kopf der Bahn nennt (`data-lane-index-url`, Regel in `lib/lane/filter_context.js`,
-  node:test). Ohne den zweiten behielten Bearbeiten und Speichern den Filter vom Öffnen. Ein
-  Löschen in der Bahn schickt `closeLane` (application.js): `layout_toggle#closeLane` schließt
-  und nimmt `meeting_id` im SELBEN Eintrag aus der Adresse. `list_address` ist gelöscht, die
-  Übersicht hat wie die Projektseite EINEN Adress-Schreiber (`layout_toggle#syncUrlFromFrame`).
-  Dazu hängt `syncFilterContext` den Wert `laneContext` (bei der Übersicht
-  `{"list_context":"organisation"}`) an jede Anfrage der fremden Bahn, auch an Links aus
-  Broadcasts und Abschnitts-Aktualisierungen, die ohne Kontext gerendert wurden. Sonst lädt ein
-  Klick auf „aktualisieren“ die Bahn im Projektmodus, und das nächste Speichern zeichnet die
-  Liste der Übersicht nicht neu.
-  Die Adresse nennt nur, was der Server geöffnet hat: eine `meeting_id`, die er nicht auflösen
-  konnte, oder ein `new`, das er nicht gerendert hat, steht in `unresolvedSelection` (Name und
-  Wert, `meeting_list_page_data`). `layout_toggle#dropUnresolvedSelection` nimmt sie beim
-  Verbinden aus der Adresse, bevor `hasSelection()` und `index-page` sie lesen. Sonst öffnet
-  ein gelöschtes oder fremdes Meeting eine leere Bahn.
+- **`lane_split`** (Tickets AND Knowledge since 10 September 2026, key per context) — the boundary between list and detail lane, dragged by the handle on the
+  dividing line. ONE value owns it: `--list-split` on the grid, read by BOTH the track and the
+  handle so the handle cannot drift from the edge it moves. Stored as a
+  PROPORTION (localStorage, per area), applied in pixels: a pixel width remembered from
+  a large monitor leaves a phone-sized list on a laptop.
+- **`list_row` on a row with its own controls** (17 November 2026, people above
+  the organisations): the row is a `<tr>` with a checkbox and a menu. The row click
+  skips only `a, button, form, .dropdown, .no-click`; a checkbox (`<input>` inside a
+  `<label>`) and a `<details>` menu are neither, so their cell carries `no-click`;
+  otherwise, checking the box opens the card. This row's DETAIL URL is the page's
+  own URL (`/people?card=…`): the server recognizes the lane by its frame's header. Each
+  row carries only its OWN address as `id` (the row's first source). Until the review
+  of #197 (18 November 2026), the open row received the address-bar URL; search,
+  however, redraws the rows without the card, so the row lost its highlight and
+  clicking it reloaded the card instead of closing the lane. If the URL identifies the person
+  through another source, `layout_toggle#renameResolvedSelection` rewrites it to the row's address in the SAME history entry
+  (`renamedSelection`, `{ card: [requested, row_address] }`, from
+  `all_people_renamed_lane_params`), and rows refresh their highlights (`lane:restored`).
+- **A form with `data-lane-keep`** (18 November 2026): like a link marked this way, it carries
+  the URL's lane state on click and submit, as hidden fields
+  (`layout_toggle#keepLiveLane`), including a GET form whose own fields otherwise
+  remain untouched. The “Merge” toolbar and organisation picker for people
+  above the organisations carry it: opening the card changes only the URL; without this,
+  merging or choosing another organisation closed the open card.
+- **`list_row`** (`ticket_row` until 10 September 2026; `knowledge_row` was incorporated into it,
+  `doc/wissen_als_bahn_plan.md` S2) is mounted on the ticket table row, board card
+  AND knowledge row: one controller, three mounts. Values: `url` (the DETAIL URL
+  loaded by the frame), `id`, `param` (its own selection parameter), `params` (ALL of the
+  page's selection parameters, mutually exclusive), `frame`, `navigate` (meeting results leave the
+  page). URL logic is pure in `lib/list_row/address.js` (node:test). The single
+  highlight is `.selected-row` (same for server row and client). The URL is the source of truth (index + `ticket_id`, built
+  from `data-index-url` on the container, found with `closest`), and every element highlights
+  itself from the URL on `connect`; the highlight therefore survives any card or
+  board replacement without “reapply after X”. `index_page` normalizes the deep link
+  `/tickets/:id` to this URL on load (D7). `kanban_board` no longer opens anything
+  (no `openTicket`); it handles dragging, keeps arrows current through a `ResizeObserver` and
+  scrolls the selected card into view using rectangles (`revealSelected`, never
+  `scrollIntoView`). `kanban_ticket_modal` has been deleted. ⚠️ The board listens for
+  `turbo:frame-load` in the capture phase on `document`, for the reason described above under `ticket_selection`.
+  ⚠️ Since then, the duplicate guard in `application.js` keys on method + target frame,
+  not merely the URL: otherwise, the board's reload GET after “+ Ticket” would have been
+  swallowed within the 500-ms window.
+- **Lane in another list** (17 October 2026, “All meetings”, PR 3): the overview displays a
+  project's meeting in its lane. `layout_toggle#syncFilterContext` passes list state
+  only to links and forms under the page's index (`data-index-url`) AND under the index
+  named by the lane header (`data-lane-index-url`, rule in `lib/lane/filter_context.js`,
+  node:test). Without the second index, edit and save retained the filter from opening time. A
+  deletion in the lane sends `closeLane` (application.js): `layout_toggle#closeLane` closes it
+  and removes `meeting_id` from the URL in the SAME history entry. `list_address` has been deleted; the
+  overview, like the project page, has ONE URL writer (`layout_toggle#syncUrlFromFrame`).
+  In addition, `syncFilterContext` appends the `laneContext` value (for the overview,
+  `{"list_context":"organisation"}`) to every request from the other list's lane, including links from
+  broadcasts and section updates rendered without context. Otherwise, clicking
+  “refresh” loads the lane in project mode, and the next save does not redraw
+  the overview list.
+  The URL names only what the server opened: a `meeting_id` it could not resolve
+  or a `new` it did not render appears in `unresolvedSelection` (name and
+  value, `meeting_list_page_data`). `layout_toggle#dropUnresolvedSelection` removes them from
+  the URL on connect, before `hasSelection()` and `index-page` read them. Otherwise,
+  a deleted or foreign meeting opens an empty lane.
 
-## Mobile Anwendung (PR #807)
+## Mobile application (PR #807)
 
-`mobile_shell` bedient den Projektwechsel (erst beim Öffnen als Lazy-Frame geladen),
-Kopfwerkzeuge und Auswahlkopf. `neo_mobile_nav` enthält die Organisationsziele und
-wechselt im Auswahlmodus zur Aktionsleiste. `mobile_ticket_list` ergänzt die zentrale
-`ticket_selection` um langes Antippen und den nativen Editor-Dialog. Das Ergebnis
-bleibt während des Bearbeitens im Dialog und danach in der Liste, einschließlich Undo.
+`mobile_shell` handles project switching (loaded as a lazy frame only on opening),
+header tools and the selection header. `neo_mobile_nav` contains organisation destinations and
+switches to the action bar in selection mode. `mobile_ticket_list` adds
+long press and the native editor dialog to the central `ticket_selection`. The result
+remains in the dialog while editing and in the list afterwards, including undo.
 
-Die Grenze ist `FULL_PAGE_BELOW_PX` aus `list_row/address` (1024), nicht
-`MOBILE_BREAKPOINT` (768) der älteren Listen. Nur Ticket-Anfragen erhalten die
-Viewport-Kennung. Kopf und Fuß sind sticky; das Dokument scrollt.
-`viewport` ist Darstellungszustand und gehört in `ADDRESS_NOISE`, nicht zum Filter.
-Projekt-Dialoge vor dem Turbo-Cache schließen. Das mobile Assistentenblatt
-schließt erst bei `turbo:visit`; Klicks, abgebrochene Bestätigungen und
-Turbo-Stream-Schreibaktionen lassen es offen. Browser-Regressionen laufen in `.github/workflows/guards.yml`.
+The breakpoint is `FULL_PAGE_BELOW_PX` from `list_row/address` (1024), not
+`MOBILE_BREAKPOINT` (768) from the older lists. Only ticket requests receive the
+viewport identifier. Header and footer are sticky; the document scrolls.
+`viewport` is presentation state and belongs in `ADDRESS_NOISE`, not in the filter.
+Close project dialogs before Turbo caching. The mobile assistant sheet
+closes only on `turbo:visit`; clicks, canceled confirmations and
+Turbo Stream write actions leave it open. Browser regressions run in `.github/workflows/guards.yml`.
 
-Beim ganzen Frame-Tausch schützt `ticket_selection` die bisherige Seitenauswahl
-während `event.detail.render` bis nach dessen DOM-Callbacks. Ein Timer schon
-vor dem Render läuft zu früh ab, weil Turbo bis zur nächsten Zeichnung warten kann.
+On a full frame replacement, `ticket_selection` protects the existing page selection
+throughout `event.detail.render` until after its DOM callbacks. A timer started
+before rendering expires too early because Turbo may wait until the next paint.

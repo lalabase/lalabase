@@ -1,244 +1,243 @@
-# Karte: app/services/notifications (Stand: 2026-11-24)
+# Map: app/services/notifications (as of 2026-11-24)
 
-Verarbeitet OutboxEvents zu Notifications. Die Gesamtkette (Trackable → Activity → OutboxEvent →
-OutboxConsumeJob → hier) ist kartiert in `docs/architektur/seiteneffekt_ketten.md`.
+Processes OutboxEvents into Notifications. The full chain (Trackable → Activity → OutboxEvent →
+OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md`.
 
-* **Einstieg: `fanout_service.rb`** (~535 LOC) — bestimmt, WER eine Notification bekommt.
-  **DUAL-PATH:** Tickets = subscription-basiert (`NotificationSubscription` + User-Settings-Filter),
-  Non-Tickets (Project/Document/Note/…) = score-basiert. Änderungen an Empfänger-Regeln
-  müssen IMMER beide Pfade prüfen.
-* `score_calculator.rb` — Prioritäts-Score (nur Non-Ticket-Pfad)
-* `suppressor.rb` — unterdrückt Duplikate/Selbst-Benachrichtigung
-* `group_key_builder.rb` — Notification-Gruppierung (`find_or_create_group`): wann eine Zeile ein
-  Ereignis aufnimmt (`can_add_to_group?`, `complete_post_group?`), Suche, Schlüssel, Sperre, Anlegen.
-* `row_events.rb` — **der eine Ort**, der `group_count`, `first_event_at` und `last_event_at` einer
-  Zeile ändert, die es schon gibt, mit dem Akteur und der Payload des Ereignisses
-  (`RowEvents.fold!`): sperrt die Zeile, liest sie neu, lehnt eine gelesene oder archivierte ab,
-  fragt die Regel des Aufrufers (Block) unter der Sperre, weitet die Spanne nur, speichert mit
-  `save!` (Callbacks, Signal). Antwortet wahr oder falsch; bei falsch legt der Builder eine neue Zeile an.
-* `broadcast_service.rb` — In-App-Zustellung via Turbo Streams. Das Banner „Neue Meldungen“
-  (`notifications/_new_notifications_banner`, geteilt mit der Gesamt-Inbox) ERSETZT den leeren
-  Platzhalter, in der Sprache des Empfängers; bis 13.11.2026 landete der Text im versteckten
-  Platzhalter und war nie zu sehen.
-* `streams.rb` — die Turbo-Stream-Namen (`user:<id>:org:<org_id>:badge|notifications`).
-  Sender und Abonnenten bauen den Namen NUR hier; ein Name ohne Organisation ließ bis
-  29.09.2026 den Inbox-Zähler von Org B in einer offenen Seite von Org A erscheinen.
-  **Ein dritter Name ohne Organisation** (seit S2a): `all_inboxes(user)`, nur für die
-  Gesamt-Inbox. Auf ihm geht nur ein Stempel, nie eine Zahl, ein Titel oder eine Organisation;
-  keine Seite einer Organisation abonniert ihn (`spec/requests/all_inboxes_live_spec.rb`).
-* `unread_signals.rb` + `app/jobs/notifications/unread_signals_job.rb` — der Punkt am
-  Org-Umschalter: ungelesene Meldungen in den ANDEREN Organisationen, gezählt nach
-  derselben Regel wie die Inbox (`Notification.inbox_unread`, auch hinter
-  `User#unread_notifications_count`). Bis 29.09.2026 zählten nur Erwähnungen und
-  Zuweisungen, und das Menü zeigte eine kleinere Zahl als die Inbox nach dem Wechsel
-  (Desktop, bewusst nicht mobil). Live je Organisation eine eigene Fassung auf deren
-  Badge-Stream. Ausgelöst von den Callbacks in `notification.rb` (`after_save` merkt,
-  `after_commit` löst aus, damit ein zweites Speichern in derselben Transaktion nichts
-  verschluckt) und von `Notification.bulk_transition!`. Der Job läuft je Nutzer seriell
-  (`limits_concurrency`), sonst überschreibt ein älterer Lauf den neueren Stand. Treffer
-  jenseits von `NavigationHelper::ORG_MENU_LIMIT` zählen an „Alle Organisationen“.
-* `inbox_query.rb`: die Inbox über einen Zugangstoken (API und MCP), über mehrere
-  Organisationen in einer Abfrage. Welche Zeilen zählen, fragt sie `Notification.readable`
-  je Organisation, wie jede andere Zählstelle (über `accessible_for`). `meta.by_organisation`
-  (seit 02.10.2026) teilt `unread_total` je Organisation auf, Nullen inklusive, nach Namen;
-  mit einem Token für alle Organisationen sind das die Cockpit-Kacheln. `organisation_id`
-  (seit 07.10.2026) und `project_id` engen Liste und alle Zahlen ein; was nicht erreichbar
-  ist, wirft `NotReachable` mit derselben Antwort wie etwas, das es nicht gibt.
-* **Reihenfolge und Zeitraum der Meldungslisten der Web-App** (seit 24.11.2026): Jede Liste ordnet
-  über `Notification.recent` (`last_event_at DESC, id DESC`) und engt den Zeitraum über
-  `Notification.active_in_period` ein (der Tag des letzten Ereignisses in der Zone des Lesers). Die
-  Zeit an einer Zeile ist ebenfalls `last_event_at`. Kein Leser der Web-App schreibt
-  `order(created_at: …)` oder `order(last_event_at: …)` von Hand; einzige Stelle mit eigenem
-  `ORDER BY` ist der Vertreter eines Stapels in `Inbox::MasterListPresenter` (`DISTINCT ON`
-  verlangt es), mit derselben Regel. Die Token-Inbox schreibt dieselbe Reihenfolge in
-  `InboxQuery#relation` selbst. Noch `created_at` drucken zwei ältere Zeichnungen, die keine
-  Liste dieser Regel sind: `NeoNotificationCardComponent` (Broadcast-Partial) und
-  `notifications/_notification` (Antwort `?partial=list`).
-  Folgen: Eine Zeile, in die ein späteres Ereignis fällt (`GroupKeyBuilder` über `RowEvents.fold!`), behält ihr
-  `created_at` und rückt nach oben. Eine Zeile, die erst spät angelegt wird (ein Outbox-Event
-  nach Wiederholungen), beginnt bei der Zeit ihrer Aktivität (`create_new_group`) und steht
-  deshalb unter jüngeren Zeilen, wie in REST und MCP. Die Suchen im Fanout
-  (`group_key_builder.rb`, `fanout_service.rb`, `score_calculator.rb`) bleiben mit Absicht bei
+* **Entry point: `fanout_service.rb`** (~535 LOC) — determines WHO receives a Notification.
+  **DUAL-PATH:** Tickets = subscription-based (`NotificationSubscription` + user settings filter),
+  non-tickets (Project/Document/Note/…) = score-based. Changes to recipient rules
+  must ALWAYS check both paths.
+* `score_calculator.rb` — priority score (non-ticket path only)
+* `suppressor.rb` — suppresses duplicates/self-notifications
+* `group_key_builder.rb` — notification grouping (`find_or_create_group`): when a row accepts an
+  event (`can_add_to_group?`, `complete_post_group?`), lookup, keys, locking, creation.
+* `row_events.rb` — **the single place** that changes `group_count`, `first_event_at` and `last_event_at` on
+  an existing row, together with the event's actor and payload
+  (`RowEvents.fold!`): locks the row, reloads it, rejects a read or archived row,
+  checks the caller's rule (block) under the lock, only widens the span, and saves with
+  `save!` (callbacks, signal). Returns true or false; if false, the builder creates a new row.
+* `broadcast_service.rb` — in-app delivery via Turbo Streams. The “New notifications” banner
+  (`notifications/_new_notifications_banner`, shared with the combined inbox) REPLACES the empty
+  placeholder, in the recipient's language; until 13 November 2026, the text ended up inside the hidden
+  placeholder and was never visible.
+* `streams.rb` — the Turbo Stream names (`user:<id>:org:<org_id>:badge|notifications`).
+  Publishers and subscribers build the name ONLY here; until
+  29 September 2026, a name without an organisation caused org B's inbox count to appear on an open page of org A.
+  **A third name without an organisation** (since S2a): `all_inboxes(user)`, only for the
+  combined inbox. It carries only a stamp, never a count, a title or an organisation;
+  no organisation page subscribes to it (`spec/requests/all_inboxes_live_spec.rb`).
+* `unread_signals.rb` + `app/jobs/notifications/unread_signals_job.rb` — the dot on the
+  organisation switcher: unread notifications in the OTHER organisations, counted by
+  the same rule as the inbox (`Notification.inbox_unread`, also used by
+  `User#unread_notifications_count`). Until 29 September 2026, only mentions and
+  assignments counted, and the menu showed a smaller number than the inbox after switching
+  (desktop, deliberately not mobile). Live updates send a separate version for each organisation on its
+  badge stream. Triggered by the callbacks in `notification.rb` (`after_save` records the change,
+  `after_commit` triggers delivery so that a second save in the same transaction cannot
+  swallow anything) and by `Notification.bulk_transition!`. The job runs serially per user
+  (`limits_concurrency`); otherwise, an older run overwrites the newer state. Matches
+  beyond `NavigationHelper::ORG_MENU_LIMIT` count towards “All organisations”.
+* `inbox_query.rb`: the inbox accessed through an access token (API and MCP), across multiple
+  organisations in one query. It asks `Notification.readable` which rows count
+  for each organisation, like every other counting location (via `accessible_for`). `meta.by_organisation`
+  (since 2 October 2026) breaks down `unread_total` by organisation, including zeros, ordered by name;
+  with a token for all organisations, these are the cockpit tiles. `organisation_id`
+  (since 7 October 2026) and `project_id` narrow both the list and all counts; an inaccessible
+  target raises `NotReachable` with the same response as a nonexistent one.
+* **Order and date range of the web app's notification lists** (since 24 November 2026): Every list orders
+  through `Notification.recent` (`last_event_at DESC, id DESC`) and narrows the date range through
+  `Notification.active_in_period` (the day of the last event in the reader's time zone). The
+  time displayed on a row is also `last_event_at`. No web app reader writes
+  `order(created_at: …)` or `order(last_event_at: …)` by hand; the only location with its own
+  `ORDER BY` is the representative of a bundle in `Inbox::MasterListPresenter` (`DISTINCT ON`
+  requires it), using the same rule. The token inbox writes the same order in
+  `InboxQuery#relation` itself. Two older renderings still display `created_at`; they are not
+  lists governed by this rule: `NeoNotificationCardComponent` (broadcast partial) and
+  `notifications/_notification` (response to `?partial=list`).
+  Consequences: A row that receives a later event (`GroupKeyBuilder` through `RowEvents.fold!`) keeps its
+  `created_at` and moves up. A row created late (an outbox event
+  after retries) starts at its activity's time (`create_new_group`) and therefore appears
+  below newer rows, as in REST and MCP. The lookups in fanout
+  (`group_key_builder.rb`, `fanout_service.rb`, `score_calculator.rb`) deliberately continue to use
   `created_at`.
-* **Die Inbox über den Organisationen** („Gesamt-Inbox“, `GET /inbox`, `AllInboxesController`,
-  seit 13.11.2026): dieselbe Liste wie die Inbox einer Organisation, mit der Reichweite der
-  Person (`PersonalAccessToken::Reach.for_person`). Sie liest über `InboxQuery.reading`, filtert
-  und blättert mit `Inbox::MasterListPresenter` und zeichnet mit den Partials von
-  `organisations/notifications/` (ein Schalter: `InboxHelper#inbox_above_organisations?`; seit
-  S3 eine Aussage des Controllers über die Seite, `page_above_organisations?`, nicht mehr
-  `current_organisation.nil?`; ein Fragment, das ein Controller der Organisation in diese Seite
-  liefert, liest sie aus dem Referrer, s. `app/controllers/concerns/CLAUDE.md`). Beide Seiten
-  teilen den Rahmen `_inbox_page`.
-  ⚠️ Die Seite hat keinen Mandanten: alles, was eine Zeile zeigt, wird im Block von `reading`
-  geladen (`presenter.load!`), ein später nachgeladener Verweis wirft `NoTenantSet`. Sie setzt
-  die Organisation der Sitzung nie; der Filter heißt deshalb `org` und nicht `organisation_id`
-  (daraus liest `ApplicationController#load_tenant_from_session` den Mandanten).
-  **Die Bahn oben (S3, 14.11.2026):** eine Ticket-Zeile öffnet die Bahn der Organisation, ganz,
-  auf dieser Seite. `GET /inbox?...&notification=<id>` mit `Turbo-Frame: ticket_pane` antwortet
-  nur mit der Bahn: die Organisation findet `Notifications::Selection` (je Organisation unter
-  ihrem Mandanten), gerendert wird in `ActsAsTenant.with_tenant` dieser Organisation, mit ihr als
-  aktueller der Anfrage. Besitzer des Bahn-Kontexts ist der Concern `InboxLane`
-  (`app/controllers/concerns/inbox_lane.rb`), den beide Inbox-Controller einbinden; jede
-  Ablehnung oben (fremd, versteckt, Mail-Zeile, verlassene Organisation, kein Ticket) ist
-  dieselbe `pane_missing`. Ein voller Aufruf zeichnet die Bahn offen und lädt sie mit eigener
-  Anfrage. Schreiben geht an die Routen der Organisation; die Sitzung bleibt, weil sie nur
-  Seiten folgt (`full_page_request?`). Kopf und 5-s-Timer der Bahn sind die Zeilenaktionen von
-  `/inbox` (die Antwort adressiert `#inbox_pane_status_pills` mit der Notification-ID, unabhängig
-  vom Referrer; verspätete Antworten treffen so keine andere Bahn;
-  `quiet:` ohne Toast). Die Bahn hebt den Mandanten nie auf und liest nicht über die Token-Inbox. Wächter:
+* **The inbox above the organisations** (“Combined inbox”, `GET /inbox`, `AllInboxesController`,
+  since 13 November 2026): the same list as an organisation's inbox, with the person's reach
+  (`PersonalAccessToken::Reach.for_person`). It reads through `InboxQuery.reading`, filters
+  and paginates with `Inbox::MasterListPresenter`, and renders with the partials from
+  `organisations/notifications/` (one switch: `InboxHelper#inbox_above_organisations?`; since
+  S3, a statement by the controller about the page, `page_above_organisations?`, rather than
+  `current_organisation.nil?`; a fragment delivered into this page by an organisation controller
+  reads it from the referrer; see `app/controllers/concerns/CLAUDE.md`). Both pages
+  share the `_inbox_page` wrapper.
+  ⚠️ The page has no tenant: everything a row displays is loaded inside the `reading`
+  block (`presenter.load!`); lazily loading an association later raises `NoTenantSet`. It never sets
+  the session's organisation; the filter is therefore called `org`, not `organisation_id`
+  (which `ApplicationController#load_tenant_from_session` uses to read the tenant).
+  **The lane above the organisations (S3, 14 November 2026):** a ticket row opens the organisation's entire lane
+  on this page. `GET /inbox?...&notification=<id>` with `Turbo-Frame: ticket_pane` responds
+  with only the lane: `Notifications::Selection` finds the organisation (each organisation under
+  its own tenant); rendering runs in `ActsAsTenant.with_tenant` for that organisation, with it as
+  the request's current organisation. The lane context belongs to the `InboxLane` concern
+  (`app/controllers/concerns/inbox_lane.rb`), included by both inbox controllers; every
+  rejection above the organisations (another person's row, hidden row, email row, organisation the person has left, no ticket) produces
+  the same `pane_missing`. A full-page request renders the lane open and loads it in a separate
+  request. Writes go to the organisation's routes; the session stays unchanged because it only
+  follows pages (`full_page_request?`). The lane's header and 5-second timer use the row actions of
+  `/inbox` (the response targets `#inbox_pane_status_pills` with the Notification ID, regardless
+  of the referrer; delayed responses therefore cannot affect another lane;
+  `quiet:` without a toast). The lane never removes tenant scoping and does not read through the token inbox. Guard:
   `spec/requests/all_inboxes_lane_spec.rb`.
-  **Was eine Zeile öffnet (S4a, 14.11.2026):** nicht mehr „ist es ein Ticket“, sondern
-  `Inbox::LaneKind.for(notification)` (`app/services/inbox/lane_kind.rb`), der EINE Besitzer der
-  Frage für beide Inboxen: Lader (`InboxLane`), Zeile (`NeoInboxMasterItemComponent`), Seite oben
-  (`render_lane`, `open_lane_head`) und die Antworten der Zeilenaktionen. Die Art entscheidet das
-  EREIGNIS, nicht der Typ: eine Meldung hängt am Ticket oder am PROJEKT, und für ein Projekt ist
-  der Gegenstand `Activities::ProjectTarget.call(activity)` (die Aktivität aus
-  `payload['activity_id']`). ⚠️ Eine Meldung zu einer Notiz gibt es nicht: `notifiable.is_a?(Note)`
-  nimmt keine Zeile je. Drei Antworten: `:inline` (das Ticket, wie bisher von der Inbox gerendert),
-  `:frame` (ein Gegenstand mit eigener Anzeige, heute Notiz und Dokument (S4b): die Bahn hält
-  `turbo-frame#ticket_display_frame` mit der Rahmen-Adresse des Gegenstands als `src`, gezeichnet
-  von dessen eigenem Controller unter dessen Policy; die Inbox rendert und kopiert nichts davon),
-  `:card` (Ereignis ohne Anzeige: neues Mitglied, Rechte, gelöschtes Meeting; oder Gegenstand
-  gelöscht bzw. Aktivität von der Aufbewahrung entfernt: Karte „gibt es nicht mehr“, nie ein leerer
-  Rahmen). `nil` für einen Gegenstand ohne Eintrag (Person, Zeitgruppe, Repository, alte Zeile an
-  einer Notiz): die Zeile verlässt die Seite wie bisher. Das Register (`REGISTRY`, Klasse →
-  Eintrag) ist geschlossen und fail-closed, nie `constantize`. Eine neue Art = eine Zeile dort plus
-  ihr Audit (was die Anzeige in einer fremden Seite anfragt und beantwortet).
-  ⚠️ Bekannt aus dem Audit des Dokuments, genauso auf der Aktivitäten-Seite: „Neue Version“ und
-  „Dokument löschen“ antworten mit einem Stream für `knowledge_display_frame`, den es nur auf der
-  Wissensseite gibt. In der Bahn bleibt das Formular offen bzw. das gelöschte Dokument stehen, bis
-  die Zeile neu geöffnet wird (dann: neue Version sichtbar bzw. Karte „gibt es nicht mehr“).
-  Dieselbe Klasse: „als aktuell setzen“ (Stream für `knowledge_display_frame`) und „Version
-  löschen“ (Redirect auf die Anzeige ohne `frame=content`).
-  Behoben, weil nur in der Bahn von `/inbox` falsch: „Textfassung“ einer Version ist eine Datei
-  und setzt die Organisation der Sitzung nicht mehr um (`DocumentsController#serves_pages?`).
-  Die Vorschau einer Version schreibt `preview=` in die Adresse der Inbox und nimmt es wieder
-  heraus. Die Bahn stellt sie bei Zurück/Vorwärts und beim Neuladen wieder her: über die
-  autorisierte Meldung, dann nur über die Versionen ihres Dokuments (`InboxLane#inbox_lane_frame_path`).
-  Fehlende oder fremde Versionen fallen auf die Dokumentansicht zurück. Versionszeilen bestimmen
-  mit `lane-link` und `_self` ihren umgebenden Frame beim Klick, auch nach einem Broadcast.
-  Die Rahmen-Adresse
-  baut `Inbox::ObjectFrame`, auch für die Aktivitäten-Seite eines Projekts.
-  Rechte bleiben bei den bestehenden Regeln: die Zeile über die Policy-Scope der Meldungen (Bereich
-  des Ereignisses), der Gegenstand über `authorize target, :show?` im Lader, sein Controller fragt
-  beim Laden des Rahmens noch einmal. Oben ist jede Ablehnung dieselbe `pane_missing`.
-  **Nichts wird je Zeile geladen:** `for` liest nur die Meldung; Titel und Name des Gegenstands
-  kommen aus dem Payload (`Inbox::ActivityLine#object_title`, `#object_name`). Die Bahn liest
-  Aktivität und Gegenstand erst im Mandanten der Zeile. Eine Zeile für EIN Ereignis mit
-  Titel im Payload zeigt diesen Titel, ein Bündel den Projektnamen; die Bahn zeichnet die offene
-  Zeile mit derselben Bündelgröße neu (`Inbox::MasterListPresenter.bundle_size`). „Was war neu“
-  liest die ungelesenen Meldungen zum Gegenstand der gewählten Zeile (Ticket oder Projekt), weiter
-  über die Policy-Scope: ein Ereignis eines Bereichs, den die Person nicht lesen darf, ist keine
-  Zeile dort. Der Kopf der Bahn ist EIN Partial (`organisations/notifications/_pane`) um den
-  Inhalt der Art. Wächter: `spec/services/inbox/lane_kind_spec.rb` (auch: jedes Projekt-Ereignis
-  hat eine Antwort), `spec/requests/inbox_lane_kinds_spec.rb`, `all_inboxes_lane_spec.rb`.
-  **Live (S2a):** `UnreadSignals.call` sendet nach den Punkten des Umschalters
-  ein Signal auf `Streams.all_inboxes`: nur `InboxQuery.stamp` (HMAC über geordnete
-  Fingerprints jeder In-App-Zeile in Reichweite, inklusive Zustand und Änderungszeit).
-  Ein Maximum pro Zustand übersieht ältere Schreibvorgänge, die später committen.
-  Die Seite zeichnet denselben Stempel
-  mit ihrer Liste; weicht das Signal ab, holt sie die Zahlen (`GET /inbox` als turbo_stream,
-  `part=counts`) und zeigt das Banner, die Liste bewegt sich erst auf dessen Wort
-  (`all_inboxes_live_controller`). `load_list` liest Stempel, Zahlen und Zeilen in einer
-  Repeatable-Read-Transaktion; die Request-Specs verwenden deshalb `:real_transactions`.
-  Der Auslöser im Modell ist dafür breiter als „ungelesen
-  ja/nein“: jede neue Zeile, jeder Wechsel zwischen ungelesen, gelesen und archiviert, ein neues
-  Ereignis einer Gruppe (`last_event_at`), jedes Löschen. **Aktionen an der Zeile** (gelesen, ungelesen, archivieren, zurückholen) haben
-  eigene Adressen (`PATCH /inbox/:id/...`), weil jede Adresse unter `/org/:id` die Organisation
-  der Sitzung umstellt. Die Zeile findet `InboxQuery.row` (eigene, in Reichweite, sichtbar,
-  sonst 404), Policy und Schreiben laufen unter dem Mandanten der ZEILE. Geschrieben wird über
-  `Actors::ChangeNotificationState`, denselben Actor wie in der Inbox einer Organisation: er
-  nimmt die übrigen Meldungen zum selben Gegenstand mit (ein Ticket = eine Zeile), außer bei
-  „ungelesen“. Der Listenzustand reist in der Adresse der Aktion mit, nicht im Referrer.
-  **Sammelaktionen (S2b):** die Leiste der Organisations-Inbox, auf eigenen Adressen
-  (`PATCH /inbox/selection/{mark_read,archive}`, in `routes.rb` VOR dem `:id`-Scope der Zeile).
-  Nur eine Auswahl: ohne IDs 422, die Seite kennt kein „alles“; über
-  `AllInboxesController::MAX_SELECTION` (500) ebenfalls 422. Die Zeilen findet
-  `selection.rb` (`Notifications::Selection`) OHNE `without_tenant`: je aktive Organisation der
-  Person unter `with_tenant` der Policy-Scope der Meldungen (was dort keine eigene, sichtbare
-  In-App-Zeile ist, fällt wortlos weg, die übrige Auswahl wird geändert). Der ganze Weg der
-  Sammelaktion vom Finden bis zum Schreiben bleibt damit im Mandanten; das Lesen der LISTE
-  (`InboxQuery.reading`, `.stamp`, `.row`) hebt ihn noch auf. Die
-  Policy wird unter dem Mandanten jeder berührten Organisation gefragt. Geschrieben wird über
-  `Actors::ChangeNotificationStates`, denselben Actor wie der IDs-Pfad der Leiste in einer
-  Organisation: eine Transaktion über alle Organisationen, in der Reihenfolge ihrer IDs, je
-  unter `with_tenant`; „gelesen“ ändert nur Ungelesenes, „archivieren“ nur, was nicht im Archiv
-  liegt, ein wiederholter Request ändert also nichts. **Was eine Zeile mitnimmt und wie gesperrt
-  wird, steht einmal** in `subject_bundle.rb` (`Notifications::SubjectBundle`: sichtbare
-  In-App-Meldungen zum selben Gegenstand, EINE Sperr-Anweisung in ID-Reihenfolge), für den
-  Zeilen- und den Sammel-Actor. Die Antwort nennt die Zahl der gefundenen ZEILEN (ein Ticket
-  zählt einmal) im Flash der Seite (`#flash`). Die Rückfrage vor einer Aktion über mehrere
-  Organisationen stellt der Browser (`inbox_bulk_select_controller`), der Server verlangt sie
-  nicht. ⚠️ Der Pfad OHNE IDs in einer Organisation (Glocken-Dropdown, ganze Inbox) und
-  `Api::V1::NotificationsController#mark_all_as_read` schreiben weiter selbst über
-  `bulk_transition!`, ohne Bündel und ohne Sperre.
-  Wächter: `spec/requests/all_inboxes_spec.rb`, `spec/requests/all_inboxes_row_actions_spec.rb`,
+  **What a row opens (S4a, 14 November 2026):** no longer “is it a ticket”, but
+  `Inbox::LaneKind.for(notification)` (`app/services/inbox/lane_kind.rb`), the SINGLE owner of
+  this question for both inboxes: loader (`InboxLane`), row (`NeoInboxMasterItemComponent`), page above the organisations
+  (`render_lane`, `open_lane_head`) and row-action responses. The EVENT determines the
+  kind, not the type: a notification belongs to a ticket or a PROJECT, and for a project the
+  subject is `Activities::ProjectTarget.call(activity)` (the activity from
+  `payload['activity_id']`). ⚠️ There is no notification attached to a note: no row ever satisfies `notifiable.is_a?(Note)`.
+  Three answers: `:inline` (the ticket, rendered by the inbox as before),
+  `:frame` (a subject with its own display, currently notes and documents (S4b): the lane holds
+  `turbo-frame#ticket_display_frame` with the subject's frame URL as `src`, rendered
+  by its own controller under its own policy; the inbox renders and copies none of that),
+  `:card` (an event without a display: new member, permissions, deleted meeting; or the subject
+  has been deleted or the activity removed by retention: a “no longer exists” card, never an empty
+  frame). `nil` for a subject without an entry (person, time group, repository, old row attached to
+  a note): the row leaves the page as before. The registry (`REGISTRY`, class →
+  entry) is closed and fail-closed, never `constantize`. A new kind = one row there plus
+  its audit (what the display requests and returns when embedded in another page).
+  ⚠️ Known from the document audit, also on the activity page: “New version” and
+  “Delete document” respond with a stream for `knowledge_display_frame`, which exists only on the
+  knowledge page. In the lane, the form stays open or the deleted document remains visible until
+  the row is reopened (then: the new version is visible or the “no longer exists” card appears).
+  Same category: “Set as current” (stream for `knowledge_display_frame`) and “Delete
+  version” (redirect to the display without `frame=content`).
+  Fixed because it was wrong only in the `/inbox` lane: a version's “Text version” is a file
+  and no longer changes the session's organisation (`DocumentsController#serves_pages?`).
+  A version's preview adds `preview=` to the inbox URL and removes it again.
+  The lane restores it on back/forward navigation and reload: through the
+  authorized notification, then only through its document's versions (`InboxLane#inbox_lane_frame_path`).
+  Missing versions or versions belonging to another document fall back to the document view. Version rows use
+  `lane-link` and `_self` to determine their enclosing frame on click, including after a broadcast.
+  `Inbox::ObjectFrame` builds the frame URL, also for a project's activity page.
+  Permissions remain with the existing rules: the row through the notifications' policy scope (the event's
+  area), the subject through `authorize target, :show?` in the loader; its controller checks
+  again when loading the frame. Above the organisations, every rejection produces the same `pane_missing`.
+  **Nothing is loaded per row:** `for` reads only the notification; the subject's title and name
+  come from the payload (`Inbox::ActivityLine#object_title`, `#object_name`). The lane reads
+  the activity and subject only under the row's tenant. A row for ONE event with a
+  title in the payload shows that title; a bundle shows the project name. The lane redraws the open
+  row with the same bundle size (`Inbox::MasterListPresenter.bundle_size`). “What was new”
+  reads the unread notifications for the selected row's subject (ticket or project), still
+  through the policy scope: an event in an area the person cannot read is not a
+  row there. The lane header is ONE partial (`organisations/notifications/_pane`) around the
+  kind's content. Guards: `spec/services/inbox/lane_kind_spec.rb` (also: every project event
+  has an answer), `spec/requests/inbox_lane_kinds_spec.rb`, `all_inboxes_lane_spec.rb`.
+  **Live (S2a):** after the switcher's dots, `UnreadSignals.call` sends
+  a signal on `Streams.all_inboxes`: only `InboxQuery.stamp` (HMAC over ordered
+  fingerprints of every in-app row within reach, including state and modification time).
+  A maximum per state misses older writes that commit later.
+  The page renders the same stamp
+  with its list; if the signal differs, it fetches the counts (`GET /inbox` as turbo_stream,
+  `part=counts`) and shows the banner. The list changes only when the banner is activated
+  (`all_inboxes_live_controller`). `load_list` reads the stamp, counts and rows in a
+  repeatable-read transaction; the request specs therefore use `:real_transactions`.
+  The model trigger is broader than “unread
+  yes/no”: every new row, every transition between unread, read and archived, a new
+  event in a group (`last_event_at`), every deletion. **Row actions** (read, unread, archive, restore) have
+  their own URLs (`PATCH /inbox/:id/...`) because every URL under `/org/:id` changes the session's
+  organisation. `InboxQuery.row` finds the row (owned by the person, within reach, visible,
+  otherwise 404); the policy and write run under the ROW's tenant. Writes go through
+  `Actors::ChangeNotificationState`, the same actor as in an organisation's inbox: it
+  includes the other notifications for the same subject (one ticket = one row), except for
+  “unread”. The list state travels in the action URL, not in the referrer.
+  **Bulk actions (S2b):** the organisation inbox's toolbar, on its own URLs
+  (`PATCH /inbox/selection/{mark_read,archive}`, in `routes.rb` BEFORE the row's `:id` scope).
+  Selection only: without IDs, 422; the page has no “all” option. Exceeding
+  `AllInboxesController::MAX_SELECTION` (500) also returns 422. `selection.rb`
+  (`Notifications::Selection`) finds the rows WITHOUT `without_tenant`: for each of the person's active organisations,
+  it uses the notifications' policy scope under `with_tenant` (anything that is not an owned, visible
+  in-app row there is silently skipped; the rest of the selection is changed). The entire bulk-action
+  path, from lookup to write, therefore stays within tenant scoping; reading the LIST
+  (`InboxQuery.reading`, `.stamp`, `.row`) still removes that scoping. The
+  policy is checked under the tenant of every affected organisation. Writes go through
+  `Actors::ChangeNotificationStates`, the same actor as the toolbar's IDs path within an
+  organisation: one transaction across all organisations, ordered by their IDs, each
+  under `with_tenant`; “read” changes only unread rows, “archive” only rows not already archived,
+  so a repeated request changes nothing. **What a row includes and how locking works
+  is defined once** in `subject_bundle.rb` (`Notifications::SubjectBundle`: visible
+  in-app notifications for the same subject, ONE locking statement in ID order), for both the
+  row actor and the bulk actor. The response reports the number of ROWS found (a ticket
+  counts once) in the page's flash (`#flash`). The browser asks for confirmation before an action across multiple
+  organisations (`inbox_bulk_select_controller`); the server does not require it.
+  ⚠️ The path WITHOUT IDs within an organisation (bell dropdown, entire inbox) and
+  `Api::V1::NotificationsController#mark_all_as_read` still write directly through
+  `bulk_transition!`, without bundling and without locking.
+  Guards: `spec/requests/all_inboxes_spec.rb`, `spec/requests/all_inboxes_row_actions_spec.rb`,
   `spec/requests/all_inboxes_bulk_actions_spec.rb`,
-  `spec/services/actors/change_notification_states_spec.rb` (auch `_concurrency_spec.rb`),
+  `spec/services/actors/change_notification_states_spec.rb` (also `_concurrency_spec.rb`),
   `spec/services/notifications/selection_spec.rb`,
   `spec/requests/all_inboxes_live_spec.rb`, `spec/services/notifications/inbox_query_stamp_spec.rb`,
   `spec/system/all_inboxes_spec.rb`.
-* **Eine Zählregel für „ungelesen in Organisation X“** (seit 02.10.2026): Cockpit-Kachel,
-  Badge, mobile Navigation, Glocken-Dropdown, Org-Umschalter, Inbox-Liste und Token-Inbox
-  zählen nach `Notification.inbox_unread` / `Notification.readable` (aktive Projekte, die die
-  Person lesen darf, plus projektlose Zeilen). **Seit 07.10.2026 je Bereich:** eine Meldung
-  zu einem Ticket, einer Notiz oder einem Dokument zählt nur, solange die Person diesen
-  Bereich lesen darf (`Notification::AREA_BY_NOTIFIABLE_TYPE`, eine Zuordnung auch für den
-  Fanout, `gated_area_for`). **Seit 08.10.2026 auch Meldungen ZUM PROJEKT** (verschobenes
-  Ticket, Sammeländerung, neue Notiz, neues Meeting, neues Mitglied): sie zählen im Bereich
-  ihres EREIGNISSES, `payload['action']` über `Activities::AreaRegistry`
-  (`Notification.area_for(notifiable, action:)`, `.project_actions_by_area`). Projektnachrichten
-  (`project.updated` usw.) gelten für jeden Bereich, ein Ereignis ohne Regel für niemanden.
-  Bis dahin galt eine Projekt-Meldung fürs ganze Projekt, und jedes Mitglied (beim Beitritt
-  automatisch Abonnent) las Titel und Nummer verschobener Tickets über die Token-Inbox.
-  Alles andere am ganzen Projekt. ⚠️ Eine Zeile OHNE Projekt gilt als Systemmeldung und
-  passiert immer: darum löscht `ProjectDeletionJob` die Meldungen eines gelöschten Projekts
-  (seit 08.10.2026, vorher leerte er nur `project_id`, und Verstecktes kam zurück), und der
-  Backfill `notifications:purge_project_leftovers` räumt die alten Reste. Ausnahme: eine
-  E-Mail-Zeile mit Mail-Log bleibt ohne Projekt, denn ein späterer Bounce oder eine
-  Spam-Beschwerde findet die Person nur über sie (`EmailWebhookProcessorJob`,
-  `EmailLog#check_and_disable_notifications`). Sie ist unsichtbar, weil JEDER Inbox-Leser
-  auf `channel_in_app` filtert: ein neuer Leser ohne diesen Filter würde sie zeigen. Wächter: `area_rights_spec.rb`,
+* **One counting rule for “unread in organisation X”** (since 2 October 2026): cockpit tile,
+  badge, mobile navigation, bell dropdown, organisation switcher, inbox list and token inbox
+  count through `Notification.inbox_unread` / `Notification.readable` (active projects the
+  person can read, plus rows without a project). **Per area since 7 October 2026:** a notification
+  for a ticket, note or document counts only while the person may read that
+  area (`Notification::AREA_BY_NOTIFIABLE_TYPE`, a mapping also used by
+  fanout, `gated_area_for`). **Since 8 October 2026, also notifications ABOUT THE PROJECT** (moved
+  ticket, bulk change, new note, new meeting, new member): they count in their EVENT's area,
+  `payload['action']` through `Activities::AreaRegistry`
+  (`Notification.area_for(notifiable, action:)`, `.project_actions_by_area`). Project announcements
+  (`project.updated`, etc.) apply to every area; an event without a rule applies to no one.
+  Previously, a project notification applied to the entire project, and every member (automatically
+  subscribed on joining) could read the titles and numbers of moved tickets through the token inbox.
+  Everything else is checked against the whole project. ⚠️ A row WITHOUT a project counts as a system notification and
+  always passes: this is why `ProjectDeletionJob` deletes notifications for a deleted project
+  (since 8 October 2026; previously, it only cleared `project_id`, making hidden content reappear), and
+  the `notifications:purge_project_leftovers` backfill cleans up old leftovers. Exception: an
+  email row with a mail log remains without a project because a later bounce or
+  spam complaint can find the person only through it (`EmailWebhookProcessorJob`,
+  `EmailLog#check_and_disable_notifications`). It is invisible because EVERY inbox reader
+  filters on `channel_in_app`: a new reader without this filter would display it. Guards: `area_rights_spec.rb`,
   `fanout_service_area_gate_spec.rb`, `project_event_area_spec.rb`,
-  `spec/requests/api/project_event_notifications_spec.rb`. **Wen ein Projekt-Ereignis
-  erreicht** (seit 31.10.2026, davor wegen eines nicht existierenden Bereichs nur
-  Abonnenten): jeden, der den Bereich des Ereignisses lesen darf, Kontoadmins und Rollen mit
-  Recht auf alle Projekte eingeschlossen, dazu die Abonnenten; Projektnachrichten jeden mit
-  irgendeinem Recht im Projekt (`Project#users_with_any_access`). Die Suche kennt kein
-  `rescue`: schlägt sie fehl, schlägt das Ereignis fehl. Das gilt für jeden Lauf:
-  `OutboxEvent#process!` rollt einen Fehlschlag ganz zurück und plant danach neu, der Retry
-  beginnt also bei null (Wächter `spec/models/outbox_event_failed_run_spec.rb`).
-  Abschalten geht je Ereignistyp in den Einstellungen, stumm bleibt ein Abo im Modus
-  `mute`. ⚠️ Für diese Empfänger ist das nur die Inbox: eine Mail geht ab Score 80 sofort
-  raus, und ohne Abo erreicht kein Projekt-Ereignis diese Zahl. Dafür ist `project.created`
-  ein `project_announcement` und kein `system_message` (Grundwert 80). Ein neues Ereignis
-  gehört in die Tabelle von `fanout_service_project_event_recipients_spec.rb`. **Jeder Leser** (Liste, Zahl,
-  Badge, Punkt) geht über `inbox_unread` / `accessible_for` / `policy_scope`, nie über ein
-  nacktes `user.notifications` oder `Notification.where`: erzwungen von
-  `spec/architecture/notification_read_guard_spec.rb` (Ausnahmeliste mit Anzahl je Datei,
-  darf nur schrumpfen). Bis 07.10.2026 lasen acht Stellen an der Regel vorbei. Bis dahin vier Regeln: die Kachel ließ
-  archivierte Projekte weg, Badge und Token-Inbox nicht, Navigation und Dropdown fragten gar
-  nicht. Wächter: `spec/services/notifications/unread_count_parity_spec.rb`. Eine neue
-  Zählstelle gehört dort als Beispiel hinein. Die Projektmenge wird **einmal je Anfrage**
-  aufgelöst, je Bereich (`Current.notification_source_projects`); ein Spec, der den Zugang mitten im
-  Beispiel ändert und neu zählt, spielt die zweite Anfrage mit `Current.reset` nach.
+  `spec/requests/api/project_event_notifications_spec.rb`. **Who receives a project event**
+  (since 31 October 2026; previously only subscribers, because of a nonexistent area):
+  everyone who can read the event's area, including account admins and roles with
+  access to all projects, plus subscribers; project announcements reach everyone with
+  any permission in the project (`Project#users_with_any_access`). The lookup has no
+  `rescue`: if it fails, the event fails. This applies to every run:
+  `OutboxEvent#process!` rolls back a failed run completely and then reschedules it, so the retry
+  starts from scratch (guard: `spec/models/outbox_event_failed_run_spec.rb`).
+  Users can disable each event type in their settings; a subscription in
+  `mute` mode stays silent. ⚠️ For these recipients, this is inbox-only: an email goes out immediately
+  at a score of 80 or higher, and no project event reaches that score without a subscription. To ensure this,
+  `project.created` is a `project_announcement`, not a `system_message` (base score 80). A new event
+  belongs in the table in `fanout_service_project_event_recipients_spec.rb`. **Every reader** (list, count,
+  badge, dot) goes through `inbox_unread` / `accessible_for` / `policy_scope`, never through
+  bare `user.notifications` or `Notification.where`: enforced by
+  `spec/architecture/notification_read_guard_spec.rb` (exception list with counts per file,
+  may only shrink). Until 7 October 2026, eight locations bypassed the rule. Before then there were four rules: the tile
+  excluded archived projects, the badge and token inbox did not, and navigation and the dropdown did not check
+  at all. Guard: `spec/services/notifications/unread_count_parity_spec.rb`. Every new
+  counting location belongs there as an example. The set of projects is resolved **once per request**,
+  per area (`Current.notification_source_projects`); a spec that changes access midway through an
+  example and counts again simulates the second request with `Current.reset`.
 * `update_preferences_service.rb`, `index_outcome_notifier.rb`
 
-Wichtig:
-1. Event-Typen/Mapping leben in `app/models/concerns/notifications/constants.rb` — in
-   Jobs/Services immer vollqualifiziert zugreifen (`Notifications::Constants::…`, Thread-Safety).
-2. E-Mail-Zustellung hängt hinten dran: `EmailDeliveryJob` → `notification_mailer.rb` → `email_log`.
-3. User-Präferenz-Checks laufen über die User-Fassaden (`app/models/user/notification_settings.rb`,
-   via `delegate` in `user.rb`) — Hot-Path, Signaturen nicht ohne Fanout-Check ändern.
-4. Test-Falle: `after_create_commit`-Fanout feuert in Request-Specs unzuverlässig —
-   Fanout-Verhalten direkt über den Service testen, nicht über den Callback-Umweg.
-5. **Sammeländerungen am Status nur über `Notification.bulk_transition!`**, nie über ein
-   nacktes `update_all(state: …)`: `update_all` überspringt den `after_commit`, und der Punkt
-   am Org-Umschalter bliebe bis zum Neuladen falsch. Wächter:
+Important:
+1. Event types/mappings live in `app/models/concerns/notifications/constants.rb` — always
+   use fully qualified references in jobs/services (`Notifications::Constants::…`, thread safety).
+2. Email delivery follows downstream: `EmailDeliveryJob` → `notification_mailer.rb` → `email_log`.
+3. User preference checks go through the User facades (`app/models/user/notification_settings.rb`,
+   via `delegate` in `user.rb`) — hot path; do not change signatures without checking fanout.
+4. Testing pitfall: `after_create_commit` fanout fires unreliably in request specs —
+   test fanout behavior directly through the service, not indirectly through the callback.
+5. **Bulk state changes only through `Notification.bulk_transition!`**, never through a
+   bare `update_all(state: …)`: `update_all` skips `after_commit`, leaving the dot on
+   the organisation switcher incorrect until reload. Guard:
    `spec/models/notification_bulk_transition_guard_spec.rb`.
-6. **Die Ereignisfelder einer bestehenden Zeile schreibt nur `RowEvents.fold!`.** Ein neuer Schreiber
-   ruft ihn, statt `group_count`, `first_event_at` oder `last_event_at` selbst zu setzen; die Regel
-   der Spanne (nur weiter, seit #274) steht dort einmal. Beim Anlegen setzen die Felder
-   `create_new_group` und `Notification#set_timestamps`. Wächter:
-   `spec/architecture/notification_row_events_guard_spec.rb` (liest `app/` und `lib/` mit Prism; was
-   er nicht sieht, steht in seinem Kopf). Die Sperre belegt `row_events_concurrency_spec.rb`.
+6. **Only `RowEvents.fold!` writes the event fields of an existing row.** A new writer
+   calls it instead of setting `group_count`, `first_event_at` or `last_event_at` itself; the rule
+   for the span (only widen it, since #274) is defined there once. On creation, the fields are set by
+   `create_new_group` and `Notification#set_timestamps`. Guard:
+   `spec/architecture/notification_row_events_guard_spec.rb` (reads `app/` and `lib/` with Prism; its
+   header describes what it cannot see). Locking is verified by `row_events_concurrency_spec.rb`.

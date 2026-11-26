@@ -73,7 +73,7 @@ class ConversationPost < ApplicationRecord
   private
 
   def message_has_no_system_event
-    errors.add(:system_event, :not_for_a_message) if message? && system_event.present?
+    errors.add(:system_event, :not_for_a_message) if message? && !system_event.nil?
   end
 
   # Asks the association, not `content`: the reader would build the record.

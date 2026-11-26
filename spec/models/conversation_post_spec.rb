@@ -197,6 +197,16 @@ RSpec.describe ConversationPost, :ci_guard, type: :model do
       expect(post.errors.added?(:system_event, :not_for_a_message)).to be(true)
     end
 
+    ['', ' '].each do |event|
+      it "refuses a non-null blank system_event #{event.inspect} before reaching the database" do
+        post = message(system_event: event)
+
+        expect(post).not_to be_valid
+        expect(post.errors.added?(:system_event, :not_for_a_message)).to be(true)
+        expect { post.save! }.to raise_error(ActiveRecord::RecordInvalid)
+      end
+    end
+
     it 'stores its text as rich text and mirrors it' do
       post = message(content: '<p>Guten <strong>Morgen</strong></p>').tap(&:save!)
 

@@ -65,7 +65,9 @@ OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md
   created late (an outbox event after a delay or after retries) stands at its arrival
   (`RowEvents.arrival`), so on top: in the web inbox as in REST and MCP, under the heading and
   inside the date range of the day it arrived, and the `since` cursor of the token inbox returns
-  it. Rows from before 26 November 2026 keep their time. `Posts::MarkRead` also finds comment rows
+  it. The representative of a bundle reads the same column: the row that arrived last stands for
+  its ticket, also when another row of the ticket carries the later event. Rows from before
+  26 November 2026 keep their time. `Posts::MarkRead` also finds comment rows
   by the span `first_event_at..last_event_at`, which now reaches further to the right: a row with
   `post_ids` is decided by its ids, and every comment row the fanout writes carries them (guards:
   `spec/services/posts/mark_read_spec.rb`, `fanout_service_ticket_simple_spec.rb`). The lookups in fanout

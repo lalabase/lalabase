@@ -268,6 +268,20 @@ RSpec.describe Notifications::GroupKeyBuilder do
           .to have_attributes(group_count: 1, first_event_at: now - 2.days, last_event_at: now, created_at: now)
       end
 
+      # The builder holds no copy of the rule. It asks the owner, and what the
+      # owner answers is what the row gets.
+      it 'takes the latest event of a new row from RowEvents.arrival' do
+        answer = now + 7.minutes
+        allow(Notifications::RowEvents).to receive(:arrival).and_call_original
+        allow(Notifications::RowEvents).to receive(:arrival).with(at: activity.created_at).and_return(answer)
+
+        notification = builder.find_or_create_group(notification_params)
+
+        expect(Notifications::RowEvents).to have_received(:arrival).with(at: activity.created_at).once
+        expect(Notification.find(notification.id))
+          .to have_attributes(group_count: 1, first_event_at: now - 2.days, last_event_at: answer)
+      end
+
       it 'stamps an email row the same way' do
         notification = builder.find_or_create_group(notification_params.merge(channel: 'email'))
 

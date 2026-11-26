@@ -221,6 +221,25 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
       expect(narrowed.keys).to contain_exactly(long_late.id, late.id, yesterday.id, day_before.id)
     end
 
+    # The bundled view draws one line per ticket, the row with the latest
+    # last_event_at. That is the row that arrived last, here the late one, though
+    # the other row of the ticket carries the later event.
+    it 'stands for its ticket in the bundled view when it arrived after a row with a later event' do
+      ticket = ticket_titled('Zwei Zeilen')
+      written_in_time = row_about(ticket, created_at: 1.hour.ago)
+      late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
+      expect(late_comment.id).not_to eq(written_in_time.id)
+      expect(late_comment.first_event_at).to be < written_in_time.first_event_at
+      expect(late_comment.last_event_at).to be > written_in_time.last_event_at
+      expect(row_ids(web_inbox)).to include(late_comment.id, written_in_time.id)
+
+      bundled = row_ids(web_inbox(view_mode: 'grouped'))
+
+      expect(bundled).to include(late_comment.id)
+      expect(bundled).not_to include(written_in_time.id)
+      expect(bundled.first(2)).to contain_exactly(late_comment.id, late.id)
+    end
+
     # Both activities lie in one five-minute bucket that is over, so they share a row.
     # The clock is moved for the two writes only; the lists are drawn in real time.
     context 'when an earlier event folds into the row late' do

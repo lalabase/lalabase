@@ -10,6 +10,17 @@
 # carries the event's own time in last_event_at, and Notification#happened_at
 # answers that when the column is empty. So does a row an old process writes
 # during the deploy, which a NOT NULL column would refuse.
+#
+# ⚠️ Restart the job workers right after this migration. Between it and the
+# restart, a process of the old code holds prepared SELECTs of
+# notifications.*, which PostgreSQL refuses once the table has a new column
+# ("cached plan must not change result type"). Outside a transaction Rails
+# prepares them again. Inside one it raises PreparedStatementCacheExpired, and
+# clears the statement only when that error leaves the transaction:
+# OutboxEvent#process! turns it into a rollback, so an old worker fails every
+# fanout on that connection and reschedules it until it restarts. An old web
+# process answers a request inside a transaction with a 500 now and then until
+# its own restart. Every column added to this table opens the same window.
 class AddHappenedAtToNotifications < ActiveRecord::Migration[8.1]
   def change
     add_column :notifications, :happened_at, :datetime

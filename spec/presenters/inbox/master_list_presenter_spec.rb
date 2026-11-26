@@ -244,7 +244,15 @@ RSpec.describe Inbox::MasterListPresenter do
     # happened later. The line of the bundle says what the ticket's newest event was,
     # so the row with the later happened_at speaks for it; the bundle stands where
     # its newest arrival stands, on top, under today.
+    #
+    # The clock stands at a midday: the rows lie up to three days back from it,
+    # and a run in the first half hour after midnight would put the row written
+    # 30 minutes ago under yesterday.
     context 'when a row of the ticket was written late' do
+      around do |example|
+        travel_to(Time.zone.local(2026, 11, 11, 12)) { example.run } # a Wednesday; the week began on Monday the 9th
+      end
+
       let!(:in_time) { notif(ticket_a, created_at: 2.hours.ago) }
       let!(:late) do
         notif(ticket_a, created_at: 1.minute.ago, first_event_at: 3.days.ago, happened_at: 3.days.ago,
@@ -271,18 +279,16 @@ RSpec.describe Inbox::MasterListPresenter do
       end
 
       it 'puts the bundle under the day of its newest arrival, not of its representative' do
-        travel_to Time.zone.local(2026, 11, 11, 12) do # a Wednesday; the week began on Monday the 9th
-          at = ->(day, hour) { Time.zone.local(2026, 11, day, hour) }
-          in_time.update_columns(created_at: at[2, 9], first_event_at: at[2, 9], last_event_at: at[2, 9])
-          late.update_columns(created_at: at[11, 11], first_event_at: at[1, 9], happened_at: at[1, 9],
-                              last_event_at: at[11, 11])
-          between.update_columns(created_at: at[10, 9], first_event_at: at[10, 9], last_event_at: at[10, 9])
+        at = ->(day, hour) { Time.zone.local(2026, 11, day, hour) }
+        in_time.update_columns(created_at: at[2, 9], first_event_at: at[2, 9], last_event_at: at[2, 9])
+        late.update_columns(created_at: at[11, 11], first_event_at: at[1, 9], happened_at: at[1, 9],
+                            last_event_at: at[11, 11])
+        between.update_columns(created_at: at[10, 9], first_event_at: at[10, 9], last_event_at: at[10, 9])
 
-          grouped = build.grouped_notifications
+        grouped = build.grouped_notifications
 
-          expect(grouped.transform_values { |reps| reps.map(&:id) })
-            .to eq(today: [in_time.id], yesterday: [between.id])
-        end
+        expect(grouped.transform_values { |reps| reps.map(&:id) })
+          .to eq(today: [in_time.id], yesterday: [between.id])
       end
     end
 

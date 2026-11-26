@@ -20,7 +20,6 @@ import tempfile
 import threading
 import time
 import unittest
-from datetime import datetime, timedelta, timezone
 from unittest import mock
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -503,22 +502,6 @@ class LalaInboxTest(unittest.TestCase):
         self.assertIn('Id zum Markieren: n4', out)
         self.assertNotIn('Id zum Markieren: ?', out)          # the row without an id is left out
         self.assertNotIn('Ticketangaben unvollständig', out)   # the broken ticket block counts as none
-
-    # A row the server delivered late arrived now (last_event_at, the order) and
-    # happened days ago (happened_at): the list and the text mode say the latter.
-    # A server before API 1.16 sends no happened_at; its last_event_at was that time.
-    def test_a_row_shows_when_its_event_happened_not_when_it_reached_the_inbox(self):
-        now = datetime.now(timezone.utc)
-        late = row(1)
-        late['last_event_at'] = now.isoformat()
-        late['happened_at'] = (now - timedelta(days=2, hours=1)).isoformat()
-        older_server = row(2)
-        older_server['last_event_at'] = (now - timedelta(days=3, hours=1)).isoformat()
-
-        self.assertTrue(self.lala.inbox_line(late).endswith('vor 2 Tagen'), self.lala.inbox_line(late))
-        self.assertTrue(self.lala.inbox_line(older_server).endswith('vor 3 Tagen'))
-        text, _full = self.lala.row_body(late, skip_ticket=True)
-        self.assertIn('Alpha GmbH · vor 2 Tagen · ungelesen', text)
 
     def test_a_ticket_block_without_project_id_counts_as_none(self):
         broken = row(1)

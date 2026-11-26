@@ -292,13 +292,6 @@ def tool(name, args):
     return data
 
 
-def happened_at(row):
-    """When the row's latest event happened. last_event_at is when it reached the
-    inbox (the order), later when the server delivered it late; a server before
-    API 1.16 sends no happened_at, and its last_event_at was that time."""
-    return row.get('happened_at') or row.get('last_event_at')
-
-
 def ago(iso):
     if not iso:
         return ''
@@ -813,7 +806,7 @@ def inbox_line(row):
         subject = clean((row.get('notifiable') or {}).get('title'), inline=True)
     message = clean(row.get('message'), inline=True)
     mark = ' ' if row.get('read') else '*'
-    return f'{mark} [{org[:18]}] {subject[:48]:<48}  {message[:70]}  {ago(happened_at(row))}'
+    return f'{mark} [{org[:18]}] {subject[:48]:<48}  {message[:70]}  {ago(row.get("last_event_at"))}'
 
 
 def rows_path():
@@ -874,7 +867,7 @@ def row_body(row, fetched=None, skip_ticket=False, brief=False):
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         org = org_name_of(row.get('organisation') or {})
-        print(f'{org} · {ago(happened_at(row))}' + ('' if row.get('read') else ' · ungelesen'))
+        print(f'{org} · {ago(row.get("last_event_at"))}' + ('' if row.get('read') else ' · ungelesen'))
         message = clean(row.get('message') or '(ohne Text)', inline=True)
         print(shorten(message, TEXT_MESSAGE) if brief else message)
         ticket = None if skip_ticket else row.get('ticket')

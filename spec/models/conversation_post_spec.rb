@@ -255,6 +255,18 @@ RSpec.describe ConversationPost, :ci_guard, type: :model do
       expect(rich_texts_of(entry)).to be_empty
     end
 
+    it 'clears both mirrors when a saved message becomes a system entry' do
+      post = message(content: 'Private message text').tap(&:save!)
+      expect(post.reload.plain_text_version).to eq('Private message text')
+      expect(post.plain_text_word_count).to eq(3)
+
+      post.update!(kind: 'system', system_event: 'participant_added', content: nil)
+
+      expect(post.reload).to be_system
+      expect(post.plain_text_version).to be_nil
+      expect(post.plain_text_word_count).to be_nil
+    end
+
     it 'holds a key, never a sentence' do
       valid = ['participant_added', 'guest_invited_2', 'a' * 64]
       invalid = ['Participant added', 'participant-added', 'Hinzugefügt', 'a' * 65, 'x y', "participant_added\n",

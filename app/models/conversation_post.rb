@@ -47,6 +47,7 @@ class ConversationPost < ApplicationRecord
   # A system entry has no text. The mirror would ask for `content` and so
   # build an empty rich text record for it.
   skip_callback :save, :before, :extract_plain_text_content, if: :system?
+  before_save :clear_system_entry_mirror, if: :system?
 
   belongs_to :user
   belongs_to :subject_user, class_name: 'User', optional: true
@@ -71,6 +72,11 @@ class ConversationPost < ApplicationRecord
   end
 
   private
+
+  def clear_system_entry_mirror
+    self.plain_text_version = nil
+    self.plain_text_word_count = nil
+  end
 
   def message_has_no_system_event
     errors.add(:system_event, :not_for_a_message) if message? && !system_event.nil?

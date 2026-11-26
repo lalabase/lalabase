@@ -22,6 +22,12 @@
 # event without a time of its own (`at: nil`) has arrived now: the count rises,
 # last_event_at is the time of the write, the other two stay.
 #
+# One case follows from the rule and is left as it is: a row written late for
+# a comment its reader had already acknowledged (a reaction recorded before the
+# delivery, FanoutService#reconcile_existing_post_reads) is read the moment it
+# is written and still stands at its arrival, on top of a list that shows read
+# rows and inside today's period, though it was never unread.
+#
 # The row's line, its actor_id and the payload's single values (activity_id,
 # action, parameters), names the event at happened_at: an earlier event that
 # folds in late adds its actor and its lists (post_ids) and leaves the line to

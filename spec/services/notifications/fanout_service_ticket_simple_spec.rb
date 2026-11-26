@@ -185,6 +185,24 @@ RSpec.describe Notifications::FanoutService, 'simplified ticket notifications' d
       expect(notifications_for(watcher, channel: 'email').sole).to be_unread
     end
 
+    # The arrival rule holds for such a row as well (Notifications::RowEvents
+    # header): written late, it is read at once and still stands at the moment
+    # it was written, on top of a list that shows read rows. Named, not changed.
+    it 'stands a row it writes late and reads at once at its arrival' do
+      post_record = create(:post, organisation: organisation, ticket: ticket, user: actor)
+      create(:post_read, organisation: organisation, post: post_record, user: watcher)
+      activity = create(:activity, :post_added,
+                        organisation: organisation, trackable: ticket, actor: actor,
+                        secondary: post_record, created_at: 2.hours.ago)
+
+      run_fanout(activity)
+
+      row = notifications_for(watcher).sole
+      expect(row).to be_state_read
+      expect(row.happened_at).to be_within(1.second).of(activity.created_at)
+      expect(row.last_event_at).to be > 1.minute.ago
+    end
+
     it 'receives notification for ticket status change' do
       activity = create(:activity, :status_changed,
                         organisation: organisation, trackable: ticket, actor: actor)

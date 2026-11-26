@@ -61,7 +61,8 @@ OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md
   `notifications/_notification` (response to `?partial=list`).
   Consequences: A row that receives an event (`GroupKeyBuilder` through `RowEvents.fold!`) keeps its
   `created_at` and moves up; a row written late stands on top, in the web inbox as in REST and MCP
-  with `arrived_since` (`RowEvents` header). `Posts::MarkRead` matches a row by its span only when it carries no
+  with `arrived_since` (`RowEvents` header), also one that is read the moment it is written (a
+  reaction recorded before the delivery). `Posts::MarkRead` matches a row by its span only when it carries no
   `post_ids` (its comment says why). The lookups in fanout
   (`group_key_builder.rb`, `fanout_service.rb`, `score_calculator.rb`) deliberately continue to use
   `created_at`.

@@ -238,6 +238,80 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
       end
     end
 
+    # The row's line (actor_id and the payload's single values: activity_id,
+    # action, parameters) names the event at happened_at, the time the row shows.
+    # An earlier event that folds in late (a retried outbox event) joins the row
+    # with its count, its actor and its lists, and leaves the line to the later
+    # event: its actor goes before the leading one in actor_ids, which stays
+    # last. An event at the time of the latest one leads; one without a time of
+    # its own does not, since happened_at stays.
+    describe 'the line of the row' do
+      let(:leading_payload) do
+        { 'action' => 'commented', 'activity_id' => 'later-activity', 'parameters' => { 'excerpt' => 'later' },
+          'actor_ids' => [actor.id], 'post_ids' => [first_post_id] }
+      end
+
+      it 'stays with the later event when an earlier one folds in late' do
+        row = create_row(happened_at: last_time, payload: leading_payload)
+
+        described_class.fold!(notification: row, at: earlier_time, actor_id: other_actor.id,
+                              payload: { 'action' => 'mentioned', 'activity_id' => 'earlier-activity',
+                                         'parameters' => { 'excerpt' => 'earlier' }, 'post_ids' => [second_post_id] })
+
+        values = row_values(row)
+        expect(values).to include('group_count' => 2, 'actor_id' => actor.id, 'happened_at' => last_time,
+                                  'first_event_at' => earlier_time)
+        expect(values['payload']).to eq('action' => 'commented', 'activity_id' => 'later-activity',
+                                        'parameters' => { 'excerpt' => 'later' },
+                                        'actor_ids' => [other_actor.id, actor.id],
+                                        'post_ids' => [first_post_id, second_post_id])
+      end
+
+      it 'goes to an event at the time of the latest one' do
+        row = create_row(happened_at: last_time, payload: leading_payload)
+
+        described_class.fold!(notification: row, at: last_time, actor_id: other_actor.id,
+                              payload: { 'activity_id' => 'same-time-activity' })
+
+        values = row_values(row)
+        expect(values['actor_id']).to eq(other_actor.id)
+        expect(values['payload']).to include('activity_id' => 'same-time-activity',
+                                             'actor_ids' => [actor.id, other_actor.id])
+      end
+
+      it 'stays for an event without a time of its own' do
+        row = create_row(happened_at: last_time, payload: leading_payload)
+
+        described_class.fold!(notification: row, at: nil, actor_id: other_actor.id,
+                              payload: { 'activity_id' => 'timeless-activity' })
+
+        values = row_values(row)
+        expect(values['actor_id']).to eq(actor.id)
+        expect(values['payload']).to include('activity_id' => 'later-activity',
+                                             'actor_ids' => [other_actor.id, actor.id])
+      end
+
+      it 'takes a single value the row lacks, also from an earlier event' do
+        row = create_row(happened_at: last_time, payload: { 'action' => 'commented', 'actor_ids' => [actor.id] })
+
+        described_class.fold!(notification: row, at: earlier_time, payload: { 'activity_id' => 'earlier-activity' })
+
+        expect(row_values(row)['payload']).to include('activity_id' => 'earlier-activity', 'action' => 'commented')
+      end
+
+      # The activities popover reads actor_ids from the end, the leading actor first.
+      it 'puts an actor who leads again at the end of actor_ids' do
+        row = create_row(happened_at: last_time)
+        described_class.fold!(notification: row, at: later_time, actor_id: other_actor.id)
+
+        described_class.fold!(notification: Notification.find(row.id), at: later_time + 30.seconds, actor_id: actor.id)
+
+        values = row_values(row)
+        expect(values['actor_id']).to eq(actor.id)
+        expect(values['payload']['actor_ids']).to eq([other_actor.id, actor.id])
+      end
+    end
+
     it 'writes the new actor to actor_id and keeps both actors once in actor_ids' do
       row = create_row
       expect(row_values(row)).to include('actor_id' => actor.id,

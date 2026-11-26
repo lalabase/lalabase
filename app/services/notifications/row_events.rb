@@ -22,6 +22,11 @@
 # event without a time of its own (`at: nil`) has arrived now: the count rises,
 # last_event_at is the time of the write, the other two stay.
 #
+# The row's line, its actor_id and the payload's single values (activity_id,
+# action, parameters), names the event at happened_at: an earlier event that
+# folds in late adds its actor and its lists (post_ids) and leaves the line to
+# the later one, so a row never shows one event's actor beside another's time.
+#
 # Entry point: fold!, arrival
 module Notifications
   module RowEvents
@@ -48,6 +53,10 @@ module Notifications
           next false if block_given? && !yield(notification)
 
           notification.group_count += 1
+          # Asked before happened_at moves: the row's line (its actor, the
+          # payload's single values) names the event at happened_at. An earlier
+          # event folding in late leaves it to the later one.
+          leads = leads?(notification, at)
           # The span only widens: events of one row can arrive out of order (a
           # retried outbox event). The lists order by last_event_at and print
           # happened_at, and Posts::MarkRead matches a comment row without post
@@ -57,8 +66,8 @@ module Notifications
           # Before last_event_at moves: a row without happened_at answers it.
           notification.happened_at = [notification.happened_at, at].compact.max
           notification.last_event_at = [notification.last_event_at, arrival(at: at)].compact.max
-          merge_actors(notification, actor_id)
-          merge_payload(notification, payload)
+          merge_actors(notification, actor_id, leads: leads)
+          merge_payload(notification, payload, leads: leads)
           notification.save!
           true
         end
@@ -66,15 +75,29 @@ module Notifications
 
       private
 
-      def merge_actors(notification, new_actor_id)
-        actors = (notification.payload['actor_ids'] || []).dup
-        actors << notification.actor_id if notification.actor_id
-        actors << new_actor_id if new_actor_id
-        notification.payload['actor_ids'] = actors.uniq.compact
-        notification.actor_id = new_actor_id if new_actor_id
+      # Whether the event becomes the row's latest one, the event its line names:
+      # not earlier than happened_at. An event without a time of its own leaves
+      # happened_at, and the line, where they are.
+      def leads?(notification, at)
+        !at.nil? && at >= notification.happened_at
       end
 
-      def merge_payload(notification, new_payload)
+      # actor_ids: every actor of the row once, the leading one (actor_id, the
+      # actor of the event the line names) last, so a reader that walks the list
+      # from the end meets the actors newest first. An actor of an earlier event
+      # joins before the leading one.
+      def merge_actors(notification, new_actor_id, leads: true)
+        lead = leads && new_actor_id ? new_actor_id : notification.actor_id
+        actors = Array(notification.payload['actor_ids']) + [notification.actor_id, new_actor_id]
+        actors = actors.compact.uniq - [lead]
+        notification.payload['actor_ids'] = lead ? actors + [lead] : actors
+        notification.actor_id = lead
+      end
+
+      # Lists are joined, whoever leads. A single value (activity_id, action,
+      # parameters) is the leading event's: an earlier event only gives one the
+      # row lacks.
+      def merge_payload(notification, new_payload, leads: true)
         return unless new_payload
 
         notification.payload ||= {}
@@ -89,8 +112,10 @@ module Notifications
                                         (existing + [value]).uniq
                                       elsif value.is_a?(Array)
                                         ([existing] + value).compact.uniq
-                                      else
+                                      elsif leads || !notification.payload.key?(key)
                                         value
+                                      else
+                                        existing
                                       end
         end
       end

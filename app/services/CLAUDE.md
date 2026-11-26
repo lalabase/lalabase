@@ -1,17 +1,17 @@
-# Karte: app/services (Stand: 2026-11-19)
+# Map: app/services (as of 2026-11-19)
 
-**Entry-Point-Konvention für NEUE Services: `Klass.call(**kwargs)`** (Klassenmethode; eine
-Instanz-`#call`-Implementierung dahinter ist erlaubt). Pflicht: mindestens 1 Kommentarzeile
-über der Klasse (was tut der Service). Read-/Query-Objekte mit Domänen-Verben (`can?`,
-`fetch_results`) sind als Ausnahme erlaubt, wenn der Header den Entry-Point deklariert —
-Marker exakt: `# Entry point: <methode>`. `#initialize` nimmt nur Keyword-Args.
-Guard: `spec/services/service_convention_guard_spec.rb` (Bestand steht auf Legacy-Allowlist,
-shrink-only; wer eine Allowlist-Datei substanziell ändert, migriert sie und streicht sie dort.
-Ausgenommene Subtrees mit eigenem Vertrag: `actors/`, `lalabase/tools/`).
+**Entry-point convention for NEW services: `Klass.call(**kwargs)`** (class method; an
+instance `#call` implementation behind it is allowed). Required: at least 1 comment line
+above the class explaining what the service does. Read/query objects with domain verbs (`can?`,
+`fetch_results`) are allowed as exceptions if the header declares the entry point —
+exact marker: `# Entry point: <method>`. `#initialize` takes only keyword arguments.
+Guard: `spec/services/service_convention_guard_spec.rb` (existing code is on a legacy allowlist,
+shrink-only; anyone making substantial changes to an allowlisted file migrates it and removes it from the list.
+Exempt subtrees with their own contract: `actors/`, `lalabase/tools/`).
 
-**Writes**: nicht-trivialer Write → Command-Objekt unter `actors/` (Vertrag: Root-`CLAUDE.md`
-„Actor-Pattern", Guard: `spec/services/actors/actor_contract_guard_spec.rb`). Triviales
-Einzel-`update!` ohne Side-Effects bleibt im Controller.
+**Writes**: nontrivial write → command object under `actors/` (contract: root `CLAUDE.md`,
+“Actor pattern”, guard: `spec/services/actors/actor_contract_guard_spec.rb`). A trivial
+single `update!` without side effects stays in the controller.
 
 * An actor writes and checks no rights. Exceptions lock first and authorize again under the lock (`AcceptTicketSuggestion`, `StartTicketSuggestionRun`, `CorrectMeetingTerm`).
 * A second exception spans two tenants: `TakeOverPerson` (People S0, 2026-11-16) asks `PersonPolicy#create?` under the TARGET's tenant, which only the actor opens, and reads the source through `People::Lookup` under the source's. ⚠️ A write into another tenant than the request's runs its whole transaction under that tenant (it overrides `with_actor_context`): commit callbacks (`Trackable`'s activity) run after `#perform`, and acts_as_tenant sets a new row's organisation from the thread's tenant.
@@ -20,308 +20,308 @@ Einzel-`update!` ohne Side-Effects bleibt im Controller.
 * The caller words the answer (status, text, 404 form).
 * A guard holds where a mistake discloses data (`ticket_token_lookup_guard_spec.rb`, `ticket_relation_actor_callers_guard_spec.rb`).
 
-Verzeichnis-Übersicht (Auswahl):
-* `knowledge/` — `lookup.rb` (`Knowledge::Lookup`, REST R2, 29.10.2026) ist das EINE Lesen
-  des Wissens eines Projekts (Notizen, Dokumente) nach Titel, für das MCP-Werkzeug
-  `search_knowledge` und `GET /api/v1/projects/:project_id/knowledge`: Rechte je Typ über
-  `Pundit.policy_scope!` (kein Titel und keine Zählung eines Typs ohne Leserecht), Merge-Seite
-  über zwei Tabellen (`updated_at DESC, id ASC`, derselbe Tiebreak in SQL und Ruby), Gesamtzahl,
-  Serialisierung mit dem Link aus `Documentation::KnowledgeLink`. Ohne Suchwort listet es
-  alles Lesbare (nur REST nutzt das, MCP verlangt `q`). `.options(args, strict:)`: MCP liest
-  Unlesbares als Standard und klemmt `per_page`, REST (`strict: true`) lehnt ab
-  (`InvalidOption`, 422), Seitenwerte über `ListPaging.strict_number` (Regel und Text aller
-  strengen Listen). Eine neue Suchregel gehört hierher, eine neue strenge Seitenregel nach
-  `list_paging.rb`, keine in eine Hülle.
-* `time_sessions/` — Lese-Objekte der Zeitdomäne. `viewing_scope.rb` ist der EINE Besitzer der
-  Regel „eigene oder alle Zeiten" (`:all`/`:own`/`:none` plus `#apply(relation)`), die
-  `ProjectPolicy#area_access?(:time_sessions)` nicht ausdrücken kann (`can_view_own ||
-  can_view_all`). Fail-closed: nur eine PERSISTIERTE `TimeSessionPermission` zählt, die
-  unsaved Default-Zeile aus `User#time_session_permission_for` nicht, und seit 27.09.2026 nur
-  mit lebender `ProjectPermission` dahinter (`TimeSessionPermission.backed_by_project_access`,
-  Wächter `spec/architecture/time_session_permission_guard_spec.rb`). Zwei Einstiege, EINE
-  Regel: `.call(user:, project:)` für ein Projekt, `.for_organisation(user:, organisation:)`
-  für alle Projekte einer Organisation aus EINEM Lesen der Rechtezeilen (`#apply`,
-  `#tier_for`, seit 01.09.2026 auch `#projects` und `#sees_anything?`: welche Projekte und ob
-  überhaupt; `time_session_navigation_service.rb` ist nur noch die dünne Tür davor, plus
-  `#bookable_projects` für die Schreibfrage `can_create_own`). Nutzer:
-  `TimeSessionPolicy::Scope`, die org-weite Tür jeder Liste und jeder
-  Dashboard-Kachel (seit 30.08.2026; davor eine zweite, handgeschriebene Kopie der Regel, die
-  abgeschaltete Mitgliedschaften nicht kannte), das Werkzeug
-  `lalabase/tools/summarize_time_sessions.rb` (Assistent und seit MCP 0.12.0 auch
-  `/api/mcp` im Projektmodus, also eine Tür für jeden Token), `subject_time_summary_service.rb`
-  (Stunden-Chip) und `time_sessions/open_hours.rb` (`GET /api/v1/time_sessions/open`, seit
-  08.10.2026; davor sah die API auch Buchungen, die die Zeitliste im Web verbirgt). Wer eine
-  weitere Auswertung über gebuchte Zeit baut, geht hier durch, statt die Rangfolge ein
-  sechstes Mal von Hand zu schreiben. `bucket_totals.rb` ist der
-  zweite Besitzer daneben: die Aggregation in die drei Abrechnungs-Töpfe, in EINER Query,
-  geteilt von `SummarizeTimeSessions` und dem Report-Panel des Assistenten — die
-  Einordnung selbst bleibt `TimeSession.billing_bucket_for`. `booking.rb` (seit 29.10.2026,
-  REST R6) ist die EINE Regel einer Zeitbuchung per Token: das MCP-Werkzeug
-  `create_time_session` und `POST /api/v1/tickets/:ticket_id/time_sessions` buchen beide
-  hier durch (Dauer Pflicht und nur eine, `occurred_on` als Kalendertag in der Profilzone,
-  Schreiben über `Actors::SaveTimeSession`); Rechte prüfen die Hüllen zwischen `parse`,
-  `build` und `save`, die Texte der Ablehnungen auch. `date_bound.rb` ist der
-  dritte: die EINE Antwort auf „ist das eine Datumsgrenze, die ich der Datenbank geben
-  darf". `empty_reason.rb` ist der vierte: WARUM die Zeitenliste leer ist. Drop-one, ein
-  `EXISTS` je aktivem Filter und nur, wenn die Liste schon leer ist; „aktiv" fragt es am
-  gebauten SQL ab (`to_sql`-Vergleich) statt an den Parametern, damit die Regel nicht neben
-  `TimeSessionFilterService` ein zweites Mal geschrieben steht. Alle Filter sind UND-Bedingungen,
-  also kann Weglassen nur mehr Zeilen liefern: was es nennt, darf die Seite versprechen.
-  ⚠️ `Date.strptime` allein reicht NICHT — `%Y` nimmt beliebig viele Ziffern und
-  ein Vorzeichen, `999999999-01-01` ist ein gültiges Ruby-Date und ein
-  `PG::DatetimeFieldOverflow` in der nächsten Query. Die Vierstelligkeitsprüfung muss VOR
-  dem Parsen laufen; genau diese Hälfte ging beim Abschreiben der Regel ins Report-Panel
-  verloren. Drei weitere gehören zu den Zeit-Spalten der Ticket-Tabelle:
-  `subject_billing_status.rb` faltet die Töpfe EINES Bezugs zu einem Wort
-  (`:billed`/`:in_billing`/`:open`/`:mixed`/`:no_sessions`) — geteilt vom Stunden-Chip und
-  von der Abrechnungsstand-Spalte, damit beide dasselbe Ticket nicht verschieden nennen;
-  `subject_totals.rb` ist das Stapel-Gegenstück zu `subject_time_summary_service.rb`
-  (Minuten + Status je Ticket für eine ganze Seite in EINER Query);
-  `subject_totals_cache.rb` hält die Antworten EINES Lesers (`new(user:)`) in EINEM Request
-  (Seite angemeldet über `Tickets::LazyPagePreload`, geladen beim ersten Lesen je Projekt der
-  Tickets, wie die Subs- und Wartet-Caches). ⚠️ Dessen Fallback ist der Punkt: eine Zeile, die
-  der Vorablauf nie gesehen hat (Einzelzeilen-Rerender per Turbo-Stream nach einem Save), wird
-  EINZELN nachgeschlagen statt genullt — eine leere Zelle ist eine falsche Zahl, keine
-  fehlende, und nichts daran sieht kaputt aus.
-  ⚠️ Vokabular (seit S1, 01.09.2026): EIN Satz Namen. Die Bezugs-Antwort ist ein Topf aus
-  `TimeSession::BILLING_STATUS_FILTERS` als Symbol, dazu `:mixed` und `:no_sessions`. Die
-  frühere Übersetzung `without_billing` -> `:open` (`BUCKET_TO_STATUS`) ist weg. Das Wort
-  liefert AUSSCHLIESSLICH `time_billing_state_label`, den Anteil
-  `SubjectBillingStatus.percent_billed`. Die Wörter selbst wohnen einmal unter
-  `views.time_sessions.billing_status.*`; Wächter:
-  `spec/locales/time_list_billing_words_spec.rb` und
-  `spec/architecture/billing_state_vocabulary_guard_spec.rb`. Keinen zweiten Namen
-  dazustellen — vor S1 waren es neun Stellen und fünf verschiedene deutsche Wörter.
-* `activities/` — der Riegel des Aktivitätsverlaufs (S3b, §13-11). ⚠️ `area_registry.rb`
-  kartiert über **`key`**, nicht über `trackable_type`: es gibt nur vier Trackable-Typen,
-  und `Project` traegt Notiz-, Dokument-, Meeting-, Mitglieder- und Rechte-Ereignisse
-  gleichzeitig. `visible_to.rb` haengt jede Zeile an ihr Projekt (Ticket-Zeilen ueber
-  Subquery, Project-Zeilen ueber `trackable_id`) und filtert ueber die Area-Reichweite;
-  `project_reach.rb` ist der Ein-Projekt-Adapter, damit die Aktivitaeten-SEITE und das
-  Chat-Werkzeug denselben Riegel benutzen. Fail-closed auf jeder Achse: unbekannter
-  Schluessel, leere Reichweite und keine Klausel liefern nichts, nie alles.
-  ⚠️ `visible_to.rb` hat einen ZWEITEN Ausgang: `reached_project_ids` ist der Besitzer der
-  L7-Deckungszahl. Wer die Deckung eines Verlaufs aus EINER Area zieht
-  (`coverage(area: :tickets)`), beschreibt die falsche Reichweite; gemessen: Antwort aus
-  drei Projekten unter „Durchsucht: 0 von 3 Projekten".
-  Die Aktivitäten-SEITE zeigt den Gegenstand eines Ereignisses in
-  `turbo-frame#ticket_display_frame` per `src`. Diese Rahmen-Adresse baut seit 14.11.2026
-  `inbox/object_frame.rb` (`Inbox::ObjectFrame.path`), für die Seite und für die Bahn der Inbox
-  (`inbox/lane_kind.rb`, was eine Zeile der Inbox öffnet; Karte `notifications/CLAUDE.md`).
-  Keine zweite `case target`-Liste.
-* `assistant/` — die Bewohner der Artefakt-Lane (S3c T3, Plan §8.1). `panel_registry.rb`
-  bildet Panel-Art auf Panel-Klasse ab, **fail-closed** wie `ContentAreaRegistry`: die Art
-  kommt aus einer tippbaren Adresse, „unbekannt" ist also ein Produktionsfall. Der
-  Controller rendert das Template nach der Schreibweise der REGISTRY (`canonical_kind`),
-  nie nach dem Parameter. `panels/time_report.rb` prüft seine Rechte selbst — die
-  Area-Tabelle kann bei Zeiten „eigene" nicht von „alle" trennen (§13-9), deshalb trägt
-  jede `report`-Art ihre eigene Prüfung.
-  Meeting-Analysen im Assistenten: `analysis_context.rb` hält je Antwort die expliziten
-  Meeting-Bezüge, Arbeitsanweisungen und Quellenherkunft einschließlich Gesprächsverlauf
-  fest; `analysis_sources.rb` prüft die Quellenrechte beim Speichern und ob eine Analyse
-  am Zielmeeting veröffentlicht werden darf. Unvollständige Quellenherkunft sperrt das
-  Speichern. `analysis_eligibility.rb` teilt die Speicherregeln zwischen Oberfläche und Actor
-  und lädt Speicherzustände im Gespräch gesammelt. `analysis_revision.rb` prüft den
-  ausdrücklich gewählten Antwortbezug; Wortanfänge lösen keine Überarbeitung aus.
-  `coverage_notice.rb` liefert den Reichweitenhinweis für Chat und private Analyse.
-  Ticket-Vorschläge: `Actors::StartTicketSuggestionRun` bindet Auftrag, Meeting, Projekt
-  und Prüfsummen getrennt begrenzter Notizen/Mitschrift an einen `MeetingTicketSuggestionRun`.
-  Quellen werden vor KI-Aufruf und Veröffentlichung erneut geprüft; Chat-Löschen entfernt
-  den persönlichen Lauf, erhält aber gemeinsame Vorschläge. `retried_at` erlaubt nur einen
-  Neuversuch je altem Auftrag. Advisory-Sperren verhindern parallele Job-Ausführung.
-  `MeetingTicketSuggestionRun#mark_failed!` hält Fehlerzustand und Flag-Freigabe
-  zusammen; nur Meeting-Seiten-Läufe schreiben ihren Fehler auch an das Meeting.
-  Kein persönlicher Verlauf gelangt in diese meetingweit sichtbaren Vorschläge.
-  Start und Ersetzung sperren zuerst das Meeting, wie `AcceptTicketSuggestion`;
-  Verwerfen ist ein bedingtes UPDATE auf `open`. Ergebnis-Snapshots behalten die IDs
-  gelöschter offener Vorschläge als überholte Historie. Assistenten-Ergebnisse werden
-  nur über berechtigungsgeprüftes HTTP aktualisiert, nie als Inhalts-Broadcast.
-  Neue Läufe nutzen `Meetings::TicketSuggestionRunJob`; die Argumente alter
-  `TicketSuggestionJob`- und `ChatResponseJob`-Jobs bleiben kompatibel.
-* `actors/` — Command-Objekte für Writes (Tier-1/Tier-2-Vertrag, guard-erzwungen). Vollständig
-  auf der Seam: Dokumente (`save_document`, `save_document_version`, `destroy_document`,
-  `destroy_document_version`); Zeiterfassung/Abrechnung (Phase 4 T1–T3, Pläne
-  `doc/actors_phase4_plan.md` §9 + `doc/actors_t3_save_time_session_plan.md`): T1-Assigner-Paar
-  mit geteiltem Write-PORO `time_session_group_assigner.rb`, T2 Billing/Descriptions,
-  T3 `save_time_session` (create+update inkl. Gruppen-Wechsel in EINER Txn); Chat (C1, Plan
+Directory overview (selection):
+* `knowledge/` — `lookup.rb` (`Knowledge::Lookup`, REST R2, 29 October 2026) is the SINGLE reader
+  of a project's knowledge (notes, documents) by title, for the MCP tool
+  `search_knowledge` and `GET /api/v1/projects/:project_id/knowledge`: permissions per type through
+  `Pundit.policy_scope!` (no title or count for a type without read permission), merged pagination
+  across two tables (`updated_at DESC, id ASC`, the same tie-break in SQL and Ruby), total count,
+  serialization with the link from `Documentation::KnowledgeLink`. Without a search term, it lists
+  everything readable (only REST uses this; MCP requires `q`). `.options(args, strict:)`: MCP treats
+  unreadable values as defaults and clamps `per_page`; REST (`strict: true`) rejects them
+  (`InvalidOption`, 422), pagination values through `ListPaging.strict_number` (rule and text for all
+  strict lists). A new search rule belongs here; a new strict pagination rule belongs in
+  `list_paging.rb`; neither belongs in a wrapper.
+* `time_sessions/` — read objects for the time domain. `viewing_scope.rb` is the SINGLE owner of the
+  “own or all times” rule (`:all`/`:own`/`:none` plus `#apply(relation)`), which
+  `ProjectPolicy#area_access?(:time_sessions)` cannot express (`can_view_own ||
+  can_view_all`). Fail-closed: only a PERSISTED `TimeSessionPermission` counts, not the
+  unsaved default row from `User#time_session_permission_for`; since 27 September 2026, it also requires
+  a live `ProjectPermission` behind it (`TimeSessionPermission.backed_by_project_access`,
+  guard `spec/architecture/time_session_permission_guard_spec.rb`). Two entry points, ONE
+  rule: `.call(user:, project:)` for one project, `.for_organisation(user:, organisation:)`
+  for all projects in an organisation from ONE read of the permission rows (`#apply`,
+  `#tier_for`, since 1 September 2026 also `#projects` and `#sees_anything?`: which projects and whether
+  anything is visible at all; `time_session_navigation_service.rb` is now only a thin entry point in front of it, plus
+  `#bookable_projects` for the write question `can_create_own`). Consumers:
+  `TimeSessionPolicy::Scope`, the org-wide entry point of every list and every
+  dashboard tile (since 30 August 2026; previously a second, handwritten copy of the rule that
+  did not account for deactivated memberships), the tool
+  `lalabase/tools/summarize_time_sessions.rb` (assistant and, since MCP 0.12.0, also
+  `/api/mcp` in project mode, thus an entry point for every token), `subject_time_summary_service.rb`
+  (hours chip) and `time_sessions/open_hours.rb` (`GET /api/v1/time_sessions/open`, since
+  8 October 2026; previously, the API also exposed bookings hidden by the web time list). Anyone building
+  another report on booked time goes through this, instead of writing the precedence rule
+  manually for a sixth time. `bucket_totals.rb` is the
+  second owner alongside it: aggregation into the three billing buckets, in ONE query,
+  shared by `SummarizeTimeSessions` and the assistant's report panel — classification
+  itself remains with `TimeSession.billing_bucket_for`. `booking.rb` (since 29 October 2026,
+  REST R6) is the SINGLE rule for booking time through a token: the MCP tool
+  `create_time_session` and `POST /api/v1/tickets/:ticket_id/time_sessions` both book
+  through it (duration required, exactly one; `occurred_on` as a calendar day in the profile time zone;
+  write through `Actors::SaveTimeSession`); wrappers check permissions between `parse`,
+  `build` and `save`, and own refusal texts too. `date_bound.rb` is the
+  third: the SINGLE answer to “is this a date boundary I may pass to
+  the database?”. `empty_reason.rb` is the fourth: WHY the time list is empty. Drop-one, one
+  `EXISTS` per active filter and only when the list is already empty; it determines “active” from
+  the built SQL (`to_sql` comparison) rather than the parameters, so the rule is not duplicated
+  alongside `TimeSessionFilterService`. All filters are AND conditions,
+  so omitting one can only yield more rows: the page may promise what this object reports.
+  ⚠️ `Date.strptime` alone is NOT enough — `%Y` accepts arbitrarily many digits and
+  a sign; `999999999-01-01` is a valid Ruby Date and a
+  `PG::DatetimeFieldOverflow` in the next query. The four-digit check must run BEFORE
+  parsing; precisely this half was lost when the rule was copied into the report panel.
+  Three more belong to the ticket table's time columns:
+  `subject_billing_status.rb` folds ONE subject's buckets into one word
+  (`:billed`/`:in_billing`/`:open`/`:mixed`/`:no_sessions`) — shared by the hours chip and
+  billing-status column so they do not label the same ticket differently;
+  `subject_totals.rb` is the batch counterpart of `subject_time_summary_service.rb`
+  (minutes + status per ticket for an entire page in ONE query);
+  `subject_totals_cache.rb` holds ONE reader's answers (`new(user:)`) in ONE request
+  (page registered through `Tickets::LazyPagePreload`, loaded on first read per project of the
+  tickets, like the subtask and waiting caches). ⚠️ Its fallback is the point: a row the
+  preload never saw (single-row rerender via Turbo Stream after a save) is looked up
+  INDIVIDUALLY instead of being zeroed — an empty cell is an incorrect number, not a
+  missing one, and nothing about it looks broken.
+  ⚠️ Vocabulary (since S1, 1 September 2026): ONE set of names. The subject's answer is a bucket from
+  `TimeSession::BILLING_STATUS_FILTERS` as a symbol, plus `:mixed` and `:no_sessions`. The
+  former translation `without_billing` -> `:open` (`BUCKET_TO_STATUS`) is gone. ONLY
+  `time_billing_state_label` supplies the label;
+  `SubjectBillingStatus.percent_billed` supplies the proportion. The words themselves live once under
+  `views.time_sessions.billing_status.*`; guards:
+  `spec/locales/time_list_billing_words_spec.rb` and
+  `spec/architecture/billing_state_vocabulary_guard_spec.rb`. Do not add a second name —
+  before S1 there were nine locations and five different German words.
+* `activities/` — the activity-history access gate (S3b, §13-11). ⚠️ `area_registry.rb`
+  maps by **`key`**, not `trackable_type`: there are only four Trackable types,
+  and `Project` carries note, document, meeting, membership and permission events
+  simultaneously. `visible_to.rb` attaches each row to its project (Ticket rows through
+  a subquery, Project rows through `trackable_id`) and filters by area reach;
+  `project_reach.rb` is the single-project adapter so the activity PAGE and the
+  chat tool use the same gate. Fail-closed on every axis: unknown
+  key, empty reach and no clause return nothing, never everything.
+  ⚠️ `visible_to.rb` has a SECOND output: `reached_project_ids` owns the
+  L7 coverage count. Deriving a history's coverage from ONE area
+  (`coverage(area: :tickets)`) describes the wrong reach; observed: an answer from
+  three projects beneath “Durchsucht: 0 von 3 Projekten” (“Searched: 0 of 3 projects”).
+  The activity PAGE displays an event's subject in
+  `turbo-frame#ticket_display_frame` via `src`. Since 14 November 2026,
+  `inbox/object_frame.rb` (`Inbox::ObjectFrame.path`) builds this frame URL for both the page and the inbox lane
+  (`inbox/lane_kind.rb`, what an inbox row opens; map in `notifications/CLAUDE.md`).
+  No second `case target` list.
+* `assistant/` — occupants of the artefact lane (S3c T3, plan §8.1). `panel_registry.rb`
+  maps panel kind to panel class, **fail-closed** like `ContentAreaRegistry`: the kind
+  comes from a URL users can type, so “unknown” is a production case. The
+  controller renders the template using the REGISTRY's spelling (`canonical_kind`),
+  never the parameter. `panels/time_report.rb` checks its own permissions — the
+  area table cannot distinguish “own” from “all” for times (§13-9), so
+  every `report` kind carries its own check.
+  Meeting analyses in the assistant: `analysis_context.rb` records each answer's explicit
+  meeting references, work instructions and source provenance, including conversation
+  history; `analysis_sources.rb` checks source permissions on save and whether an analysis
+  may be published to the target meeting. Incomplete source provenance blocks
+  saving. `analysis_eligibility.rb` shares save rules between interface and actor
+  and batch-loads save states in the conversation. `analysis_revision.rb` checks the
+  explicitly selected answer reference; word prefixes do not trigger revision.
+  `coverage_notice.rb` supplies the reach notice for chat and private analyses.
+  Ticket suggestions: `Actors::StartTicketSuggestionRun` binds the request, meeting, project
+  and checksums of separately capped notes/transcript to a `MeetingTicketSuggestionRun`.
+  Sources are rechecked before the AI call and publication; deleting a chat removes
+  the personal run but retains shared suggestions. `retried_at` permits only one
+  retry per old request. Advisory locks prevent parallel job execution.
+  `MeetingTicketSuggestionRun#mark_failed!` keeps failure state and flag release
+  together; only meeting-page runs also write their error to the meeting.
+  No personal conversation history enters these suggestions, which are visible across the meeting.
+  Start and replacement lock the meeting first, like `AcceptTicketSuggestion`;
+  dismissal is a conditional UPDATE on `open`. Result snapshots retain the IDs
+  of deleted open suggestions as superseded history. Assistant results are
+  refreshed only through authorized HTTP, never as content broadcasts.
+  New runs use `Meetings::TicketSuggestionRunJob`; arguments of old
+  `TicketSuggestionJob` and `ChatResponseJob` jobs remain compatible.
+* `actors/` — command objects for writes (Tier-1/Tier-2 contract, guard-enforced). Fully
+  on the seam: documents (`save_document`, `save_document_version`, `destroy_document`,
+  `destroy_document_version`); time tracking/billing (phase 4 T1–T3, plans
+  `doc/actors_phase4_plan.md` §9 + `doc/actors_t3_save_time_session_plan.md`): T1 assigner pair
+  with shared write PORO `time_session_group_assigner.rb`, T2 billing/descriptions,
+  T3 `save_time_session` (create+update including group change in ONE transaction); chat (C1, plan
   `doc/actors_c1_chat_plan.md`): `save_chat`, `destroy_chat`, `create_chatpost`,
-  `regenerate_chatpost`, `set_chat_style`; `save_assistant_analysis` kopiert eine fertige
-  eigene Antwort unter Zeilensperre als private Meeting-Analyse ohne Suchfreigabe, mit
-  Quellen-Snapshot und eindeutigem Antwortschlüssel gegen doppeltes Speichern; keine neue
-  KI-Generierung. Preisstände (`publish_price_list` hier, `withdraw_price_list` seit S3.2 in der
-  Engine `gboyke/lalabase-operator`; `publish_price_list` bleibt, weil der Kern die Regel besitzt und
-  die Konsole ihn ruft) —
-  **beide OHNE `current_user`**, weil der Admin-Operator ein `Beuser` ist und `Current.user`
-  einen `User` erwartet; Audit läuft über einen E-Mail-Snapshot auf der Zeile. In beiden ist
-  die REIHENFOLGE tragend (Vorgänger clippen VOR dem Anlegen, Ankündigung löschen VOR dem
-  Wiederöffnen) — andersherum weist die Überlappungsregel den eigenen Schreibvorgang ab.
-  KI-Zugang: `save_ai_configuration` **und** `remove_ai_configuration` (KI-Bereich S7,
-  vollständig). Beide hängen an `Organisations::AiConfigurationsController` — dem eigenen
-  Einrichtungs-Screen, nicht mehr an `AiSettingsController#update`, dessen Schreibroute
-  ersatzlos weg ist. ⚠️ Drei nicht offensichtliche Regeln: Spalten unterscheiden
-  **abwesend = behalten / leer = löschen**, nur `ai_access_token`
-  behält auch bei leer (E2-A, der Schlüssel wird nie zurückgespielt); ein Wechsel von
-  **Anbieter oder Endpunkt** verlangt seine erneute Eingabe, weil ein behaltener Schlüssel plus
-  ein beschreibbares `ai_api_base` sonst ein Lesezugriff auf ihn ist (Begründung:
-  `doc/ki_bereich_navigation_plan.md` §E2a); und der Endpunkt-Riegel gehört `Lalabase::PublicAddress`: er löst den Namen
-  auf und beurteilt die **Zieladressen**, nie die Schreibweise. Er ging dreimal an genau dieser
-  Verwechslung kaputt (IPv4-gemappte IPv6-Literale, numerische Notationen wie `127.1`, dann
-  Namen: `localhost.`, `redis.`, öffentliche Namen mit Eintrag nach innen). Beim Speichern ist
-  er nur Komfort; der Schutz ist `Lalabase::Llm::PublicEndpointAdapter`, der bei jeder
-  Verbindung neu prüft und den Socket an die geprüfte Adresse bindet. Vertraut wird nur dem
-  Endpunkt, den eine `AiCredential` nennt (`Factory#operator_endpoint?`).
-  Glossar (K4a, 04.11.2026): `save_glossary_term` (anlegen/ändern, von Hand immer
-  `confirmed`; eine verlorene Wette auf den Unique-Index ist dieselbe Ablehnung; `lock_version`
-  wie `save_person`, die Sperre allein lädt die Zeile neu und schützte nicht),
-  `set_glossary_term_status` (nur bestätigen/verwerfen, nie vorschlagen),
-  `destroy_glossary_term`, `destroy_heard_form` (eine gehörte Form mit ALLEN ihren
-  Korrekturen am Begriff), `merge_glossary_terms` (sperrt beide Zeilen in EINER Abfrage nach
-  ID, die gehörten Formen wandern zum Ziel, das Ziel behält Schreibweise, Kategorie und
-  Status). Das Ziel löst der Aufrufer über den Policy-Scope auf. ⚠️ EINE Sperr-Reihenfolge:
-  jeder Glossar-Write sperrt zuerst den Begriff (`glossary/term_lock.rb`, ein weggefallener
-  Begriff ist `not_found`); andersherum blockierten sich Löschen und Zusammenführen.
-  K4b (05.11.2026): `correct_meeting_term` korrigiert ein Wort im Transkript und lernt es
-  fürs Glossar. Reihenfolge: Meeting sperren (`lock_in_project!`), `MeetingPolicy#update?` unter
-  der Sperre, Digest (anders = `:stale_transcript`, nichts geschrieben), Stelle nur als echter
-  Treffer, Schreiben über `SaveMeeting` (`keep_summary: true`, die EINE Ausnahme der
-  Zusammenfassung), DANN der Begriff (`TermLock`; gleichzeitig angelegt = gefunden, nicht
-  abgelehnt). Status nach `GlossaryPolicy.manage_allowed?`: mit Recht bestätigt, ohne Vorschlag,
-  auch an einem bestätigten Begriff. `confirm_heard_form`/`reject_heard_form`: die offenen
-  Zeilen einer Form bestätigen oder löschen (bestätigte bleiben). `set_glossary_term_status`
-  bestätigt mit einem VORGESCHLAGENEN Begriff seine offenen Formen.
-  K5a (08.11.2026): `import_glossary_terms` liest eine eingefügte Liste (`Begriff` oder
-  `Begriff;Kategorie`, höchstens 500 nicht leere Zeilen; Kategorie als Schlüssel oder Anzeigename DE/EN).
-  Doppelte nach `GlossaryText.normalize`, vorhandene Begriffe jedes Status übersprungen (verworfene bleiben
-  verworfen); mit `manage_glossary` bestätigt, sonst Vorschlag (`GlossaryPolicy.manage_allowed?`, wie K4b).
-  Der Trockenlauf der Vorschau ist derselbe Code in einem Savepoint, der zurückgerollt wird
-  (`requires_new: true` trägt das). Erst die Kategorien vorhandener Begriffe unter
-  Zeilensperre (EINE Abfrage nach ID, unter der Sperre neu gelesen), DANN neue Begriffe in der Reihenfolge
-  ihrer Form: der Import wartet nie auf eine Begriffssperre, während er Index-Einträge neuer Begriffe hält
-  (andersherum Deadlock mit einer Umbenennung, Review-Runde 1 von #128). `Line#category_applied` sagt, ob die
-  Kategorie einer Zeile ankommt; nur dann zeigt die Prüfung sie. `#report` liest der Aufrufer nach `.new(...).call`.
-  Soll eine Kategorie gesetzt werden und ist die normalisierte Schreibweise inzwischen geändert, lehnt
-  der ganze Import mit `:stale_object` ab (HTTP 422); zuvor ergänzte Kategorien rollen mit zurück.
-  Bei gleicher normalisierter Schreibweise übernimmt der Bericht Status und Urteil aus der gesperrten
-  Zeile, auch wenn diese inzwischen eine Kategorie hat und deshalb unverändert bleibt.
-  Läuft ganz unter dem Mandanten seiner Organisation (`ActsAsTenant.with_tenant`, wie `Glossary::Lookup`), egal
-  welchen der Aufrufer gesetzt hat. Trennt Begriff und Kategorie am ersten `;` oder Tabulator, vor dem Bereinigen;
-  eine Zeile endet auch an VT, FF, NEL, U+2028 und U+2029 (Review-Runde 2 von #128).
-  K5b (08.11.2026, Extraktion): `start_glossary_extraction` (Zeilensperre der Organisation, ein
-  festgefahrener Lauf endet als `failed`/`stale`, EIN aktiver Lauf), `accept_glossary_proposal`,
+  `regenerate_chatpost`, `set_chat_style`; `save_assistant_analysis` copies a completed
+  answer owned by the user, under a row lock, into a private meeting analysis without search visibility,
+  with a source snapshot and unique answer key to prevent duplicate saves; no new
+  AI generation. Price versions (`publish_price_list` here, `withdraw_price_list` in the
+  `gboyke/lalabase-operator` engine since S3.2; `publish_price_list` remains because the core owns the rule and
+  the console calls it) —
+  **both WITHOUT `current_user`**, because the admin operator is a `Beuser` and `Current.user`
+  expects a `User`; auditing uses an email snapshot on the row. In both,
+  ORDER matters (clip the predecessor BEFORE creation, delete the announced version BEFORE
+  reopening) — the reverse order makes the overlap rule reject its own write.
+  AI access: `save_ai_configuration` **and** `remove_ai_configuration` (AI area S7,
+  complete). Both connect to `Organisations::AiConfigurationsController` — the dedicated
+  setup screen, no longer `AiSettingsController#update`, whose write route
+  has been removed without replacement. ⚠️ Three non-obvious rules: columns distinguish
+  **absent = retain / empty = delete**; only `ai_access_token`
+  is retained even when empty (E2-A, the key is never sent back); changing the
+  **provider or endpoint** requires reentering it, because a retained key plus
+  a writable `ai_api_base` would otherwise expose it (reason:
+  `doc/ki_bereich_navigation_plan.md` §E2a); and the endpoint gate belongs to `Lalabase::PublicAddress`: it resolves the name
+  and evaluates the **destination addresses**, never their spelling. It broke three times over precisely this
+  confusion (IPv4-mapped IPv6 literals, numeric notations such as `127.1`, then
+  names: `localhost.`, `redis.`, public names resolving to internal addresses). On save,
+  it is only a convenience; protection comes from `Lalabase::Llm::PublicEndpointAdapter`, which checks again on every
+  connection and binds the socket to the checked address. Only the endpoint
+  named by an `AiCredential` is trusted (`Factory#operator_endpoint?`).
+  Glossary (K4a, 4 November 2026): `save_glossary_term` (create/update, manual entries always
+  `confirmed`; losing a race on the unique index yields the same rejection; `lock_version`
+  like `save_person`, since the lock alone reloads the row and did not protect it),
+  `set_glossary_term_status` (confirm/dismiss only, never propose),
+  `destroy_glossary_term`, `destroy_heard_form` (a heard form with ALL its
+  corrections on the term), `merge_glossary_terms` (locks both rows in ONE query ordered by
+  ID, heard forms move to the target, target retains spelling, category and
+  status). The caller resolves the target through the policy scope. ⚠️ ONE lock order:
+  every glossary write locks the term first (`glossary/term_lock.rb`, a term that has disappeared
+  is `not_found`); the reverse order made delete and merge block each other.
+  K4b (5 November 2026): `correct_meeting_term` corrects a word in the transcript and learns it
+  for the glossary. Order: lock meeting (`lock_in_project!`), `MeetingPolicy#update?` under
+  the lock, digest (different = `:stale_transcript`, nothing written), location only as an actual
+  match, write through `SaveMeeting` (`keep_summary: true`, the SINGLE summary
+  exception), THEN the term (`TermLock`; concurrently created = found, not
+  rejected). Status follows `GlossaryPolicy.manage_allowed?`: confirmed with permission, otherwise proposed,
+  including on a confirmed term. `confirm_heard_form`/`reject_heard_form`: confirm or delete the
+  open rows of a form (confirmed rows remain). When confirming a PROPOSED term,
+  `set_glossary_term_status` also confirms its open forms.
+  K5a (8 November 2026): `import_glossary_terms` reads a pasted list (`term` or
+  `term;category`, at most 500 nonempty lines; category as key or German/English display name).
+  Duplicates by `GlossaryText.normalize`, existing terms of every status skipped (dismissed terms remain
+  dismissed); confirmed with `manage_glossary`, otherwise proposed (`GlossaryPolicy.manage_allowed?`, as in K4b).
+  The preview dry run uses the same code in a savepoint that is rolled back
+  (`requires_new: true` enables this). First the categories of existing terms under
+  row locks (ONE query ordered by ID, reread under the lock), THEN new terms ordered by
+  their form: the import never waits for a term lock while holding index entries for new terms
+  (the reverse deadlocks with a rename, review round 1 of #128). `Line#category_applied` says whether a
+  row's category is applied; only then does the preview show it. The caller reads `#report` after `.new(...).call`.
+  If a category is to be set and the normalized spelling has changed in the meantime,
+  the whole import is rejected with `:stale_object` (HTTP 422); previously added categories roll back too.
+  When the normalized spelling is unchanged, the report takes status and verdict from the locked
+  row, even if it now has a category and therefore remains unchanged.
+  Runs entirely under its organisation's tenant (`ActsAsTenant.with_tenant`, like `Glossary::Lookup`), regardless
+  of the caller's tenant. Splits term and category at the first `;` or tab, before sanitizing;
+  a line also ends at VT, FF, NEL, U+2028 and U+2029 (review round 2 of #128).
+  K5b (8 November 2026, extraction): `start_glossary_extraction` (organisation row lock, a
+  stuck run ends as `failed`/`stale`, ONE active run), `accept_glossary_proposal`,
   `merge_glossary_proposal_into_term`, `merge_glossary_proposals`, `dismiss_glossary_proposal`
-  (auch Zurückholen). Begriff vor Vorschlag, nie umgekehrt; `manage_allowed?` unter der Sperre; der
-  Claim ist EIN `update_all` unter der Status-Bedingung (`status = 'open'`, beim Zurückholen
-  `'dismissed'`); zwei Vorschläge sperrt das Zusammenführen in EINER Abfrage nach ID. Die
-  K5b Runde 2: `merge_glossary_proposal_into_term` nimmt unter der Sperre nur einen bestätigten Begriff
-  (`:term_not_confirmed`, nach der Rechteprüfung); `merge_glossary_terms` hängt die in die Quelle übernommenen
-  Vorschläge ans Ziel, unter beiden Sperren; `merge_glossary_proposals` behält den Hinweis des Ziels samt
-  `hint_sources`, auch wenn das Kürzen auf `MAX_SOURCES` eigene Beispielstellen streicht. Seine Anzeige
-  prüft die vollständige Modellherkunft unabhängig von diesen Beispielen.
-  Zweitreview 09.11.2026: `accept_glossary_proposal` bestätigt mit einem VORGESCHLAGENEN Begriff dessen offene
-  gehörte Formen (`GlossaryTerm#confirm_open_forms!`, geteilt mit `set_glossary_term_status`), damit beide Wege
-  zu „bestätigt" dem Gerät dieselben Formen liefern; ein verworfener Begriff behält seine offenen Formen.
-  Glossar-Seite ruft sie aus `Organisations::GlossaryController` (Prüfliste, `?view=proposals`).
-  Registrierung (Website-Schnitt W2, 15.09.2026): `create_signup` ist die EINE
-  Selbst-Registrierung für das Formular und später den Provisioning-Endpunkt. Tier 2: Sprache
-  und tenant-freier Rahmen umschließen den ganzen Lauf (die Bestätigungsmail rendert beim
-  Commit), Nutzer und eigene Organisation committen **zusammen oder gar nicht** (Entscheidung
-  D2). Die Schritte danach, die eine Registrierung nie rückgängig machen dürfen (Tutorial,
-  Herkunft, Neugründer-Antrag, Audit), liegen in `signups/follow_ups.rb`, weil ihr
-  `rescue StandardError` im Actor verboten ist. Einladungen laufen NICHT hier durch.
-  `signups/handoff.rb` besitzt den Einmal-Anmeldelink, den der Provisioning-Endpunkt
-  ausgibt: Zweck, Frist (2 Min) und Einmaligkeit an EINER Stelle, weil ein Erzeuger und
-  ein Verbraucher, die sich darüber uneinig sind, einzeln beide richtig aussehen. Riegel
-  ist `User#claim_first_visit!` (`UPDATE ... WHERE last_seen_at IS NULL`); die App führt
-  kein Devise `trackable`. ⚠️ Host aus `ActionMailer::Base.default_url_options`, nicht
-  aus dem Config-Objekt: das ist unter RSpec leer.
-  `signups/taken_address_brake.rb` (15.11.2026) zählt die Antwort „Adresse vergeben" je
-  Client-Adresse: nach 5 an einem Tag ist die Registrierung für diese Adresse einen Tag zu
-  (429 von Rack::Attack, Regel `signup_taken/ip`, vor beiden Türen). Gezählt wird im Actor,
-  darum ist `client_ip:` dort Pflicht; `nil` zählt nichts (die Website nannte keinen
-  Besucher). ⚠️ An der Provisioning-Tür nie die Adresse der Website zählen oder sperren.
-  Die Antwort selbst bleibt: ein neues Konto ist sofort angemeldet, ein vergebenes nie.
-* `meetings/` (Auswahl, K4b, 05.11.2026) — `term_replacement.rb` ist die EINE Regel für Zählen
-  und Ersetzen einer gehörten Form (ganze Wörter nach Unicode, NICHT `\b`; Fall wie markiert;
-  mehrere Wörter nur innerhalb der Zeile; nie in der Sprecherbezeichnung, deren Regel
-  `speaker_markup.rb#label` mit dem Fettsetzen teilt; nie im Frontmatter). `#occurrences` speist
-  Dialog und Ersetzung zugleich; Unsichtbares (`GlossaryText::INVISIBLE`) verbindet wie ein Buchstabe.
-  `transcript_mark.rb` findet eine Markierung des Browsers im GESPEICHERTEN Transkript: Text der
-  Seite aus derselben Darstellung (`MeetingsHelper#meeting_transcript_html`), n-ter Treffer dort =
-  n-ter Treffer im Speicher. ⚠️ Gleiche Zahl ist kein Beweis (Link-Ziel versteckt, Entität erzeugt):
-  der Treffer wird mit einer Marke an seiner Stelle neu dargestellt und nur genommen, wenn die Marke
-  genau an der Markierung steht (Review-Runde 1 von #121), sonst Ablehnung. Eine im Dialog geänderte
-  Form bekommt denselben Beweis (`#place_of`), und „überall“ gibt es nur, wenn die Seite mit je
-  einer eigenen Marke für JEDEN Treffer unverändert bleibt (`#everywhere?`, Runde 2): ein Treffer
-  im Link-Ziel lässt nur „nur hier“. `term_correction_dialog.rb`
-  ist, was der Dialog zeigt (Stelle, Zahl, Sprecher, Digest), geteilt von `new`, `count`, `create`.
-* `glossary/` — `term_lock.rb` (die Sperr-Reihenfolge jedes Glossar-Writes, siehe `actors/`) und
-  `lookup.rb` (`Glossary::Lookup`, K4c, 06.11.2026), das EINE Lesen des Glossars einer Organisation
-  für `GET /api/v1/organisations/:id/terms` und das MCP-Werkzeug `get_glossary`: Recht
-  (`#allowed?`, von `#read` noch einmal gefragt: `Refused`), `.for_token` (eine Organisation in
-  Reichweite, ihre Projekte als Grenze der gehörten Formen; nil für außerhalb, fehlend, kaputt;
-  `Refused` für ein deaktiviertes Mitglied einer Organisation, die der Token nennt), nur
-  Wirksames (bestätigte Begriffe, `TermCorrection.effective`), `project_id` nach vorn (`NotFound`
-  außerhalb), Sprecher nur mit dem Personenrecht über `People::Directory#entry_for_participant`,
-  Seiten (`InvalidArgument`). Setzt den Mandanten selbst. Eine neue Regel dieser Antwort gehört
-  hierher, nicht in eine der beiden Türen.
-  K5b (08.11.2026), die Extraktion von Vorschlägen: `word_lists.rb` (`common` = die beiden
-  50k-Listen, die Stoppwörter von PostgreSQL zur Laufzeit gelesen, mit Rückfall, und unsere
-  `EXTRA_COMMON_WORDS`; `stop_words` allein eine Teilmenge), `candidate_scan.rb` (das Sieb ohne KI,
-  ein Strom; höchstens `MAX_GROUPS` Schlüssel (20.000, rund 30 MB): beim Erreichen gehen zuerst alle nur in einer Quelle gesehenen, reicht das nicht für ein Viertel freien Platz, auch die schwächsten nach Rang; neue Schlüssel kommen immer dazu, sonst hielten wenige große Texte das Sieb an (Review-Runde 3 von #129); ein Kürzen setzt `truncated`; je Schlüssel nur Zähler, höchstens `MAX_FORMS` Schreibweisen und höchstens `MAX_SOURCES` Ausschnitte; ein
-  Name aus zwei oder drei großgeschriebenen Wörtern beginnt und endet nie mit einem Stoppwort),
-  `classifier.rb` (ein Chat-Aufruf je Stapel von höchstens 60 auf `:glossary_extraction`, der
-  eigenen Stufe der Organisation; zuerst das Tor; die Antwort wird gegen das Gesendete geprüft;
-  bucht den eigenen Verbrauch; `Failure` mit einem Fehlercode des Laufs), `extraction.rb`
-  (Reichweite des Startenden zur Laufzeit je Bereich plus der Policy-Scope jeder Art; Kommentare
-  nur über `public_posts.readable_by`, auch für Admins; keine Meetings; die neuesten `MAX_SOURCES`
-  über sechs Arten; inkrementell ab dem Start des letzten erfolgreichen Laufs; offene Vorschläge
-  bekommen Vorkommen, Schreibweisen und Stellen statt eines Modellaufrufs; geschrieben je Stapel;
-  jeder Write berührt den Lauf unter `status = 'running'`). Offene Vorschläge nehmen keinen der
-  `MAX_CANDIDATES`-Plätze; ein Vorschlag bekommt nur die Vorkommen neuer Stellen; jeder Text höchstens
-  `MAX_SOURCE_CHARS` (zwischen Wörtern geschnitten), der Lauf wird vor jedem Ladestapel berührt. Den
-  Hinweis des Modells sieht nur, wer jede Quelle seines gesamten Modellaufrufs aktuell lesen darf:
-  `hint_sources` hält deren Arten und IDs, auch für verworfene Kandidaten, unabhängig von den
-  Beispielstellen des Vorschlags. Alte Hinweise ohne diese Herkunft bleiben verborgen; beim
-  Zusammenführen wandert der Hinweis der Quelle nicht mit, die Herkunft des Zielhinweises bleibt.
-  `run_heartbeat.rb` (09.11.2026) berührt den Lauf aus einem eigenen Thread alle `STALE_AFTER / 5`, solange der
-  Modellaufruf läuft (ein Anbieter-Aufruf kann `STALE_AFTER` überdauern; ein dabei als `stale` beendeter Lauf
-  wäre doppelt bezahlt); nur unter `status = 'running'`, nie in den Speicher, ein Fehlschlag wird geloggt.
+  (also restore). Term before proposal, never the reverse; `manage_allowed?` under the lock; the
+  claim is ONE `update_all` with a status condition (`status = 'open'`, on restore
+  `'dismissed'`); merging locks two proposals in ONE query ordered by ID.
+  K5b round 2: `merge_glossary_proposal_into_term` accepts only a confirmed term under the lock
+  (`:term_not_confirmed`, after authorization); `merge_glossary_terms` attaches proposals accepted into the source
+  to the target, under both locks; `merge_glossary_proposals` retains the target's hint and
+  `hint_sources`, even if trimming to `MAX_SOURCES` removes its own example passages. Its display
+  checks the full model-call provenance independently of these examples.
+  Second review, 9 November 2026: when confirming a PROPOSED term, `accept_glossary_proposal` also confirms its open
+  heard forms (`GlossaryTerm#confirm_open_forms!`, shared with `set_glossary_term_status`), so both paths
+  to “confirmed” provide the device with the same forms; a dismissed term retains its open forms.
+  The glossary page calls them from `Organisations::GlossaryController` (review list, `?view=proposals`).
+  Registration (website separation W2, 15 September 2026): `create_signup` is the SINGLE
+  self-registration flow for the form and later the provisioning endpoint. Tier 2: locale
+  and tenant-free context surround the entire run (the confirmation email renders on
+  commit); user and own organisation commit **together or not at all** (decision
+  D2). Subsequent steps that must never undo registration (tutorial,
+  acquisition source, founder application, audit) live in `signups/follow_ups.rb`, because their
+  `rescue StandardError` is forbidden in the actor. Invitations do NOT go through this path.
+  `signups/handoff.rb` owns the one-time sign-in link issued by the provisioning
+  endpoint: purpose, expiry (2 min) and single use in ONE place, because a producer and
+  consumer that disagree about these each look correct on their own. The gate
+  is `User#claim_first_visit!` (`UPDATE ... WHERE last_seen_at IS NULL`); the app does
+  not use Devise `trackable`. ⚠️ Host from `ActionMailer::Base.default_url_options`, not
+  the config object: that is empty under RSpec.
+  `signups/taken_address_brake.rb` (15 November 2026) counts “address taken” responses per
+  client IP address: after 5 in one day, registration is closed for that address for one day
+  (429 from Rack::Attack, rule `signup_taken/ip`, before both entry points). Counting happens in the actor,
+  so `client_ip:` is required there; `nil` counts nothing (the website did not identify a
+  visitor). ⚠️ At the provisioning entry point, never count or block the website's address.
+  The response itself stays the same: a new account is signed in immediately; an existing one never is.
+* `meetings/` (selection, K4b, 5 November 2026) — `term_replacement.rb` is the SINGLE rule for counting
+  and replacing a heard form (whole words under Unicode, NOT `\b`; case as selected;
+  multiple words only within a line; never in the speaker label, whose rule
+  `speaker_markup.rb#label` shares with bold formatting; never in frontmatter). `#occurrences` feeds
+  both dialog and replacement; invisible characters (`GlossaryText::INVISIBLE`) connect like a letter.
+  `transcript_mark.rb` finds a browser selection in the STORED transcript: the page's text
+  comes from the same rendering (`MeetingsHelper#meeting_transcript_html`), nth match there =
+  nth match in storage. ⚠️ Equal counts are not proof (hidden link target, generated entity):
+  the match is rerendered with a marker at its position and accepted only if the marker
+  lands exactly at the selection (review round 1 of #121), otherwise rejected. A form changed in the dialog
+  receives the same proof (`#place_of`), and “everywhere” is available only if the page remains
+  unchanged with a separate marker for EVERY match (`#everywhere?`, round 2): a match
+  in a link target permits only “only here”. `term_correction_dialog.rb`
+  defines what the dialog displays (location, count, speaker, digest), shared by `new`, `count`, `create`.
+* `glossary/` — `term_lock.rb` (lock order for every glossary write, see `actors/`) and
+  `lookup.rb` (`Glossary::Lookup`, K4c, 6 November 2026), the SINGLE reader of an organisation's glossary
+  for `GET /api/v1/organisations/:id/terms` and the MCP tool `get_glossary`: permission
+  (`#allowed?`, checked again by `#read`: `Refused`), `.for_token` (an organisation within
+  reach, its projects as the boundary for heard forms; nil for out of reach, missing, malformed;
+  `Refused` for a deactivated member of an organisation named by the token), only
+  effective entries (confirmed terms, `TermCorrection.effective`), `project_id` first (`NotFound`
+  if outside the permitted scope), speakers only with people permission through `People::Directory#entry_for_participant`,
+  pagination (`InvalidArgument`). Sets the tenant itself. A new rule for this response belongs
+  here, not in either entry point.
+  K5b (8 November 2026), proposal extraction: `word_lists.rb` (`common` = the two
+  50k lists, PostgreSQL stop words read at runtime with fallback, and our
+  `EXTRA_COMMON_WORDS`; `stop_words` alone is a subset), `candidate_scan.rb` (the filter without AI,
+  streaming; at most `MAX_GROUPS` keys (20,000, about 30 MB): at the limit, first drop all keys seen in only one source; if that does not free a quarter of the space, also drop the weakest by rank; new keys are always admitted, otherwise a few large texts would stall the filter (review round 3 of #129); trimming sets `truncated`; per key, only counters, at most `MAX_FORMS` spellings and at most `MAX_SOURCES` excerpts; a
+  name of two or three capitalized words never starts or ends with a stop word),
+  `classifier.rb` (one chat call per batch of at most 60 on `:glossary_extraction`, the
+  organisation's own tier; gate first; response checked against what was sent;
+  records its own usage; `Failure` with a run error code), `extraction.rb`
+  (initiator's reach at runtime per area plus each type's policy scope; comments
+  only through `public_posts.readable_by`, even for admins; no meetings; the newest `MAX_SOURCES`
+  across six types; incremental from the start of the last successful run; open proposals
+  receive occurrences, spellings and passages instead of a model call; writes per batch;
+  every write touches the run under `status = 'running'`). Open proposals take none of the
+  `MAX_CANDIDATES` slots; a proposal receives only occurrences from new passages; each text is at most
+  `MAX_SOURCE_CHARS` (cut between words), and the run is touched before every loading batch. Only a reader who can currently read every source
+  of the entire model call sees the model's hint:
+  `hint_sources` retains their types and IDs, including for rejected candidates, independently of the
+  proposal's example passages. Old hints without this provenance remain hidden; on
+  merging, the source's hint does not move, and the target hint's provenance remains.
+  `run_heartbeat.rb` (9 November 2026) touches the run from a separate thread every `STALE_AFTER / 5` while the
+  model call is running (a provider call may outlast `STALE_AFTER`; a run ended as `stale` during it
+  would be paid for twice); only under `status = 'running'`, never in memory; a failure is logged.
   `Glossary::ExtractionJob`
-  (`app/jobs/`): Advisory Lock, EIN Claim, `interrupted`, `internal_error`, kein Retry.
-  `Glossary::GoneSourceSnippetPurgeJob` (`app/jobs/`, täglich 04:50, `config/recurring.yml`): leert den
-  Ausschnitt einer Stelle, deren Quelle nicht mehr existiert (ein UPDATE je Art, NOT EXISTS gegen die Tabelle
-  der Art), und den Hinweis eines Vorschlags, sobald eine Quelle seines Modellaufrufs fehlt oder die Herkunft
-  leer oder unlesbar ist; die Zeilen bleiben.
-  K5c (08.11.2026): Art `document` liest nur die genannte Version, ganz, ohne Grenze; der Start (`document_version:`) prüft Leserecht, aktuelle Version und Text unter der Sperre.
-* `object_links/` (16.11.2026) — Objekt-Links im Rich-Text als Chips, nur beim Anzeigen
-  (der gespeicherte Text bleibt ein Link). `address.rb` liest eine Adresse über den Router
-  (Seite und Bahn-Parameter, nur eigene Hosts und die aktuelle Organisation), `targets.rb`
-  lädt Ziele je Typ über den Policy-Scope bzw. `People::Directory`, je Anfrage gemerkt
-  (`Current.object_link_targets`), `chips.rb` ersetzt im ActionText-Layout
-  (`ObjectLinksHelper`) und lädt für Listen vor (`.prefetch`, Zeitleiste). Ein Broadcast
-  während einer Anfrage zeigt keine Chips (`config/initializers/object_link_render_guard.rb`).
-  Neuer Typ: Eintrag in `Address::PAGES`/`LANE_PARAMS`, Laden in `Targets`, Rechte-Spec.
-* `people/` — `directory.rb`, das Lese-Objekt der Personenliste (seit 26.10.2026): Mitglieder
-  über `MembershipPolicy::Scope` (dieselbe Reichweite wie die Mitgliederseite), dazu die
-  Zeilen ohne aktives Mitglied als Kontakte; Suche in Ruby über `PersonName.normalize`.
-  Rechte nur über `PersonPolicy`, keine eigene Regel daneben. Die E-Mail eines Mitglieds
-  (Zeile unter dem Namen, Suche, Karte in `lookup.rb`) ist immer `User#shown_email`: eine
-  verborgene Login-Adresse wird weder gezeigt noch gesucht (29.10.2026).
-  `contacts.rb` (S2a, 26.10.2026): Meetings einer Person (`person_id` ODER `user_id` des
-  Mitglieds) und „Letzter Kontakt“ einer ganzen Liste in fester Abfragezahl. Lesbar nur über
-  `MeetingPolicy::Scope`, `TicketPolicy::Scope`, `Post.readable_by` und `Activity.feed`; bei
-  aktiven Mitgliedern zählt eigene Ticket-Arbeit (`TICKET_ACTIONS`: angelegt, geändert,
-  kommentiert), bei Kontakten nur Meetings. `Directory#entries` hängt den Kontakt an und
-  sortiert nach `name` oder `last`.
-  S2b (27.10.2026): `Directory#person_entry`, `#entry_for_participant`, `#candidates`
-  (Suche ohne Kontakt) und `#suggestions_for` (gleicher Name vor gleichem Nachnamen, E6)
-  speisen den Dialog „Mit Person verknüpfen“. Seine Regeln liegen außerhalb des Helfers,
-  einzeln testbar: `meetings/participant_link_options.rb` (Zeilen des Dialogs),
-  `meetings/participant_link_choice.rb` (das Format `person:`/`member:`/`new`, einmal),
-  `meetings/account_participants.rb` (wen der Dialog in Ruhe lässt). Die Zeile unter einem
-  Namen ist `Directory::Entry#detail` (Liste und Dialog). Geschrieben wird über
-  `Actors::LinkMeetingParticipant`, der jede ID über das gesperrte Meeting und das
-  Directory des Schreibenden auflöst.
+  (`app/jobs/`): advisory lock, ONE claim, `interrupted`, `internal_error`, no retry.
+  `Glossary::GoneSourceSnippetPurgeJob` (`app/jobs/`, daily at 04:50, `config/recurring.yml`): clears the
+  excerpt of a passage whose source no longer exists (one UPDATE per type, NOT EXISTS against that type's
+  table), and a proposal's hint once any source of its model call is missing or the provenance
+  is empty or unreadable; rows remain.
+  K5c (8 November 2026): kind `document` reads only the named version, in full, without a limit; start (`document_version:`) checks read permission, current version and text under the lock.
+* `object_links/` (16 November 2026) — object links in rich text as chips, only on display
+  (stored text remains a link). `address.rb` reads a URL through the router
+  (page and lane parameters, own hosts and current organisation only), `targets.rb`
+  loads targets per type through the policy scope or `People::Directory`, cached per request
+  (`Current.object_link_targets`), `chips.rb` replaces links in the ActionText layout
+  (`ObjectLinksHelper`) and preloads for lists (`.prefetch`, timeline). A broadcast
+  during a request displays no chips (`config/initializers/object_link_render_guard.rb`).
+  New type: entry in `Address::PAGES`/`LANE_PARAMS`, loading in `Targets`, permission spec.
+* `people/` — `directory.rb`, the people list's read object (since 26 October 2026): members
+  through `MembershipPolicy::Scope` (same reach as the members page), plus
+  rows without an active member as contacts; search in Ruby through `PersonName.normalize`.
+  Permissions only through `PersonPolicy`, no separate rule alongside it. A member's email
+  (row below the name, search, card in `lookup.rb`) is always `User#shown_email`: a
+  hidden login address is neither displayed nor searched (29 October 2026).
+  `contacts.rb` (S2a, 26 October 2026): a person's meetings (`person_id` OR the member's
+  `user_id`) and “Last contact” for an entire list in a fixed number of queries. Readable only through
+  `MeetingPolicy::Scope`, `TicketPolicy::Scope`, `Post.readable_by` and `Activity.feed`; for
+  active members, their own ticket work counts (`TICKET_ACTIONS`: created, updated,
+  commented); for contacts, only meetings. `Directory#entries` attaches the last contact and
+  sorts by `name` or `last`.
+  S2b (27 October 2026): `Directory#person_entry`, `#entry_for_participant`, `#candidates`
+  (search without last-contact data) and `#suggestions_for` (same name before same surname, E6)
+  feed the “Link to person” dialog. Its rules live outside the helper,
+  individually testable: `meetings/participant_link_options.rb` (dialog rows),
+  `meetings/participant_link_choice.rb` (the `person:`/`member:`/`new` format, defined once),
+  `meetings/account_participants.rb` (whom the dialog leaves alone). The line below a
+  name is `Directory::Entry#detail` (list and dialog). Writes go through
+  `Actors::LinkMeetingParticipant`, which resolves every ID through the locked meeting and the
+  writer's directory.
   S3 (28.10.2026): the assistant's `find_people`/`get_person` read only through this
   directory (`#entries`, `#person_entry`, `#member_entry`); `#last_contacts_for` gives the
   card of one entry the last contact the list attaches to every row. Map:
@@ -408,7 +408,7 @@ Verzeichnis-Übersicht (Auswahl):
   `Lookup.row`: it has no email, phone or details. The lead's values come first in a field,
   as the lead wrote them; `sources`, name, kind and address keep the list order. A value
   some sources lack is no entry of its own any more (`Field#differs` still says the field
-  differs): what each source holds is `Card#holdings` ("Was steht wo", `Holding`: the
+  differs): what each source holds is `Card#holdings` ("Which source holds what", `Holding`: the
   sources with the same field keys and notes flag, the lead's group first, then more before
   fewer, then list order).
   The card shows a value by its kind as the people page does
@@ -431,10 +431,10 @@ Verzeichnis-Übersicht (Auswahl):
   directories). The source stands alone and every OTHER person of the list stays as shown.
   Until the review of #197 the card asked whether the source stood alone in its account and
   offered steps the actor always refused, and the actor compared only that one person.
-* `notifications/` — Empfänger-Fanout, Broadcast, Scoring (eigene Karte im Ordner); dazu
-  `inbox_query.rb` + `serializer.rb`, der EINE Besitzer der Token-Inbox (Reichweite,
-  Argument-Vertrag, Zeilen-JSON), geteilt von `GET /api/v1/notifications` und dem
-  MCP-Werkzeug `list_notifications`
+* `notifications/` — recipient fanout, broadcast, scoring (separate map in the directory); plus
+  `inbox_query.rb` + `serializer.rb`, the SINGLE owner of the token inbox (reach,
+  argument contract, row JSON), shared by `GET /api/v1/notifications` and the
+  MCP tool `list_notifications`
 * `pagination/page.rb` (18.11.2026): `Pagination::Page`, the paging of every list of the web
   interface and the admin area, the application's own since the pagination gem left. The
   numbers of one page (`count`, `page`, `limit`, `pages`, `offset`, `from`, `to`, `prev`,
@@ -485,22 +485,22 @@ Verzeichnis-Übersicht (Auswahl):
   without `format` stays byte for byte). Not a second rule: do not align them in one hull.
   Encodings: JSON and forms always give UTF-8; a multipart part may name its own charset,
   which an html body keeps (ActionText reads it, as before) and a plain body transcodes.
-* `app_sessions/` — `authentication.rb` (K6b, 16.11.2026) prüft E-Mail und Passwort für die Anmelde-Tür der
-  Clients (`POST /api/auth/v1/app_sessions`) und nennt den Benutzer oder den Grund (`invalid_credentials`,
-  `email_unconfirmed`, `account_deactivated`). Die Tür läuft NICHT über Warden: Das Objekt stellt Devises
-  Fragen in Devises Reihenfolge und tut von Hand, was sonst Hooks tun (bcrypt zum Schein bei unbekannter
-  Adresse, Zähler nach Erfolg zurücksetzen). ⚠️ Ein gesperrtes Konto liest sich immer als
-  `invalid_credentials`, auch mit dem richtigen Passwort; ein Grund, den das Objekt nicht kennt, ebenso.
-  Nie einen neuen Grund einführen, der mehr verrät als die Web-Anmeldung. Den Write danach besitzt
-  `actors/create_app_session.rb` (Tier 1): unter der Sperre der Benutzerzeile Platz schaffen
-  (`PersonalAccessToken.make_room_for_app_session!`), Geräte-Token anlegen, Login notieren
-  (`login_method: app_session`); unter derselben Sperre fragt er, ob das geprüfte Passwort noch gilt
-  (`stale_credentials`). `request_facts.rb` ist, was das Aktivitäts-Protokoll vom Request liest, sicher
-  gemacht: Nur ein bekanntes Konto wird notiert, also darf kein Header die Notiz zum Scheitern bringen.
-  Abmelden (K6c, 16.11.2026) ist `actors/revoke_app_session.rb` (Tier 1): das Token der Anfrage widerrufen,
-  Logout notieren (`logout_type: app_session`), beides nur einmal, auch wenn zwei Aufrufe das Token vor dem
-  Schreiben gelesen haben; ein fremdes Token dort ist ein Fehler des Aufrufers und wirft schon beim Anlegen.
-  Wächter: `spec/requests/api/v1/app_session_spec.rb`, `spec/services/app_sessions/authentication_spec.rb`,
+* `app_sessions/` — `authentication.rb` (K6b, 16 November 2026) checks email and password for the clients' sign-in
+  entry point (`POST /api/auth/v1/app_sessions`) and returns the user or the reason (`invalid_credentials`,
+  `email_unconfirmed`, `account_deactivated`). This entry point does NOT go through Warden: the object asks Devise's
+  questions in Devise's order and manually performs what hooks normally do (dummy bcrypt for an unknown
+  address, reset counters after success). ⚠️ A locked account always reads as
+  `invalid_credentials`, even with the correct password; so does any reason the object does not recognize.
+  Never introduce a new reason that reveals more than web sign-in. The subsequent write belongs to
+  `actors/create_app_session.rb` (Tier 1): make room under the user-row lock
+  (`PersonalAccessToken.make_room_for_app_session!`), create the device token, record login
+  (`login_method: app_session`); under the same lock, it checks whether the verified password is still valid
+  (`stale_credentials`). `request_facts.rb` is what the activity log reads from the request, made
+  safe: only a known account is logged, so no header may cause logging to fail.
+  Sign-out (K6c, 16 November 2026) is `actors/revoke_app_session.rb` (Tier 1): revoke the request's token,
+  record logout (`logout_type: app_session`), both only once, even if two calls read the token before
+  writing; a foreign token there is a caller error and raises already on construction.
+  Guards: `spec/requests/api/v1/app_session_spec.rb`, `spec/services/app_sessions/authentication_spec.rb`,
   `spec/services/actors/create_app_session_spec.rb`, `spec/requests/api/auth/v1/app_sessions_spec.rb`.
 * `personal_access_tokens/` — `reach_listing.rb` (31.10.2026) is the ONE read of a token's
   organisations and projects as rows, for `GET /api/v1/organisations`, `GET /api/v1/projects` and
@@ -509,482 +509,482 @@ Verzeichnis-Übersicht (Auswahl):
   (`ProjectAccessService.openable_project_ids`), for the MCP tool. It asks `Pundit.policy_scope!`
   per organisation, not the controller helper. The method `projects_in_organisation` keeps its
   name: `spec/support/prosopite.rb` allow-lists it by that name.
-* `lalabase/` — AI/RAG-Domäne (eigene Karte im Ordner)
-* `access_check/` — Projekt-Zugriffslogik, 5 Objekte mit überlappenden Prädikaten —
-  **vor Neubau erst hier prüfen**. `project_access_service.rb` ist der EINE Besitzer der
-  Regel „aktive Mitgliedschaft" (`.active_member?`, #603): alle fünf Einstiegspunkte
-  fragen sie zuerst, **vor** dem Admin-Kurzschluss, in derselben Reihenfolge wie
-  `ProjectPolicy#area_access?`. Vier Stellen hatten sie zuvor von Hand gehalten. Wer eine
-  neue Reichweiten-Frage baut, geht hier durch und schreibt die Prüfung NICHT noch einmal
-  hin. ⚠️ Zwei Fragen bleiben getrennt: `User#account_admin_in?` ist die
-  Berechtigungsfrage (verlangt aktiv), `role_in_organisation` die Stammdatenfrage (tut es
-  nicht, die Mitgliederliste zeigt die Rolle eines deaktivierten Mitglieds weiter).
-  Ausnahme mit eigener Begründung im Code: `ChatPolicy::Scope` prüft selbst, weil der
-  org-weite Verlauf gar kein Projekt hat. Guard:
-  `spec/policies/inactive_membership_scope_guard_spec.rb`. Ebenso der Regel „archiviertes
-  Projekt": für Nicht-Admins in allen Einstiegen geschlossen (seit 27.09.2026), einzige
-  Ausnahme sind die eigenen Stunden (lesbar über `time_sessions/viewing_scope.rb`). Guard:
+* `lalabase/` — AI/RAG domain (separate map in the directory)
+* `access_check/` — project-access logic, 5 objects with overlapping predicates —
+  **check here before building anything new**. `project_access_service.rb` is the SINGLE owner of the
+  “active membership” rule (`.active_member?`, #603): all five entry points
+  check it first, **before** the admin shortcut, in the same order as
+  `ProjectPolicy#area_access?`. Four locations previously maintained it manually. Anyone building
+  a new reach check goes through this and does NOT write the check again
+  elsewhere. ⚠️ Two questions remain separate: `User#account_admin_in?` is the
+  authorization question (requires active membership); `role_in_organisation` is the data question
+  (does not; the members list still shows a deactivated member's role).
+  Exception with its own justification in code: `ChatPolicy::Scope` checks for itself because
+  org-wide conversation history has no project at all. Guard:
+  `spec/policies/inactive_membership_scope_guard_spec.rb`. Likewise for the “archived
+  project” rule: closed to non-admins at every entry point (since 27 September 2026); the only
+  exception is their own hours (readable through `time_sessions/viewing_scope.rb`). Guard:
   `spec/requests/organisations/archived_project_access_spec.rb`
-* `subscriptions/` — Abo-/Preis-Domäne auf Account-Ebene (ÜBER den Orgs, tenant-frei):
-  `seat_counter` (Dedup billable User je Account, wirft bei Zählfehlern laut statt still
-  zu unterzählen), `guest_ceiling` (reine Erkennung, blockiert nie einen Write),
-  `price_lookup` (**DER Seam für „welcher Preisstand gilt" und „welche Staffelstufe trifft
-  diese Seat-Zahl"** — Datums- und Seat-Vergleiche gehören ausschließlich hierhin, damit die
-  inklusive `ends_on`-Semantik genau einmal existiert), `public_price_list_payload` (stabiler
-  v1-Vertrag für `GET /api/public/v1/price_list`: immer im Envelope `data.price_list`, darin
-  Plan, Währung, Intervall-Längen und rohe Staffelwerte mit `billing_interval`, aber keine IDs,
-  Notizen, Audit- oder Datumsfelder; ohne gültigen Preisstand ist `data.price_list` JSON-`null`),
-  `amount_preview` (Seats × Stufe −
-  Rabatt, alle Beträge NETTO; ausdrücklich **keine** Abrechnungsvorhersage, weil eine
-  Seat-Reduktion erst zum Periodenende wirkt), `ladder_validator`
-  (die zwei Staffel-Invarianten
-  lückenlos/überschneidungsfrei — gelten für den Preisstand als GANZES, deshalb kein
-  Model-Validator), `price_list_gaps` (findet **künftige** Preislücken; ein „gilt heute ein
-  Preis"-Check sieht sie nicht, und genau daran stirbt die öffentliche Preis-API am Stichtag;
-  Aufrufer sind seit S3.2 nur noch die Engine: Preisstand-Seite und `subscription_prices:check`),
-  `public_ladder` ist seit W6 **weg**: die Preisseite lebt in
-    gboyke/lalabase-website und bringt ihre eigene Leiter mit.
-  ⚠️ **Seit S3.2 in der Engine `gboyke/lalabase-operator`, nicht mehr hier:** `billing_period`
-  (die einzige Monatsarithmetik, vom Startdatum aus GEMESSEN), `billing_list` (W4, fünf
-  erschöpfende Abschnitte), `price_list_seed` (Erstbefüllung, nur mit
+* `subscriptions/` — subscription/pricing domain at account level (ABOVE orgs, tenant-free):
+  `seat_counter` (deduplicated billable users per account; raises loudly on counting errors instead of silently
+  undercounting), `guest_ceiling` (detection only, never blocks a write),
+  `price_lookup` (**THE seam for “which price version applies” and “which tier matches
+  this seat count”** — date and seat comparisons belong exclusively here so the
+  inclusive `ends_on` semantics exist exactly once), `public_price_list_payload` (stable
+  v1 contract for `GET /api/public/v1/price_list`: always in the `data.price_list` envelope, containing
+  plan, currency, interval lengths and raw tier values with `billing_interval`, but no IDs,
+  notes, audit or date fields; without a valid price version, `data.price_list` is JSON `null`),
+  `amount_preview` (seats × tier −
+  discount, all amounts NET; explicitly **not** a billing forecast, because a
+  seat reduction takes effect only at the end of the period), `ladder_validator`
+  (the two tier invariants,
+  no gaps/no overlaps — apply to the price version as a WHOLE, hence not a
+  model validator), `price_list_gaps` (finds **future** pricing gaps; a “does a price apply
+  today?” check cannot see them, and that is exactly how the public pricing API fails on the cutoff date;
+  since S3.2, callers exist only in the engine: price-version page and `subscription_prices:check`),
+  `public_ladder` has been **removed** since W6: the pricing page lives in
+    gboyke/lalabase-website and supplies its own ladder.
+  ⚠️ **Since S3.2, in the `gboyke/lalabase-operator` engine, no longer here:** `billing_period`
+  (the only month arithmetic, MEASURED from the start date), `billing_list` (W4, five
+  exhaustive sections), `price_list_seed` (initial population, only with
   `BUNDLE_GEMFILE=Gemfile.operator rake subscription_prices:seed`), `admin/acquisition_report`,
-  `actors/withdraw_price_list`. Ihre Regeln stehen in ihren Dateien drüben.
-  ⚠️ **Drei Beträge, die auf einer öffentlichen Seite falsch werden können — alle drei sind
-  Prädikate auf `Cell`, keine Stufenindizes** (§7.5, §7.5.1): `per_seat?` (nur Sitzanteil →
-  „X € je Person"; die offene Stufe hat KEINEN Gesamtbetrag, „ab 11 | 110 €" war für jedes
-  größere Team falsch), `total_from?` (Grund- UND Sitzanteil über mehrere Sitze → nur die
-  Untergrenze „ab X €" ist wahr), sonst exakter Gesamtbetrag. Und `rung_for` paart die
-  Intervalle über die Deckung der **ganzen Zeile**, nicht ihres ersten Sitzes: eine Stufe, die
-  mitten in der Zeile endet, wurde sonst über ihre Obergrenze hinaus hochgerechnet (gemessen:
-  doppelter Pro-Kopf-Preis). Teilabdeckung → „—"-Zelle, nie eine Paarung.
-  ⚠️ Die Seite baut je Intervall zwei I18n-Schlüssel **dynamisch** aus
-  `Constants::BILLING_INTERVAL_KEYS` — `i18n-tasks` sieht das nicht, deshalb der Guard
-  `spec/locales/billing_interval_keys_spec.rb`. „Drittes Intervall = reine Datenänderung" gilt
-  für Ruby und JS, NICHT für die Locales.
-  **Die Seat-Kette (M0 bis M2, `doc/abrechnungsmodell_plan.md`)** — vier Dienste, die
-  aufeinander aufbauen. Sie beantworten NICHT dieselbe Frage wie `seat_counter`: der zählt
-  **jetzt** aus den Mitgliedschaften, diese Kette rekonstruiert **damals** aus `seat_events`.
-  1. `seat_opening_backfill` (M0b, `rake seat_events:backfill_openings`) — schreibt den
-     Eröffnungsstand, den ein Ereignisstrom auf einem laufenden System nie hatte. Ohne ihn
-     rekonstruiert ein ruhiges Bestandskonto zu NULL Plätzen. Idempotent, setzt den Marker
+  `actors/withdraw_price_list`. Their rules are in their files over there.
+  ⚠️ **Three amounts that can be wrong on a public page — all three are
+  predicates on `Cell`, not tier indices** (§7.5, §7.5.1): `per_seat?` (seat component only →
+  “€X per person”; the open-ended tier has NO total amount, “ab 11 | 110 €” (“from 11 | €110”)
+  was wrong for every larger team), `total_from?` (base AND seat components across multiple seats → only the
+  lower bound “from €X” is true), otherwise an exact total. And `rung_for` pairs
+  intervals by coverage of the **entire row**, not its first seat: a tier ending
+  midway through the row was otherwise extrapolated beyond its upper limit (observed:
+  twice the per-person price). Partial coverage → “—” cell, never a pairing.
+  ⚠️ The page builds two I18n keys per interval **dynamically** from
+  `Constants::BILLING_INTERVAL_KEYS` — `i18n-tasks` cannot see this, hence the guard
+  `spec/locales/billing_interval_keys_spec.rb`. “Third interval = data-only change” applies
+  to Ruby and JS, NOT to locales.
+  **The seat chain (M0 through M2, `doc/abrechnungsmodell_plan.md`)** — four services that
+  build on each other. They do NOT answer the same question as `seat_counter`: that counts
+  **now** from memberships; this chain reconstructs **then** from `seat_events`.
+  1. `seat_opening_backfill` (M0b, `rake seat_events:backfill_openings`) — writes the
+     opening state an event stream on an existing system never had. Without it,
+     a quiet existing account reconstructs as ZERO seats. Idempotent, sets the marker
      `SystemSetting#seat_stream_opened_at`.
-     ⚠️ Rekonstruierbarkeit hängt an diesem **Marker**, nicht an den `opening`-Zeilen: eine
-     paargebundene Zeile kann die System-Frage „ab wann überhaupt" nicht beantworten, und auf
-     einer Tag-eins-Installation gibt es sie zu Recht gar nicht.
-  2. `seat_stream_drift` (M0b/M0c) — Strom gegen `seat_counter`, je Konto, nachts um 06:20
-     (`SeatStreamDriftCheckJob`, nur production). Meldet, repariert NIE: eine Reparatur müsste
-     einen Zeitpunkt erfinden, und erfundene Zeitstempel in einem append-only-Buch werden zu
-     amtlichen Zahlen.
-  3. `seat_snapshot_writer` (M1a/M1b) — eine `seat_snapshots`-Zeile je Konto und Monatsanfang.
-     **Überschreibt** beim erneuten Lauf, das GEGENTEIL von `ai_usage_aggregator`; §9 hängt
-     daran (rückdatiertes Ereignis nachtragen, dann neu rechnen).
-     ⚠️ **Zwei Einstiege, kein Schalter:** `.call` rechnet neu (Korrektur,
-     `rake seat_snapshots:rebuild`), `.fill` schreibt nur, was noch KEINE Antwort hat. Der
-     Monatslauf nimmt `.fill` — überschriebe er beantwortete Zeilen, wäre jede §9-Korrektur
-     beim nächsten Monatstick still wieder weg.
-     Betrieb (M1b): `SeatSnapshotJob` am 1. um 06:40 (nur production, direkt nach der
-     Driftprüfung), Lückenwächter über `.gaps`/`.unanswered_accounts` — Wächter und Schreiber
-     fragen durch DIESELBE Methode, zwei Vorstellungen von „fehlt noch" würden sich
-     widersprechen. Dazu `rake seat_snapshots:backfill|gaps|rebuild`.
-  4. `seat_peak` (M2/M3, `rake seat_peaks:month|show`, plus der Block auf der Konto-Adminseite) —
-     der Höchststand eines Messmonats, dazu wann und mit welchen Organisationen (§5). Liest
-     nur: fehlender Schnappschuss ⇒ `unavailable`, kein Nachrechnen, sonst macht ein kaputter
-     Monatsjob sich unsichtbar.
-     ⚠️ **Das Ergebnis hat KEINEN Monatshöchststand, sondern `sections`** (M3/A3/A9). Zwei
-     Zugehörigkeitsgrenzen, und sie wirken VERSCHIEDEN: ein Org-Umzug
-     (`moved_in`/`moved_out`, NICHT `opening`) **teilt** den Monat in mehrere Abschnitte, ein
-     `billing_starts_on` mitten im Monat **kürzt** ihn (weiter EIN Abschnitt, aber nur über
-     einen Teil der Tage). Wer Spanne und Anteil an der Abschnittszahl aufhängt statt an
-     `Result#detailed?`, zeigt den ersten Monat jedes Kunden als vollen Monat an.
-     ⚠️ **Zwei verschiedene Schnitte je Abschnitt, und sie fallen absichtlich auseinander:**
-     `measured_from/to` sind die echten Messmomente, `first_day/last_day` die berechneten
-     Kalendertage, und der Umzugstag gehört ganz dem neuen Abschnitt (A6). Gemessen ab
-     Mitternacht statt ab dem Umzugsmoment trüge das abgebende Konto seine Leute noch bis
-     mittags, und beide Konten zahlten den Umzugstag doppelt. Belegt am Rechenbeispiel in A3.
-     ⚠️ Ereignisse GENAU auf einem Schnitt werden angewandt, BEVOR der Abschnitt zum ersten
-     Mal gemessen wird. Andersherum ist der Eröffnungswert der Stand, den der Schnitt beendet
-     hat, und der Höchststand des zweiten Abschnitts sinkt nie darunter (gemessen: [2, 2] statt
+     ⚠️ Reconstructability depends on this **marker**, not the `opening` rows: a
+     pair-specific row cannot answer the system-level question “from when at all?”, and on
+     a day-one installation those rows are rightly absent.
+  2. `seat_stream_drift` (M0b/M0c) — stream against `seat_counter`, per account, nightly at 06:20
+     (`SeatStreamDriftCheckJob`, production only). Reports, NEVER repairs: a repair would
+     have to invent a time, and invented timestamps in an append-only ledger become
+     authoritative figures.
+  3. `seat_snapshot_writer` (M1a/M1b) — one `seat_snapshots` row per account and month start.
+     **Overwrites** on rerun, the OPPOSITE of `ai_usage_aggregator`; §9 depends
+     on this (add a backdated event, then recalculate).
+     ⚠️ **Two entry points, no switch:** `.call` recalculates (correction,
+     `rake seat_snapshots:rebuild`); `.fill` writes only where there is NO answer yet. The
+     monthly run uses `.fill` — if it overwrote answered rows, every §9 correction
+     would silently disappear at the next monthly tick.
+     Operations (M1b): `SeatSnapshotJob` on the 1st at 06:40 (production only, immediately after the
+     drift check), gap guard through `.gaps`/`.unanswered_accounts` — guard and writer
+     query through the SAME method; two interpretations of “still missing” would
+     contradict one another. Also `rake seat_snapshots:backfill|gaps|rebuild`.
+  4. `seat_peak` (M2/M3, `rake seat_peaks:month|show`, plus the block on the account admin page) —
+     the peak of a measurement month, including when and with which organisations (§5). Read
+     only: missing snapshot ⇒ `unavailable`, no recalculation, or a broken
+     monthly job would hide itself.
+     ⚠️ **The result has NO monthly peak, but `sections`** (M3/A3/A9). Two
+     affiliation boundaries, with DIFFERENT effects: an org move
+     (`moved_in`/`moved_out`, NOT `opening`) **splits** the month into several sections;
+     `billing_starts_on` midway through the month **shortens** it (still ONE section, but covering
+     only some days). Tying the span and proportion to the section count instead of
+     `Result#detailed?` displays every customer's first month as a full month.
+     ⚠️ **Two distinct cuts per section, deliberately different:**
+     `measured_from/to` are the actual measurement moments; `first_day/last_day` are the billed
+     calendar days, and the move day belongs entirely to the new section (A6). Measuring from
+     midnight instead of the move moment would leave people on the former account until
+     noon, and both accounts would pay for the move day. Demonstrated by the calculation in A3.
+     ⚠️ Events EXACTLY at a cut are applied BEFORE the section is measured for the first
+     time. In the reverse order, the opening value is the state ended by the cut,
+     and the second section's peak can never fall below it (observed: [2, 2] instead of
      [2, 0]).
-     Ein Monat vor `billing_starts_on` ist `not_billable`, nicht „ohne Antwort" — ob ein Konto
-     überhaupt berechnet werden darf, entscheidet weiterhin `billing_list`, nicht dieser Dienst.
-  ⚠️ **Nie ein Plus-Minus-Zähler** (§4). Weil über die Organisationen eines Kontos
-  dedupliziert wird (D4.1), macht das Entfernen aus Organisation 1 keinen Platz frei, solange
-  die Person in Organisation 2 sitzt. Deshalb trägt der Schnappschuss die **Paare** und die
-  Wiedergabe eine Karte, nicht eine Zahl.
-  ⚠️ **Monatsgrenze `Europe/Berlin` an EINER Stelle:** `SeatSnapshot.boundary_moment` (A6, die
-  App läuft auf UTC). Daneben `SeatSnapshot.normalise_period` (Date/Time → Monatsanfang) und
-  `.current_period` (welcher Messmonat läuft) — `SeatSnapshotWriter.current_boundary_month`
-  zeigt nur noch dorthin. Wer eine zweite Umrechnung schreibt, misst still einen UTC-Monat,
-  und zwar genau in den zwei Stunden nach Mitternacht am Monatsersten.
-  Ereignisse GENAU auf der Grenze gehören in den Schnappschuss, die Wiedergabe beginnt strikt
-  danach; die Fenster-Endgrenze ist deshalb ausschließend (`SeatEvent.strictly_between`).
-  **Die Konto-Übersicht (K-S1):** `visible_accounts` (welche Konten gehen einen Nutzer etwas
-  an) und `account_summaries` (eine Zeile je Konto für `/billing`; der Cockpit-Block ist
-  entfallen, Einstieg ist jetzt der Navigationspunkt „Rechnungskonten" in
-  `common/_navigation_account`, der EINZIGEN Navigation ohne Tenant).
-  ⚠️ `account_summaries` blendet Konten OHNE Organisation aus. Absichtlich dort und nicht in
-  `visible_accounts`: das eine beantwortet „darf sehen" (mit gepinnter Policy-Übereinstimmung),
-  das andere „gibt es etwas zu zeigen". Per URL bleibt so ein Konto erreichbar, im Adminbereich
-  ist es weiter gelistet.
-  ⚠️ `visible_accounts` ist eine ZWEITE Fassung von `AccountPolicy#show_overview?`, absichtlich
-  **umgekehrt** gefragt: die Policy läuft über die Organisationen des KONTOS und fächert je Zeile
-  auf, dieses Objekt läuft über die Organisationen des NUTZERS und wächst deshalb nicht, wenn ein
-  fremdes Konto mehr Orgs bündelt. Zwei Fassungen einer Berechtigungsregel driften — die
-  Übereinstimmung ist deshalb selbst gepinnt (`spec/services/subscriptions/visible_accounts_spec.rb`,
-  Gruppe „agreement with AccountPolicy"). Wer die Policy ändert, ändert beide.
-  ⚠️ Die Zeile baut ihren Zustands-Schlüssel **dynamisch** aus
-  `AccountSummaries::LABELLED_ROW_STATES` — dafür der Guard
-  `spec/locales/billing_account_row_states_spec.rb`, gleiche Bauart wie der Intervall-Guard oben.
-  **Der Umzug (K-S2):** `organisation_move`, Einstieg `rake billing:move_org`, bewusst ohne UI.
-  ⚠️ **Eine Organisation NIE per `update!(account:)` umhängen.** Dieser Write fasst keine
-  Mitgliedschaft an, also feuert kein Callback und der Seat-Strom bekommt nichts mit; beide
-  Konten rekonstruieren danach plausible, aber falsche Zahlen. Der Service schreibt die
-  `moved_out`/`moved_in`-Paare selbst, mit EINEM Zeitstempel für beide Hälften. Verweigert bei
-  gesetztem `billing_starts_on` (`FORCE=1` übersteuert), zeigt Zugänge und Betrag beider Konten
-  vorher/nachher, `DRY_RUN=1` läuft durch dieselbe Transaktion und rollt am Ende zurück — deshalb
-  sind die Vorschauzahlen die echten und keine Nebenrechnung. Leerlaufendes Konto bleibt
-  stehen (K7).
-  ⚠️ **K6 gilt nur fuer bereits GESCHRIEBENE Zeilen.** Rollups, Seat-Ereignisse, Rabatte und
-  Antraege behalten ihr `account_id`. Noch nicht aufgerollter Verbrauch folgt dagegen der
-  Organisation: `AiUsageAggregator#record_for` liest `organisation.account_id` erst beim
-  Aufrollen, und `ai_usage_rollups` haelt EINE Zeile je Organisation und Monat (Unique-Index,
-  Einfuegen mit `ON CONFLICT DO NOTHING`). Ein Teil-Abschluss beim Umzug wuerde den Rest des
-  Monats deshalb nicht verschieben, sondern VERLIEREN. Der Task misst und benennt die Kante
-  stattdessen; einen Monat zu teilen braucht eine Datenmodell-Aenderung.
-  ⚠️ **Buendeln reisst die Gastgrenze.** `guest_max_organisations` steht per Default auf 1 und
-  zaehlt die Organisationen EINES Kontos, in denen jemand ausschliesslich Gast ist
-  (`guest_ceiling.rb`). Genau diesen Zustand stellt K5 her, der Umzug erzeugt also Verstoesse,
-  die es bei zwei getrennten Konten nicht geben konnte. Das ist die einzige Umzugsfolge, die
-  beim KUNDEN ankommt: `Organisations::BaseController#warn_if_guest_ceiling_exceeded` setzt beim
-  naechsten Mitgliedschafts-Write ein `flash[:warning]`. Deshalb misst `#snapshot` die Zahl fuer
-  BEIDE Konten und der Task meldet sie dort, wo sie GESTIEGEN ist; Abhilfe ist das Limit am
-  aufnehmenden Konto.
-  Pläne: `doc/billing_preisliste_rabatt_plan.md`, `doc/konto_ebene_plan.md`.
-* `documents/` — die Dokumentversionen (`doc/dokumentansicht_plan.md`, S1): `number_versions.rb`
-  zählt den Bestand je Dokument chronologisch von 1 (Task `documents:number_versions`, nach dem
-  Deploy, VOR der NOT-NULL-Migration). ⚠️ Nimmt die Zeilensperre des Dokuments, dieselbe wie
-  `Actors::SaveDocumentVersion`: die Transaktion allein hält keinen gleichzeitigen Upload auf.
-* `indexing/` — `index_everything.rb`, der gemessene Nachholer, seit Notizen immer indexiert
-  sind (`doc/notizen_immer_indexiert_plan.md`; Task `indexing:everything[ORG]`).
-* `embeddings/` — Embedding-v2-Domäne. **`nearest_neighbors.rb` ist DER EINE Vektor-Read-Seam**
-  (PR 4b, `doc/embedding_v2_pr4b_read_switch_plan.md`): alle Retrieval-Call-Sites laufen darüber,
-  `nearest_neighbors` auf den Inline-Spalten gibt es im App-Code nicht mehr. Der Seam besitzt
-  Metrik pro Record-Typ, den Pflicht-INNER-JOIN (M1) und die 4a-Index-Prädikate — neue
-  Vektor-Suchen NIEMALS daneben bauen. Rest: GC-/Reindex-Ops-Helfer.
-  **Staged Switch (PR 6a):** Welchen Raum der Seam liest, entscheidet der Pointer
-  `organisations.active_embedding_space_id` → `embedding_spaces` (Tripel + Credential-Snapshot),
-  NICHT die Org-Konfiguration. `ensure_space.rb` legt Räume an, `Actors::FlipEmbeddingModel`
-  schaltet um (Vollständigkeit als ANTI-JOIN via `OrganisationReindexer.missing_in_space` —
-  eine Zählung tricksen Orphans aus), `space_index_flag.rb` nimmt Räume aus dem Index
-  (Retirement) und zurück hinein (Reaktivierung — **muss VOR einem Rück-Flip laufen**, sonst
-  liefert der Rollback still null Treffer). Reindexer-Modi: build (fehlende Zeilen) /
-  `delta:` (zusätzlich `source_hash`-Drift) / `force:` (alles).
-  **Die Typenliste besitzt allein `content_types.rb` (seit 04.09.2026):** neun Einträge mit
-  Tabelle, Modell, Opt-in-SQL, Pflicht-Join, Projekt-Join und Projektspalte, dazu die
-  Zustandsprädikate (`flag_pending`, `processed`, `failed`, `text_present`). Keine Relation
-  wird dort gebaut (zwei Tenant-Kontexte). Drei Leser leiten ab und bauen ihre eigene
-  Abfrageform: `pending_embeddings.rb` (lazy Relationen für Knopf und monatliche Nachlese),
-  `index_health.rb` (EINE UNION) und `ai_sync_status_service.rb` (je Projekt, `.call(organisation:)`).
-  Wächter: `content_types_spec.rb` (Liste ⟺ Modelle mit `as: :fragmentable`, abgeleitet) und
-  `index_health_pending_parity_spec.rb` (stubbt die Liste ohne einen Typ; jeder Leser muss ihn
-  verlieren, sonst hat er eine private Kopie). Ein zehnter Typ = ein Eintrag + Builder in
-  `spec/support/embeddable_content_types_helpers.rb` + Zeile in `AiSyncStatusHelper::TYPE_PRESENTATION`
-  + Label DE/EN + die Aufzählung in der In-App-Hilfe `05-sync-status.md` (DE **und** EN).
-  NICHT die Abruf-Seite: `ContentAreaRegistry` gattert, was ZURÜCKKOMMT.
-  **Drei Leser derselben Spalten, nicht einer (KI-Bereich S2):** `index_health.rb` beantwortet
-  „wie viel steht aus, wie viel ist fehlgeschlagen" org-weit in EINER Query (UNION über alle
-  registrierten Typen) — für den KI-Hub, dessen Budget bei ≤ 9 eigenen Queries
-  für die GANZE Seite liegt (§3.3 nennt oben 5, der Nachtrag vom 05.08. begründet die 9). `AiSyncStatusService` bleibt der Leser der Detailseite (alle Projekte ×
-  alle registrierten Typen, Übersicht = Summe der Projektzeilen) und darf auf dem Hub NIE aufgerufen werden. ⚠️ Der Preis des rohen SQL:
-  `acts_as_tenant` greift nicht, jeder UNION-Zweig bindet `organisation_id` selbst — ein
-  vergessener Filter ist ein stiller mandantenübergreifender Leak, den Request-Specs mit nur
-  einer Organisation nicht sehen (gemessen). Deckung dafür: `spec/services/embeddings/index_health_spec.rb`.
-  **Statusanzeige ≠ Diagnose (KI-Pakete P4c):** `switch_progress.rb` beantwortet „läuft ein
-  Wechsel und wie weit" für die KUNDENSEITE, `space_alignment.rb` ist die Betreiber-Diagnose.
-  Nicht verwechseln — der volle `SpaceAlignment.call` macht vier Aggregat-Scans mit
-  korrelierten Subqueries; auf einer Seite, die der Kunde von Hand öffnet, ist das die
-  N+1-Lehre aus #368. `SwitchProgress` staffelt stattdessen: Opt-in und Pointer sind
-  Spaltenlesungen, `configured != active` fasst `content_embeddings` nicht an, und die
-  Anti-Joins laufen nur, wenn ein Wechsel wirklich aussteht.
-  ⚠️ **Ohne Pointer ist die Wechsel-Frage nicht beantwortbar** — `embedding_space_for(:active)`
-  fällt auf das konfigurierte Tripel zurück, beide Seiten des Prädikats werden identisch, und
-  ein laufender Wechsel meldet sich als „keiner". `SwitchProgress` gibt dafür den eigenen
-  Zustand `:pointer_missing` zurück statt `:none`; wer das Prädikat woanders nachbaut (der
-  Watcher tut es), erbt die Blindheit ohne den Hinweis. Reparatur: `embeddings:backfill_spaces`.
-  ⚠️ **`ensure_space.rb` refresht ALLE Snapshot-Spalten — außer einer.** `ai_credential_id`
-  (der P0-Pin) wird nur geschrieben, wenn die Zeile keinen Pin hat, und geleert, wenn sie auf
-  BYOK wechselt; ein bestehender Pin bleibt stehen (Log-Warnung bei Abweichung). Der Grund ist
-  der Zweck der Spalte: mitrefresht würde `flip`/`build_target` einen gehaltenen Raum still auf
-  den heutigen Provider-Standard umhängen — exakt der Swap, gegen den der Pin gebaut ist, nur
-  über den Schreib- statt den Lesepfad. Wer eine Pin-Spalte in einen Refresh-Hash aufnimmt,
-  braucht diese Ausnahme im Code, nicht bloß einen Kommentar am Modell.
-  **Retention (PR 6b):** `orphan_gc.rb` hat einen dritten, **org-gebundenen** Sweep: Räume
-  jenseits von `organisations.embedding_retention_limit` werden gelöscht (Sidecar-Zeilen +
-  `embedding_spaces`-Zeile). Zwei Schutzregeln, deren REIHENFOLGE zählt — der aktive Raum ist
-  nie Kandidat, und der Raum im Aufbau (= konfiguriertes Tripel, aber nicht aktiv) fliegt
-  **vor** der Behalten-Auswahl raus, damit er keinen Slot belegt. Behalten-Ordnung ist
-  `retired_at DESC NULLS LAST` (der Flip stempelt sie unter Sperre), NICHT `created_at`: nach
-  einem Rollback zeigen die beiden in verschiedene Richtungen. Eigener Kill-Switch
-  `EMBEDDINGS_RETENTION_ENFORCE`, getrennt von `EMBEDDINGS_GC_ENFORCE` (anderer Blast-Radius:
-  Orphans sind wertlos, ein Raum ist das Rollback-Netz).
-  ⚠️ **Zeilen in einem Tripel OHNE `embedding_spaces`-Zeile sieht KEIN Sweep** — Record lebt
-  (kein Orphan), kein Raum hält das Tripel (kein Retention-Kandidat). Der GC zählt und warnt
-  sie als `UNREGISTERED`, löscht sie nie (dasselbe Tripel ist auch ein frisch konfiguriertes
-  Ziel vor `build_target`). Das ist der Prod-Altbestand aus Wechseln vor PR 6a — wer erwartet,
-  dass der GC ihn abräumt, hat den Sweep falsch verstanden.
-  **Die Inline-Lane ist weg (PR 7).** Die vier Inline-Vektorspalten und ihre acht
-  Provenienz-Spalten sind gedroppt; `content_embeddings` ist die einzige Vektor-Quelle für
-  Lesen UND Schreiben. Damit entfällt der Dimensions-Sonderfall: die fünf Schreibpfade
+     A month before `billing_starts_on` is `not_billable`, not “unanswered” — whether an account
+     may be billed at all remains the decision of `billing_list`, not this service.
+  ⚠️ **Never a plus/minus counter** (§4). Because people are deduplicated across an account's
+  organisations (D4.1), removal from organisation 1 frees no seat while
+  the person remains in organisation 2. The snapshot therefore holds **pairs**, and
+  replay holds a map, not a number.
+  ⚠️ **Month boundary `Europe/Berlin` in ONE place:** `SeatSnapshot.boundary_moment` (A6, the
+  app runs on UTC). Alongside it, `SeatSnapshot.normalise_period` (Date/Time → month start) and
+  `.current_period` (which measurement month is current) — `SeatSnapshotWriter.current_boundary_month`
+  now only delegates there. Writing a second conversion silently measures a UTC month,
+  specifically during the two hours after midnight on the first of the month.
+  Events EXACTLY on the boundary belong in the snapshot; replay starts strictly
+  afterwards; the window's end boundary is therefore exclusive (`SeatEvent.strictly_between`).
+  **The account overview (K-S1):** `visible_accounts` (which accounts concern a
+  user) and `account_summaries` (one row per account for `/billing`; the cockpit block has
+  been removed, the entry point is now “Billing accounts” in
+  `common/_navigation_account`, the ONLY navigation without a tenant).
+  ⚠️ `account_summaries` hides accounts WITHOUT an organisation. Deliberately there, not in
+  `visible_accounts`: one answers “may view” (with pinned policy agreement),
+  the other “is there anything to display?”. Such an account remains accessible by URL and
+  is still listed in the admin area.
+  ⚠️ `visible_accounts` is a SECOND version of `AccountPolicy#show_overview?`, deliberately
+  asked **in reverse**: the policy iterates over the ACCOUNT's organisations and fans out per row;
+  this object iterates over the USER's organisations and therefore does not grow when
+  another account bundles more orgs. Two versions of an authorization rule drift —
+  their agreement is therefore pinned itself (`spec/services/subscriptions/visible_accounts_spec.rb`,
+  group “agreement with AccountPolicy”). Anyone changing the policy changes both.
+  ⚠️ The row builds its state key **dynamically** from
+  `AccountSummaries::LABELLED_ROW_STATES` — hence the guard
+  `spec/locales/billing_account_row_states_spec.rb`, same structure as the interval guard above.
+  **The move (K-S2):** `organisation_move`, entry point `rake billing:move_org`, deliberately without a UI.
+  ⚠️ **NEVER reassign an organisation with `update!(account:)`.** This write touches no
+  membership, so no callback fires and the seat stream sees nothing; both
+  accounts then reconstruct plausible but incorrect numbers. The service writes the
+  `moved_out`/`moved_in` pairs itself, with ONE timestamp for both halves. Refuses when
+  `billing_starts_on` is set (`FORCE=1` overrides), shows accesses and amount for both accounts
+  before/after, and `DRY_RUN=1` runs through the same transaction and rolls back at the end — so
+  preview numbers are the actual ones, not a separate calculation. An account left empty
+  remains (K7).
+  ⚠️ **K6 applies only to rows already WRITTEN.** Rollups, seat events, discounts and
+  applications retain their `account_id`. Usage not yet rolled up follows the
+  organisation instead: `AiUsageAggregator#record_for` reads `organisation.account_id` only when
+  rolling up, and `ai_usage_rollups` holds ONE row per organisation and month (unique index,
+  insert with `ON CONFLICT DO NOTHING`). A partial close on moving would therefore not move
+  the rest of the month, but LOSE it. The task measures and names this boundary
+  instead; splitting a month requires a data-model change.
+  ⚠️ **Bundling breaches the guest limit.** `guest_max_organisations` defaults to 1 and
+  counts the organisations within ONE account in which someone is exclusively a guest
+  (`guest_ceiling.rb`). K5 creates exactly this state, so moving creates violations
+  that could not exist with two separate accounts. This is the only consequence of a move
+  visible to the CUSTOMER: `Organisations::BaseController#warn_if_guest_ceiling_exceeded` sets
+  `flash[:warning]` on the next membership write. This is why `#snapshot` measures the count for
+  BOTH accounts, and the task reports it where it has INCREASED; the remedy is the limit on the
+  receiving account.
+  Plans: `doc/billing_preisliste_rabatt_plan.md`, `doc/konto_ebene_plan.md`.
+* `documents/` — document versions (`doc/dokumentansicht_plan.md`, S1): `number_versions.rb`
+  numbers existing versions chronologically from 1 per document (task `documents:number_versions`, after
+  deploy, BEFORE the NOT-NULL migration). ⚠️ Takes the document's row lock, the same one as
+  `Actors::SaveDocumentVersion`: a transaction alone does not block a concurrent upload.
+* `indexing/` — `index_everything.rb`, the metered catch-up service, since notes are always indexed
+  (`doc/notizen_immer_indexiert_plan.md`; task `indexing:everything[ORG]`).
+* `embeddings/` — embedding v2 domain. **`nearest_neighbors.rb` is THE SINGLE vector-read seam**
+  (PR 4b, `doc/embedding_v2_pr4b_read_switch_plan.md`): all retrieval call sites go through it;
+  `nearest_neighbors` on inline columns no longer exists in application code. The seam owns
+  the metric per record type, the required INNER JOIN (M1) and the 4a index predicates — NEVER build new
+  vector searches alongside it. The rest: GC/reindex operations helpers.
+  **Staged switch (PR 6a):** The pointer
+  `organisations.active_embedding_space_id` → `embedding_spaces` (triplet + credential snapshot)
+  determines which space the seam reads, NOT the org configuration. `ensure_space.rb` creates spaces;
+  `Actors::FlipEmbeddingModel` switches them (completeness as an ANTI-JOIN through `OrganisationReindexer.missing_in_space` —
+  orphans can fool a count); `space_index_flag.rb` removes spaces from the index
+  (retirement) and puts them back (reactivation — **must run BEFORE flipping back**, or
+  rollback silently returns zero matches). Reindexer modes: build (missing rows) /
+  `delta:` (also `source_hash` drift) / `force:` (everything).
+  **Only `content_types.rb` owns the type list (since 4 September 2026):** nine entries with
+  table, model, opt-in SQL, required join, project join and project column, plus
+  state predicates (`flag_pending`, `processed`, `failed`, `text_present`). No relation
+  is built there (two tenant contexts). Three readers derive from it and build their own
+  query shape: `pending_embeddings.rb` (lazy relations for the button and monthly catch-up),
+  `index_health.rb` (ONE UNION) and `ai_sync_status_service.rb` (per project, `.call(organisation:)`).
+  Guards: `content_types_spec.rb` (list ⟺ models with `as: :fragmentable`, derived) and
+  `index_health_pending_parity_spec.rb` (stubs the list without one type; every reader must
+  lose it, otherwise it has a private copy). A tenth type = one entry + builder in
+  `spec/support/embeddable_content_types_helpers.rb` + row in `AiSyncStatusHelper::TYPE_PRESENTATION`
+  + German/English label + enumeration in the in-app help `05-sync-status.md` (German **and** English).
+  NOT the retrieval side: `ContentAreaRegistry` gates what COMES BACK.
+  **Three readers of the same columns, not one (AI area S2):** `index_health.rb` answers
+  “how much is pending, how much has failed” org-wide in ONE query (UNION over all
+  registered types) — for the AI hub, whose budget is ≤ 9 queries of its own
+  for the ENTIRE page (§3.3 states 5 at the top; the 5 August addendum explains 9). `AiSyncStatusService` remains the detail-page reader (all projects ×
+  all registered types, overview = sum of project rows) and must NEVER be called on the hub. ⚠️ The cost of raw SQL:
+  `acts_as_tenant` does not apply; every UNION branch binds `organisation_id` itself — a
+  forgotten filter is a silent cross-tenant leak that request specs with only
+  one organisation cannot see (observed). Coverage: `spec/services/embeddings/index_health_spec.rb`.
+  **Status display ≠ diagnostics (AI packages P4c):** `switch_progress.rb` answers “is a
+  switch running and how far along is it?” for the CUSTOMER page; `space_alignment.rb` is the operator's diagnostic.
+  Do not confuse them — the full `SpaceAlignment.call` performs four aggregate scans with
+  correlated subqueries; on a page the customer opens manually, this repeats
+  the N+1 lesson from #368. Instead, `SwitchProgress` proceeds in stages: opt-in and pointer are
+  column reads, `configured != active` does not touch `content_embeddings`, and
+  anti-joins run only if a switch is actually pending.
+  ⚠️ **Without a pointer, the switch question cannot be answered** — `embedding_space_for(:active)`
+  falls back to the configured triplet, both sides of the predicate become identical, and
+  an ongoing switch reports “none”. `SwitchProgress` returns a dedicated
+  `:pointer_missing` state instead of `:none`; recreating the predicate elsewhere (the
+  watcher does) inherits the blindness without the notice. Repair: `embeddings:backfill_spaces`.
+  ⚠️ **`ensure_space.rb` refreshes ALL snapshot columns — except one.** `ai_credential_id`
+  (the P0 pin) is written only if the row has no pin, and cleared when it switches to
+  BYOK; an existing pin remains (log warning on mismatch). The reason is the
+  column's purpose: refreshing it too would let `flip`/`build_target` silently reassign a held space to
+  today's provider default — exactly the swap the pin was built to prevent, only
+  through the write path instead of the read path. Anyone adding a pin column to a refresh hash
+  needs this exception in code, not merely a model comment.
+  **Retention (PR 6b):** `orphan_gc.rb` has a third, **org-bound** sweep: spaces
+  beyond `organisations.embedding_retention_limit` are deleted (sidecar rows +
+  `embedding_spaces` row). Two protection rules whose ORDER matters — the active space is
+  never a candidate, and the space being built (= configured triplet, but not active) is excluded
+  **before** the retention selection, so it occupies no slot. Retention order is
+  `retired_at DESC NULLS LAST` (the flip stamps it under a lock), NOT `created_at`: after
+  a rollback, the two point in different directions. Separate kill switch
+  `EMBEDDINGS_RETENTION_ENFORCE`, distinct from `EMBEDDINGS_GC_ENFORCE` (different blast radius:
+  orphans are worthless, a space is the rollback safety net).
+  ⚠️ **NO sweep sees rows in a triplet WITHOUT an `embedding_spaces` row** — record alive
+  (not an orphan), no space holds the triplet (not a retention candidate). GC counts and warns about
+  them as `UNREGISTERED`, never deletes them (the same triplet can also be a newly configured
+  target before `build_target`). This is legacy production data from switches before PR 6a — expecting
+  GC to remove it misunderstands the sweep.
+  **The inline lane is gone (PR 7).** The four inline vector columns and their eight
+  provenance columns have been dropped; `content_embeddings` is the only vector source for
+  BOTH reading and writing. This removes the dimension special case: the five write paths
   (`embedding_processing_service`, `project_indexer_job` ×2, `indexer/symbol_persistence`,
-  `embeddings/organisation_reindexer`) schreiben jede Dim auf demselben Weg.
-  `Indexer::EmbeddingColumns` liefert nur noch das TRIPEL (`.from`) — `inline_pair`,
-  `INLINE_DIMS` und `inline_writable?` gibt es nicht mehr, ebenso wenig `SidecarBackfill`
-  und `normalize_legacy_labels`. Wer „hat ein Embedding?" fragt, fragt die Sidecar
+  `embeddings/organisation_reindexer`) write every dimension through the same path.
+  `Indexer::EmbeddingColumns` now provides only the TRIPLET (`.from`) — `inline_pair`,
+  `INLINE_DIMS` and `inline_writable?` no longer exist, nor do `SidecarBackfill`
+  and `normalize_legacy_labels`. Anyone asking “has an embedding?” queries the sidecar
   (`Fragment.with_sidecar_embedding`). Guard: `spec/models/no_inline_embedding_columns_guard_spec.rb`
-  hält die Spalten draußen — die geteilte Dev-DB schreibt sie sonst über `schema.rb` zurück.
-  **`space_alignment.rb` ist das Gate zu diesem Seam** (`rake "embeddings:check_alignment[ORG]"`,
-  Exit ≠ 0): Der Seam filtert strikt auf das Tripel, das `Factory.embedding_space_for` auflöst —
-  passt das nicht zum gestempelten Tripel der Sidecar-Zeilen, liefert JEDE Suche still null
-  Treffer (so geschehen 2026-07-30 auf Prod). Ein Vollständigkeits-Anti-Join sieht das
-  prinzipiell nicht — er fragt nur, OB eine Zeile existiert, nicht in welchem Raum
-  (`OrganisationReindexer.missing_in_space` ist der verbliebene, er trägt das Tripel
-  deshalb selbst). Vor/nach jedem Modellwechsel laufen lassen. Vier Eimer, nur
-  einer ist der Befund (seit PR 6a fünf, siehe `pending_flip`): `stranded` (Record hat KEINE
-  **lesbare** Zeile — Tripel UND `indexed` —
-  → unerreichbar) ist der Fehlerfall; `stale` (Alt-Zeile neben einer lesbaren) der Normalzustand
-  nach jedem Reindex — seit PR 6a nimmt das Retirement solche Zeilen aus dem INDEX
-  (`indexed → false`), GELÖSCHT werden sie vom Retention-GC (PR 6b) NUR, wenn eine
-  `embedding_spaces`-Zeile ihr Tripel noch hält (sonst `UNREGISTERED`, siehe Retention-Block
-  oben); der `stale_count` sinkt am Retirement also nicht; `aligned` der gesunde Rest; `orphan`
-  `pending_flip` (nicht lesbar im aktiven, aber lesbar im KONFIGURIERTEN Raum — Inhalt, der
-  während eines laufenden Staged Switch entstand; der Flip löst ihn auf, ein Reindex nicht,
-  deshalb außerhalb des Urteils); `orphan`
-  (Record per `delete_all` weg) steht **außerhalb** des Urteils — kein Reindex erreicht sie, das
-  Mittel ist `embeddings:gc`. Der Exit-Code liest zusätzlich `ai_enabled`: KI aus → Warnung
-  statt Rot (der empfohlene Reindex würde `AiDisabledError` werfen), KI an + Raum NICHT
-  auflösbar → rot (`NearestNeighbors` wirft dann bei jeder Query, `PromptBuildingService`
-  antwortet still kontextfrei). **Kein Raum auflösbar ≠ „Org hat KI aus"**:
-  `Factory.embedding_space_for` ist gate-frei und löst mit aktivem System-Credential für JEDE
-  Org auf — der Zustand heißt „gar kein Credential" (oder Fehlkonfiguration, dann immer rot).
-  **Zweite, unabhängige Hälfte des Urteils (KI-Pakete P0):** die Eimer oben vergleichen nur
-  TRIPEL, und `embedding_space_for(:active)` antwortet aus der Snapshot-Zeile, ohne je ein
-  Credential anzufassen. Ein Raum, dessen Pin (`embedding_spaces.ai_credential_id`) auf ein
-  gelöschtes, deaktiviertes oder fremdes Provider-Credential zeigt, wäre damit `aligned/ok` —
-  während JEDE Query `MissingCredentialError` wirft. Deshalb fragt `SpaceAlignment` zusätzlich
-  `Factory.active_space_credential_error` (gate-frei, nil bei BYOK und ohne Pointer), und
-  `severity` ist das SCHLECHTERE aus `space_severity` und `credential_severity`. `status`
-  bleibt bewusst tripel-only: „misaligned" bei korrekt liegenden Zeilen schickte den Operator
-  in einen Reindex, der nichts repariert — der Rake-Text nennt stattdessen „Credential
-  reaktivieren ODER Raum umhängen".
-* `admin/` — Lese-Objekte NUR für den Adminbereich. `acquisition_report` (woher ein Kunde kam,
-  `doc/akquise_herkunft.md`) liegt seit S3.2 in der Engine. `ai_routing_summary` beantwortet „welche KI
-  nutzt diese Org", indem es die Reihenfolge **Paket-Rung > BYOK > System-Credential** durch
-  `Lalabase::Llm::Factory` erfragt (`curated_chat_tier`) statt sie nachzubauen — die alte
-  Anzeige las `has_own_ai_credentials?` („brachte kein Token") und beschriftete damit jede
-  Paket-Org als „System-Credentials", also mit einem Credential, das sie nie anfasst.
-  ⚠️ Dafür braucht `Admin::Organisation` sein `belongs_to :ai_package`: die Factory fragt
-  `organisation.try(:ai_package)`, und ohne die Assoziation antwortet **jede** Admin-Org
-  „kein Paket" — still und plausibel.
+  keeps the columns out — otherwise the shared development database writes them back through `schema.rb`.
+  **`space_alignment.rb` is the gate to this seam** (`rake "embeddings:check_alignment[ORG]"`,
+  exit ≠ 0): the seam filters strictly by the triplet resolved by `Factory.embedding_space_for` —
+  if it does not match the stamped triplet of the sidecar rows, EVERY search silently returns zero
+  matches (as happened in production on 2026-07-30). A completeness anti-join cannot
+  see this in principle — it asks only WHETHER a row exists, not in which space
+  (`OrganisationReindexer.missing_in_space` is the remaining one and therefore carries the triplet
+  itself). Run before/after every model change. Four buckets, only
+  one is the finding (five since PR 6a, see `pending_flip`): `stranded` (record has NO
+  **readable** row — triplet AND `indexed` —
+  → unreachable) is the error case; `stale` (old row alongside a readable one) is the normal state
+  after every reindex — since PR 6a, retirement removes such rows from the INDEX
+  (`indexed → false`); retention GC (PR 6b) DELETES them ONLY if an
+  `embedding_spaces` row still holds their triplet (otherwise `UNREGISTERED`, see the retention block
+  above); `stale_count` therefore does not decrease at retirement; `aligned` is the healthy remainder; `orphan`
+  `pending_flip` (unreadable in the active space, but readable in the CONFIGURED one — content
+  created during an ongoing staged switch; the flip resolves it, a reindex does not,
+  hence outside the verdict); `orphan`
+  (record removed through `delete_all`) is **outside** the verdict — no reindex reaches these;
+  the remedy is `embeddings:gc`. The exit code also considers `ai_enabled`: AI off → warning
+  instead of red (the recommended reindex would raise `AiDisabledError`); AI on + space NOT
+  resolvable → red (`NearestNeighbors` then raises on every query, while `PromptBuildingService`
+  silently responds without context). **No resolvable space ≠ “org has AI off”**:
+  `Factory.embedding_space_for` is gate-free and resolves with an active system credential for EVERY
+  org — the state means “no credential at all” (or misconfiguration, then always red).
+  **Second, independent half of the verdict (AI packages P0):** the buckets above compare only
+  TRIPLETS, and `embedding_space_for(:active)` answers from the snapshot row without ever touching a
+  credential. A space whose pin (`embedding_spaces.ai_credential_id`) points to a
+  deleted, deactivated or wrong-provider credential would therefore be `aligned/ok` —
+  while EVERY query raises `MissingCredentialError`. Thus, `SpaceAlignment` additionally asks
+  `Factory.active_space_credential_error` (gate-free, nil for BYOK and without a pointer), and
+  `severity` is the WORSE of `space_severity` and `credential_severity`. `status`
+  deliberately remains triplet-only: “misaligned” for correctly placed rows would send the operator
+  into a reindex that repairs nothing — the rake text instead says “reactivate credential
+  OR reassign space”.
+* `admin/` — read objects ONLY for the admin area. `acquisition_report` (where a customer came from,
+  `doc/akquise_herkunft.md`) has lived in the engine since S3.2. `ai_routing_summary` answers “which AI
+  does this org use?” by asking `Lalabase::Llm::Factory` for the precedence **package rung > BYOK > system credential**
+  (`curated_chat_tier`) instead of recreating it — the old
+  display read `has_own_ai_credentials?` (“brought no token”) and thereby labelled every
+  package org “System credentials”, naming a credential it never touches.
+  ⚠️ `Admin::Organisation` needs its `belongs_to :ai_package` for this: the factory asks
+  `organisation.try(:ai_package)`, and without the association, **every** admin org answers
+  “no package” — silently and plausibly.
 * `codebase_import/`, `user_data_exports/`, `subscriptions/`, `overview/`, `dashboard/`
-* **Achtung, zwei ähnlich benannte Domänen:** `documentation/` = aus Repos synchronisierte
-  `.md`-Doku (eigener `MarkdownRenderer`, eigene `Navigation`; `asset_collector.rb` kopiert
-  beim Sync die Bilder aus dem Klon und ist die EINE Stelle, die entscheidet, was davon
-  ausgeliefert wird: innerhalb des Klons nach Auflösen der Symlinks, Typ aus den Bytes, eine
-  Typliste `RichTextEmbeds::IMAGE_CONTENT_TYPES`; ⚠️ nach einer Änderung am Renderer
-  `bin/rails documentation:resync_all`, ein Poll überspringt unveränderte Repos),
+* **Beware, two similarly named domains:** `documentation/` = `.md` documentation synchronized
+  from repositories (own `MarkdownRenderer`, own `Navigation`; `asset_collector.rb` copies
+  images from the clone during sync and is the SINGLE place deciding which are
+  served: inside the clone after resolving symlinks, type from bytes, one
+  type list `RichTextEmbeds::IMAGE_CONTENT_TYPES`; ⚠️ after changing the renderer, run
+  `bin/rails documentation:resync_all`; polling skips unchanged repositories),
   `product_knowledge/` =
-  Lalabases eigene Texte als Tabelle für die Suche. Die dritte, `docs/`, rendert seit **D5
-  (21.09.2026) kein Markdown mehr** und ist nur noch die LESESCHICHT auf eine fremde Datei
+  Lalabase's own text as a search table. The third, `docs/`, **no longer renders Markdown** since D5
+  (21 September 2026) and is only the READ LAYER over an external file
   (`doc/docs_delivery_plan.md`).
-* `docs/` — acht Dateien, und alle antworten auf dieselbe Frage: was die Hilfe (`/hilfe`) und
-  der Assistent von der Dokumentation wissen, die in `gboyke/lalabase-documentation` lebt.
-  `catalogue.rb` liest eine JSON-Datei je Sprache, die jenes Programm schreibt und sein Deploy
-  hierher legt (`DOCS_CATALOGUE_PATH`; Vertrag: `docs/api/katalog_v1.md`).
-  ⚠️ **Keine Datei ist der NORMALFALL** (Selbsthosting, Entwicklungsrechner): jeder Leser
-  antwortet, keiner wirft. `contract.rb` hält, was beide Seiten teilen (Sprachen,
-  Sanitize-Allowlist, die kanonische `/docs/<sprache>/<slug>`-Form) — **eine** Konstante je
-  Sache, und `page_links.rb` liest die Form von dort statt eine zweite zu halten.
-  `contextual_help.rb` ist die Karte Seite → Frage → Anker; sie gehört dem Kern, ob die Anker
-  noch antworten prüft `rake anchors:check` drüben. Dazu `help_link*.rb` (wohin ein Link
-  zeigt: org-gebundene Hilfe, sonst die öffentliche Doku), `public_docs.rb` (deren Adresse)
-  und `plain_text.rb` (Schnipsel um einen Treffer).
-  ⚠️ **Nichts hier rendert Markdown, und nichts liest `app/docs/`** — das Verzeichnis gibt
-  es nicht mehr. Wer eine Doku-Seite ändern will, ändert sie im anderen Repo. Redcarpet und
-  Rouge bleiben im Gemfile: `documentation/` und `Lalabase::SafeMarkdown` nutzen sie weiter.
-* `product_knowledge/`: Lalabases EIGENE Texte (die In-App-Hilfe)
-  als durchsuchbare Tabelle ohne Organisation (`doc/product_knowledge_plan.md`). Quelle ist
-  seit D4 der **Katalog** (`Docs::Catalogue`), nicht mehr `app/docs/`; die Tabelle ist eine
-  Kopie davon. `sources.rb` entscheidet fail-closed, was
-  hineinkommt (die Self-Hosting-Doku bewusst nicht, sie steht gar nicht im Katalog), und berechnet
-  als EINZIGE Stelle den Inhalts-Hash (`build_row`). `sync.rb` gleicht ab (`rewrite:` für die
-  Reparatur). `ensure_fresh.rb` läuft vor jedem Lesen, in dieser Reihenfolge: Merker je
-  Prozess (5 Minuten oder bis sich der Katalog ändert, sonst kostet jedes Lesen rund 100 ms),
-  Fingerabdruck der TABELLE gegen den Katalog, nie rückwärts (`SystemSetting`
-  `product_knowledge_generation`, sonst setzt ein Prozess des alten Releases während des
-  Deploys die Tabelle zurück; Maßstab ist die Änderungszeit der Katalogdateien, und eine
-  Sprache OHNE Datei trägt nichts bei statt einer Null, die die Generation zurückzoge),
-  Sperre ohne Warten. Alles ohne Query-Cache (unter ihm sah die
-  Prüfung nach der Sperre den alten Stand). `search.rb` ist der EINE Leser: Suchbegriffe
-  normalisiert Postgres EINMAL (Stoppwörter raus, Stämme, Präfixe), danach gehen sie als
-  fertige `tsquery` hinein und nicht noch einmal durchs Wörterbuch; erst Seiten mit allen Begriffen,
-  dann mit einigen, dann wörtliche Treffer; eine Sprache je Antwort, standardmäßig nur die
-  Hilfe. `contents` gibt alle Seiten einer Sprache ohne Text zurück (das Inhaltsverzeichnis
-  für `help_contents`). Leser sind die drei Hilfe-Werkzeuge des Assistenten (Karte
-  `lalabase/CLAUDE.md`). ⚠️ Nie an `Search` vorbei auf die Tabelle lesen, dort sitzt der Abgleich.
-  ⚠️ Specs, die Zeilen per Factory bauen, brauchen `:product_knowledge_table_as_given`, sonst
-  löscht der echte Abgleich sie (`spec/support/product_knowledge.rb`). Aus `docs/` liest es
-  `sections.rb` (der eine Besitzer der Abschnittsbeschriftung) und `plain_text.rb`
-  (dekodiert Entitäten, für Suchindex, Schnipsel und Modell); `page_links.rb` entscheidet für
-  den Renderer und für `get_help_page`, welche Seite ein Link in einer Seite meint.
+* `docs/` — eight files, all answering the same question: what the help (`/hilfe`) and
+  assistant know about the documentation living in `gboyke/lalabase-documentation`.
+  `catalogue.rb` reads one JSON file per language, written by that program and placed
+  here by its deployment (`DOCS_CATALOGUE_PATH`; contract: `docs/api/katalog_v1.md`).
+  ⚠️ **No file is the NORMAL CASE** (self-hosting, development machines): every reader
+  responds, none raises. `contract.rb` holds what both sides share (languages,
+  sanitization allowlist, canonical `/docs/<language>/<slug>` form) — **one** constant per
+  thing, and `page_links.rb` reads the form from it instead of keeping a second copy.
+  `contextual_help.rb` is the page → question → anchor map; it belongs to the core, while
+  `rake anchors:check` in the other repository checks whether the anchors still resolve. Also `help_link*.rb` (where a link
+  points: org-bound help, otherwise public documentation), `public_docs.rb` (its URL)
+  and `plain_text.rb` (snippet around a match).
+  ⚠️ **Nothing here renders Markdown, and nothing reads `app/docs/`** — the directory
+  no longer exists. To change a documentation page, edit it in the other repository. Redcarpet and
+  Rouge remain in the Gemfile: `documentation/` and `Lalabase::SafeMarkdown` still use them.
+* `product_knowledge/`: Lalabase's OWN text (in-app help)
+  as a searchable table without an organisation (`doc/product_knowledge_plan.md`). Since D4, the source is
+  the **catalogue** (`Docs::Catalogue`), no longer `app/docs/`; the table is a
+  copy of it. `sources.rb` decides fail-closed what
+  goes in (deliberately excluding self-hosting documentation, which is not in the catalogue at all), and is
+  the ONLY place that calculates the content hash (`build_row`). `sync.rb` reconciles (`rewrite:` for
+  repair). `ensure_fresh.rb` runs before every read, in this order: per-process
+  marker (5 minutes or until the catalogue changes; otherwise every read costs about 100 ms),
+  TABLE fingerprint against the catalogue, never backwards (`SystemSetting`
+  `product_knowledge_generation`; otherwise an old-release process resets the table during
+  deployment; the reference is the catalogue files' modification time, and a
+  language WITHOUT a file contributes nothing instead of a zero that would pull the generation backwards),
+  nonblocking lock. All without query caching (under the cache, the
+  check after the lock saw the old state). `search.rb` is the SINGLE reader: PostgreSQL normalizes
+  search terms ONCE (stop-word removal, stemming and prefix matching), then they enter as
+  a ready-made `tsquery`, not through the dictionary again; first pages with all terms,
+  then with some, then literal matches; one language per answer, help only by
+  default. `contents` returns all pages of one language without text (the table of contents
+  for `help_contents`). Readers are the assistant's three help tools (map in
+  `lalabase/CLAUDE.md`). ⚠️ Never read the table around `Search`; reconciliation lives there.
+  ⚠️ Specs that build rows through factories need `:product_knowledge_table_as_given`, or
+  real reconciliation deletes them (`spec/support/product_knowledge.rb`). From `docs/`, it reads
+  `sections.rb` (the single owner of section labels) and `plain_text.rb`
+  (decodes entities, for search index, snippets and model); `page_links.rb` decides for
+  the renderer and `get_help_page` which page a link within a page refers to.
 
-Bekannte Doppel-Verortungen (Altbestand; Boy-Scout-Regel: bei Berührung konsolidieren):
-* Ticket-Logik an 4 Orten: `ticket_*_service.rb` (flach), `tickets/`, `actors/*`,
-  `codebase_import/ticket_*`. Alle nicht-trivialen Ticket-Writes laufen über die Actor-Seam
+Known split locations (legacy; Boy Scout rule: consolidate when touched):
+* Ticket logic in 4 places: `ticket_*_service.rb` (flat), `tickets/`, `actors/*`,
+  `codebase_import/ticket_*`. All nontrivial ticket writes go through the actor seam
   (`save_ticket`/`move_ticket` [Tier 2], `apply_ticket_changes`, `merge_ticket_attribute_option`,
-  `sort_ticket_attribute_definitions`, `create_ai_post` [Tier 2]) — Plan `doc/tickets_seam_umbau_plan.md`.
-  Seit 08.09.2026 (`doc/ticket_bulk_edit_plan.md`): `tickets/bulk_selection.rb` löst die Auswahl
-  einer Sammeländerung in Ids auf (Modus `ids`/`all`, Deckel `MAX_TICKETS`, `expected_count`);
-  Dazu `tickets/bulk_fields.rb` (der eine Katalog der änderbaren Felder, Scheibe 4),
-  `tickets/bulk_summary.rb` (Bestand je Feld über die Auswahl, Digest je Feld),
-  `tickets/changes.rb` + `tickets/changes/*` (Register: eine Klasse je Änderungsart mit
-  `apply`/`restore`/`still_applied?`/`describe`; Fehler über `Invalid.with(code)`, weil die
-  Konvention Initializer ohne Positionsargumente will), `tickets/change_applier.rb` (EIN Ticket
-  im eigenen Sicherungspunkt, trägt das Rescue je Ticket, damit die Actors den Vertrag halten),
-  `tickets/change.rb` (REST R3b, 30.10.2026, nicht zu verwechseln mit dem Register
-  `tickets/changes*`) ist die EINE Regel einer Änderung über einen Token: das MCP-Werkzeug
-  `update_ticket` und `POST /api/v1/tickets/:id/changes` rufen sie. `parse` (Art nach
-  vorhandenem Schlüssel, Schlüssel, UTF-8, Titelregel, Listen, `"me"`), `write` (Status und
-  Personen über den Actor unten, Titel über `SaveTicket` unter Zeilensperre im Projekt) und
-  `Outcome` (geschrieben, Ticket weg, `FAILURES`, Unerwartetes). Rechte und Wortlaut bleiben in
-  den Hüllen; `REFUSALS`, `FAILURES`, die Tabellen des Werkzeugs und die `services.ticket_change*`-Schlüssel
-  in de und en hält `spec/locales/token_rule_refusal_texts_spec.rb` zusammen.
-  `actors/apply_ticket_changes.rb` (EIN Actor für eins und viele, D13; sperrt die Zeilen,
-  vergleicht den Bestand, schreibt den Durchlauf `TicketBulkRun`) und `actors/undo_ticket_bulk_run.rb`.
-  Seit 6b bedient `apply_ticket_changes` auch Board-Drag und Kommentar-Status mit einer Menge
-  von einem Ticket (`set_ticket_attribute` ist gelöscht); ein Ticket, das nicht speichert, ist
-  dort der Fehlschlag des Aufrufs, bei mehreren ein benanntes Teilergebnis. Scheibe 7:
-  `tickets/mover.rb` besitzt den Umzug EINES Tickets (Nummer mit Retry im Savepoint, verlorene
-  Zuweisungen/Abos, Zeiten, drei Aktivitäten; Kontext auf Ticket und beide Projekte) und bedient
-  `actors/move_ticket.rb` (jetzt Tier 1) wie `actors/move_tickets.rb`; `tickets/move_applier.rb`
-  und `tickets/destroy_applier.rb` sind die Geschwister von `change_applier.rb`;
-  `actors/destroy_tickets.rb` liest die Beobachter vor dem Löschen; `tickets/bulk_impact.rb`
-  zählt für die Dialoge (Kommentare, Anhänge, Zeiten, Unteraufgaben, verlorene Zuweisungen).
-  Ticket-Beziehungen (30.09.2026, `doc/ticket_relations_plan.md`): `tickets/waiting.rb` ist der
-  EINE Besitzer von „wartet“/„hält auf“ (`waiting`, `blocking`, `counts_for` mit fester
-  Abfragezahl, `for`), `tickets/cycle_check.rb` die Erreichbarkeit über eine feste Kantenliste
-  (rekursive CTE, gibt nur IDs aus, endet auch bei Altbestand-Kreisen), und zwar NUR für
-  Warte-Kanten: die Hierarchie braucht keine, weil die Eltern nach dem Anlegen feststehen.
-  `tickets/ancestry.rb` ist der EINE Leser der Vorfahren eines Tickets (Brotkrumen): eine
-  Abfrage, endet bei Kreisen in den Daten, bleibt in Projekt und Organisation. Geschrieben wird über
-  `actors/create_ticket_relation.rb` (Advisory-Lock je Organisation, dann Kreis-Prüfung, dann
-  `save!`) und `actors/destroy_ticket_relation.rb`; beide prüfen keine Rechte, das tut der Aufrufer
-  (`Organisations::Tickets::RelationsController`). Seit PR 2 (Ticketseite): `tickets/waiting.rb`
-  hat dazu `open_ids` (dieselbe Erledigt-Regel für die graue Anzeige), `tickets/relation_section.rb`
-  liest Abschnitt und Kopf-Hinweis EINES Tickets in fester Abfragezahl (nur sichtbare Beziehungen,
-  der Hinweis zählt trotzdem alle Blocker), `tickets/lookup.rb` ist die Suche des Pickers (Nummer
-  oder Titel über `Ticket.search_title`). Die Suche `q` der Ticketliste (REST und MCP, `tickets/filter.rb`) geht über
-  `Ticket.search_title_and_description`: Titel und Beschreibung, keine Kommentare. Bis zum 05.11.2026
-  traf sie jeden Kommentar, private eingeschlossen; ein pg_search-Join kann `readable_by` nicht fragen.
-  Seit PR 4 (Filter): `tickets/waiting_state_filter.rb` macht aus „wartet“/„hält auf“ eine
-  Ja/Nein-Bedingung („ist nicht“ = der Rest der Liste, erledigte Tickets eingeschlossen); Leiste
-  (`AdHocFilterService`) und Ansicht (`SmartFolders::Filters::WaitingFilter`/`BlockingFilter`)
-  fragen beide dort, nie `Tickets::Waiting` mit eigener Verneinung.
-* Embeddings: `embedding_processing_service.rb`/`embedding_reprocessing_service.rb` (flach) + `embeddings/`
-* SmartFolders: Reads = 5 flache `smart_folder_*`-Dateien + `projects/default_smart_folder_service.rb`;
-  Writes unter `actors/` (`clone_smart_folder`, `save_smart_folder_from_filters`, `share_smart_folder`);
-  `ad_hoc_to_smart_folder_service` ist ein reiner Converter (kein Write mehr).
-  Eine neue Sonder-Kategorie der Leiste kommt NUR in `AdHocFilterService::SPECIAL_FIELDS`: der
-  Converter und `SmartFoldersController#sanitized_filter_params` lesen dieselbe Liste. Was der
-  Converter schreibt, liest `smart_folder_dissolver.rb` 1:1 zurück (Spec:
-  `spec/services/smart_folder_round_trip_spec.rb`); ohne Rückweg öffnet die Ansicht als Expertenregel.
-* Objekt-Art ≠ Verzeichnis: `kanban_board_presenter.rb` liegt hier statt in `app/presenters/`;
-  Query-artige Objekte teils hier statt in `app/queries/`
+  `sort_ticket_attribute_definitions`, `create_ai_post` [Tier 2]) — plan `doc/tickets_seam_umbau_plan.md`.
+  Since 8 September 2026 (`doc/ticket_bulk_edit_plan.md`), `tickets/bulk_selection.rb` resolves a
+  bulk edit's selection into IDs (mode `ids`/`all`, cap `MAX_TICKETS`, `expected_count`);
+  also `tickets/bulk_fields.rb` (the single catalogue of editable fields, slice 4),
+  `tickets/bulk_summary.rb` (current values per field over the selection, digest per field),
+  `tickets/changes.rb` + `tickets/changes/*` (registry: one class per change kind with
+  `apply`/`restore`/`still_applied?`/`describe`; errors through `Invalid.with(code)`, because the
+  convention requires initializers without positional arguments), `tickets/change_applier.rb` (ONE ticket
+  in its own savepoint, carries the per-ticket rescue so actors comply with the contract),
+  `tickets/change.rb` (REST R3b, 30 October 2026, not to be confused with the
+  `tickets/changes*` registry) is the SINGLE rule for a change through a token: the MCP tool
+  `update_ticket` and `POST /api/v1/tickets/:id/changes` call it. `parse` (kind from
+  key presence, keys, UTF-8, title rule, lists, `"me"`), `write` (status and
+  people through the actor below, title through `SaveTicket` under a row lock in the project) and
+  `Outcome` (written, ticket gone, `FAILURES`, unexpected). Permissions and wording remain in
+  the wrappers; `spec/locales/token_rule_refusal_texts_spec.rb` keeps `REFUSALS`, `FAILURES`, the tool's tables and
+  the `services.ticket_change*` keys in German and English aligned.
+  `actors/apply_ticket_changes.rb` (ONE actor for one or many, D13; locks rows,
+  compares current values, writes the `TicketBulkRun`) and `actors/undo_ticket_bulk_run.rb`.
+  Since 6b, `apply_ticket_changes` also serves board dragging and comment status with a set
+  of one ticket (`set_ticket_attribute` has been deleted); a ticket that fails to save is
+  a failure of the call there, but a named partial result for multiple tickets. Slice 7:
+  `tickets/mover.rb` owns the move of ONE ticket (number with retry in a savepoint, lost
+  assignments/subscriptions, times, three activities; context on the ticket and both projects) and serves
+  `actors/move_ticket.rb` (now Tier 1) as well as `actors/move_tickets.rb`; `tickets/move_applier.rb`
+  and `tickets/destroy_applier.rb` are siblings of `change_applier.rb`;
+  `actors/destroy_tickets.rb` reads watchers before deletion; `tickets/bulk_impact.rb`
+  counts for the dialogs (comments, attachments, times, subtasks, lost assignments).
+  Ticket relations (30 September 2026, `doc/ticket_relations_plan.md`): `tickets/waiting.rb` is the
+  SINGLE owner of “waiting”/“blocking” (`waiting`, `blocking`, `counts_for` with a fixed
+  query count, `for`); `tickets/cycle_check.rb` provides reachability over a fixed edge list
+  (recursive CTE, returns only IDs, terminates even with legacy cycles), ONLY for
+  waiting edges: the hierarchy needs none because parents are fixed after creation.
+  `tickets/ancestry.rb` is the SINGLE reader of a ticket's ancestors (breadcrumbs): one
+  query, terminates on cycles in the data, stays within project and organisation. Writes go through
+  `actors/create_ticket_relation.rb` (advisory lock per organisation, then cycle check, then
+  `save!`) and `actors/destroy_ticket_relation.rb`; neither checks permissions — the caller does
+  (`Organisations::Tickets::RelationsController`). Since PR 2 (ticket page), `tickets/waiting.rb`
+  also has `open_ids` (same completion rule for the grey display), `tickets/relation_section.rb`
+  reads ONE ticket's section and header hint in a fixed query count (visible relations only,
+  but the hint still counts all blockers), and `tickets/lookup.rb` is the picker's search (number
+  or title through `Ticket.search_title`). The ticket list's `q` search (REST and MCP, `tickets/filter.rb`) uses
+  `Ticket.search_title_and_description`: title and description, no comments. Until 5 November 2026,
+  it matched every comment, including private ones; a pg_search join cannot ask `readable_by`.
+  Since PR 4 (filter), `tickets/waiting_state_filter.rb` turns “waiting”/“blocking” into a
+  yes/no condition (“is not” = the rest of the list, including completed tickets); toolbar
+  (`AdHocFilterService`) and view (`SmartFolders::Filters::WaitingFilter`/`BlockingFilter`)
+  both query it, never `Tickets::Waiting` with their own negation.
+* Embeddings: `embedding_processing_service.rb`/`embedding_reprocessing_service.rb` (flat) + `embeddings/`
+* SmartFolders: reads = 5 flat `smart_folder_*` files + `projects/default_smart_folder_service.rb`;
+  writes under `actors/` (`clone_smart_folder`, `save_smart_folder_from_filters`, `share_smart_folder`);
+  `ad_hoc_to_smart_folder_service` is a pure converter (no longer writes).
+  A new special category for the toolbar goes ONLY into `AdHocFilterService::SPECIAL_FIELDS`: the
+  converter and `SmartFoldersController#sanitized_filter_params` read the same list. What the
+  converter writes, `smart_folder_dissolver.rb` reads back 1:1 (spec:
+  `spec/services/smart_folder_round_trip_spec.rb`); without a return path, the view opens as an expert rule.
+* Object kind ≠ directory: `kanban_board_presenter.rb` lives here instead of `app/presenters/`;
+  some query-like objects live here instead of `app/queries/`
 
-## Geltungsbereich des Assistenten (S3a T5, 2026-08-25)
+## Assistant scope (S3a T5, 2026-08-25)
 
-Wer die org-weite Reichweite anfasst, fasst DREI Besitzer an, nicht mehr:
+Anyone changing org-wide reach changes THREE owners, no more:
 
-* `lalabase/tools/scope.rb` — **`Scope.for(chat:, actor:)` ist der einzige Weg**, einen
-  org-Scope zu bauen. Runner und Retriever gingen vorher je eigene Wege; ein Guard
-  (`spec/services/lalabase/tools/scope_factory_guard_spec.rb`) hält sie jetzt auf der
-  Fabrik. ⚠️ Der Chip verengt durch INTERSEKTION mit den Rechten, nie durch Ersetzen.
-  Eine Wahl, die nicht mehr auflöst, ist keine Wahl: der Thread fällt auf die volle
-  Reichweite zurück, und `#selection` sagt das, damit der Chip nicht eine Einschränkung
-  behauptet, die es nicht mehr gibt. ⚠️ „Löst nicht mehr auf" heißt archiviert, gelöscht
-  **oder für DIESEN Fragenden nicht mehr lesbar**: `#selection` geht über
-  `Chats::AssistantScopeOptions`, denselben Besitzer wie der Schreibpfad. Der prüft die
-  Rechte genau einmal, beim Speichern — ohne die Prüfung beim Lesen trüge ein verlorenes
-  Recht den Projektnamen weiter in Systemprompt und Deckungssatz, während der Chip
-  „Alle Projekte" zeigt.
-* `lalabase/tools/base.rb` — `PROJECT_FILTER_SCHEMA` und `resolve_project_filter` gehören
-  allen drei org-fähigen Werkzeugen gemeinsam. ⚠️ Auf dem Ein-Projekt-Pfad (nur noch
-  MCP) wird der Filter ABGELEHNT, nicht ignoriert: stilles Schlucken ließe ein Modell
-  glauben, es habe verengt. Ebenso `coverage_for(..., only_project:)` — eine auf ein
-  Projekt verengte Antwort darf nicht die org-weite Deckung tragen. ⚠️ `only_project:`
-  nimmt das **Projekt**, nicht seine id, und `resolve_project_filter` gibt es deshalb
-  auch so zurück: der Deckungssatz nennt den Namen, und mit der id allein hätte ihn
-  jeder Aufrufer erneut nachschlagen müssen.
-* `lalabase/tools/base.rb#referenced_record` (10.09.2026, `doc/assistent_wissen_kontext_plan.md`)
-  — der E3-Rückfall „was der Faden benennt, darf gelesen werden, auch wenn der Chip
-  woanders sucht; nur per UUID" gehört den Lese-Werkzeugen `GetTicket`, `GetNote`,
-  `GetDocument` und `GetMeeting` gemeinsam, ebenso `outside_coverage` und `cap_text`/`TRUNCATION_MARKER`.
-  Meeting-Bezüge laden nur ID, Organisation, Projekt, Titel und Zeitpunkt; der
-  Titel trägt das Datum. `GetMeeting` lädt beim Rückfall die aktuellen Inhalte neu
-  aus den aktiven Projekten der Organisation und prüft danach das Datensatzrecht.
-  Kein zweiter Rechte-Riegel: der Bezug hat `Scope#resolve_reference` beim Speichern
-  passiert, `authorize!` je Datensatz bleibt. Die vier Wörter des Textstatus (`available`,
-  `unsupported`, `unavailable`, `empty`) besitzt `ExtractPlainTextProcessingService
-  .text_status` neben seiner Allowlist; `Tickets::Serializer` und `GetDocument` rufen ihn.
-  Ein neuer referenzierbarer Typ = Registry-Eintrag (`assistant/reference_registry.rb`),
-  Marker + Knopf über `AssistantContextHelper`, und ein `Get*`-Werkzeug nach diesem Muster.
-  ⚠️ **`area:` ist NICHT für jedes Werkzeug die richtige Quelle der Kandidaten.**
-  `ProjectPermission.access_areas` kennt `tickets, notes, chats, documents, members,
-  documentation, meetings` — **kein `time_sessions`**. Die all/own/none-Regel
-  der Zeiten lebt in `TimeSessions::ViewingScope` (§2.4). `resolve_project_filter` nimmt
-  deshalb wahlweise `area:` ODER `candidates:`; `SummarizeTimeSessions` reicht seine
-  ViewingScope-Liste als `candidates:` ein. Ein `area: :time_sessions` hier ist ein
-  `NoMethodError`, den der Runner zu „tool crashed" auffängt: still, nicht laut.
-* `lalabase/tools/scope.rb#code_project_ids` — die Reichweite der fünf CODE-Werkzeuge
-  (`doc/assistent_code_werkzeuge_plan.md`). ⚠️ **Keine Area.** Repositories sieht, wer
-  `chats:read` ODER `documentation:write` hat — eine Zwei-Area-Vereinigung, für die
-  `ProjectPermission` gar kein Feld hat. Besitzer der Regel ist
-  `ProjectRepositoryPolicy::Scope`, und diese Methode ist ihr einziger Aufrufer; ein
-  handgeschriebenes `area: :chats` ließe den Dokumentations-Zweig still fallen. Dieselbe
-  Bauart wie `SummarizeTimeSessions` mit `TimeSessions::ViewingScope`, aus demselben
-  Grund. Der Chip verengt auch hier durch Intersektion, nie durch Ersetzen.
-* `lalabase/tools/base.rb#resolve_code_project` — die Leiter, mit der aus dieser
-  Reichweite EIN Projekt wird: genanntes Projekt, sonst der Chip beziehungsweise das
-  einzige erreichbare, sonst eine Kandidatenliste. Fünf Werkzeuge, EINE Leiter. Vision
-  und Fähigkeiten sind 1:1 je Projekt, „alle Projekte" gibt es hier also nicht, und
-  raten ist schlechter als fragen. ⚠️ Die fünf melden seither `requires_actor?` — die
-  einzige Stelle, an der auch der Ein-Projekt-Pfad sich ändert: ohne Fragenden lehnt der
-  Runner sie ab, statt Pundit ein `nil` zu reichen.
-* `chats/assistant_scope_options.rb` — die anwählbaren Projekte, geteilt von Chip und
-  Schreibpfad. Driften die auseinander, entsteht entweder eine tote Option oder ein Weg,
-  einen Verlauf an ein Projekt zu heften, das man nicht sehen darf.
-* `assistant/reference_registry.rb` — welche Objekttypen der Bezug des Assistenten kennt
-  (Bezugs-Sammlung S1, `doc/assistent_bezug_sammlung_plan.md` §5), fail-closed wie
-  `PanelRegistry`. Je Typ: Rechte-Area, Zitationstyp, `reachable`-Lambda (die POLICY des
-  Typs, nicht bloß sein Projektfilter) und `title`-Lambda. ⚠️ Sie doppelt KEINE der drei
-  bestehenden Karten (`AREA_BY_TYPE`, `Citations::TYPES`, `CitationTargets::MODEL_NAMES`),
-  sondern deklariert und wird gegen sie geprüft
-  (`spec/architecture/assistant_reference_registry_guard_spec.rb`). Hier wohnt auch die
-  Schlüsselvokabel `Ticket:<uuid>` samt `parse_key` — ⚠️ **nie `constantize`**, der Typ
-  wird ausschließlich in der Registry NACHGESCHLAGEN.
-* `chats/reference_normalizer.rb` — die geteilte Normalisierung, die beide Bezugs-Actors
-  unter dem Zeilenschloss fahren (§7.2). Wirft alles weg, was für den Besitzer des Fadens
-  nicht auflöst: gelöscht, außer Reichweite, abgemeldeter Typ — drei Gründe, EIN Wort,
-  tragfähig nur weil ein Org-Faden genau einen Besitzer hat. Der Schreibpfad hält die
-  Liste sauber, das Modell prüft nur Form.
+* `lalabase/tools/scope.rb` — **`Scope.for(chat:, actor:)` is the only way** to build an
+  org scope. Runner and retriever previously followed separate paths; a guard
+  (`spec/services/lalabase/tools/scope_factory_guard_spec.rb`) now keeps them on the
+  factory. ⚠️ The chip narrows by INTERSECTION with permissions, never by replacement.
+  A choice that no longer resolves is no choice: the thread falls back to full
+  reach, and `#selection` reports this so the chip does not claim a restriction
+  that no longer exists. ⚠️ “No longer resolves” means archived, deleted
+  **or no longer readable by THIS requester**: `#selection` goes through
+  `Chats::AssistantScopeOptions`, the same owner as the write path. That path checks
+  permissions exactly once, on save — without checking on read, a lost
+  permission would leave the project name in the system prompt and coverage sentence while the chip
+  shows “All projects”.
+* `lalabase/tools/base.rb` — `PROJECT_FILTER_SCHEMA` and `resolve_project_filter` are shared
+  by all three org-capable tools. ⚠️ On the single-project path (now only
+  MCP), the filter is REJECTED, not ignored: silently swallowing it would make a model
+  believe it had narrowed the scope. Likewise `coverage_for(..., only_project:)` — an answer narrowed to one
+  project must not carry org-wide coverage. ⚠️ `only_project:`
+  takes the **project**, not its ID, which is why `resolve_project_filter` also
+  returns it that way: the coverage sentence names the project, and with the ID alone,
+  every caller would have had to look it up again.
+* `lalabase/tools/base.rb#referenced_record` (10 September 2026, `doc/assistent_wissen_kontext_plan.md`)
+  — the E3 fallback “what the thread names may be read even if the chip
+  searches elsewhere; only by UUID” is shared by the read tools `GetTicket`, `GetNote`,
+  `GetDocument` and `GetMeeting`, as are `outside_coverage` and `cap_text`/`TRUNCATION_MARKER`.
+  Meeting references load only ID, organisation, project, title and time; the
+  title includes the date. On fallback, `GetMeeting` reloads current contents
+  from the organisation's active projects and then checks record-level permission.
+  No second authorization gate: the reference passed `Scope#resolve_reference` on save;
+  per-record `authorize!` remains. `ExtractPlainTextProcessingService
+  .text_status` owns the four text-status words (`available`,
+  `unsupported`, `unavailable`, `empty`) alongside its allowlist; `Tickets::Serializer` and `GetDocument` call it.
+  A new referenceable type = registry entry (`assistant/reference_registry.rb`),
+  marker + button through `AssistantContextHelper`, and a `Get*` tool following this pattern.
+  ⚠️ **`area:` is NOT the right candidate source for every tool.**
+  `ProjectPermission.access_areas` knows `tickets, notes, chats, documents, members,
+  documentation, meetings` — **no `time_sessions`**. The all/own/none rule
+  for times lives in `TimeSessions::ViewingScope` (§2.4). `resolve_project_filter` therefore
+  accepts either `area:` OR `candidates:`; `SummarizeTimeSessions` passes its
+  ViewingScope list as `candidates:`. An `area: :time_sessions` here causes a
+  `NoMethodError`, caught by the runner as “tool crashed”: silent, not loud.
+* `lalabase/tools/scope.rb#code_project_ids` — the reach of the five CODE tools
+  (`doc/assistent_code_werkzeuge_plan.md`). ⚠️ **No area.** Repositories are visible to anyone with
+  `chats:read` OR `documentation:write` — a union of two areas for which
+  `ProjectPermission` has no field. The rule belongs to
+  `ProjectRepositoryPolicy::Scope`, and this method is its only caller; a
+  handwritten `area: :chats` would silently drop the documentation branch. The same
+  structure as `SummarizeTimeSessions` with `TimeSessions::ViewingScope`, for the same
+  reason. Here too, the chip narrows by intersection, never by replacement.
+* `lalabase/tools/base.rb#resolve_code_project` — the precedence that resolves ONE project
+  from this reach: named project, otherwise the chip or the
+  only reachable project, otherwise a candidate list. Five tools, ONE precedence rule. Vision
+  and capabilities are 1:1 per project, so there is no “all projects” here, and
+  guessing is worse than asking. ⚠️ The five now declare `requires_actor?` — the
+  only place where the single-project path also changes: without a requester, the
+  runner refuses them instead of passing `nil` to Pundit.
+* `chats/assistant_scope_options.rb` — selectable projects, shared by chip and
+  write path. If they drift apart, the result is either a dead option or a way
+  to attach a conversation to a project the user must not see.
+* `assistant/reference_registry.rb` — the object types known to assistant references
+  (reference collection S1, `doc/assistent_bezug_sammlung_plan.md` §5), fail-closed like
+  `PanelRegistry`. Per type: permission area, citation type, `reachable` lambda (the type's POLICY,
+  not merely its project filter) and `title` lambda. ⚠️ It duplicates NONE of the three
+  existing maps (`AREA_BY_TYPE`, `Citations::TYPES`, `CitationTargets::MODEL_NAMES`),
+  but declares entries and is checked against them
+  (`spec/architecture/assistant_reference_registry_guard_spec.rb`). It also owns the
+  key vocabulary `Ticket:<uuid>` with `parse_key` — ⚠️ **never `constantize`**; the type
+  is LOOKED UP exclusively in the registry.
+* `chats/reference_normalizer.rb` — shared normalization run by both reference actors
+  under the row lock (§7.2). Discards anything that does not resolve for the thread's owner:
+  deleted, out of reach, deregistered type — three reasons, ONE word,
+  viable only because an org thread has exactly one owner. The write path keeps the
+  list clean; the model checks only its shape.
 
-Der Vertrag `chatposts.source_coverage` trägt seit T5 zusätzlich `chosen` (Name des
-gewählten Projekts). ⚠️ **ZWEI Wege setzen ihn**, nicht nur der Chip: der Chip über
-`Scope#selection`, der Werkzeug-Filter über `coverage_with(chosen:)`. Beide sind die
-Wahl des Fragenden und bekommen denselben Satz; nur eine Grenze aus den RECHTEN wird
-gezählt. ⚠️ Wer diese Deckung erzeugt, baut sie NIE von Hand: `Scope#coverage`
-bzw. `#coverage_with` sind die einzigen Bauer, auch im `ProjectRag::Retriever`.
-`ChatResponseJob#narrowest_coverage` wählt einen der Hashes ganz aus, und bei
-Gleichstand den ERSTEN (den des Retrievers) — ein handgebauter Hash dort überstimmt
-also lautlos den, der den Chip trägt. Er unterscheidet die selbst gewählte Verengung von der, die aus den
-Rechten folgt — beide bekommen einen anderen Satz unter der Antwort, weil eine Antwort
-wandert und der Chip dort nicht mitkommt.
+Since T5, the `chatposts.source_coverage` contract also carries `chosen` (name of the
+selected project). ⚠️ **TWO paths set it**, not just the chip: the chip through
+`Scope#selection`, the tool filter through `coverage_with(chosen:)`. Both are the
+requester's choice and receive the same sentence; only a boundary arising from PERMISSIONS is
+counted. ⚠️ Anyone producing this coverage NEVER builds it manually: `Scope#coverage`
+and `#coverage_with` are the only builders, including in `ProjectRag::Retriever`.
+`ChatResponseJob#narrowest_coverage` selects one hash in its entirety and, on a
+tie, the FIRST (the retriever's) — a manually built hash there therefore silently overrides
+the one carrying the chip. It distinguishes user-chosen narrowing from narrowing imposed by
+permissions — each gets a different sentence below the answer, because an answer
+travels and the chip does not travel with it.

@@ -284,6 +284,28 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
         end)
     end
 
+    # The bundle stands on top and bold while its late row is unread, but its line
+    # is the read row whose event happened later. Opening that line has to read the
+    # bundle, as opening any bold line does: the lane's timer reads the open row's
+    # whole subject. Without it the ticket stood bold on top after every redraw.
+    it 'reads the late row when the read row that speaks for its bundle is opened' do
+      ticket = ticket_titled('Gelesen, dann spät')
+      read_in_time = row_about(ticket, created_at: 1.hour.ago).tap { |row| row.update!(state: :read, read_at: 30.minutes.ago) }
+      late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
+      expect(late_comment.reload).to be_unread
+      expect(row_ids(web_inbox(view_mode: 'grouped')).first).to eq(read_in_time.id)
+
+      timer = web_inbox(view_mode: 'grouped', notification: read_in_time.id)
+              .at_css('turbo-frame#ticket_pane [data-controller="pane-mark-read-delay"]')
+      expect(timer).to be_present
+
+      patch timer['data-pane-mark-read-delay-url-value'], headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+
+      expect(response).to have_http_status(:ok)
+      expect(late_comment.reload).to be_state_read
+      expect(read_in_time.reload).to be_state_read
+    end
+
     # Both activities lie in one five-minute bucket that is over, so they share a row.
     # The clock is moved for the two writes only; the lists are drawn in real time.
     context 'when an earlier event folds into the row late' do

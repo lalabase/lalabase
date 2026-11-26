@@ -133,8 +133,14 @@ RSpec.describe Posts::MarkRead do
   # (first_event_at up to last_event_at), the seam for rows from before
   # payload.post_ids. A row that carries post ids is decided by those ids alone
   # and never found by its span, however far it reaches: it may cover the time
-  # of another comment of the same ticket.
+  # of another comment of the same ticket. Before, the span found such a row and
+  # its lock was taken; the post ids refused it only then. So these examples
+  # count the locks: a row that is not found is not locked.
   context 'when the span of a row with post ids covers the activity of another comment' do
+    def notification_locks(statements)
+      statements.grep(/FROM "notifications".*FOR UPDATE/)
+    end
+
     let(:activity_time) { Time.zone.local(2026, 11, 24, 14, 0, 0) }
     let(:span_start) { activity_time - 1.hour }
     let(:span_end) { activity_time + 2.hours }
@@ -169,9 +175,11 @@ RSpec.describe Posts::MarkRead do
       expect(row_of_other_post).to have_attributes(group_count: 1, first_event_at: span_start,
                                                    last_event_at: span_end, created_at: span_end)
 
-      _read, notifications = described_class.call(post: post_record, user: reader)
+      notifications = nil
+      statements = capture_sql { _read, notifications = described_class.call(post: post_record, user: reader) }
 
       expect(notifications).to be_empty
+      expect(notification_locks(statements)).to be_empty
       expect(row_of_other_post.reload).to be_unread
 
       _read, notifications = described_class.call(post: other_post, user: reader)
@@ -187,7 +195,8 @@ RSpec.describe Posts::MarkRead do
       expect(group.reload).to be_unread
       expect(activity.created_at).to be_between(group.first_event_at, group.last_event_at).exclusive
 
-      described_class.call(post: post_record, user: reader)
+      statements = capture_sql { described_class.call(post: post_record, user: reader) }
+      expect(notification_locks(statements)).to be_empty
       described_class.call(post: other_post, user: reader)
 
       expect(group.reload).to be_unread

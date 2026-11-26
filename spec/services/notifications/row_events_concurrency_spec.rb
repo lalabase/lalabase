@@ -132,7 +132,8 @@ RSpec.describe Notifications::RowEvents, 'under a second connection', :ci_guard 
     # some moment of this example, long after the event's own time.
     Notification.find(row.id).mark_as_read!
     folded = Notification.find(row.id)
-    expect(folded).to have_attributes(state: 'read', group_count: 2, first_event_at: first_time)
+    expect(folded).to have_attributes(state: 'read', group_count: 2, first_event_at: first_time,
+                                      happened_at: event_time)
     expect(event_time).to be < started_at
     expect(folded.last_event_at).to be_between(started_at.floor(6), Time.current)
   ensure

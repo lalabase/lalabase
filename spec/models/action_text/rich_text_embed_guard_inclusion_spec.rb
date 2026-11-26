@@ -27,8 +27,8 @@ RSpec.describe 'RichTextEmbedGuard inclusion and single ownership' do
     expect(offenders).to be_empty
   end
 
-  it 'guards the three carriers at runtime' do
-    expect([Ticket, Post, Note].map { |m| m.include?(RichTextEmbedGuard) }).to all(be(true))
+  it 'guards the four carriers at runtime' do
+    expect([Ticket, Post, Note, ConversationPost].map { |m| m.include?(RichTextEmbedGuard) }).to all(be(true))
   end
 
   # Scoped to the files that deal with rich texts, editors and embeds: other rules may

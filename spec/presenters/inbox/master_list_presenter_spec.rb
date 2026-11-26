@@ -72,6 +72,26 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(counts.grep(/DISTINCT ON/i)).to be_empty
     end
 
+    # The DISTINCT ON and its window sort every row of the filtered inbox, read
+    # ones included, and LIMIT cannot reach into that sort. So it carries the id
+    # and the window alone, and the page joins the whole rows of its bundles
+    # back. Until 2026-11-27 it sorted notifications.*, the payload with it.
+    it 'sorts the representatives over their ids, not over whole rows' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      newest_a = notif(ticket_a, created_at: 90.minutes.ago)
+      newest_b = notif(ticket_b, created_at: 1.hour.ago)
+
+      statements = []
+      callback = ->(*, payload) { statements << payload[:sql] if payload[:sql].include?('DISTINCT ON') }
+      rows = ActiveSupport::Notifications.subscribed(callback, 'sql.active_record') { build.notifications.to_a }
+
+      expect(rows.map(&:id)).to eq([newest_b.id, newest_a.id])
+      expect(rows.first.payload).to be_a(Hash)
+      expect(statements.size).to eq(1)
+      expect(statements.first).to match(/DISTINCT ON \([^)]+\) notifications\.id,/)
+      expect(statements.first).not_to match(/DISTINCT ON \([^)]+\) notifications\.\*/)
+    end
+
     # The inbox appends pages (endless scroll). A page behind the end is EMPTY:
     # the last page again would hang the same rows under the list a second time.
     it 'answers a page behind the end with no rows, not with the last page again' do

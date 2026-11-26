@@ -205,9 +205,13 @@ module Inbox
     # notification level. A ticket appears globally only ONCE, under the day of
     # that arrival. group_total/group_unread provide the bundle counts.
     def compute_grouped!
-      rep_scope = Notification.from(representatives, :notifications)
+      bundles = representatives.arel.as('bundles')
+      # Newest arrival of the bundle first, then the id: the rule of
+      # Notification.recent, for a bundle. Ordered on the narrow side of the join.
+      rep_scope = Notification.joins(bundle_rows(bundles))
+                              .select(Notification.arel_table[Arel.star], bundles[:bundle_arrived_at])
                               .for_notification_center
-                              .order(Arel.sql('notifications.bundle_arrived_at DESC, notifications.id DESC'))
+                              .order(bundles[:bundle_arrived_at].desc, bundles[:id].desc)
 
       # Counts over the ENTIRE filtered scope (not just this page), so that
       # the badge shows the real total count per ticket.
@@ -229,12 +233,22 @@ module Inbox
     # runs before DISTINCT ON, over every row of the bundle: bundle_arrived_at
     # is the bundle's newest arrival, what compute_grouped! orders by (desc,
     # then the id, as Notification.recent does) and group_by_period reads.
+    # Only the id and the window: this sort runs over every row of the filtered
+    # inbox and no LIMIT reaches into it, so whole rows (the payload with them)
+    # would make it wide. The page joins its bundles' rows back (#bundle_rows).
     def representatives
       bundle = 'notifications.notifiable_type, notifications.notifiable_id'
       @filtered.reorder(nil)
-               .select(Arel.sql("DISTINCT ON (#{bundle}) notifications.*, " \
+               .select(Arel.sql("DISTINCT ON (#{bundle}) notifications.id, " \
                                 "MAX(notifications.last_event_at) OVER (PARTITION BY #{bundle}) AS bundle_arrived_at"))
                .order(Arel.sql("#{bundle}, #{Notification::HAPPENED_AT_SQL} DESC, notifications.id DESC"))
+    end
+
+    # The rows of the representatives, by id: an inner join, so the page reads
+    # no row the filtered inbox does not hold.
+    def bundle_rows(bundles)
+      notifications = Notification.arel_table
+      notifications.join(bundles).on(bundles[:id].eq(notifications[:id])).join_sources
     end
 
     # A row action refreshes the pages currently on screen, including pages

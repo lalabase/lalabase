@@ -55,8 +55,8 @@ module NotificationReadGuard
     'app/jobs/email_delivery_job.rb' =>
       [1, 'loads its own row by id; deliverable_to_recipient? asks accessible_for before any mail goes out'],
     'app/presenters/inbox/master_list_presenter.rb' =>
-      [1, 'representatives out of the already filtered inbox relation: Notification.from reads only ' \
-          'the rows of that relation, its DISTINCT ON subquery'],
+      [1, 'representatives out of the already filtered inbox relation: Notification.joins reads only ' \
+          'the rows its inner join takes from that relation, by the ids of its DISTINCT ON subquery'],
     'app/services/dashboard/daily_briefing.rb' =>
       [1, 'uses notified subjects only to HIDE activities from another lane, shows none of them'],
     'app/services/notifications/fanout_service.rb' => [1, 'writes: finds the group a new notification joins'],

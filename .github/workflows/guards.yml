@@ -361,6 +361,7 @@ jobs:
           spec/requests/inbox_status_filter_spec.rb
           spec/requests/inbox_pagination_spec.rb
           spec/requests/inbox_latest_event_spec.rb
+          spec/requests/notification_group_activities_spec.rb
           spec/requests/all_inboxes_spec.rb
           spec/requests/all_people_spec.rb
           spec/requests/session_organisation_follows_pages_spec.rb

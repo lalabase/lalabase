@@ -6,8 +6,8 @@ require 'rails_helper'
 #       "gesamter Zeitraum" chosen by default. The periods are the time
 #       area's (TimeSessions::ListPeriod: the eight presets, their order,
 #       labels and bounds), not a second list; a notification counts by the
-#       day of its latest event (last_event_at) in the reader's time zone: a
-#       row created long ago that got an event today is a row of today.
+#       day its latest event reached it (last_event_at) in the reader's time
+#       zone: a row created long ago that got an event today is a row of today.
 #       The period narrows like search and project: it travels with every
 #       link of the list, survives the streams of a row action, and the empty
 #       list's reset drops it.

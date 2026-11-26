@@ -1,4 +1,4 @@
-# Map: app/services/notifications (as of 2026-11-26)
+# Map: app/services/notifications (as of 2026-11-27)
 
 Processes OutboxEvents into Notifications. The full chain (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md`.
@@ -50,9 +50,13 @@ OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md
   through `Notification.recent` (`last_event_at DESC, id DESC`) and narrows the date range through
   `Notification.active_in_period` (the day of the latest arrival in the reader's time zone). The
   time displayed on a row is `Notification#happened_at`, not the order's column. No web app reader writes
-  `order(created_at: …)` or `order(last_event_at: …)` by hand; the only location with its own
-  `ORDER BY` is the bundle in `Inbox::MasterListPresenter#representatives` (`DISTINCT ON`
-  requires it; its comment says which row speaks for a bundle). The token inbox writes the same order in
+  `order(created_at: …)` or `order(last_event_at: …)` by hand. Two readers order otherwise, each with
+  its reason in its comment: the bundled view in `Inbox::MasterListPresenter`, where
+  `#representatives` picks the row whose event happened last (`DISTINCT ON` needs its own `ORDER BY`)
+  and `#compute_grouped!` orders the bundles by their newest arrival (`bundle_arrived_at`, then the
+  id: the rule of `recent` for a bundle, so a change to `recent` is made there as well); and the lane's
+  "what was new" block (`Notification.by_happened_at`: it prints when each event happened, newest on
+  top). The token inbox writes the same order in
   `InboxQuery#relation` itself when a client asks with `arrived_since` (API 1.16); without it, it keeps
   the order and the `since` of API 1.15, by `Notification#happened_at` (`Notification.by_happened_at`),
   and its field `last_event_at` is that time (`Notifications::Serializer` says which column each field

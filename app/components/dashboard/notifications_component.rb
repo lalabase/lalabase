@@ -22,7 +22,8 @@ class Dashboard::NotificationsComponent < ViewComponent::Base
     Notification.inbox_unread(user, project.organisation).where(project: project)
   end
 
-  # Newest latest event first, through the recent scope like every other list.
+  # Newest arrival first, through the recent scope like the inbox's lists; each
+  # row prints when its event happened (Notification#happened_at).
   def notifications
     @notifications ||= unread_in_project.includes(:actor, :notifiable)
                                         .recent

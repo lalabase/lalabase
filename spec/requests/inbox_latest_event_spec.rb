@@ -2,13 +2,15 @@
 
 require 'rails_helper'
 
-# What: the inbox of one organisation reads a row by its latest event
-#       (last_event_at), the order of the token inbox. A row created days ago
-#       that got an event a moment ago (GroupKeyBuilder folds it in, its
-#       created_at stays) is the most recent row: first in the bundled and in
-#       the chronological list, first in the lane's "what was new" block with
-#       the time of that event, and first in the list the two bulk answers redraw.
-#       Real time throughout: the pages render avatars.
+# What: the inbox of one organisation orders a row by its latest event, by the
+#       moment that event reached the row (last_event_at, the order of the token
+#       inbox by arrival), and prints when it happened (happened_at). A row
+#       created days ago that got an event a moment ago (GroupKeyBuilder folds it
+#       in, its created_at stays) is the most recent row: first in the bundled
+#       and in the chronological list, first in the lane's "what was new" block
+#       with the time of that event, and first in the list the two bulk answers
+#       redraw. Where the two times part, for a row the fanout writes late: the
+#       last block. Real time throughout: the pages render avatars.
 RSpec.describe 'Inbox by the latest event of a row', type: :request do
   before { Prosopite.pause } # pre-existing N+1 in the render path
   after  { Prosopite.resume }
@@ -27,8 +29,10 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
     ActsAsTenant.with_tenant(organisation) { create(:ticket, project: project, title: title) }
   end
 
-  # last_event_at: the row's latest event, which moves when a later event folds into
-  # the row; created_at does not. The factory lets both follow created_at.
+  # last_event_at: the moment the row's latest event reached it, which moves when an
+  # event folds into the row; created_at does not. The factory lets both follow
+  # created_at. happened_at (when that event happened) stays empty unless given, as
+  # on a row written before the column: then the row answers last_event_at.
   def row_about(ticket, created_at:, last_event_at: created_at, **attributes)
     ActsAsTenant.with_tenant(organisation) do
       create(:notification,

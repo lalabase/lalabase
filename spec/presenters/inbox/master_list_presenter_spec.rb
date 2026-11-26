@@ -178,9 +178,12 @@ RSpec.describe Inbox::MasterListPresenter do
     end
   end
 
-  # A row's latest event (last_event_at) decides which row stands for a bundle, where
-  # the bundle stands in the list and under which heading: a row created days ago
-  # that got an event a moment ago is the most recent row, as in the token inbox.
+  # Two times of a row decide the bundled view. The row whose latest event happened
+  # last (happened_at) stands for its bundle; the bundle stands in the list, and
+  # under its heading, at its newest arrival (last_event_at, the moment a row's
+  # latest event reached it). A row created days ago that got an event a moment ago
+  # is the most recent row. The rows here carry no happened_at, as rows written
+  # before the column, so the two times are one; the last context parts them.
   describe 'the latest event of a row' do
     it 'lets the row with the latest event represent the bundle, also when it was created first' do
       old_but_active = notif(ticket_a, created_at: 3.days.ago, last_event_at: 5.minutes.ago)
@@ -207,7 +210,7 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(presenter.group_total(presenter.notifications.first)).to eq(4)
     end
 
-    it 'orders the bundles by the latest event of their representative' do
+    it 'orders the bundles by the newest arrival among their rows' do
       notif(ticket_a, created_at: 3.days.ago, last_event_at: 5.minutes.ago)
       notif(ticket_b, created_at: 1.hour.ago)
 

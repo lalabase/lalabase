@@ -62,6 +62,20 @@ RSpec.describe Notifications::FanoutService, 'simplified ticket notifications' d
       expect(notifications_for(watcher)).to exist
     end
 
+    # Posts::MarkRead decides a row that carries post ids by those ids. So the
+    # row of one single comment must carry the id of its post, not only a group.
+    it 'writes the id of the post into the in-app row of a single comment' do
+      post_record = create(:post, organisation: organisation, ticket: ticket, user: actor)
+      activity = create(:activity, :post_added,
+                        organisation: organisation, trackable: ticket, actor: actor,
+                        secondary: post_record)
+      run_fanout(activity)
+
+      in_app = notifications_for(watcher).sole
+      expect(in_app).to have_attributes(event_type: 'ticket_commented', group_count: 1)
+      expect(in_app.payload['post_ids']).to eq([post_record.id])
+    end
+
     it 'retains every post id when comments are grouped' do
       first_post = create(:post, organisation: organisation, ticket: ticket, user: actor)
       second_post = create(:post, organisation: organisation, ticket: ticket, user: actor)

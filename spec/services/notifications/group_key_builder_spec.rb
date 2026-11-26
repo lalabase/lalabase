@@ -269,9 +269,11 @@ RSpec.describe Notifications::GroupKeyBuilder do
       end
 
       # The builder holds no copy of the rule. It asks the owner, and what the
-      # owner answers is what the row gets.
+      # owner answers is what the row gets. The answer here lies before the
+      # activity and before the clock: a maximum the builder took on its own
+      # with either of them would write another time.
       it 'takes the latest event of a new row from RowEvents.arrival' do
-        answer = now + 7.minutes
+        answer = now - 3.days
         allow(Notifications::RowEvents).to receive(:arrival).and_call_original
         allow(Notifications::RowEvents).to receive(:arrival).with(at: activity.created_at).and_return(answer)
 

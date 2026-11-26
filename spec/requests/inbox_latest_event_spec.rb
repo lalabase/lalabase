@@ -223,7 +223,8 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
 
     # The bundled view draws one line per ticket, the row with the latest
     # last_event_at. That is the row that arrived last, here the late one, though
-    # the other row of the ticket carries the later event.
+    # the other row of the ticket carries the later event. (That this column picks
+    # the row, and not created_at, is held by master_list_presenter_spec.rb.)
     it 'stands for its ticket in the bundled view when it arrived after a row with a later event' do
       ticket = ticket_titled('Zwei Zeilen')
       written_in_time = row_about(ticket, created_at: 1.hour.ago)

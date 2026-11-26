@@ -123,17 +123,19 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
     end
   end
 
-  # A row the fanout creates late (an outbox event retried after a failure) starts at
-  # the time of its activity, not of its delivery (GroupKeyBuilder#create_new_group).
-  # It stands where the token inbox has always put it: the web inbox has no second
-  # order of its own (one that put a late row on top by its created_at would split
-  # the two).
+  # A row the fanout writes late (an outbox event delayed, or retried after a failure)
+  # stands at the moment its event reached it, the time of the write, not at the time
+  # of its activity (Notifications::RowEvents.arrival, asked by GroupKeyBuilder). So it
+  # is new and on top: first in the web inbox and in the token inbox, which share the
+  # one order; under the heading and inside the period of the day it arrived; and a
+  # client that polls the token inbox with `since` gets it. A fold is a write as well:
+  # an earlier event that reaches a row late moves the row up.
   describe 'a row the fanout creates late' do
-    let!(:late) do
-      ticket = ticket_titled('Spät verteilt')
+    # The row the builder writes now for an activity that happened at another time.
+    def written_now_for(ticket, activity_at:)
       activity = ActsAsTenant.with_tenant(organisation) do
         create(:activity, actor: create(:user), organisation: organisation, trackable: ticket,
-                          action: 'ticket_commented', key: 'ticket.ticket_commented', created_at: 2.days.ago)
+                          action: 'ticket_commented', key: 'ticket.ticket_commented', created_at: activity_at)
       end
       ActsAsTenant.with_tenant(organisation) do
         Notifications::GroupKeyBuilder.new(activity, user).find_or_create_group(
@@ -143,7 +145,12 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
         )
       end
     end
-    # Written after the late row: without an order the table would hand them back as written.
+
+    # Written before the late row and expected below it: without an order the table
+    # hands rows back as written, so the late row must not come first by accident.
+    let!(:day_before) { row_about(ticket_titled('Vorgestern'), created_at: 36.hours.ago) }
+    let!(:late) { written_now_for(ticket_titled('Spät verteilt'), activity_at: 2.days.ago) }
+    # Written after the late row, with a latest event between its activity and its write.
     let!(:yesterday) { row_about(ticket_titled('Gestern'), created_at: 1.day.ago) }
     let(:token) do
       pat = build(:personal_access_token, user: user, organisations: [organisation], read_only: true)
@@ -155,19 +162,89 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
 
     before { make_token_owner_a_member(user, organisation, projects: [project]) }
 
-    it 'stands where the token inbox puts it, at the time of its activity' do
+    def token_inbox(**params)
+      get '/api/v1/notifications', params: { status: 'all', **params },
+                                   headers: { 'Authorization' => "Bearer #{token.token}" }
+      expect(response).to have_http_status(:ok)
+      JSON.parse(response.body)['data'].pluck('id')
+    end
+
+    def web_inbox(view_mode: 'chronological', **params)
+      get organisation_notifications_path(organisation, view_mode: view_mode, **params)
+      expect(response).to have_http_status(:ok)
+      Nokogiri::HTML(response.body)
+    end
+
+    it 'stands on top, in the web inbox as in the token inbox' do
       expect(late.created_at).to be > yesterday.created_at
-      expect(late.last_event_at).to be < yesterday.last_event_at
+      expect(late.first_event_at).to be < day_before.last_event_at
+      expect(late.last_event_at).to be > yesterday.last_event_at
 
-      get '/api/v1/notifications', params: { status: 'all' }, headers: { 'Authorization' => "Bearer #{token.token}" }
-      expect(response).to have_http_status(:ok)
-      token_order = JSON.parse(response.body)['data'].pluck('id')
+      token_order = token_inbox
 
-      get organisation_notifications_path(organisation, view_mode: 'chronological')
-      expect(response).to have_http_status(:ok)
-      web = Nokogiri::HTML(response.body)
-      expect(row_ids(web)).to eq([yesterday.id, late.id])
+      web = web_inbox
+      expect(row_ids(web)).to eq([late.id, yesterday.id, day_before.id])
       expect(row_ids(web)).to eq(token_order)
+    end
+
+    it 'reaches a client that polls the token inbox with since set between its activity and its write' do
+      since = 1.hour.ago
+      expect(late.first_event_at).to be < since
+      expect(late.created_at).to be > since
+      expect(token_inbox).to eq([late.id, yesterday.id, day_before.id])
+
+      expect(token_inbox(since: since.iso8601)).to eq([late.id])
+    end
+
+    # { notification id => the period heading it stands under }, in the order of the
+    # list. Only the bundled view draws the headings.
+    def headings_by_row(doc)
+      heading = nil
+      doc.css('#inbox_master_list .inbox-period, #inbox_master_list [data-notification-item]').each_with_object({}) do |node, rows|
+        if node.matches?('.inbox-period')
+          heading = node['data-date-header']
+        else
+          rows[node['data-notification-item']] = heading
+        end
+      end
+    end
+
+    it 'counts on the day it arrived: inside the last 90 days and under today, for an activity before them' do
+      long_late = written_now_for(ticket_titled('Sehr spät verteilt'), activity_at: 100.days.ago)
+      stale = row_about(ticket_titled('Lange still'), created_at: 100.days.ago)
+      expect(long_late.first_event_at).to be < 90.days.ago
+      expect(headings_by_row(web_inbox(view_mode: 'grouped'))).to include(long_late.id => 'today', stale.id => 'older')
+
+      narrowed = headings_by_row(web_inbox(view_mode: 'grouped', period: '90_days'))
+
+      expect(narrowed).to include(long_late.id => 'today', late.id => 'today')
+      expect(narrowed.keys).to contain_exactly(long_late.id, late.id, yesterday.id, day_before.id)
+    end
+
+    # Both activities lie in one five-minute bucket that is over, so they share a row.
+    # The clock is moved for the two writes only; the lists are drawn in real time.
+    context 'when an earlier event folds into the row late' do
+      include ActiveSupport::Testing::TimeHelpers
+
+      let(:bucket_start) { Time.zone.at((10.minutes.ago.to_i / 300) * 300) }
+      let(:ticket) { ticket_titled('Zwei Ereignisse') }
+
+      it 'moves the row above a row whose latest event lies between the two writes' do
+        row = travel_to(bucket_start + 190.seconds) { written_now_for(ticket, activity_at: bucket_start + 3.minutes) }
+        between = row_about(ticket_titled('Dazwischen'), created_at: bucket_start + 220.seconds)
+        expect(row.reload).to have_attributes(group_count: 1, last_event_at: bucket_start + 190.seconds)
+        expect(row.last_event_at).to be < between.last_event_at
+
+        folded = travel_to(bucket_start + 260.seconds) { written_now_for(ticket, activity_at: bucket_start + 30.seconds) }
+
+        expect(folded.id).to eq(row.id)
+        expect(row.reload).to have_attributes(group_count: 2, first_event_at: bucket_start + 30.seconds,
+                                              last_event_at: bucket_start + 260.seconds)
+        token_order = token_inbox
+        web = row_ids(web_inbox)
+        expect(web).to eq(token_order)
+        expect(web.first(3)).to eq([late.id, row.id, between.id])
+      end
     end
   end
 end

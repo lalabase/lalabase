@@ -1,4 +1,4 @@
-# Map: app/services/notifications (as of 2026-11-24)
+# Map: app/services/notifications (as of 2026-11-26)
 
 Processes OutboxEvents into Notifications. The full chain (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md`.
@@ -16,6 +16,12 @@ OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md
   (`RowEvents.fold!`): locks the row, reloads it, rejects a read or archived row,
   checks the caller's rule (block) under the lock, only widens the span, and saves with
   `save!` (callbacks, signal). Returns true or false; if false, the builder creates a new row.
+  **`last_event_at` is the arrival of the latest event** (since 26 November 2026), not its own time:
+  `RowEvents.arrival(at:)` answers the time of the write, never before the event's own time; an
+  event without a time of its own (`at: nil`) has arrived now. A fold asks the rule (and never
+  moves the row's value back), and so does a new row (`GroupKeyBuilder#create_new_group`).
+  `first_event_at` stays the earliest event's own time. Not closed: a row is stamped when it is
+  written and visible when the fanout's transaction commits; the clock is the writing process's.
 * `broadcast_service.rb` — in-app delivery via Turbo Streams. The “New notifications” banner
   (`notifications/_new_notifications_banner`, shared with the combined inbox) REPLACES the empty
   placeholder, in the recipient's language; until 13 November 2026, the text ended up inside the hidden
@@ -54,10 +60,15 @@ OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md
   `InboxQuery#relation` itself. Two older renderings still display `created_at`; they are not
   lists governed by this rule: `NeoNotificationCardComponent` (broadcast partial) and
   `notifications/_notification` (response to `?partial=list`).
-  Consequences: A row that receives a later event (`GroupKeyBuilder` through `RowEvents.fold!`) keeps its
-  `created_at` and moves up. A row created late (an outbox event
-  after retries) starts at its activity's time (`create_new_group`) and therefore appears
-  below newer rows, as in REST and MCP. The lookups in fanout
+  Consequences: A row that receives an event (`GroupKeyBuilder` through `RowEvents.fold!`) keeps its
+  `created_at` and moves up, also when the event is older than the row and arrives late. A row
+  created late (an outbox event after a delay or after retries) stands at its arrival
+  (`RowEvents.arrival`), so on top: in the web inbox as in REST and MCP, under the heading and
+  inside the date range of the day it arrived, and the `since` cursor of the token inbox returns
+  it. Rows from before 26 November 2026 keep their time. `Posts::MarkRead` also finds comment rows
+  by the span `first_event_at..last_event_at`, which now reaches further to the right: a row with
+  `post_ids` is decided by its ids, and every comment row the fanout writes carries them (guards:
+  `spec/services/posts/mark_read_spec.rb`, `fanout_service_ticket_simple_spec.rb`). The lookups in fanout
   (`group_key_builder.rb`, `fanout_service.rb`, `score_calculator.rb`) deliberately continue to use
   `created_at`.
 * **The inbox above the organisations** (“Combined inbox”, `GET /inbox`, `AllInboxesController`,
@@ -238,6 +249,8 @@ Important:
 6. **Only `RowEvents.fold!` writes the event fields of an existing row.** A new writer
    calls it instead of setting `group_count`, `first_event_at` or `last_event_at` itself; the rule
    for the span (only widen it, since #274) is defined there once. On creation, the fields are set by
-   `create_new_group` and `Notification#set_timestamps`. Guard:
+   `create_new_group` and `Notification#set_timestamps`; for `last_event_at`, `create_new_group` asks
+   the same rule as a fold (`RowEvents.arrival`) and does no arithmetic of its own. A new writer of
+   a row that carries an event does the same. Guard:
    `spec/architecture/notification_row_events_guard_spec.rb` (reads `app/` and `lib/` with Prism; its
    header describes what it cannot see). Locking is verified by `row_events_concurrency_spec.rb`.

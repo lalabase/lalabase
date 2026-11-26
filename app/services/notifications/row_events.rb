@@ -11,10 +11,26 @@
 # about the re-read row. The row is saved with save!, so validations and
 # callbacks run (the unread signal among them).
 #
-# Entry point: fold!
+# last_event_at says when the latest event reached the row: the time of the
+# write, never before the event's own time, never before the row's own value.
+# So a row that is written late, or that takes an earlier event late, stands
+# on top of the lists, and a client that polls with `since` gets it. arrival
+# is that rule. A fold asks it, and so does whoever writes a new row
+# (GroupKeyBuilder#create_new_group). first_event_at stays the earliest
+# event's own time. An event without a time of its own (`at: nil`) has arrived
+# now: the count rises, last_event_at is the time of the write.
+#
+# Entry point: fold!, arrival
 module Notifications
   module RowEvents
     class << self
+      # The moment an event of the time `at` reaches a row that is written now: the
+      # time of the write, never before the event's own time. nil: the event has no
+      # time of its own.
+      def arrival(at:)
+        [at, Time.current].compact.max
+      end
+
       # true: the event is folded in and saved. false: nothing was written.
       #
       # The block, if given, gets the row as read under the lock; a falsy answer
@@ -34,7 +50,7 @@ module Notifications
           # retried outbox event). The lists order and print by last_event_at, and
           # Posts::MarkRead matches a comment by first_event_at..last_event_at.
           notification.first_event_at = [notification.first_event_at, at].compact.min
-          notification.last_event_at = [notification.last_event_at, at].compact.max
+          notification.last_event_at = [notification.last_event_at, arrival(at: at)].compact.max
           merge_actors(notification, actor_id)
           merge_payload(notification, payload)
           notification.save!

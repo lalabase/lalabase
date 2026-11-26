@@ -155,6 +155,8 @@ RSpec.describe Notifications::GroupKeyBuilder do
   # #find_or_create_group
   # ---------------------------------------------------------------------------
   describe '#find_or_create_group' do
+    include ActiveSupport::Testing::TimeHelpers
+
     let(:notification_params) do
       {
         recipient_id: recipient.id,
@@ -185,10 +187,13 @@ RSpec.describe Notifications::GroupKeyBuilder do
         expect(notification.group_count).to eq(1)
       end
 
-      it 'sets first_event_at and last_event_at from activity' do
-        notification = builder.find_or_create_group(notification_params)
-        expect(notification.first_event_at).to eq(activity.created_at)
-        expect(notification.last_event_at).to eq(activity.created_at)
+      it 'sets first_event_at from the activity and last_event_at to the time of the write' do
+        written_at = activity.created_at.change(usec: 0) + 2.minutes
+        travel_to(written_at) do
+          notification = builder.find_or_create_group(notification_params)
+          expect(notification.first_event_at).to eq(activity.created_at)
+          expect(notification.last_event_at).to eq(written_at)
+        end
       end
 
       it 'generates a dedupe_fingerprint' do
@@ -237,6 +242,52 @@ RSpec.describe Notifications::GroupKeyBuilder do
       end
     end
 
+    # --- A row written later than its activity --------------------------------
+    # The fanout can write a row long after its activity (an outbox event that
+    # was delayed or retried). The row then stands at the moment the event
+    # reached it, the time of the write, where every list reads it, and keeps
+    # the activity's own time as its first event. It never stands before its
+    # activity. The clock stands still and lies apart from both activities.
+    context 'when the row is written at another time than its activity' do
+      let(:now) { Time.zone.local(2026, 11, 24, 14, 10, 0) }
+      let(:activity) do
+        create(:activity, actor: actor, organisation: organisation, trackable: ticket,
+                          action: 'ticket_commented', key: 'ticket.ticket_commented',
+                          created_at: now - 2.days)
+      end
+
+      before { travel_to(now) }
+      after { travel_back }
+
+      it 'stamps a row written two days after its activity with the time of the write' do
+        expect(activity.created_at).to eq(now - 2.days)
+
+        notification = builder.find_or_create_group(notification_params)
+
+        expect(Notification.find(notification.id))
+          .to have_attributes(group_count: 1, first_event_at: now - 2.days, last_event_at: now, created_at: now)
+      end
+
+      it 'stamps an email row the same way' do
+        notification = builder.find_or_create_group(notification_params.merge(channel: 'email'))
+
+        expect(Notification.find(notification.id))
+          .to have_attributes(channel: 'email', first_event_at: now - 2.days, last_event_at: now, created_at: now)
+      end
+
+      it 'stamps a row with its activity\'s time when that lies after the time of the write' do
+        ahead = create(:activity, actor: actor, organisation: organisation, trackable: ticket,
+                                  action: 'ticket_commented', key: 'ticket.ticket_commented',
+                                  created_at: now + 2.minutes)
+
+        notification = described_class.new(ahead, recipient).find_or_create_group(notification_params)
+
+        expect(Notification.find(notification.id))
+          .to have_attributes(group_count: 1, first_event_at: now + 2.minutes, last_event_at: now + 2.minutes,
+                              created_at: now)
+      end
+    end
+
     # --- Updating an existing group ------------------------------------------
     context 'when a compatible existing group exists' do
       let!(:existing_notification) do
@@ -264,9 +315,10 @@ RSpec.describe Notifications::GroupKeyBuilder do
         expect(existing_notification.reload.group_count).to eq(2)
       end
 
-      it 'updates last_event_at to the activity timestamp' do
-        builder.find_or_create_group(notification_params)
-        expect(existing_notification.reload.last_event_at).to eq(activity.created_at)
+      it 'updates last_event_at to the time of the write' do
+        written_at = activity.created_at.change(usec: 0) + 2.minutes
+        travel_to(written_at) { builder.find_or_create_group(notification_params) }
+        expect(existing_notification.reload.last_event_at).to eq(written_at)
       end
 
       it 'merges the new actor into payload actor_ids' do
@@ -293,9 +345,11 @@ RSpec.describe Notifications::GroupKeyBuilder do
 
       # Two activities of the same five minutes can reach the fanout out of order (a
       # retried outbox event). The later one made the row; the earlier one folds in.
-      # The row's span of events only ever widens: the lists order and print by
-      # last_event_at (Notification.recent), and Posts::MarkRead matches a comment
-      # by first_event_at..last_event_at.
+      # The row's span of events only ever widens: its first event moves back to
+      # the earlier activity, and its latest event is the moment that activity
+      # reached the row, the time of the write. The lists order and print by
+      # last_event_at (Notification.recent), so the row moves up, and
+      # Posts::MarkRead matches a comment by first_event_at..last_event_at.
       context 'when an earlier activity of the same bucket folds in after a later one' do
         include ActiveSupport::Testing::TimeHelpers
 
@@ -318,12 +372,12 @@ RSpec.describe Notifications::GroupKeyBuilder do
         before { travel_to(bucket_start + 4.minutes) }
         after { travel_back }
 
-        it 'folds into the row and keeps its latest event' do
+        it 'folds into the row and moves its latest event to the time of the write' do
           described_class.new(earlier, recipient).find_or_create_group(notification_params)
 
           row_of_later.reload
           expect(row_of_later.group_count).to eq(2)
-          expect(row_of_later.last_event_at).to eq(bucket_start + 3.minutes)
+          expect(row_of_later.last_event_at).to eq(bucket_start + 4.minutes)
         end
 
         it 'moves its first event back to the earlier activity' do
@@ -551,8 +605,9 @@ RSpec.describe Notifications::GroupKeyBuilder do
     # What happens to a row the lookup found: when the event folds in, what a
     # fold writes, and what a refusal leaves alone. The clock stands still four
     # minutes into a bucket: the window reads the clock, the key reads the
-    # activity's time. Every row sets its own times, because the factory copies
-    # created_at into both event times and so would hide a wrong span.
+    # activity's time, and a fold stamps the row's latest event with the clock.
+    # Every row sets its own times, because the factory copies created_at into
+    # both event times and so would hide a wrong span.
     describe 'folding into a found row' do
       include ActiveSupport::Testing::TimeHelpers
 
@@ -693,7 +748,7 @@ RSpec.describe Notifications::GroupKeyBuilder do
             .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: recipient.id)
 
           expect(Notification.count).to eq(count_before)
-          expect(row.reload).to have_attributes(group_count: 2, last_event_at: activity.created_at)
+          expect(row.reload).to have_attributes(group_count: 2, last_event_at: now)
         end
 
         it 'moves updated_at to the time of the fold' do
@@ -856,7 +911,7 @@ RSpec.describe Notifications::GroupKeyBuilder do
           expect { builder.find_or_create_group(notification_params.merge(channel: 'email')) }
             .not_to change(Notification, :count)
 
-          expect(row.reload).to have_attributes(group_count: 2, last_event_at: activity.created_at)
+          expect(row.reload).to have_attributes(group_count: 2, first_event_at: row_time, last_event_at: now)
         end
       end
     end

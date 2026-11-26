@@ -197,4 +197,74 @@ RSpec.describe Posts::MarkRead do
       expect(group.reload).to be_state_read
     end
   end
+
+  # The real chain: two comments of one ticket, more than the group window
+  # apart, each row written by the fanout a while after its activity (an outbox
+  # event that was delayed). A row stands at the moment its event reached it,
+  # so the span of the first comment's row reaches past the activity of the
+  # second comment. Each row is still read with its own comment only.
+  context 'when the fanout wrote the rows of two comments late' do
+    include ActiveSupport::Testing::TimeHelpers
+
+    let(:first_comment_at) { Time.zone.local(2026, 11, 24, 14, 0, 0) }
+    let(:second_comment_at) { first_comment_at + 20.minutes }
+    let(:first_written_at) { first_comment_at + 30.minutes }
+    let(:second_written_at) { first_comment_at + 31.minutes }
+    let(:second_post) { create(:post, organisation: organisation, ticket: ticket, user: author) }
+    let(:admin_role) { create(:admin_role, organisation: organisation) }
+
+    before do
+      [reader, author].each do |member|
+        create(:membership, user: member, organisation: organisation, role: admin_role, active: true)
+      end
+      NotificationSubscription.create!(user: reader, subscribable: ticket, mode: 'follow')
+    end
+
+    after { travel_back }
+
+    # The reader's in-app row for the comment, written by the fanout at `written_at`.
+    def row_written_by_fanout(comment, commented_at:, written_at:)
+      activity = create(:activity, :post_added, organisation: organisation, actor: author,
+                                                trackable: ticket, secondary: comment, created_at: commented_at)
+      outbox_event = create(:outbox_event, organisation: organisation, activity: activity,
+                                           event_type: Notifications::Constants.derive_event_type(activity.key, activity.action),
+                                           payload: activity.parameters || {})
+      travel_to(written_at)
+      Prosopite.pause # the fanout's own lookups
+      result = Notifications::FanoutService.new(outbox_event).call
+      Prosopite.resume
+      expect(result[:success]).to be(true)
+
+      reader.notifications.channel_in_app.where(notifiable: ticket)
+            .where('notifications.payload @> ?', { post_ids: [comment.id.to_s] }.to_json).sole
+    end
+
+    it 'reads each row with its own comment, though the first row\'s span covers the second comment' do
+      first_row = row_written_by_fanout(post_record, commented_at: first_comment_at, written_at: first_written_at)
+      second_row = row_written_by_fanout(second_post, commented_at: second_comment_at, written_at: second_written_at)
+      expect(second_comment_at - first_comment_at).to be > Notifications::GroupKeyBuilder::GROUP_TIME_WINDOW
+      expect(first_row.id).not_to eq(second_row.id)
+      expect(first_row.reload).to have_attributes(group_count: 1, first_event_at: first_comment_at,
+                                                  last_event_at: first_written_at)
+      expect(second_row.reload).to have_attributes(group_count: 1, first_event_at: second_comment_at,
+                                                   last_event_at: second_written_at)
+      expect(second_comment_at).to be_between(first_row.first_event_at, first_row.last_event_at).exclusive
+      expect([first_row, second_row]).to all(be_unread)
+
+      # Reading the second comment finds both rows, the first one by its span, and
+      # locks them one by one: paused for that pair of locks only.
+      Prosopite.pause
+      _read, notifications = described_class.call(post: second_post, user: reader)
+      Prosopite.resume
+
+      expect(notifications).to contain_exactly(second_row)
+      expect(second_row.reload).to be_state_read
+      expect(first_row.reload).to be_unread
+
+      _read, notifications = described_class.call(post: post_record, user: reader)
+
+      expect(notifications).to contain_exactly(first_row)
+      expect(first_row.reload).to be_state_read
+    end
+  end
 end

@@ -130,8 +130,9 @@ class Notification < ApplicationRecord
   # moment stable across pages.
   scope :recent, -> { order(last_event_at: :desc, id: :desc) }
   # Newest event first, by when the latest event of a row happened (#happened_at),
-  # whenever it reached the row: the order of the token inbox without arrived_since,
-  # whose `since` cuts on that time as it did before API 1.16.
+  # whenever it reached the row: for a reader that prints that time beside each row
+  # (the lane's "what was new" block, InboxLane) and for the token inbox without
+  # arrived_since, whose `since` cuts on that time as it did before API 1.16.
   scope :by_happened_at, -> { order(Arel.sql("#{HAPPENED_AT_SQL} DESC, notifications.id DESC")) }
   scope :for_user, ->(user) { where(recipient: user) }
   scope :high_priority, -> { where(priority: %i[high critical]) }

@@ -284,6 +284,24 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
         end)
     end
 
+    # The lane's "what was new" block prints when each event happened, newest on
+    # top: it orders by that time, not by when the row reached the inbox.
+    it "lists the lane's new events by when they happened, the late one below the later event" do
+      ticket = ticket_titled('Zwei Ereignisse, eins spät')
+      in_time = row_about(ticket, created_at: 1.hour.ago)
+      late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
+      expect(late_comment.last_event_at).to be > in_time.last_event_at
+
+      times = web_inbox(notification: in_time.id).css('.inbox-new-activity__item .inbox-new-activity__time')
+
+      hours_ago = lambda do |count|
+        I18n.with_locale(:de) do
+          I18n.t('views.common.relative_time_ago', time: I18n.t('datetime.distance_in_words.about_x_hours', count: count))
+        end
+      end
+      expect(times.map { |time| time.text.strip }).to eq([hours_ago[1], hours_ago[3]])
+    end
+
     # The bundle stands on top and bold while its late row is unread, but its line
     # is the read row whose event happened later. Opening that line has to read the
     # bundle, as opening any bold line does: the lane's timer reads the open row's

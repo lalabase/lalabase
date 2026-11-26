@@ -61,13 +61,15 @@ module InboxLane
     # The subject is the selected notification's own (the ticket, or the project
     # with all its events: a row about a project is a bundle of unlike events).
     # Through the policy scope, the inbox rule (spec/architecture/notification_read_guard_spec.rb):
-    # an event of an area the person may not read is no line here.
+    # an event of an area the person may not read is no line here. Newest event
+    # first by when it happened, the time each line prints, not by when its row
+    # reached the inbox (a row the fanout wrote late would stand above later events).
     @new_activities = lane_rows
                       .channel_in_app
                       .where(notifiable_type: notification.notifiable_type, notifiable_id: notification.notifiable_id)
                       .unread
                       .includes(:actor)
-                      .recent
+                      .by_happened_at
     @lane_row_bundle = lane_row_bundle(notification)
 
     # DELIBERATELY no more immediate mark_as_read — the user should be able to

@@ -558,8 +558,10 @@ class Organisations::NotificationsController < Organisations::BaseController
       # Batch load all actors to prevent N+1 queries
       actors = User.where(id: actor_ids).index_by(&:id)
 
-      # Build activity information from stored data
-      actor_ids.each_with_index do |actor_id, index|
+      # Build activity information from stored data, the actor of the latest
+      # event first: RowEvents.fold! keeps actor_ids oldest first, the leading
+      # actor last.
+      actor_ids.reverse.each_with_index do |actor_id, index|
         actor = actors[actor_id]
         next unless actor
 

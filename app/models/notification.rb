@@ -124,10 +124,15 @@ class Notification < ApplicationRecord
   scope :inbox, -> { where.not(state: :archived) }
   # Every list of notifications in the app orders by the moment a row's latest event
   # reached it (last_event_at, Notifications::RowEvents.arrival), the order the token
-  # inbox has (Notifications::InboxQuery#relation): a row that takes an event
-  # (GroupKeyBuilder folds it in) moves up, its created_at does not, and a row written
-  # late stands on top. The id only makes rows with the same moment stable across pages.
+  # inbox has with its cursor arrived_since (Notifications::InboxQuery#relation): a row
+  # that takes an event (GroupKeyBuilder folds it in) moves up, its created_at does
+  # not, and a row written late stands on top. The id only makes rows with the same
+  # moment stable across pages.
   scope :recent, -> { order(last_event_at: :desc, id: :desc) }
+  # Newest event first, by when the latest event of a row happened (#happened_at),
+  # whenever it reached the row: the order of the token inbox without arrived_since,
+  # whose `since` cuts on that time as it did before API 1.16.
+  scope :by_happened_at, -> { order(Arel.sql("#{HAPPENED_AT_SQL} DESC, notifications.id DESC")) }
   scope :for_user, ->(user) { where(recipient: user) }
   scope :high_priority, -> { where(priority: %i[high critical]) }
   scope :today, -> { where(created_at: Date.current.all_day) }
@@ -454,9 +459,10 @@ class Notification < ApplicationRecord
   end
 
   # When the row's latest event happened, its own time: what a row's time label
-  # says, which row stands for a bundle, and the times of a group's activities.
-  # last_event_at is when that event reached the row (RowEvents.arrival), the
-  # moment the lists order and `since` cuts by; the two part when the fanout
+  # says, which row stands for a bundle, the times of a group's activities, and
+  # the token inbox's last_event_at, which its `since` cuts on. last_event_at is
+  # when that event reached the row (RowEvents.arrival), the moment the lists
+  # order by (the token inbox's arrived_at); the two part when the fanout
   # writes late. Empty for a row written before the column, when last_event_at
   # still was the event's own time, so that one answers (also for a row without
   # an event of its own, where both are the time of the write).

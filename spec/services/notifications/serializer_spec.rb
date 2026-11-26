@@ -33,25 +33,28 @@ RSpec.describe Notifications::Serializer do
     end
   end
 
-  # Three times, one meaning each: first_event_at the earliest event, happened_at
-  # the latest one, last_event_at when that one reached the inbox (the order and
-  # the `since` cursor). A row written before happened_at answers last_event_at.
+  # The times of a row, one meaning each: first_event_at the earliest event,
+  # last_event_at the latest one (what it meant before API 1.16, and what `since`
+  # cuts on), arrived_at when that one reached the inbox (what arrived_since
+  # cuts on). Not the columns of those names: the API kept its field when the
+  # column last_event_at came to mean the arrival.
   describe 'the times of a row' do
-    it 'names when the latest event happened beside when it reached the inbox' do
+    it 'names when the latest event happened as last_event_at and when it reached the inbox as arrived_at' do
       reached = Time.zone.local(2026, 11, 26, 12, 0, 0)
       notification = row(created_at: reached, first_event_at: reached - 3.days, happened_at: reached - 2.days,
                          last_event_at: reached)
 
       expect(serialized(notification)).to include(first_event_at: (reached - 3.days).iso8601,
-                                                  happened_at: (reached - 2.days).iso8601,
-                                                  last_event_at: reached.iso8601)
+                                                  last_event_at: (reached - 2.days).iso8601,
+                                                  arrived_at: reached.iso8601)
+      expect(serialized(notification)).not_to have_key(:happened_at)
     end
 
-    it 'names last_event_at as happened_at for a row written before the column' do
+    it 'names the one time of a row written before the column happened_at twice' do
       reached = Time.zone.local(2026, 11, 20, 12, 0, 0)
       notification = row(created_at: reached, first_event_at: reached, happened_at: nil, last_event_at: reached)
 
-      expect(serialized(notification)).to include(happened_at: reached.iso8601, last_event_at: reached.iso8601)
+      expect(serialized(notification)).to include(last_event_at: reached.iso8601, arrived_at: reached.iso8601)
     end
   end
 

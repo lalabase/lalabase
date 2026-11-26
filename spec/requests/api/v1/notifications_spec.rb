@@ -127,7 +127,8 @@ RSpec.describe 'API V1 Notifications', :ci_guard, type: :request do
       row = body['data'].first
 
       # `since` joined the meta with the shared query (inbox workflow S1), nil when no bound was given.
-      expect(body['meta'].keys).to contain_exactly('page', 'per_page', 'total', 'unread_total', 'since', 'by_organisation')
+      expect(body['meta'].keys).to contain_exactly('page', 'per_page', 'total', 'unread_total', 'since', 'arrived_since',
+                                                   'by_organisation')
       expect(body['meta']['since']).to be_nil
       expect(row.keys).to include(
         'id', 'event_type', 'state', 'priority', 'read', 'read_at', 'group_count', 'actor',
@@ -135,8 +136,9 @@ RSpec.describe 'API V1 Notifications', :ci_guard, type: :request do
         # added with the shared serializer (inbox workflow S1): the readable sentence
         # and, on ticket rows, the address get_ticket takes
         'message', 'ticket',
-        # API 1.16.0: when the latest event happened, beside last_event_at (its arrival)
-        'happened_at'
+        # API 1.16.0: when the latest event reached the inbox, beside last_event_at
+        # (when it happened)
+        'arrived_at'
       )
       expect(row['message']).to be_a(String)
       expect(row['ticket']).to include('id' => ticket.id, 'number' => ticket.number, 'project_id' => project.id)

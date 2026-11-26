@@ -18,7 +18,7 @@
 # without_tenant block.
 #
 # The argument contract lives here too, for both surfaces: an unusable value
-# (status, since, organisation_id, project_id, page, per_page) raises
+# (status, since, arrived_since, organisation_id, project_id, page, per_page) raises
 # InvalidArgument instead of silently taking a default, and a project_id or
 # organisation_id outside what the token and the person reach raises a
 # NotReachable with one wording per kind (the project's is the seam's own), so
@@ -55,12 +55,13 @@ module Notifications
     # by_organisation: [{ id:, name:, unread: }] per organisation in view (#organisations_in_view),
     # the unread_total slice split by organisation, zeros included. With an all-organisations
     # token it is the cockpit tile of every organisation (unread_count_parity_spec.rb).
-    Page = Struct.new(:rows, :page, :per_page, :total, :unread_total, :since, :by_organisation, keyword_init: true)
+    Page = Struct.new(:rows, :page, :per_page, :total, :unread_total, :since, :arrived_since, :by_organisation,
+                      keyword_init: true)
 
-    # @return [Page] rows by newest arrival first (last_event_at), with actor/organisation/project/notifiable preloaded
-    def self.call(user:, reach:, status: nil, since: nil, project_id: nil, organisation_id: nil, page: nil,
-                  per_page: nil)
-      new(user: user, reach: reach, status: status, since: since, project_id: project_id,
+    # @return [Page] rows newest first (#relation says by which time), with actor/organisation/project/notifiable preloaded
+    def self.call(user:, reach:, status: nil, since: nil, arrived_since: nil, project_id: nil, organisation_id: nil,
+                  page: nil, per_page: nil)
+      new(user: user, reach: reach, status: status, since: since, arrived_since: arrived_since, project_id: project_id,
           organisation_id: organisation_id).page(page: page, per_page: per_page)
     end
 
@@ -133,12 +134,13 @@ module Notifications
       ActiveRecord::Associations::Preloader.new(records: documents, associations: :current_version).call
     end
 
-    def initialize(user:, reach:, status: nil, since: nil, project_id: nil, organisation_id: nil,
+    def initialize(user:, reach:, status: nil, since: nil, arrived_since: nil, project_id: nil, organisation_id: nil,
                    include_archived: false)
       @user = user
       @reach = reach
       @status = parse_status(status)
-      @since = parse_since(since)
+      @since = parse_since(since, name: 'since')
+      @arrived_since = parse_since(arrived_since, name: 'arrived_since')
       @organisation_id = parse_organisation_id(organisation_id)
       @project_id = parse_project_id(project_id)
       @include_archived = include_archived
@@ -153,7 +155,7 @@ module Notifications
         self.class.preload_titles(rows)
         unread_by_organisation = base.unread.group(:organisation_id).count
         Page.new(rows: rows, page: page_number, per_page: limit, total: relation.count,
-                 unread_total: unread_by_organisation.values.sum, since: @since,
+                 unread_total: unread_by_organisation.values.sum, since: @since, arrived_since: @arrived_since,
                  by_organisation: by_organisation(unread_by_organisation))
       end
     end
@@ -170,26 +172,42 @@ module Notifications
       by_organisation(base.unread.group(:organisation_id).count)
     end
 
-    # Ordered by ARRIVAL (last_event_at: when the row's latest event reached it,
-    # RowEvents.arrival), the same column the `since` cursor cuts on: a grouped
-    # row (GroupKeyBuilder, through RowEvents.fold!) keeps its created_at and
-    # moves last_event_at forward, so on created_at a polling client would never
-    # see the second to tenth comment on a ticket, and a client that advances
-    # `since` to the newest row of a page would skip rows further down that
-    # arrived later. The id breaks ties, so rows of one fanout pass cannot
+    # Two cursors, and the rows come ordered by the time the cursor in use cuts
+    # on, so the first row of a page is the newest by that time: a client that
+    # advances its cursor to the newest row of a page cannot skip a row further
+    # down that is newer. The id breaks ties, so rows of one fanout pass cannot
     # straddle a page boundary twice.
+    #
+    # `since` cuts on when the row's latest event happened (Notification#happened_at,
+    # the API's last_event_at), and without `arrived_since` the rows come by that
+    # time: the cursor and the order of API 1.15, unchanged. A grouped row
+    # (GroupKeyBuilder, through RowEvents.fold!) keeps its created_at and moves
+    # this time forward, so on created_at a polling client would never see the
+    # second to tenth comment on a ticket. A row the fanout writes late keeps the
+    # old time of its event, though: a client polling with `since` misses it.
+    #
+    # `arrived_since` (API 1.16) cuts on when the row's latest event reached it
+    # (the column last_event_at, RowEvents.arrival; the API's arrived_at), and
+    # the rows come by that time, the order of the web inbox (Notification.recent):
+    # a row written late, and a row an earlier event reached late, is newer than
+    # every row before it. That is the cursor to poll by.
     #
     # Not a commit order: a row is stamped when the fanout writes it and seen
     # when the fanout's transaction commits (every recipient and the broadcast
-    # in one, OutboxEvent#process!), by the clock of the process that wrote it.
-    # A row stamped before another can become visible after it. So a client
-    # that polls asks again from a little before the newest last_event_at it
-    # saw and drops the ids it has (the tool description and the REST comment
-    # say so); a cursor that follows commits would need a column of its own.
+    # in one, OutboxEvent#process!), by the clock of the process that wrote it,
+    # and nothing bounds that wait. So a client that polls asks again from a
+    # little before the newest arrived_at it saw, an overlap that has to cover
+    # the longest delivery, and replaces every row it already holds by its id:
+    # a row comes back when an event folds into it (count, actor and message
+    # change, the id stays), and an unchanged row inside the overlap comes back
+    # as it was (the tool description and the REST comment say so). A cursor
+    # that follows commits would need a column of its own.
     def relation
       rel = base
-      rel = rel.where('notifications.last_event_at > ?', @since) if @since
-      status_filter(rel).order(last_event_at: :desc, id: :desc)
+      rel = rel.where("#{Notification::HAPPENED_AT_SQL} > ?", @since) if @since
+      rel = rel.where('notifications.last_event_at > ?', @arrived_since) if @arrived_since
+      rel = status_filter(rel)
+      @arrived_since ? rel.recent : rel.by_happened_at
     end
 
     # See .stamp. Runs inside its without_tenant block.
@@ -207,7 +225,7 @@ module Notifications
 
     private
 
-    # Everything except status and since: the slice `unread_total` counts over,
+    # Everything except status and the two cursors: the slice `unread_total` counts over,
     # so the number next to a filtered page describes the same reach.
     def base
       rel = Notification.where(recipient_id: @user.id, channel: :in_app)
@@ -354,12 +372,12 @@ module Notifications
 
     # The bound is a storable ISO 8601 timestamp (Lalabase::IsoTimestamp owns
     # that rule); absent means no bound, unusable means refused.
-    def parse_since(value)
+    def parse_since(value, name:)
       raw = value.to_s.strip
       return nil if raw.empty?
 
       Lalabase::IsoTimestamp.parse(raw) ||
-        raise(InvalidArgument, "invalid since #{value.inspect} (expected an ISO 8601 timestamp)")
+        raise(InvalidArgument, "invalid #{name} #{value.inspect} (expected an ISO 8601 timestamp)")
     end
 
     # A malformed id is refused before it reaches the database (ActiveRecord

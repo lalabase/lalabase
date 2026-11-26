@@ -126,10 +126,12 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
   # A row the fanout writes late (an outbox event delayed, or retried after a failure)
   # stands at the moment its event reached it, the time of the write, not at the time
   # of its activity (Notifications::RowEvents.arrival, asked by GroupKeyBuilder). So it
-  # is new and on top: first in the web inbox and in the token inbox, which share the
-  # one order; under the heading and inside the period of the day it arrived; and a
-  # client that polls the token inbox with `since` gets it. A fold is a write as well:
-  # an earlier event that reaches a row late moves the row up.
+  # is new and on top: first in the web inbox and in the token inbox by arrival
+  # (arrived_since), which share the one order; under the heading and inside the
+  # period of the day it arrived; and a client that polls the token inbox with
+  # arrived_since gets it. The token inbox without arrived_since keeps what API 1.15
+  # said: last_event_at, `since` and the order are the time of the activity. A fold
+  # is a write as well: an earlier event that reaches a row late moves the row up.
   describe 'a row the fanout creates late' do
     # The row the builder writes now for an activity that happened at another time.
     def written_now_for(ticket, activity_at:)
@@ -162,11 +164,21 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
 
     before { make_token_owner_a_member(user, organisation, projects: [project]) }
 
-    def token_inbox(**params)
+    def token_rows(**params)
       get '/api/v1/notifications', params: { status: 'all', **params },
                                    headers: { 'Authorization' => "Bearer #{token.token}" }
       expect(response).to have_http_status(:ok)
-      JSON.parse(response.body)['data'].pluck('id')
+      JSON.parse(response.body)['data']
+    end
+
+    def token_inbox(**params)
+      token_rows(**params).pluck('id')
+    end
+
+    # The token inbox by arrival, every row of these examples: they all reached
+    # the inbox within the last three days.
+    def token_inbox_by_arrival
+      token_inbox(arrived_since: 3.days.ago.iso8601)
     end
 
     def web_inbox(view_mode: 'chronological', **params)
@@ -175,25 +187,38 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
       Nokogiri::HTML(response.body)
     end
 
-    it 'stands on top, in the web inbox as in the token inbox' do
+    it 'stands on top, in the web inbox as in the token inbox by arrival' do
       expect(late.created_at).to be > yesterday.created_at
       expect(late.first_event_at).to be < day_before.last_event_at
       expect(late.last_event_at).to be > yesterday.last_event_at
 
-      token_order = token_inbox
+      token_order = token_inbox_by_arrival
 
       web = web_inbox
       expect(row_ids(web)).to eq([late.id, yesterday.id, day_before.id])
       expect(row_ids(web)).to eq(token_order)
     end
 
-    it 'reaches a client that polls the token inbox with since set between its activity and its write' do
+    it 'reaches a client that polls the token inbox with arrived_since set between its activity and its write' do
       since = 1.hour.ago
       expect(late.first_event_at).to be < since
       expect(late.created_at).to be > since
-      expect(token_inbox).to eq([late.id, yesterday.id, day_before.id])
+      expect(token_inbox_by_arrival).to eq([late.id, yesterday.id, day_before.id])
 
-      expect(token_inbox(since: since.iso8601)).to eq([late.id])
+      expect(token_inbox(arrived_since: since.iso8601)).to eq([late.id])
+    end
+
+    # A client of API 1.15 reads the same fields, cursor and order as before: the
+    # late row stands at the time of its activity and below a cursor set after it.
+    it 'keeps the time of its activity in the token inbox without arrived_since' do
+      expect(token_inbox).to eq([yesterday.id, day_before.id, late.id])
+      expect(token_inbox(since: 1.hour.ago.iso8601)).to be_empty
+
+      fields = token_rows.find { |row| row['id'] == late.id }
+
+      expect(Time.zone.parse(fields['last_event_at'])).to be_within(1.second).of(late.happened_at)
+      expect(Time.zone.parse(fields['arrived_at'])).to be_within(1.second).of(late.last_event_at)
+      expect(late.last_event_at - late.happened_at).to be > 2.days - 1.minute
     end
 
     # { notification id => the period heading it stands under }, in the order of the
@@ -278,7 +303,7 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
         expect(folded.id).to eq(row.id)
         expect(row.reload).to have_attributes(group_count: 2, first_event_at: bucket_start + 30.seconds,
                                               last_event_at: bucket_start + 260.seconds)
-        token_order = token_inbox
+        token_order = token_inbox_by_arrival
         web = row_ids(web_inbox)
         expect(web).to eq(token_order)
         expect(web.first(3)).to eq([late.id, row.id, between.id])

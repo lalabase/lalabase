@@ -22,28 +22,29 @@ module Api
       # organisation outside the reach is a 404 here, like every other out-of-scope project.
       rescue_from Notifications::InboxQuery::NotReachable, with: :not_found
 
-      # GET /api/v1/notifications?status=unread|read|all&since=<ISO 8601, arrived after>
-      #   &organisation_id=<uuid>&project_id=<uuid>&page=&per_page=
-      # Newest arrival first. `since` keeps the rows whose latest event reached
-      # the inbox after it (last_event_at), also when the event itself is older
-      # (happened_at, a fanout that ran late). A row becomes visible when its
-      # write commits, a moment after its stamp: a client that polls asks again
-      # from a little before the newest last_event_at it saw (a minute) and
-      # drops the ids it has (InboxQuery#relation).
-      # In the query string a `+` in the offset of `since` must be sent as %2B
+      # GET /api/v1/notifications?status=unread|read|all&since=<ISO 8601, activity after>
+      #   &arrived_since=<ISO 8601, arrived after>&organisation_id=<uuid>&project_id=<uuid>&page=&per_page=
+      # `since` keeps the rows whose latest event happened after it (last_event_at),
+      # newest event first, as before API 1.16. A row the fanout wrote late keeps
+      # the old time of its event, so a client that polls asks with `arrived_since`
+      # (1.16): the rows whose latest event reached the inbox after it (arrived_at),
+      # newest arrival first, from a little before the newest arrived_at it saw,
+      # replacing the rows it holds by id (InboxQuery#relation says why).
+      # In the query string a `+` in the offset of a time must be sent as %2B
       # (an unencoded + arrives as a space and is refused); `Z` needs no encoding.
       def index
         page = Notifications::InboxQuery.call(
           user: current_user, reach: current_token.reach,
-          status: params[:status], since: params[:since], project_id: params[:project_id],
-          organisation_id: params[:organisation_id],
+          status: params[:status], since: params[:since], arrived_since: params[:arrived_since],
+          project_id: params[:project_id], organisation_id: params[:organisation_id],
           page: params[:page], per_page: params[:per_page]
         )
 
         render json: {
           data: Notifications::Serializer.rows(page.rows, viewer: current_user),
           meta: { page: page.page, per_page: page.per_page, total: page.total, unread_total: page.unread_total,
-                  since: page.since&.iso8601, by_organisation: page.by_organisation }
+                  since: page.since&.iso8601, arrived_since: page.arrived_since&.iso8601,
+                  by_organisation: page.by_organisation }
         }
       end
 

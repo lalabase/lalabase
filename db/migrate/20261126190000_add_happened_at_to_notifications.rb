@@ -2,8 +2,9 @@
 
 # notifications.happened_at: the latest event's own time, beside last_event_at,
 # which says when that event reached the row (Notifications::RowEvents.arrival).
-# The lists order and cut `since` by the arrival; a row's time label, the
-# representative of a bundle and the times of a group's activities read this one.
+# The lists order by the arrival, and so does the token inbox's arrived_since;
+# a row's time label, the representative of a bundle, the times of a group's
+# activities and the token inbox's last_event_at and `since` read this one.
 #
 # Null, no default and no backfill, on purpose: a row written before this column
 # carries the event's own time in last_event_at, and Notification#happened_at

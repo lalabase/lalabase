@@ -14,7 +14,8 @@
 # last_event_at says when the latest event reached the row: the time of the
 # write, never before the event's own time, never before the row's own value.
 # So a row that is written late, or that takes an earlier event late, stands
-# on top of the lists, and a client that polls with `since` gets it. arrival
+# on top of the lists, and a client that polls the token inbox with
+# `arrived_since` gets it (its `since` cuts on happened_at). arrival
 # is that rule. A fold asks it, and so does whoever writes a new row
 # (GroupKeyBuilder#create_new_group). first_event_at stays the earliest
 # event's own time, happened_at the latest one's: the time a row shows. An

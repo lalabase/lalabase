@@ -53,12 +53,15 @@ OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md
   `order(created_at: …)` or `order(last_event_at: …)` by hand; the only location with its own
   `ORDER BY` is the bundle in `Inbox::MasterListPresenter#representatives` (`DISTINCT ON`
   requires it; its comment says which row speaks for a bundle). The token inbox writes the same order in
-  `InboxQuery#relation` itself. Two older renderings still display `created_at`; they are not
+  `InboxQuery#relation` itself when a client asks with `arrived_since` (API 1.16); without it, it keeps
+  the order and the `since` of API 1.15, by `Notification#happened_at` (`Notification.by_happened_at`),
+  and its field `last_event_at` is that time (`Notifications::Serializer` says which column each field
+  reads). Two older renderings still display `created_at`; they are not
   lists governed by this rule: `NeoNotificationCardComponent` (broadcast partial) and
   `notifications/_notification` (response to `?partial=list`).
   Consequences: A row that receives an event (`GroupKeyBuilder` through `RowEvents.fold!`) keeps its
   `created_at` and moves up; a row written late stands on top, in the web inbox as in REST and MCP
-  (`RowEvents` header). `Posts::MarkRead` matches a row by its span only when it carries no
+  with `arrived_since` (`RowEvents` header). `Posts::MarkRead` matches a row by its span only when it carries no
   `post_ids` (its comment says why). The lookups in fanout
   (`group_key_builder.rb`, `fanout_service.rb`, `score_calculator.rb`) deliberately continue to use
   `created_at`.

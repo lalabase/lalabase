@@ -254,6 +254,23 @@ RSpec.describe 'API MCP endpoint', type: :request do
       expect(result['isError']).to be true
       expect(result.dig('content', 0, 'text')).to match(/since/)
     end
+
+    # The cursor to poll by (MCP 0.19): the rows whose latest event reached the
+    # inbox after it. `mine` reached it an hour ago (the factory's time).
+    it 'passes arrived_since to the inbox and names it in the meta' do
+      bound = 2.hours.ago
+      body = tool_json('list_notifications', { arrived_since: bound.iso8601 })
+
+      expect(body['data'].map { |r| r['id'] }).to eq([mine.id])
+      expect(Time.zone.parse(body.dig('meta', 'arrived_since'))).to be_within(1.second).of(bound)
+      expect(tool_json('list_notifications', { arrived_since: 30.minutes.ago.iso8601 })['data']).to be_empty
+    end
+
+    it 'reports an unusable arrived_since as a clean tool error, naming it' do
+      result = tool_result('list_notifications', { arrived_since: 'gestern' })
+      expect(result['isError']).to be true
+      expect(result.dig('content', 0, 'text')).to match(/arrived_since/)
+    end
   end
 
   # The seam's contracts (D3, D7, D9) were only ever exercised in project mode.

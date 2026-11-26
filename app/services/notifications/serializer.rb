@@ -26,11 +26,14 @@
 # project_id when the row is about a ticket: the exact address get_ticket
 # takes next.
 #
-# Three times, one meaning each (Notifications::RowEvents): `first_event_at`
-# when the row's earliest event happened, `happened_at` when its latest one
-# happened (the time to show), `last_event_at` when that event reached the
-# inbox (the order and the `since` cursor). The last two part when the fanout
-# writes late; `happened_at` came with API 1.16.0 and MCP 0.19.0.
+# The times of a row, one meaning each: `first_event_at` when its earliest
+# event happened, `last_event_at` when its latest one happened (the time to
+# show, and what `since` cuts on), `arrived_at` when that event reached the
+# inbox (Notifications::RowEvents.arrival, what `arrived_since` cuts on).
+# ⚠️ Not the columns of those names: `last_event_at` here is
+# Notification#happened_at, `arrived_at` is the column last_event_at. The API
+# kept its field when the column changed its meaning; the two times part when
+# the fanout writes late. `arrived_at` came with API 1.16.0 and MCP 0.19.0.
 #
 # Entry point: rows
 module Notifications
@@ -67,8 +70,8 @@ module Notifications
         notifiable: notifiable(notification),
         payload: notification.payload,
         first_event_at: notification.first_event_at.iso8601,
-        last_event_at: notification.last_event_at.iso8601,
-        happened_at: notification.happened_at.iso8601,
+        last_event_at: notification.happened_at.iso8601,
+        arrived_at: notification.last_event_at.iso8601,
         created_at: notification.created_at.iso8601
       }
     end

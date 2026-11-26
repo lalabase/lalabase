@@ -57,7 +57,7 @@ module Notifications
     # token it is the cockpit tile of every organisation (unread_count_parity_spec.rb).
     Page = Struct.new(:rows, :page, :per_page, :total, :unread_total, :since, :by_organisation, keyword_init: true)
 
-    # @return [Page] rows by latest activity first, with actor/organisation/project/notifiable preloaded
+    # @return [Page] rows by newest arrival first (last_event_at), with actor/organisation/project/notifiable preloaded
     def self.call(user:, reach:, status: nil, since: nil, project_id: nil, organisation_id: nil, page: nil,
                   per_page: nil)
       new(user: user, reach: reach, status: status, since: since, project_id: project_id,
@@ -170,13 +170,22 @@ module Notifications
       by_organisation(base.unread.group(:organisation_id).count)
     end
 
-    # Ordered by ACTIVITY, the same column the `since` cursor cuts on: a grouped
+    # Ordered by ARRIVAL (last_event_at: when the row's latest event reached it,
+    # RowEvents.arrival), the same column the `since` cursor cuts on: a grouped
     # row (GroupKeyBuilder, through RowEvents.fold!) keeps its created_at and
     # moves last_event_at forward, so on created_at a polling client would never
     # see the second to tenth comment on a ticket, and a client that advances
-    # `since` to the newest row of a page would skip rows further down whose
-    # activity is newer. The id breaks ties, so rows of one fanout pass cannot
+    # `since` to the newest row of a page would skip rows further down that
+    # arrived later. The id breaks ties, so rows of one fanout pass cannot
     # straddle a page boundary twice.
+    #
+    # Not a commit order: a row is stamped when the fanout writes it and seen
+    # when the fanout's transaction commits (every recipient and the broadcast
+    # in one, OutboxEvent#process!), by the clock of the process that wrote it.
+    # A row stamped before another can become visible after it. So a client
+    # that polls asks again from a little before the newest last_event_at it
+    # saw and drops the ids it has (the tool description and the REST comment
+    # say so); a cursor that follows commits would need a column of its own.
     def relation
       rel = base
       rel = rel.where('notifications.last_event_at > ?', @since) if @since

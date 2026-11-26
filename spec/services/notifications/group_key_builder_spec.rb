@@ -268,6 +268,15 @@ RSpec.describe Notifications::GroupKeyBuilder do
           .to have_attributes(group_count: 1, first_event_at: now - 2.days, last_event_at: now, created_at: now)
       end
 
+      # What the row shows is when its event happened, not when it reached the row.
+      it 'keeps the activity\'s own time as the time the row shows' do
+        notification = builder.find_or_create_group(notification_params)
+
+        row = Notification.find(notification.id)
+        expect(row.read_attribute(:happened_at)).to eq(now - 2.days)
+        expect(row.happened_at).to eq(now - 2.days)
+      end
+
       # The builder holds no copy of the rule. It asks the owner, and what the
       # owner answers is what the row gets. The answer here lies before the
       # activity and before the clock: a maximum the builder took on its own
@@ -281,7 +290,8 @@ RSpec.describe Notifications::GroupKeyBuilder do
 
         expect(Notifications::RowEvents).to have_received(:arrival).with(at: activity.created_at).once
         expect(Notification.find(notification.id))
-          .to have_attributes(group_count: 1, first_event_at: now - 2.days, last_event_at: answer)
+          .to have_attributes(group_count: 1, first_event_at: now - 2.days, last_event_at: answer,
+                              happened_at: now - 2.days)
       end
 
       it 'stamps an email row the same way' do
@@ -300,7 +310,7 @@ RSpec.describe Notifications::GroupKeyBuilder do
 
         expect(Notification.find(notification.id))
           .to have_attributes(group_count: 1, first_event_at: now + 2.minutes, last_event_at: now + 2.minutes,
-                              created_at: now)
+                              happened_at: now + 2.minutes, created_at: now)
       end
     end
 
@@ -381,8 +391,8 @@ RSpec.describe Notifications::GroupKeyBuilder do
                  group_key: described_class.new(earlier, recipient).build, group_count: 1,
                  event_type: 'ticket_commented', state: 'queued', priority: 'normal', actor: actor,
                  payload: { 'action' => 'commented', 'actor_ids' => [] },
-                 created_at: bucket_start + 3.minutes,
-                 first_event_at: bucket_start + 3.minutes, last_event_at: bucket_start + 3.minutes)
+                 created_at: bucket_start + 3.minutes, first_event_at: bucket_start + 3.minutes,
+                 happened_at: bucket_start + 3.minutes, last_event_at: bucket_start + 3.minutes)
         end
 
         before { travel_to(bucket_start + 4.minutes) }
@@ -394,6 +404,12 @@ RSpec.describe Notifications::GroupKeyBuilder do
           row_of_later.reload
           expect(row_of_later.group_count).to eq(2)
           expect(row_of_later.last_event_at).to eq(bucket_start + 4.minutes)
+        end
+
+        it 'keeps the later activity as the time the row shows' do
+          described_class.new(earlier, recipient).find_or_create_group(notification_params)
+
+          expect(row_of_later.reload.happened_at).to eq(bucket_start + 3.minutes)
         end
 
         it 'moves its first event back to the earlier activity' do

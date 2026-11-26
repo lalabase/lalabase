@@ -221,24 +221,42 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
       expect(narrowed.keys).to contain_exactly(long_late.id, late.id, yesterday.id, day_before.id)
     end
 
-    # The bundled view draws one line per ticket, the row with the latest
-    # last_event_at. That is the row that arrived last, here the late one, though
-    # the other row of the ticket carries the later event. (That this column picks
-    # the row, and not created_at, is held by master_list_presenter_spec.rb.)
-    it 'stands for its ticket in the bundled view when it arrived after a row with a later event' do
+    # The time a row prints is when its event happened (happened_at), not when it
+    # reached the row: on top, and two days ago.
+    it 'names the time of its activity, not the time of its write' do
+      expect(late.happened_at).to be_within(1.second).of(2.days.ago)
+      expect(late.last_event_at).to be > 1.minute.ago
+
+      time = web_inbox.at_css("[data-notification-item='#{late.id}'] .inbox-row__time").text.strip
+
+      expect(time).to eq(I18n.with_locale(:de) do
+        I18n.t('views.common.relative_time_ago', time: I18n.t('datetime.distance_in_words.x_days', count: 2))
+      end)
+    end
+
+    # The bundled view draws one line per ticket: the row whose latest event
+    # happened last (happened_at) speaks for it, here the row written in time, so
+    # the line says what the ticket's newest event was. The bundle stands where
+    # its newest arrival stands: on top, with the late row it does not show.
+    # (Both rules without the fanout: master_list_presenter_spec.rb.)
+    it 'puts its ticket on top in the bundled view, under the line of the row with the later event' do
       ticket = ticket_titled('Zwei Zeilen')
       written_in_time = row_about(ticket, created_at: 1.hour.ago)
       late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
       expect(late_comment.id).not_to eq(written_in_time.id)
-      expect(late_comment.first_event_at).to be < written_in_time.first_event_at
-      expect(late_comment.last_event_at).to be > written_in_time.last_event_at
+      expect(late_comment.happened_at).to be < written_in_time.happened_at
+      expect(late_comment.last_event_at).to be > late.last_event_at
       expect(row_ids(web_inbox)).to include(late_comment.id, written_in_time.id)
 
-      bundled = row_ids(web_inbox(view_mode: 'grouped'))
+      page = web_inbox(view_mode: 'grouped')
+      bundled = row_ids(page)
 
-      expect(bundled).to include(late_comment.id)
-      expect(bundled).not_to include(written_in_time.id)
-      expect(bundled.first(2)).to contain_exactly(late_comment.id, late.id)
+      expect(bundled).to eq([written_in_time.id, late.id, yesterday.id, day_before.id])
+      expect(headings_by_row(page)).to include(written_in_time.id => 'today')
+      expect(page.at_css("[data-notification-item='#{written_in_time.id}'] .inbox-row__time").text.strip)
+        .to eq(I18n.with_locale(:de) do
+          I18n.t('views.common.relative_time_ago', time: I18n.t('datetime.distance_in_words.about_x_hours', count: 1))
+        end)
     end
 
     # Both activities lie in one five-minute bucket that is over, so they share a row.

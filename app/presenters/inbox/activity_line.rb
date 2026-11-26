@@ -72,14 +72,15 @@ module Inbox
       actor.display_name
     end
 
-    # How long ago the row's latest event (last_event_at) came, the moment the
-    # list orders by: a row created days ago with an event a moment ago says so.
+    # How long ago the row's latest event happened (Notification#happened_at): a
+    # row created days ago with an event a moment ago says so, and a row the
+    # fanout wrote late names its event's time, though it stands on top.
     def time_ago
-      return '' unless @notification.last_event_at
+      return '' unless @notification.happened_at
 
       # Shared, localized relative-time key (de: "vor X", en: "X ago").
       I18n.t('views.common.relative_time_ago',
-             time: time_ago_in_words(@notification.last_event_at))
+             time: time_ago_in_words(@notification.happened_at))
     end
 
     private

@@ -30,6 +30,7 @@
 #  first_event_at     :datetime         not null
 #  group_count        :integer          default(1), not null
 #  group_key          :string           not null
+#  happened_at        :datetime
 #  last_event_at      :datetime         not null
 #  next_allowed_at    :datetime
 #  notifiable_type    :string           not null
@@ -121,10 +122,11 @@ class Notification < ApplicationRecord
   scope :unread, -> { where(state: %i[queued sent delivered]) }
   scope :read, -> { state_read }
   scope :inbox, -> { where.not(state: :archived) }
-  # Every list of notifications in the app orders by a row's latest event, the order
-  # the token inbox has (Notifications::InboxQuery#relation): a row that gets a later
-  # event (GroupKeyBuilder folds it in) moves up, its created_at does not. The id
-  # only makes rows with the same moment stable across pages.
+  # Every list of notifications in the app orders by the moment a row's latest event
+  # reached it (last_event_at, Notifications::RowEvents.arrival), the order the token
+  # inbox has (Notifications::InboxQuery#relation): a row that takes an event
+  # (GroupKeyBuilder folds it in) moves up, its created_at does not, and a row written
+  # late stands on top. The id only makes rows with the same moment stable across pages.
   scope :recent, -> { order(last_event_at: :desc, id: :desc) }
   scope :for_user, ->(user) { where(recipient: user) }
   scope :high_priority, -> { where(priority: %i[high critical]) }
@@ -178,6 +180,10 @@ class Notification < ApplicationRecord
   # The area of an event nobody has placed in the registry: no reader has it, so
   # nobody receives or sees the row (the registry's own rule, nil = drop).
   UNMAPPED_EVENT = :unmapped_event
+
+  # #happened_at in SQL: the latest event's own time, last_event_at for a row
+  # written before the column.
+  HAPPENED_AT_SQL = 'COALESCE(notifications.happened_at, notifications.last_event_at)'
 
   # nil = the whole project; UNMAPPED_EVENT = nobody.
   def self.area_for(notifiable, action: nil)
@@ -324,8 +330,8 @@ class Notification < ApplicationRecord
 
   # The inbox's period filter: the time area's presets (TimeSessions::ListPeriod,
   # one vocabulary for "diese Woche" and its bounds), a notification counted
-  # by the day of its latest event (last_event_at) in the reader's zone, the
-  # moment `recent` orders by. "all" and an unknown key are no window.
+  # by the day its latest event reached it (last_event_at) in the reader's zone,
+  # the moment `recent` orders by. "all" and an unknown key are no window.
   # Guards: spec/requests/inbox_period_filter_spec.rb, spec/models/notification_scopes_spec.rb.
   scope :active_in_period, lambda { |key, time_zone: Time.zone|
     zone = time_zone || Time.zone
@@ -447,6 +453,17 @@ class Notification < ApplicationRecord
     group_count > 1
   end
 
+  # When the row's latest event happened, its own time: what a row's time label
+  # says, which row stands for a bundle, and the times of a group's activities.
+  # last_event_at is when that event reached the row (RowEvents.arrival), the
+  # moment the lists order and `since` cuts by; the two part when the fanout
+  # writes late. Empty for a row written before the column, when last_event_at
+  # still was the event's own time, so that one answers (also for a row without
+  # an event of its own, where both are the time of the write).
+  def happened_at
+    super || last_event_at
+  end
+
   def high_priority?
     priority_high? || priority_critical?
   end
@@ -480,11 +497,11 @@ class Notification < ApplicationRecord
   # Wider than "unread or no longer unread": the same job sends the signal of the
   # inbox above the organisations, which lists read and archived rows too. So a
   # new row, a change between unread, read and archived, and a new event joining a
-  # group (last_event_at) count. A change no list shows does not: priority, score,
+  # group (last_event_at, happened_at) count. A change no list shows does not: priority, score,
   # and delivery steps that leave a row unread (queued, sent, delivered).
   def unread_signal_changed?
     return false unless Notifications::UnreadSignals.signal?(self)
-    return true if saved_change_to_id? || saved_change_to_last_event_at?
+    return true if saved_change_to_id? || saved_change_to_last_event_at? || saved_change_to_happened_at?
 
     before, after = saved_change_to_state
     return false if before.nil? && after.nil?

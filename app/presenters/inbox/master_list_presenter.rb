@@ -28,8 +28,8 @@ module Inbox
       'archived' => %w[archived]
     }.freeze
 
-    # The headings of the grouped view, the most recent period first: a row
-    # stands under the period of the latest event of its representative.
+    # The headings of the grouped view, the most recent period first: a bundle
+    # stands under the period of the latest arrival among its rows.
     PERIODS = %i[today yesterday this_week older].freeze
 
     # What narrows the rows beyond the status view. `org` exists only on the
@@ -196,25 +196,18 @@ module Inbox
     end
 
     # Grouping = bundling per notifiable (ticket): ONE row per ticket,
-    # represented by the notification with the LATEST EVENT (last_event_at).
+    # represented by the notification whose latest event HAPPENED last
+    # (Notification#happened_at), so its line says what the ticket's newest
+    # event was. The bundle stands where the newest ARRIVAL among its rows
+    # stands (last_event_at, the order of every list): a row the fanout wrote
+    # late puts its ticket on top, though an older row may speak for it.
     # Pagination runs at the ticket level (PAGE_SIZE tickets/page), not at the
-    # notification level. The rows are grouped by the day of their
-    # representative's latest event → a ticket appears globally only ONCE,
-    # under the day of its last activity. group_total/group_unread provide the
-    # bundle counts.
+    # notification level. A ticket appears globally only ONCE, under the day of
+    # that arrival. group_total/group_unread provide the bundle counts.
     def compute_grouped!
-      # DISTINCT ON: one representative (latest event) per notifiable. The
-      # subquery returns only the IDs; ORDER BY must lead with the DISTINCT
-      # columns. The id only makes the choice stable between rows of the same
-      # moment. The one ORDER BY of its own here: the bundles below take
-      # Notification.recent, the order of every list.
-      rep_ids = @filtered.reorder(nil)
-                         .select('DISTINCT ON (notifications.notifiable_type, notifications.notifiable_id) notifications.id')
-                         .order(Arel.sql('notifications.notifiable_type, notifications.notifiable_id, notifications.last_event_at DESC, notifications.id DESC'))
-
-      rep_scope = Notification.where(id: rep_ids)
+      rep_scope = Notification.from(representatives, :notifications)
                               .for_notification_center
-                              .recent
+                              .order(Arel.sql('notifications.bundle_arrived_at DESC, notifications.id DESC'))
 
       # Counts over the ENTIRE filtered scope (not just this page), so that
       # the badge shows the real total count per ticket.
@@ -228,6 +221,20 @@ module Inbox
 
       @grouped_notifications = group_by_period(reps)
       @notifications = reps
+    end
+
+    # DISTINCT ON: one representative per notifiable, the row whose latest
+    # event happened last; ORDER BY must lead with the DISTINCT columns. The id
+    # only makes the choice stable between rows of the same moment. The window
+    # runs before DISTINCT ON, over every row of the bundle: bundle_arrived_at
+    # is the bundle's newest arrival, what compute_grouped! orders by (desc,
+    # then the id, as Notification.recent does) and group_by_period reads.
+    def representatives
+      bundle = 'notifications.notifiable_type, notifications.notifiable_id'
+      @filtered.reorder(nil)
+               .select(Arel.sql("DISTINCT ON (#{bundle}) notifications.*, " \
+                                "MAX(notifications.last_event_at) OVER (PARTITION BY #{bundle}) AS bundle_arrived_at"))
+               .order(Arel.sql("#{bundle}, #{Notification::HAPPENED_AT_SQL} DESC, notifications.id DESC"))
     end
 
     # A row action refreshes the pages currently on screen, including pages
@@ -246,7 +253,8 @@ module Inbox
     end
 
     # { period => representatives } in PERIODS order, empty periods left out.
-    # A representative counts by the day of its latest event (last_event_at).
+    # A representative counts by the day of its bundle's newest arrival
+    # (bundle_arrived_at), the moment the bundles are ordered by.
     # "This week" starts on the week's Monday; yesterday counts as yesterday
     # even when it was in the previous week. The days are the reader's: in
     # the app zone (UTC) the hour after a Berlin midnight still belongs to the
@@ -254,7 +262,7 @@ module Inbox
     def group_by_period(reps)
       today = Time.current.in_time_zone(@time_zone).to_date
       grouped = reps.group_by do |notification|
-        date = notification.last_event_at.in_time_zone(@time_zone).to_date
+        date = notification.bundle_arrived_at.in_time_zone(@time_zone).to_date
         if date >= today then :today
         elsif date == today - 1 then :yesterday
         elsif date >= today.beginning_of_week then :this_week

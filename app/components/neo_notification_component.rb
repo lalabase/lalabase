@@ -83,12 +83,14 @@ class NeoNotificationComponent < ViewComponent::Base
     fallback_message
   end
 
-  # The latest event of the row, the moment the lists order by (Notification.recent).
+  # When the row's latest event happened (Notification#happened_at). The lists
+  # order by when it reached the row (Notification.recent); a row the fanout
+  # wrote late stands on top and still names its event's time.
   def time_ago_text
-    helpers.time_ago_in_words(@notification.last_event_at)
+    helpers.time_ago_in_words(@notification.happened_at)
   rescue Exception
     # Fallback if helper doesn't exist
-    distance_in_days = ((Time.current - @notification.last_event_at) / 1.day).round
+    distance_in_days = ((Time.current - @notification.happened_at) / 1.day).round
     distance_in_days.zero? ? 'today' : "#{distance_in_days}d ago"
   end
 

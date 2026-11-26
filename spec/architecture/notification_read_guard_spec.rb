@@ -19,7 +19,7 @@ module NotificationReadGuard
   # the table itself.
   READ = /\.notifications\b(?![?_!])|(?:includes|joins|left_joins|preload|eager_load)\([^)]*:notifications\b|
           \bNotification\s*\.(?:where|unread|channel_in_app|all|find_by|find|for_user|inbox|unscoped|joins|
-          left_joins|pluck|select|includes|order|group|count|exists\?|recent|in_app)\b/x
+          left_joins|pluck|select|includes|order|group|count|exists\?|recent|in_app|from)\b/x
 
   # The name of a Turbo stream, not a read.
   NOT_A_READ = /\bStreams\.notifications\b/
@@ -55,7 +55,8 @@ module NotificationReadGuard
     'app/jobs/email_delivery_job.rb' =>
       [1, 'loads its own row by id; deliverable_to_recipient? asks accessible_for before any mail goes out'],
     'app/presenters/inbox/master_list_presenter.rb' =>
-      [1, 'representatives by id out of the already filtered inbox relation'],
+      [1, 'representatives out of the already filtered inbox relation: Notification.from reads only ' \
+          'the rows of that relation, its DISTINCT ON subquery'],
     'app/services/dashboard/daily_briefing.rb' =>
       [1, 'uses notified subjects only to HIDE activities from another lane, shows none of them'],
     'app/services/notifications/fanout_service.rb' => [1, 'writes: finds the group a new notification joins'],

@@ -16,6 +16,7 @@ require Rails.root.join('app/models/concerns/notifications/constants')
 #  first_event_at     :datetime         not null
 #  group_count        :integer          default(1), not null
 #  group_key          :string           not null
+#  happened_at        :datetime
 #  last_event_at      :datetime         not null
 #  next_allowed_at    :datetime
 #  notifiable_type    :string           not null

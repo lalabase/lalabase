@@ -563,14 +563,17 @@ class Organisations::NotificationsController < Organisations::BaseController
         actor = actors[actor_id]
         next unless actor
 
-        # Estimate timestamps based on group timing
-        estimated_time = @notification.last_event_at - (index * 30).seconds
+        # Estimated, the row keeps no time per actor: back from when the latest
+        # event happened, never before the earliest one. Not last_event_at, the
+        # moment the event reached the row: a retried fanout would date every
+        # actor by its delay.
+        estimated_time = [@notification.happened_at - (index * 30).seconds, @notification.first_event_at].max
 
         activities_data << {
           actor_name: actor.full_name,
           action: @notification.payload['action']&.humanize || 'performed an action',
           timestamp: estimated_time,
-          time_ago: time_ago_in_words(estimated_time)
+          time_ago: helpers.time_ago_in_words(estimated_time)
         }
       end
 
@@ -581,8 +584,8 @@ class Organisations::NotificationsController < Organisations::BaseController
       activity_data = [{
         actor_name: @notification.actor&.full_name || 'System',
         action: @notification.payload['action']&.humanize || @notification.event_type.humanize,
-        timestamp: @notification.created_at,
-        time_ago: time_ago_in_words(@notification.created_at)
+        timestamp: @notification.happened_at,
+        time_ago: helpers.time_ago_in_words(@notification.happened_at)
       }]
 
       render partial: 'notifications/group_activities',

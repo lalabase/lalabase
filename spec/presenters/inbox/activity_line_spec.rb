@@ -27,17 +27,46 @@ RSpec.describe Inbox::ActivityLine, :ci_guard do
     expect(line_for(ghost).actor_name).to eq('ghost.team')
   end
 
-  # The time of a line is the row's latest event (last_event_at), the moment the list
-  # orders by: a row created days ago whose latest event came a moment ago says so.
+  # The time of a line is when the row's latest event happened (happened_at): a row
+  # created days ago whose latest event came a moment ago says so, and a row the fanout
+  # wrote late (it arrived a moment ago, last_event_at) names the time of its event.
   describe '#time_ago' do
     include ActiveSupport::Testing::TimeHelpers
 
+    def minutes_ago(count)
+      I18n.t('views.common.relative_time_ago', time: I18n.t('datetime.distance_in_words.x_minutes', count: count))
+    end
+
+    # A row as the database hands it out, unsaved: only its times count here.
+    def row_with(**times)
+      ActsAsTenant.without_tenant { Notification.new(**times) }
+    end
+
     it 'speaks of the latest event, not of the moment the row was created' do
       freeze_time do
-        line = described_class.new(instance_double(Notification, created_at: 3.days.ago, last_event_at: 5.minutes.ago))
+        line = described_class.new(row_with(created_at: 3.days.ago, first_event_at: 3.days.ago,
+                                            happened_at: 5.minutes.ago, last_event_at: 5.minutes.ago))
 
-        expect(line.time_ago).to eq(I18n.t('views.common.relative_time_ago',
-                                           time: I18n.t('datetime.distance_in_words.x_minutes', count: 5)))
+        expect(line.time_ago).to eq(minutes_ago(5))
+      end
+    end
+
+    it 'speaks of when the latest event happened, not of when it reached the row' do
+      freeze_time do
+        line = described_class.new(row_with(created_at: 1.minute.ago, first_event_at: 40.minutes.ago,
+                                            happened_at: 40.minutes.ago, last_event_at: 1.minute.ago))
+
+        expect(line.time_ago).to eq(minutes_ago(40))
+      end
+    end
+
+    # A row written before the column: last_event_at was the event's own time then.
+    it 'takes last_event_at for a row without happened_at' do
+      freeze_time do
+        line = described_class.new(row_with(created_at: 3.days.ago, first_event_at: 3.days.ago,
+                                            happened_at: nil, last_event_at: 5.minutes.ago))
+
+        expect(line.time_ago).to eq(minutes_ago(5))
       end
     end
   end

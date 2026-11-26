@@ -344,14 +344,15 @@ RSpec.describe 'App sign-out (DELETE /api/v1/app_session)', :ci_guard, type: :re
   end
 
   describe 'what /api/v1/me says about it' do
-    it 'names the endpoint app_session.revoke and the API version 1.15.0' do
+    # The endpoint came with 1.15.0; capabilities_spec.rb pins the current version.
+    it 'names the endpoint app_session.revoke and an API version from 1.15.0 on' do
       expect(Api::V1::Capabilities::ENDPOINTS['app_session.revoke']).to eq(['DELETE', '/api/v1/app_session'])
-      expect(Api::V1::Capabilities::API_VERSION).to eq('1.15.0')
 
       get '/api/v1/me', headers: bearer(device)
 
       expect(json.dig('data', 'capabilities')).to include('app_session.revoke', 'app_sessions')
-      expect(json.dig('data', 'api_version')).to eq('1.15.0')
+      expect(json.dig('data', 'api_version')).to eq(Api::V1::Capabilities::API_VERSION)
+      expect(Gem::Version.new(json.dig('data', 'api_version'))).to be >= Gem::Version.new('1.15.0')
     end
   end
 

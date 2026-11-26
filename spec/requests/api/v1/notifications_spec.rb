@@ -134,7 +134,9 @@ RSpec.describe 'API V1 Notifications', :ci_guard, type: :request do
         'organisation', 'project', 'notifiable', 'payload', 'first_event_at', 'last_event_at', 'created_at',
         # added with the shared serializer (inbox workflow S1): the readable sentence
         # and, on ticket rows, the address get_ticket takes
-        'message', 'ticket'
+        'message', 'ticket',
+        # API 1.16.0: when the latest event happened, beside last_event_at (its arrival)
+        'happened_at'
       )
       expect(row['message']).to be_a(String)
       expect(row['ticket']).to include('id' => ticket.id, 'number' => ticket.number, 'project_id' => project.id)

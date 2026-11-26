@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 # Folds one more event into a notification row that already exists. This is
-# the one place that changes group_count, first_event_at and last_event_at of
-# such a row, together with the actor and the payload the event brings. A new
-# writer of those columns calls it instead of setting them itself.
+# the one place that changes group_count, first_event_at, last_event_at and
+# happened_at of such a row, together with the actor and the payload the event
+# brings. A new writer of those columns calls it instead of setting them itself.
 #
 # fold! takes the row's lock, which reads the row again, and decides on what
 # the database holds then: a row that was read or archived after the caller
@@ -17,8 +17,9 @@
 # on top of the lists, and a client that polls with `since` gets it. arrival
 # is that rule. A fold asks it, and so does whoever writes a new row
 # (GroupKeyBuilder#create_new_group). first_event_at stays the earliest
-# event's own time. An event without a time of its own (`at: nil`) has arrived
-# now: the count rises, last_event_at is the time of the write.
+# event's own time, happened_at the latest one's: the time a row shows. An
+# event without a time of its own (`at: nil`) has arrived now: the count rises,
+# last_event_at is the time of the write, the other two stay.
 #
 # Entry point: fold!, arrival
 module Notifications
@@ -47,9 +48,13 @@ module Notifications
 
           notification.group_count += 1
           # The span only widens: events of one row can arrive out of order (a
-          # retried outbox event). The lists order and print by last_event_at, and
-          # Posts::MarkRead matches a comment by first_event_at..last_event_at.
+          # retried outbox event). The lists order by last_event_at and print
+          # happened_at, and Posts::MarkRead matches a comment row without post
+          # ids (written before them, when last_event_at was the event's own
+          # time) by first_event_at..last_event_at.
           notification.first_event_at = [notification.first_event_at, at].compact.min
+          # Before last_event_at moves: a row without happened_at answers it.
+          notification.happened_at = [notification.happened_at, at].compact.max
           notification.last_event_at = [notification.last_event_at, arrival(at: at)].compact.max
           merge_actors(notification, actor_id)
           merge_payload(notification, payload)

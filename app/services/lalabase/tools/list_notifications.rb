@@ -44,12 +44,16 @@ module Lalabase
       end
 
       def self.description
-        'Lists your inbox (notifications addressed to you) as JSON, latest activity first, ' \
+        'Lists your inbox (notifications addressed to you) as JSON, newest arrival first, ' \
           'across every organisation and project this token may see. Default: unread only; ' \
           'status "read" or "all" widens it, since (ISO 8601 timestamp with offset or Z; ' \
-          'without an offset it is read as UTC) keeps only rows with activity after that ' \
-          'moment (a grouped row counts its latest event; rows are ordered by that same ' \
-          'activity time, so the first row of a page is the newest), organisation_id narrows ' \
+          'without an offset it is read as UTC) keeps only rows whose latest event reached ' \
+          'the inbox after that moment (last_event_at; rows are ordered by that same time, so ' \
+          'the first row of a page is the newest). An event can reach the inbox late: ' \
+          'happened_at says when the latest event happened, first_event_at when the earliest ' \
+          'did; show happened_at as the time of a row. A row becomes visible a moment after ' \
+          'its last_event_at, so to poll, ask again with since a minute before the newest ' \
+          'last_event_at you saw and skip the ids you already have. organisation_id narrows ' \
           'to one organisation (its project-less rows included), project_id to one project. Each row carries a readable message and, for ticket rows, a ticket ' \
           'block with id, number, title and project_id: pass that project_id plus ticket_id ' \
           'to get_ticket to open the ticket. Supports page + per_page. meta.by_organisation ' \
@@ -68,7 +72,8 @@ module Lalabase
             status: { type: 'string', enum: Notifications::InboxQuery::STATUSES,
                       description: 'unread (default), read or all.' },
             since: { type: 'string',
-                     description: 'ISO 8601 timestamp (offset or Z); only rows with activity after it.' },
+                     description: 'ISO 8601 timestamp (offset or Z); only rows whose latest event ' \
+                                  'reached the inbox after it (last_event_at).' },
             organisation_id: { type: 'string',
                                description: 'UUID of one organisation: only its rows (project-less ones included), ' \
                                             'and every count of the page for it alone.' },

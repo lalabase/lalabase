@@ -33,6 +33,28 @@ RSpec.describe Notifications::Serializer do
     end
   end
 
+  # Three times, one meaning each: first_event_at the earliest event, happened_at
+  # the latest one, last_event_at when that one reached the inbox (the order and
+  # the `since` cursor). A row written before happened_at answers last_event_at.
+  describe 'the times of a row' do
+    it 'names when the latest event happened beside when it reached the inbox' do
+      reached = Time.zone.local(2026, 11, 26, 12, 0, 0)
+      notification = row(created_at: reached, first_event_at: reached - 3.days, happened_at: reached - 2.days,
+                         last_event_at: reached)
+
+      expect(serialized(notification)).to include(first_event_at: (reached - 3.days).iso8601,
+                                                  happened_at: (reached - 2.days).iso8601,
+                                                  last_event_at: reached.iso8601)
+    end
+
+    it 'names last_event_at as happened_at for a row written before the column' do
+      reached = Time.zone.local(2026, 11, 20, 12, 0, 0)
+      notification = row(created_at: reached, first_event_at: reached, happened_at: nil, last_event_at: reached)
+
+      expect(serialized(notification)).to include(happened_at: reached.iso8601, last_event_at: reached.iso8601)
+    end
+  end
+
   it 'renders the sentence the in-app inbox shows, not the event type' do
     notification = row(payload: { 'message' => 'Kaffee ist alle' }) # factory default: system_message
     expect(serialized(notification)[:message]).to eq('Systemnachricht: Kaffee ist alle')

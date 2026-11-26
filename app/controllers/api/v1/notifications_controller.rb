@@ -22,8 +22,14 @@ module Api
       # organisation outside the reach is a 404 here, like every other out-of-scope project.
       rescue_from Notifications::InboxQuery::NotReachable, with: :not_found
 
-      # GET /api/v1/notifications?status=unread|read|all&since=<ISO 8601, activity after>
+      # GET /api/v1/notifications?status=unread|read|all&since=<ISO 8601, arrived after>
       #   &organisation_id=<uuid>&project_id=<uuid>&page=&per_page=
+      # Newest arrival first. `since` keeps the rows whose latest event reached
+      # the inbox after it (last_event_at), also when the event itself is older
+      # (happened_at, a fanout that ran late). A row becomes visible when its
+      # write commits, a moment after its stamp: a client that polls asks again
+      # from a little before the newest last_event_at it saw (a minute) and
+      # drops the ids it has (InboxQuery#relation).
       # In the query string a `+` in the offset of `since` must be sent as %2B
       # (an unencoded + arrives as a space and is refused); `Z` needs no encoding.
       def index

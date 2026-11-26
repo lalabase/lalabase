@@ -30,8 +30,11 @@ module Api
       # device in with e-mail and password at POST /api/auth/v1/app_sessions (a
       # door of its own, outside /api/v1) and keeps its token alive while used;
       # 1.15.0 adds app_session.revoke: a client signs out by revoking the token
-      # it calls with.
-      API_VERSION = '1.15.0'
+      # it calls with; 1.16.0 adds happened_at on notifications.list, a field and
+      # no capability: when a row's latest event happened, beside last_event_at,
+      # which since then says when that event reached the inbox (the order and
+      # the `since` cursor), not when it happened.
+      API_VERSION = '1.16.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {

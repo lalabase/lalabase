@@ -13,15 +13,17 @@ RSpec.describe Inbox::MasterListPresenter do
 
   let(:scope) { Notification.where(recipient: user, channel: 'in_app') }
 
-  # last_event_at: the row's latest event. It moves when a later event folds into
-  # the row (Notifications::GroupKeyBuilder), created_at does not; the factory lets
-  # both follow created_at.
-  def notif(ticket, created_at:, last_event_at: created_at, state: 'queued', **attributes)
+  # last_event_at: when the row's latest event reached it. It moves when an event
+  # folds into the row (Notifications::GroupKeyBuilder), created_at does not; the
+  # factory lets both follow created_at. happened_at (when that event happened)
+  # stays empty unless given, as on a row written before the column: then the row
+  # answers last_event_at.
+  def notif(ticket, created_at:, last_event_at: created_at, first_event_at: created_at, state: 'queued', **attributes)
     ActsAsTenant.with_tenant(organisation) do
       create(:notification,
              recipient: user, organisation: organisation, project: project,
              notifiable: ticket, channel: 'in_app', state: state,
-             created_at: created_at, first_event_at: created_at, last_event_at: last_event_at,
+             created_at: created_at, first_event_at: first_event_at, last_event_at: last_event_at,
              read_at: state == 'read' ? created_at : nil, **attributes)
     end
   end
@@ -235,6 +237,52 @@ RSpec.describe Inbox::MasterListPresenter do
         # In UTC both events fall on the 10th, which is today there.
         expect(in_utc.transform_values { |reps| reps.map(&:notifiable_id) })
           .to eq(today: [ticket_a.id, ticket_b.id])
+      end
+    end
+
+    # A row the fanout wrote late arrived after a row of the same ticket whose event
+    # happened later. The line of the bundle says what the ticket's newest event was,
+    # so the row with the later happened_at speaks for it; the bundle stands where
+    # its newest arrival stands, on top, under today.
+    context 'when a row of the ticket was written late' do
+      let!(:in_time) { notif(ticket_a, created_at: 2.hours.ago) }
+      let!(:late) do
+        notif(ticket_a, created_at: 1.minute.ago, first_event_at: 3.days.ago, happened_at: 3.days.ago,
+                        last_event_at: 1.minute.ago)
+      end
+      let!(:between) { notif(ticket_b, created_at: 30.minutes.ago) }
+
+      it 'lets the row whose event happened last speak for the bundle' do
+        expect(late.last_event_at).to be > in_time.last_event_at
+        expect(late.happened_at).to be < in_time.happened_at
+
+        presenter = build
+
+        expect(presenter.notifications.map(&:id)).to eq([in_time.id, between.id])
+        expect(presenter.group_total(in_time)).to eq(2)
+      end
+
+      it 'stands the bundle at its newest arrival, above a bundle that arrived in between' do
+        expect(in_time.last_event_at).to be < between.last_event_at
+
+        grouped = build.grouped_notifications
+
+        expect(grouped.transform_values { |reps| reps.map(&:id) }).to eq(today: [in_time.id, between.id])
+      end
+
+      it 'puts the bundle under the day of its newest arrival, not of its representative' do
+        travel_to Time.zone.local(2026, 11, 11, 12) do # a Wednesday; the week began on Monday the 9th
+          at = ->(day, hour) { Time.zone.local(2026, 11, day, hour) }
+          in_time.update_columns(created_at: at[2, 9], first_event_at: at[2, 9], last_event_at: at[2, 9])
+          late.update_columns(created_at: at[11, 11], first_event_at: at[1, 9], happened_at: at[1, 9],
+                              last_event_at: at[11, 11])
+          between.update_columns(created_at: at[10, 9], first_event_at: at[10, 9], last_event_at: at[10, 9])
+
+          grouped = build.grouped_notifications
+
+          expect(grouped.transform_values { |reps| reps.map(&:id) })
+            .to eq(today: [in_time.id], yesterday: [between.id])
+        end
       end
     end
 

@@ -61,7 +61,9 @@ module Mcp
     # transcript in pages, by the gate of GET /api/v1/meetings/:id (Meetings::Readable).
     # 0.18 = get_glossary: the confirmed terms of an organisation with their confirmed
     # heard forms, by the reader of GET /api/v1/organisations/:id/terms (Glossary::Lookup).
-    SERVER_VERSION = '0.18.0'
+    # 0.19 = happened_at on the rows of list_notifications, when a row's latest event
+    # happened; last_event_at (the order and `since`) says when it reached the inbox.
+    SERVER_VERSION = '0.19.0'
 
     # MCP surface — sourced from the single tool registry (D6): the :mcp set is the
     # ONE definition of this surface, so a registry refactor can't drift it (R3);

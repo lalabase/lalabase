@@ -317,6 +317,46 @@ RSpec.describe Conversation, :ci_guard, type: :model do
       expect(create(:conversation, creator: creator, project: nil)).to be_persisted
     end
 
+    it 'checks an unsaved project before autosave, without a tenant' do
+      author = creator
+
+      ActsAsTenant.without_tenant do
+        own = Project.new(organisation: organisation, name: 'Own draft')
+        foreign = Project.new(organisation: other_organisation, name: 'Foreign draft')
+        fine = described_class.new(organisation: organisation, creator: author, project: own)
+        record = described_class.new(organisation: organisation, creator: author, project: foreign)
+
+        fine.save!
+        expect(fine.reload.project_id).to eq(own.id)
+        expect(own.reload.organisation_id).to eq(organisation.id)
+        expect(record.project_id).to be_nil
+        expect(record).not_to be_valid
+        expect(record.errors.added?(:project, :invalid)).to be(true)
+        expect { record.save! }.to raise_error(ActiveRecord::RecordInvalid)
+        expect(foreign).to be_new_record
+      end
+    end
+
+    it 'checks a changed project id even when an unsaved project was assigned before it' do
+      own_id = project.id
+      foreign_id = foreign_project.id
+      author = creator
+
+      ActsAsTenant.without_tenant do
+        draft = Project.new(organisation: organisation, name: 'Unused draft')
+        record = described_class.new(organisation: organisation, creator: author, project: draft)
+        record.project_id = foreign_id
+
+        expect(record).not_to be_valid
+        expect(record.errors.added?(:project, :invalid)).to be(true)
+        expect { record.save! }.to raise_error(ActiveRecord::RecordInvalid)
+
+        record.update!(project_id: own_id)
+        expect(record.reload.project_id).to eq(own_id)
+        expect(draft).to be_new_record
+      end
+    end
+
     # Twice over: the tenant check of a reference declared before acts_as_tenant, and
     # the model's own check, which also holds where no tenant is set.
     it 'refuses a project of another organisation under its own tenant' do

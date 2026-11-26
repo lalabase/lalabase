@@ -93,10 +93,16 @@ class ConversationPost < ApplicationRecord
   def same_organisation_references
     TENANT_REFERENCES.each do |name|
       reflection = self.class.reflect_on_association(name)
-      id = public_send(reflection.foreign_key)
-      next if id.blank? || !will_save_change_to_attribute?(reflection.foreign_key)
+      reference = association(name)
+      target = reference.target
+      owner = if target&.new_record? && !reference.stale_target?
+                target.organisation_id
+              else
+                id = public_send(reflection.foreign_key)
+                next if id.blank? || !will_save_change_to_attribute?(reflection.foreign_key)
 
-      owner = ActsAsTenant.without_tenant { reflection.klass.unscoped.where(id: id).pick(:organisation_id) }
+                ActsAsTenant.without_tenant { reflection.klass.unscoped.where(id: id).pick(:organisation_id) }
+              end
       errors.add(name, :invalid) unless owner && owner == organisation_id
     end
   end

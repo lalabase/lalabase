@@ -72,6 +72,47 @@ RSpec.describe ConversationPost, :ci_guard, type: :model do
       expect(post.tap(&:save!).organisation_id).to eq(organisation.id)
     end
 
+    it 'checks an unsaved conversation before autosave, without a tenant' do
+      writer = author
+
+      ActsAsTenant.without_tenant do
+        own = Conversation.new(organisation: organisation, creator: writer)
+        foreign = Conversation.new(organisation: other_organisation, creator: writer)
+        attributes = { organisation: organisation, user: writer, content: 'Guten Morgen' }
+        fine = described_class.new(**attributes, conversation: own)
+        post = described_class.new(**attributes, conversation: foreign)
+
+        fine.save!
+        expect(fine.reload.conversation_id).to eq(own.id)
+        expect(own.reload.organisation_id).to eq(organisation.id)
+        expect(post.conversation_id).to be_nil
+        expect(post).not_to be_valid
+        expect(post.errors.added?(:conversation, :invalid)).to be(true)
+        expect { post.save! }.to raise_error(ActiveRecord::RecordInvalid)
+        expect(foreign).to be_new_record
+      end
+    end
+
+    it 'checks a changed conversation id even when an unsaved conversation was assigned before it' do
+      own_id = conversation.id
+      foreign_id = foreign_conversation.id
+      writer = author
+
+      ActsAsTenant.without_tenant do
+        draft = Conversation.new(organisation: organisation, creator: writer)
+        post = described_class.new(organisation: organisation, user: writer, conversation: draft, content: 'Guten Morgen')
+        post.conversation_id = foreign_id
+
+        expect(post).not_to be_valid
+        expect(post.errors.added?(:conversation, :invalid)).to be(true)
+        expect { post.save! }.to raise_error(ActiveRecord::RecordInvalid)
+
+        post.update!(conversation_id: own_id)
+        expect(post.reload.conversation_id).to eq(own_id)
+        expect(draft).to be_new_record
+      end
+    end
+
     it 'refuses a conversation of another organisation under its own tenant' do
       post = described_class.new(conversation_id: foreign_conversation.id, user: author, content: 'Guten Morgen')
 
@@ -120,6 +161,50 @@ RSpec.describe ConversationPost, :ci_guard, type: :model do
     it 'takes an invitation of its own organisation, and none' do
       expect(system_entry(invitation: invitation)).to be_valid
       expect(system_entry).to be_valid
+    end
+
+    it 'checks an unsaved invitation before autosave, without a tenant' do
+      writer = author
+      own_conversation = conversation
+
+      ActsAsTenant.without_tenant do
+        own = Invitation.new(organisation: organisation, inviter: writer, email: 'own@example.com')
+        foreign = Invitation.new(organisation: other_organisation, inviter: writer, email: 'foreign@example.com')
+        attributes = { organisation: organisation, conversation: own_conversation, user: writer,
+                       kind: 'system', system_event: 'guest_invited' }
+        fine = described_class.new(**attributes, invitation: own)
+        entry = described_class.new(**attributes, invitation: foreign)
+
+        fine.save!
+        expect(fine.reload.invitation_id).to eq(own.id)
+        expect(own.reload.organisation_id).to eq(organisation.id)
+        expect(entry.invitation_id).to be_nil
+        expect(entry).not_to be_valid
+        expect(entry.errors.added?(:invitation, :invalid)).to be(true)
+        expect { entry.save! }.to raise_error(ActiveRecord::RecordInvalid)
+        expect(foreign).to be_new_record
+      end
+    end
+
+    it 'checks a changed invitation id even when an unsaved invitation was assigned before it' do
+      own_id = invitation.id
+      foreign_id = foreign_invitation.id
+      writer = author
+      entry = system_entry
+
+      ActsAsTenant.without_tenant do
+        draft = Invitation.new(organisation: organisation, inviter: writer, email: 'unused@example.com')
+        entry.invitation = draft
+        entry.invitation_id = foreign_id
+
+        expect(entry).not_to be_valid
+        expect(entry.errors.added?(:invitation, :invalid)).to be(true)
+        expect { entry.save! }.to raise_error(ActiveRecord::RecordInvalid)
+
+        entry.update!(invitation_id: own_id)
+        expect(entry.reload.invitation_id).to eq(own_id)
+        expect(draft).to be_new_record
+      end
     end
 
     it 'refuses an invitation of another organisation under its own tenant' do

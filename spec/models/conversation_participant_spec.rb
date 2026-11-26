@@ -62,6 +62,46 @@ RSpec.describe ConversationParticipant, :ci_guard, type: :model do
       expect(row.tap(&:save!).organisation_id).to eq(organisation.id)
     end
 
+    it 'checks an unsaved conversation before autosave, without a tenant' do
+      person = member
+
+      ActsAsTenant.without_tenant do
+        own = Conversation.new(organisation: organisation, creator: person)
+        foreign = Conversation.new(organisation: other_organisation, creator: person)
+        fine = described_class.new(organisation: organisation, user: person, conversation: own)
+        row = described_class.new(organisation: organisation, user: person, conversation: foreign)
+
+        fine.save!
+        expect(fine.reload.conversation_id).to eq(own.id)
+        expect(own.reload.organisation_id).to eq(organisation.id)
+        expect(row.conversation_id).to be_nil
+        expect(row).not_to be_valid
+        expect(row.errors.added?(:conversation, :invalid)).to be(true)
+        expect { row.save! }.to raise_error(ActiveRecord::RecordInvalid)
+        expect(foreign).to be_new_record
+      end
+    end
+
+    it 'checks a changed conversation id even when an unsaved conversation was assigned before it' do
+      own_id = conversation.id
+      foreign_id = foreign_conversation.id
+      person = member
+
+      ActsAsTenant.without_tenant do
+        draft = Conversation.new(organisation: organisation, creator: person)
+        row = described_class.new(organisation: organisation, user: person, conversation: draft)
+        row.conversation_id = foreign_id
+
+        expect(row).not_to be_valid
+        expect(row.errors.added?(:conversation, :invalid)).to be(true)
+        expect { row.save! }.to raise_error(ActiveRecord::RecordInvalid)
+
+        row.update!(conversation_id: own_id)
+        expect(row.reload.conversation_id).to eq(own_id)
+        expect(draft).to be_new_record
+      end
+    end
+
     # Twice over: the tenant check of a reference declared before acts_as_tenant, and
     # the model's own check, which also holds where no tenant is set.
     it 'refuses a conversation of another organisation under its own tenant' do

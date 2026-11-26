@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_090100) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_25_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -477,6 +477,59 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_090100) do
     t.index ["organisation_id", "embeddable_type", "embedding_provider", "embedding_model", "embedding_dims"], name: "idx_content_embeddings_org_space"
     t.index ["organisation_id", "embedding_provider", "embedding_model", "embedding_dims"], name: "idx_content_embeddings_org_triple"
     t.check_constraint "vector_dims(embedding) = embedding_dims", name: "content_embeddings_dims_check"
+  end
+
+  create_table "conversation_participants", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "organisation_id", null: false
+    t.uuid "conversation_id", null: false
+    t.uuid "user_id", null: false
+    t.uuid "added_by_id"
+    t.datetime "last_read_at"
+    t.datetime "archived_at"
+    t.datetime "mail_open_since"
+    t.datetime "mailed_until"
+    t.datetime "alone_notified_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "user_id"], name: "index_conversation_participants_on_conversation_id_and_user_id", unique: true
+    t.index ["user_id"], name: "index_conversation_participants_on_user_id"
+  end
+
+  create_table "conversation_posts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "organisation_id", null: false
+    t.uuid "conversation_id", null: false
+    t.uuid "user_id", null: false
+    t.string "kind", default: "message", null: false
+    t.string "origin", default: "web", null: false
+    t.string "system_event"
+    t.uuid "subject_user_id"
+    t.uuid "second_user_id"
+    t.uuid "invitation_id"
+    t.text "plain_text_version"
+    t.integer "plain_text_word_count"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "created_at"], name: "index_conversation_posts_on_conversation_id_and_created_at"
+    t.index ["invitation_id"], name: "index_conversation_posts_on_invitation_id", where: "(invitation_id IS NOT NULL)"
+    t.check_constraint "kind::text = 'message'::text AND system_event IS NULL OR kind::text = 'system'::text AND system_event IS NOT NULL", name: "conversation_posts_system_event_by_kind"
+    t.check_constraint "kind::text = 'message'::text OR kind::text = 'system'::text", name: "conversation_posts_kind_known"
+    t.check_constraint "origin::text = 'web'::text OR origin::text = 'token'::text OR origin::text = 'assistant'::text", name: "conversation_posts_origin_known"
+  end
+
+  create_table "conversations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "organisation_id", null: false
+    t.uuid "project_id"
+    t.uuid "creator_id", null: false
+    t.string "title", limit: 255
+    t.datetime "last_post_at", null: false
+    t.datetime "read_by_departed_until"
+    t.datetime "frozen_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["creator_id"], name: "index_conversations_on_creator_id"
+    t.index ["frozen_at"], name: "index_conversations_on_frozen_at", where: "(frozen_at IS NOT NULL)"
+    t.index ["organisation_id", "last_post_at"], name: "index_conversations_on_organisation_id_and_last_post_at", order: { last_post_at: :desc }
+    t.index ["project_id"], name: "index_conversations_on_project_id"
   end
 
   create_table "dashboard_configurations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2227,6 +2280,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_090100) do
   add_foreign_key "codebase_import_mappings", "organisations"
   add_foreign_key "codebase_uploads", "organisations"
   add_foreign_key "content_embeddings", "organisations", on_delete: :cascade
+  add_foreign_key "conversation_participants", "conversations", on_delete: :cascade
+  add_foreign_key "conversation_participants", "organisations", on_delete: :cascade
+  add_foreign_key "conversation_participants", "users"
+  add_foreign_key "conversation_participants", "users", column: "added_by_id", on_delete: :nullify
+  add_foreign_key "conversation_posts", "conversations", on_delete: :cascade
+  add_foreign_key "conversation_posts", "invitations", on_delete: :nullify
+  add_foreign_key "conversation_posts", "organisations", on_delete: :cascade
+  add_foreign_key "conversation_posts", "users"
+  add_foreign_key "conversation_posts", "users", column: "second_user_id", on_delete: :nullify
+  add_foreign_key "conversation_posts", "users", column: "subject_user_id", on_delete: :nullify
+  add_foreign_key "conversations", "organisations", on_delete: :cascade
+  add_foreign_key "conversations", "projects", on_delete: :nullify
+  add_foreign_key "conversations", "users", column: "creator_id"
   add_foreign_key "dashboard_configurations", "organisations"
   add_foreign_key "dashboard_configurations", "projects"
   add_foreign_key "dashboard_configurations", "users"

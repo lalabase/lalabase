@@ -63,7 +63,7 @@ class Note < ApplicationRecord
   # save! raises RecordInvalid with a usable message (instead of an exception).
   validate :wiki_content_roundtrip_safe
 
-  before_save :extract_plain_text_content
+  include RichTextBody
   # Wiki save lifecycle (D2): invariants live in the model so every write path runs
   # them (UI, console, import, later MCP) — not only the SaveNote actor.
   #
@@ -94,15 +94,6 @@ class Note < ApplicationRecord
   end
 
   private
-
-  def extract_plain_text_content
-    self.plain_text_version = content&.to_plain_text
-    self.plain_text_word_count = count_words(content&.to_plain_text)
-  end
-
-  def count_words(text)
-    text.split(/\s+/).reject(&:blank?).size
-  end
 
   # Track note creation in project activities
   def track_note_created_in_project

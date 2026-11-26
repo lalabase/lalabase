@@ -217,6 +217,83 @@ A private comment may be read by its recipient, its author and account admins. *
 * Until the audit on 26 September 2026, the rule existed only in `PostPolicy`. Five readers had
   forgotten it; two more were found while fixing them.
 
+### A conversation is read through `Conversation.visible_to`
+
+**Binding** (guard spec: `spec/architecture/conversation_visibility_guard_spec.rb`; runs through the
+directory entry `spec/architecture/` in the CI guard list):
+
+A conversation (messages between members of one organisation, for instance an agency and its
+client) is read by somebody who has a participant row **and** is an active member of the
+conversation's organisation. That is decided **only** by the scope `Conversation.visible_to(user)`.
+(Its third term is the account itself: an erased account reads nothing, whatever rows it left.)
+A conversation holds correspondence with a client, and the section above tells how a rule that
+had to be remembered at every read was forgotten at seven. So this rule has one place, and its
+guard stood before the first reader did.
+
+| Who asks? | Then |
+|---|---|
+| a list or a lookup for one person | `policy_scope(Conversation)`, which is `Conversation.visible_to(user)`, then `.find` |
+| a question about one conversation | `ConversationPolicy`: every question first asks `conversation.visible_to?(user)`, which asks the scope |
+| who is told about a post | `conversation.visible_participants`, the same rule from the other end, as users |
+| something that starts from posts | `ConversationPost.visible_to(user)`, which merges the scope |
+
+* **No project term and no admin term.** The project on a conversation is a label: a member with
+  every right on it who does not take part reads nothing. An account admin who does not take
+  part reads nothing either, not a title and not a number. The line other policies open with
+  ("an admin of the account sees everything") must not be copied into the rule or the policy.
+* **A participation ends by deleting its row**, never by a flag: a forgotten "and not ended"
+  would be a leak, a missing row cannot be. A member who is deactivated or removed keeps the row
+  and reads nothing until the membership is active again.
+* A row stands in one organisation, and so does what it names: the project of a conversation,
+  the invitation of a post and the conversation of a participant or a post are held to the row's
+  organisation by the model, also where no tenant is set (the tenant stamps a new row as its own,
+  whatever the row names).
+* **The guard refuses five things:**
+  1. Everywhere under `app/` outside `app/models` and `app/policies` (controllers, channels,
+     services, queries, mailers, components, views, presenters, jobs, helpers, and a directory
+     that is added later):
+     a use of `Conversation`, `ConversationPost` or `ConversationParticipant` on the class that is
+     not on its list of what may stand (`visible_to`, `new`, `create`, a constant behind `::`, the
+     class as an argument as in `policy_scope(Conversation)`), and SQL text that names one of
+     the three tables behind `JOIN` or `FROM`.
+  2. In the same places: `association(...)` of the posts or the participants, and a preload or a
+     join of them. A preloaded association holds every row, whatever the rule says.
+  3. The words `project` and `account_admin` in the rule (`visible_to`, `visible_to?`,
+     `visible_participants`, `ConversationPost.visible_to`) and anywhere in
+     `app/policies/conversation_policy.rb`, comments left out.
+  4. A Turbo broadcast in any file under `app/` that names one of the three models: a stream
+     carries content to whoever listens. The one owner of a live signal comes with a later change.
+     ⚠️ It goes by the name of the method, so the application's own
+     `Notifications::BroadcastService#broadcast_update` counts in such a file as well.
+  5. One of the three models under `app/services/{assistant,embeddings,chats,lalabase/tools}`,
+     `app/controllers/admin` and `app/views/admin`: a conversation is not searched, not read by
+     the assistant and not shown in the admin area.
+* The guard knows the models by their constants, not by the word: the module `Conversations`
+  (the switch) and `ConversationPolicy` are not models.
+* The allow list `OWNERS` (a file and its reason) only shrinks; an entry without a finding or
+  for a missing file is red. It has one entry, `app/services/user_data_exports/registry.rb`: the
+  personal data export lists a person's own rows by `user_id`, dates only, and on purpose not
+  through the rule, so what somebody wrote stays theirs to ask for after they left a
+  conversation or were deactivated. (Like the whole export it covers only organisations the
+  person still has a membership row in.)
+* ⚠️ **A tripwire against accidental readers, not a proof.** Not seen: a read built at run time
+  (a class in a variable, `constantize`, `send`); a read through an association on a record
+  (`conversation.conversation_posts`), which is fine when the record came through the rule and
+  wrong when it did not; a reader that only shows the fields of a notification about a
+  conversation; SQL built from parts; `app/models`, `app/policies` and `lib/`. A comment that
+  quotes a forbidden form trips nothing, a string does not count as a call.
+* ⚠️ **A conversation is deleted through the model** (`dependent: :destroy`). The cascade of the
+  database removes the rows of the posts and leaves their rich text behind. That holds for the
+  organisation above it as well: its conversations hang on it by the database cascade alone.
+  No path deletes an organisation today; the first one that does destroys its conversations
+  through the model first.
+* **The switch** is `Conversations.enabled?` (`app/services/conversations.rb`): the environment
+  variable `LALABASE_CONVERSATIONS`, read at every call, on for the value `1` only, for the whole
+  instance. Nothing asks it yet. The models, the policy and the export never ask it: who reads
+  is a rule of the data and does not hang on the environment.
+* **Nothing reads or writes the three tables yet**: no route, no controller, no notification, no
+  mail. The first writer and the first reader each start as a line in the table above.
+
 ### A meeting write locks through `Meeting#lock_in_project!`
 
 **Binding** (guard spec: `spec/architecture/meeting_lock_guard_spec.rb`; runs through the

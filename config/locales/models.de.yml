@@ -137,6 +137,16 @@ de:
               invalid_date: "(Nr. %{position}): kein gültiges Datum"
             user:
               not_an_active_member: "muss ein aktives Mitglied dieser Organisation sein"
+        conversation_participant:
+          attributes:
+            user:
+              not_an_active_member: "muss ein aktives Mitglied dieser Organisation sein"
+        conversation_post:
+          attributes:
+            content:
+              not_for_a_system_entry: "darf bei einem Systemeintrag nicht stehen"
+            system_event:
+              not_for_a_message: "darf bei einer Nachricht nicht stehen"
         beuser:
           last_active_admin: "Der letzte aktive Admin kann weder herabgestuft, deaktiviert noch gelöscht werden."
         # Modellspezifisch, weil die Regel zu PriceTier gehört. Die beiden

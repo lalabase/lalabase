@@ -1,4 +1,4 @@
-# Map: app/models (as of 2026-11-17)
+# Map: app/models (as of 2026-11-25)
 
 ~80 models sit directly in this directory; namespaces exist only for `admin/`,
 `knowledge/`, `overview/`, `smart_folders/`, `time_sessions/`, `user/`. Domain membership cannot be
@@ -222,7 +222,7 @@ inferred from the directory layout — this map groups them:
     on arbitrary pages without morph metadata, where the refresh would become a full replace visit.
     There, the PREVIOUS answer is replaced specifically instead (regenerate pill).
     Anyone touching this branch must check both sides.
-  ⚠️ **Images in rich text**: every `has_rich_text :content` (Ticket, Post, Note) includes
+  ⚠️ **Images in rich text**: every `has_rich_text :content` (Ticket, Post, Note, ConversationPost) includes
   `concerns/rich_text_embed_guard.rb` (enforced by a guard spec). The validator checks only the
   **delta** of a save (new blobs, new dead `sgid`s), identifies the type itself,
   strips `url`/`href` from attachment nodes (previously a non-expiring link), and enqueues
@@ -252,6 +252,68 @@ inferred from the directory layout — this map groups them:
   self-mention has no reference and is left untouched. Specs:
   `spec/models/action_text/rich_text_embed_key_rotation_spec.rb`,
   `spec/services/rich_text_sgid_resign_spec.rb`.
+* **Conversations** (as of 25 November 2026: tables, models and the read rule; no route,
+  page or writer yet): `conversation`, `conversation_participant`, `conversation_post`.
+  Messages between members of ONE organisation, for example an agency and its client.
+  * ⚠️ **ONE rule decides who reads a conversation: `Conversation.visible_to(user)`.**
+    Both a participant row AND active membership in the conversation's organisation
+    (plus the account itself: an erased account reads nothing, whatever it left behind).
+    `#visible_to?` asks the scope and has no rule of its own. `#visible_participants` is
+    the same rule from the other end (which participants can read now, as a relation of
+    `User`). `ConversationPost.visible_to` merges the scope; `ConversationPolicy` asks only
+    that scope. `spec/models/conversation_spec.rb` keeps the ends aligned.
+  * ⚠️ **No project condition, no admin condition.** `project_id` is a label and appears in no
+    authorization check: somebody with full project access who does not participate reads nothing.
+    An account admin without participation reads nothing, not a title or a number: a conversation
+    is correspondence between its participants. The shortcut “an admin sees everything” that
+    other policies start with breaks the most important rule here. Guard:
+    `spec/architecture/conversation_visibility_guard_spec.rb` (checks the rule and policy for both
+    words and rejects every reader bypassing the rule; see the section in the root `CLAUDE.md`).
+  * **Participation**: a row identifies an account (`user_id` is never empty) and ends by being
+    deleted. There is no “ended” field that a reader could forget: a missing row cannot
+    cause a leak. When the row is written, the participant is an active member of the
+    organisation (`user_must_be_active_member`, only when `user_id` changes, the rule from
+    `person`). If the member is later deactivated or removed, the row remains and can still
+    be saved, and the read rule shows them nothing until their membership becomes active again.
+    Nothing ends a participation yet, including account erasure.
+  * **References stay within the row's organisation**: `conversation.project`,
+    `conversation_post.invitation` and `conversation` on participants and posts are declared BEFORE
+    `acts_as_tenant` and additionally enforced by `same_organisation_references`, even without
+    a tenant or under another tenant (the tenant stamps `organisation_id`, not the
+    conversation). The glossary's pattern, deliberately copied into each model. This is the only
+    place in these three models that removes tenant scoping; the read rule never does.
+  * **Post**: a message (`kind` `message`, text as `has_rich_text :content`, no
+    `system_event`) or a system entry (`kind` `system`, a `system_event` key,
+    no text). A system entry stores keys and IDs (`subject_user`, `second_user`,
+    `invitation`), never a name or a sentence: names are read when displaying it, so
+    no personal information remains in it after an account is erased. It writes no
+    rich-text record or mirror (`skip_callback` on the model; asking for `content`
+    would build an empty record). `KINDS` and `ORIGINS` are lists with `inclusion` and
+    check constraints, not Postgres enums; `origin` says which channel a post came through,
+    and only `web` is written so far.
+  * **Deliberately absent**: no `Trackable` (no Activity, no feed), no `has_many :fragments`
+    (no embeddings, search or assistant), no file attachments, no `archived_at` on
+    the conversation (archiving belongs to a person, on their participation) and no
+    association named `posts`: they are named `conversation_posts` and `conversation_participants`;
+    a `.posts` belongs to ticket comments and their guard.
+  * ⚠️ **Deletion goes through the model** (`dependent: :destroy`). The database cascade
+    removes post rows, never their text in `action_text_rich_texts`. This also applies
+    one level up: conversations are attached to the organisation only through the database
+    cascade. No path deletes an organisation today; the first one that does must first destroy
+    its conversations through the model.
+  * **Plain-text mirrors**: `plain_text_version` and `plain_text_word_count` are written in ONE place,
+    `concerns/rich_text_body.rb`, included by `post`, `note` and `conversation_post`. The position
+    of the `include` determines its position in the `before_save` callback chain (`note` derives
+    its Markdown immediately afterwards). Each host declares `has_rich_text` and
+    `include RichTextEmbedGuard` itself, because the embed guard reads each file separately.
+    All three hosts are pinned by `spec/models/concerns/rich_text_body_spec.rb`.
+  * **Export and switch**: the personal export lists only data about the person's own messages and
+    participations, by `user_id`, not through the read rule (`user_data_exports/registry.rb`,
+    the guard's single allowlist entry): somebody who left a conversation or was deactivated
+    still receives that data; somebody removed from the organisation receives nothing from it,
+    as elsewhere in the export. `Conversations.enabled?`
+    (`app/services/conversations.rb`, `LALABASE_CONVERSATIONS=1`) has no caller yet;
+    models, policy and export never consult it.
 * **Documents/Documentation/Codebase**: `document`, `document_version`, `documentation_*`
   (`documentation_asset` = an image from synchronized documentation, copied from the repository;
   the cached page references it by ID, served only through `FileDownloadsController`),

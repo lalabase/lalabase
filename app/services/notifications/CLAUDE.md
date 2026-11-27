@@ -3,7 +3,7 @@
 Processes OutboxEvents into Notifications. The full chain (Trackable → Activity → OutboxEvent →
 OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md`.
 
-* **Entry point: `fanout_service.rb`** (~535 LOC) — determines WHO receives a Notification.
+* **Entry point: `fanout_service.rb`** (~640 LOC) — determines WHO receives a Notification.
   **DUAL-PATH:** Tickets = subscription-based (`NotificationSubscription` + user settings filter),
   non-tickets (Project/Document/Note/…) = score-based. Changes to recipient rules
   must ALWAYS check both paths.
@@ -11,9 +11,15 @@ OutboxConsumeJob → here) is mapped in `docs/architektur/seiteneffekt_ketten.md
 * `suppressor.rb` — suppresses duplicates/self-notifications
 * `group_key_builder.rb` — notification grouping (`find_or_create_group`): when a row accepts an
   event (`can_add_to_group?`, `complete_post_group?`), lookup, keys, locking, creation.
+  **One lock per group** (`with_group_lock`): a transaction advisory lock on the group key, taken
+  at the run's first recipient and held until `OutboxEvent#process!` commits, so a second run of
+  the group waits and then sees what the first wrote. Lock order: outbox event row, post row of a
+  comment, the group lock, the group's notification rows; nothing else takes the group lock. The
+  wait is bounded (`GROUP_LOCK_WAIT`, in a savepoint of its own, `lock_timeout` put back after
+  it); running out raises `LockFailedError`, a failed run its outbox event plans again.
 * `row_events.rb` — **the single place** that changes `group_count`, `first_event_at`, `last_event_at`
   and `happened_at` on an existing row, together with the event's actor and payload
-  (`RowEvents.fold!`): locks the row, reloads it, rejects a read or archived row,
+  (`RowEvents.fold!`): locks the row, reloads it, rejects a row that is gone, read or archived,
   checks the caller's rule (block) under the lock, only widens the span, and saves with
   `save!` (callbacks, signal). Returns true or false; if false, the builder creates a new row.
   ⚠️ `last_event_at` is when the latest event **reached** the row (`RowEvents.arrival`), not when
@@ -252,4 +258,5 @@ Important:
    fields are set by `create_new_group` (which asks `RowEvents.arrival` for `last_event_at`, as a new
    writer of a row with an event does) and `Notification#set_timestamps`. Guard:
    `spec/architecture/notification_row_events_guard_spec.rb` (reads `app/` and `lib/` with Prism; its
-   header describes what it cannot see). Locking is verified by `row_events_concurrency_spec.rb`.
+   header describes what it cannot see). The row lock is verified by `row_events_concurrency_spec.rb`,
+   the group lock by `group_lock_concurrency_spec.rb` (both on two connections).

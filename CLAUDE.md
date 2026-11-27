@@ -136,9 +136,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 * **Two security jobs, deliberately separate.** A job has exactly one status, and
   `dependencies` is currently red (see below). Combined, Brakeman's red would be
   indistinguishable from that red, and Brakeman's entire value is “red = NEW finding”:
-  * `brakeman`, against the frozen `config/brakeman.ignore` baseline (38 entries as of
-    20 October 2026; the `constantize` entry in the file proxy was fixed with #915 instead of
-    being frozen again; the title-search entry disappeared with the ticket-search redesign).
+  * `brakeman`, against the frozen `config/brakeman.ignore` baseline (36 entries as of
+    27 November 2026; the `constantize` entry in the file proxy was fixed with #915 instead of
+    being frozen again; the title-search entry disappeared with the ticket-search redesign;
+    the two entries of the notification group lock went with its interpolated SQL).
     Red = NEW finding. **Every entry has been reviewed** and its `note` field states
     why it is safe; the file may only shrink, and a new entry
     needs the same justification. Exception since 20 October 2026: the demo reset's TRUNCATE

@@ -6,9 +6,9 @@
 # brings. A new writer of those columns calls it instead of setting them itself.
 #
 # fold! takes the row's lock, which reads the row again, and decides on what
-# the database holds then: a row that was read or archived after the caller
-# loaded it takes no event. The caller's own rule comes as a block and is asked
-# about the re-read row. The row is saved with save!, so validations and
+# the database holds then: a row that was read, archived or deleted after the
+# caller loaded it takes no event. The caller's own rule comes as a block and is
+# asked about the re-read row. The row is saved with save!, so validations and
 # callbacks run (the unread signal among them).
 #
 # last_event_at says when the latest event reached the row: the time of the
@@ -55,13 +55,15 @@ module Notifications
         notification.update!(last_event_at: notification.happened_at)
       end
 
-      # true: the event is folded in and saved. false: nothing was written.
+      # true: the event is folded in and saved. false: nothing was written, because
+      # the row is gone, read or archived, or the block refused.
       #
       # The block, if given, gets the row as read under the lock; a falsy answer
       # refuses the fold. The row object must carry no unsaved changes: the lock
       # reloads it and raises otherwise.
       def fold!(notification:, at:, actor_id: nil, payload: nil)
-        notification.with_lock do
+        notification.transaction do
+          next false unless lock_row(notification)
           # Deliberate duplication of a check in GroupKeyBuilder#can_add_to_group?:
           # here it holds for every caller. The caller's block brings the rest; for
           # the builder that includes an email that left the queue. If fold! gets a
@@ -91,6 +93,17 @@ module Notifications
       end
 
       private
+
+      # The lock's re-read: with_lock in its two steps, so that only this step's
+      # RecordNotFound reads as "the row is gone" (deleted after the caller loaded
+      # it). The same error from the block or from save! is not a refusal and
+      # raises.
+      def lock_row(notification)
+        notification.lock!
+        true
+      rescue ActiveRecord::RecordNotFound
+        false
+      end
 
       # Whether the event becomes the row's latest one, the event its line names:
       # not earlier than happened_at. An event without a time of its own leaves

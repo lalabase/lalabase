@@ -307,24 +307,6 @@
       "note": "Reviewed 26.09.2026: no shell (separate argv entries); the ref argument always starts with refs/heads/, clone_url with https://x-access-token:...@github.com/ and a full_name validated by FULL_NAME_PATTERN; default_branch comes from the GitHub API."
     },
     {
-      "warning_type": "SQL Injection",
-      "check_name": "SQL",
-      "message": "Possible SQL injection",
-      "file": "app/services/notifications/group_key_builder.rb",
-      "line": 218,
-      "fingerprint": "a146d4c62dc1df96c2a5696336ff25ea00190e4cca073ee94ea5a2044e427e51",
-      "note": "Reviewed 26.09.2026: advisory lock id is Digest::SHA1.hexdigest(...).hex % (2**31 - 1), an Integer computed locally."
-    },
-    {
-      "warning_type": "SQL Injection",
-      "check_name": "SQL",
-      "message": "Possible SQL injection",
-      "file": "app/services/notifications/group_key_builder.rb",
-      "line": 226,
-      "fingerprint": "ae7749af40df6c9c75bbf1b9297ab1f2d9f919f5eb29e6ff9a3a27047fac0746",
-      "note": "Reviewed 26.09.2026: advisory lock id is Digest::SHA1.hexdigest(...).hex % (2**31 - 1), an Integer computed locally."
-    },
-    {
       "warning_type": "Dynamic Render Path",
       "check_name": "Render",
       "message": "Render path contains parameter value",

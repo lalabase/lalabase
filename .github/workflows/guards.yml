@@ -757,6 +757,8 @@ jobs:
           spec/services/notifications/group_key_builder_spec.rb
           spec/services/notifications/row_events_spec.rb
           spec/services/notifications/row_events_concurrency_spec.rb
+          spec/services/notifications/group_lock_concurrency_spec.rb
+          spec/services/posts/read_fanout_concurrency_spec.rb
           spec/services/notifications/fanout_service_ticket_simple_spec.rb
           spec/services/posts/mark_read_spec.rb
           spec/models/outbox_event_failed_run_spec.rb

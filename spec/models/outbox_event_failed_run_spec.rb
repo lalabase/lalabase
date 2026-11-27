@@ -8,7 +8,8 @@ require 'rails_helper'
 # Until 2026-10-31 the rows stayed. The retry stopped at the first recipient it had already
 # served, whose dedupe_fingerprint was taken, and the people after that one got nothing, on
 # every retry up to MAX_RETRY_COUNT. One lost advisory lock was enough, and several uploads
-# at once were enough to lose one (GroupKeyBuilder shares the lock per project and action).
+# at once were enough to lose one. Now a run waits for the lock of its group
+# (GroupKeyBuilder#with_group_lock) and fails only when GROUP_LOCK_WAIT runs out.
 RSpec.describe OutboxEvent, '#process! after a failed run', :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:project) { create(:project, organisation: organisation) }
@@ -209,6 +210,54 @@ RSpec.describe OutboxEvent, '#process! after a failed run', :ci_guard do
 
       run(second)
       expect(group.reload.group_count).to eq(2)
+    end
+  end
+
+  # The fanout loads the rows it may fold into before its loop. A row deleted in between (the
+  # delete of the inbox) takes no event: its reader gets a new row, and the run goes through.
+  describe 'a row deleted after the fanout loaded it' do
+    let(:ticket) { create(:ticket, project: project, creator: actor) }
+    let!(:readers) do
+      Prosopite.pause do
+        Array.new(2) { account_admin }.each do |reader|
+          NotificationSubscription.create!(user: reader, subscribable: ticket, mode: 'follow')
+        end
+      end
+    end
+
+    def comment_event
+      post = create(:post, ticket: ticket, user: actor, organisation: organisation)
+      event_on(ticket, action: 'post_added', key: 'ticket.post_added', secondary: post)
+    end
+
+    def delete_after_prefetch(row, handed_in)
+      allow_any_instance_of(Notifications::FanoutService).to receive(:prefetch_loop_data).and_wrap_original do |original, *args|
+        data = original.call(*args)
+        handed_in.concat(data[:existing_groups].values.map(&:id))
+        Notification.where(id: row.id).delete_all
+        data
+      end
+    end
+
+    it 'leaves the event processed, gives that reader a new row and folds for the others' do
+      run(comment_event)
+      inbox = Notification.where(notifiable: ticket, channel: 'in_app')
+      gone = inbox.find_by!(recipient: readers.first)
+      kept = inbox.find_by!(recipient: readers.last)
+      expect([gone.group_count, kept.group_count]).to eq([1, 1])
+
+      second = comment_event
+      handed_in = []
+      delete_after_prefetch(gone, handed_in)
+      run(second)
+
+      expect(handed_in).to include(gone.id, kept.id)
+      expect(second.reload).to have_attributes(retry_count: 0, error_message: nil)
+      expect(second.processed_at).to be_present
+      expect(Notification.where(id: gone.id)).not_to exist
+      expect(inbox.pluck(:recipient_id)).to match_array(readers.map(&:id))
+      expect(inbox.find_by!(recipient: readers.first)).to have_attributes(group_count: 1)
+      expect(kept.reload).to have_attributes(group_count: 2)
     end
   end
 

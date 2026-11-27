@@ -143,6 +143,19 @@ RSpec.describe Notification, 'org switcher signal', :ci_guard do
       expect(signal_jobs.size).to eq(1)
     end
 
+    # A fold can raise the count and move neither time: an event not later than
+    # happened_at, folding into a row whose last_event_at lies ahead of the clock.
+    # The row names one more event all the same.
+    it 'refreshes when only the count of a group rises' do
+      notification = build_signal.tap(&:save!)
+      clear_enqueued_jobs
+
+      notification.update!(group_count: 2)
+
+      expect(notification.saved_changes.keys).to contain_exactly('group_count', 'updated_at')
+      expect(signal_jobs.size).to eq(1)
+    end
+
     it 'refreshes when a read row is destroyed' do
       notification = build_signal(state: :read).tap(&:save!)
       clear_enqueued_jobs

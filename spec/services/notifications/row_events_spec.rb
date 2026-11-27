@@ -452,6 +452,48 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
       end
     end
 
+    # Deleted after the caller loaded it (the delete of the inbox, a project or an
+    # account that goes): the row takes no event, and fold! answers so instead of
+    # raising.
+    context 'when the row was deleted after it was loaded' do
+      it 'answers false, asks no block and writes nothing' do
+        row = create_row
+        loaded = Notification.find(row.id)
+        expect(Notification.where(id: row.id)).to exist
+        Notification.where(id: row.id).delete_all
+        expect(Notification.where(id: row.id)).not_to exist
+        expect(loaded).to be_persisted
+
+        asked = []
+        answer = nil
+        expect do
+          answer = described_class.fold!(notification: loaded, at: later_time, actor_id: other_actor.id) do |given|
+            asked << given
+            true
+          end
+        end.not_to change(Notification, :count)
+
+        expect(answer).to be(false)
+        expect(asked).to be_empty
+        expect(Notification.where(id: row.id)).not_to exist
+      end
+
+      # Only the re-read of the lock means "the row is gone". The same error raised
+      # by the caller's rule is the caller's and is not taken for a refusal.
+      it 'still raises a RecordNotFound that the block raises' do
+        row = create_row
+        before_call = row_values(row)
+        expect(before_call).to include('group_count' => 1, 'last_event_at' => last_time)
+
+        expect do
+          described_class.fold!(notification: row, at: later_time) do
+            raise ActiveRecord::RecordNotFound, 'raised by the rule'
+          end
+        end.to raise_error(ActiveRecord::RecordNotFound, 'raised by the rule')
+        expect(row_values(row)).to eq(before_call)
+      end
+    end
+
     context 'with a block' do
       it 'hands the block the row as the database holds it under the lock' do
         row = create_row
@@ -546,6 +588,24 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
 
         expect { described_class.fold!(notification: row, at: earlier_time) }
           .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: recipient.id)
+      end
+
+      # The clock stands before the row's last_event_at, and the event is not later
+      # than its happened_at: neither time moves, only the count. The lists must
+      # hear of it all the same.
+      it 'refreshes the unread signal of the recipient when only the count moves' do
+        row = create_row(happened_at: last_time, last_event_at: far_ahead_time)
+        clear_enqueued_jobs
+        expect(row_values(row)).to include('group_count' => 1, 'first_event_at' => first_time,
+                                           'happened_at' => last_time, 'last_event_at' => far_ahead_time)
+        expect(far_ahead_time).to be > now
+        expect(inside_time).to be_between(first_time, last_time)
+
+        expect { described_class.fold!(notification: row, at: inside_time) }
+          .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: recipient.id)
+
+        expect(row_values(row)).to include('group_count' => 2, 'first_event_at' => first_time,
+                                           'happened_at' => last_time, 'last_event_at' => far_ahead_time)
       end
 
       it 'moves updated_at to the time of the fold' do

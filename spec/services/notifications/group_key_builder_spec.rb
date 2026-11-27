@@ -704,6 +704,27 @@ RSpec.describe Notifications::GroupKeyBuilder do
         end
       end
 
+      # The fanout loads its candidates before the loop. A row deleted since takes no
+      # event, and the event gets a row of its own.
+      context 'when a row handed in through existing_groups was deleted after it was loaded' do
+        it 'creates one new row' do
+          row = create_row
+          loaded_row = Notification.find(row.id)
+          expect(Notification.where(id: row.id)).to exist
+          Notification.where(id: row.id).delete_all
+          preloaded = preloaded_builder(loaded_row)
+          expect(Notification.where(id: row.id)).not_to exist
+
+          answer = nil
+          expect { answer = preloaded.find_or_create_group(notification_params) }
+            .to change(Notification, :count).by(1)
+
+          expect(answer.id).not_to eq(row.id)
+          expect(answer.reload).to have_attributes(group_count: 1, recipient_id: recipient.id,
+                                                   group_key: builder.build, state: 'queued')
+        end
+      end
+
       context 'when the found in-app row is unread' do
         # Only an email row is refused once it left the queue; an in-app row in
         # sent or delivered still takes the event and keeps its state.

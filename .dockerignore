@@ -34,6 +34,10 @@
 /vendor/bundle/
 /public/*
 !/public/fonts/
+!/public/404.html
+!/public/422.html
+!/public/500.html
+!/public/406-unsupported-browser.html
 # The directory must exist when Rails boots for the precompile, or Sprockets
 # never registers it and the freshly built tailwind.css is not an asset.
 /app/assets/builds/*

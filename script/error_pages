@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Writes the static error pages public/404.html, 422.html, 500.html and
+# 406-unsupported-browser.html from lib/lalabase/error_pages/page.html.erb and the
+# texts in config/locales/error_pages.{de,en}.yml. Run it after changing either:
+#
+#   bin/rails runner script/error_pages
+#
+# The files are checked in. spec/architecture/public_error_pages_spec.rb is red
+# while a file differs from what this script writes. Reasons: Lalabase::ErrorPages.
+
+Lalabase::ErrorPages.write_all!
+Lalabase::ErrorPages::PAGES.each_key { |name| puts Lalabase::ErrorPages.path(name).relative_path_from(Rails.root) }

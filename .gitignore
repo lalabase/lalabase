@@ -25,7 +25,14 @@ config/master.key
 /public/fonts/*
 !/public/fonts/.keep
 design/
-public/
+# Anchored: an unanchored `public/` also hid app/controllers/api/public/ and
+# its specs, and no exception below it could take effect. The four error pages
+# are written by script/error_pages and must be deployed (Lalabase::ErrorPages).
+/public/*
+!/public/404.html
+!/public/422.html
+!/public/500.html
+!/public/406-unsupported-browser.html
 vendor/bundle
 vendor/cache
 storage/

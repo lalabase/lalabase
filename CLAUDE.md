@@ -165,6 +165,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 * **Assets**:
   * `tailwindcss-rails` builds Tailwind CSS (dev: `bin/rails tailwindcss:watch` via Procfile.dev, one-off: `bin/rails tailwindcss:build`); Sprockets bundles the other stylesheets through the `*= require` directives in `application.css`
   * Copy Bootstrap Icons fonts to `public/fonts` (once after `npm install`): `npm run copy:fonts`
+* **Error pages** (`public/404.html`, `422.html`, `500.html`, `406-unsupported-browser.html`): static
+  and checked in, written by `bin/rails runner script/error_pages` from
+  `lib/lalabase/error_pages/page.html.erb` and `config/locales/error_pages.{de,en}.yml`. Edit those,
+  never the files (guard: `spec/architecture/public_error_pages_spec.rb`). Rails serves them for
+  its own errors, and the web server can serve `500.html` while Puma does not answer. The rest of
+  `public/` stays ignored: a new file there needs its own `!` line in `.gitignore` and
+  `.dockerignore`. Until 27 November 2026 `public/` was ignored as a whole and a wrong address
+  answered 404 with an empty body.
 * **Database**:
   * Migrations: `bin/rails db:migrate`
   * Load schema: `bin/rails db:schema:load`

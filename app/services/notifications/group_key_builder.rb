@@ -11,7 +11,8 @@ module Notifications
   # - Time Window: Only events within 5 minutes are grouped
   # - Context-Aware: Groups only genuinely similar events (same context)
   # - User-Specific: Each user has their own groupings
-  # - Atomic Updates: PostgreSQL advisory locks prevent race conditions
+  # - One lock per group: two runs of one group take turns, and the second sees what the
+  #   first committed (with_group_lock)
   #
   # EXAMPLE:
   # 3 comments on ticket #123 within 5 minutes
@@ -21,7 +22,17 @@ module Notifications
   class GroupKeyBuilder
     GROUP_TIME_WINDOW = 5.minutes
     MAX_GROUP_SIZE = 10
-    MAX_LOCK_RETRIES = 3
+    # How long a run waits for the lock of its group while another run holds it. Running
+    # out is a failed run (LockFailedError), planned again by its outbox event.
+    GROUP_LOCK_WAIT = 5.seconds
+
+    # The lock of one group, held until the transaction ends. The key is a bind, never part
+    # of the SQL. SELECT 1 FROM: pg_advisory_xact_lock returns void.
+    GROUP_LOCK_TRY = "SELECT pg_try_advisory_xact_lock(hashtextextended('notification_group:' || $1, 0))"
+    GROUP_LOCK_TAKE = "SELECT 1 FROM pg_advisory_xact_lock(hashtextextended('notification_group:' || $1, 0))"
+    LOCK_TIMEOUT_READ = "SELECT current_setting('lock_timeout')"
+    LOCK_TIMEOUT_SET = "SELECT set_config('lock_timeout', $1, true)"
+    private_constant :GROUP_LOCK_TRY, :GROUP_LOCK_TAKE, :LOCK_TIMEOUT_READ, :LOCK_TIMEOUT_SET
 
     # Maps normalized action names to regex patterns that match raw action strings.
     ACTION_NORMALIZATIONS = {
@@ -60,7 +71,7 @@ module Notifications
     def find_or_create_group(notification_params)
       group_key = build
 
-      with_advisory_lock(group_key) do
+      with_group_lock(group_key) do
         existing = find_existing_group(group_key, notification_params[:channel]) unless ungrouped_comment_email?(notification_params)
 
         if existing
@@ -139,9 +150,10 @@ module Notifications
       end
     end
 
-    # The state can change after the lookup (read, archived, an email that left
-    # the queue), so RowEvents reads the row again under its lock and asks this
-    # rule there. A refused row stays as it is and the event gets a new row.
+    # The state can change after the lookup (read, archived, deleted, an email
+    # that left the queue), so RowEvents reads the row again under its lock and
+    # asks this rule there. A refused row stays as it is, a deleted one stays
+    # gone, and the event gets a new row.
     def update_existing_group(notification, new_params)
       folded = RowEvents.fold!(notification: notification, at: @activity.created_at,
                                actor_id: new_params[:actor_id] || new_params[:actor]&.id,
@@ -212,42 +224,53 @@ module Notifications
       Digest::SHA256.hexdigest(components.compact.join(':'))
     end
 
-    def with_advisory_lock(key)
-      lock_key = "notification_group:#{key}"
-      lock_id = Digest::SHA1.hexdigest(lock_key).hex % (2**31 - 1)
-      connection = ActiveRecord::Base.connection
-
-      retries = 0
-      begin
-        acquired = connection.execute(
-          "SELECT pg_try_advisory_lock(#{lock_id})"
-        ).first['pg_try_advisory_lock']
-
-        raise LockTimeoutError, "Could not acquire advisory lock for #{key}" unless acquired
-
-        begin
-          yield
-        ensure
-          connection.execute("SELECT pg_advisory_unlock(#{lock_id})")
-        end
-      rescue LockTimeoutError
-        retries += 1
-        if retries <= MAX_LOCK_RETRIES
-          Rails.logger.warn(
-            "GroupKeyBuilder: Lock timeout for #{lock_key}, retry #{retries}/#{MAX_LOCK_RETRIES}"
-          )
-          sleep(rand(0.1..0.5))
-          retry
-        else
-          Rails.logger.error(
-            "GroupKeyBuilder: Failed to acquire lock after #{MAX_LOCK_RETRIES} retries for #{lock_key}"
-          )
-          raise LockFailedError, "Could not acquire lock for group key: #{key}"
-        end
+    # One lock per group: a second run of the group waits until the first has committed,
+    # and then its lookup sees what the first wrote. Every recipient of one event shares
+    # the group key, so a run takes the lock at its first recipient and holds it, before
+    # any notification row of the group, until its transaction ends (OutboxEvent#process!).
+    # Order: outbox event row, post row of a comment, this lock, the group's rows.
+    #
+    # A transaction lock ends with the transaction, also when a statement in it fails, so
+    # none can stay with a pooled connection. Standing alone, this opens a transaction of
+    # its own: a transaction lock taken outside one ends with its statement.
+    #
+    # Block form: spec/support/prosopite.rb names this frame for the recipient loop.
+    def with_group_lock(key)
+      Notification.transaction do
+        take_group_lock(key)
+        yield
       end
+    end
+
+    # Yes at once for a free key and for one this transaction holds already (every
+    # recipient after the first). Only a no waits.
+    def take_group_lock(key)
+      free = Notification.connection.select_value(GROUP_LOCK_TRY, 'GroupKeyBuilder group lock', [key])
+      wait_for_group_lock(key) unless ActiveModel::Type::Boolean.new.cast(free)
+    end
+
+    # Waits at most GROUP_LOCK_WAIT. A lock timeout aborts the transaction it happens in,
+    # so the wait has a savepoint of its own: running out rolls back only the wait, and
+    # LockFailedError stays an ordinary error. A local setting outlives a released savepoint
+    # until the transaction ends, so lock_timeout is put back by hand; else the row locks
+    # after it would wait under the same limit.
+    def wait_for_group_lock(key)
+      connection = Notification.connection
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      before = connection.select_value(LOCK_TIMEOUT_READ, 'GroupKeyBuilder lock wait')
+      connection.transaction(requires_new: true) do
+        connection.select_value(LOCK_TIMEOUT_SET, 'GroupKeyBuilder lock wait',
+                                ["#{GROUP_LOCK_WAIT.in_milliseconds.to_i}ms"])
+        connection.select_value(GROUP_LOCK_TAKE, 'GroupKeyBuilder group lock', [key])
+      end
+      connection.select_value(LOCK_TIMEOUT_SET, 'GroupKeyBuilder lock wait', [before])
+      waited = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).round(2)
+      Rails.logger.warn("GroupKeyBuilder: waited #{waited}s for the lock of group #{key}")
+    rescue ActiveRecord::LockWaitTimeout
+      Rails.logger.error("GroupKeyBuilder: no lock within #{GROUP_LOCK_WAIT.to_i}s for group #{key}")
+      raise LockFailedError, "Could not acquire lock for group key: #{key}"
     end
   end
 
-  class LockTimeoutError < StandardError; end
   class LockFailedError < StandardError; end
 end

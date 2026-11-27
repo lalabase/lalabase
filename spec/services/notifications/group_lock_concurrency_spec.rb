@@ -71,20 +71,96 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
     ).to_i
   end
 
+  def current_lock_timeout
+    ActiveRecord::Base.connection.select_value("SELECT current_setting('lock_timeout')")
+  end
+
   # Holds run :a after its first call of find_or_create_group has returned, until `release`
-  # is fed. Every other caller passes.
-  def hold_first_write_of_a(ready, release)
+  # is fed. Every other caller passes; run :b leaves the lock_timeout of its connection
+  # before and after its first call in `seen`.
+  def hold_first_write_of_a(ready, release, seen = {})
     calls = Hash.new(0)
     mutex = Mutex.new
     allow_any_instance_of(described_class).to receive(:find_or_create_group).and_wrap_original do |original, *args|
       run = Thread.current[:group_lock_run]
       first = mutex.synchronize { (calls[run] += 1) == 1 }
+      seen[:lock_timeout_before] = current_lock_timeout if run == :b && first
       answer = original.call(*args)
+      seen[:lock_timeout_after] = current_lock_timeout if run == :b && first
       if run == :a && first
         ready << true
         release.pop
       end
       answer
+    end
+  end
+
+  # The wait event of the first other backend of this database seen waiting for a lock, or
+  # nil when none waits before the deadline.
+  def lock_wait_of_other_backends(timeout: 5)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+    loop do
+      event = ActiveRecord::Base.connection.select_value(<<~SQL.squish)
+        SELECT wait_event FROM pg_stat_activity
+        WHERE wait_event_type = 'Lock' AND datname = current_database() AND pid <> pg_backend_pid()
+        LIMIT 1
+      SQL
+      return event if event
+      return nil if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+
+      sleep 0.02
+    end
+  end
+
+  # Run :a writes for its first recipient and is held; run :b starts and is watched until it
+  # waits for a lock or the deadline passes; then :a is let go. Answers what :b waited on.
+  def race(first_event, second_event, seen = {})
+    ready = Queue.new
+    release = Queue.new
+    hold_first_write_of_a(ready, release, seen)
+    first = run_in_thread(first_event, :a)
+    Timeout.timeout(10) { ready.pop }
+    second = run_in_thread(second_event, :b)
+    waited = lock_wait_of_other_backends
+    release << true
+    [first, second].each { |thread| raise 'a run did not end' unless thread.join(20) }
+    [first, second].each(&:value)
+    waited
+  ensure
+    release&.push(true)
+    [first, second].compact.each { |thread| thread.join(2) || thread.kill }
+  end
+
+  # retry! clears error_message as it plans the next try, so the examples read the error a
+  # run books (OutboxEvent#mark_failed), per event.
+  def record_failures
+    booked = Hash.new { |hash, key| hash[key] = [] }
+    allow_any_instance_of(OutboxEvent).to receive(:mark_failed).and_wrap_original do |original, message|
+      booked[original.receiver.id] << message
+      original.call(message)
+    end
+    booked
+  end
+
+  def comment_event_type
+    Notifications::Constants.derive_event_type('ticket.post_added', 'post_added')
+  end
+
+  # A committed unread row of the group, one that may take the next comment: in the inbox,
+  # normal priority, inside the window (the factory dates a row an hour back), with the post
+  # ids of an earlier comment.
+  def unread_row(reader, ticket, group_key, post, at:)
+    create(:notification, recipient: reader, organisation: organisation, notifiable: ticket, project: project,
+                          actor: actor, group_key: group_key, group_count: 1, event_type: comment_event_type,
+                          channel: 'in_app', state: 'queued', priority: 'normal', score: 50,
+                          payload: { 'action' => 'post_added', 'actor_ids' => [actor.id], 'post_ids' => [post.id.to_s] },
+                          created_at: at, updated_at: at, first_event_at: at, last_event_at: at, happened_at: at)
+  end
+
+  def processed_without_retry(*events)
+    events.each do |event|
+      expect(event.reload).to have_attributes(retry_count: 0, error_message: nil)
+      expect(event.processed_at).to be_present
     end
   end
 
@@ -149,6 +225,115 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
       release << true if release
       first&.join(2)
       first&.kill if first&.alive?
+    end
+  end
+
+  describe 'two runs of one group at once' do
+    let(:now) { Time.current }
+
+    def events_of_one_group(ticket, readers)
+      first_event = comment_event(ticket, at: now)
+      second_event = comment_event(ticket, at: now)
+      group_key = described_class.new(first_event.activity, readers.first).build
+      expect(described_class.new(second_event.activity, readers.first).build).to eq(group_key)
+      [first_event, second_event, group_key]
+    end
+
+    # The second run waits for the group lock while the first holds it, so the row lock of
+    # the first never stands between them, and neither run fails.
+    it 'lets the second wait for the first, then fold into the row each recipient already has' do
+      ticket, readers = ticket_with_readers(2)
+      first_event, second_event, group_key = events_of_one_group(ticket, readers)
+      earlier_post = create(:post, ticket: ticket, user: actor, organisation: organisation)
+      readers.each { |reader| unread_row(reader, ticket, group_key, earlier_post, at: now) }
+      expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to match_array(readers.map { |reader| [reader.id, 1] })
+
+      seen = {}
+      waited = race(first_event, second_event, seen)
+
+      expect(waited).to eq('advisory')
+      processed_without_retry(first_event, second_event)
+      expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to match_array(readers.map { |reader| [reader.id, 3] })
+      expect(seen[:lock_timeout_before]).to be_present
+      expect(seen[:lock_timeout_after]).to eq(seen[:lock_timeout_before])
+    end
+
+    # The second run sees what the first committed, so one group stays one row.
+    it 'lets the second wait for the first, then fold into the rows the first wrote' do
+      ticket, readers = ticket_with_readers(2)
+      first_event, second_event, = events_of_one_group(ticket, readers)
+      expect(inbox_rows(ticket)).not_to exist
+
+      waited = race(first_event, second_event)
+
+      expect(waited).to eq('advisory')
+      processed_without_retry(first_event, second_event)
+      expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to match_array(readers.map { |reader| [reader.id, 2] })
+    end
+  end
+
+  # A statement that fails in the database aborts the transaction. The lock must end with it,
+  # or it would stay with the pooled connection and shut out every other run of the group.
+  describe 'a statement that fails inside the lock' do
+    after { ActiveRecord::Base.connection.execute('SELECT pg_advisory_unlock_all()') }
+
+    it 'leaves no advisory lock behind, and the run books the error of that statement' do
+      ticket, = ticket_with_readers(1)
+      event = comment_event(ticket, at: Time.current)
+      booked = record_failures
+      held = []
+      allow_any_instance_of(described_class).to receive(:create_new_group).and_wrap_original do |_original, *|
+        held << advisory_locks_of_this_backend
+        ActiveRecord::Base.connection.execute('SELECT 1/0')
+      end
+      expect(advisory_locks_of_this_backend).to eq(0)
+
+      OutboxEvent.find(event.id).process!
+
+      expect(held.size).to eq(1)
+      expect(held.first).to be_positive
+      expect(advisory_locks_of_this_backend).to eq(0)
+      expect(event.reload).to have_attributes(processed_at: nil, retry_count: 1)
+      expect(booked[event.id]).to contain_exactly(a_string_matching(/division by zero/))
+    end
+  end
+
+  # A holder that does not let go. The second run waits GROUP_LOCK_WAIT, gives up, keeps
+  # nothing and is planned again, as a run that fails for any other reason.
+  describe 'a run that does not get the lock in time' do
+    it 'fails, writes nothing and is planned again, and the holder goes through' do
+      stub_const("#{described_class}::GROUP_LOCK_WAIT", 0.2.seconds)
+      now = Time.current
+      ticket, readers = ticket_with_readers(2)
+      first_event = comment_event(ticket, at: now)
+      second_event = comment_event(ticket, at: now)
+      group_key = described_class.new(first_event.activity, readers.first).build
+      booked = record_failures
+
+      ready = Queue.new
+      release = Queue.new
+      hold_first_write_of_a(ready, release)
+      first = run_in_thread(first_event, :a)
+      Timeout.timeout(10) { ready.pop }
+      second = run_in_thread(second_event, :b)
+      raise 'the second run did not end' unless second.join(10)
+
+      second.value
+      expect(first).to be_alive
+      expect(second_event.reload).to have_attributes(processed_at: nil, retry_count: 1)
+      expect(second_event.available_at).to be > Time.current
+      expect(booked[second_event.id]).to contain_exactly("Could not acquire lock for group key: #{group_key}")
+
+      release << true
+      raise 'the first run did not end' unless first.join(20)
+
+      first.value
+      processed_without_retry(first_event)
+      expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to match_array(readers.map { |reader| [reader.id, 1] })
+      expect(inbox_rows(ticket).map { |row| row.payload['activity_id'] }.uniq).to eq([first_event.activity_id])
+    ensure
+      release << true if release
+      [first, second].compact.each { |thread| thread.join(2) || thread.kill }
     end
   end
 end

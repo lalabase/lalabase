@@ -8,7 +8,8 @@ require 'rails_helper'
 # Until 2026-10-31 the rows stayed. The retry stopped at the first recipient it had already
 # served, whose dedupe_fingerprint was taken, and the people after that one got nothing, on
 # every retry up to MAX_RETRY_COUNT. One lost advisory lock was enough, and several uploads
-# at once were enough to lose one (GroupKeyBuilder shares the lock per project and action).
+# at once were enough to lose one. Now a run waits for the lock of its group
+# (GroupKeyBuilder#with_group_lock) and fails only when GROUP_LOCK_WAIT runs out.
 RSpec.describe OutboxEvent, '#process! after a failed run', :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:project) { create(:project, organisation: organisation) }

@@ -185,10 +185,12 @@ RSpec.describe Notifications::FanoutService, 'simplified ticket notifications' d
       expect(notifications_for(watcher, channel: 'email').sole).to be_unread
     end
 
-    # The arrival rule holds for such a row as well (Notifications::RowEvents
-    # header): written late, it is read at once and still stands at the moment
-    # it was written, on top of a list that shows read rows. Named, not changed.
-    it 'stands a row it writes late and reads at once at its arrival' do
+    # The one exception to the arrival rule (Notifications::RowEvents header): a row
+    # written late for a comment its reader had already acknowledged is read at once
+    # and was never news, so it stands where a row written in time would stand. Until
+    # 2026-11-27 it stood at the moment it was written, on top of every list that
+    # shows read rows and under today.
+    it 'stands a row it writes late and reads at once at the time of its event' do
       post_record = create(:post, organisation: organisation, ticket: ticket, user: actor)
       create(:post_read, organisation: organisation, post: post_record, user: watcher)
       activity = create(:activity, :post_added,
@@ -200,7 +202,47 @@ RSpec.describe Notifications::FanoutService, 'simplified ticket notifications' d
       row = notifications_for(watcher).sole
       expect(row).to be_state_read
       expect(row.happened_at).to be_within(1.second).of(activity.created_at)
+      expect(row.last_event_at).to be_within(1.second).of(activity.created_at)
+      expect(row.read_attribute(:happened_at)).to eq(row.last_event_at)
+    end
+
+    it 'keeps a row it writes late and leaves unread at its arrival' do
+      post_record = create(:post, organisation: organisation, ticket: ticket, user: actor)
+      activity = create(:activity, :post_added,
+                        organisation: organisation, trackable: ticket, actor: actor,
+                        secondary: post_record, created_at: 2.hours.ago)
+
+      run_fanout(activity)
+
+      row = notifications_for(watcher).sole
+      expect(row).to be_unread
       expect(row.last_event_at).to be > 1.minute.ago
+    end
+
+    # A row that stood in the list unread (its only post deleted since) and is read
+    # when a late, acknowledged comment folds in never moves back below where it
+    # stood: the exception holds for a row written in that same fanout only.
+    it 'never moves a row back that stood in the list before a late fold reads it' do
+      deleted_post = create(:post, organisation: organisation, ticket: ticket, user: actor)
+      post_record = create(:post, organisation: organisation, ticket: ticket, user: actor)
+      activity = create(:activity, :post_added, organisation: organisation, trackable: ticket,
+                                                actor: actor, secondary: post_record, created_at: 4.minutes.ago)
+      stood_at = 1.minute.ago
+      row = create(:notification, :ticket_commented,
+                   organisation: organisation, recipient: watcher, actor: actor,
+                   notifiable: ticket, project: project, created_at: 3.minutes.ago,
+                   first_event_at: 3.minutes.ago, happened_at: 3.minutes.ago, last_event_at: stood_at,
+                   group_key: Notifications::GroupKeyBuilder.new(activity, watcher).build,
+                   payload: { 'post_ids' => [deleted_post.id] })
+      deleted_post.destroy!
+      create(:post_read, organisation: organisation, post: post_record, user: watcher)
+
+      expect(run_fanout(activity)[:success]).to be true
+
+      row.reload
+      expect(row).to be_state_read
+      expect(row.group_count).to eq(2)
+      expect(row.last_event_at).to be >= stood_at
     end
 
     it 'receives notification for ticket status change' do

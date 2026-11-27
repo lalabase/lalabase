@@ -6,7 +6,8 @@ require 'rails_helper'
 # fold writes, what a refusal leaves alone, and that the decision is taken on
 # the row as the database holds it under the lock. The lock itself, against a
 # second connection: row_events_concurrency_spec.rb. And the rule both writers
-# of last_event_at ask, a fold and a new row: the arrival of an event.
+# of last_event_at ask, a fold and a new row: the arrival of an event, with its
+# one exception for a row read the moment it is written.
 RSpec.describe Notifications::RowEvents, :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:project) { create(:project, organisation: organisation) }
@@ -555,6 +556,26 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
 
         expect(row_values(row)).to include('group_count' => 2, 'updated_at' => now)
       end
+    end
+  end
+
+  # A row the fanout wrote and read at once, its comment acknowledged before it
+  # arrived: it stands at the time its event happened, not at its write
+  # (FanoutService#reconcile_existing_post_reads; the chain in
+  # fanout_service_ticket_simple_spec.rb).
+  describe '.acknowledged_on_arrival!' do
+    it 'stands the row at the time its latest event happened and leaves the other event fields' do
+      event_time = 2.hours.ago.change(usec: 0)
+      row = create(:notification, recipient: recipient, organisation: organisation, notifiable: ticket,
+                                  project: project, event_type: 'ticket_commented', channel: 'in_app',
+                                  state: 'read', read_at: Time.current, created_at: Time.current,
+                                  first_event_at: event_time, happened_at: event_time, last_event_at: Time.current)
+
+      described_class.acknowledged_on_arrival!(notification: row)
+
+      expect(Notification.find(row.id).attributes.slice(*%w[group_count first_event_at happened_at last_event_at]))
+        .to eq('group_count' => 1, 'first_event_at' => event_time, 'happened_at' => event_time,
+               'last_event_at' => event_time)
     end
   end
 

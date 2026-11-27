@@ -22,18 +22,20 @@
 # event without a time of its own (`at: nil`) has arrived now: the count rises,
 # last_event_at is the time of the write, the other two stay.
 #
-# One case follows from the rule and is left as it is: a row written late for
-# a comment its reader had already acknowledged (a reaction recorded before the
-# delivery, FanoutService#reconcile_existing_post_reads) is read the moment it
-# is written and still stands at its arrival, on top of a list that shows read
-# rows and inside today's period, though it was never unread.
+# One exception, acknowledged_on_arrival!: a row written for a comment its
+# reader had already acknowledged (a reaction recorded before the delivery,
+# FanoutService#reconcile_existing_post_reads) is read the moment it is written.
+# It was never news, so it stands at its event's own time, where a row written
+# in time would stand, not on top of a list that shows read rows. A row that
+# already stood in a list and is read when a late event folds in keeps its
+# arrival: never back.
 #
 # The row's line, its actor_id and the payload's single values (activity_id,
 # action, parameters), names the event at happened_at: an earlier event that
 # folds in late adds its actor and its lists (post_ids) and leaves the line to
 # the later one, so a row never shows one event's actor beside another's time.
 #
-# Entry point: fold!, arrival
+# Entry point: fold!, arrival, acknowledged_on_arrival!
 module Notifications
   module RowEvents
     class << self
@@ -42,6 +44,15 @@ module Notifications
       # time of its own.
       def arrival(at:)
         [at, Time.current].compact.max
+      end
+
+      # A row written in this transaction and read at once, because its reader
+      # had acknowledged its event before it arrived: it stands at the time its
+      # event happened, not at the moment it was written. The caller holds the
+      # row's lock and answers for "written now"; a row that stood in a list
+      # never moves back.
+      def acknowledged_on_arrival!(notification:)
+        notification.update!(last_event_at: notification.happened_at)
       end
 
       # true: the event is folded in and saved. false: nothing was written.

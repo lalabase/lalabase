@@ -83,15 +83,14 @@ class NeoNotificationComponent < ViewComponent::Base
     fallback_message
   end
 
-  # When the row's latest event happened (Notification#happened_at). The lists
-  # order by when it reached the row (Notification.recent); a row the fanout
-  # wrote late stands on top and still names its event's time.
+  # How long ago the row's latest event happened (Notification#happened_at), in
+  # the reader's language ("vor 2 Stunden", "2 hours ago"): the inbox row's own
+  # words (Inbox::ActivityLine#time_ago). The lists order by when it reached the
+  # row (Notification.recent); a row the fanout wrote late stands on top and
+  # still names its event's time. ActivityLine needs no view context, so there
+  # is no fallback of its own (until 2026-11-27 an English "2d ago").
   def time_ago_text
-    helpers.time_ago_in_words(@notification.happened_at)
-  rescue Exception
-    # Fallback if helper doesn't exist
-    distance_in_days = ((Time.current - @notification.happened_at) / 1.day).round
-    distance_in_days.zero? ? 'today' : "#{distance_in_days}d ago"
+    Inbox::ActivityLine.new(@notification).time_ago
   end
 
   def group_count_text

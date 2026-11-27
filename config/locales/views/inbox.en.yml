@@ -72,6 +72,8 @@ en:
           mark_read: Mark read
           archive: Archive
           clear: Clear selection
+        activities:
+          empty: No detailed activities available.
         item:
           system_actor: System
           unread_label: Unread

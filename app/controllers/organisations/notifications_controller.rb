@@ -548,6 +548,9 @@ class Organisations::NotificationsController < Organisations::BaseController
 
   def activities
     authorize @notification, :activities?
+    # The event in words, as the inbox row says it (Inbox::ActivityLine): the
+    # reader's language, never the stored action key.
+    line = Inbox::ActivityLine.new(@notification)
 
     # Return individual activities that make up this grouped notification
     if @notification.grouped?
@@ -569,7 +572,7 @@ class Organisations::NotificationsController < Organisations::BaseController
 
         activities_data << {
           actor_name: actor.full_name,
-          action: @notification.payload['action']&.humanize || 'performed an action',
+          action: line.event_words,
           timestamp: estimated_time,
           time_ago: helpers.time_ago_in_words(estimated_time)
         }
@@ -580,8 +583,8 @@ class Organisations::NotificationsController < Organisations::BaseController
     else
       # Single notification - return basic info
       activity_data = [{
-        actor_name: @notification.actor&.full_name || 'System',
-        action: @notification.payload['action']&.humanize || @notification.event_type.humanize,
+        actor_name: @notification.actor&.full_name || t('views.organisations.notifications.item.system_actor'),
+        action: line.event_words,
         timestamp: @notification.happened_at,
         time_ago: helpers.time_ago_in_words(@notification.happened_at)
       }]

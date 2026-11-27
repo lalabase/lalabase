@@ -72,6 +72,8 @@ de:
           mark_read: Als gelesen
           archive: Archivieren
           clear: Auswahl aufheben
+        activities:
+          empty: Keine einzelnen Aktivitäten verfügbar.
         item:
           system_actor: System
           unread_label: Ungelesen

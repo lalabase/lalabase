@@ -10,7 +10,8 @@ require 'rails_helper'
 #       actor of the latest event first (actor_id), then the others newest first:
 #       RowEvents.fold! keeps actor_ids oldest first, the leading actor last, and a
 #       group folded before it may name the leading actor anywhere. A single row
-#       shows the time of its event, not of its write (created_at).
+#       shows the time of its event, not of its write (created_at). The words of a
+#       line are the inbox row's (Inbox::ActivityLine), in the reader's language.
 # Why: since a row stands at the moment its event reached it
 #       (Notifications::RowEvents.arrival), a retried fanout would have dated
 #       every actor by its delay, up to the 72 hours of the outbox's retries.
@@ -100,6 +101,19 @@ RSpec.describe 'Notification group activities', type: :request do
                 payload: { 'action' => 'commented', 'actor_ids' => [first_actor.id, second_actor.id] })
 
     expect(lines(group).map(&:first)).to eq(['Ada Erste', 'Ben Zweite'])
+  end
+
+  # The action and the empty state are the reader's language (de here), the inbox
+  # row's words for the event (Inbox::ActivityLine), never the stored action key.
+  it 'words its lines and its empty state in the language of the reader' do
+    get activities_organisation_notification_path(organisation, row(group_count: 2))
+    actions = Nokogiri::HTML(response.body).css('.activity-item span.text-sm').map { |node| node.text.strip }
+    expect(actions).to eq([I18n.t('views.organisations.notifications.event_short.ticket_commented', locale: :de)] * 2)
+
+    nobody = row(group_count: 2, actor: nil, payload: { 'action' => 'commented', 'actor_ids' => [SecureRandom.uuid] })
+    get activities_organisation_notification_path(organisation, nobody)
+    expect(Nokogiri::HTML(response.body).at_css('.group-activities').text.strip)
+      .to eq(I18n.t('views.organisations.notifications.activities.empty', locale: :de))
   end
 
   it 'dates a single row by the time of its event, not by its write' do

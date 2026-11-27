@@ -112,6 +112,45 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
     end
   end
 
+  # Ends the statement of every other backend of this database that waits for a lock. Called
+  # in ensure, so a wait that never ends (a broken limit) fails its example instead of hanging
+  # the file and every truncate after it. A no-op when nothing waits.
+  def cancel_lock_waits
+    ActiveRecord::Base.connection.select_values(<<~SQL.squish)
+      SELECT pg_cancel_backend(pid) FROM pg_stat_activity
+      WHERE wait_event_type = 'Lock' AND datname = current_database() AND pid <> pg_backend_pid()
+    SQL
+  end
+
+  def builder_params(activity, reader, ticket)
+    { organisation: organisation, recipient: reader, actor: actor, notifiable: ticket,
+      event_type: comment_event_type, channel: :in_app, priority: :normal, state: :queued, score: 50,
+      payload: { activity_id: activity.id, action: 'post_added', post_ids: [activity.secondary_id.to_s] } }
+  end
+
+  # The builder called inside a transaction of its own connection, the way a caller other than
+  # the fanout would. `before` runs first in that transaction. Answers the thread; its value is
+  # what the call raised (nil when it returned) and lock_timeout before and after the call.
+  def builder_in_thread(activity, reader, ticket, before: nil)
+    Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do
+        ActsAsTenant.with_tenant(organisation) do
+          Notification.transaction do
+            before&.call
+            before_call = current_lock_timeout
+            raised = begin
+              described_class.new(activity, reader).find_or_create_group(builder_params(activity, reader, ticket))
+              nil
+            rescue Notifications::LockFailedError => e
+              e.message
+            end
+            { raised: raised, before: before_call, after: current_lock_timeout }
+          end
+        end
+      end
+    end
+  end
+
   # Run :a writes for its first recipient and is held; run :b starts and is watched until it
   # waits for a lock or the deadline passes; then :a is let go. Answers what :b waited on.
   def race(first_event, second_event, seen = {})
@@ -127,8 +166,9 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
     [first, second].each(&:value)
     waited
   ensure
+    cancel_lock_waits
     release&.push(true)
-    [first, second].compact.each { |thread| thread.join(2) || thread.kill }
+    [first, second].compact.each { |thread| thread.join(5) || thread.kill }
   end
 
   # retry! clears error_message as it plans the next try, so the examples read the error a
@@ -332,8 +372,9 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
       expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to match_array(readers.map { |reader| [reader.id, 1] })
       expect(inbox_rows(ticket).map { |row| row.payload['activity_id'] }.uniq).to eq([first_event.activity_id])
     ensure
+      cancel_lock_waits
       release << true if release
-      [first, second].compact.each { |thread| thread.join(2) || thread.kill }
+      [first, second].compact.each { |thread| thread.join(5) || thread.kill }
     end
 
     # A lock timeout aborts the transaction it happens in. The wait has a savepoint of its
@@ -344,9 +385,6 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
       ticket, readers = ticket_with_readers(1)
       first_event = comment_event(ticket, at: Time.current)
       activity = comment_event(ticket, at: first_event.activity.created_at).activity
-      params = { organisation: organisation, recipient: readers.first, actor: actor, notifiable: ticket,
-                 event_type: comment_event_type, channel: :in_app, priority: :normal, state: :queued, score: 50,
-                 payload: { activity_id: activity.id, action: 'post_added', post_ids: [activity.secondary_id.to_s] } }
 
       ready = Queue.new
       release = Queue.new
@@ -354,15 +392,13 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
       first = run_in_thread(first_event, :a)
       Timeout.timeout(10) { ready.pop }
 
-      settings = Notification.transaction do
-        before_wait = current_lock_timeout
-        expect { described_class.new(activity, readers.first).find_or_create_group(params) }
-          .to raise_error(Notifications::LockFailedError, "Could not acquire lock for group key: #{described_class.new(activity, readers.first).build}")
-        [before_wait, current_lock_timeout]
-      end
+      caller = builder_in_thread(activity, readers.first, ticket)
+      raise 'the waiting caller did not end' unless caller.join(10)
 
-      expect(settings.first).to be_present
-      expect(settings.last).to eq(settings.first)
+      result = caller.value
+      expect(result[:raised]).to eq("Could not acquire lock for group key: #{described_class.new(activity, readers.first).build}")
+      expect(result[:before]).to be_present
+      expect(result[:after]).to eq(result[:before])
       release << true
       raise 'the first run did not end' unless first.join(20)
 
@@ -370,9 +406,41 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
       processed_without_retry(first_event)
       expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to eq([[readers.first.id, 1]])
     ensure
+      cancel_lock_waits
       release << true if release
-      first&.join(2)
-      first&.kill if first&.alive?
+      [first, caller].compact.each { |thread| thread.join(5) || thread.kill }
+    end
+  end
+
+  # The wait sets lock_timeout for itself only. A caller that holds a limit of its own gets that
+  # limit back after a wait that succeeds, not the setting of the session.
+  describe 'a wait that succeeds' do
+    it 'puts back the lock_timeout its caller had set' do
+      ticket, readers = ticket_with_readers(1)
+      first_event = comment_event(ticket, at: Time.current)
+      activity = comment_event(ticket, at: first_event.activity.created_at).activity
+
+      ready = Queue.new
+      release = Queue.new
+      hold_first_write_of_a(ready, release)
+      first = run_in_thread(first_event, :a)
+      Timeout.timeout(10) { ready.pop }
+
+      own_limit = -> { ActiveRecord::Base.connection.execute("SET LOCAL lock_timeout = '1234ms'") }
+      caller = builder_in_thread(activity, readers.first, ticket, before: own_limit)
+      waited = lock_wait_of_other_backends
+      release << true
+      raise 'the waiting caller did not end' unless caller.join(20) && first.join(20)
+
+      result = caller.value
+      first.value
+      expect(waited).to eq('advisory')
+      expect(result).to eq(raised: nil, before: '1234ms', after: '1234ms')
+      expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to eq([[readers.first.id, 2]])
+    ensure
+      cancel_lock_waits
+      release << true if release
+      [first, caller].compact.each { |thread| thread.join(5) || thread.kill }
     end
   end
 end

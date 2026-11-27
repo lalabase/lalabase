@@ -593,10 +593,15 @@ module Notifications
     # notification. Reconcile the durable receipt while holding the same row
     # lock used by grouping, so acknowledged posts cannot reappear as unread.
     # Email lifecycle rows stay independent and continue through delivery.
+    # A row this call wrote and reads at once stands at its event's own time
+    # (RowEvents.acknowledged_on_arrival!): written late, it would otherwise
+    # stand on top of every list that shows read rows, though it was never news.
     def reconcile_existing_post_reads(notification, recipient)
       return unless notification.channel_in_app?
       return unless notification.event_type_ticket_commented?
 
+      # Asked before the lock: with_lock reloads the row, and a reload forgets it.
+      written_now = notification.previously_new_record?
       notification.with_lock do
         post_ids = Array(notification.payload['post_ids']).map(&:to_s).uniq
         next if post_ids.empty?
@@ -606,7 +611,10 @@ module Notifications
           user: recipient,
           post_ids: post_ids
         )
-        notification.mark_as_read! if fully_read
+        next unless fully_read
+
+        notification.mark_as_read!
+        RowEvents.acknowledged_on_arrival!(notification: notification) if written_now
       end
     end
 

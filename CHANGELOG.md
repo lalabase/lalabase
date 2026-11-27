@@ -18,6 +18,15 @@ starts (`db:prepare lalabase:data_backfills`). Without Docker, run
 
 ## [Unreleased]
 
+### Upgrade notes
+
+- A migration adds the column `notifications.happened_at`, and a second one builds an index
+  on it concurrently. Restart the job workers right after migrating, all of them at once:
+  stop every worker of the old release before a worker of this release starts. Until it
+  restarts, an old worker fails its notification fanouts and retries them later; one that
+  runs beside a new worker can leave a notification showing the time of an earlier event.
+  With Docker, `docker compose up -d` does this by itself (#278).
+
 ## [2026.11.1] - 2026-11-19
 
 <!-- drafted from 499f88148db1fe89ae460f12379df4c2b93e47cc -->

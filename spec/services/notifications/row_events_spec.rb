@@ -5,7 +5,9 @@ require 'rails_helper'
 # Folding one more event into a notification row that already exists: what a
 # fold writes, what a refusal leaves alone, and that the decision is taken on
 # the row as the database holds it under the lock. The lock itself, against a
-# second connection: row_events_concurrency_spec.rb.
+# second connection: row_events_concurrency_spec.rb. And the rule both writers
+# of last_event_at ask, a fold and a new row: the arrival of an event, with its
+# one exception for a row read the moment it is written.
 RSpec.describe Notifications::RowEvents, :ci_guard do
   let(:organisation) { create(:organisation) }
   let(:project) { create(:project, organisation: organisation) }
@@ -16,12 +18,51 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
 
   before { ActsAsTenant.current_tenant = organisation }
 
+  # The moment an event reaches a row that is written now. The clock stands
+  # still, and the event lies before it, on it or after it.
+  describe '.arrival' do
+    include ActiveSupport::Testing::TimeHelpers
+
+    let(:now) { Time.zone.local(2026, 11, 24, 14, 10, 0) }
+
+    before { travel_to(now) }
+    after { travel_back }
+
+    it 'answers the time of the write for an event that happened before it' do
+      expect(described_class.arrival(at: now - 2.days)).to eq(now)
+    end
+
+    it 'answers the event\'s own time for an event that lies after the time of the write' do
+      expect(described_class.arrival(at: now + 2.minutes)).to eq(now + 2.minutes)
+    end
+
+    it 'answers the time of the write for an event at that very moment' do
+      expect(described_class.arrival(at: now)).to eq(now)
+    end
+
+    it 'answers the time of the write for an event without a time of its own' do
+      expect(described_class.arrival(at: nil)).to eq(now)
+    end
+
+    it 'reads the clock on every call' do
+      expect(described_class.arrival(at: nil)).to eq(now)
+
+      travel_to(now + 1.minute)
+
+      expect(described_class.arrival(at: nil)).to eq(now + 1.minute)
+      expect(described_class.arrival(at: now)).to eq(now + 1.minute)
+    end
+  end
+
   describe '.fold!' do
     include ActiveSupport::Testing::TimeHelpers
 
     # Every time of a row is its own, and the events of a call lie before,
     # inside and after its span. The factory copies created_at into both event
-    # times, which would hide a span that moves the wrong end.
+    # times, which would hide a span that moves the wrong end. The clock stands
+    # at `now`, after all of them: a fold writes last_event_at as the arrival of
+    # the event, the time of the write, and first_event_at from the event's own
+    # time. Two times lie after the clock, for an event and for a row ahead of it.
     let(:earlier_time) { Time.zone.local(2026, 11, 24, 14, 0, 0) }
     let(:first_time) { Time.zone.local(2026, 11, 24, 14, 1, 0) }
     let(:created_time) { Time.zone.local(2026, 11, 24, 14, 1, 30) }
@@ -30,10 +71,13 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
     let(:later_time) { Time.zone.local(2026, 11, 24, 14, 4, 0) }
     let(:written_time) { Time.zone.local(2026, 11, 24, 14, 5, 0) }
     let(:now) { Time.zone.local(2026, 11, 24, 14, 10, 0) }
+    let(:ahead_time) { Time.zone.local(2026, 11, 24, 14, 12, 0) }
+    let(:far_ahead_time) { Time.zone.local(2026, 11, 24, 14, 20, 0) }
     let(:first_post_id) { SecureRandom.uuid }
     let(:second_post_id) { SecureRandom.uuid }
     let(:kept_columns) do
-      %w[group_count first_event_at last_event_at payload actor_id updated_at state read_at archived_at created_at]
+      %w[group_count first_event_at last_event_at happened_at payload actor_id updated_at state read_at
+         archived_at created_at]
     end
 
     before { travel_to(now) }
@@ -66,36 +110,207 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
       expect(row_values(row)).to include('group_count' => 4)
     end
 
-    it 'moves last_event_at to a later event and leaves first_event_at' do
+    it 'moves last_event_at to the time of the write for a later event and leaves first_event_at' do
       row = create_row
       expect(row_values(row)).to include('first_event_at' => first_time, 'last_event_at' => last_time,
                                          'created_at' => created_time)
 
       described_class.fold!(notification: row, at: later_time)
 
-      expect(row_values(row)).to include('first_event_at' => first_time, 'last_event_at' => later_time,
+      expect(row_values(row)).to include('first_event_at' => first_time, 'last_event_at' => now,
                                          'created_at' => created_time)
     end
 
-    it 'moves first_event_at back to an earlier event and leaves last_event_at' do
+    it 'moves first_event_at back to an earlier event and last_event_at to the time of the write' do
       row = create_row
       expect(row_values(row)).to include('first_event_at' => first_time, 'last_event_at' => last_time,
                                          'created_at' => created_time)
 
       described_class.fold!(notification: row, at: earlier_time)
 
-      expect(row_values(row)).to include('first_event_at' => earlier_time, 'last_event_at' => last_time,
+      expect(row_values(row)).to include('first_event_at' => earlier_time, 'last_event_at' => now,
                                          'created_at' => created_time)
     end
 
-    it 'moves neither end for an event inside the span' do
+    it 'leaves first_event_at and moves last_event_at to the time of the write for an event inside the span' do
       row = create_row
       expect(row_values(row)).to include('first_event_at' => first_time, 'last_event_at' => last_time)
 
       described_class.fold!(notification: row, at: inside_time)
 
       expect(row_values(row)).to include('group_count' => 2, 'first_event_at' => first_time,
+                                         'last_event_at' => now)
+    end
+
+    # The two bounds of the right edge: never before the event's own time, and
+    # never back behind what the row already holds.
+    it 'moves last_event_at to the event\'s own time when that lies after the time of the write' do
+      row = create_row
+      expect(row_values(row)).to include('first_event_at' => first_time, 'last_event_at' => last_time)
+      expect(ahead_time).to be > now
+
+      described_class.fold!(notification: row, at: ahead_time)
+
+      expect(row_values(row)).to include('group_count' => 2, 'first_event_at' => first_time,
+                                         'last_event_at' => ahead_time)
+    end
+
+    it 'keeps the last_event_at of a row that lies after the event and after the time of the write' do
+      row = create_row(last_event_at: far_ahead_time)
+      expect(row_values(row)).to include('first_event_at' => first_time, 'last_event_at' => far_ahead_time)
+      expect(far_ahead_time).to be > now
+      expect(far_ahead_time).to be > ahead_time
+
+      described_class.fold!(notification: row, at: ahead_time)
+
+      expect(row_values(row)).to include('group_count' => 2, 'first_event_at' => first_time,
+                                         'last_event_at' => far_ahead_time)
+    end
+
+    # An event without a time of its own has arrived now: the count rises, the
+    # left edge stays, the right edge is the time of the write.
+    it 'folds an event without a time of its own: last_event_at is the time of the write' do
+      row = create_row(group_count: 3)
+      expect(row_values(row)).to include('group_count' => 3, 'first_event_at' => first_time,
                                          'last_event_at' => last_time)
+
+      answer = described_class.fold!(notification: row, at: nil)
+
+      expect(answer).to be(true)
+      expect(row_values(row)).to include('group_count' => 4, 'first_event_at' => first_time,
+                                         'last_event_at' => now, 'created_at' => created_time)
+    end
+
+    # Two folds are two writes: the row stands at the later one.
+    it 'moves last_event_at again when a second event folds in later' do
+      row = create_row
+
+      described_class.fold!(notification: row, at: earlier_time)
+      expect(row_values(row)).to include('group_count' => 2, 'last_event_at' => now)
+
+      travel_to(now + 1.minute)
+      described_class.fold!(notification: Notification.find(row.id), at: inside_time)
+
+      expect(row_values(row)).to include('group_count' => 3, 'first_event_at' => earlier_time,
+                                         'last_event_at' => now + 1.minute)
+    end
+
+    # happened_at is the latest event's own time, the time a row shows: it widens
+    # like the span and never takes the time of the write. The rows above carry
+    # none (written before the column), the rows here carry last_time.
+    describe 'happened_at' do
+      it 'moves to the own time of a later event, where last_event_at takes the time of the write' do
+        row = create_row(happened_at: last_time)
+
+        described_class.fold!(notification: row, at: later_time)
+
+        expect(row_values(row)).to include('first_event_at' => first_time, 'happened_at' => later_time,
+                                           'last_event_at' => now)
+      end
+
+      it 'stays for an earlier event and for one inside the span' do
+        row = create_row(happened_at: last_time)
+
+        described_class.fold!(notification: row, at: earlier_time)
+        described_class.fold!(notification: Notification.find(row.id), at: inside_time)
+
+        expect(row_values(row)).to include('group_count' => 3, 'first_event_at' => earlier_time,
+                                           'happened_at' => last_time, 'last_event_at' => now)
+      end
+
+      it 'stays for an event without a time of its own' do
+        row = create_row(happened_at: last_time)
+
+        described_class.fold!(notification: row, at: nil)
+
+        expect(row_values(row)).to include('group_count' => 2, 'happened_at' => last_time, 'last_event_at' => now)
+      end
+
+      # Before the column last_event_at was the event's own time: a fold starts from it.
+      it 'starts from last_event_at on a row written before the column' do
+        row = create_row
+        expect(row_values(row)).to include('happened_at' => nil, 'last_event_at' => last_time)
+        expect(row.happened_at).to eq(last_time)
+
+        described_class.fold!(notification: row, at: earlier_time)
+
+        expect(row_values(row)).to include('first_event_at' => earlier_time, 'happened_at' => last_time,
+                                           'last_event_at' => now)
+      end
+    end
+
+    # The row's line (actor_id and the payload's single values: activity_id,
+    # action, parameters) names the event at happened_at, the time the row shows.
+    # An earlier event that folds in late (a retried outbox event) joins the row
+    # with its count, its actor and its lists, and leaves the line to the later
+    # event: its actor goes before the leading one in actor_ids, which stays
+    # last. An event at the time of the latest one leads; one without a time of
+    # its own does not, since happened_at stays.
+    describe 'the line of the row' do
+      let(:leading_payload) do
+        { 'action' => 'commented', 'activity_id' => 'later-activity', 'parameters' => { 'excerpt' => 'later' },
+          'actor_ids' => [actor.id], 'post_ids' => [first_post_id] }
+      end
+
+      it 'stays with the later event when an earlier one folds in late' do
+        row = create_row(happened_at: last_time, payload: leading_payload)
+
+        described_class.fold!(notification: row, at: earlier_time, actor_id: other_actor.id,
+                              payload: { 'action' => 'mentioned', 'activity_id' => 'earlier-activity',
+                                         'parameters' => { 'excerpt' => 'earlier' }, 'post_ids' => [second_post_id] })
+
+        values = row_values(row)
+        expect(values).to include('group_count' => 2, 'actor_id' => actor.id, 'happened_at' => last_time,
+                                  'first_event_at' => earlier_time)
+        expect(values['payload']).to eq('action' => 'commented', 'activity_id' => 'later-activity',
+                                        'parameters' => { 'excerpt' => 'later' },
+                                        'actor_ids' => [other_actor.id, actor.id],
+                                        'post_ids' => [first_post_id, second_post_id])
+      end
+
+      it 'goes to an event at the time of the latest one' do
+        row = create_row(happened_at: last_time, payload: leading_payload)
+
+        described_class.fold!(notification: row, at: last_time, actor_id: other_actor.id,
+                              payload: { 'activity_id' => 'same-time-activity' })
+
+        values = row_values(row)
+        expect(values['actor_id']).to eq(other_actor.id)
+        expect(values['payload']).to include('activity_id' => 'same-time-activity',
+                                             'actor_ids' => [actor.id, other_actor.id])
+      end
+
+      it 'stays for an event without a time of its own' do
+        row = create_row(happened_at: last_time, payload: leading_payload)
+
+        described_class.fold!(notification: row, at: nil, actor_id: other_actor.id,
+                              payload: { 'activity_id' => 'timeless-activity' })
+
+        values = row_values(row)
+        expect(values['actor_id']).to eq(actor.id)
+        expect(values['payload']).to include('activity_id' => 'later-activity',
+                                             'actor_ids' => [other_actor.id, actor.id])
+      end
+
+      it 'takes a single value the row lacks, also from an earlier event' do
+        row = create_row(happened_at: last_time, payload: { 'action' => 'commented', 'actor_ids' => [actor.id] })
+
+        described_class.fold!(notification: row, at: earlier_time, payload: { 'activity_id' => 'earlier-activity' })
+
+        expect(row_values(row)['payload']).to include('activity_id' => 'earlier-activity', 'action' => 'commented')
+      end
+
+      # The activities popover reads actor_ids from the end, the leading actor first.
+      it 'puts an actor who leads again at the end of actor_ids' do
+        row = create_row(happened_at: last_time)
+        described_class.fold!(notification: row, at: later_time, actor_id: other_actor.id)
+
+        described_class.fold!(notification: Notification.find(row.id), at: later_time + 30.seconds, actor_id: actor.id)
+
+        values = row_values(row)
+        expect(values['actor_id']).to eq(actor.id)
+        expect(values['payload']['actor_ids']).to eq([other_actor.id, actor.id])
+      end
     end
 
     it 'writes the new actor to actor_id and keeps both actors once in actor_ids' do
@@ -156,7 +371,7 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
 
       expect(answer).to be(true)
       expect(row).not_to be_changed
-      expect(row_values(row)).to include('group_count' => 2, 'last_event_at' => later_time, 'updated_at' => now)
+      expect(row_values(row)).to include('group_count' => 2, 'last_event_at' => now, 'updated_at' => now)
     end
 
     it 'folds without a block' do
@@ -164,7 +379,7 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
 
       expect(described_class.fold!(notification: row, at: later_time)).to be(true)
 
-      expect(row_values(row)).to include('group_count' => 2, 'last_event_at' => later_time)
+      expect(row_values(row)).to include('group_count' => 2, 'last_event_at' => now)
     end
 
     context 'when the row is read or archived' do
@@ -254,7 +469,7 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
         expect(seen.size).to eq(1)
         expect(seen.first.first).to be(loaded)
         expect(seen.first.drop(1)).to eq([4, 'low'])
-        expect(row_values(row)).to include('group_count' => 5, 'last_event_at' => later_time)
+        expect(row_values(row)).to include('group_count' => 5, 'last_event_at' => now)
       end
 
       it 'stops the fold and writes nothing when the block answers false' do
@@ -294,7 +509,7 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
         answer = described_class.fold!(notification: row, at: later_time) { true }
 
         expect(answer).to be(true)
-        expect(row_values(row)).to include('group_count' => 2, 'last_event_at' => later_time)
+        expect(row_values(row)).to include('group_count' => 2, 'last_event_at' => now)
       end
     end
 
@@ -322,6 +537,17 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
           .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: recipient.id)
       end
 
+      # An earlier event moves the row up as well, so the lists must hear of it.
+      it 'refreshes the unread signal of the recipient for an event earlier than the row\'s first' do
+        row = create_row
+        clear_enqueued_jobs
+        expect(row_values(row)).to include('first_event_at' => first_time, 'last_event_at' => last_time)
+        expect(earlier_time).to be < first_time
+
+        expect { described_class.fold!(notification: row, at: earlier_time) }
+          .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: recipient.id)
+      end
+
       it 'moves updated_at to the time of the fold' do
         row = create_row
         expect(row_values(row)).to include('updated_at' => written_time)
@@ -330,6 +556,26 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
 
         expect(row_values(row)).to include('group_count' => 2, 'updated_at' => now)
       end
+    end
+  end
+
+  # A row the fanout wrote and read at once, its comment acknowledged before it
+  # arrived: it stands at the time its event happened, not at its write
+  # (FanoutService#reconcile_existing_post_reads; the chain in
+  # fanout_service_ticket_simple_spec.rb).
+  describe '.acknowledged_on_arrival!' do
+    it 'stands the row at the time its latest event happened and leaves the other event fields' do
+      event_time = 2.hours.ago.change(usec: 0)
+      row = create(:notification, recipient: recipient, organisation: organisation, notifiable: ticket,
+                                  project: project, event_type: 'ticket_commented', channel: 'in_app',
+                                  state: 'read', read_at: Time.current, created_at: Time.current,
+                                  first_event_at: event_time, happened_at: event_time, last_event_at: Time.current)
+
+      described_class.acknowledged_on_arrival!(notification: row)
+
+      expect(Notification.find(row.id).attributes.slice(*%w[group_count first_event_at happened_at last_event_at]))
+        .to eq('group_count' => 1, 'first_event_at' => event_time, 'happened_at' => event_time,
+               'last_event_at' => event_time)
     end
   end
 

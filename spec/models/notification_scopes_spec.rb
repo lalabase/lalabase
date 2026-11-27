@@ -25,9 +25,9 @@ RSpec.describe Notification, type: :model do
     create(:notification, recipient: recipient, organisation: organisation, created_at: moment)
   end
 
-  # A row's latest event (last_event_at) moves when a later event folds into it
-  # (Notifications::GroupKeyBuilder); its created_at never does. The factory lets both
-  # follow created_at, so every proving row here sets them far apart.
+  # The moment a row's latest event reached it (last_event_at) moves when an event
+  # folds into it (Notifications::GroupKeyBuilder); its created_at never does. The
+  # factory lets both follow created_at, so every proving row here sets them far apart.
   def row(created_at:, last_event_at: created_at, **attributes)
     create(:notification, recipient: recipient, organisation: organisation,
                           created_at: created_at, first_event_at: created_at, last_event_at: last_event_at, **attributes)

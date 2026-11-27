@@ -96,6 +96,7 @@ RSpec.describe Notifications::RowEvents, 'under a second connection', :ci_guard 
   end
 
   it 'holds the row while it asks the block, so a reader waits for the fold' do
+    started_at = Time.current
     organisation = create(:organisation)
     row = create_row(organisation)
 
@@ -127,8 +128,14 @@ RSpec.describe Notifications::RowEvents, 'under a second connection', :ci_guard 
     expect(folder.join(10)).to be_present
     expect(folder.value).to be(true)
 
+    # The clock runs here: the fold stamped the row with the time of its write,
+    # some moment of this example, long after the event's own time.
     Notification.find(row.id).mark_as_read!
-    expect(Notification.find(row.id)).to have_attributes(state: 'read', group_count: 2, last_event_at: event_time)
+    folded = Notification.find(row.id)
+    expect(folded).to have_attributes(state: 'read', group_count: 2, first_event_at: first_time,
+                                      happened_at: event_time)
+    expect(event_time).to be < started_at
+    expect(folded.last_event_at).to be_between(started_at.floor(6), Time.current)
   ensure
     answer_block << true if answer_block
     folder&.join(2)

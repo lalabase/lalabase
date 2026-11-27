@@ -60,8 +60,16 @@ module Posts
         # Older grouped notifications predate payload.post_ids. Their scalar
         # activity_id points only at the newest comment in the group, so the
         # group's first/last event interval is the reliable compatibility seam.
+        # Only for those rows: a row with post ids is decided by its ids, and
+        # its interval ends when its latest event reached it, so it may cover
+        # the comments of other rows (a late fanout). The key missing, a JSON
+        # null and an empty list all mean no represented posts.
+        legacy = base.where(
+          "notifications.payload -> 'post_ids' IS NULL OR " \
+          "notifications.payload -> 'post_ids' IN ('null'::jsonb, '[]'::jsonb)"
+        )
         activity_times.each do |created_at|
-          matching = matching.or(base.where('first_event_at <= ? AND last_event_at >= ?', created_at, created_at))
+          matching = matching.or(legacy.where('first_event_at <= ? AND last_event_at >= ?', created_at, created_at))
         end
       end
 

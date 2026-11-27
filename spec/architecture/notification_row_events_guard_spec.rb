@@ -4,11 +4,11 @@ require 'rails_helper'
 require 'prism'
 
 # What: outside Notifications::RowEvents (app/services/notifications/row_events.rb)
-#   nothing in app/ or lib/ writes one of the three event fields of a notification
-#   row that already exists: group_count, first_event_at, last_event_at. Folding one
-#   more event into a row is Notifications::RowEvents.fold!.
-# Why: every inbox list orders and labels by last_event_at, and Posts::MarkRead
-#   matches a comment by first_event_at..last_event_at. The span may only widen,
+#   nothing in app/ or lib/ writes one of the four event fields of a notification
+#   row that already exists: group_count, first_event_at, last_event_at, happened_at.
+#   Folding one more event into a row is Notifications::RowEvents.fold!.
+# Why: every inbox list orders by last_event_at and labels by happened_at, and
+#   Posts::MarkRead matches a comment by first_event_at..last_event_at. The span may only widen,
 #   because events of one bucket can arrive out of order (a retried outbox event).
 #   Until 2026-11-24 (#274) the fold sat inline in GroupKeyBuilder and moved the
 #   span inwards when an older event came in late. A rule that has to be
@@ -50,7 +50,7 @@ module NotificationRowEventsGuard
   OWNER = 'app/services/notifications/row_events.rb'
   PATTERNS = %w[{app,lib}/**/*.rb lib/**/*.rake].freeze
 
-  FIELDS = %w[group_count first_event_at last_event_at].freeze
+  FIELDS = %w[group_count first_event_at last_event_at happened_at].freeze
   FIELD = /\b(?:#{FIELDS.join('|')})\b/
   WRITERS = FIELDS.map { |field| :"#{field}=" }.freeze
 

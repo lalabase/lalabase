@@ -357,6 +357,49 @@ RSpec.describe Notifications::InboxQuery do
     end
   end
 
+  # A row the fanout wrote late: its latest event happened before the bound and
+  # reached the inbox after it (the column last_event_at, RowEvents.arrival).
+  # `since` cuts on the first time and keeps the order of API 1.15, a late row
+  # at the time of its event; arrived_since, the cursor to poll by, cuts and
+  # orders on the second.
+  describe 'arrived_since (rows whose latest event reached the inbox after the bound)' do
+    let(:bound) { Time.zone.parse('2026-08-20 10:00:00') }
+    let!(:in_time) { row(org_a, created_at: bound + 1.minute, last_event_at: bound + 1.minute) }
+    let!(:late) do
+      row(org_a, created_at: bound + 2.minutes, first_event_at: bound - 2.days, happened_at: bound - 2.days,
+                 last_event_at: bound + 2.minutes)
+    end
+    let!(:old) { row(org_a, created_at: bound - 1.day, last_event_at: bound - 1.day) }
+
+    it 'leaves a row written late out of since, which cuts on when its latest event happened' do
+      expect(ids(since: bound.iso8601)).to eq([in_time.id])
+    end
+
+    it 'lists the rows by when their latest event happened without it, a late row at its event' do
+      expect(ids).to eq([in_time.id, old.id, late.id])
+    end
+
+    it 'returns the rows that arrived after the bound, newest arrival first' do
+      expect(ids(arrived_since: bound.iso8601)).to eq([late.id, in_time.id])
+      expect(ids(arrived_since: (bound - 2.days).iso8601)).to eq([late.id, in_time.id, old.id])
+    end
+
+    it 'takes since beside it as a second bound, on when the latest event happened' do
+      expect(ids(arrived_since: (bound - 2.days).iso8601, since: (bound - 1.day - 1.second).iso8601))
+        .to eq([in_time.id, old.id])
+    end
+
+    it 'names its bound in the page, beside since' do
+      page = described_class.call(user: user, reach: reach, arrived_since: bound.iso8601)
+      expect(page).to have_attributes(arrived_since: bound, since: nil)
+    end
+
+    it 'refuses a bound it cannot read, naming arrived_since' do
+      expect { described_class.call(user: user, reach: reach, arrived_since: 'gestern') }
+        .to raise_error(described_class::InvalidArgument, /arrived_since/)
+    end
+  end
+
   describe 'paging' do
     # Each example runs the query several times on purpose (the bounds of one
     # rule side by side). The repeated identical SQL Prosopite sees is that

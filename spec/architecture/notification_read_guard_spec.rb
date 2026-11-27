@@ -19,7 +19,7 @@ module NotificationReadGuard
   # the table itself.
   READ = /\.notifications\b(?![?_!])|(?:includes|joins|left_joins|preload|eager_load)\([^)]*:notifications\b|
           \bNotification\s*\.(?:where|unread|channel_in_app|all|find_by|find|for_user|inbox|unscoped|joins|
-          left_joins|pluck|select|includes|order|group|count|exists\?|recent|in_app)\b/x
+          left_joins|pluck|select|includes|order|group|count|exists\?|recent|by_happened_at|in_app|from)\b/x
 
   # The name of a Turbo stream, not a read.
   NOT_A_READ = /\bStreams\.notifications\b/
@@ -55,7 +55,8 @@ module NotificationReadGuard
     'app/jobs/email_delivery_job.rb' =>
       [1, 'loads its own row by id; deliverable_to_recipient? asks accessible_for before any mail goes out'],
     'app/presenters/inbox/master_list_presenter.rb' =>
-      [1, 'representatives by id out of the already filtered inbox relation'],
+      [1, 'representatives out of the already filtered inbox relation: Notification.joins reads only ' \
+          'the rows its inner join takes from that relation, by the ids of its DISTINCT ON subquery'],
     'app/services/dashboard/daily_briefing.rb' =>
       [1, 'uses notified subjects only to HIDE activities from another lane, shows none of them'],
     'app/services/notifications/fanout_service.rb' => [1, 'writes: finds the group a new notification joins'],
@@ -196,6 +197,14 @@ RSpec.describe 'Notification reads go through the inbox rule', type: :architectu
       expect(bare?("slice.notifications.each { |n| n }\n")).to be(true)
       expect(bare?("User.includes(:notifications).where(id: ids)\n")).to be(true)
       expect(bare?("Notification.unscoped.where(recipient: user).count\n")).to be(true)
+    end
+
+    # The two orders of the model (Notification.recent, .by_happened_at) and a read
+    # from a subquery are scopes on the table like where: rows of every recipient.
+    it 'flags the class-level orders and a read from a subquery' do
+      expect(bare?("Notification.recent.where(recipient: user).limit(5)\n")).to be(true)
+      expect(bare?("Notification.by_happened_at.where(recipient: user).limit(5)\n")).to be(true)
+      expect(bare?("Notification.from(rows, :notifications)\n")).to be(true)
     end
 
     it 'reads a chain broken before the association as one statement' do

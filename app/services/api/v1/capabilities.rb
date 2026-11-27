@@ -30,8 +30,12 @@ module Api
       # device in with e-mail and password at POST /api/auth/v1/app_sessions (a
       # door of its own, outside /api/v1) and keeps its token alive while used;
       # 1.15.0 adds app_session.revoke: a client signs out by revoking the token
-      # it calls with.
-      API_VERSION = '1.15.0'
+      # it calls with; 1.16.0 adds notifications.arrival: arrived_at on the rows of
+      # notifications.list, when a row's latest event reached the inbox (later than
+      # its last_event_at when the delivery ran late), and the cursor
+      # arrived_since, which cuts and orders on it; last_event_at and since keep
+      # their meaning.
+      API_VERSION = '1.16.0'
 
       # name => [verb, path as the router spells it]
       ENDPOINTS = {
@@ -75,11 +79,14 @@ module Api
       # rule the MCP tool post_comment writes by, Posts::Comment; R3a), and
       # `meetings.glossary_replacements` (meetings.create takes the list
       # meeting[glossary_replacements] of what the sender replaced from the
-      # glossary, meetings.show hands it back; K4d), and `app_sessions` (the
+      # glossary, meetings.show hands it back; K4d), `app_sessions` (the
       # sign-in door /api/auth/v1 hands out device tokens, kind app_session,
-      # whose expiry moves with their use; no /api/v1 endpoint of its own).
+      # whose expiry moves with their use; no /api/v1 endpoint of its own), and
+      # `notifications.arrival` (notifications.list names arrived_at on every row
+      # and takes the cursor arrived_since, the one to poll by: a row the fanout
+      # writes late keeps the old time of its event in last_event_at).
       FEATURES = %w[idempotency error_codes tickets.paging time_sessions.book posts.plain
-                    meetings.glossary_replacements app_sessions].freeze
+                    meetings.glossary_replacements app_sessions notifications.arrival].freeze
 
       def self.names
         (ENDPOINTS.keys + FEATURES).sort

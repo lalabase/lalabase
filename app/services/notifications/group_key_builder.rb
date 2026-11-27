@@ -177,7 +177,10 @@ module Notifications
         params.merge(
           group_count: 1,
           first_event_at: @activity.created_at,
-          last_event_at: @activity.created_at,
+          happened_at: @activity.created_at,
+          # The moment the event reached the row, not the event's own time: a row
+          # written late stands on top of the lists (RowEvents owns the rule).
+          last_event_at: RowEvents.arrival(at: @activity.created_at),
           dedupe_fingerprint: generate_dedupe_fingerprint(params),
           project: project
         )

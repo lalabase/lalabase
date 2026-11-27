@@ -48,9 +48,19 @@ module Lalabase
           'across every organisation and project this token may see. Default: unread only; ' \
           'status "read" or "all" widens it, since (ISO 8601 timestamp with offset or Z; ' \
           'without an offset it is read as UTC) keeps only rows with activity after that ' \
-          'moment (a grouped row counts its latest event; rows are ordered by that same ' \
-          'activity time, so the first row of a page is the newest), organisation_id narrows ' \
-          'to one organisation (its project-less rows included), project_id to one project. Each row carries a readable message and, for ticket rows, a ticket ' \
+          'moment (a grouped row counts its latest event, last_event_at, the time to show; ' \
+          'rows are ordered by that same activity time, so the first row of a page is the ' \
+          'newest). An event can reach the inbox late, and arrived_at says when it did: ' \
+          'arrived_since (same format) keeps only rows that arrived after that moment and ' \
+          'orders the rows by arrived_at instead. To poll, use arrived_since from a few ' \
+          'minutes before the newest arrived_at you saw and replace every row you already ' \
+          'hold by its id: a row comes back whenever an event folds into it, an earlier one ' \
+          'too (group_count and arrived_at change; actor, message and last_event_at name the ' \
+          'event that happened last and may stay as they were), and a row becomes visible ' \
+          'only when its delivery commits, which nothing bounds, so the overlap has to cover ' \
+          'the longest delivery. ' \
+          'organisation_id narrows to one organisation (its project-less rows included), ' \
+          'project_id to one project. Each row carries a readable message and, for ticket rows, a ticket ' \
           'block with id, number, title and project_id: pass that project_id plus ticket_id ' \
           'to get_ticket to open the ticket. Supports page + per_page. meta.by_organisation ' \
           'lists every organisation in reach with its unread count (id, name, unread; zeros ' \
@@ -69,6 +79,10 @@ module Lalabase
                       description: 'unread (default), read or all.' },
             since: { type: 'string',
                      description: 'ISO 8601 timestamp (offset or Z); only rows with activity after it.' },
+            arrived_since: { type: 'string',
+                             description: 'ISO 8601 timestamp (offset or Z); only rows whose latest event ' \
+                                          'reached the inbox after it (arrived_at), ordered by arrived_at: ' \
+                                          'the cursor to poll by.' },
             organisation_id: { type: 'string',
                                description: 'UUID of one organisation: only its rows (project-less ones included), ' \
                                             'and every count of the page for it alone.' },
@@ -91,7 +105,7 @@ module Lalabase
         # argument comes back as InvalidArgument and answers a clean tool error.
         page = Notifications::InboxQuery.call(
           user: context.actor, reach: context.reach, status: args[:status], since: args[:since],
-          project_id: args[:project_id], organisation_id: args[:organisation_id],
+          arrived_since: args[:arrived_since], project_id: args[:project_id], organisation_id: args[:organisation_id],
           page: args[:page], per_page: args[:per_page]
         )
         json_result(
@@ -99,7 +113,7 @@ module Lalabase
             data: Notifications::Serializer.rows(page.rows, viewer: context.actor),
             meta: { page: page.page, per_page: page.per_page, total: page.total,
                     unread_total: page.unread_total, since: page.since&.iso8601,
-                    by_organisation: page.by_organisation }
+                    arrived_since: page.arrived_since&.iso8601, by_organisation: page.by_organisation }
           }
         )
       # NotReachable first: it inherits from InvalidArgument, and it is the seam's

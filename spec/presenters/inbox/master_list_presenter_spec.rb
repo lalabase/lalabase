@@ -13,15 +13,17 @@ RSpec.describe Inbox::MasterListPresenter do
 
   let(:scope) { Notification.where(recipient: user, channel: 'in_app') }
 
-  # last_event_at: the row's latest event. It moves when a later event folds into
-  # the row (Notifications::GroupKeyBuilder), created_at does not; the factory lets
-  # both follow created_at.
-  def notif(ticket, created_at:, last_event_at: created_at, state: 'queued', **attributes)
+  # last_event_at: when the row's latest event reached it. It moves when an event
+  # folds into the row (Notifications::GroupKeyBuilder), created_at does not; the
+  # factory lets both follow created_at. happened_at (when that event happened)
+  # stays empty unless given, as on a row written before the column: then the row
+  # answers last_event_at.
+  def notif(ticket, created_at:, last_event_at: created_at, first_event_at: created_at, state: 'queued', **attributes)
     ActsAsTenant.with_tenant(organisation) do
       create(:notification,
              recipient: user, organisation: organisation, project: project,
              notifiable: ticket, channel: 'in_app', state: state,
-             created_at: created_at, first_event_at: created_at, last_event_at: last_event_at,
+             created_at: created_at, first_event_at: first_event_at, last_event_at: last_event_at,
              read_at: state == 'read' ? created_at : nil, **attributes)
     end
   end
@@ -68,6 +70,26 @@ RSpec.describe Inbox::MasterListPresenter do
 
       expect(presenter.pagy).to have_attributes(count: 2, pages: 1)
       expect(counts.grep(/DISTINCT ON/i)).to be_empty
+    end
+
+    # The DISTINCT ON and its window sort every row of the filtered inbox, read
+    # ones included, and LIMIT cannot reach into that sort. So it carries the id
+    # and the window alone, and the page joins the whole rows of its bundles
+    # back. Until 2026-11-27 it sorted notifications.*, the payload with it.
+    it 'sorts the representatives over their ids, not over whole rows' do
+      notif(ticket_a, created_at: 2.hours.ago)
+      newest_a = notif(ticket_a, created_at: 90.minutes.ago)
+      newest_b = notif(ticket_b, created_at: 1.hour.ago)
+
+      statements = []
+      callback = ->(*, payload) { statements << payload[:sql] if payload[:sql].include?('DISTINCT ON') }
+      rows = ActiveSupport::Notifications.subscribed(callback, 'sql.active_record') { build.notifications.to_a }
+
+      expect(rows.map(&:id)).to eq([newest_b.id, newest_a.id])
+      expect(rows.first.payload).to be_a(Hash)
+      expect(statements.size).to eq(1)
+      expect(statements.first).to match(/DISTINCT ON \([^)]+\) notifications\.id,/)
+      expect(statements.first).not_to match(/DISTINCT ON \([^)]+\) notifications\.\*/)
     end
 
     # The inbox appends pages (endless scroll). A page behind the end is EMPTY:
@@ -156,9 +178,12 @@ RSpec.describe Inbox::MasterListPresenter do
     end
   end
 
-  # A row's latest event (last_event_at) decides which row stands for a bundle, where
-  # the bundle stands in the list and under which heading: a row created days ago
-  # that got an event a moment ago is the most recent row, as in the token inbox.
+  # Two times of a row decide the bundled view. The row whose latest event happened
+  # last (happened_at) stands for its bundle; the bundle stands in the list, and
+  # under its heading, at its newest arrival (last_event_at, the moment a row's
+  # latest event reached it). A row created days ago that got an event a moment ago
+  # is the most recent row. The rows here carry no happened_at, as rows written
+  # before the column, so the two times are one; the last context parts them.
   describe 'the latest event of a row' do
     it 'lets the row with the latest event represent the bundle, also when it was created first' do
       old_but_active = notif(ticket_a, created_at: 3.days.ago, last_event_at: 5.minutes.ago)
@@ -185,7 +210,7 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(presenter.group_total(presenter.notifications.first)).to eq(4)
     end
 
-    it 'orders the bundles by the latest event of their representative' do
+    it 'orders the bundles by the newest arrival among their rows' do
       notif(ticket_a, created_at: 3.days.ago, last_event_at: 5.minutes.ago)
       notif(ticket_b, created_at: 1.hour.ago)
 
@@ -235,6 +260,58 @@ RSpec.describe Inbox::MasterListPresenter do
         # In UTC both events fall on the 10th, which is today there.
         expect(in_utc.transform_values { |reps| reps.map(&:notifiable_id) })
           .to eq(today: [ticket_a.id, ticket_b.id])
+      end
+    end
+
+    # A row the fanout wrote late arrived after a row of the same ticket whose event
+    # happened later. The line of the bundle says what the ticket's newest event was,
+    # so the row with the later happened_at speaks for it; the bundle stands where
+    # its newest arrival stands, on top, under today.
+    #
+    # The clock stands at a midday: the rows lie up to three days back from it,
+    # and a run in the first half hour after midnight would put the row written
+    # 30 minutes ago under yesterday.
+    context 'when a row of the ticket was written late' do
+      around do |example|
+        travel_to(Time.zone.local(2026, 11, 11, 12)) { example.run } # a Wednesday; the week began on Monday the 9th
+      end
+
+      let!(:in_time) { notif(ticket_a, created_at: 2.hours.ago) }
+      let!(:late) do
+        notif(ticket_a, created_at: 1.minute.ago, first_event_at: 3.days.ago, happened_at: 3.days.ago,
+                        last_event_at: 1.minute.ago)
+      end
+      let!(:between) { notif(ticket_b, created_at: 30.minutes.ago) }
+
+      it 'lets the row whose event happened last speak for the bundle' do
+        expect(late.last_event_at).to be > in_time.last_event_at
+        expect(late.happened_at).to be < in_time.happened_at
+
+        presenter = build
+
+        expect(presenter.notifications.map(&:id)).to eq([in_time.id, between.id])
+        expect(presenter.group_total(in_time)).to eq(2)
+      end
+
+      it 'stands the bundle at its newest arrival, above a bundle that arrived in between' do
+        expect(in_time.last_event_at).to be < between.last_event_at
+
+        grouped = build.grouped_notifications
+
+        expect(grouped.transform_values { |reps| reps.map(&:id) }).to eq(today: [in_time.id, between.id])
+      end
+
+      it 'puts the bundle under the day of its newest arrival, not of its representative' do
+        at = ->(day, hour) { Time.zone.local(2026, 11, day, hour) }
+        in_time.update_columns(created_at: at[2, 9], first_event_at: at[2, 9], last_event_at: at[2, 9])
+        late.update_columns(created_at: at[11, 11], first_event_at: at[1, 9], happened_at: at[1, 9],
+                            last_event_at: at[11, 11])
+        between.update_columns(created_at: at[10, 9], first_event_at: at[10, 9], last_event_at: at[10, 9])
+
+        grouped = build.grouped_notifications
+
+        expect(grouped.transform_values { |reps| reps.map(&:id) })
+          .to eq(today: [in_time.id], yesterday: [between.id])
       end
     end
 
@@ -318,6 +395,44 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(size(state_filters: ['archived'])).to eq(1)
       newest.update_columns(state: 'archived')
       expect(size(state_filters: ['unread'])).to eq(1)
+    end
+  end
+
+  # The lane starts its read timer for a read open row only while the bundle the LIST
+  # drew for it holds an unread row: the rule that draws the row bold (group_unread).
+  # Until 2026-11-27 any unread row of the subject started it, also behind a row opened
+  # in the archive, and the timer read that row unseen.
+  describe '.bundle_unread?' do
+    let!(:read_row) { notif(ticket_a, created_at: 2.hours.ago, state: 'read') }
+    let!(:archived_row) { notif(ticket_a, created_at: 3.hours.ago, state: 'archived') }
+    let!(:other_subject) { notif(ticket_b, created_at: 4.hours.ago, state: 'read') }
+
+    # The subject's one unread row.
+    before { notif(ticket_a, created_at: 1.hour.ago) }
+
+    def unread?(row, params = {})
+      ActsAsTenant.with_tenant(organisation) { described_class.bundle_unread?(row, scope: scope, params: params) }
+    end
+
+    it 'answers what draws the row bold: an unread row in its bundle' do
+      expect(unread?(read_row)).to be(true)
+      expect(build.group_unread(read_row)).to eq(1)
+      expect(unread?(read_row, state_filters: %w[read unread])).to be(true)
+    end
+
+    it 'follows the status view of the list: the archive and the read view hold no unread row' do
+      expect(unread?(archived_row, state_filters: ['archived'])).to be(false)
+      expect(unread?(read_row, state_filters: ['read'])).to be(false)
+      expect(unread?(read_row, 'state' => 'read')).to be(false)
+      expect(build(state_filters: ['archived']).group_unread(archived_row)).to eq(0)
+    end
+
+    it 'is false in the chronological list, where a row stands for itself alone' do
+      expect(unread?(read_row, view_mode: 'chronological')).to be(false)
+    end
+
+    it 'asks the bundle of the row, not the unread rows of another subject' do
+      expect(unread?(other_subject)).to be(false)
     end
   end
 end

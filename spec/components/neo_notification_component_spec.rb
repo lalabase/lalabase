@@ -23,7 +23,10 @@ RSpec.describe NeoNotificationComponent, type: :component do
   before do
     ActsAsTenant.current_tenant = organisation
 
-    # Mock I18n for predictable testing
+    # Mock I18n for predictable testing: the message of the row pinned, every
+    # other key real (the time of the row asks datetime.distance_in_words; until
+    # 2026-11-27 a rescue Exception swallowed the refused call and printed "today ago").
+    allow(I18n).to receive(:t).and_call_original
     allow(I18n).to receive(:t).with(
       'notifications.messages.ticket_commented',
       actor: 'Jane Smith',
@@ -258,27 +261,28 @@ RSpec.describe NeoNotificationComponent, type: :component do
   describe '#time_ago_text' do
     let(:component) { described_class.new(notification: notification) }
 
+    # Created five days ago, latest event two days ago.
     before do
-      allow(component).to receive(:helpers).and_return(double(
-                                                         time_ago_in_words: '2 hours'
-                                                       ))
+      notification.update!(created_at: 5.days.ago, first_event_at: 5.days.ago, last_event_at: 2.days.ago)
     end
 
-    it 'returns time ago text from helper' do
-      expect(component.send(:time_ago_text)).to eq('2 hours')
+    def two_days_ago(locale)
+      I18n.with_locale(locale) do
+        I18n.t('views.common.relative_time_ago', time: I18n.t('datetime.distance_in_words.x_days', count: 2))
+      end
     end
 
-    context 'when helper raises error' do
-      # The fallback counts days since the latest event too: created five days ago,
-      # latest event two days ago.
-      before do
-        allow(component).to receive(:helpers).and_raise(StandardError.new('helper error'))
-        notification.update!(created_at: 5.days.ago, first_event_at: 5.days.ago, last_event_at: 2.days.ago)
-      end
+    it 'says how long ago the latest event happened, in the language of the reader' do
+      expect(I18n.with_locale(:de) { component.send(:time_ago_text) }).to eq(two_days_ago(:de))
+      expect(I18n.with_locale(:en) { component.send(:time_ago_text) }).to eq(two_days_ago(:en))
+    end
 
-      it 'falls back to a day count of the latest event' do
-        expect(component.send(:time_ago_text)).to eq('2d ago')
-      end
+    # Until 2026-11-27 a helper that raised fell back to an English "2d ago", which the
+    # template followed with a second "ago". The text needs no view context now.
+    it 'needs no view helpers' do
+      allow(component).to receive(:helpers).and_raise(StandardError.new('helper error'))
+
+      expect(I18n.with_locale(:de) { component.send(:time_ago_text) }).to eq(two_days_ago(:de))
     end
 
     # A row whose later event folded into it keeps its created_at; the lists order it by

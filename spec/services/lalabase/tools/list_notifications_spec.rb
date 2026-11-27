@@ -78,6 +78,7 @@ RSpec.describe Lalabase::Tools::ListNotifications do
 
   it 'answers the pinned meta' do
     expect(payload['meta']).to eq('page' => 1, 'per_page' => 25, 'total' => 1, 'unread_total' => 1, 'since' => nil,
+                                  'arrived_since' => nil,
                                   'by_organisation' => [{ 'id' => organisation.id, 'name' => organisation.name,
                                                           'unread' => 1 }])
   end

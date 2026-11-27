@@ -2,13 +2,15 @@
 
 require 'rails_helper'
 
-# What: the inbox of one organisation reads a row by its latest event
-#       (last_event_at), the order of the token inbox. A row created days ago
-#       that got an event a moment ago (GroupKeyBuilder folds it in, its
-#       created_at stays) is the most recent row: first in the bundled and in
-#       the chronological list, first in the lane's "what was new" block with
-#       the time of that event, and first in the list the two bulk answers redraw.
-#       Real time throughout: the pages render avatars.
+# What: the inbox of one organisation orders a row by its latest event, by the
+#       moment that event reached the row (last_event_at, the order of the token
+#       inbox by arrival), and prints when it happened (happened_at). A row
+#       created days ago that got an event a moment ago (GroupKeyBuilder folds it
+#       in, its created_at stays) is the most recent row: first in the bundled
+#       and in the chronological list, first in the lane's "what was new" block
+#       with the time of that event, and first in the list the two bulk answers
+#       redraw. Where the two times part, for a row the fanout writes late: the
+#       last block. Real time throughout: the pages render avatars.
 RSpec.describe 'Inbox by the latest event of a row', type: :request do
   before { Prosopite.pause } # pre-existing N+1 in the render path
   after  { Prosopite.resume }
@@ -27,8 +29,10 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
     ActsAsTenant.with_tenant(organisation) { create(:ticket, project: project, title: title) }
   end
 
-  # last_event_at: the row's latest event, which moves when a later event folds into
-  # the row; created_at does not. The factory lets both follow created_at.
+  # last_event_at: the moment the row's latest event reached it, which moves when an
+  # event folds into the row; created_at does not. The factory lets both follow
+  # created_at. happened_at (when that event happened) stays empty unless given, as
+  # on a row written before the column: then the row answers last_event_at.
   def row_about(ticket, created_at:, last_event_at: created_at, **attributes)
     ActsAsTenant.with_tenant(organisation) do
       create(:notification,
@@ -123,17 +127,21 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
     end
   end
 
-  # A row the fanout creates late (an outbox event retried after a failure) starts at
-  # the time of its activity, not of its delivery (GroupKeyBuilder#create_new_group).
-  # It stands where the token inbox has always put it: the web inbox has no second
-  # order of its own (one that put a late row on top by its created_at would split
-  # the two).
+  # A row the fanout writes late (an outbox event delayed, or retried after a failure)
+  # stands at the moment its event reached it, the time of the write, not at the time
+  # of its activity (Notifications::RowEvents.arrival, asked by GroupKeyBuilder). So it
+  # is new and on top: first in the web inbox and in the token inbox by arrival
+  # (arrived_since), which share the one order; under the heading and inside the
+  # period of the day it arrived; and a client that polls the token inbox with
+  # arrived_since gets it. The token inbox without arrived_since keeps what API 1.15
+  # said: last_event_at, `since` and the order are the time of the activity. A fold
+  # is a write as well: an earlier event that reaches a row late moves the row up.
   describe 'a row the fanout creates late' do
-    let!(:late) do
-      ticket = ticket_titled('Spät verteilt')
+    # The row the builder writes now for an activity that happened at another time.
+    def written_now_for(ticket, activity_at:)
       activity = ActsAsTenant.with_tenant(organisation) do
         create(:activity, actor: create(:user), organisation: organisation, trackable: ticket,
-                          action: 'ticket_commented', key: 'ticket.ticket_commented', created_at: 2.days.ago)
+                          action: 'ticket_commented', key: 'ticket.ticket_commented', created_at: activity_at)
       end
       ActsAsTenant.with_tenant(organisation) do
         Notifications::GroupKeyBuilder.new(activity, user).find_or_create_group(
@@ -143,7 +151,12 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
         )
       end
     end
-    # Written after the late row: without an order the table would hand them back as written.
+
+    # Written before the late row and expected below it: without an order the table
+    # hands rows back as written, so the late row must not come first by accident.
+    let!(:day_before) { row_about(ticket_titled('Vorgestern'), created_at: 36.hours.ago) }
+    let!(:late) { written_now_for(ticket_titled('Spät verteilt'), activity_at: 2.days.ago) }
+    # Written after the late row, with a latest event between its activity and its write.
     let!(:yesterday) { row_about(ticket_titled('Gestern'), created_at: 1.day.ago) }
     let(:token) do
       pat = build(:personal_access_token, user: user, organisations: [organisation], read_only: true)
@@ -155,19 +168,211 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
 
     before { make_token_owner_a_member(user, organisation, projects: [project]) }
 
-    it 'stands where the token inbox puts it, at the time of its activity' do
+    def token_rows(**params)
+      get '/api/v1/notifications', params: { status: 'all', **params },
+                                   headers: { 'Authorization' => "Bearer #{token.token}" }
+      expect(response).to have_http_status(:ok)
+      JSON.parse(response.body)['data']
+    end
+
+    def token_inbox(**params)
+      token_rows(**params).pluck('id')
+    end
+
+    # The token inbox by arrival, every row of these examples: they all reached
+    # the inbox within the last three days.
+    def token_inbox_by_arrival
+      token_inbox(arrived_since: 3.days.ago.iso8601)
+    end
+
+    def web_inbox(view_mode: 'chronological', **params)
+      get organisation_notifications_path(organisation, view_mode: view_mode, **params)
+      expect(response).to have_http_status(:ok)
+      Nokogiri::HTML(response.body)
+    end
+
+    it 'stands on top, in the web inbox as in the token inbox by arrival' do
       expect(late.created_at).to be > yesterday.created_at
-      expect(late.last_event_at).to be < yesterday.last_event_at
+      expect(late.first_event_at).to be < day_before.last_event_at
+      expect(late.last_event_at).to be > yesterday.last_event_at
 
-      get '/api/v1/notifications', params: { status: 'all' }, headers: { 'Authorization' => "Bearer #{token.token}" }
-      expect(response).to have_http_status(:ok)
-      token_order = JSON.parse(response.body)['data'].pluck('id')
+      token_order = token_inbox_by_arrival
 
-      get organisation_notifications_path(organisation, view_mode: 'chronological')
-      expect(response).to have_http_status(:ok)
-      web = Nokogiri::HTML(response.body)
-      expect(row_ids(web)).to eq([yesterday.id, late.id])
+      web = web_inbox
+      expect(row_ids(web)).to eq([late.id, yesterday.id, day_before.id])
       expect(row_ids(web)).to eq(token_order)
+    end
+
+    it 'reaches a client that polls the token inbox with arrived_since set between its activity and its write' do
+      since = 1.hour.ago
+      expect(late.first_event_at).to be < since
+      expect(late.created_at).to be > since
+      expect(token_inbox_by_arrival).to eq([late.id, yesterday.id, day_before.id])
+
+      expect(token_inbox(arrived_since: since.iso8601)).to eq([late.id])
+    end
+
+    # A client of API 1.15 reads the same fields, cursor and order as before: the
+    # late row stands at the time of its activity and below a cursor set after it.
+    it 'keeps the time of its activity in the token inbox without arrived_since' do
+      expect(token_inbox).to eq([yesterday.id, day_before.id, late.id])
+      expect(token_inbox(since: 1.hour.ago.iso8601)).to be_empty
+
+      fields = token_rows.find { |row| row['id'] == late.id }
+
+      expect(Time.zone.parse(fields['last_event_at'])).to be_within(1.second).of(late.happened_at)
+      expect(Time.zone.parse(fields['arrived_at'])).to be_within(1.second).of(late.last_event_at)
+      expect(late.last_event_at - late.happened_at).to be > 2.days - 1.minute
+    end
+
+    # { notification id => the period heading it stands under }, in the order of the
+    # list. Only the bundled view draws the headings.
+    def headings_by_row(doc)
+      heading = nil
+      doc.css('#inbox_master_list .inbox-period, #inbox_master_list [data-notification-item]').each_with_object({}) do |node, rows|
+        if node.matches?('.inbox-period')
+          heading = node['data-date-header']
+        else
+          rows[node['data-notification-item']] = heading
+        end
+      end
+    end
+
+    it 'counts on the day it arrived: inside the last 90 days and under today, for an activity before them' do
+      long_late = written_now_for(ticket_titled('Sehr spät verteilt'), activity_at: 100.days.ago)
+      stale = row_about(ticket_titled('Lange still'), created_at: 100.days.ago)
+      expect(long_late.first_event_at).to be < 90.days.ago
+      expect(headings_by_row(web_inbox(view_mode: 'grouped'))).to include(long_late.id => 'today', stale.id => 'older')
+
+      narrowed = headings_by_row(web_inbox(view_mode: 'grouped', period: '90_days'))
+
+      expect(narrowed).to include(long_late.id => 'today', late.id => 'today')
+      expect(narrowed.keys).to contain_exactly(long_late.id, late.id, yesterday.id, day_before.id)
+    end
+
+    # The time a row prints is when its event happened (happened_at), not when it
+    # reached the row: on top, and two days ago.
+    it 'names the time of its activity, not the time of its write' do
+      expect(late.happened_at).to be_within(1.second).of(2.days.ago)
+      expect(late.last_event_at).to be > 1.minute.ago
+
+      time = web_inbox.at_css("[data-notification-item='#{late.id}'] .inbox-row__time").text.strip
+
+      expect(time).to eq(I18n.with_locale(:de) do
+        I18n.t('views.common.relative_time_ago', time: I18n.t('datetime.distance_in_words.x_days', count: 2))
+      end)
+    end
+
+    # The bundled view draws one line per ticket: the row whose latest event
+    # happened last (happened_at) speaks for it, here the row written in time, so
+    # the line says what the ticket's newest event was. The bundle stands where
+    # its newest arrival stands: on top, with the late row it does not show.
+    # (Both rules without the fanout: master_list_presenter_spec.rb.)
+    it 'puts its ticket on top in the bundled view, under the line of the row with the later event' do
+      ticket = ticket_titled('Zwei Zeilen')
+      written_in_time = row_about(ticket, created_at: 1.hour.ago)
+      late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
+      expect(late_comment.id).not_to eq(written_in_time.id)
+      expect(late_comment.happened_at).to be < written_in_time.happened_at
+      expect(late_comment.last_event_at).to be > late.last_event_at
+      expect(row_ids(web_inbox)).to include(late_comment.id, written_in_time.id)
+
+      page = web_inbox(view_mode: 'grouped')
+      bundled = row_ids(page)
+
+      expect(bundled).to eq([written_in_time.id, late.id, yesterday.id, day_before.id])
+      expect(headings_by_row(page)).to include(written_in_time.id => 'today')
+      expect(page.at_css("[data-notification-item='#{written_in_time.id}'] .inbox-row__time").text.strip)
+        .to eq(I18n.with_locale(:de) do
+          I18n.t('views.common.relative_time_ago', time: I18n.t('datetime.distance_in_words.about_x_hours', count: 1))
+        end)
+    end
+
+    # The lane's "what was new" block prints when each event happened, newest on
+    # top: it orders by that time, not by when the row reached the inbox.
+    it "lists the lane's new events by when they happened, the late one below the later event" do
+      ticket = ticket_titled('Zwei Ereignisse, eins spät')
+      in_time = row_about(ticket, created_at: 1.hour.ago)
+      late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
+      expect(late_comment.last_event_at).to be > in_time.last_event_at
+
+      times = web_inbox(notification: in_time.id).css('.inbox-new-activity__item .inbox-new-activity__time')
+
+      hours_ago = lambda do |count|
+        I18n.with_locale(:de) do
+          I18n.t('views.common.relative_time_ago', time: I18n.t('datetime.distance_in_words.about_x_hours', count: count))
+        end
+      end
+      expect(times.map { |time| time.text.strip }).to eq([hours_ago[1], hours_ago[3]])
+    end
+
+    # The bundle stands on top and bold while its late row is unread, but its line
+    # is the read row whose event happened later. Opening that line has to read the
+    # bundle, as opening any bold line does: the lane's timer reads the open row's
+    # whole subject. Without it the ticket stood bold on top after every redraw.
+    it 'reads the late row when the read row that speaks for its bundle is opened' do
+      ticket = ticket_titled('Gelesen, dann spät')
+      read_in_time = row_about(ticket, created_at: 1.hour.ago).tap { |row| row.update!(state: :read, read_at: 30.minutes.ago) }
+      late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
+      expect(late_comment.reload).to be_unread
+      expect(row_ids(web_inbox(view_mode: 'grouped')).first).to eq(read_in_time.id)
+
+      timer = web_inbox(view_mode: 'grouped', notification: read_in_time.id)
+              .at_css('turbo-frame#ticket_pane [data-controller="pane-mark-read-delay"]')
+      expect(timer).to be_present
+
+      patch timer['data-pane-mark-read-delay-url-value'], headers: { 'Accept' => 'text/vnd.turbo-stream.html' }
+
+      expect(response).to have_http_status(:ok)
+      expect(late_comment.reload).to be_state_read
+      expect(read_in_time.reload).to be_state_read
+    end
+
+    # The timer reads what the list draws bold behind the open row, nothing else. A
+    # row opened where its bundle shows no unread row (the archived and the read view)
+    # or in the chronological list, where it stands for itself, starts none, though
+    # its ticket has an unread row elsewhere. Until 2026-11-27 it ran there and read
+    # the late row after five seconds, unseen.
+    it 'starts no timer for a read or archived row whose bundle in the list shows no unread row' do
+      ticket = ticket_titled('Archiviert, dann spät')
+      archived = row_about(ticket, created_at: 1.hour.ago).tap { |row| row.update!(state: :archived, archived_at: 30.minutes.ago) }
+      read_row = row_about(ticket, created_at: 2.hours.ago).tap { |row| row.update!(state: :read, read_at: 30.minutes.ago) }
+      late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
+      expect(late_comment.reload).to be_unread
+      timer = ->(page) { page.at_css('turbo-frame#ticket_pane [data-controller="pane-mark-read-delay"]') }
+
+      expect(timer[web_inbox(view_mode: 'grouped', state_filters: %w[archived], notification: archived.id)]).to be_nil
+      expect(timer[web_inbox(view_mode: 'grouped', state_filters: %w[read], notification: read_row.id)]).to be_nil
+      expect(timer[web_inbox(notification: read_row.id)]).to be_nil
+      # The same row in the bundled "all" view speaks for a bundle that is bold.
+      expect(timer[web_inbox(view_mode: 'grouped', notification: read_row.id)]).to be_present
+      expect(late_comment.reload).to be_unread
+    end
+
+    # Both activities lie in one five-minute bucket that is over, so they share a row.
+    # The clock is moved for the two writes only; the lists are drawn in real time.
+    context 'when an earlier event folds into the row late' do
+      include ActiveSupport::Testing::TimeHelpers
+
+      let(:bucket_start) { Time.zone.at((10.minutes.ago.to_i / 300) * 300) }
+      let(:ticket) { ticket_titled('Zwei Ereignisse') }
+
+      it 'moves the row above a row whose latest event lies between the two writes' do
+        row = travel_to(bucket_start + 190.seconds) { written_now_for(ticket, activity_at: bucket_start + 3.minutes) }
+        between = row_about(ticket_titled('Dazwischen'), created_at: bucket_start + 220.seconds)
+        expect(row.reload).to have_attributes(group_count: 1, last_event_at: bucket_start + 190.seconds)
+        expect(row.last_event_at).to be < between.last_event_at
+
+        folded = travel_to(bucket_start + 260.seconds) { written_now_for(ticket, activity_at: bucket_start + 30.seconds) }
+
+        expect(folded.id).to eq(row.id)
+        expect(row.reload).to have_attributes(group_count: 2, first_event_at: bucket_start + 30.seconds,
+                                              last_event_at: bucket_start + 260.seconds)
+        token_order = token_inbox_by_arrival
+        web = row_ids(web_inbox)
+        expect(web).to eq(token_order)
+        expect(web.first(3)).to eq([late.id, row.id, between.id])
+      end
     end
   end
 end

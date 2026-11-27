@@ -551,17 +551,13 @@ class Organisations::NotificationsController < Organisations::BaseController
 
     # Return individual activities that make up this grouped notification
     if @notification.grouped?
-      # Get all activities from the payload
-      actor_ids = @notification.payload['actor_ids'] || [@notification.actor_id].compact
+      actor_ids = group_actor_ids_newest_first(@notification)
       activities_data = []
 
       # Batch load all actors to prevent N+1 queries
       actors = User.where(id: actor_ids).index_by(&:id)
 
-      # Build activity information from stored data, the actor of the latest
-      # event first: RowEvents.fold! keeps actor_ids oldest first, the leading
-      # actor last.
-      actor_ids.reverse.each_with_index do |actor_id, index|
+      actor_ids.each_with_index do |actor_id, index|
         actor = actors[actor_id]
         next unless actor
 
@@ -602,6 +598,17 @@ class Organisations::NotificationsController < Organisations::BaseController
   end
 
   private
+
+  # The actors of a grouped row for its activities popover, the actor of the
+  # event the row's line names (actor_id) first, then the others newest first.
+  # RowEvents.fold! keeps actor_ids oldest first with that actor last; a row
+  # folded before it kept them in the order they first came, with the leading
+  # actor anywhere (Ada, Ben, Ada again: [Ada, Ben], actor_id Ada).
+  def group_actor_ids_newest_first(notification)
+    lead = notification.actor_id
+    others = Array(notification.payload['actor_ids']).compact.uniq - [lead]
+    [lead, *others.reverse].compact
+  end
 
   def set_notification
     @notification = policy_scope(current_user.notifications)

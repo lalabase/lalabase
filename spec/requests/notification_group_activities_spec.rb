@@ -7,9 +7,10 @@ require 'rails_helper'
 #       never from when that event reached the row (last_event_at). A grouped
 #       row keeps no time per actor, so the lines are estimated back from the
 #       latest event, never before the earliest one (first_event_at), the
-#       actor of the latest event first: RowEvents.fold! keeps actor_ids oldest
-#       first, the leading actor last. A single row shows the time of its event,
-#       not of its write (created_at).
+#       actor of the latest event first (actor_id), then the others newest first:
+#       RowEvents.fold! keeps actor_ids oldest first, the leading actor last, and a
+#       group folded before it may name the leading actor anywhere. A single row
+#       shows the time of its event, not of its write (created_at).
 # Why: since a row stands at the moment its event reached it
 #       (Notifications::RowEvents.arrival), a retried fanout would have dated
 #       every actor by its delay, up to the 72 hours of the outbox's retries.
@@ -89,6 +90,16 @@ RSpec.describe 'Notification group activities', type: :request do
     expect(shown.first).to eq(['Person5 Beispiel', ago(:x_minutes, 1)])
     expect(shown.last).to eq(['Person0 Beispiel', ago(:x_minutes, 2)])
     expect(shown.map(&:last)).not_to include(ago(:x_minutes, 3), ago(:x_minutes, 4))
+  end
+
+  # A group folded before RowEvents.fold! put the leading actor last kept actor_ids in
+  # the order the actors first came: Ada commented, then Ben, then Ada again leaves
+  # [Ada, Ben] with Ada leading. Walking the list from the end would date Ben latest.
+  it 'puts the actor of the latest event first, wherever a legacy group lists it' do
+    group = row(group_count: 3, actor: first_actor,
+                payload: { 'action' => 'commented', 'actor_ids' => [first_actor.id, second_actor.id] })
+
+    expect(lines(group).map(&:first)).to eq(['Ada Erste', 'Ben Zweite'])
   end
 
   it 'dates a single row by the time of its event, not by its write' do

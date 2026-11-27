@@ -19,7 +19,7 @@ module NotificationReadGuard
   # the table itself.
   READ = /\.notifications\b(?![?_!])|(?:includes|joins|left_joins|preload|eager_load)\([^)]*:notifications\b|
           \bNotification\s*\.(?:where|unread|channel_in_app|all|find_by|find|for_user|inbox|unscoped|joins|
-          left_joins|pluck|select|includes|order|group|count|exists\?|recent|in_app|from)\b/x
+          left_joins|pluck|select|includes|order|group|count|exists\?|recent|by_happened_at|in_app|from)\b/x
 
   # The name of a Turbo stream, not a read.
   NOT_A_READ = /\bStreams\.notifications\b/
@@ -197,6 +197,14 @@ RSpec.describe 'Notification reads go through the inbox rule', type: :architectu
       expect(bare?("slice.notifications.each { |n| n }\n")).to be(true)
       expect(bare?("User.includes(:notifications).where(id: ids)\n")).to be(true)
       expect(bare?("Notification.unscoped.where(recipient: user).count\n")).to be(true)
+    end
+
+    # The two orders of the model (Notification.recent, .by_happened_at) and a read
+    # from a subquery are scopes on the table like where: rows of every recipient.
+    it 'flags the class-level orders and a read from a subquery' do
+      expect(bare?("Notification.recent.where(recipient: user).limit(5)\n")).to be(true)
+      expect(bare?("Notification.by_happened_at.where(recipient: user).limit(5)\n")).to be(true)
+      expect(bare?("Notification.from(rows, :notifications)\n")).to be(true)
     end
 
     it 'reads a chain broken before the association as one statement' do

@@ -506,11 +506,14 @@ class Notification < ApplicationRecord
   # Wider than "unread or no longer unread": the same job sends the signal of the
   # inbox above the organisations, which lists read and archived rows too. So a
   # new row, a change between unread, read and archived, and a new event joining a
-  # group (last_event_at, happened_at) count. A change no list shows does not: priority, score,
-  # and delivery steps that leave a row unread (queued, sent, delivered).
+  # group (group_count, last_event_at, happened_at) count. The count alone, too: an
+  # event not later than happened_at that folds into a row whose last_event_at lies
+  # ahead of the clock moves neither time. A change no list shows does not: priority,
+  # score, and delivery steps that leave a row unread (queued, sent, delivered).
   def unread_signal_changed?
     return false unless Notifications::UnreadSignals.signal?(self)
-    return true if saved_change_to_id? || saved_change_to_last_event_at? || saved_change_to_happened_at?
+    return true if saved_change_to_id? || saved_change_to_last_event_at? || saved_change_to_happened_at? ||
+                   saved_change_to_group_count?
 
     before, after = saved_change_to_state
     return false if before.nil? && after.nil?

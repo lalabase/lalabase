@@ -548,6 +548,24 @@ RSpec.describe Notifications::RowEvents, :ci_guard do
           .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: recipient.id)
       end
 
+      # The clock stands before the row's last_event_at, and the event is not later
+      # than its happened_at: neither time moves, only the count. The lists must
+      # hear of it all the same.
+      it 'refreshes the unread signal of the recipient when only the count moves' do
+        row = create_row(happened_at: last_time, last_event_at: far_ahead_time)
+        clear_enqueued_jobs
+        expect(row_values(row)).to include('group_count' => 1, 'first_event_at' => first_time,
+                                           'happened_at' => last_time, 'last_event_at' => far_ahead_time)
+        expect(far_ahead_time).to be > now
+        expect(inside_time).to be_between(first_time, last_time)
+
+        expect { described_class.fold!(notification: row, at: inside_time) }
+          .to have_enqueued_job(Notifications::UnreadSignalsJob).with(user_id: recipient.id)
+
+        expect(row_values(row)).to include('group_count' => 2, 'first_event_at' => first_time,
+                                           'happened_at' => last_time, 'last_event_at' => far_ahead_time)
+      end
+
       it 'moves updated_at to the time of the fold' do
         row = create_row
         expect(row_values(row)).to include('updated_at' => written_time)

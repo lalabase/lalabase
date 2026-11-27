@@ -130,12 +130,15 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
 
   # The builder called inside a transaction of its own connection, the way a caller other than
   # the fanout would. `before` runs first in that transaction. Answers the thread; its value is
-  # what the call raised (nil when it returned) and lock_timeout before and after the call.
+  # what the call raised (nil when it returned), lock_timeout before and after the call inside
+  # the transaction, and the connection's own lock_timeout before the transaction and after its
+  # commit (a pooled connection that kept the wait's limit would carry it to every later job).
   def builder_in_thread(activity, reader, ticket, before: nil)
     Thread.new do
       ActiveRecord::Base.connection_pool.with_connection do
         ActsAsTenant.with_tenant(organisation) do
-          Notification.transaction do
+          session_before = current_lock_timeout
+          result = Notification.transaction do
             before&.call
             before_call = current_lock_timeout
             raised = begin
@@ -146,6 +149,7 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
             end
             { raised: raised, before: before_call, after: current_lock_timeout }
           end
+          result.merge(session_before: session_before, session_after: current_lock_timeout)
         end
       end
     end
@@ -435,7 +439,9 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
       result = caller.value
       first.value
       expect(waited).to eq('advisory')
-      expect(result).to eq(raised: nil, before: '1234ms', after: '1234ms')
+      expect(result.slice(:raised, :before, :after)).to eq(raised: nil, before: '1234ms', after: '1234ms')
+      expect(result[:session_before]).to be_present
+      expect(result[:session_after]).to eq(result[:session_before])
       expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to eq([[readers.first.id, 2]])
     ensure
       cancel_lock_waits

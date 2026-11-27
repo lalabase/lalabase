@@ -1,0 +1,48 @@
+<%# The one template of the static error pages (Lalabase::ErrorPages). Rendered
+    by script/error_pages into public/, never by a request: no helper, no asset
+    path, no script. The output is checked in; edit here, then run the script. -%>
+<!doctype html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title><%= ERB::Util.h(title) %></title>
+  <style>
+    @font-face { font-family: "Geist"; font-style: normal; font-weight: 400 700; font-display: swap; src: url("/fonts/lalabase/geist-latin.woff2") format("woff2"); }
+    @font-face { font-family: "Archivo"; font-style: normal; font-weight: 400 800; font-display: swap; src: url("/fonts/lalabase/archivo-latin.woff2") format("woff2"); }
+    :root { --ink: #14110c; --paper: #fbfaf7; --ground: #f4f4f1; --lime: #bef264; --muted: #57534e; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--ground); color: var(--ink); font: 17px/1.55 "Geist", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 620px; padding: 48px 24px 64px; }
+    .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 40px; font: 600 24px/1 "Archivo", system-ui, sans-serif; }
+    .tile { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 2px solid #000; border-radius: 4px; background: var(--lime); box-shadow: 3px 3px 0 0 #000; }
+    .code { margin: 0 0 24px; font: 700 64px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: -0.02em; }
+    section { padding: 20px 0; border-top: 2px solid var(--ink); }
+    section + section { color: var(--muted); }
+    h1, h2 { margin: 0 0 8px; font-size: 26px; line-height: 1.25; font-weight: 700; }
+    p { margin: 0; }
+    .home { display: inline-block; margin-top: 24px; padding: 10px 18px; border: 2px solid var(--ink); border-radius: 4px; background: var(--lime); color: var(--ink); font-weight: 600; text-decoration: none; box-shadow: 2px 2px 0 0 var(--ink); }
+    .home:hover { box-shadow: 3px 3px 0 0 var(--ink); }
+    .home:active { transform: translate(2px, 2px); box-shadow: none; }
+    .home:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand" aria-hidden="true"><span class="tile">L</span><span>alabase</span></div>
+    <p class="code"><%= code %></p>
+<% sections.each_with_index do |section, index| -%>
+    <section lang="<%= section[:locale] %>">
+<% if index.zero? -%>
+      <h1><%= ERB::Util.h(section[:heading]) %></h1>
+<% else -%>
+      <h2><%= ERB::Util.h(section[:heading]) %></h2>
+<% end -%>
+      <p><%= ERB::Util.h(section[:text]) %></p>
+    </section>
+<% end -%>
+    <a class="home" href="/"><%= home.map { |text| ERB::Util.h(text) }.join(' · ') %></a>
+  </main>
+</body>
+</html>

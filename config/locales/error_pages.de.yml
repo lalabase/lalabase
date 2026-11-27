@@ -1,0 +1,24 @@
+de:
+  # The four static error pages in public/, written by script/error_pages
+  # (Lalabase::ErrorPages). Each page shows German and English one below the
+  # other: a static file cannot know the visitor's language. Change a text here,
+  # then run the script; spec/architecture/public_error_pages_spec.rb is red until
+  # the files match.
+  error_pages:
+    home: Zur Startseite
+    not_found:
+      title: Seite nicht gefunden
+      heading: Diese Seite gibt es nicht.
+      text: Die Adresse ist falsch, oder die Seite wurde verschoben oder gelöscht.
+    unprocessable:
+      title: Anfrage abgelehnt
+      heading: Die Anfrage wurde abgelehnt.
+      text: Meist ist ein Formular abgelaufen. Lade die Seite neu und versuche es noch einmal.
+    server_error:
+      title: Fehler
+      heading: Hier ist gerade etwas schiefgegangen.
+      text: Die Anwendung hatte einen Fehler oder ist kurz nicht erreichbar, etwa während eines Updates. Versuche es in ein paar Minuten noch einmal.
+    unsupported_browser:
+      title: Browser zu alt
+      heading: Dieser Browser ist zu alt.
+      text: Die Anwendung braucht eine aktuelle Version von Chrome, Edge, Firefox oder Safari. Bitte aktualisiere deinen Browser oder öffne die Seite in einem anderen.

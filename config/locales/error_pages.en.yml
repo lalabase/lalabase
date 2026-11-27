@@ -1,0 +1,20 @@
+en:
+  # See error_pages.de.yml: the texts of the four static error pages in public/.
+  error_pages:
+    home: Go to the start page
+    not_found:
+      title: Page not found
+      heading: This page does not exist.
+      text: The address is wrong, or the page was moved or deleted.
+    unprocessable:
+      title: Request refused
+      heading: The request was refused.
+      text: Usually a form has expired. Reload the page and try again.
+    server_error:
+      title: Error
+      heading: Something went wrong here.
+      text: The application ran into an error or is briefly unreachable, for instance during an update. Try again in a few minutes.
+    unsupported_browser:
+      title: Browser too old
+      heading: This browser is too old.
+      text: The application needs a current version of Chrome, Edge, Firefox or Safari. Please update your browser or open the page in another one.

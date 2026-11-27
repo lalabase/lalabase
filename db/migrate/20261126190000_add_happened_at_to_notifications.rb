@@ -21,6 +21,17 @@
 # fanout on that connection and reschedules it until it restarts. An old web
 # process answers a request inside a transaction with a 500 now and then until
 # its own restart. Every column added to this table opens the same window.
+#
+# ⚠️ A second window lasts while workers of both releases run side by side, as
+# in a rolling restart. An old worker that folds an event into a row a new
+# worker wrote raises the count and moves last_event_at as it always did, but
+# never happened_at, a column it does not know. That row keeps the earlier
+# event's time for its label, for the choice of its bundle's representative
+# and for the `since` of the token inbox, until a fold by the new code moves it
+# (RowEvents.fold! takes the later time). So stop every old worker before the
+# first new one starts. `docker compose up -d` does (one worker container, replaced
+# after the web container migrated); a deploy of several workers restarts them
+# all at once, not one by one. The upgrade notes in CHANGELOG.md say the same.
 class AddHappenedAtToNotifications < ActiveRecord::Migration[8.1]
   def change
     add_column :notifications, :happened_at, :datetime

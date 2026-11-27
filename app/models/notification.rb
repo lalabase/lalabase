@@ -188,7 +188,9 @@ class Notification < ApplicationRecord
   UNMAPPED_EVENT = :unmapped_event
 
   # #happened_at in SQL: the latest event's own time, last_event_at for a row
-  # written before the column.
+  # written before the column. index_notifications_on_recipient_and_happened_at
+  # indexes this expression, for the token inbox's default order: change both
+  # (spec/services/notifications/inbox_query_index_spec.rb).
   HAPPENED_AT_SQL = 'COALESCE(notifications.happened_at, notifications.last_event_at)'
 
   # nil = the whole project; UNMAPPED_EVENT = nobody.

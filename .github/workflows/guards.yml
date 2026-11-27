@@ -747,6 +747,7 @@ jobs:
           spec/services/notifications/fanout_service_assignee_comment_spec.rb
           spec/services/notifications/inbox_query_spec.rb
           spec/services/notifications/inbox_query_stamp_spec.rb
+          spec/services/notifications/inbox_query_index_spec.rb
           spec/services/notifications/serializer_spec.rb
           spec/services/notifications/unread_count_parity_spec.rb
           spec/services/notifications/area_rights_spec.rb

@@ -166,7 +166,7 @@ codebase understanding.
   retry. The rule is `Mcp::IdempotencyStore`'s, shared with the REST header; a read tool is
   not offered the key and ignores it. Guard: `spec/requests/api/mcp_idempotency_key_bound_spec.rb`.
 * `indexer/` — codebase indexing (populates `project_index`, `code_symbol`, `fragment`)
-* `project_rag/` — retrieval for project chats; org threads (S3a T3) use only the
+* `project_rag/` — retrieval for project-scoped chats; org threads (S3a T3) use only the
   content layer through `Fragment.for_context_map` (project set narrowed per area)
 * `github/` — repository integration (import only, no ongoing sync)
 * `fence_guard.rb` — neutralizes Markdown fence breakouts (prompt-injection protection;

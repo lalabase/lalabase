@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Post acknowledgement during outbox fanout' do
+RSpec.describe 'Post acknowledgement during outbox fanout', :ci_guard do
   self.use_transactional_tests = false
 
   before do

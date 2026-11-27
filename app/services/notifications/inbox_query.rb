@@ -198,8 +198,10 @@ module Notifications
     # and nothing bounds that wait. So a client that polls asks again from a
     # little before the newest arrived_at it saw, an overlap that has to cover
     # the longest delivery, and replaces every row it already holds by its id:
-    # a row comes back when an event folds into it (count, actor and message
-    # change, the id stays), and an unchanged row inside the overlap comes back
+    # a row comes back whenever an event folds into it, an earlier event too
+    # (the count and the arrival change, the id stays; the actor, the message
+    # and happened_at name the event that happened last and may stay as they
+    # were, RowEvents.fold!), and an unchanged row inside the overlap comes back
     # as it was (the tool description and the REST comment say so). A cursor
     # that follows commits would need a column of its own.
     def relation

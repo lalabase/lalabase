@@ -54,9 +54,11 @@ module Lalabase
           'arrived_since (same format) keeps only rows that arrived after that moment and ' \
           'orders the rows by arrived_at instead. To poll, use arrived_since from a few ' \
           'minutes before the newest arrived_at you saw and replace every row you already ' \
-          'hold by its id: a row comes back when a later event folds into it (new count, ' \
-          'actor and message), and a row becomes visible only when its delivery commits, ' \
-          'which nothing bounds, so the overlap has to cover the longest delivery. ' \
+          'hold by its id: a row comes back whenever an event folds into it, an earlier one ' \
+          'too (group_count and arrived_at change; actor, message and last_event_at name the ' \
+          'event that happened last and may stay as they were), and a row becomes visible ' \
+          'only when its delivery commits, which nothing bounds, so the overlap has to cover ' \
+          'the longest delivery. ' \
           'organisation_id narrows to one organisation (its project-less rows included), ' \
           'project_id to one project. Each row carries a readable message and, for ticket rows, a ticket ' \
           'block with id, number, title and project_id: pass that project_id plus ticket_id ' \

@@ -397,4 +397,42 @@ RSpec.describe Inbox::MasterListPresenter do
       expect(size(state_filters: ['unread'])).to eq(1)
     end
   end
+
+  # The lane starts its read timer for a read open row only while the bundle the LIST
+  # drew for it holds an unread row: the rule that draws the row bold (group_unread).
+  # Until 2026-11-27 any unread row of the subject started it, also behind a row opened
+  # in the archive, and the timer read that row unseen.
+  describe '.bundle_unread?' do
+    let!(:read_row) { notif(ticket_a, created_at: 2.hours.ago, state: 'read') }
+    let!(:archived_row) { notif(ticket_a, created_at: 3.hours.ago, state: 'archived') }
+    let!(:other_subject) { notif(ticket_b, created_at: 4.hours.ago, state: 'read') }
+
+    # The subject's one unread row.
+    before { notif(ticket_a, created_at: 1.hour.ago) }
+
+    def unread?(row, params = {})
+      ActsAsTenant.with_tenant(organisation) { described_class.bundle_unread?(row, scope: scope, params: params) }
+    end
+
+    it 'answers what draws the row bold: an unread row in its bundle' do
+      expect(unread?(read_row)).to be(true)
+      expect(build.group_unread(read_row)).to eq(1)
+      expect(unread?(read_row, state_filters: %w[read unread])).to be(true)
+    end
+
+    it 'follows the status view of the list: the archive and the read view hold no unread row' do
+      expect(unread?(archived_row, state_filters: ['archived'])).to be(false)
+      expect(unread?(read_row, state_filters: ['read'])).to be(false)
+      expect(unread?(read_row, 'state' => 'read')).to be(false)
+      expect(build(state_filters: ['archived']).group_unread(archived_row)).to eq(0)
+    end
+
+    it 'is false in the chronological list, where a row stands for itself alone' do
+      expect(unread?(read_row, view_mode: 'chronological')).to be(false)
+    end
+
+    it 'asks the bundle of the row, not the unread rows of another subject' do
+      expect(unread?(other_subject)).to be(false)
+    end
+  end
 end

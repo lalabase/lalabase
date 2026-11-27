@@ -70,12 +70,30 @@ module Inbox
     # its open row): the row decides its title by this number, like the row the list
     # drew. 1 in the chronological list, where every row is one notification.
     def self.bundle_size(notification, scope:, params:)
-      params = params.to_h.with_indifferent_access
-      return 1 unless (params[:view_mode].presence || 'grouped').to_s == 'grouped'
-
-      rows = with_states(scope, state_filters(params))
-      [rows.where(notifiable_type: notification.notifiable_type, notifiable_id: notification.notifiable_id).count, 1].max
+      bundle = bundle_of(notification, scope: scope, params: params)
+      bundle ? [bundle.count, 1].max : 1
     end
+
+    # Whether that bundle has an unread row, under the same filters: what draws
+    # the row bold (group_unread, for ONE row). The lane starts its read timer
+    # for a read open row only then: in the archived and the read view a bundle
+    # holds no unread row, and in the chronological list a row stands for itself
+    # alone, so opening a row there reads no other row of its subject.
+    def self.bundle_unread?(notification, scope:, params:)
+      bundle = bundle_of(notification, scope: scope, params: params)
+      bundle ? bundle.unread.exists? : false
+    end
+
+    # The rows the list of these filters bundles with this notification's
+    # subject, its status view included; nil in the chronological list.
+    def self.bundle_of(notification, scope:, params:)
+      params = params.to_h.with_indifferent_access
+      return unless (params[:view_mode].presence || 'grouped').to_s == 'grouped'
+
+      with_states(scope, state_filters(params))
+        .where(notifiable_type: notification.notifiable_type, notifiable_id: notification.notifiable_id)
+    end
+    private_class_method :bundle_of
 
     # The state filters an address names: state_filters[], or the single `state`.
     def self.state_filters(params)

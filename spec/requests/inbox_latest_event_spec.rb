@@ -328,6 +328,27 @@ RSpec.describe 'Inbox by the latest event of a row', type: :request do
       expect(read_in_time.reload).to be_state_read
     end
 
+    # The timer reads what the list draws bold behind the open row, nothing else. A
+    # row opened where its bundle shows no unread row (the archived and the read view)
+    # or in the chronological list, where it stands for itself, starts none, though
+    # its ticket has an unread row elsewhere. Until 2026-11-27 it ran there and read
+    # the late row after five seconds, unseen.
+    it 'starts no timer for a read or archived row whose bundle in the list shows no unread row' do
+      ticket = ticket_titled('Archiviert, dann spät')
+      archived = row_about(ticket, created_at: 1.hour.ago).tap { |row| row.update!(state: :archived, archived_at: 30.minutes.ago) }
+      read_row = row_about(ticket, created_at: 2.hours.ago).tap { |row| row.update!(state: :read, read_at: 30.minutes.ago) }
+      late_comment = written_now_for(ticket, activity_at: 3.hours.ago)
+      expect(late_comment.reload).to be_unread
+      timer = ->(page) { page.at_css('turbo-frame#ticket_pane [data-controller="pane-mark-read-delay"]') }
+
+      expect(timer[web_inbox(view_mode: 'grouped', state_filters: %w[archived], notification: archived.id)]).to be_nil
+      expect(timer[web_inbox(view_mode: 'grouped', state_filters: %w[read], notification: read_row.id)]).to be_nil
+      expect(timer[web_inbox(notification: read_row.id)]).to be_nil
+      # The same row in the bundled "all" view speaks for a bundle that is bold.
+      expect(timer[web_inbox(view_mode: 'grouped', notification: read_row.id)]).to be_present
+      expect(late_comment.reload).to be_unread
+    end
+
     # Both activities lie in one five-minute bucket that is over, so they share a row.
     # The clock is moved for the two writes only; the lists are drawn in real time.
     context 'when an earlier event folds into the row late' do

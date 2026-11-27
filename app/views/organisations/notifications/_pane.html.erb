@@ -37,18 +37,21 @@
 <% end %>
 
 <%= turbo_frame_tag 'ticket_pane', class: 'block' do %>
-  <%# Delayed mark_as_read: only while the open row's subject has an unread
-      notification, the open row or another row of its bundle (@new_activities,
-      the subject's unread rows). The row that stands for a bundle can be read
-      while a row the fanout wrote late is not; the row action reads the whole
-      subject (Actors::ChangeNotificationState), so the bundle stops being bold.
+  <%# Delayed mark_as_read: only while the open row is unread, or the bundle the
+      list draws for it has an unread row (@lane_bundle_unread, under the list's
+      own filters and status view: what draws the row bold). The row that stands
+      for a bundle can be read while a row the fanout wrote late is not; the row
+      action reads the whole subject (Actors::ChangeNotificationState), so the
+      bundle stops being bold. A row opened in the archived or the read view,
+      or in the chronological list, starts no timer for an unread row it does
+      not show.
       Stimulus fires a PATCH after 5s; the server responds with a
       turbo_stream that only swaps the pills (inbox_pane_status_pills) and the
       master item, NO full-pane reload, so that an already-open
       reply form is not destroyed. The address is the row action's
       (inbox_row_action_path): above the organisations the page's own, with the
       open row and quiet (no toast). %>
-  <% if notification && (notification.unread? || @new_activities.present?) %>
+  <% if notification && (notification.unread? || @lane_bundle_unread) %>
     <div data-controller="pane-mark-read-delay"
          data-pane-mark-read-delay-url-value="<%= inbox_row_action_path(:mark_read, notification, open: true, quiet: true) %>"
          <%= tag.attributes(data: { pane_mark_read_delay_follow_address_value: 'true' }) if inbox_above_organisations? %>

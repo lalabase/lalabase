@@ -23,8 +23,8 @@ module InboxLane
 
   # Inbox pane loader: reads params[:notification], finds the notification through the
   # policy scope, asks Inbox::LaneKind what it opens and sets @selected_notification,
-  # @lane_kind, @project, @pane_state, @new_activities, @lane_row_bundle (and @ticket
-  # for a ticket). States:
+  # @lane_kind, @project, @pane_state, @new_activities, @lane_row_bundle,
+  # @lane_bundle_unread (and @ticket for a ticket). States:
   #   :ticket        a ticket, rendered inline
   #   :kind          an object with a display of its own, in a nested frame
   #   :card          an event without a display, or one whose object is gone
@@ -70,7 +70,7 @@ module InboxLane
                       .unread
                       .includes(:actor)
                       .by_happened_at
-    @lane_row_bundle = lane_row_bundle(notification)
+    @lane_row_bundle, @lane_bundle_unread = lane_row_bundle(notification)
 
     # DELIBERATELY no more immediate mark_as_read — the user should be able to
     # glance briefly before the status is committed. A Stimulus
@@ -85,15 +85,17 @@ module InboxLane
     policy_scope(current_user.notifications).for_current_tenant_user(current_user)
   end
 
-  # How many notifications the list of this request bundles into the open row (the list
-  # state travels in the lane's address, and the including controller names it as
-  # filter_params). The lane redraws that row, and the row decides its title by this
-  # number: a row for one event of a project shows the object's title, a bundle the
-  # project's name. Asked of the list's own presenter, so both draw the same row.
+  # [size, unread?] of the bundle the list of this request draws for the open row (the
+  # list state travels in the lane's address, and the including controller names it as
+  # filter_params). The lane redraws that row, and the row decides its title by the
+  # size: a row for one event of a project shows the object's title, a bundle the
+  # project's name. unread? decides the read timer of a read open row (the pane). Asked
+  # of the list's own presenter, so both draw the same row.
   def lane_row_bundle(notification)
     filters = Inbox::MasterListPresenter.clean_filters(filter_params.to_h)
     rows = Inbox::MasterListPresenter.narrow(lane_rows.channel_in_app, filters, time_zone: current_user.time_zone)
-    Inbox::MasterListPresenter.bundle_size(notification, scope: rows, params: filters)
+    [Inbox::MasterListPresenter.bundle_size(notification, scope: rows, params: filters),
+     Inbox::MasterListPresenter.bundle_unread?(notification, scope: rows, params: filters)]
   end
 
   # The object's own policy, asked before anything of it is drawn: the ticket the inbox

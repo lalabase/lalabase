@@ -335,5 +335,44 @@ RSpec.describe Notifications::GroupKeyBuilder, 'group lock', :ci_guard do
       release << true if release
       [first, second].compact.each { |thread| thread.join(2) || thread.kill }
     end
+
+    # A lock timeout aborts the transaction it happens in. The wait has a savepoint of its
+    # own, so after LockFailedError the caller's transaction still runs statements: the
+    # rest of the run, or a caller that rescues the error.
+    it 'leaves the transaction of its caller usable after the wait runs out' do
+      stub_const("#{described_class}::GROUP_LOCK_WAIT", 0.2.seconds)
+      ticket, readers = ticket_with_readers(1)
+      first_event = comment_event(ticket, at: Time.current)
+      activity = comment_event(ticket, at: first_event.activity.created_at).activity
+      params = { organisation: organisation, recipient: readers.first, actor: actor, notifiable: ticket,
+                 event_type: comment_event_type, channel: :in_app, priority: :normal, state: :queued, score: 50,
+                 payload: { activity_id: activity.id, action: 'post_added', post_ids: [activity.secondary_id.to_s] } }
+
+      ready = Queue.new
+      release = Queue.new
+      hold_first_write_of_a(ready, release)
+      first = run_in_thread(first_event, :a)
+      Timeout.timeout(10) { ready.pop }
+
+      settings = Notification.transaction do
+        before_wait = current_lock_timeout
+        expect { described_class.new(activity, readers.first).find_or_create_group(params) }
+          .to raise_error(Notifications::LockFailedError, "Could not acquire lock for group key: #{described_class.new(activity, readers.first).build}")
+        [before_wait, current_lock_timeout]
+      end
+
+      expect(settings.first).to be_present
+      expect(settings.last).to eq(settings.first)
+      release << true
+      raise 'the first run did not end' unless first.join(20)
+
+      first.value
+      processed_without_retry(first_event)
+      expect(inbox_rows(ticket).pluck(:recipient_id, :group_count)).to eq([[readers.first.id, 1]])
+    ensure
+      release << true if release
+      first&.join(2)
+      first&.kill if first&.alive?
+    end
   end
 end
